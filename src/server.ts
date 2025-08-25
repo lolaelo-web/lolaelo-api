@@ -4,7 +4,7 @@ import cors from "cors";
 import morgan from "morgan";
 import dotenv from "dotenv";
 import rateLimit from "express-rate-limit";
-import { prisma } from "./prisma";
+import { prisma } from "./prisma.js"; // <-- ESM: include .js
 
 dotenv.config();
 
@@ -39,7 +39,7 @@ app.use(limiter);
 
 const ADMIN_KEY = process.env.ADMIN_KEY || "L0laEl0_Admin_2025!";
 
-/* ------------------ Basic ------------------ */
+/* ------------------ Root & Health ------------------ */
 app.get("/", (_req, res) => {
   res.send("Lolaelo API is running. See /health and /search.");
 });
@@ -154,8 +154,7 @@ app.get("/partners/applications", async (req, res) => {
   }
 });
 
-/* ------------------ Content via ContentBlock ------------------ */
-// Admin upsert
+/* ------------------ Content (ContentBlock) ------------------ */
 app.put("/content/:key", async (req, res) => {
   try {
     const adminKey = req.header("x-admin-key");
@@ -182,7 +181,6 @@ app.put("/content/:key", async (req, res) => {
   }
 });
 
-// Public read
 app.get("/content/:key", async (req, res) => {
   try {
     const contentKey = String(req.params.key);
@@ -195,6 +193,7 @@ app.get("/content/:key", async (req, res) => {
   }
 });
 
+/* ------------------ Start ------------------ */
 const PORT = process.env.PORT || 10000;
 app.listen(PORT, () => {
   console.log(`API listening on :${PORT}`);
