@@ -4,18 +4,18 @@ import cors from "cors";
 import helmet from "helmet";
 import morgan from "morgan";
 
-// Prisma client (ESM import uses .js at runtime)
+// Prisma client (ESM runtime => .js extension)
 import { prisma } from "./prisma.js";
 
 const app = express();
 
-// ---------- Middleware ----------
+/* ----------------------- Middleware ----------------------- */
 app.use(helmet());
-app.use(cors()); // we'll lock to https://www.lolaelo.com later
+app.use(cors()); // we'll lock to https://www.lolaelo.com next step
 app.use(express.json());
 app.use(morgan("tiny"));
 
-// ---------- Admin guard (temporary) ----------
+/* ----------------------- Admin guard ----------------------- */
 function adminGuard(
   req: express.Request,
   res: express.Response,
@@ -28,7 +28,7 @@ function adminGuard(
   next();
 }
 
-// ---------- Root & Health ----------
+/* ----------------------- Root & Health ----------------------- */
 app.get("/", (_req, res) => {
   res.send("Lolaelo API is running. See /health and /search.");
 });
@@ -37,7 +37,7 @@ app.get("/health", (_req, res) => {
   res.json({ status: "ok", ts: new Date().toISOString() });
 });
 
-// ---------- Demo /search (mock data) ----------
+/* ----------------------- Demo Search (mock) ----------------------- */
 const demoProperties = [
   {
     id: "prop_siargao_001",
@@ -61,9 +61,8 @@ app.get("/search", (_req, res) => {
   res.json({ results: demoProperties, total: demoProperties.length });
 });
 
-// ==========================================
-// WAITLIST (DB-backed via Prisma)
-// ==========================================
+/* ======================= WAITLIST ======================== */
+// POST /waitlist  { email, phone? }
 app.post("/waitlist", async (req, res) => {
   try {
     const { email, phone } = req.body || {};
@@ -80,15 +79,13 @@ app.post("/waitlist", async (req, res) => {
   }
 });
 
+// GET /waitlist  (admin)
 app.get("/waitlist", adminGuard, async (_req, res) => {
   const data = await prisma.waitlist.findMany({ orderBy: { createdAt: "desc" } });
   res.json({ total: data.length, data });
 });
 
-// ==========================================
-// PARTNER APPLICATIONS (Step 1)
-// ==========================================
-
+/* ================== PARTNER APPLICATIONS ================= */
 // POST /partners/applications  { companyName, contactName, email, phone?, notes? }
 app.post("/partners/applications", async (req, res) => {
   try {
@@ -105,7 +102,7 @@ app.post("/partners/applications", async (req, res) => {
   }
 });
 
-// GET /partners/applications  (admin only)
+// GET /partners/applications  (admin)
 app.get("/partners/applications", adminGuard, async (_req, res) => {
   const data = await prisma.partnerApplication.findMany({
     orderBy: { createdAt: "desc" }
@@ -113,7 +110,34 @@ app.get("/partners/applications", adminGuard, async (_req, res) => {
   res.json({ total: data.length, data });
 });
 
-// ---------- Start ----------
+/* ======================= CONTENT CMS ===================== */
+// PUT /content/:key (admin)  { value }
+app.put("/content/:key", adminGuard, async (req, res) => {
+  try {
+    const key = String(req.params.key || "").trim();
+    const value = String((req.body?.value ?? "")).trim();
+    if (!key || !value) return res.status(400).json({ error: "key and value are required" });
+
+    const upserted = await prisma.contentBlock.upsert({
+      where: { key },
+      update: { value },
+      create: { key, value }
+    });
+    res.json(upserted);
+  } catch {
+    res.status(500).json({ error: "ServerError" });
+  }
+});
+
+// GET /content/:key
+app.get("/content/:key", async (req, res) => {
+  const key = String(req.params.key || "").trim();
+  const block = await prisma.contentBlock.findUnique({ where: { key } });
+  if (!block) return res.status(404).json({ error: "NotFound" });
+  res.json(block);
+});
+
+/* ----------------------- Start ----------------------- */
 const port = process.env.PORT || 10000; // Render injects PORT
 app.listen(port, () => {
   console.log(`API listening on :${port}`);
