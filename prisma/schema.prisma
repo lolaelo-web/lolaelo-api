@@ -1,5 +1,4 @@
 // prisma/schema.prisma
-
 generator client {
   provider = "prisma-client-js"
 }
@@ -13,19 +12,18 @@ model Waitlist {
   id        String   @id @default(cuid())
   email     String   @unique
   phone     String?
-  notes     String?
   createdAt DateTime @default(now())
 }
 
 model PartnerApplication {
-  id          String   @id @default(cuid())
-  companyName String
-  contactName String
-  email       String
-  phone       String
-  location    String
-  notes       String?
-  createdAt   DateTime @default(now())
+  id           String   @id @default(cuid())
+  companyName  String
+  contactName  String
+  email        String
+  phone        String?    // keep OPTIONAL in DB (existing rows have NULL)
+  location     String?    // keep OPTIONAL in DB (existing rows lack this)
+  notes        String?
+  createdAt    DateTime  @default(now())
 }
 
 model Content {
