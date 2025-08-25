@@ -1,0 +1,32 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model Waitlist {
+  id         String   @id @default(cuid())
+  email      String   @unique
+  phone      String?
+  createdAt  DateTime @default(now())
+}
+
+model PartnerApplication {
+  id           String   @id @default(cuid())
+  companyName  String
+  contactName  String
+  email        String
+  phone        String?
+  notes        String?
+  createdAt    DateTime @default(now())
+}
+
+model ContentBlock {
+  key       String   @id
+  value     String
+  updatedAt DateTime @updatedAt
+  createdAt DateTime @default(now())
+}
