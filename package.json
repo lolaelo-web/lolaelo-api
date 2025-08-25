@@ -16,6 +16,10 @@
   },
   "devDependencies": {
     "tsx": "4.19.2",
-    "typescript": "5.6.2"
+    "typescript": "5.6.2",
+    "@types/node": "22.5.4",
+    "@types/express": "4.17.21",
+    "@types/cors": "2.8.17",
+    "@types/morgan": "1.9.9"
   }
 }
