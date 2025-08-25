@@ -1,4 +1,3 @@
-// src/server.ts
 import express from "express";
 import helmet from "helmet";
 import cors from "cors";
@@ -12,17 +11,15 @@ dotenv.config();
 const app = express();
 app.set("trust proxy", 1);
 
-// Allow your site (and local dev) to call the API
 const PROD_ORIGIN = "https://www.lolaelo.com";
 const DEV_ORIGIN = "http://localhost:3000";
 
-// --- Middleware
 app.use(helmet());
 app.use(express.json());
 app.use(
   cors({
     origin: (origin, cb) => {
-      if (!origin) return cb(null, true); // allow curl / Hoppscotch Agent
+      if (!origin) return cb(null, true); // curl/Hoppscotch Agent
       if (origin === PROD_ORIGIN || origin === DEV_ORIGIN) return cb(null, true);
       return cb(new Error("Not allowed by CORS"), false);
     },
@@ -42,7 +39,7 @@ app.use(limiter);
 
 const ADMIN_KEY = process.env.ADMIN_KEY || "L0laEl0_Admin_2025!";
 
-// --- Basic
+/* ------------------ Basic ------------------ */
 app.get("/", (_req, res) => {
   res.send("Lolaelo API is running. See /health and /search.");
 });
@@ -51,15 +48,10 @@ app.get("/health", (_req, res) => {
   res.json({ status: "ok", ts: new Date().toISOString() });
 });
 
-/* =======================================================
-   WAITLIST
-   ======================================================= */
-
-// POST /waitlist  (public)
+/* ------------------ Waitlist ------------------ */
 app.post("/waitlist", async (req, res) => {
   try {
     const { email, phone } = req.body || {};
-
     if (!email || !/^\S+@\S+\.\S+$/.test(email)) {
       return res.status(400).json({ error: "Invalid email" });
     }
@@ -83,7 +75,6 @@ app.post("/waitlist", async (req, res) => {
   }
 });
 
-// GET /waitlist  (admin)
 app.get("/waitlist", async (req, res) => {
   try {
     const key = req.header("x-admin-key");
@@ -93,7 +84,6 @@ app.get("/waitlist", async (req, res) => {
       orderBy: { createdAt: "desc" },
       take: 200,
     });
-
     res.json({ total: rows.length, data: rows });
   } catch (err) {
     console.error("GET /waitlist error:", err);
@@ -101,11 +91,7 @@ app.get("/waitlist", async (req, res) => {
   }
 });
 
-/* =======================================================
-   PARTNERS: APPLICATIONS
-   ======================================================= */
-
-// POST /partners/applications  (public)
+/* -------------- Partners: Applications -------------- */
 app.post("/partners/applications", async (req, res) => {
   try {
     const { companyName, contactName, email, phone, location, notes } = req.body || {};
@@ -152,7 +138,6 @@ app.post("/partners/applications", async (req, res) => {
   }
 });
 
-// GET /partners/applications  (admin)
 app.get("/partners/applications", async (req, res) => {
   try {
     const key = req.header("x-admin-key");
@@ -162,7 +147,6 @@ app.get("/partners/applications", async (req, res) => {
       orderBy: { createdAt: "desc" },
       take: 200,
     });
-
     res.json({ total: rows.length, data: rows });
   } catch (err) {
     console.error("GET /partners/applications error:", err);
@@ -170,12 +154,8 @@ app.get("/partners/applications", async (req, res) => {
   }
 });
 
-/* =======================================================
-   CONTENT (simple key/value CMS)
-   Prisma model name: Content (prisma.content.*)
-   ======================================================= */
-
-// PUT /content/:key  (admin upsert)
+/* ------------------ Content via ContentBlock ------------------ */
+// Admin upsert
 app.put("/content/:key", async (req, res) => {
   try {
     const adminKey = req.header("x-admin-key");
@@ -184,7 +164,7 @@ app.put("/content/:key", async (req, res) => {
     const contentKey = String(req.params.key);
     const value = String(req.body?.value ?? "");
 
-    const row = await prisma.content.upsert({
+    const row = await prisma.contentBlock.upsert({
       where: { key: contentKey },
       update: { value },
       create: { key: contentKey, value },
@@ -202,11 +182,11 @@ app.put("/content/:key", async (req, res) => {
   }
 });
 
-// GET /content/:key  (public read)
+// Public read
 app.get("/content/:key", async (req, res) => {
   try {
     const contentKey = String(req.params.key);
-    const row = await prisma.content.findUnique({ where: { key: contentKey } });
+    const row = await prisma.contentBlock.findUnique({ where: { key: contentKey } });
     if (!row) return res.status(404).json({ error: "NotFound" });
     res.json({ key: row.key, value: row.value, updatedAt: row.updatedAt });
   } catch (err) {
@@ -215,7 +195,6 @@ app.get("/content/:key", async (req, res) => {
   }
 });
 
-// --- Start
 const PORT = process.env.PORT || 10000;
 app.listen(PORT, () => {
   console.log(`API listening on :${PORT}`);
