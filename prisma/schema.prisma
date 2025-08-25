@@ -19,8 +19,8 @@ model PartnerApplication {
   companyName  String
   contactName  String
   email        String
-  phone        String?   // keep optional at DB; enforce required via API going forward
-  location     String?   // new; enforce required via API going forward
+  phone        String?   // kept optional in DB; API enforces required
+  location     String?   // NEW: single field "Town, Country" (API enforces required)
   notes        String?
   createdAt    DateTime  @default(now())
 }
