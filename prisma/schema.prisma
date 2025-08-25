@@ -20,7 +20,15 @@ model PartnerApplication {
   contactName  String
   email        String
   phone        String?   // kept optional in DB; API enforces required
-  location     String?   // NEW: single field "Town, Country" (API enforces required)
+  location     String?   // kept optional in DB; API enforces required
   notes        String?
   createdAt    DateTime  @default(now())
+}
+
+model ContentBlock {
+  id        String   @id @default(cuid())
+  key       String   @unique
+  value     String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 }
