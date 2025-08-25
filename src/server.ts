@@ -19,7 +19,7 @@ app.use(express.json());
 app.use(
   cors({
     origin: (origin, cb) => {
-      if (!origin) return cb(null, true); // allow curl/hoppscotch
+      if (!origin) return cb(null, true); // curl/Hoppscotch Agent
       if (origin === PROD_ORIGIN || origin === DEV_ORIGIN) return cb(null, true);
       return cb(new Error("Not allowed by CORS"), false);
     },
@@ -39,6 +39,7 @@ app.use(limiter);
 
 const ADMIN_KEY = process.env.ADMIN_KEY || "L0laEl0_Admin_2025!";
 
+/* ------------------ Health ------------------ */
 app.get("/", (_req, res) => {
   res.send("Lolaelo API is running. See /health and /search.");
 });
@@ -153,16 +154,43 @@ app.get("/partners/applications", async (req, res) => {
   }
 });
 
-/* ------------------ Content (simple KV) ------------------ */
+/* ------------------ Content (key/value) ------------------ */
+/** Admin upsert */
 app.put("/content/:key", async (req, res) => {
   try {
     const key = req.header("x-admin-key");
     if (key !== ADMIN_KEY) return res.status(401).json({ error: "Unauthorized" });
 
-    // no-op placeholder if you add a Content model later
-    res.status(200).json({ key: req.params.key, value: req.body?.value, createdAt: new Date(), updatedAt: new Date() });
+    const contentKey = String(req.params.key);
+    const value = String(req.body?.value ?? "");
+
+    const row = await prisma.contentBlock.upsert({
+      where: { key: contentKey },
+      update: { value },
+      create: { key: contentKey, value },
+    });
+
+    res.json({
+      key: row.key,
+      value: row.value,
+      createdAt: row.createdAt,
+      updatedAt: row.updatedAt,
+    });
   } catch (err) {
     console.error("PUT /content/:key error:", err);
+    res.status(500).json({ error: "ServerError" });
+  }
+});
+
+/** Public read */
+app.get("/content/:key", async (req, res) => {
+  try {
+    const contentKey = String(req.params.key);
+    const row = await prisma.contentBlock.findUnique({ where: { key: contentKey } });
+    if (!row) return res.status(404).json({ error: "NotFound" });
+    res.json({ key: row.key, value: row.value, updatedAt: row.updatedAt });
+  } catch (err) {
+    console.error("GET /content/:key error:", err);
     res.status(500).json({ error: "ServerError" });
   }
 });
