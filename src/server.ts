@@ -4,11 +4,30 @@ import cors from "cors";
 import helmet from "helmet";
 import morgan from "morgan";
 
+// Prisma client (note the .js extension for ESM at runtime)
+import { prisma } from "./prisma.js";
+
 const app = express();
+
+// --- Middleware ---
 app.use(helmet());
-app.use(cors()); // later restrict: cors({ origin: ["https://<your-site>"] })
+app.use(cors()); // we'll lock to https://www.lolaelo.com later
 app.use(express.json());
 app.use(morgan("tiny"));
+
+// --- Simple admin guard (temporary) ---
+function adminGuard(req: express.Request, res: express.Response, next: express.NextFunction) {
+  const key = req.header("x-admin-key");
+  if (!process.env.ADMIN_KEY || key !== process.env.ADMIN_KEY) {
+    return res.status(401).json({ error: "Unauthorized" });
+  }
+  next();
+}
+
+// --- Root ---
+app.get("/", (_req, res) => {
+  res.send("Lolaelo API is running. See /health and /search.");
+});
 
 // --- Healthcheck ---
 app.get("/health", (_req, res) => {
@@ -35,17 +54,43 @@ const demoProperties = [
   }
 ];
 
-app.get("/search", (req, res) => {
-  // later: use req.query (dates, guests, city) to filter
+app.get("/search", (_req, res) => {
   res.json({ results: demoProperties, total: demoProperties.length });
 });
 
-// --- Root (optional) ---
-app.get("/", (_req, res) => {
-  res.send("Lolaelo API is running. See /health and /search.");
+// ===============================
+// WAITLIST (DB-backed via Prisma)
+// ===============================
+
+// POST /waitlist  { email, phone? }
+app.post("/waitlist", async (req, res) => {
+  try {
+    const { email, phone } = req.body || {};
+
+    // very light validation
+    if (!email || !/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email)) {
+      return res.status(400).json({ error: "Invalid email" });
+    }
+
+    const created = await prisma.waitlist.create({ data: { email, phone } });
+    return res.status(201).json(created);
+  } catch (err: any) {
+    // Unique constraint (email already exists)
+    if (err?.code === "P2002") {
+      return res.status(409).json({ error: "Email already on waitlist" });
+    }
+    return res.status(500).json({ error: "ServerError" });
+  }
 });
 
-const port = process.env.PORT || 10000; // Render sets PORT for you
+// GET /waitlist  (admin only)
+app.get("/waitlist", adminGuard, async (_req, res) => {
+  const data = await prisma.waitlist.findMany({ orderBy: { createdAt: "desc" } });
+  res.json({ total: data.length, data });
+});
+
+// --- Start server ---
+const port = process.env.PORT || 10000; // Render injects PORT
 app.listen(port, () => {
   console.log(`API listening on :${port}`);
 });
