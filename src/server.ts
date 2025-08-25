@@ -1,57 +1,44 @@
-import "dotenv/config";
 import express from "express";
-import cors from "cors";
 import helmet from "helmet";
+import cors from "cors";
 import morgan from "morgan";
+import dotenv from "dotenv";
 import rateLimit from "express-rate-limit";
-import { prisma } from "./prisma.js";
+import { prisma } from "./prisma";
+
+dotenv.config();
 
 const app = express();
+app.set("trust proxy", 1);
 
-/* ---------------- Security & parsing ---------------- */
+const PROD_ORIGIN = "https://www.lolaelo.com";
+const DEV_ORIGIN = "http://localhost:3000";
+
 app.use(helmet());
-
-const allowedOrigins = ["https://www.lolaelo.com"];
-if (process.env.NODE_ENV !== "production") {
-  allowedOrigins.push("http://localhost:3000"); // for local dev if needed
-}
+app.use(express.json());
 app.use(
   cors({
-    origin(origin, cb) {
-      // allow no-origin tools (curl/Hoppscotch agent)
-      if (!origin) return cb(null, true);
-      return allowedOrigins.includes(origin)
-        ? cb(null, true)
-        : cb(new Error("Not allowed by CORS"));
-    }
+    origin: (origin, cb) => {
+      if (!origin) return cb(null, true); // allow curl/hoppscotch
+      if (origin === PROD_ORIGIN || origin === DEV_ORIGIN) return cb(null, true);
+      return cb(new Error("Not allowed by CORS"), false);
+    },
+    methods: ["GET", "POST", "PUT", "OPTIONS"],
+    allowedHeaders: ["Content-Type", "x-admin-key"],
   })
 );
-
-app.use(express.json());
 app.use(morgan("tiny"));
 
-/* ---------------- Rate limits ---------------- */
-// Global: 60 requests/min per IP
-const limiter = rateLimit({ windowMs: 60_000, max: 60 });
+const limiter = rateLimit({
+  windowMs: 60 * 1000,
+  max: 20,
+  standardHeaders: true,
+  legacyHeaders: false,
+});
 app.use(limiter);
 
-// Public form posts: stricter 10/min per IP
-const postLimiter = rateLimit({ windowMs: 60_000, max: 10 });
+const ADMIN_KEY = process.env.ADMIN_KEY || "L0laEl0_Admin_2025!";
 
-/* ---------------- Admin guard ---------------- */
-function adminGuard(
-  req: express.Request,
-  res: express.Response,
-  next: express.NextFunction
-) {
-  const key = req.header("x-admin-key");
-  if (!process.env.ADMIN_KEY || key !== process.env.ADMIN_KEY) {
-    return res.status(401).json({ error: "Unauthorized" });
-  }
-  next();
-}
-
-/* ---------------- Root & Health ---------------- */
 app.get("/", (_req, res) => {
   res.send("Lolaelo API is running. See /health and /search.");
 });
@@ -60,108 +47,127 @@ app.get("/health", (_req, res) => {
   res.json({ status: "ok", ts: new Date().toISOString() });
 });
 
-/* ---------------- Demo Search (mock) ---------------- */
-const demoProperties = [
-  {
-    id: "prop_siargao_001",
-    name: "Palm Cove Siargao",
-    location: { city: "General Luna", island: "Siargao", country: "PH" },
-    minPrice: 3500,
-    currency: "PHP",
-    images: ["https://picsum.photos/seed/siargao01/800/500"]
-  },
-  {
-    id: "prop_siargao_002",
-    name: "Cloud 9 Villas",
-    location: { city: "General Luna", island: "Siargao", country: "PH" },
-    minPrice: 4800,
-    currency: "PHP",
-    images: ["https://picsum.photos/seed/siargao02/800/500"]
-  }
-];
-
-app.get("/search", (_req, res) => {
-  res.json({ results: demoProperties, total: demoProperties.length });
-});
-
-/* ================== WAITLIST ================== */
-// POST /waitlist  { email, phone? }
-app.post("/waitlist", postLimiter, async (req, res) => {
+/* ------------------ Waitlist ------------------ */
+app.post("/waitlist", async (req, res) => {
   try {
     const { email, phone } = req.body || {};
-    if (!email || !/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email)) {
+    if (!email || !/^\S+@\S+\.\S+$/.test(email)) {
       return res.status(400).json({ error: "Invalid email" });
     }
-    const created = await prisma.waitlist.create({ data: { email, phone } });
-    return res.status(201).json(created);
-  } catch (err: any) {
-    if (err?.code === "P2002") {
-      return res.status(409).json({ error: "Email already on waitlist" });
-    }
-    return res.status(500).json({ error: "ServerError" });
-  }
-});
 
-// GET /waitlist  (admin)
-app.get("/waitlist", adminGuard, async (_req, res) => {
-  const data = await prisma.waitlist.findMany({ orderBy: { createdAt: "desc" } });
-  res.json({ total: data.length, data });
-});
+    const existing = await prisma.waitlist.findUnique({ where: { email } });
+    if (existing) return res.status(409).json({ error: "AlreadyOnList" });
 
-/* ======== PARTNER APPLICATIONS ======== */
-// POST /partners/applications  { companyName, contactName, email, phone?, notes? }
-app.post("/partners/applications", postLimiter, async (req, res) => {
-  try {
-    const { companyName, contactName, email, phone, notes } = req.body || {};
-    if (!companyName || !contactName || !email) {
-      return res.status(400).json({ error: "companyName, contactName, and email are required" });
-    }
-    const created = await prisma.partnerApplication.create({
-      data: { companyName, contactName, email, phone, notes }
+    const row = await prisma.waitlist.create({
+      data: { email, phone: phone || null },
     });
-    res.status(201).json(created);
-  } catch {
+
+    res.status(201).json({
+      id: row.id,
+      email: row.email,
+      phone: row.phone,
+      createdAt: row.createdAt,
+    });
+  } catch (err) {
+    console.error("POST /waitlist error:", err);
     res.status(500).json({ error: "ServerError" });
   }
 });
 
-// GET /partners/applications  (admin)
-app.get("/partners/applications", adminGuard, async (_req, res) => {
-  const data = await prisma.partnerApplication.findMany({
-    orderBy: { createdAt: "desc" }
-  });
-  res.json({ total: data.length, data });
-});
-
-/* ================ CONTENT CMS ================ */
-// PUT /content/:key (admin)  { value }
-app.put("/content/:key", adminGuard, async (req, res) => {
+app.get("/waitlist", async (req, res) => {
   try {
-    const key = String(req.params.key || "").trim();
-    const value = String((req.body?.value ?? "")).trim();
-    if (!key || !value) return res.status(400).json({ error: "key and value are required" });
+    const key = req.header("x-admin-key");
+    if (key !== ADMIN_KEY) return res.status(401).json({ error: "Unauthorized" });
 
-    const upserted = await prisma.contentBlock.upsert({
-      where: { key },
-      update: { value },
-      create: { key, value }
+    const rows = await prisma.waitlist.findMany({
+      orderBy: { createdAt: "desc" },
+      take: 200,
     });
-    res.json(upserted);
-  } catch {
+    res.json({ total: rows.length, data: rows });
+  } catch (err) {
+    console.error("GET /waitlist error:", err);
     res.status(500).json({ error: "ServerError" });
   }
 });
 
-// GET /content/:key
-app.get("/content/:key", async (req, res) => {
-  const key = String(req.params.key || "").trim();
-  const block = await prisma.contentBlock.findUnique({ where: { key } });
-  if (!block) return res.status(404).json({ error: "NotFound" });
-  res.json(block);
+/* -------------- Partners: Applications -------------- */
+app.post("/partners/applications", async (req, res) => {
+  try {
+    const { companyName, contactName, email, phone, location, notes } = req.body || {};
+
+    if (!companyName || typeof companyName !== "string" || companyName.trim() === "")
+      return res.status(400).json({ error: "Invalid companyName" });
+
+    if (!contactName || typeof contactName !== "string" || contactName.trim() === "")
+      return res.status(400).json({ error: "Invalid contactName" });
+
+    if (!email || !/^\S+@\S+\.\S+$/.test(email))
+      return res.status(400).json({ error: "Invalid email" });
+
+    if (!phone || typeof phone !== "string" || phone.trim().length < 5)
+      return res.status(400).json({ error: "Invalid phone" });
+
+    if (!location || typeof location !== "string" || location.trim().length < 3)
+      return res.status(400).json({ error: "Invalid location" });
+
+    const row = await prisma.partnerApplication.create({
+      data: {
+        companyName: companyName.trim(),
+        contactName: contactName.trim(),
+        email: email.trim(),
+        phone: phone.trim(),
+        location: location.trim(),
+        notes: notes ? String(notes).trim() : null,
+      },
+    });
+
+    res.status(201).json({
+      id: row.id,
+      companyName: row.companyName,
+      contactName: row.contactName,
+      email: row.email,
+      phone: row.phone,
+      location: row.location,
+      notes: row.notes,
+      createdAt: row.createdAt,
+    });
+  } catch (err) {
+    console.error("POST /partners/applications error:", err);
+    res.status(500).json({ error: "ServerError" });
+  }
 });
 
-/* ---------------- Start ---------------- */
-const port = process.env.PORT || 10000;
-app.listen(port, () => {
-  console.log(`API listening on :${port}`);
+app.get("/partners/applications", async (req, res) => {
+  try {
+    const key = req.header("x-admin-key");
+    if (key !== ADMIN_KEY) return res.status(401).json({ error: "Unauthorized" });
+
+    const rows = await prisma.partnerApplication.findMany({
+      orderBy: { createdAt: "desc" },
+      take: 200,
+    });
+    res.json({ total: rows.length, data: rows });
+  } catch (err) {
+    console.error("GET /partners/applications error:", err);
+    res.status(500).json({ error: "ServerError" });
+  }
+});
+
+/* ------------------ Content (simple KV) ------------------ */
+app.put("/content/:key", async (req, res) => {
+  try {
+    const key = req.header("x-admin-key");
+    if (key !== ADMIN_KEY) return res.status(401).json({ error: "Unauthorized" });
+
+    // no-op placeholder if you add a Content model later
+    res.status(200).json({ key: req.params.key, value: req.body?.value, createdAt: new Date(), updatedAt: new Date() });
+  } catch (err) {
+    console.error("PUT /content/:key error:", err);
+    res.status(500).json({ error: "ServerError" });
+  }
+});
+
+const PORT = process.env.PORT || 10000;
+app.listen(PORT, () => {
+  console.log(`API listening on :${PORT}`);
 });
