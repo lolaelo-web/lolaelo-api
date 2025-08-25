@@ -4,9 +4,10 @@
   "type": "module",
   "scripts": {
     "dev": "tsx watch src/server.ts",
-    "build": "tsc && prisma generate",
+    "build": "prisma generate && tsc",
     "start": "node dist/server.js",
-    "migrate:deploy": "prisma migrate deploy"
+    "db:push": "prisma db push",
+    "db:studio": "prisma studio"
   },
   "dependencies": {
     "cors": "2.8.5",
