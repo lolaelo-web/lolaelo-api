@@ -19,15 +19,14 @@ model PartnerApplication {
   companyName  String
   contactName  String
   email        String
-  phone        String?   // keep optional in DB (existing rows may be NULL)
-  location     String?   // keep optional in DB (existing rows may be NULL)
+  phone        String?   // keep OPTIONAL (existing rows may be NULL)
+  location     String?   // keep OPTIONAL (existing rows may be NULL)
   notes        String?
   createdAt    DateTime  @default(now())
 }
 
 model ContentBlock {
-  id        String   @id @default(cuid())
-  key       String   @unique
+  key       String   @id       // <-- use existing 'key' as the primary key
   value     String
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
