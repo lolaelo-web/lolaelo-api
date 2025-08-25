@@ -1,3 +1,5 @@
+// prisma/schema.prisma
+
 generator client {
   provider = "prisma-client-js"
 }
@@ -11,23 +13,23 @@ model Waitlist {
   id        String   @id @default(cuid())
   email     String   @unique
   phone     String?
+  notes     String?
   createdAt DateTime @default(now())
 }
 
 model PartnerApplication {
-  id           String   @id @default(cuid())
-  companyName  String
-  contactName  String
-  email        String
-  phone        String?   // kept optional in DB; API enforces required
-  location     String?   // kept optional in DB; API enforces required
-  notes        String?
-  createdAt    DateTime  @default(now())
+  id          String   @id @default(cuid())
+  companyName String
+  contactName String
+  email       String
+  phone       String
+  location    String
+  notes       String?
+  createdAt   DateTime @default(now())
 }
 
-model ContentBlock {
-  id        String   @id @default(cuid())
-  key       String   @unique
+model Content {
+  key       String   @id
   value     String
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
