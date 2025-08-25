@@ -3,15 +3,27 @@ import express from "express";
 import cors from "cors";
 import helmet from "helmet";
 import morgan from "morgan";
-
-// Prisma client (ESM runtime => .js extension)
 import { prisma } from "./prisma.js";
 
 const app = express();
 
-/* ----------------------- Middleware ----------------------- */
+/* ----------------------- Security & parsing ----------------------- */
 app.use(helmet());
-app.use(cors()); // we'll lock to https://www.lolaelo.com next step
+const allowedOrigins = ["https://www.lolaelo.com"];
+if (process.env.NODE_ENV !== "production") {
+  allowedOrigins.push("http://localhost:3000"); // keep for local dev if needed
+}
+app.use(
+  cors({
+    origin(origin, cb) {
+      // Allow non-browser / no-origin calls (curl, Hoppscotch agent)
+      if (!origin) return cb(null, true);
+      return allowedOrigins.includes(origin)
+        ? cb(null, true)
+        : cb(new Error("Not allowed by CORS"));
+    }
+  })
+);
 app.use(express.json());
 app.use(morgan("tiny"));
 
@@ -32,7 +44,6 @@ function adminGuard(
 app.get("/", (_req, res) => {
   res.send("Lolaelo API is running. See /health and /search.");
 });
-
 app.get("/health", (_req, res) => {
   res.json({ status: "ok", ts: new Date().toISOString() });
 });
@@ -56,13 +67,11 @@ const demoProperties = [
     images: ["https://picsum.photos/seed/siargao02/800/500"]
   }
 ];
-
 app.get("/search", (_req, res) => {
   res.json({ results: demoProperties, total: demoProperties.length });
 });
 
 /* ======================= WAITLIST ======================== */
-// POST /waitlist  { email, phone? }
 app.post("/waitlist", async (req, res) => {
   try {
     const { email, phone } = req.body || {};
@@ -72,21 +81,16 @@ app.post("/waitlist", async (req, res) => {
     const created = await prisma.waitlist.create({ data: { email, phone } });
     return res.status(201).json(created);
   } catch (err: any) {
-    if (err?.code === "P2002") {
-      return res.status(409).json({ error: "Email already on waitlist" });
-    }
+    if (err?.code === "P2002") return res.status(409).json({ error: "Email already on waitlist" });
     return res.status(500).json({ error: "ServerError" });
   }
 });
-
-// GET /waitlist  (admin)
 app.get("/waitlist", adminGuard, async (_req, res) => {
   const data = await prisma.waitlist.findMany({ orderBy: { createdAt: "desc" } });
   res.json({ total: data.length, data });
 });
 
 /* ================== PARTNER APPLICATIONS ================= */
-// POST /partners/applications  { companyName, contactName, email, phone?, notes? }
 app.post("/partners/applications", async (req, res) => {
   try {
     const { companyName, contactName, email, phone, notes } = req.body || {};
@@ -101,17 +105,12 @@ app.post("/partners/applications", async (req, res) => {
     res.status(500).json({ error: "ServerError" });
   }
 });
-
-// GET /partners/applications  (admin)
 app.get("/partners/applications", adminGuard, async (_req, res) => {
-  const data = await prisma.partnerApplication.findMany({
-    orderBy: { createdAt: "desc" }
-  });
+  const data = await prisma.partnerApplication.findMany({ orderBy: { createdAt: "desc" } });
   res.json({ total: data.length, data });
 });
 
 /* ======================= CONTENT CMS ===================== */
-// PUT /content/:key (admin)  { value }
 app.put("/content/:key", adminGuard, async (req, res) => {
   try {
     const key = String(req.params.key || "").trim();
@@ -128,8 +127,6 @@ app.put("/content/:key", adminGuard, async (req, res) => {
     res.status(500).json({ error: "ServerError" });
   }
 });
-
-// GET /content/:key
 app.get("/content/:key", async (req, res) => {
   const key = String(req.params.key || "").trim();
   const block = await prisma.contentBlock.findUnique({ where: { key } });
@@ -138,7 +135,7 @@ app.get("/content/:key", async (req, res) => {
 });
 
 /* ----------------------- Start ----------------------- */
-const port = process.env.PORT || 10000; // Render injects PORT
+const port = process.env.PORT || 10000;
 app.listen(port, () => {
   console.log(`API listening on :${port}`);
 });
