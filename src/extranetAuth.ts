@@ -16,11 +16,16 @@ function generateNumericCode(): string {
 }
 
 function randomToken(): string {
-  return crypto.randomBytes(32).toString("hex"); // 64-char hex
+  // 64-char hex, prefixed token is fine too; keeping existing format
+  return crypto.randomBytes(32).toString("hex");
+}
+
+function normalizeEmail(email: string): string {
+  return email.trim().toLowerCase();
 }
 
 export async function requestLoginCode(email: string) {
-  const normalized = email.trim().toLowerCase();
+  const normalized = normalizeEmail(email);
   if (!normalized || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(normalized)) {
     throw new Error("Invalid email");
   }
@@ -50,7 +55,7 @@ export async function requestLoginCode(email: string) {
 }
 
 export async function verifyLoginCode(email: string, code: string) {
-  const normalized = email.trim().toLowerCase();
+  const normalized = normalizeEmail(email);
   const codeHash = sha256(code.trim());
 
   const partner = await prisma.partner.findUnique({
@@ -80,7 +85,7 @@ export async function verifyLoginCode(email: string, code: string) {
     data: { usedAt: now },
   });
 
-  // Create session
+  // Create session (30 days)
   const token = randomToken();
   const expiresAt = new Date(Date.now() + SESSION_TTL_DAYS * 24 * 60 * 60 * 1000);
 
@@ -99,16 +104,38 @@ export async function verifyLoginCode(email: string, code: string) {
   };
 }
 
+/**
+ * Reads the partner session from request headers.
+ * Accepts:
+ *  - Authorization: Bearer <token>
+ *  - x-partner-token: <token>          (legacy)
+ * Returns the Partner row or null.
+ */
 export async function authPartnerFromHeader(req: { header: (k: string) => string | undefined }) {
-  const token = (req.header("x-partner-token") || "").trim();
+  // Read headers case-insensitively
+  const auth = req.header("authorization") || req.header("Authorization");
+  const legacy = req.header("x-partner-token") || req.header("X-Partner-Token");
+
+  let token: string | null = null;
+
+  if (auth && auth.startsWith("Bearer ")) {
+    token = auth.slice("Bearer ".length).trim();
+  } else if (legacy) {
+    token = legacy.trim();
+  }
+
   if (!token) return null;
 
   const now = new Date();
+
   const session = await prisma.extranetSession.findUnique({
     where: { token },
     include: { partner: true },
-  });
-  if (!session || session.revokedAt || session.expiresAt <= now) return null;
+  }).catch(() => null);
 
-  return session.partner;
+  if (!session) return null;
+  if (session.revokedAt) return null;
+  if (session.expiresAt && session.expiresAt <= now) return null;
+
+  return session.partner ?? null;
 }
