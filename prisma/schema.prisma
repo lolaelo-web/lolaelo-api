@@ -35,7 +35,7 @@ model ContentBlock {
   updatedAt DateTime @updatedAt
 }
 
-// === Extranet auth models (NEW) ===
+// === Extranet auth models (EXISTING) ===
 
 model Partner {
   id        Int       @id @default(autoincrement())
@@ -46,6 +46,9 @@ model Partner {
 
   sessions  ExtranetSession[]
   codes     ExtranetLoginCode[]
+
+  // NEW: optional 1:1 property profile
+  profile   PropertyProfile?
 }
 
 model ExtranetLoginCode {
@@ -67,7 +70,7 @@ model ExtranetLoginCode {
 model ExtranetSession {
   id            Int       @id @default(autoincrement())
   partnerId     Int
-  // Random token returned to client and sent back via header x-partner-token
+  // Random token returned to client and sent back via header x-partner-token / Authorization: Bearer
   token         String    @unique
   // Session valid for 30 days
   expiresAt     DateTime
@@ -78,4 +81,21 @@ model ExtranetSession {
 
   @@index([partnerId])
   @@index([expiresAt])
+}
+
+// === NEW: Property Profile persisted per partner (1:1) ===
+model PropertyProfile {
+  id           Int       @id @default(autoincrement())
+  partnerId    Int       @unique
+  name         String
+  addressLine  String?
+  city         String?
+  country      String?
+  contactEmail String?
+  phone        String?
+  description  String?
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
+
+  partner      Partner   @relation(fields: [partnerId], references: [id])
 }
