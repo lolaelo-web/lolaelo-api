@@ -3,10 +3,17 @@ import crypto from "crypto";
 import { prisma } from "./prisma.js";
 import { sendLoginCodeEmail } from "./mailer.js";
 
-const CODE_TTL_MINUTES = 10;             // OTP validity
-const SESSION_TTL_DAYS = 30;             // session validity
+const CODE_TTL_MINUTES = 10;   // OTP validity
+const SESSION_TTL_DAYS = 30;   // session validity
+
+// When true, API responses will include the plaintext code (dev only)
 const DEV_SHOW_CODE =
   String(process.env.EXTRANET_DEV_SHOW_CODE || "false").toLowerCase() === "true";
+
+// Where the email “Sign in” button should point.
+// Render can override via APP_LOGIN_URL.
+const APP_LOGIN_URL =
+  process.env.APP_LOGIN_URL || "https://lolaelo.com/travel/partners_login.html";
 
 function sha256(input: string): string {
   return crypto.createHash("sha256").update(input, "utf8").digest("hex");
@@ -18,7 +25,7 @@ function generateNumericCode(): string {
 }
 
 function randomToken(): string {
-  return crypto.randomBytes(32).toString("hex"); // 64 hex chars
+  return crypto.randomBytes(32).toString("hex"); // 64-char hex
 }
 
 function normalizeEmail(email: string): string {
@@ -52,19 +59,19 @@ export async function requestLoginCode(email: string) {
     data: { partnerId: partner.id, codeHash, expiresAt },
   });
 
-  // Send email (fire-and-forget)
+  // Fire-and-forget email; don't block the API on email latency.
   try {
-    await sendLoginCodeEmail(partner.email, code);
+    // Pass login URL explicitly so the template always has the right link
+    await sendLoginCodeEmail(partner.email, code, APP_LOGIN_URL);
   } catch (e) {
     console.warn("[auth] sendLoginCodeEmail failed:", e);
   }
 
-  // Return the code only for dev/testing
   return {
     partnerId: partner.id,
     email: partner.email,
     expiresAt,
-    code: DEV_SHOW_CODE ? code : undefined,
+    code: DEV_SHOW_CODE ? code : undefined, // returned only in dev
   };
 }
 
@@ -86,13 +93,13 @@ export async function verifyLoginCode(email: string, code: string) {
 
   if (!loginCode) throw new Error("Invalid or expired code");
 
-  // mark as used
+  // Mark as used
   await prisma.extranetLoginCode.update({
     where: { id: loginCode.id },
     data: { usedAt: now },
   });
 
-  // create session
+  // Create session
   const token = randomToken();
   const expiresAt = new Date(Date.now() + SESSION_TTL_DAYS * 24 * 60 * 60 * 1000);
 
@@ -122,10 +129,9 @@ export async function authPartnerFromHeader(req: { header: (k: string) => string
   if (!token) return null;
 
   const now = new Date();
-  const session = await prisma.extranetSession.findUnique({
-    where: { token },
-    include: { partner: true },
-  }).catch(() => null);
+  const session = await prisma.extranetSession
+    .findUnique({ where: { token }, include: { partner: true } })
+    .catch(() => null);
 
   if (!session || session.revokedAt || session.expiresAt <= now) return null;
   return session.partner ?? null;
