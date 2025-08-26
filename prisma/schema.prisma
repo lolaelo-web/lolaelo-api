@@ -1,3 +1,5 @@
+// prisma/schema.prisma
+
 generator client {
   provider = "prisma-client-js"
 }
@@ -8,26 +10,72 @@ datasource db {
 }
 
 model Waitlist {
-  id        String   @id @default(cuid())
-  email     String   @unique
+  id        Int      @id @default(autoincrement())
+  email     String
   phone     String?
   createdAt DateTime @default(now())
 }
 
 model PartnerApplication {
-  id           String   @id @default(cuid())
-  companyName  String
-  contactName  String
-  email        String
-  phone        String?   // keep optional to avoid breaking existing rows
-  location     String?   // keep optional to avoid breaking existing rows
-  notes        String?
-  createdAt    DateTime  @default(now())
+  id          Int      @id @default(autoincrement())
+  companyName String
+  contactName String
+  email       String
+  phone       String?
+  location    String?
+  notes       String?
+  createdAt   DateTime @default(now())
 }
 
 model ContentBlock {
-  key       String   @id        // match existing table (no 'id' column)
+  id        Int      @id @default(autoincrement())
+  key       String   @unique
   value     String
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
+}
+
+/* === Extranet auth models (NEW) === */
+
+model Partner {
+  id        Int       @id @default(autoincrement())
+  email     String    @unique
+  name      String?
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+
+  sessions  ExtranetSession[]
+  codes     ExtranetLoginCode[]
+}
+
+model ExtranetLoginCode {
+  id           Int       @id @default(autoincrement())
+  partnerId    Int
+  // Store a hash of the code for safety
+  codeHash     String
+  // Code expires after 10 minutes
+  expiresAt    DateTime
+  createdAt    DateTime  @default(now())
+  usedAt       DateTime?
+
+  partner      Partner   @relation(fields: [partnerId], references: [id])
+
+  @@index([partnerId])
+  @@index([expiresAt])
+}
+
+model ExtranetSession {
+  id            Int       @id @default(autoincrement())
+  partnerId     Int
+  // Random token returned to client and sent back via header x-partner-token
+  token         String    @unique
+  // Session valid for 30 days
+  expiresAt     DateTime
+  createdAt     DateTime  @default(now())
+  revokedAt     DateTime?
+
+  partner       Partner   @relation(fields: [partnerId], references: [id])
+
+  @@index([partnerId])
+  @@index([expiresAt])
 }
