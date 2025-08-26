@@ -101,7 +101,7 @@ app.get("/content/:key", async (req, res) => {
 });
 
 // =========================
-// Admin CSV exports (optional)
+/** Admin CSV exports (optional) */
 // =========================
 app.get("/admin/export/waitlist.csv", requireAdmin, async (_req, res) => {
   const rows = await prisma.waitlist.findMany({ orderBy: { createdAt: "desc" } });
@@ -123,10 +123,10 @@ app.get("/admin/export/partners.csv", requireAdmin, async (_req, res) => {
 });
 
 // =========================
-// EXTRANET AUTH (existing)
+// EXTRANET AUTH
 // =========================
 
-// Request login code (returns code in response for testing)
+// Request login code (conditional dev code in response)
 app.post("/extranet/login/request-code", async (req, res) => {
   const { email } = req.body || {};
   try {
@@ -134,9 +134,12 @@ app.post("/extranet/login/request-code", async (req, res) => {
     res.json({
       ok: true,
       email: result.email,
-      code: result.code,          // DEV ONLY
       expiresAt: result.expiresAt,
-      message: "Use /extranet/login/verify with email + code",
+      // Only included when EXTRANET_DEV_SHOW_CODE=true
+      ...(result.code ? { code: result.code } : {}),
+      message: result.code
+        ? "Dev only: code is shown here"
+        : "Check your email for the 6-digit code",
     });
   } catch (err: any) {
     res.status(400).json({ error: err.message || "Unable to request code" });
@@ -186,7 +189,7 @@ app.get("/extranet/session", requirePartner, async (req, res) => {
   res.json({ id: partner.id, email: partner.email, name: partner.name ?? null });
 });
 
-// --- NEW: revoke the current session token ---
+// --- Revoke the current session token ---
 app.post("/extranet/logout", requirePartner, async (req, res) => {
   // Pull token from headers to revoke *this* session
   const auth = req.header("authorization") || req.header("Authorization");
@@ -204,7 +207,7 @@ app.post("/extranet/logout", requirePartner, async (req, res) => {
 });
 
 // =========================
-// EXTRANET PROPERTY PROFILE (NEW)
+// EXTRANET PROPERTY PROFILE
 // =========================
 
 // GET current partner's Property Profile
