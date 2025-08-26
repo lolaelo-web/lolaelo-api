@@ -12,6 +12,7 @@ app.use(
   cors({
     origin: [
       "https://www.lolaelo.com",
+      "https://lolaelo.com",
       "http://localhost:3000",
       "http://localhost:5173",
       "http://127.0.0.1:5173",
@@ -96,7 +97,7 @@ app.get("/content/:key", async (req, res) => {
 });
 
 // =========================
-// Admin CSV exports (optional; keep if already added)
+/* Admin CSV exports (optional; keep if already added) */
 // =========================
 app.get("/admin/export/waitlist.csv", requireAdmin, async (_req, res) => {
   const rows = await prisma.waitlist.findMany({ orderBy: { createdAt: "desc" } });
@@ -118,7 +119,7 @@ app.get("/admin/export/partners.csv", requireAdmin, async (_req, res) => {
 });
 
 // =========================
-// EXTRANET AUTH (NEW)
+// EXTRANET AUTH (existing)
 // =========================
 
 // Request login code (magic 6-digit code sent to email; returns code in response for testing)
@@ -166,6 +167,13 @@ async function requirePartner(req: express.Request, res: express.Response, next:
 
 // Simple "who am I" check (partner-protected)
 app.get("/extranet/me", requirePartner, async (req, res) => {
+  // @ts-ignore
+  const partner = req.partner as { id: number; email: string | null; name?: string | null };
+  res.json({ id: partner.id, email: partner.email, name: partner.name ?? null });
+});
+
+// === NEW: Alias used by frontend session check ===
+app.get("/extranet/session", requirePartner, async (req, res) => {
   // @ts-ignore
   const partner = req.partner as { id: number; email: string | null; name?: string | null };
   res.json({ id: partner.id, email: partner.email, name: partner.name ?? null });
