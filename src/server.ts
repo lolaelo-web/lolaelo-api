@@ -186,6 +186,23 @@ app.get("/extranet/session", requirePartner, async (req, res) => {
   res.json({ id: partner.id, email: partner.email, name: partner.name ?? null });
 });
 
+// --- NEW: revoke the current session token ---
+app.post("/extranet/logout", requirePartner, async (req, res) => {
+  // Pull token from headers to revoke *this* session
+  const auth = req.header("authorization") || req.header("Authorization");
+  const legacy = req.header("x-partner-token");
+  let token: string | null = null;
+  if (auth && auth.startsWith("Bearer ")) token = auth.slice("Bearer ".length).trim();
+  else if (legacy) token = String(legacy).trim();
+
+  if (token) {
+    await prisma.extranetSession
+      .update({ where: { token }, data: { revokedAt: new Date() } })
+      .catch(() => null);
+  }
+  res.json({ ok: true });
+});
+
 // =========================
 // EXTRANET PROPERTY PROFILE (NEW)
 // =========================
