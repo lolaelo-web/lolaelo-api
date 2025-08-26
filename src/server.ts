@@ -24,7 +24,11 @@ app.use(
 // --- Admin key guard (existing) ---
 const ADMIN_KEY = process.env.ADMIN_KEY || "L0laEl0_Admin_2025!";
 
-function requireAdmin(req: express.Request, res: express.Response, next: express.NextFunction) {
+function requireAdmin(
+  req: express.Request,
+  res: express.Response,
+  next: express.NextFunction
+) {
   if (req.header("x-admin-key") !== ADMIN_KEY) {
     return res.status(401).json({ error: "Unauthorized" });
   }
@@ -97,7 +101,7 @@ app.get("/content/:key", async (req, res) => {
 });
 
 // =========================
-/* Admin CSV exports (optional; keep if already added) */
+// Admin CSV exports (optional)
 // =========================
 app.get("/admin/export/waitlist.csv", requireAdmin, async (_req, res) => {
   const rows = await prisma.waitlist.findMany({ orderBy: { createdAt: "desc" } });
@@ -122,16 +126,15 @@ app.get("/admin/export/partners.csv", requireAdmin, async (_req, res) => {
 // EXTRANET AUTH (existing)
 // =========================
 
-// Request login code (magic 6-digit code sent to email; returns code in response for testing)
+// Request login code (returns code in response for testing)
 app.post("/extranet/login/request-code", async (req, res) => {
   const { email } = req.body || {};
   try {
     const result = await requestLoginCode(String(email || ""));
-    // NOTE: In production, do NOT return the code. Email it instead.
     res.json({
       ok: true,
       email: result.email,
-      code: result.code,
+      code: result.code,          // DEV ONLY
       expiresAt: result.expiresAt,
       message: "Use /extranet/login/verify with email + code",
     });
@@ -157,26 +160,84 @@ app.post("/extranet/login/verify", async (req, res) => {
 });
 
 // Helper middleware for partner-protected routes
-async function requirePartner(req: express.Request, res: express.Response, next: express.NextFunction) {
-  const partner = await authPartnerFromHeader(req);
+async function requirePartner(
+  req: express.Request,
+  res: express.Response,
+  next: express.NextFunction
+) {
+  const partner = await authPartnerFromHeader(req as any);
   if (!partner) return res.status(401).json({ error: "Unauthorized" });
   // @ts-ignore
   req.partner = partner;
   next();
 }
 
-// Simple "who am I" check (partner-protected)
+// Who am I
 app.get("/extranet/me", requirePartner, async (req, res) => {
   // @ts-ignore
   const partner = req.partner as { id: number; email: string | null; name?: string | null };
   res.json({ id: partner.id, email: partner.email, name: partner.name ?? null });
 });
 
-// === NEW: Alias used by frontend session check ===
+// Alias used by frontend session check
 app.get("/extranet/session", requirePartner, async (req, res) => {
   // @ts-ignore
   const partner = req.partner as { id: number; email: string | null; name?: string | null };
   res.json({ id: partner.id, email: partner.email, name: partner.name ?? null });
+});
+
+// =========================
+// EXTRANET PROPERTY PROFILE (NEW)
+// =========================
+
+// GET current partner's Property Profile
+app.get("/extranet/property", requirePartner, async (req, res) => {
+  // @ts-ignore
+  const partner = req.partner as { id: number };
+  const profile = await prisma.propertyProfile.findUnique({
+    where: { partnerId: partner.id },
+  });
+  if (!profile) return res.status(404).json({ message: "No profile yet" });
+  res.json(profile);
+});
+
+// CREATE/UPDATE current partner's Property Profile
+app.put("/extranet/property", requirePartner, async (req, res) => {
+  // @ts-ignore
+  const partner = req.partner as { id: number };
+
+  const {
+    name,
+    addressLine = null,
+    city = null,
+    country = null,
+    contactEmail = null,
+    phone = null,
+    description = null,
+  } = req.body || {};
+
+  if (!name || typeof name !== "string" || name.trim().length < 2) {
+    return res.status(400).json({ message: "Property name is required" });
+  }
+
+  const data = {
+    partnerId: partner.id,
+    name: name.trim(),
+    addressLine,
+    city,
+    country,
+    contactEmail,
+    phone,
+    description,
+  };
+
+  const saved = await prisma.propertyProfile.upsert({
+    where: { partnerId: partner.id },
+    update: { ...data },
+    create: { ...data },
+  });
+
+  res.json(saved);
 });
 
 // =========================
