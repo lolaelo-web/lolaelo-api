@@ -35,7 +35,7 @@ model ContentBlock {
   updatedAt DateTime @updatedAt
 }
 
-/* === Extranet auth models (NEW) === */
+// === Extranet auth models (NEW) ===
 
 model Partner {
   id        Int       @id @default(autoincrement())
