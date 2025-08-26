@@ -3,7 +3,7 @@
 
 const POSTMARK_TOKEN = process.env.POSTMARK_TOKEN || "";
 const FROM_EMAIL     = process.env.FROM_EMAIL || "noreply@lolaelo.com";
-const FROM_NAME      = process.env.FROM_NAME || "Lolaelo Extranet";
+const FROM_NAME      = process.env.FROM_NAME || "Team Lolaelo";
 const REPLY_TO_EMAIL = process.env.REPLY_TO_EMAIL || ""; // optional but recommended
 const MESSAGE_STREAM = process.env.POSTMARK_STREAM || "outbound";
 const APP_LOGIN_URL  = process.env.APP_LOGIN_URL || "https://lolaelo.com/partners_login.html";
