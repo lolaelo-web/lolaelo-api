@@ -13,7 +13,7 @@ const DEV_SHOW_CODE =
 // Where the email “Sign in” button should point.
 // Render can override via APP_LOGIN_URL.
 const APP_LOGIN_URL =
-  process.env.APP_LOGIN_URL || "https://lolaelo.com/travel/partners_login.html";
+  process.env.APP_LOGIN_URL || "https://www.lolaelo.com/travel/partners_login.html";
 
 function sha256(input: string): string {
   return crypto.createHash("sha256").update(input, "utf8").digest("hex");
