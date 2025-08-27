@@ -3,7 +3,7 @@ import express from "express";
 import cors from "cors";
 import { prisma } from "./prisma.js";
 import { requestLoginCode, verifyLoginCode, authPartnerFromHeader } from "./extranetAuth.js";
-import photosUploadUrl from "./routes/extranetPhotosUploadUrl.js"; // <— NEW
+import photosUploadUrl from "./routes/extranetPhotosUploadUrl.js"; // upload-url signer
 
 const app = express();
 app.use(express.json());
@@ -19,7 +19,7 @@ app.use(
       "http://127.0.0.1:5173",
     ],
     credentials: false,
-    allowedHeaders: ["Authorization", "x-partner-token", "Content-Type"], // <— explicit
+    allowedHeaders: ["Authorization", "x-partner-token", "Content-Type"],
   })
 );
 
@@ -103,7 +103,7 @@ app.get("/content/:key", async (req, res) => {
 });
 
 // =========================
-/** Admin CSV exports (optional) */
+// Admin CSV exports (optional)
 // =========================
 app.get("/admin/export/waitlist.csv", requireAdmin, async (_req, res) => {
   const rows = await prisma.waitlist.findMany({ orderBy: { createdAt: "desc" } });
@@ -277,13 +277,4 @@ app.put("/extranet/property", requirePartner, async (req, res) => {
 });
 
 // =========================
-// NEW: Register photo upload-url route
-// =========================
-app.use(photosUploadUrl);
-
-// =========================
-
-const PORT = process.env.PORT || 3000;
-app.listen(PORT, () => {
-  console.log(`API listening on :${PORT}`);
-});
+// EXTRA
