@@ -62,7 +62,7 @@ export async function requestLoginCode(email: string) {
   // Fire-and-forget email; don't block the API on email latency.
   try {
     // Pass login URL explicitly so the template always has the right link
-    await sendLoginCodeEmail(partner.email, code, APP_LOGIN_URL);
+    await sendLoginCodeEmail(partner.email, code);
   } catch (e) {
     console.warn("[auth] sendLoginCodeEmail failed:", e);
   }
