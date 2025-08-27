@@ -1,62 +1,58 @@
-import { Router } from "express";
+﻿import express from "express";
+import { authPartnerFromHeader } from "../extranetAuth.js";
 import crypto from "crypto";
-import { PutObjectCommand } from "@aws-sdk/client-s3";
+import { S3Client, PutObjectCommand } from "@aws-sdk/client-s3";
 import { getSignedUrl } from "@aws-sdk/s3-request-presigner";
-import {
-  s3,
-  S3_BUCKET,
-  PUBLIC_BASE,
-  PHOTOS_PREFIX,
-  UPLOAD_TTL,
-  ALLOWED_MIME,
-  MAX_MB,
-} from "../storage/s3.js"; // if TS complains about .js, change to "../storage/s3"
 
-const r = Router();
+const router = express.Router();
 
-/**
- * POST /extranet/property/photos/upload-url
- * Body: { fileName: string, contentType: string, size?: number }
- * Auth: Bearer token or x-partner-token (your existing middleware should set req.partner?.id or req.user?.partnerId)
- * Returns: { putUrl, publicUrl, key }
- */
-r.post("/extranet/property/photos/upload-url", async (req, res) => {
-  try {
-    const partnerId: string | undefined =
-      (req as any).partner?.id || (req as any).user?.partnerId;
+const ALLOWED = (process.env.PHOTOS_ALLOWED_MIME ?? "image/jpeg,image/png,image/webp")
+  .split(",")
+  .map(s => s.trim())
+  .filter(Boolean);
 
-    if (!partnerId) return res.status(401).json({ error: "unauthorized" });
+const MAX_MB = Number(process.env.PHOTOS_MAX_MB ?? "5");
+const MAX_BYTES = MAX_MB * 1024 * 1024;
 
-    const { fileName, contentType, size } = req.body || {};
-    if (!fileName || !contentType) {
-      return res.status(400).json({ error: "fileName and contentType required" });
-    }
-    if (!ALLOWED_MIME.includes(contentType)) {
-      return res.status(400).json({ error: "mime_not_allowed" });
-    }
-    if (size && size > MAX_MB * 1024 * 1024) {
-      return res.status(400).json({ error: `max_${MAX_MB}MB` });
-    }
+const s3 = new S3Client({
+  region: process.env.AWS_REGION ?? "us-east-1",
+  credentials: {
+    accessKeyId: process.env.AWS_ACCESS_KEY_ID ?? "",
+    secretAccessKey: process.env.AWS_SECRET_ACCESS_KEY ?? "",
+  },
+});
+const BUCKET = process.env.AWS_S3_BUCKET ?? "";
 
-    const ext = (fileName.split(".").pop() || "jpg").toLowerCase();
-    const keyPrefix = `${PHOTOS_PREFIX}${partnerId}/`;
-    const key = `${keyPrefix}${Date.now()}-${crypto.randomBytes(6).toString("hex")}.${ext}`;
+async function requirePartner(req: any, res: any, next: any) {
+  const partner = await authPartnerFromHeader(req).catch(() => null);
+  if (!partner) return res.status(401).json({ error: "Unauthorized" });
+  req.partner = partner;
+  next();
+}
 
-    const putCmd = new PutObjectCommand({
-      Bucket: S3_BUCKET,
-      Key: key,
-      ContentType: contentType,
-      ...(process.env.S3_OBJECT_ACL ? { ACL: process.env.S3_OBJECT_ACL as any } : {}),
-    });
-
-    const putUrl = await getSignedUrl(s3, putCmd, { expiresIn: UPLOAD_TTL });
-    const publicUrl = `${PUBLIC_BASE}/${key}`;
-
-    return res.json({ putUrl, publicUrl, key });
-  } catch (err) {
-    console.error("upload-url error", err);
-    return res.status(500).json({ error: "upload_url_failed" });
+// NOTE: this router is mounted at /extranet/property/photos/upload-url
+router.post("/", requirePartner, async (req: any, res) => {
+  const { fileName, contentType, size } = req.body || {};
+  if (!fileName || !contentType || typeof size !== "number") {
+    return res.status(400).json({ error: "fileName, contentType, size required" });
   }
+  if (!ALLOWED.includes(contentType)) {
+    return res.status(400).json({ error: `type not allowed; allowed: ${ALLOWED.join(", ")}` });
+  }
+  if (size > MAX_BYTES) {
+    return res.status(400).json({ error: `file too large; max ${MAX_MB}MB` });
+  }
+
+  const key = `partners/${req.partner.id}/${Date.now()}_${crypto.randomBytes(6).toString("hex")}_${fileName}`;
+  const putCmd = new PutObjectCommand({
+    Bucket: BUCKET,
+    Key: key,
+    ContentType: contentType,
+  });
+  const putUrl = await getSignedUrl(s3, putCmd, { expiresIn: 60 });
+
+  const publicUrl = `https://${BUCKET}.s3.amazonaws.com/${encodeURIComponent(key)}`;
+  res.json({ putUrl, publicUrl, key });
 });
 
-export default r;
+export default router;
