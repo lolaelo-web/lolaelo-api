@@ -2,8 +2,13 @@
 import express from "express";
 import cors from "cors";
 import { prisma } from "./prisma.js";
-import { requestLoginCode, verifyLoginCode, authPartnerFromHeader } from "./extranetAuth.js";
-import photosUploadUrl from "./routes/extranetPhotosUploadUrl.js"; // upload-url signer
+import {
+  requestLoginCode,
+  verifyLoginCode,
+  authPartnerFromHeader,
+} from "./extranetAuth.js";
+import photosUploadUrl from "./routes/extranetPhotosUploadUrl.js";
+import photosCrud from "./routes/extranetPhotos.js"; // <— NEW
 
 const app = express();
 app.use(express.json());
@@ -56,7 +61,9 @@ app.post("/waitlist", async (req, res) => {
   if (isBotSubmission(req.body)) return res.status(204).end();
   const { email, phone } = req.body || {};
   if (!email) return res.status(400).json({ error: "email required" });
-  const row = await prisma.waitlist.create({ data: { email, phone: phone ?? null } });
+  const row = await prisma.waitlist.create({
+    data: { email, phone: phone ?? null },
+  });
   res.json({ id: row.id });
 });
 
@@ -70,16 +77,27 @@ app.post("/partners/applications", async (req, res) => {
   if (isBotSubmission(req.body)) return res.status(204).end();
   const { companyName, contactName, email, phone, location, notes } = req.body || {};
   if (!companyName || !contactName || !email) {
-    return res.status(400).json({ error: "companyName, contactName, email required" });
+    return res
+      .status(400)
+      .json({ error: "companyName, contactName, email required" });
   }
   const row = await prisma.partnerApplication.create({
-    data: { companyName, contactName, email, phone: phone ?? null, location: location ?? null, notes: notes ?? null },
+    data: {
+      companyName,
+      contactName,
+      email,
+      phone: phone ?? null,
+      location: location ?? null,
+      notes: notes ?? null,
+    },
   });
   res.json({ id: row.id });
 });
 
 app.get("/partners/applications", requireAdmin, async (_req, res) => {
-  const rows = await prisma.partnerApplication.findMany({ orderBy: { createdAt: "desc" } });
+  const rows = await prisma.partnerApplication.findMany({
+    orderBy: { createdAt: "desc" },
+  });
   res.json(rows);
 });
 
@@ -87,7 +105,8 @@ app.get("/partners/applications", requireAdmin, async (_req, res) => {
 app.put("/content/:key", requireAdmin, async (req, res) => {
   const key = req.params.key;
   const { value } = req.body || {};
-  if (typeof value !== "string") return res.status(400).json({ error: "value must be string" });
+  if (typeof value !== "string")
+    return res.status(400).json({ error: "value must be string" });
   const row = await prisma.contentBlock.upsert({
     where: { key },
     update: { value },
@@ -103,23 +122,39 @@ app.get("/content/:key", async (req, res) => {
 });
 
 // =========================
-// Admin CSV exports (optional)
+// Admin CSV exports
 // =========================
 app.get("/admin/export/waitlist.csv", requireAdmin, async (_req, res) => {
   const rows = await prisma.waitlist.findMany({ orderBy: { createdAt: "desc" } });
   const header = "email,phone,createdAt\n";
-  const body = rows.map(r => `${r.email},${r.phone ?? ""},${r.createdAt.toISOString()}`).join("\n");
+  const body = rows
+    .map((r) => `${r.email},${r.phone ?? ""},${r.createdAt.toISOString()}`)
+    .join("\n");
   res.setHeader("Content-Type", "text/csv");
   res.send(header + body);
 });
 
 app.get("/admin/export/partners.csv", requireAdmin, async (_req, res) => {
-  const rows = await prisma.partnerApplication.findMany({ orderBy: { createdAt: "desc" } });
-  const header = "companyName,contactName,email,phone,location,notes,createdAt\n";
-  const body = rows.map(r =>
-    [r.companyName, r.contactName, r.email, r.phone ?? "", r.location ?? "", (r.notes ?? "").replace(/\n/g, " "), r.createdAt.toISOString()]
-      .map(v => `"${String(v).replace(/"/g, '""')}"`).join(",")
-  ).join("\n");
+  const rows = await prisma.partnerApplication.findMany({
+    orderBy: { createdAt: "desc" },
+  });
+  const header =
+    "companyName,contactName,email,phone,location,notes,createdAt\n";
+  const body = rows
+    .map((r) =>
+      [
+        r.companyName,
+        r.contactName,
+        r.email,
+        r.phone ?? "",
+        r.location ?? "",
+        (r.notes ?? "").replace(/\n/g, " "),
+        r.createdAt.toISOString(),
+      ]
+        .map((v) => `"${String(v).replace(/"/g, '""')}"`)
+        .join(",")
+    )
+    .join("\n");
   res.setHeader("Content-Type", "text/csv");
   res.send(header + body);
 });
@@ -127,8 +162,6 @@ app.get("/admin/export/partners.csv", requireAdmin, async (_req, res) => {
 // =========================
 // EXTRANET AUTH
 // =========================
-
-// Request login code (conditional dev code in response)
 app.post("/extranet/login/request-code", async (req, res) => {
   const { email } = req.body || {};
   try {
@@ -147,7 +180,6 @@ app.post("/extranet/login/request-code", async (req, res) => {
   }
 });
 
-// Verify code and get session token
 app.post("/extranet/login/verify", async (req, res) => {
   const { email, code } = req.body || {};
   try {
@@ -163,7 +195,7 @@ app.post("/extranet/login/verify", async (req, res) => {
   }
 });
 
-// Helper middleware for partner-protected routes
+// helper
 async function requirePartner(
   req: express.Request,
   res: express.Response,
@@ -176,7 +208,7 @@ async function requirePartner(
   next();
 }
 
-// Lightweight attach (so routes that self-check can read req.partner)
+// Lightweight attach for /extranet/* routes
 app.use(async (req, _res, next) => {
   if (req.path.startsWith("/extranet/")) {
     try {
@@ -185,28 +217,31 @@ app.use(async (req, _res, next) => {
         // @ts-ignore
         req.partner = p;
       }
-    } catch {
-      // ignore
-    }
+    } catch {}
   }
   next();
 });
 
-// Who am I
 app.get("/extranet/me", requirePartner, async (req, res) => {
   // @ts-ignore
-  const partner = req.partner as { id: number; email: string | null; name?: string | null };
+  const partner = req.partner as {
+    id: number;
+    email: string | null;
+    name?: string | null;
+  };
   res.json({ id: partner.id, email: partner.email, name: partner.name ?? null });
 });
 
-// Alias used by frontend session check
 app.get("/extranet/session", requirePartner, async (req, res) => {
   // @ts-ignore
-  const partner = req.partner as { id: number; email: string | null; name?: string | null };
+  const partner = req.partner as {
+    id: number;
+    email: string | null;
+    name?: string | null;
+  };
   res.json({ id: partner.id, email: partner.email, name: partner.name ?? null });
 });
 
-// --- Revoke the current session token ---
 app.post("/extranet/logout", requirePartner, async (req, res) => {
   const auth = req.header("authorization") || req.header("Authorization");
   const legacy = req.header("x-partner-token");
@@ -225,8 +260,6 @@ app.post("/extranet/logout", requirePartner, async (req, res) => {
 // =========================
 // EXTRANET PROPERTY PROFILE
 // =========================
-
-// GET current partner's Property Profile
 app.get("/extranet/property", requirePartner, async (req, res) => {
   // @ts-ignore
   const partner = req.partner as { id: number };
@@ -237,7 +270,6 @@ app.get("/extranet/property", requirePartner, async (req, res) => {
   res.json(profile);
 });
 
-// CREATE/UPDATE current partner's Property Profile
 app.put("/extranet/property", requirePartner, async (req, res) => {
   // @ts-ignore
   const partner = req.partner as { id: number };
@@ -277,4 +309,14 @@ app.put("/extranet/property", requirePartner, async (req, res) => {
 });
 
 // =========================
-// EXTRA
+// PHOTO ROUTES
+// =========================
+app.use(photosUploadUrl); // presigned URL generator (already added earlier)
+app.use(photosCrud);      // <— NEW: CRUD endpoints (list/create/update/delete)
+
+// =========================
+
+const PORT = process.env.PORT || 3000;
+app.listen(PORT, () => {
+  console.log(`API listening on :${PORT}`);
+});
