@@ -1,0 +1,188 @@
+﻿generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// Public data
+model Waitlist {
+  id        Int      @id @default(autoincrement())
+  email     String
+  phone     String?
+  createdAt DateTime @default(now())
+}
+
+model PartnerApplication {
+  id          Int      @id @default(autoincrement())
+  companyName String
+  contactName String
+  email       String
+  phone       String?
+  location    String?
+  notes       String?
+  createdAt   DateTime @default(now())
+}
+
+model ContentBlock {
+  id        Int      @id @default(autoincrement())
+  key       String   @unique
+  value     String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+// Extranet auth models
+model Partner {
+  id        Int       @id @default(autoincrement())
+  email     String    @unique
+  name      String?
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+
+  sessions  ExtranetSession[]
+  codes     ExtranetLoginCode[]
+
+  profile   PropertyProfile?
+  photos    PropertyPhoto[]
+}
+
+model ExtranetLoginCode {
+  id        Int       @id @default(autoincrement())
+  partnerId Int
+  codeHash  String
+  expiresAt DateTime
+  createdAt DateTime  @default(now())
+  usedAt    DateTime?
+
+  partner   Partner   @relation(fields: [partnerId], references: [id])
+
+  @@index([partnerId])
+  @@index([expiresAt])
+}
+
+model ExtranetSession {
+  id        Int       @id @default(autoincrement())
+  partnerId Int
+  token     String    @unique
+  expiresAt DateTime
+  createdAt DateTime  @default(now())
+  revokedAt DateTime?
+
+  partner   Partner   @relation(fields: [partnerId], references: [id])
+@'
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// Public data
+model Waitlist {
+  id        Int      @id @default(autoincrement())
+  email     String
+  phone     String?
+  createdAt DateTime @default(now())
+}
+
+model PartnerApplication {
+  id          Int      @id @default(autoincrement())
+  companyName String
+  contactName String
+  email       String
+  phone       String?
+  location    String?
+  notes       String?
+  createdAt   DateTime @default(now())
+}
+
+model ContentBlock {
+  id        Int      @id @default(autoincrement())
+  key       String   @unique
+  value     String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+// Extranet auth models
+model Partner {
+  id        Int       @id @default(autoincrement())
+  email     String    @unique
+  name      String?
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+
+  sessions  ExtranetSession[]
+  codes     ExtranetLoginCode[]
+
+  profile   PropertyProfile?
+  photos    PropertyPhoto[]
+}
+
+model ExtranetLoginCode {
+  id        Int       @id @default(autoincrement())
+  partnerId Int
+  codeHash  String
+  expiresAt DateTime
+  createdAt DateTime  @default(now())
+  usedAt    DateTime?
+
+  partner   Partner   @relation(fields: [partnerId], references: [id])
+
+  @@index([partnerId])
+  @@index([expiresAt])
+}
+
+model ExtranetSession {
+  id        Int       @id @default(autoincrement())
+  partnerId Int
+  token     String    @unique
+  expiresAt DateTime
+  createdAt DateTime  @default(now())
+  revokedAt DateTime?
+
+  partner   Partner   @relation(fields: [partnerId], references: [id])
+
+  @@index([partnerId])
+  @@index([expiresAt])
+}
+
+// Property Profile (1:1)
+model PropertyProfile {
+  id           Int       @id @default(autoincrement())
+  partnerId    Int       @unique
+  name         String
+  addressLine  String?
+  city         String?
+  country      String?
+  contactEmail String?
+  phone        String?
+  description  String?
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
+
+  partner      Partner   @relation(fields: [partnerId], references: [id])
+}
+
+// Photos persisted per partner
+model PropertyPhoto {
+  id        Int      @id @default(autoincrement())
+  partnerId Int
+  key       String   @unique
+  url       String
+  alt       String?
+  sortOrder Int      @default(0)
+  isCover   Boolean  @default(false)
+  width     Int?
+  height    Int?
+  createdAt DateTime @default(now())
+
+  partner   Partner  @relation(fields: [partnerId], references: [id])
+
+  @@index([partnerId, sortOrder])
+}

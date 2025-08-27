@@ -1,5 +1,3 @@
-// prisma/schema.prisma
-
 generator client {
   provider = "prisma-client-js"
 }
@@ -9,6 +7,7 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
+// Public data
 model Waitlist {
   id        Int      @id @default(autoincrement())
   email     String
@@ -35,55 +34,53 @@ model ContentBlock {
   updatedAt DateTime @updatedAt
 }
 
-/* ===== Extranet auth models ===== */
-
+// Extranet auth models
 model Partner {
-  id        Int       @id @default(autoincrement())
-  email     String    @unique
+  id        Int      @id @default(autoincrement())
+  email     String   @unique
   name      String?
-  createdAt DateTime  @default(now())
-  updatedAt DateTime  @updatedAt
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
-  sessions  ExtranetSession[]
-  codes     ExtranetLoginCode[]
+  sessions ExtranetSession[]
+  codes    ExtranetLoginCode[]
 
-  profile   PropertyProfile?
-  photos    PropertyPhoto[]    // <— NEW relation used by the uploader
+  profile PropertyProfile?
+  photos  PropertyPhoto[]
 }
 
 model ExtranetLoginCode {
-  id           Int       @id @default(autoincrement())
-  partnerId    Int
-  codeHash     String
-  expiresAt    DateTime
-  createdAt    DateTime  @default(now())
-  usedAt       DateTime?
+  id        Int       @id @default(autoincrement())
+  partnerId Int
+  codeHash  String
+  expiresAt DateTime
+  createdAt DateTime  @default(now())
+  usedAt    DateTime?
 
-  partner      Partner   @relation(fields: [partnerId], references: [id])
+  partner Partner @relation(fields: [partnerId], references: [id])
 
   @@index([partnerId])
   @@index([expiresAt])
 }
 
 model ExtranetSession {
-  id            Int       @id @default(autoincrement())
-  partnerId     Int
-  token         String    @unique
-  expiresAt     DateTime
-  createdAt     DateTime  @default(now())
-  revokedAt     DateTime?
+  id        Int       @id @default(autoincrement())
+  partnerId Int
+  token     String    @unique
+  expiresAt DateTime
+  createdAt DateTime  @default(now())
+  revokedAt DateTime?
 
-  partner       Partner   @relation(fields: [partnerId], references: [id])
+  partner Partner @relation(fields: [partnerId], references: [id])
 
   @@index([partnerId])
   @@index([expiresAt])
 }
 
-/* ===== Property Profile (1:1) ===== */
-
+// Property Profile (1:1)
 model PropertyProfile {
-  id           Int       @id @default(autoincrement())
-  partnerId    Int       @unique
+  id           Int      @id @default(autoincrement())
+  partnerId    Int      @unique
   name         String
   addressLine  String?
   city         String?
@@ -91,28 +88,26 @@ model PropertyProfile {
   contactEmail String?
   phone        String?
   description  String?
-  createdAt    DateTime  @default(now())
-  updatedAt    DateTime  @updatedAt
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
 
-  partner      Partner   @relation(fields: [partnerId], references: [id])
+  partner Partner @relation(fields: [partnerId], references: [id])
 }
 
-/* ===== NEW: Photos persisted per partner ===== */
-
+// Photos persisted per partner
 model PropertyPhoto {
-  id          Int      @id @default(autoincrement())
-  partnerId   Int
-  key         String   @unique          // S3 object key (e.g. "photos/....png")
-  publicUrl   String                   // public URL returned by presign endpoint
-  contentType String                   // "image/png" | "image/jpeg" | "image/webp"
-  size        Int                      // bytes
-  width       Int?
-  height      Int?
-  sortOrder   Int      @default(0)
-  isCover     Boolean  @default(false)
-  createdAt   DateTime @default(now())
+  id        Int      @id @default(autoincrement())
+  partnerId Int
+  key       String   @unique
+  url       String
+  alt       String?
+  sortOrder Int      @default(0)
+  isCover   Boolean  @default(false)
+  width     Int?
+  height    Int?
+  createdAt DateTime @default(now())
 
-  partner     Partner  @relation(fields: [partnerId], references: [id])
+  partner Partner @relation(fields: [partnerId], references: [id])
 
   @@index([partnerId, sortOrder])
 }
