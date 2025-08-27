@@ -3,6 +3,7 @@ import express from "express";
 import cors from "cors";
 import { prisma } from "./prisma.js";
 import { requestLoginCode, verifyLoginCode, authPartnerFromHeader } from "./extranetAuth.js";
+import photosUploadUrl from "./routes/extranetPhotosUploadUrl.js"; // <— NEW
 
 const app = express();
 app.use(express.json());
@@ -18,6 +19,7 @@ app.use(
       "http://127.0.0.1:5173",
     ],
     credentials: false,
+    allowedHeaders: ["Authorization", "x-partner-token", "Content-Type"], // <— explicit
   })
 );
 
@@ -135,7 +137,6 @@ app.post("/extranet/login/request-code", async (req, res) => {
       ok: true,
       email: result.email,
       expiresAt: result.expiresAt,
-      // Only included when EXTRANET_DEV_SHOW_CODE=true
       ...(result.code ? { code: result.code } : {}),
       message: result.code
         ? "Dev only: code is shown here"
@@ -175,6 +176,22 @@ async function requirePartner(
   next();
 }
 
+// Lightweight attach (so routes that self-check can read req.partner)
+app.use(async (req, _res, next) => {
+  if (req.path.startsWith("/extranet/")) {
+    try {
+      const p = await authPartnerFromHeader(req as any);
+      if (p) {
+        // @ts-ignore
+        req.partner = p;
+      }
+    } catch {
+      // ignore
+    }
+  }
+  next();
+});
+
 // Who am I
 app.get("/extranet/me", requirePartner, async (req, res) => {
   // @ts-ignore
@@ -191,7 +208,6 @@ app.get("/extranet/session", requirePartner, async (req, res) => {
 
 // --- Revoke the current session token ---
 app.post("/extranet/logout", requirePartner, async (req, res) => {
-  // Pull token from headers to revoke *this* session
   const auth = req.header("authorization") || req.header("Authorization");
   const legacy = req.header("x-partner-token");
   let token: string | null = null;
@@ -259,6 +275,11 @@ app.put("/extranet/property", requirePartner, async (req, res) => {
 
   res.json(saved);
 });
+
+// =========================
+// NEW: Register photo upload-url route
+// =========================
+app.use(photosUploadUrl);
 
 // =========================
 
