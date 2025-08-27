@@ -47,8 +47,11 @@ model Partner {
   sessions  ExtranetSession[]
   codes     ExtranetLoginCode[]
 
-  // NEW: optional 1:1 property profile
+  // 1:1 property profile
   profile   PropertyProfile?
+
+  // Photos owned by this partner (NEW)
+  photos    PropertyPhoto[]
 }
 
 model ExtranetLoginCode {
@@ -83,7 +86,7 @@ model ExtranetSession {
   @@index([expiresAt])
 }
 
-// === NEW: Property Profile persisted per partner (1:1) ===
+// === Property Profile persisted per partner (1:1) ===
 model PropertyProfile {
   id           Int       @id @default(autoincrement())
   partnerId    Int       @unique
@@ -98,4 +101,22 @@ model PropertyProfile {
   updatedAt    DateTime  @updatedAt
 
   partner      Partner   @relation(fields: [partnerId], references: [id])
+}
+
+// === NEW: Photos ===
+model PropertyPhoto {
+  id         Int      @id @default(autoincrement())
+  partnerId  Int
+  key        String   @unique  // S3 object key
+  url        String   // public (or CDN) URL
+  alt        String?
+  sortOrder  Int      @default(0)
+  isCover    Boolean  @default(false)
+  width      Int?
+  height     Int?
+  createdAt  DateTime @default(now())
+
+  partner    Partner  @relation(fields: [partnerId], references: [id])
+
+  @@index([partnerId, sortOrder])
 }
