@@ -35,7 +35,7 @@ model ContentBlock {
   updatedAt DateTime @updatedAt
 }
 
-// === Extranet auth models (EXISTING) ===
+/* ===== Extranet auth models ===== */
 
 model Partner {
   id        Int       @id @default(autoincrement())
@@ -47,19 +47,14 @@ model Partner {
   sessions  ExtranetSession[]
   codes     ExtranetLoginCode[]
 
-  // 1:1 property profile
   profile   PropertyProfile?
-
-  // Photos owned by this partner (NEW)
-  photos    PropertyPhoto[]
+  photos    PropertyPhoto[]    // <— NEW relation used by the uploader
 }
 
 model ExtranetLoginCode {
   id           Int       @id @default(autoincrement())
   partnerId    Int
-  // Store a hash of the code for safety
   codeHash     String
-  // Code expires after 10 minutes
   expiresAt    DateTime
   createdAt    DateTime  @default(now())
   usedAt       DateTime?
@@ -73,9 +68,7 @@ model ExtranetLoginCode {
 model ExtranetSession {
   id            Int       @id @default(autoincrement())
   partnerId     Int
-  // Random token returned to client and sent back via header x-partner-token / Authorization: Bearer
   token         String    @unique
-  // Session valid for 30 days
   expiresAt     DateTime
   createdAt     DateTime  @default(now())
   revokedAt     DateTime?
@@ -86,7 +79,8 @@ model ExtranetSession {
   @@index([expiresAt])
 }
 
-// === Property Profile persisted per partner (1:1) ===
+/* ===== Property Profile (1:1) ===== */
+
 model PropertyProfile {
   id           Int       @id @default(autoincrement())
   partnerId    Int       @unique
@@ -103,20 +97,22 @@ model PropertyProfile {
   partner      Partner   @relation(fields: [partnerId], references: [id])
 }
 
-// === NEW: Photos ===
-model PropertyPhoto {
-  id         Int      @id @default(autoincrement())
-  partnerId  Int
-  key        String   @unique  // S3 object key
-  url        String   // public (or CDN) URL
-  alt        String?
-  sortOrder  Int      @default(0)
-  isCover    Boolean  @default(false)
-  width      Int?
-  height     Int?
-  createdAt  DateTime @default(now())
+/* ===== NEW: Photos persisted per partner ===== */
 
-  partner    Partner  @relation(fields: [partnerId], references: [id])
+model PropertyPhoto {
+  id          Int      @id @default(autoincrement())
+  partnerId   Int
+  key         String   @unique          // S3 object key (e.g. "photos/....png")
+  publicUrl   String                   // public URL returned by presign endpoint
+  contentType String                   // "image/png" | "image/jpeg" | "image/webp"
+  size        Int                      // bytes
+  width       Int?
+  height      Int?
+  sortOrder   Int      @default(0)
+  isCover     Boolean  @default(false)
+  createdAt   DateTime @default(now())
+
+  partner     Partner  @relation(fields: [partnerId], references: [id])
 
   @@index([partnerId, sortOrder])
 }
