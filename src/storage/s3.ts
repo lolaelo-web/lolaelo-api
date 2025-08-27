@@ -1,5 +1,4 @@
-// src/storage/s3.ts
-import { S3Client } from "@aws-sdk/client-s3";
+﻿import { S3Client } from "@aws-sdk/client-s3";
 
 const region = process.env.S3_REGION!;
 const credentials = {
