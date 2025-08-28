@@ -93,14 +93,10 @@ router.get("/", async (req: Request, res: Response) => {
 // CREATE: accepts { key, url, partnerId, alt?, sortOrder?, isCover?, isPrimary?, width?, height? }
 router.post("/", async (req: Request, res: Response) => {
   try {
-    const { key, url, partnerId,  alt, sortOrder, isCover, isPrimary, width, height  } = req.body ?? {};
-const authedId = Number((req as any).partnerId ?? (req as any).partner?.partnerId ?? (req as any).partner?.id);
-if (!Number.isFinite(authedId) || authedId <= 0) {
-  return res.status(401).json({ error: "Unauthorized" });
-}
-if (partnerId !== undefined && Number(partnerId) !== authedId) {
-  return res.status(403).json({ error: "Forbidden: partnerId mismatch" });
-}if (!key || !url) { return res.status(400).json({ error: "key, url required" }); }
+    const { key, url, partnerId, alt, sortOrder, isCover, isPrimary, width, height } = req.body ?? {};
+    if (!key || !url || partnerId === undefined || partnerId === null) {
+      return res.status(400).json({ error: "key, url, partnerId required" });
+    }
 
     const cover =
       typeof isCover === "boolean"
@@ -109,7 +105,8 @@ if (partnerId !== undefined && Number(partnerId) !== authedId) {
         ? !!isPrimary
         : false;
 
-    if (!Number.isFinite(authedId) || authedId <= 0) {
+    const authedId = Number((req as any).partnerId ?? (req as any).partner?.partnerId ?? (req as any).partner?.id);
+if (!Number.isFinite(authedId) || authedId <= 0) {
   return res.status(401).json({ error: "Unauthorized" });
 }
 if (partnerId !== undefined && Number(partnerId) !== authedId) {
@@ -170,8 +167,6 @@ router.delete("/:id", async (req: Request, res: Response) => {
 });
 
 export default router;
-
-
 
 
 
