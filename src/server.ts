@@ -6,7 +6,45 @@ import extranetPhotos from "./routes/extranetPhotos.js";
 import photosUploadUrl from "./routes/extranetPhotosUploadUrl.js";
 
 const app = express();
+import express from "express";
+import cors from "cors";
+import { PrismaClient } from "@prisma/client";  // <-- add
 
+// ESM runtime needs .js in import paths after TS compiles to dist/
+import extranetPhotos from "./routes/extranetPhotos.js";
+import photosUploadUrl from "./routes/extranetPhotosUploadUrl.js";
+
+const app = express();
+const prisma = new PrismaClient();              // <-- add
+
+// --- ONE-TIME BOOTSTRAP: ensure table exists (remove after success) ---
+async function ensurePropertyPhoto() {
+  // minimal schema that satisfies current code paths
+  // (no FK so we don't block on Partner; Prisma relations still work)
+  await prisma.$executeRawUnsafe(`
+    CREATE TABLE IF NOT EXISTS "PropertyPhoto" (
+      "id" SERIAL PRIMARY KEY,
+      "key" TEXT NOT NULL,
+      "url" TEXT NOT NULL,
+      "partnerId" INTEGER NOT NULL,
+      "alt" TEXT,
+      "caption" TEXT,
+      "sortOrder" INTEGER DEFAULT 0,
+      "isPrimary" BOOLEAN DEFAULT FALSE,
+      "createdAt" TIMESTAMPTZ DEFAULT NOW(),
+      "updatedAt" TIMESTAMPTZ DEFAULT NOW()
+    );
+    CREATE INDEX IF NOT EXISTS "PropertyPhoto_partnerId_idx" ON "PropertyPhoto" ("partnerId");
+  `);
+}
+ensurePropertyPhoto().catch(e => {
+  console.error("ensurePropertyPhoto error:", e);
+});
+// ----------------------------------------------------------------------
+
+/* (rest of your file stays the same: CORS, health, mounts, __routes, 404, error handler, listen …)
+   Keep your existing /__admin/db-push; we won't use it now.
+*/
 // Parse + CORS
 app.set("trust proxy", 1);
 app.use(express.json({ limit: "10mb" }));
@@ -87,3 +125,4 @@ app.listen(PORT, () => {
 });
 
 export default app;
+
