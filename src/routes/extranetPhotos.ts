@@ -22,11 +22,7 @@ router.get("/diag", async (_req: Request, res: Response) => {
     const count = await prisma.$queryRawUnsafe<{ count: number }[]>(
       `SELECT COUNT(*)::int AS count FROM "PropertyPhoto"`
     );
-    res.json({
-      tableExists: !!(exists?.[0]?.exists),
-      count: count?.[0]?.count ?? 0,
-      columns,
-    });
+    res.json({ tableExists: !!(exists?.[0]?.exists), count: count?.[0]?.count ?? 0, columns });
   } catch (e: any) {
     res.status(500).json({ error: "diag failure", message: e?.message, code: e?.code, meta: e?.meta });
   }
@@ -46,13 +42,20 @@ router.get("/", async (req: Request, res: Response) => {
   }
 });
 
-// CREATE: expects { key, url, partnerId, alt?, sortOrder?, isPrimary? }
+// CREATE: accepts { key, url, partnerId, alt?, sortOrder?, isCover?, isPrimary?, width?, height? }
 router.post("/", async (req: Request, res: Response) => {
   try {
-    const { key, url, partnerId, alt, sortOrder, isPrimary } = req.body ?? {};
+    const { key, url, partnerId, alt, sortOrder, isCover, isPrimary, width, height } = req.body ?? {};
     if (!key || !url || partnerId === undefined || partnerId === null) {
       return res.status(400).json({ error: "key, url, partnerId required" });
     }
+
+    const cover =
+      typeof isCover === "boolean"
+        ? isCover
+        : typeof isPrimary === "boolean"
+        ? !!isPrimary
+        : false;
 
     const data = {
       key: String(key),
@@ -60,7 +63,9 @@ router.post("/", async (req: Request, res: Response) => {
       partnerId: Number(partnerId),
       alt: typeof alt === "string" ? alt : null,
       sortOrder: typeof sortOrder === "number" ? sortOrder : 0,
-      isPrimary: !!isPrimary,
+      isCover: cover,
+      width: typeof width === "number" ? width : null,
+      height: typeof height === "number" ? height : null,
     };
 
     const created = await prisma.propertyPhoto.create({ data: data as any });
@@ -71,22 +76,24 @@ router.post("/", async (req: Request, res: Response) => {
   }
 });
 
-// UPDATE
+// UPDATE: accepts same fields; maps isPrimary -> isCover if provided
 router.put("/:id", async (req: Request, res: Response) => {
   try {
     const id = Number(req.params.id);
-    const { alt, sortOrder, isPrimary, url, key, partnerId } = req.body ?? {};
-    const updated = await prisma.propertyPhoto.update({
-      where: { id },
-      data: {
-        alt: typeof alt === "string" ? alt : undefined,
-        sortOrder: typeof sortOrder === "number" ? sortOrder : undefined,
-        isPrimary: typeof isPrimary === "boolean" ? isPrimary : undefined,
-        url: typeof url === "string" ? url : undefined,
-        key: typeof key === "string" ? key : undefined,
-        partnerId: typeof partnerId === "number" ? partnerId : undefined,
-      } as any,
-    });
+    const { alt, sortOrder, isCover, isPrimary, url, key, partnerId, width, height } = req.body ?? {};
+
+    const data: any = {};
+    if (typeof alt === "string") data.alt = alt;
+    if (typeof sortOrder === "number") data.sortOrder = sortOrder;
+    if (typeof url === "string") data.url = url;
+    if (typeof key === "string") data.key = key;
+    if (typeof partnerId === "number") data.partnerId = partnerId;
+    if (typeof width === "number") data.width = width;
+    if (typeof height === "number") data.height = height;
+    if (typeof isCover === "boolean") data.isCover = isCover;
+    else if (typeof isPrimary === "boolean") data.isCover = !!isPrimary;
+
+    const updated = await prisma.propertyPhoto.update({ where: { id }, data });
     res.json(updated);
   } catch (e: any) {
     res.status(500).json({ error: "Failed to update photo", message: e?.message, code: e?.code, meta: e?.meta });
@@ -100,7 +107,7 @@ router.delete("/:id", async (req: Request, res: Response) => {
     await prisma.propertyPhoto.delete({ where: { id } });
     res.status(204).send();
   } catch (e: any) {
-    res.status(500).json({ error: "Failed to delete photo", message: e?.message, code: e?.code, meta: e?.meta });
+    res.status(500).json({ error: "Failed to delete photo", message: e?.message, code: e?.meta });
   }
 });
 
