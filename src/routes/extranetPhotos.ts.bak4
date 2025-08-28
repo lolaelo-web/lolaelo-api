@@ -4,40 +4,14 @@ import { PrismaClient } from "@prisma/client";
 
 const prisma = new PrismaClient();
 const router = Router();
-// [LolaElo] hard auth gate (belt-and-suspenders) — self-contained auth
-router.use(async (req: any, res: any, next: any) => {
-  try {
-    const authHeader = req.header("authorization") || req.header("Authorization");
-    const altHeader  = req.header("x-partner-token");
-    let token = "";
-    if (authHeader && authHeader.startsWith("Bearer ")) token = authHeader.slice("Bearer ".length).trim();
-    else if (altHeader) token = String(altHeader).trim();
 
-    if (!token) {
-      return res.status(401).json({ error: 'Unauthorized' });
-    }
 
-    const now = new Date();
-    // Validate session and include partner
-    const session = await prisma.extranetSession.findFirst({
-      where: {
-        token,
-        revokedAt: null,
-        expiresAt: { gt: now },
-      },
-      include: { partner: true },
-    });
-
-    if (!session || !session.partner) {
-      return res.status(401).json({ error: 'Unauthorized' });
-    }
-
-    // Attach partner onto req for downstream handlers
-    req.partner = session.partner;
-    next();
-  } catch (e) {
+// [LolaElo] hard auth gate (belt-and-suspenders)
+router.use((req: any, res: any, next: any) => {
+  if (!req?.partner?.id) {
     return res.status(401).json({ error: 'Unauthorized' });
   }
+  next();
 });// DIAG: check table/columns/count
 router.get("/diag", async (_req: Request, res: Response) => {
   try {
@@ -157,8 +131,6 @@ router.delete("/:id", async (req: Request, res: Response) => {
 });
 
 export default router;
-
-
 
 
 
