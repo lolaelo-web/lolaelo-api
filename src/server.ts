@@ -1,54 +1,24 @@
 ﻿import express from "express";
 import cors from "cors";
-import { PrismaClient } from "@prisma/client";
-import { execFile } from "child_process";
-import util from "util";
 
-// ESM runtime needs .js suffix after TS compiles
+// ESM runtime needs .js in import paths after TS compiles to dist/
 import extranetPhotos from "./routes/extranetPhotos.js";
 import photosUploadUrl from "./routes/extranetPhotosUploadUrl.js";
 
 const app = express();
-const prisma = new PrismaClient();
-const execFileP = util.promisify(execFile);
-
-// ---------- ONE-TIME BOOTSTRAP (remove after success) ----------
-async function ensurePropertyPhoto() {
-  // Create table if it does not exist
-  await prisma.$executeRawUnsafe(`
-    CREATE TABLE IF NOT EXISTS "PropertyPhoto" (
-      "id" SERIAL PRIMARY KEY,
-      "key" TEXT NOT NULL,
-      "url" TEXT NOT NULL,
-      "partnerId" INTEGER NOT NULL,
-      "alt" TEXT,
-      "caption" TEXT,
-      "sortOrder" INTEGER DEFAULT 0,
-      "isPrimary" BOOLEAN DEFAULT FALSE,
-      "createdAt" TIMESTAMPTZ DEFAULT NOW(),
-      "updatedAt" TIMESTAMPTZ DEFAULT NOW()
-    )
-  `);
-
-  // Create index in a separate statement (Prisma forbids multi-statements)
-  await prisma.$executeRawUnsafe(`
-    CREATE INDEX IF NOT EXISTS "PropertyPhoto_partnerId_idx" ON "PropertyPhoto" ("partnerId")
-  `);
-
-  console.log("ensurePropertyPhoto: table/index present");
-}
-ensurePropertyPhoto().catch((e) => console.error("ensurePropertyPhoto error:", e));
-// ---------------------------------------------------------------
 
 // Parse + CORS
 app.set("trust proxy", 1);
 app.use(express.json({ limit: "10mb" }));
+
 const ALLOWED_ORIGINS = [
-  "http://localhost:5173",
-  "http://127.0.0.1:5173",
   "https://lolaelo.com",
   "https://www.lolaelo.com",
+  // add dev origins temporarily only if you need them:
+  // "http://localhost:5173",
+  // "http://127.0.0.1:5173",
 ];
+
 app.use(
   cors({
     origin: (origin, cb) => {
@@ -61,36 +31,14 @@ app.use(
   })
 );
 
-// Health fingerprint
+// Health (fingerprint)
 app.get("/health", (_req, res) => res.status(200).send("OK v-UPLOAD-2"));
 
 // Mount routers
 app.use("/extranet/property/photos/upload-url", photosUploadUrl);
 app.use("/extranet/property/photos", extranetPhotos);
 
-// ----- TEMP ADMIN: run Prisma db push on Render (optional; before 404) ----
-app.post("/__admin/db-push", async (req, res) => {
-  try {
-    if (req.header("x-admin-key") !== process.env.ADMIN_KEY) {
-      return res.status(401).json({ error: "Unauthorized" });
-    }
-    const { stdout, stderr } = await execFileP("npx", ["prisma", "db", "push", "--skip-generate"], {
-      env: process.env,
-      timeout: 120_000,
-    });
-    res.json({ ok: true, stdout, stderr });
-  } catch (e: any) {
-    res.status(500).json({
-      ok: false,
-      message: e?.message,
-      stdout: e?.stdout?.toString(),
-      stderr: e?.stderr?.toString(),
-    });
-  }
-});
-// --------------------------------------------------------------------------
-
-// Diagnostics
+// Diagnostics: list registered routes
 app.get("/__routes", (req, res) => {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const stack = (req.app as any)?._router?.stack ?? [];
@@ -100,7 +48,7 @@ app.get("/__routes", (req, res) => {
   res.json({ routes });
 });
 
-// 404 after all routes
+// 404
 app.use((req, res) => res.status(404).json({ error: "Not Found", path: req.path }));
 
 // Error handler
