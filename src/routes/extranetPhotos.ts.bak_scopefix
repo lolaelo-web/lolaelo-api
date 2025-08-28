@@ -76,8 +76,7 @@ if (!partnerId) return res.status(401).json({ error: "Unauthorized" });
 // LIST: ?partnerId=#
 router.get("/", async (req: Request, res: Response) => {
   try {
-    const partnerId = Number((req as any).partnerId ?? (req as any).partner?.partnerId ?? (req as any).partner?.id);
-    if (!partnerId) return res.status(401).json({ error: "Unauthorized" });
+    const partnerId = (req as any).partnerId;
     const photos = await prisma.propertyPhoto.findMany({
       where: { partnerId },
       orderBy: [{ partnerId: "asc" }, { sortOrder: "asc" }, { id: "asc" }],
@@ -158,7 +157,6 @@ router.delete("/:id", async (req: Request, res: Response) => {
 });
 
 export default router;
-
 
 
 
