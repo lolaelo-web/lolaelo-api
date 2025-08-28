@@ -4,6 +4,7 @@ import cors from "cors";
 // ESM runtime needs .js in import paths after TS compiles to dist/
 import extranetPhotos from "./routes/extranetPhotos.js";
 import photosUploadUrl from "./routes/extranetPhotosUploadUrl.js";
+import extranetAuth from "./routes/extranetAuth.js";
 
 const app = express();
 
@@ -37,6 +38,7 @@ app.get("/health", (_req, res) => res.status(200).send("OK v-UPLOAD-2"));
 // Mount routers
 app.use("/extranet/property/photos/upload-url", photosUploadUrl);
 app.use("/extranet/property/photos", extranetPhotos);
+app.use(extranetAuth);
 
 // Diagnostics: list registered routes
 app.get("/__routes", (req, res) => {
@@ -64,3 +66,4 @@ app.listen(PORT, () => {
 });
 
 export default app;
+
