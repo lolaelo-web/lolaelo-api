@@ -33,7 +33,7 @@ app.use(
 );
 
 // Health (fingerprint)
-app.get("/health", (_req, res) => res.status(200).send("OK v-AUTH-1"));
+app.get("/health", (_req, res) => res.status(200).send("OK v-AUTH-2"));
 
 // Mount routers
 app.use("/extranet/property/photos/upload-url", photosUploadUrl);
@@ -66,5 +66,6 @@ app.listen(PORT, () => {
 });
 
 export default app;
+
 
 
