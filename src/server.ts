@@ -1,7 +1,7 @@
 ﻿import express from "express";
 import cors from "cors";
 
-// ESM runtime needs .js in import paths after TS compiles to dist/
+// ESM runtime needs .js suffix after TS compiles
 import extranetPhotos from "./routes/extranetPhotos.js";
 import photosUploadUrl from "./routes/extranetPhotosUploadUrl.js";
 
@@ -28,14 +28,14 @@ app.use(
   })
 );
 
-// Distinct health so we can verify prod is running THIS build
+// Distinct health
 app.get("/health", (_req, res) => res.status(200).send("OK v-UPLOAD-2"));
 
 // Mount routers
 app.use("/extranet/property/photos/upload-url", photosUploadUrl);
 app.use("/extranet/property/photos", extranetPhotos);
 
-// Diagnostics: list registered routes
+// Diagnostics
 app.get("/__routes", (req, res) => {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const stack = (req.app as any)?._router?.stack ?? [];
@@ -56,6 +56,34 @@ app.use((err: any, _req: express.Request, res: express.Response, _next: express.
 });
 
 const PORT = Number(process.env.PORT || 3000);
+
+// --- TEMP ADMIN: run Prisma db push on Render ------------------------------
+import { execFile } from "child_process";
+import util from "util";
+const execFileP = util.promisify(execFile);
+
+/** POST /__admin/db-push  (Header: x-admin-key: <ADMIN_KEY>) */
+app.post("/__admin/db-push", async (req, res) => {
+  try {
+    if (req.header("x-admin-key") !== process.env.ADMIN_KEY) {
+      return res.status(401).json({ error: "Unauthorized" });
+    }
+    const { stdout, stderr } = await execFileP("npx", ["prisma", "db", "push", "--skip-generate"], {
+      env: process.env,
+      timeout: 120_000,
+    });
+    res.json({ ok: true, stdout, stderr });
+  } catch (e: any) {
+    res.status(500).json({
+      ok: false,
+      message: e?.message,
+      stdout: e?.stdout?.toString(),
+      stderr: e?.stderr?.toString(),
+    });
+  }
+});
+// --------------------------------------------------------------------------
+
 app.listen(PORT, () => {
   console.log(`Server started on port ${PORT}`);
 });
