@@ -1,4 +1,5 @@
-﻿import { Router, Request, Response } from "express";
+﻿import { authPartnerFromHeader } from "../extranetAuth.js";
+import { Router, Request, Response } from "express";
 import { PrismaClient } from "@prisma/client";
 
 const prisma = new PrismaClient();
@@ -13,7 +14,18 @@ router.get("/diag", async (_req: Request, res: Response) => {
          WHERE table_schema = 'public' AND table_name = 'PropertyPhoto'
        ) AS exists`
     );
-    const columns = await prisma.$queryRawUnsafe<{ column_name: string; data_type: string; is_nullable: string }[]>(
+    // AUTH GUARD: require a valid partner for all routes below
+router.use(async (req, res, next) => {
+  try {
+    const partner = await authPartnerFromHeader(req) as any;
+const partnerId = partner?.partnerId ?? partner?.id;
+if (!partnerId) return res.status(401).json({ error: "Unauthorized" });
+(req as any).partnerId = Number(partnerId);
+    return next();
+  } catch {
+    return res.status(401).json({ error: "Unauthorized" });
+  }
+});const columns = await prisma.$queryRawUnsafe<{ column_name: string; data_type: string; is_nullable: string }[]>(
       `SELECT column_name, data_type, is_nullable
          FROM information_schema.columns
         WHERE table_schema='public' AND table_name='PropertyPhoto'
@@ -31,9 +43,9 @@ router.get("/diag", async (_req: Request, res: Response) => {
 // LIST: ?partnerId=#
 router.get("/", async (req: Request, res: Response) => {
   try {
-    const partnerId = req.query.partnerId ? Number(req.query.partnerId) : undefined;
+    const partnerId = (req as any).partnerId;
     const photos = await prisma.propertyPhoto.findMany({
-      where: partnerId ? { partnerId } : {},
+      where: { partnerId },
       orderBy: [{ partnerId: "asc" }, { sortOrder: "asc" }, { id: "asc" }],
     });
     res.json(photos);
@@ -112,3 +124,6 @@ router.delete("/:id", async (req: Request, res: Response) => {
 });
 
 export default router;
+
+
+
