@@ -105,17 +105,10 @@ router.post("/", async (req: Request, res: Response) => {
         ? !!isPrimary
         : false;
 
-    const authedId = Number((req as any).partnerId ?? (req as any).partner?.partnerId ?? (req as any).partner?.id);
-if (!Number.isFinite(authedId) || authedId <= 0) {
-  return res.status(401).json({ error: "Unauthorized" });
-}
-if (partnerId !== undefined && Number(partnerId) !== authedId) {
-  return res.status(403).json({ error: "Forbidden: partnerId mismatch" });
-}
-const data = {
+    const data = {
       key: String(key),
       url: String(url),
-      partnerId: authedId,
+      partnerId: Number(partnerId),
       alt: typeof alt === "string" ? alt : null,
       sortOrder: typeof sortOrder === "number" ? sortOrder : 0,
       isCover: cover,
@@ -167,7 +160,6 @@ router.delete("/:id", async (req: Request, res: Response) => {
 });
 
 export default router;
-
 
 
 
