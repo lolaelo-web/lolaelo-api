@@ -1,174 +1,111 @@
-import { Router, type Request, type Response } from "express";
-import { prisma } from "../prisma.js";
+﻿import { Router, Request, Response } from "express";
 import crypto from "crypto";
 
-// ===== Config =====
-const CODE_TTL_MINUTES = 10;
-const SESSION_TTL_DAYS = 30;
-// Optional: add a pepper for hashing OTP codes (set in env, or leave blank for dev)
-const CODE_PEPPER = process.env.CODE_PEPPER || "";
-
-// ===== Helpers =====
-function normalizeEmail(email: string) {
-  return email.trim().toLowerCase();
-}
-
-function sha256(input: string) {
-  return crypto.createHash("sha256").update(input).digest("hex");
-}
-
-function makeCode(): string {
-  // 6-digit numeric code
-  return Math.floor(100000 + Math.random() * 900000).toString();
-}
-
-function makeToken(): string {
-  return "sess_" + crypto.randomBytes(24).toString("hex");
-}
-
-function nowPlusMinutes(m: number) {
-  return new Date(Date.now() + m * 60 * 1000);
-}
-
-function nowPlusDays(d: number) {
-  return new Date(Date.now() + d * 24 * 60 * 60 * 1000);
-}
-
-// ===== Router =====
 const router = Router();
 
+const CODE_TTL_MINUTES = 10;
+const SESSION_TTL_DAYS = 30;
+
+// In-memory stores (simple + fast). Swap to DB later if needed.
+type CodeItem = { code: string; expiresAt: number };
+type SessionItem = { email: string; expiresAt: number };
+
+const codeStore = new Map<string, CodeItem>();       // key = email
+const sessionStore = new Map<string, SessionItem>(); // key = token
+
+// Helpers
+const now = () => Date.now();
+const addMinutes = (ms: number, minutes: number) => ms + minutes * 60_000;
+const addDays = (ms: number, days: number) => ms + days * 86_400_000;
+const makeCode = () => String(Math.floor(100000 + Math.random() * 900000));
+const makeToken = () => crypto.randomUUID();
+
+// -------- POST /login/request-code -----------------------------------------
 /**
- * POST /extranet/login/request-code
  * Body: { email }
- * Returns: { email, code }  (dev convenience; in prod, email the code)
+ * Returns: { ok, emailed|devCode, ttlMin }
  */
 router.post("/login/request-code", async (req: Request, res: Response) => {
   try {
-    const { email } = req.body || {};
-    if (!email) return res.status(400).json({ message: "email required" });
-
-    const normEmail = normalizeEmail(email);
-
-    // Ensure a Partner row exists
-    const partner = await prisma.partner.upsert({
-      where: { email: normEmail },
-      update: {},
-      create: { email: normEmail, name: null },
-    });
+    const email = String(req.body?.email || "").trim().toLowerCase();
+    if (!email || !email.includes("@")) return res.status(400).json({ ok: false, error: "invalid_email" });
 
     const code = makeCode();
-    const codeHash = sha256(CODE_PEPPER + code);
+    codeStore.set(email, { code, expiresAt: addMinutes(now(), CODE_TTL_MINUTES) });
 
-    // Create a new code; old ones remain but will expire naturally
-    await prisma.extranetLoginCode.create({
-      data: {
-        partnerId: partner.id,
-        codeHash,
-        expiresAt: nowPlusMinutes(CODE_TTL_MINUTES),
-      },
-    });
+    const POSTMARK_TOKEN = process.env.POSTMARK_TOKEN || "";
+    const FROM_EMAIL = process.env.FROM_EMAIL || "noreply@lolaelo.com";
 
-    // DEV: return the code in clear text; remove in production
-    return res.json({ email: normEmail, code });
-  } catch (err) {
-    console.error("request-code error", err);
-    return res.status(500).json({ message: "internal error" });
-  }
-});
+    if (POSTMARK_TOKEN) {
+      // Use global fetch without DOM types
+      const resp = await (globalThis as any).fetch("https://api.postmarkapp.com/email", {
+        method: "POST",
+        headers: {
+          "Accept": "application/json",
+          "Content-Type": "application/json",
+          "X-Postmark-Server-Token": POSTMARK_TOKEN,
+        },
+        body: JSON.stringify({
+          From: FROM_EMAIL,
+          To: email,
+          Subject: "Your Lolaelo Extranet Code",
+          TextBody: `Your one-time code is ${code}. It expires in ${CODE_TTL_MINUTES} minutes.`,
+          MessageStream: "outbound",
+        }),
+      });
 
-/**
- * POST /extranet/login
- * Body: { email, code }
- * Returns: { token }
- * Notes: we only support the code-based flow here.
- */
-router.post("/login", async (req: Request, res: Response) => {
-  try {
-    const { email, code } = req.body || {};
-    if (!email || !code) return res.status(400).json({ message: "Email and code required." });
-
-    const normEmail = normalizeEmail(email);
-
-    // Look up partner
-    const partner = await prisma.partner.findUnique({ where: { email: normEmail } });
-    if (!partner) return res.status(401).json({ message: "partner not found" });
-
-    // Fetch latest valid code for this partner
-    const latest = await prisma.extranetLoginCode.findFirst({
-      where: {
-        partnerId: partner.id,
-        usedAt: null,
-        expiresAt: { gt: new Date() },
-      },
-      orderBy: { createdAt: "desc" },
-    });
-
-    if (!latest) return res.status(401).json({ message: "no valid code on record (request a new one)" });
-
-    const incomingHash = sha256(CODE_PEPPER + String(code));
-    if (incomingHash !== latest.codeHash) {
-      return res.status(401).json({ message: "invalid code" });
+      if (!resp.ok) {
+        const txt = await resp.text().catch(() => "");
+        console.warn("Postmark send failed", resp.status, txt);
+        return res.json({ ok: true, emailed: false, devCode: code, ttlMin: CODE_TTL_MINUTES });
+      }
+      return res.json({ ok: true, emailed: true, ttlMin: CODE_TTL_MINUTES });
+    } else {
+      // No mailer configured (dev/local)
+      return res.json({ ok: true, emailed: false, devCode: code, ttlMin: CODE_TTL_MINUTES });
     }
-
-    // Mark code used
-    await prisma.extranetLoginCode.update({
-      where: { id: latest.id },
-      data: { usedAt: new Date() },
-    });
-
-    // Create a new session
-    const token = makeToken();
-    const expiresAt = nowPlusDays(SESSION_TTL_DAYS);
-
-    await prisma.extranetSession.create({
-      data: {
-        partnerId: partner.id,
-        token,
-        expiresAt,
-      },
-    });
-
-    return res.json({ token });
-  } catch (err) {
-    console.error("login error", err);
-    return res.status(500).json({ message: "internal error" });
+  } catch (e) {
+    console.error("request-code error:", e);
+    return res.status(500).json({ ok: false, error: "server_error" });
   }
 });
 
+// -------- POST /login/verify-code ------------------------------------------
 /**
- * GET /extranet/session
- * Header: Authorization: Bearer <token>   (or x-partner-token: <token> for legacy)
- * Returns: { partnerId, email, name, expiresAt }
+ * Body: { email, code }
+ * Returns: { ok, token, expiresAt }
  */
-router.get("/session", async (req: Request, res: Response) => {
+router.post("/login/verify-code", async (req: Request, res: Response) => {
   try {
-    const auth = req.header("authorization") || req.header("Authorization");
-    const legacy = req.header("x-partner-token");
-    let token: string | null = null;
+    const email = String(req.body?.email || "").trim().toLowerCase();
+    const code = String(req.body?.code || "").trim();
 
-    if (auth && auth.startsWith("Bearer ")) token = auth.slice("Bearer ".length).trim();
-    else if (legacy) token = legacy.trim();
+    if (!email || !email.includes("@")) return res.status(400).json({ ok: false, error: "invalid_email" });
+    if (!/^\d{6}$/.test(code)) return res.status(400).json({ ok: false, error: "invalid_code_format" });
 
-    if (!token) return res.status(401).json({ message: "missing token" });
+    const item = codeStore.get(email);
+    if (!item) return res.status(400).json({ ok: false, error: "code_not_requested" });
+    if (item.expiresAt < now()) {
+      codeStore.delete(email);
+      return res.status(400).json({ ok: false, error: "code_expired" });
+    }
+    if (item.code !== code) return res.status(400).json({ ok: false, error: "code_mismatch" });
 
-    const session = await prisma.extranetSession.findUnique({ where: { token } });
-    if (!session) return res.status(401).json({ message: "session not found" });
-    if (session.revokedAt) return res.status(401).json({ message: "session revoked" });
-    if (session.expiresAt && session.expiresAt < new Date()) return res.status(401).json({ message: "session expired" });
+    // Success → mint session
+    codeStore.delete(email);
+    const token = makeToken();
+    const expiresAt = addDays(now(), SESSION_TTL_DAYS);
+    sessionStore.set(token, { email, expiresAt });
 
-    const partner = await prisma.partner.findUnique({ where: { id: session.partnerId } });
-    if (!partner) return res.status(401).json({ message: "partner not found" });
-
-    return res.json({
-      partnerId: partner.id,
-      email: partner.email,
-      name: partner.name,
-      expiresAt: session.expiresAt,
-    });
-  } catch (err) {
-    console.error("session error", err);
-    return res.status(500).json({ message: "internal error" });
+    return res.json({ ok: true, token, expiresAt });
+  } catch (e) {
+    console.error("verify-code error:", e);
+    return res.status(500).json({ ok: false, error: "server_error" });
   }
 });
+
+// -------- Legacy aliases (keep old FE calls working) -----------------------
+router.post("/extranet/login/request-code", (req, res) => res.redirect(307, "/login/request-code"));
+router.post("/extranet/login", (req, res) => res.redirect(307, "/login/verify-code"));
 
 export default router;

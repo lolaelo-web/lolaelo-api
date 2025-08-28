@@ -8,6 +8,19 @@ import extranetAuth from "./routes/extranetAuth.js";
 
 const app = express();
 
+//
+// [APPTAP-BEGIN]
+app.all("/extranet/property/photos/__apptap/:id?", express.json(), (req, res) => {
+  return res.status(200).json({
+    ok: true,
+    where: "app-tap",
+    method: req.method,
+    path: req.originalUrl,
+    id: req.params?.id ?? null,
+    body: req.body ?? null
+  });
+});
+// [APPTAP-END]
 // Parse + CORS
 app.set("trust proxy", 1);
 app.use(express.json({ limit: "10mb" }));
@@ -61,11 +74,29 @@ app.use((err: any, _req: express.Request, res: express.Response, _next: express.
 });
 
 const PORT = Number(process.env.PORT || 3000);
+//
+// [APP-ERR-LOGGER-BEGIN]
+app.use((err: any, req: any, res: any, _next: any) => {
+  try {
+    console.error("[APP ERROR]", {
+      message: err?.message, name: err?.name, code: err?.code, stack: err?.stack,
+      path: req?.originalUrl, method: req?.method
+    });
+  } catch {}
+  return res.status(500).json({
+    error: "Internal Server Error",
+    where: "app",
+    message: err?.message ?? null,
+    code: err?.code ?? null
+  });
+});
+// [APP-ERR-LOGGER-END]
 app.listen(PORT, () => {
   console.log(`Server started on port ${PORT}`);
 });
 
 export default app;
+
 
 
 
