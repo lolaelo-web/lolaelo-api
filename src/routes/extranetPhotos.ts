@@ -1,140 +1,85 @@
-// src/routes/extranetPhotos.ts
-import express from "express";
-import { prisma } from "../prisma.js";
-import { authPartnerFromHeader } from "../extranetAuth.js";
+﻿import { Router } from "express";
+import { PrismaClient } from "@prisma/client";
 
-const router = express.Router();
-const MAX_COUNT = Number(process.env.PHOTOS_MAX_COUNT ?? "12");
-
-// Auth helper
-async function requirePartner(
-  req: express.Request,
-  res: express.Response,
-  next: express.NextFunction
-) {
-  const p = await authPartnerFromHeader(req as any);
-  if (!p) return res.status(401).json({ error: "Unauthorized" });
-  // @ts-ignore
-  req.partner = p;
-  next();
-}
+const prisma = new PrismaClient();
+const router = Router();
 
 /**
- * GET list photos for current partner
+ * GET /extranet/property/photos
+ * Returns all photos (adjust filters as needed).
  */
-router.get("/extranet/property/photos", requirePartner, async (req, res) => {
-  // @ts-ignore
-  const partnerId = req.partner.id as number;
-  const rows = await prisma.propertyPhoto.findMany({
-    where: { partnerId },
-    orderBy: [{ sortOrder: "asc" }, { id: "asc" }],
-  });
-  res.json(rows);
+router.get("/", async (_req, res) => {
+  try {
+    const rows = await prisma.propertyPhoto.findMany({
+      orderBy: [{ propertyId: "asc" }, { sortOrder: "asc" }, { id: "asc" }],
+    });
+    res.json(rows);
+  } catch (err: any) {
+    console.error("photos list error:", err);
+    res.status(500).json({ error: "Failed to list photos", detail: err?.code, message: err?.message });
+  }
 });
 
 /**
- * POST create a photo record after successful S3 upload
- * Body: { key, url, fileName?, alt?, width?, height?, isCover?, sortOrder? }
+ * POST /extranet/property/photos
+ * Body: { key, url, propertyId, alt?, caption?, sortOrder?, isPrimary? }
  */
-router.post("/extranet/property/photos", requirePartner, async (req, res) => {
-  // @ts-ignore
-  const partnerId = req.partner.id as number;
-  const {
-    key,
-    url,
-    fileName = null,
-    alt = null,
-    width = null,
-    height = null,
-    isCover = false,
-    sortOrder = null,
-  } = req.body || {};
-
-  if (!key || !url) return res.status(400).json({ error: "key and url required" });
-
-  const count = await prisma.propertyPhoto.count({ where: { partnerId } });
-  if (count >= MAX_COUNT) {
-    return res.status(400).json({ error: `Max ${MAX_COUNT} photos reached` });
-  }
-
-  const so =
-    typeof sortOrder === "number" && Number.isFinite(sortOrder) ? sortOrder : count;
-
-  const created = await prisma.$transaction(async (tx) => {
-    if (isCover) {
-      await tx.propertyPhoto.updateMany({
-        where: { partnerId, isCover: true },
-        data: { isCover: false },
-      });
+router.post("/", async (req, res) => {
+  try {
+    const { key, url, propertyId, alt, caption, sortOrder, isPrimary } = req.body ?? {};
+    if (!key || !url || typeof propertyId !== "number") {
+      return res.status(400).json({ error: "key, url, propertyId required" });
     }
-    return tx.propertyPhoto.create({
+
+    const row = await prisma.propertyPhoto.create({
       data: {
-        partnerId,
         key,
         url,
-        alt,
-        sortOrder: so,
-        isCover: !!isCover,
-        width: width ?? null,
-        height: height ?? null,
+        propertyId,
+        alt: alt ?? null,
+        caption: caption ?? null,
+        sortOrder: typeof sortOrder === "number" ? sortOrder : 0,
+        isPrimary: Boolean(isPrimary),
       },
     });
-  });
-
-  res.status(201).json(created);
+    res.status(201).json(row);
+  } catch (err: any) {
+    console.error("photos create error:", err);
+    res.status(500).json({ error: "Failed to create photo", detail: err?.code, message: err?.message });
+  }
 });
 
 /**
- * PUT update metadata (alt, sortOrder, isCover)
+ * PUT /extranet/property/photos/:id
  */
-router.put("/extranet/property/photos/:id", requirePartner, async (req, res) => {
-  // @ts-ignore
-  const partnerId = req.partner.id as number;
+router.put("/:id", async (req, res) => {
   const id = Number(req.params.id);
-  const { alt, sortOrder, isCover } = req.body || {};
-
-  const existing = await prisma.propertyPhoto.findUnique({ where: { id } });
-  if (!existing || existing.partnerId !== partnerId) {
-    return res.status(404).json({ error: "Not found" });
+  if (!Number.isFinite(id)) return res.status(400).json({ error: "invalid id" });
+  try {
+    const row = await prisma.propertyPhoto.update({
+      where: { id },
+      data: req.body ?? {},
+    });
+    res.json(row);
+  } catch (err: any) {
+    console.error("photos update error:", err);
+    res.status(500).json({ error: "Failed to update photo", detail: err?.code, message: err?.message });
   }
-
-  const data: any = {};
-  if (typeof alt === "string") data.alt = alt;
-  if (typeof sortOrder === "number" && Number.isFinite(sortOrder)) {
-    data.sortOrder = sortOrder;
-  }
-
-  const updated = await prisma.$transaction(async (tx) => {
-    if (isCover === true) {
-      await tx.propertyPhoto.updateMany({
-        where: { partnerId, isCover: true },
-        data: { isCover: false },
-      });
-      data.isCover = true;
-    } else if (isCover === false) {
-      data.isCover = false;
-    }
-    return tx.propertyPhoto.update({ where: { id }, data });
-  });
-
-  res.json(updated);
 });
 
 /**
- * DELETE a photo record (does NOT delete S3 object by default)
+ * DELETE /extranet/property/photos/:id
  */
-router.delete("/extranet/property/photos/:id", requirePartner, async (req, res) => {
-  // @ts-ignore
-  const partnerId = req.partner.id as number;
+router.delete("/:id", async (req, res) => {
   const id = Number(req.params.id);
-
-  const photo = await prisma.propertyPhoto.findUnique({ where: { id } });
-  if (!photo || photo.partnerId !== partnerId) {
-    return res.status(404).json({ error: "Not found" });
+  if (!Number.isFinite(id)) return res.status(400).json({ error: "invalid id" });
+  try {
+    await prisma.propertyPhoto.delete({ where: { id } });
+    res.status(204).end();
+  } catch (err: any) {
+    console.error("photos delete error:", err);
+    res.status(500).json({ error: "Failed to delete photo", detail: err?.code, message: err?.message });
   }
-
-  await prisma.propertyPhoto.delete({ where: { id } });
-  res.json({ ok: true });
 });
 
 export default router;
