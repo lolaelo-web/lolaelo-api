@@ -4,6 +4,34 @@ import { PrismaClient } from "@prisma/client";
 const prisma = new PrismaClient();
 const router = Router();
 
+// DIAG: check table/columns/count
+router.get("/diag", async (_req: Request, res: Response) => {
+  try {
+    const exists = await prisma.$queryRawUnsafe<{ exists: boolean }[]>(
+      `SELECT EXISTS (
+         SELECT FROM information_schema.tables
+         WHERE table_schema = 'public' AND table_name = 'PropertyPhoto'
+       ) AS exists`
+    );
+    const columns = await prisma.$queryRawUnsafe<{ column_name: string; data_type: string; is_nullable: string }[]>(
+      `SELECT column_name, data_type, is_nullable
+         FROM information_schema.columns
+        WHERE table_schema='public' AND table_name='PropertyPhoto'
+        ORDER BY ordinal_position`
+    );
+    const count = await prisma.$queryRawUnsafe<{ count: number }[]>(
+      `SELECT COUNT(*)::int AS count FROM "PropertyPhoto"`
+    );
+    res.json({
+      tableExists: !!(exists?.[0]?.exists),
+      count: count?.[0]?.count ?? 0,
+      columns,
+    });
+  } catch (e: any) {
+    res.status(500).json({ error: "diag failure", message: e?.message, code: e?.code, meta: e?.meta });
+  }
+});
+
 // LIST: ?partnerId=#
 router.get("/", async (req: Request, res: Response) => {
   try {
@@ -14,8 +42,7 @@ router.get("/", async (req: Request, res: Response) => {
     });
     res.json(photos);
   } catch (e: any) {
-    console.error("photos list error:", e);
-    res.status(500).json({ error: "Failed to list photos" });
+    res.status(500).json({ error: "Failed to list photos", message: e?.message, code: e?.code, meta: e?.meta });
   }
 });
 
@@ -36,19 +63,15 @@ router.post("/", async (req: Request, res: Response) => {
       isPrimary: !!isPrimary,
     };
 
-    // Use unchecked shape to avoid relation typing constraints.
     const created = await prisma.propertyPhoto.create({ data: data as any });
     return res.status(201).json(created);
   } catch (e: any) {
     console.error("photos create error:", e);
-    if (e?.code) {
-      return res.status(400).json({ error: "PrismaError", code: e.code, message: e?.meta?.cause ?? e.message });
-    }
-    res.status(500).json({ error: "Failed to create photo" });
+    res.status(500).json({ error: "Failed to create photo", message: e?.message, code: e?.code, meta: e?.meta });
   }
 });
 
-// UPDATE (no caption field in schema)
+// UPDATE
 router.put("/:id", async (req: Request, res: Response) => {
   try {
     const id = Number(req.params.id);
@@ -66,8 +89,7 @@ router.put("/:id", async (req: Request, res: Response) => {
     });
     res.json(updated);
   } catch (e: any) {
-    console.error("photos update error:", e);
-    res.status(500).json({ error: "Failed to update photo" });
+    res.status(500).json({ error: "Failed to update photo", message: e?.message, code: e?.code, meta: e?.meta });
   }
 });
 
@@ -78,8 +100,7 @@ router.delete("/:id", async (req: Request, res: Response) => {
     await prisma.propertyPhoto.delete({ where: { id } });
     res.status(204).send();
   } catch (e: any) {
-    console.error("photos delete error:", e);
-    res.status(500).json({ error: "Failed to delete photo" });
+    res.status(500).json({ error: "Failed to delete photo", message: e?.message, code: e?.code, meta: e?.meta });
   }
 });
 
