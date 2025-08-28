@@ -6,17 +6,8 @@ import { authPartnerFromHeader } from "../extranetAuth.js";
 const router = express.Router();
 const MAX_COUNT = Number(process.env.PHOTOS_MAX_COUNT ?? "12");
 
-// Require partner auth
-async function requirePartner(req: any, res: Response, next: NextFunction) {
-  try {
-    const partner = await authPartnerFromHeader(req);
-    if (!partner) return res.status(401).json({ error: "Unauthorized" });
-    req.partner = partner;
-    next();
-  } catch {
-    return res.status(401).json({ error: "Unauthorized" });
-  }
-}
+// Use the shared auth middleware directly
+const requirePartner: any = authPartnerFromHeader;
 
 const getPartnerId = (req: any) =>
   Number(req.partner?.id ?? req.partner?.partnerId ?? req.partnerId);
