@@ -1,26 +1,19 @@
 ﻿import express from "express";
 import cors from "cors";
+import { PrismaClient } from "@prisma/client";
+import { execFile } from "child_process";
+import util from "util";
 
-// ESM runtime needs .js in import paths after TS compiles to dist/
+// ESM runtime needs .js suffix after TS compiles
 import extranetPhotos from "./routes/extranetPhotos.js";
 import photosUploadUrl from "./routes/extranetPhotosUploadUrl.js";
 
 const app = express();
-import express from "express";
-import cors from "cors";
-import { PrismaClient } from "@prisma/client";  // <-- add
+const prisma = new PrismaClient();
+const execFileP = util.promisify(execFile);
 
-// ESM runtime needs .js in import paths after TS compiles to dist/
-import extranetPhotos from "./routes/extranetPhotos.js";
-import photosUploadUrl from "./routes/extranetPhotosUploadUrl.js";
-
-const app = express();
-const prisma = new PrismaClient();              // <-- add
-
-// --- ONE-TIME BOOTSTRAP: ensure table exists (remove after success) ---
+// ---------- ONE-TIME BOOTSTRAP (remove after success) --------------------
 async function ensurePropertyPhoto() {
-  // minimal schema that satisfies current code paths
-  // (no FK so we don't block on Partner; Prisma relations still work)
   await prisma.$executeRawUnsafe(`
     CREATE TABLE IF NOT EXISTS "PropertyPhoto" (
       "id" SERIAL PRIMARY KEY,
@@ -37,14 +30,9 @@ async function ensurePropertyPhoto() {
     CREATE INDEX IF NOT EXISTS "PropertyPhoto_partnerId_idx" ON "PropertyPhoto" ("partnerId");
   `);
 }
-ensurePropertyPhoto().catch(e => {
-  console.error("ensurePropertyPhoto error:", e);
-});
-// ----------------------------------------------------------------------
+ensurePropertyPhoto().catch(e => console.error("ensurePropertyPhoto error:", e));
+// ------------------------------------------------------------------------
 
-/* (rest of your file stays the same: CORS, health, mounts, __routes, 404, error handler, listen …)
-   Keep your existing /__admin/db-push; we won't use it now.
-*/
 // Parse + CORS
 app.set("trust proxy", 1);
 app.use(express.json({ limit: "10mb" }));
@@ -66,18 +54,14 @@ app.use(
   })
 );
 
-// Distinct health so we can verify prod is running THIS build
+// Health fingerprint
 app.get("/health", (_req, res) => res.status(200).send("OK v-UPLOAD-2"));
 
-// Mount routers  ⬇⬇⬇  both must be present
+// Mount routers
 app.use("/extranet/property/photos/upload-url", photosUploadUrl);
 app.use("/extranet/property/photos", extranetPhotos);
 
-// --- TEMP ADMIN: run Prisma db push on Render (MUST be before 404) -----
-import { execFile } from "child_process";
-import util from "util";
-const execFileP = util.promisify(execFile);
-/** POST /__admin/db-push  (Header: x-admin-key: <ADMIN_KEY>) */
+// ----- TEMP ADMIN: run Prisma db push on Render (optional; before 404) ----
 app.post("/__admin/db-push", async (req, res) => {
   try {
     if (req.header("x-admin-key") !== process.env.ADMIN_KEY) {
@@ -97,9 +81,9 @@ app.post("/__admin/db-push", async (req, res) => {
     });
   }
 });
-// ----------------------------------------------------------------------
+// --------------------------------------------------------------------------
 
-// Diagnostics: list registered routes
+// Diagnostics
 app.get("/__routes", (req, res) => {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const stack = (req.app as any)?._router?.stack ?? [];
@@ -109,7 +93,7 @@ app.get("/__routes", (req, res) => {
   res.json({ routes });
 });
 
-// 404 (must be AFTER all routes)
+// 404 after all routes
 app.use((req, res) => res.status(404).json({ error: "Not Found", path: req.path }));
 
 // Error handler
@@ -125,4 +109,3 @@ app.listen(PORT, () => {
 });
 
 export default app;
-
