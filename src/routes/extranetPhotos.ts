@@ -19,10 +19,10 @@ router.get("/", async (req: Request, res: Response) => {
   }
 });
 
-// CREATE: expects { key, url, partnerId, alt?, caption?, sortOrder?, isPrimary? }
+// CREATE: expects { key, url, partnerId, alt?, sortOrder?, isPrimary? }
 router.post("/", async (req: Request, res: Response) => {
   try {
-    const { key, url, partnerId, alt, caption, sortOrder, isPrimary } = req.body ?? {};
+    const { key, url, partnerId, alt, sortOrder, isPrimary } = req.body ?? {};
     if (!key || !url || partnerId === undefined || partnerId === null) {
       return res.status(400).json({ error: "key, url, partnerId required" });
     }
@@ -31,14 +31,12 @@ router.post("/", async (req: Request, res: Response) => {
       key: String(key),
       url: String(url),
       partnerId: Number(partnerId),
-      alt: alt ?? null,
-      caption: caption ?? null,
+      alt: typeof alt === "string" ? alt : null,
       sortOrder: typeof sortOrder === "number" ? sortOrder : 0,
       isPrimary: !!isPrimary,
     };
 
-    // Use unchecked create-style shape to avoid relation typing constraints.
-    // This matches our bootstrap table shape.
+    // Use unchecked shape to avoid relation typing constraints.
     const created = await prisma.propertyPhoto.create({ data: data as any });
     return res.status(201).json(created);
   } catch (e: any) {
@@ -50,19 +48,21 @@ router.post("/", async (req: Request, res: Response) => {
   }
 });
 
-// UPDATE (minimal, optional)
+// UPDATE (no caption field in schema)
 router.put("/:id", async (req: Request, res: Response) => {
   try {
     const id = Number(req.params.id);
-    const { alt, caption, sortOrder, isPrimary } = req.body ?? {};
+    const { alt, sortOrder, isPrimary, url, key, partnerId } = req.body ?? {};
     const updated = await prisma.propertyPhoto.update({
       where: { id },
       data: {
-        alt: alt ?? undefined,
-        caption: caption ?? undefined,
+        alt: typeof alt === "string" ? alt : undefined,
         sortOrder: typeof sortOrder === "number" ? sortOrder : undefined,
         isPrimary: typeof isPrimary === "boolean" ? isPrimary : undefined,
-      },
+        url: typeof url === "string" ? url : undefined,
+        key: typeof key === "string" ? key : undefined,
+        partnerId: typeof partnerId === "number" ? partnerId : undefined,
+      } as any,
     });
     res.json(updated);
   } catch (e: any) {
@@ -71,7 +71,7 @@ router.put("/:id", async (req: Request, res: Response) => {
   }
 });
 
-// DELETE (minimal)
+// DELETE
 router.delete("/:id", async (req: Request, res: Response) => {
   try {
     const id = Number(req.params.id);
