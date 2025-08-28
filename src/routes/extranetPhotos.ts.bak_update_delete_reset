@@ -133,7 +133,8 @@ const data = {
     res.status(500).json({ error: "Failed to create photo", message: e?.message, code: e?.code, meta: e?.meta });
   }
 });
-// === SECURE UPDATE: ownership check; ignore body partnerId ===
+
+// UPDATE: accepts same fields; maps isPrimary -> isCover if provided
 router.put("/:id", async (req: Request, res: Response) => {
   try {
     const id = Number(req.params.id);
@@ -163,9 +164,13 @@ router.put("/:id", async (req: Request, res: Response) => {
     return res.status(500).json({ error: "Failed to update photo", message: e?.message, code: e?.code, meta: e?.meta });
   }
 });
+    res.json(updated);
+  } catch (e: any) {
+    res.status(500).json({ error: "Failed to update photo", message: e?.message, code: e?.code, meta: e?.meta });
+  }
+});
 
-//
-// === SECURE DELETE: ownership check ===
+// DELETE
 router.delete("/:id", async (req: Request, res: Response) => {
   try {
     const id = Number(req.params.id);
@@ -180,9 +185,27 @@ router.delete("/:id", async (req: Request, res: Response) => {
     return res.status(204).send();
   } catch (e: any) {
     console.error("photos delete error:", e);
-    return res.status(500).json({ error: "Failed to delete photo", message: e?.message, code: e?.meta });
+    return res.status(500).json({ error: "Failed to delete photo", message: e?.message, code: e?.code, meta: e?.meta });
   }
 });
+    res.status(204).send();
+  } catch (e: any) {
+    res.status(500).json({ error: "Failed to delete photo", message: e?.message, code: e?.meta });
+  }
+});
+
 export default router;
+
+
+
+
+
+
+
+
+
+
+
+
 
 

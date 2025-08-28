@@ -133,56 +133,53 @@ const data = {
     res.status(500).json({ error: "Failed to create photo", message: e?.message, code: e?.code, meta: e?.meta });
   }
 });
-// === SECURE UPDATE: ownership check; ignore body partnerId ===
+
+// UPDATE: accepts same fields; maps isPrimary -> isCover if provided
 router.put("/:id", async (req: Request, res: Response) => {
   try {
     const id = Number(req.params.id);
-    const authedId = Number((req as any).partnerId ?? (req as any).partner?.partnerId ?? (req as any).partner?.id);
-    if (!Number.isFinite(authedId) || authedId <= 0) return res.status(401).json({ error: "Unauthorized" });
-
-    const existing = await prisma.propertyPhoto.findUnique({ where: { id } });
-    if (!existing) return res.status(404).json({ error: "Not found" });
-    if (existing.partnerId !== authedId) return res.status(403).json({ error: "Forbidden: not your photo" });
-
-    const { alt, sortOrder, isCover, isPrimary, url, key, width, height } = req.body ?? {}; // partnerId ignored
+    const { alt, sortOrder, isCover, isPrimary, url, key, partnerId, width, height } = req.body ?? {};
 
     const data: any = {};
     if (typeof alt === "string") data.alt = alt;
     if (typeof sortOrder === "number") data.sortOrder = sortOrder;
     if (typeof url === "string") data.url = url;
     if (typeof key === "string") data.key = key;
+    if (typeof partnerId === "number") data.partnerId = partnerId;
     if (typeof width === "number") data.width = width;
     if (typeof height === "number") data.height = height;
     if (typeof isCover === "boolean") data.isCover = isCover;
     else if (typeof isPrimary === "boolean") data.isCover = !!isPrimary;
 
     const updated = await prisma.propertyPhoto.update({ where: { id }, data });
-    return res.json(updated);
+    res.json(updated);
   } catch (e: any) {
-    console.error("photos update error:", e);
-    return res.status(500).json({ error: "Failed to update photo", message: e?.message, code: e?.code, meta: e?.meta });
+    res.status(500).json({ error: "Failed to update photo", message: e?.message, code: e?.code, meta: e?.meta });
   }
 });
 
-//
-// === SECURE DELETE: ownership check ===
+// DELETE
 router.delete("/:id", async (req: Request, res: Response) => {
   try {
     const id = Number(req.params.id);
-    const authedId = Number((req as any).partnerId ?? (req as any).partner?.partnerId ?? (req as any).partner?.id);
-    if (!Number.isFinite(authedId) || authedId <= 0) return res.status(401).json({ error: "Unauthorized" });
-
-    const existing = await prisma.propertyPhoto.findUnique({ where: { id } });
-    if (!existing) return res.status(404).json({ error: "Not found" });
-    if (existing.partnerId !== authedId) return res.status(403).json({ error: "Forbidden: not your photo" });
-
     await prisma.propertyPhoto.delete({ where: { id } });
-    return res.status(204).send();
+    res.status(204).send();
   } catch (e: any) {
-    console.error("photos delete error:", e);
-    return res.status(500).json({ error: "Failed to delete photo", message: e?.message, code: e?.meta });
+    res.status(500).json({ error: "Failed to delete photo", message: e?.message, code: e?.meta });
   }
 });
+
 export default router;
+
+
+
+
+
+
+
+
+
+
+
 
 
