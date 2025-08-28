@@ -1,58 +1,73 @@
-﻿import express from "express";
-import { authPartnerFromHeader } from "../extranetAuth.js";
+﻿import { Router } from "express";
 import crypto from "crypto";
 import { S3Client, PutObjectCommand } from "@aws-sdk/client-s3";
 import { getSignedUrl } from "@aws-sdk/s3-request-presigner";
 
-const router = express.Router();
+const router = Router();
 
-const ALLOWED = (process.env.PHOTOS_ALLOWED_MIME ?? "image/jpeg,image/png,image/webp")
-  .split(",")
-  .map(s => s.trim())
-  .filter(Boolean);
-
-const MAX_MB = Number(process.env.PHOTOS_MAX_MB ?? "5");
-const MAX_BYTES = MAX_MB * 1024 * 1024;
+const S3_BUCKET = process.env.S3_BUCKET ?? "";
+const S3_REGION = process.env.S3_REGION ?? process.env.AWS_REGION ?? "us-east-1";
+const PUB_BASE  = process.env.S3_PUBLIC_BASE_URL ?? (S3_REGION === "us-east-1"
+  ? `https://${S3_BUCKET}.s3.amazonaws.com`
+  : `https://${S3_BUCKET}.s3.${S3_REGION}.amazonaws.com`);
+const MAX_MB    = Number(process.env.PHOTOS_MAX_MB ?? 5);
+const ALLOWED   = (process.env.PHOTOS_ALLOWED_MIME ?? "image/jpeg,image/png,image/webp")
+  .split(",").map(s => s.trim().toLowerCase());
+const PREFIX    = process.env.PHOTOS_PREFIX ?? "photos";
+const DRYRUN    = (process.env.UPLOAD_DRYRUN ?? "0") === "1";
 
 const s3 = new S3Client({
-  region: process.env.AWS_REGION ?? "us-east-1",
-  credentials: {
-    accessKeyId: process.env.AWS_ACCESS_KEY_ID ?? "",
-    secretAccessKey: process.env.AWS_SECRET_ACCESS_KEY ?? "",
-  },
+  region: S3_REGION,
+  credentials:
+    process.env.S3_ACCESS_KEY_ID && process.env.S3_SECRET_ACCESS_KEY
+      ? { accessKeyId: process.env.S3_ACCESS_KEY_ID!, secretAccessKey: process.env.S3_SECRET_ACCESS_KEY! }
+      : undefined,
 });
-const BUCKET = process.env.AWS_S3_BUCKET ?? "";
 
-async function requirePartner(req: any, res: any, next: any) {
-  const partner = await authPartnerFromHeader(req).catch(() => null);
-  if (!partner) return res.status(401).json({ error: "Unauthorized" });
-  req.partner = partner;
-  next();
-}
+router.post("/", async (req, res) => {
+  try {
+    const { fileName, contentType, size } = req.body ?? {};
+    if (!fileName || !contentType || typeof size !== "number") {
+      return res.status(400).json({ error: "fileName, contentType, size required" });
+    }
 
-// NOTE: this router is mounted at /extranet/property/photos/upload-url
-router.post("/", requirePartner, async (req: any, res) => {
-  const { fileName, contentType, size } = req.body || {};
-  if (!fileName || !contentType || typeof size !== "number") {
-    return res.status(400).json({ error: "fileName, contentType, size required" });
-  }
-  if (!ALLOWED.includes(contentType)) {
-    return res.status(400).json({ error: `type not allowed; allowed: ${ALLOWED.join(", ")}` });
-  }
-  if (size > MAX_BYTES) {
-    return res.status(400).json({ error: `file too large; max ${MAX_MB}MB` });
-  }
+    const ct = String(contentType).toLowerCase();
+    if (!ALLOWED.includes(ct)) return res.status(400).json({ error: "Unsupported contentType", allowed: ALLOWED });
+    if (size > MAX_MB * 1024 * 1024) return res.status(400).json({ error: "File too large", maxMB: MAX_MB });
 
-  const key = `partners/${req.partner.id}/${Date.now()}_${crypto.randomBytes(6).toString("hex")}_${fileName}`;
-  const putCmd = new PutObjectCommand({
-    Bucket: BUCKET,
-    Key: key,
-    ContentType: contentType,
+    const ext = fileName.includes(".") ? String(fileName).split(".").pop() : "bin";
+    const key = `${PREFIX}/${crypto.randomUUID()}.${ext}`;
+
+    if (DRYRUN) {
+      const putUrl = `https://example.invalid/put/${encodeURIComponent(key)}`;
+      const publicUrl = `${PUB_BASE}/${key}`;
+      return res.json({ putUrl, publicUrl, key, dryRun: true });
+    }
+
+    if (!S3_BUCKET) return res.status(500).json({ error: "Missing S3_BUCKET" });
+
+    const cmd = new PutObjectCommand({ Bucket: S3_BUCKET, Key: key, ContentType: ct });
+    const putUrl = await getSignedUrl(s3, cmd, { expiresIn: 60 });
+    const publicUrl = `${PUB_BASE}/${key}`;
+    return res.json({ putUrl, publicUrl, key });
+  } catch (err: any) {
+    console.error("upload-url error:", err);
+    return res.status(500).json({
+      error: "Failed to create upload URL",
+      detail: err?.name || "AWS",
+      message: err?.message || String(err),
+    });
+  }
+});
+
+// env diag (no secrets)
+router.get("/diag", (_req, res) => {
+  res.json({
+    dryRun: (process.env.UPLOAD_DRYRUN ?? "0") === "1",
+    bucket: process.env.S3_BUCKET || null,
+    region: process.env.S3_REGION ?? process.env.AWS_REGION ?? null,
+    pubBase: process.env.S3_PUBLIC_BASE_URL || null
   });
-  const putUrl = await getSignedUrl(s3, putCmd, { expiresIn: 60 });
-
-  const publicUrl = `https://${BUCKET}.s3.amazonaws.com/${encodeURIComponent(key)}`;
-  res.json({ putUrl, publicUrl, key });
 });
 
 export default router;
