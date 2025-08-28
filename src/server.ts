@@ -12,8 +12,9 @@ const app = express();
 const prisma = new PrismaClient();
 const execFileP = util.promisify(execFile);
 
-// ---------- ONE-TIME BOOTSTRAP (remove after success) --------------------
+// ---------- ONE-TIME BOOTSTRAP (remove after success) ----------
 async function ensurePropertyPhoto() {
+  // Create table if it does not exist
   await prisma.$executeRawUnsafe(`
     CREATE TABLE IF NOT EXISTS "PropertyPhoto" (
       "id" SERIAL PRIMARY KEY,
@@ -26,12 +27,18 @@ async function ensurePropertyPhoto() {
       "isPrimary" BOOLEAN DEFAULT FALSE,
       "createdAt" TIMESTAMPTZ DEFAULT NOW(),
       "updatedAt" TIMESTAMPTZ DEFAULT NOW()
-    );
-    CREATE INDEX IF NOT EXISTS "PropertyPhoto_partnerId_idx" ON "PropertyPhoto" ("partnerId");
+    )
   `);
+
+  // Create index in a separate statement (Prisma forbids multi-statements)
+  await prisma.$executeRawUnsafe(`
+    CREATE INDEX IF NOT EXISTS "PropertyPhoto_partnerId_idx" ON "PropertyPhoto" ("partnerId")
+  `);
+
+  console.log("ensurePropertyPhoto: table/index present");
 }
-ensurePropertyPhoto().catch(e => console.error("ensurePropertyPhoto error:", e));
-// ------------------------------------------------------------------------
+ensurePropertyPhoto().catch((e) => console.error("ensurePropertyPhoto error:", e));
+// ---------------------------------------------------------------
 
 // Parse + CORS
 app.set("trust proxy", 1);
