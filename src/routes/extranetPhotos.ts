@@ -30,22 +30,38 @@ router.post("/", requirePartner, async (req: any, res: Response) => {
   const { key, url, alt = null, width = null, height = null, isCover = false } = req.body || {};
   if (!key || !url) return res.status(400).json({ error: "key and url required" });
 
-  const count = await prisma.propertyPhoto.count({ where: { partnerId } });
-  if (count >= MAX_COUNT) return res.status(400).json({ error: "Too many photos" });
+  try {
+    const count = await prisma.propertyPhoto.count({ where: { partnerId } });
+    if (count >= MAX_COUNT) return res.status(400).json({ error: "Too many photos" });
 
-  const created = await prisma.propertyPhoto.create({
-    data: {
+    // Build only known/likely columns; add others conditionally
+    const data: any = {
       partnerId,
       key: String(key),
       url: String(url),
-      alt,
-      width: width == null ? null : Number(width),
-      height: height == null ? null : Number(height),
-      isCover: !!isCover,
       sortOrder: count,
-    },
-  });
-  res.json(created);
+    };
+    if (typeof alt     !== "undefined") data.alt     = alt;
+    if (typeof width   !== "undefined") data.width   = width  == null ? null : Number(width);
+    if (typeof height  !== "undefined") data.height  = height == null ? null : Number(height);
+    if (typeof isCover !== "undefined") data.isCover = !!isCover;
+
+    const created = await prisma.propertyPhoto.create({ data });
+    return res.json(created);
+  } catch (err: any) {
+    console.error("[photos.create] error", {
+      message: err?.message,
+      code: err?.code,
+      meta: err?.meta
+    });
+    // Surface Prisma error so we avoid 502 and can see what's wrong
+    return res.status(400).json({
+      error: "create_failed",
+      message: err?.message ?? null,
+      code: err?.code ?? null,
+      meta: err?.meta ?? null
+    });
+  }
 });
 
 // UPDATE one
