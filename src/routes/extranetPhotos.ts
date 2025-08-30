@@ -13,10 +13,32 @@ const getPartnerId = (req: any) =>
   Number(req.partner?.id ?? req.partner?.partnerId ?? req.partnerId);
 
 // NOTE: all paths here are RELATIVE to the mount point /extranet/property/photos
+// Resolve/ensure a real DB partner id for this request
+async function getOrCreatePartnerId(req: any): Promise<number> {
+  const pid = getPartnerId(req);
+  if (Number.isFinite(pid) && pid > 0) {
+    const exists = await prisma.partner.findUnique({ where: { id: pid } });
+    if (exists) return pid;
+  }
+
+  const email: string | null = req.partner?.email ?? req.partnerEmail ?? null;
+  if (!email) {
+    const err: any = new Error("unauthorized");
+    err.status = 401;
+    throw err;
+  }
+
+  const found = await prisma.partner.findUnique({ where: { email } });
+  if (found) return found.id;
+
+  const name = (req.partner?.name as string | undefined) ?? email.split("@")[0];
+  const created = await prisma.partner.create({ data: { email, name } });
+  return created.id;
+}
 
 // GET list
 router.get("/", requirePartner, async (req: any, res: Response) => {
-  const partnerId = getPartnerId(req);
+  const partnerId = await getOrCreatePartnerId(req);
   const photos = await prisma.propertyPhoto.findMany({
     where: { partnerId },
     orderBy: [{ sortOrder: "asc" }, { id: "asc" }],
@@ -26,7 +48,7 @@ router.get("/", requirePartner, async (req: any, res: Response) => {
 
 // CREATE one (after uploading to S3 you POST the key+url here)
 router.post("/", requirePartner, async (req: any, res: Response) => {
-  const partnerId = getPartnerId(req);
+  const partnerId = await getOrCreatePartnerId(req);
   const { key, url, alt = null, width = null, height = null, isCover = false } = req.body || {};
   if (!key || !url) return res.status(400).json({ error: "key and url required" });
 
@@ -66,7 +88,7 @@ router.post("/", requirePartner, async (req: any, res: Response) => {
 
 // UPDATE one
 router.put("/:id", requirePartner, async (req: any, res: Response) => {
-  const partnerId = getPartnerId(req);
+  const partnerId = await getOrCreatePartnerId(req);
   const id = Number(req.params.id || 0);
   if (!Number.isFinite(id) || id <= 0) return res.status(400).json({ error: "id required" });
 
@@ -88,7 +110,7 @@ router.put("/:id", requirePartner, async (req: any, res: Response) => {
 
 // DELETE one
 router.delete("/:id", requirePartner, async (req: any, res: Response) => {
-  const partnerId = getPartnerId(req);
+  const partnerId = await getOrCreatePartnerId(req);
   const id = Number(req.params.id || 0);
   if (!Number.isFinite(id) || id <= 0) return res.status(400).json({ error: "id required" });
 
@@ -101,7 +123,7 @@ router.delete("/:id", requirePartner, async (req: any, res: Response) => {
 
 // Optional: bulk reorder
 router.post("/reorder", requirePartner, async (req: any, res: Response) => {
-  const partnerId = getPartnerId(req);
+  const partnerId = await getOrCreatePartnerId(req);
   const items: Array<{ id: number; sortOrder: number }> = Array.isArray(req.body?.items) ? req.body.items : [];
   if (!items.length) return res.status(400).json({ error: "no_items" });
 
