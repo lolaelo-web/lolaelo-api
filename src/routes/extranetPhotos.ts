@@ -15,27 +15,32 @@ const getPartnerId = (req: any) =>
 // NOTE: all paths here are RELATIVE to the mount point /extranet/property/photos
 // Resolve/ensure a real DB partner id for this request
 async function getOrCreatePartnerId(req: any): Promise<number> {
-  const pid = getPartnerId(req);
+  const pid   = getPartnerId(req);
+  const email: string | null =
+    req.partner?.email ?? req.partnerEmail ?? null;
+
+  // If we have a partner row by id AND it matches the email (when provided),
+  // accept that id. Otherwise fall back to the email path.
   if (Number.isFinite(pid) && pid > 0) {
-    const exists = await prisma.partner.findUnique({ where: { id: pid } });
-    if (exists) return pid;
+    const byId = await prisma.partner.findUnique({ where: { id: Number(pid) } });
+    if (byId && (!email || byId.email === email)) {
+      return byId.id;
+    }
   }
 
-  const email: string | null = req.partner?.email ?? req.partnerEmail ?? null;
   if (!email) {
     const err: any = new Error("unauthorized");
     err.status = 401;
     throw err;
   }
 
-  const found = await prisma.partner.findUnique({ where: { email } });
-  if (found) return found.id;
+  const byEmail = await prisma.partner.findUnique({ where: { email } });
+  if (byEmail) return byEmail.id;
 
   const name = (req.partner?.name as string | undefined) ?? email.split("@")[0];
   const created = await prisma.partner.create({ data: { email, name } });
   return created.id;
 }
-
 // GET list
 router.get("/", requirePartner, async (req: any, res: Response) => {
   const partnerId = await getOrCreatePartnerId(req);
@@ -143,3 +148,4 @@ router.post("/reorder", requirePartner, async (req: any, res: Response) => {
 });
 
 export default router;
+
