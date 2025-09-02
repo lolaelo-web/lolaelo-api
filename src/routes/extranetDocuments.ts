@@ -1,14 +1,34 @@
 import { Router } from 'express';
-import { PrismaClient, DocumentType, DocumentStatus } from '@prisma/client';
+import { PrismaClient } from '@prisma/client';
 import { authPartnerFromHeader } from '../extranetAuth.js';
 
 const prisma = new PrismaClient();
 const router = Router();
 
-// 1) Require auth (your existing helper)
+/** Prisma enums are *types*, not runtime values.
+ *  Define the allowed strings explicitly for runtime validation. */
+const DOC_TYPES = [
+  'GOVT_ID',
+  'BUSINESS_REG',
+  'TAX_ID',
+  'BANK_PROOF',
+  'PROOF_OF_ADDRESS',
+  'INSURANCE_LIABILITY',
+  'PROPERTY_OWNERSHIP',
+  'LOCAL_LICENSE',
+] as const;
+type DocType = (typeof DOC_TYPES)[number];
+
+const STATUSES = ['REQUIRED', 'SUBMITTED', 'APPROVED', 'REJECTED'] as const;
+type DocStatus = (typeof STATUSES)[number];
+
+const isOneOf = <T extends string>(arr: readonly T[], v: unknown): v is T =>
+  typeof v === 'string' && arr.includes(v as T);
+
+// 1) Require auth (existing helper)
 router.use(authPartnerFromHeader);
 
-// 2) Normalize partner id location from whatever the auth middleware sets
+// 2) Normalize partner id from whatever the auth middleware sets
 router.use((req: any, res, next) => {
   const pid =
     req?.user?.partnerId ??
@@ -25,7 +45,7 @@ router.use((req: any, res, next) => {
 
 // GET /extranet/property/documents
 router.get('/', async (req: any, res) => {
-  const partnerId = req.__pid;
+  const partnerId = req.__pid as number;
   const rows = await prisma.propertyDocument.findMany({
     where: { partnerId },
     orderBy: [{ type: 'asc' }, { uploadedAt: 'desc' }],
@@ -37,43 +57,40 @@ router.get('/', async (req: any, res) => {
 // expects { type, key, url, fileName?, contentType? }
 router.post('/', async (req: any, res) => {
   try {
-    const partnerId = req.__pid;
-    let { type, key, url, fileName, contentType } = req.body || {};
+    const partnerId = req.__pid as number;
+    let { type, key, url, fileName, contentType } = req.body ?? {};
 
     if (!type || !key || !url) {
       return res.status(400).json({ error: 'type, key and url are required' });
     }
 
-    // Coerce/validate enum
-    const allTypes = Object.values(DocumentType);
-    if (!allTypes.includes(type)) {
-      const up = String(type).toUpperCase();
-      if (!allTypes.includes(up as DocumentType)) {
-        return res.status(400).json({ error: 'invalid_document_type' });
-      }
-      type = up;
+    // Coerce/validate DocumentType
+    const cand = String(type).toUpperCase();
+    if (!isOneOf(DOC_TYPES, cand)) {
+      return res.status(400).json({ error: 'invalid_document_type' });
     }
+    const docType: DocType = cand;
 
-    // One-per-type per partner (schema has @@unique([partnerId, type]))
+    // 1-per-type per partner (compound unique)
     const row = await prisma.propertyDocument.upsert({
-      where: { partnerId_type: { partnerId, type } },
+      where: { partnerId_type: { partnerId, type: docType } },
       update: {
         key,
         url,
         fileName,
         contentType,
-        status: DocumentStatus.SUBMITTED,
+        status: 'SUBMITTED',
         uploadedAt: new Date(),
         notes: null,
       },
       create: {
         partnerId,
-        type,
+        type: docType,
         key,
         url,
         fileName,
         contentType,
-        status: DocumentStatus.SUBMITTED,
+        status: 'SUBMITTED',
       },
     });
 
@@ -87,16 +104,16 @@ router.post('/', async (req: any, res) => {
 // PUT /extranet/property/documents/:id
 // accepts { status?, notes?, expiresAt?, type? }
 router.put('/:id', async (req: any, res) => {
-  const partnerId = req.__pid;
+  const partnerId = req.__pid as number;
   const id = Number(req.params.id);
   if (!id) return res.status(400).json({ error: 'bad_id' });
 
-  const { status, notes, expiresAt, type } = req.body || {};
+  const { status, notes, expiresAt, type } = req.body ?? {};
 
-  if (status && !Object.values(DocumentStatus).includes(status)) {
+  if (status && !isOneOf(STATUSES, status)) {
     return res.status(400).json({ error: 'invalid_status' });
   }
-  if (type && !Object.values(DocumentType).includes(type)) {
+  if (type && !isOneOf(DOC_TYPES, type)) {
     return res.status(400).json({ error: 'invalid_type' });
   }
 
@@ -108,10 +125,10 @@ router.put('/:id', async (req: any, res) => {
     const updated = await prisma.propertyDocument.update({
       where: { id },
       data: {
-        status: status || undefined,
+        status: (status as DocStatus) || undefined,
         notes: typeof notes === 'string' ? notes : undefined,
         expiresAt: expiresAt ? new Date(expiresAt) : undefined,
-        type: type || undefined,
+        type: (type as DocType) || undefined,
         verifiedAt: status === 'APPROVED' ? new Date() : undefined,
       },
     });
@@ -124,7 +141,7 @@ router.put('/:id', async (req: any, res) => {
 
 // DELETE /extranet/property/documents/:id
 router.delete('/:id', async (req: any, res) => {
-  const partnerId = req.__pid;
+  const partnerId = req.__pid as number;
   const id = Number(req.params.id);
   if (!id) return res.status(400).json({ error: 'bad_id' });
 
