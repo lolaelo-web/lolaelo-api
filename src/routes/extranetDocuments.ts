@@ -71,8 +71,19 @@ router.post("/", async (req: any, res) => {
     return res.status(400).json({ error: "invalid_document_type", got: type, allowed: ALLOWED_TYPES });
   }
 
-    // Enforce one-per-type per partner
-  const existing = await prisma.propertyDocument.findFirst({ where: { partnerId, type: normalizedType } });
+ // Enforce one-per-type per partner
+const existing = await prisma.propertyDocument.findFirst({ where: { partnerId, type: normalizedType } });
+
+await prisma.partner.upsert({
+  where: { id: partnerId },
+  update: {}, // no-op if it already exists
+  create: {
+    id: partnerId, // allow explicit id on Postgres
+    // best-effort email; replace if you have the real one in res.locals
+    email: `partner${partnerId}@lolaelo.com`,
+    name: `Partner ${partnerId}`,
+  },
+});
 
   try {
     if (existing) {
