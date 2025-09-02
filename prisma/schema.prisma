@@ -45,8 +45,9 @@ model Partner {
   sessions ExtranetSession[]
   codes    ExtranetLoginCode[]
 
-  profile PropertyProfile?
-  photos  PropertyPhoto[]
+  profile   PropertyProfile?
+  photos    PropertyPhoto[]
+  documents PropertyDocument[] // NEW
 }
 
 model ExtranetLoginCode {
@@ -110,4 +111,42 @@ model PropertyPhoto {
   partner Partner @relation(fields: [partnerId], references: [id])
 
   @@index([partnerId, sortOrder])
+}
+
+enum DocumentType {
+  GOVT_ID
+  BUSINESS_REG
+  TAX_ID
+  BANK_PROOF
+  PROOF_OF_ADDRESS
+  INSURANCE_LIABILITY
+  PROPERTY_OWNERSHIP
+  LOCAL_LICENSE
+}
+
+enum DocumentStatus {
+  REQUIRED
+  SUBMITTED
+  APPROVED
+  REJECTED
+}
+
+model PropertyDocument {
+  id          Int            @id @default(autoincrement())
+  partnerId   Int
+  type        DocumentType
+  key         String         @unique
+  url         String
+  fileName    String?
+  contentType String?
+  status      DocumentStatus @default(SUBMITTED)
+  notes       String?
+  expiresAt   DateTime?
+  uploadedAt  DateTime       @default(now())
+  verifiedAt  DateTime?
+
+  partner Partner @relation(fields: [partnerId], references: [id])
+
+  @@unique([partnerId, type])
+  @@index([partnerId, status])
 }
