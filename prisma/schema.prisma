@@ -42,12 +42,12 @@ model Partner {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
-  sessions ExtranetSession[]
-  codes    ExtranetLoginCode[]
+  sessions  ExtranetSession[]
+  codes     ExtranetLoginCode[]
 
   profile   PropertyProfile?
   photos    PropertyPhoto[]
-  documents PropertyDocument[] // NEW
+  documents PropertyDocument[]
 }
 
 model ExtranetLoginCode {
@@ -58,7 +58,7 @@ model ExtranetLoginCode {
   createdAt DateTime  @default(now())
   usedAt    DateTime?
 
-  partner Partner @relation(fields: [partnerId], references: [id])
+  partner Partner @relation(fields: [partnerId], references: [id], onDelete: Cascade)
 
   @@index([partnerId])
   @@index([expiresAt])
@@ -72,7 +72,7 @@ model ExtranetSession {
   createdAt DateTime  @default(now())
   revokedAt DateTime?
 
-  partner Partner @relation(fields: [partnerId], references: [id])
+  partner Partner @relation(fields: [partnerId], references: [id], onDelete: Cascade)
 
   @@index([partnerId])
   @@index([expiresAt])
@@ -92,7 +92,7 @@ model PropertyProfile {
   createdAt    DateTime @default(now())
   updatedAt    DateTime @updatedAt
 
-  partner Partner @relation(fields: [partnerId], references: [id])
+  partner Partner @relation(fields: [partnerId], references: [id], onDelete: Cascade)
 }
 
 // Photos persisted per partner
@@ -108,7 +108,7 @@ model PropertyPhoto {
   height    Int?
   createdAt DateTime @default(now())
 
-  partner Partner @relation(fields: [partnerId], references: [id])
+  partner Partner @relation(fields: [partnerId], references: [id], onDelete: Cascade)
 
   @@index([partnerId, sortOrder])
 }
@@ -145,7 +145,7 @@ model PropertyDocument {
   uploadedAt  DateTime       @default(now())
   verifiedAt  DateTime?
 
-  partner Partner @relation(fields: [partnerId], references: [id])
+  partner Partner @relation(fields: [partnerId], references: [id], onDelete: Cascade)
 
   @@unique([partnerId, type])
   @@index([partnerId, status])
