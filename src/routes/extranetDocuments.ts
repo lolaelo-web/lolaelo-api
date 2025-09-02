@@ -24,14 +24,14 @@ type DocStatus = typeof ALLOWED_STATUSES[number];
 // --- Auth ---
 router.use(authPartnerFromHeader);
 
-// Normalize partner id from whatever the auth helper set
+// 2) Normalize partner id (prefer the same source that photos uses)
 router.use((req: any, res, next) => {
   const pid =
-    req?.user?.partnerId ??
-    res.locals?.partnerId ??
-    res.locals?.partner?.id ??
-    req?.partner?.id ??
-    req?.partnerId ??
+    res.locals?.partner?.id ??        // 1) primary: same object photos populates
+    res.locals?.partnerId ??          // 2) explicit partnerId in locals
+    req?.partner?.id ??               // 3) some middlewares attach here
+    req?.partnerId ??                 // 4) or here
+    req?.user?.partnerId ??           // 5) fallback: token/session field (can be stale)
     null;
 
   if (!pid) return res.status(401).json({ error: 'unauthorized_no_partner' });
@@ -52,23 +52,27 @@ router.get('/', async (req: any, res) => {
 // POST /extranet/property/documents
 // expects { type, key, url, fileName?, contentType? }
 router.post('/', async (req: any, res) => {
+  const partnerId = req.__pid;
+  let { type, key, url, fileName, contentType } = req.body || {};
+
+  if (!type || !key || !url) {
+    return res.status(400).json({ error: 'type_key_url_required' });
+  }
+
+  // Coerce/validate enum
+  const allTypes = Object.values(DocumentType);
+  if (!allTypes.includes(type)) {
+    const up = String(type).toUpperCase();
+    if (!allTypes.includes(up as DocumentType)) {
+      return res.status(400).json({ error: 'invalid_document_type', got: type, allowed: allTypes });
+    }
+    type = up;
+  }
+
   try {
-    const partnerId = req.__pid;
-    let { type, key, url, fileName, contentType } = req.body || {};
-
-    if (!type || !key || !url) {
-      return res.status(400).json({ error: 'type_key_url_required' });
-    }
-
-    // Coerce & validate type (string)
-    const t = String(type).toUpperCase();
-    if (!ALLOWED_TYPES.includes(t as DocType)) {
-      return res.status(400).json({ error: 'invalid_document_type' });
-    }
-
-    // One-per-type per partner: update if exists, else create
+    // allow one-per-type per partner
     const existing = await prisma.propertyDocument.findFirst({
-      where: { partnerId, type: t as any },
+      where: { partnerId, type },
     });
 
     let row;
@@ -78,9 +82,9 @@ router.post('/', async (req: any, res) => {
         data: {
           key,
           url,
-          fileName: fileName ?? undefined,
-          contentType: contentType ?? undefined,
-          status: 'SUBMITTED' as any,
+          fileName,
+          contentType,
+          status: 'SUBMITTED',
           uploadedAt: new Date(),
           notes: null,
         },
@@ -89,20 +93,33 @@ router.post('/', async (req: any, res) => {
       row = await prisma.propertyDocument.create({
         data: {
           partnerId,
-          type: t as any,
+          type,
           key,
           url,
-          fileName: fileName ?? undefined,
-          contentType: contentType ?? undefined,
-          status: 'SUBMITTED' as any,
+          fileName,
+          contentType,
+          status: 'SUBMITTED',
         },
       });
     }
 
     return res.json(row);
   } catch (e: any) {
-    console.error('create document error:', e);
-    return res.status(400).json({ error: 'create_failed' });
+    // TEMP: surface prisma details so we can diagnose quickly
+    console.error('create document error:', {
+      message: e?.message,
+      code: e?.code,
+      meta: e?.meta,
+    });
+
+    const payload: any = {
+      error: 'create_failed',
+      code: e?.code ?? null,
+      message: e?.message ?? null,
+      meta: e?.meta ?? null,
+    };
+    if (e?.code === 'P2002') payload.conflict = e?.meta?.target ?? null;
+    return res.status(400).json(payload);
   }
 });
 
