@@ -71,11 +71,7 @@ router.post("/", async (req: any, res) => {
     return res.status(400).json({ error: "invalid_document_type", got: type, allowed: ALLOWED_TYPES });
   }
 
-  // Ensure partner exists (fast check)
-  const partner = await prisma.partner.findUnique({ where: { id: partnerId }, select: { id: true } });
-  if (!partner) return res.status(401).json({ error: "unauthorized_partner_missing" });
-
-  // Enforce one-per-type per partner
+    // Enforce one-per-type per partner
   const existing = await prisma.propertyDocument.findFirst({ where: { partnerId, type: normalizedType } });
 
   try {
