@@ -6,6 +6,9 @@ import extranetPhotos from "./routes/extranetPhotos.js";
 import photosUploadUrl from "./routes/extranetPhotosUploadUrl.js";
 import extranetAuth from "./routes/extranetAuth.js";
 
+import extranetDocuments from "./routes/extranetDocuments.js";
+import documentsUploadUrl from "./routes/extranetDocumentsUploadUrl.js";
+
 const app = express();
 
 //
@@ -21,6 +24,7 @@ app.all("/extranet/property/photos/__apptap/:id?", express.json(), (req, res) =>
   });
 });
 // [APPTAP-END]
+
 // Parse + CORS
 app.set("trust proxy", 1);
 app.use(express.json({ limit: "10mb" }));
@@ -40,8 +44,22 @@ app.use(
       if (ALLOWED_ORIGINS.includes(origin)) return cb(null, true);
       return cb(null, false);
     },
-    methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
+    methods: ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
     allowedHeaders: ["Content-Type", "Authorization", "x-partner-token"],
+  })
+);
+
+app.options(
+  "*",
+  cors({
+    origin: (origin, cb) => {
+      if (!origin) return cb(null, true);
+      if (ALLOWED_ORIGINS.includes(origin)) return cb(null, true);
+      return cb(null, false);
+    },
+    methods: ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
+    allowedHeaders: ["Content-Type", "Authorization", "x-partner-token", "Accept"],
+    maxAge: 86400,
   })
 );
 
@@ -51,6 +69,10 @@ app.get("/health", (_req, res) => res.status(200).send("OK v-AUTH-2"));
 // Mount routers
 app.use("/extranet/property/photos/upload-url", photosUploadUrl);
 app.use("/extranet/property/photos", extranetPhotos);
+
+app.use("/extranet/property/documents/upload-url", documentsUploadUrl);
+app.use("/extranet/property/documents", extranetDocuments);
+
 app.use(extranetAuth);
 
 // Diagnostics: list registered routes
@@ -74,29 +96,31 @@ app.use((err: any, _req: express.Request, res: express.Response, _next: express.
 });
 
 const PORT = Number(process.env.PORT || 3000);
+
 //
 // [APP-ERR-LOGGER-BEGIN]
 app.use((err: any, req: any, res: any, _next: any) => {
   try {
     console.error("[APP ERROR]", {
-      message: err?.message, name: err?.name, code: err?.code, stack: err?.stack,
-      path: req?.originalUrl, method: req?.method
+      message: err?.message,
+      name: err?.name,
+      code: err?.code,
+      stack: err?.stack,
+      path: req?.originalUrl,
+      method: req?.method,
     });
   } catch {}
   return res.status(500).json({
     error: "Internal Server Error",
     where: "app",
     message: err?.message ?? null,
-    code: err?.code ?? null
+    code: err?.code ?? null,
   });
 });
 // [APP-ERR-LOGGER-END]
+
 app.listen(PORT, () => {
   console.log(`Server started on port ${PORT}`);
 });
 
 export default app;
-
-
-
-
