@@ -15,7 +15,8 @@ const MAX_MB = Number(process.env.DOCS_MAX_MB ?? 10);
 const ALLOWED = (process.env.DOCS_ALLOWED_MIME ??
   "application/pdf,image/jpeg,image/png,image/webp,application/msword,application/vnd.openxmlformats-officedocument.wordprocessingml.document,application/vnd.ms-excel,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet,application/zip"
 ).split(",").map(s => s.trim().toLowerCase());
-const PREFIX = process.env.DOCS_PREFIX ?? "docs";
+// store documents under photos/docs/* so buckets that only allow photos/* still pass
+const PREFIX = process.env.DOCS_PREFIX ?? process.env.PHOTOS_PREFIX ?? "photos/docs";
 
 const DRYRUN    = (process.env.UPLOAD_DRYRUN ?? "0") === "1";
 
