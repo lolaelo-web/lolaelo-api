@@ -1,4 +1,4 @@
-﻿-- Fix FK for PropertyDocument.partnerId → Partner(id)
+-- Fix FK for PropertyDocument.partnerId -> Partner(id)
 
 -- Drop any existing FK on partnerId (name may vary across environments)
 ALTER TABLE "PropertyDocument"
