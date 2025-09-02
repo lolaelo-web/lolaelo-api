@@ -5,7 +5,7 @@ import { authPartnerFromHeader } from '../extranetAuth.js';
 const prisma = new PrismaClient();
 const router = Router();
 
-// Allowed values (mirror your Prisma schema)
+/** Allowed enums (mirror prisma schema) */
 const ALLOWED_TYPES = [
   'GOVT_ID',
   'BUSINESS_REG',
@@ -16,22 +16,32 @@ const ALLOWED_TYPES = [
   'PROPERTY_OWNERSHIP',
   'LOCAL_LICENSE',
 ] as const;
-type DocType = typeof ALLOWED_TYPES[number];
+type DocType = (typeof ALLOWED_TYPES)[number];
 
 const ALLOWED_STATUSES = ['REQUIRED', 'SUBMITTED', 'APPROVED', 'REJECTED'] as const;
-type DocStatus = typeof ALLOWED_STATUSES[number];
+type DocStatus = (typeof ALLOWED_STATUSES)[number];
 
-// --- Auth ---
+/** Type guards */
+function toDocType(v: unknown): DocType | null {
+  const s = String(v ?? '').toUpperCase() as DocType;
+  return ALLOWED_TYPES.includes(s) ? s : null;
+}
+function toDocStatus(v: unknown): DocStatus | null {
+  const s = String(v ?? '').toUpperCase() as DocStatus;
+  return ALLOWED_STATUSES.includes(s) ? s : null;
+}
+
+/** Auth */
 router.use(authPartnerFromHeader);
 
-// 2) Normalize partner id (prefer the same source that photos uses)
+/** Normalize partner id (prefer same source as photos) */
 router.use((req: any, res, next) => {
   const pid =
-    res.locals?.partner?.id ??        // 1) primary: same object photos populates
-    res.locals?.partnerId ??          // 2) explicit partnerId in locals
-    req?.partner?.id ??               // 3) some middlewares attach here
-    req?.partnerId ??                 // 4) or here
-    req?.user?.partnerId ??           // 5) fallback: token/session field (can be stale)
+    res.locals?.partner?.id ??
+    res.locals?.partnerId ??
+    req?.partner?.id ??
+    req?.partnerId ??
+    req?.user?.partnerId ??
     null;
 
   if (!pid) return res.status(401).json({ error: 'unauthorized_no_partner' });
@@ -39,7 +49,7 @@ router.use((req: any, res, next) => {
   next();
 });
 
-// GET /extranet/property/documents
+/** GET /extranet/property/documents */
 router.get('/', async (req: any, res) => {
   const partnerId = req.__pid;
   const rows = await prisma.propertyDocument.findMany({
@@ -49,30 +59,30 @@ router.get('/', async (req: any, res) => {
   return res.json(rows);
 });
 
-// POST /extranet/property/documents
-// expects { type, key, url, fileName?, contentType? }
+/** POST /extranet/property/documents
+ *  body: { type, key, url, fileName?, contentType? }
+ */
 router.post('/', async (req: any, res) => {
   const partnerId = req.__pid;
-  let { type, key, url, fileName, contentType } = req.body || {};
+  let { type, key, url, fileName, contentType } = req.body ?? {};
 
   if (!type || !key || !url) {
     return res.status(400).json({ error: 'type_key_url_required' });
   }
 
-  // Coerce/validate enum
-  const allTypes = Object.values(DocumentType);
-  if (!allTypes.includes(type)) {
-    const up = String(type).toUpperCase();
-    if (!allTypes.includes(up as DocumentType)) {
-      return res.status(400).json({ error: 'invalid_document_type', got: type, allowed: allTypes });
-    }
-    type = up;
+  const normalizedType = toDocType(type);
+  if (!normalizedType) {
+    return res.status(400).json({
+      error: 'invalid_document_type',
+      got: type,
+      allowed: ALLOWED_TYPES,
+    });
   }
 
   try {
-    // allow one-per-type per partner
+    // one-per-type per partner
     const existing = await prisma.propertyDocument.findFirst({
-      where: { partnerId, type },
+      where: { partnerId, type: normalizedType },
     });
 
     let row;
@@ -84,7 +94,7 @@ router.post('/', async (req: any, res) => {
           url,
           fileName,
           contentType,
-          status: 'SUBMITTED',
+          status: 'SUBMITTED', // DocStatus
           uploadedAt: new Date(),
           notes: null,
         },
@@ -93,19 +103,19 @@ router.post('/', async (req: any, res) => {
       row = await prisma.propertyDocument.create({
         data: {
           partnerId,
-          type,
+          type: normalizedType,
           key,
           url,
           fileName,
           contentType,
-          status: 'SUBMITTED',
+          status: 'SUBMITTED', // DocStatus
         },
       });
     }
 
     return res.json(row);
   } catch (e: any) {
-    // TEMP: surface prisma details so we can diagnose quickly
+    // Surface prisma details to diagnose quickly
     console.error('create document error:', {
       message: e?.message,
       code: e?.code,
@@ -123,29 +133,28 @@ router.post('/', async (req: any, res) => {
   }
 });
 
-// PUT /extranet/property/documents/:id
-// accepts { status?, notes?, expiresAt?, type? }
+/** PUT /extranet/property/documents/:id
+ *  body: { status?, notes?, expiresAt?, type? }
+ */
 router.put('/:id', async (req: any, res) => {
   const partnerId = req.__pid;
   const id = Number(req.params.id);
   if (!id) return res.status(400).json({ error: 'bad_id' });
 
-  let { status, notes, expiresAt, type } = req.body || {};
+  let { status, notes, expiresAt, type } = req.body ?? {};
 
-  if (status) {
-    const s = String(status).toUpperCase();
-    if (!ALLOWED_STATUSES.includes(s as DocStatus)) {
-      return res.status(400).json({ error: 'invalid_status' });
-    }
-    status = s;
+  let normalizedStatus: DocStatus | undefined;
+  if (status !== undefined) {
+    const s = toDocStatus(status);
+    if (!s) return res.status(400).json({ error: 'invalid_status', allowed: ALLOWED_STATUSES });
+    normalizedStatus = s;
   }
 
-  if (type) {
-    const t = String(type).toUpperCase();
-    if (!ALLOWED_TYPES.includes(t as DocType)) {
-      return res.status(400).json({ error: 'invalid_type' });
-    }
-    type = t;
+  let normalizedType: DocType | undefined;
+  if (type !== undefined) {
+    const t = toDocType(type);
+    if (!t) return res.status(400).json({ error: 'invalid_type', allowed: ALLOWED_TYPES });
+    normalizedType = t;
   }
 
   // ownership check
@@ -156,11 +165,11 @@ router.put('/:id', async (req: any, res) => {
     const updated = await prisma.propertyDocument.update({
       where: { id },
       data: {
-        status: (status as any) || undefined,
+        status: normalizedStatus ?? undefined,
         notes: typeof notes === 'string' ? notes : undefined,
         expiresAt: expiresAt ? new Date(expiresAt) : undefined,
-        type: (type as any) || undefined,
-        verifiedAt: status === 'APPROVED' ? new Date() : undefined,
+        type: normalizedType ?? undefined,
+        verifiedAt: normalizedStatus === 'APPROVED' ? new Date() : undefined,
       },
     });
     return res.json(updated);
@@ -170,7 +179,7 @@ router.put('/:id', async (req: any, res) => {
   }
 });
 
-// DELETE /extranet/property/documents/:id
+/** DELETE /extranet/property/documents/:id */
 router.delete('/:id', async (req: any, res) => {
   const partnerId = req.__pid;
   const id = Number(req.params.id);
