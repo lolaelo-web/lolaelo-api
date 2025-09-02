@@ -1,53 +1,75 @@
-import { Router } from 'express';
-import { PrismaClient, DocumentType, DocumentStatus } from '@prisma/client';
-import { authPartnerFromHeader } from '../extranetAuth.js';  // << use existing auth helper (not requireAuth)
+import { Router } from "express";
+import { PrismaClient } from "@prisma/client";
+import { authPartnerFromHeader } from "../extranetAuth.js";
 
 const prisma = new PrismaClient();
 const router = Router();
 
-// All routes require auth
+/** Allowed enums (must match prisma/schema.prisma) */
+const ALLOWED_TYPES = [
+  "GOVT_ID",
+  "BUSINESS_REG",
+  "TAX_ID",
+  "BANK_PROOF",
+  "PROOF_OF_ADDRESS",
+  "INSURANCE_LIABILITY",
+  "PROPERTY_OWNERSHIP",
+  "LOCAL_LICENSE",
+] as const;
+type DocType = (typeof ALLOWED_TYPES)[number];
+
+const ALLOWED_STATUS = ["REQUIRED", "SUBMITTED", "APPROVED", "REJECTED"] as const;
+type DocStatus = (typeof ALLOWED_STATUS)[number];
+
+/** Require auth for everything in this router */
 router.use(authPartnerFromHeader);
 
-// GET /extranet/property/documents
-router.get('/', async (req: any, res) => {
-  const partnerId = req.user.partnerId;
+/** Guard: ensure req.user exists and stash partnerId to avoid crashes */
+router.use((req: any, res, next) => {
+  const u = req?.user;
+  if (!u || !u.partnerId) return res.status(401).json({ error: "unauthorized" });
+  req.partnerId = u.partnerId;
+  next();
+});
+
+/** GET /extranet/property/documents */
+router.get("/", async (req: any, res) => {
+  const partnerId = req.partnerId as number;
   const rows = await prisma.propertyDocument.findMany({
     where: { partnerId },
-    orderBy: [{ type: 'asc' }, { uploadedAt: 'desc' }],
+    orderBy: [{ type: "asc" }, { uploadedAt: "desc" }],
   });
   return res.json(rows);
 });
 
-// POST /extranet/property/documents
-// expects { type, key, url, fileName?, contentType? }
-router.post('/', async (req: any, res) => {
+/** POST /extranet/property/documents
+ *  body: { type, key, url, fileName?, contentType? }
+ */
+router.post("/", async (req: any, res) => {
   try {
-    const partnerId = req.user.partnerId;
+    const partnerId = req.partnerId as number;
     let { type, key, url, fileName, contentType } = req.body || {};
 
     if (!type || !key || !url) {
-      return res.status(400).json({ error: 'type, key and url are required' });
+      return res.status(400).json({ error: "type, key and url are required" });
     }
 
-    // Coerce/validate enum
-    const allTypes = Object.values(DocumentType);
-    if (!allTypes.includes(type)) {
-      const up = String(type).toUpperCase();
-      if (!allTypes.includes(up as DocumentType)) {
-        return res.status(400).json({ error: 'invalid_document_type' });
-      }
-      type = up;
+    // coerce/validate type
+    const up = String(type).toUpperCase();
+    if (!ALLOWED_TYPES.includes(up as DocType)) {
+      return res.status(400).json({ error: "invalid_document_type" });
     }
+    type = up;
 
-    // One-per-type per partner (schema has @@unique([partnerId, type]))
+    // one-per-type per partner (compound unique in schema)
     const row = await prisma.propertyDocument.upsert({
-      where: { partnerId_type: { partnerId, type } }, // compound unique
+      where: { partnerId_type: { partnerId, type } },
       update: {
         key,
         url,
         fileName,
         contentType,
-        status: DocumentStatus.SUBMITTED,
+        status: "SUBMITTED",
         uploadedAt: new Date(),
         notes: null,
       },
@@ -58,63 +80,73 @@ router.post('/', async (req: any, res) => {
         url,
         fileName,
         contentType,
-        status: DocumentStatus.SUBMITTED,
+        status: "SUBMITTED",
       },
     });
 
     return res.json(row);
   } catch (e: any) {
-    console.error('create document error:', e);
-    return res.status(400).json({ error: 'create_failed' });
+    console.error("create document error:", e);
+    return res.status(400).json({ error: "create_failed" });
   }
 });
 
-// PUT /extranet/property/documents/:id
-// accepts { status?, notes?, expiresAt?, type? }
-router.put('/:id', async (req: any, res) => {
-  const partnerId = req.user.partnerId;
+/** PUT /extranet/property/documents/:id
+ *  body: { status?, notes?, expiresAt?, type? }
+ */
+router.put("/:id", async (req: any, res) => {
+  const partnerId = req.partnerId as number;
   const id = Number(req.params.id);
-  if (!id) return res.status(400).json({ error: 'bad_id' });
+  if (!id) return res.status(400).json({ error: "bad_id" });
 
-  const { status, notes, expiresAt, type } = req.body || {};
+  let { status, notes, expiresAt, type } = req.body || {};
 
-  if (status && !Object.values(DocumentStatus).includes(status)) {
-    return res.status(400).json({ error: 'invalid_status' });
+  if (status) {
+    const upStatus = String(status).toUpperCase();
+    if (!ALLOWED_STATUS.includes(upStatus as DocStatus)) {
+      return res.status(400).json({ error: "invalid_status" });
+    }
+    status = upStatus;
   }
-  if (type && !Object.values(DocumentType).includes(type)) {
-    return res.status(400).json({ error: 'invalid_type' });
+
+  if (type) {
+    const upType = String(type).toUpperCase();
+    if (!ALLOWED_TYPES.includes(upType as DocType)) {
+      return res.status(400).json({ error: "invalid_type" });
+    }
+    type = upType;
   }
 
   // ownership check
   const existing = await prisma.propertyDocument.findFirst({ where: { id, partnerId } });
-  if (!existing) return res.status(404).json({ error: 'not_found' });
+  if (!existing) return res.status(404).json({ error: "not_found" });
 
   try {
     const updated = await prisma.propertyDocument.update({
       where: { id },
       data: {
-        status: status || undefined,
-        notes: typeof notes === 'string' ? notes : undefined,
+        status: (status as DocStatus) || undefined,
+        notes: typeof notes === "string" ? notes : undefined,
         expiresAt: expiresAt ? new Date(expiresAt) : undefined,
-        type: type || undefined,
-        verifiedAt: status === 'APPROVED' ? new Date() : undefined,
+        type: (type as DocType) || undefined,
+        verifiedAt: status === "APPROVED" ? new Date() : undefined,
       },
     });
     return res.json(updated);
   } catch (e: any) {
-    console.error('update document error:', e);
-    return res.status(400).json({ error: 'update_failed' });
+    console.error("update document error:", e);
+    return res.status(400).json({ error: "update_failed" });
   }
 });
 
-// DELETE /extranet/property/documents/:id
-router.delete('/:id', async (req: any, res) => {
-  const partnerId = req.user.partnerId;
+/** DELETE /extranet/property/documents/:id */
+router.delete("/:id", async (req: any, res) => {
+  const partnerId = req.partnerId as number;
   const id = Number(req.params.id);
-  if (!id) return res.status(400).json({ error: 'bad_id' });
+  if (!id) return res.status(400).json({ error: "bad_id" });
 
   const existing = await prisma.propertyDocument.findFirst({ where: { id, partnerId } });
-  if (!existing) return res.status(404).json({ error: 'not_found' });
+  if (!existing) return res.status(404).json({ error: "not_found" });
 
   await prisma.propertyDocument.delete({ where: { id } });
   return res.status(204).end();
