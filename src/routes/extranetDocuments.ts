@@ -71,28 +71,38 @@ router.post('/', async (req: any, res) => {
     }
     const docType: DocType = cand;
 
-    // 1-per-type per partner (compound unique)
-    const row = await prisma.propertyDocument.upsert({
-      where: { partnerId_type: { partnerId, type: docType } },
-      update: {
-        key,
-        url,
-        fileName,
-        contentType,
-        status: 'SUBMITTED',
-        uploadedAt: new Date(),
-        notes: null,
-      },
-      create: {
-        partnerId,
-        type: docType,
-        key,
-        url,
-        fileName,
-        contentType,
-        status: 'SUBMITTED',
-      },
-    });
+    // One-per-type per partner (schema has @@unique([partnerId, type]))
+const existing = await prisma.propertyDocument.findFirst({
+  where: { partnerId, type: type as any },
+});
+
+let row;
+if (existing) {
+  row = await prisma.propertyDocument.update({
+    where: { id: existing.id },
+    data: {
+      key,
+      url,
+      fileName: fileName ?? undefined,
+      contentType: contentType ?? undefined,
+      status: DocumentStatus.SUBMITTED,
+      uploadedAt: new Date(),
+      notes: null,
+    },
+  });
+} else {
+  row = await prisma.propertyDocument.create({
+    data: {
+      partnerId,
+      type: type as any,
+      key,
+      url,
+      fileName: fileName ?? undefined,
+      contentType: contentType ?? undefined,
+      status: DocumentStatus.SUBMITTED,
+    },
+  });
+}
 
     return res.json(row);
   } catch (e: any) {
