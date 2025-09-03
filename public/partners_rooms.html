@@ -75,7 +75,7 @@
     }
     .chip input::placeholder{color:#52607a}
     .chip input:hover{border-color:#3a4e6c}
-    .chip input:focus{border-color:var(--focus); box-shadow:0 0 0 3px rgba(59,130,246,.15); background:#0b1220}
+    .chip input:focus{border-color:#f59e0b; box-shadow:0 0 0 3px rgba(245,158,11,.18); background:#0b1220}
 
     /* Number spinners */
     input[type=number]::-webkit-inner-spin-button,
@@ -95,6 +95,16 @@
       .wrap{grid-template-columns: 1fr}
       aside{position:sticky; top:0; z-index:4}
     }
+
+    /* ---- Modal (Add Room Type) ---- */
+    .modal-backdrop{ position:fixed; inset:0; background:rgba(0,0,0,.5); display:none; align-items:center; justify-content:center; z-index:1000; }
+    .modal{ background:#0f172a; border:1px solid #20314a; border-radius:12px; padding:16px; width:min(420px, 90vw); box-shadow:var(--shadow); }
+    .modal h3{ margin:0 0 8px; }
+    .modal .row{ display:grid; grid-template-columns:1fr 1fr; gap:10px; }
+    .modal .actions{ display:flex; gap:8px; justify-content:flex-end; margin-top:12px; }
+    .modal input, .modal textarea{ width:100%; background:#0a0f1a; border:1px solid #223047; border-radius:10px; color:var(--text); padding:10px; }
+    .modal input:focus, .modal textarea:focus{ border-color:var(--focus); box-shadow:0 0 0 3px rgba(59,130,246,.15); outline: none; }
+    .modal-backdrop.show{ display:flex; }
   </style>
 
   <!-- Try to load the API-origin helper -->
@@ -103,10 +113,10 @@
   <!-- Inline fallback if /js/shared.js is missing -->
   <script>
     (function(){
-      if (window.LolaAuth) return; // helper is present, nothing to do
+      if (window.LolaAuth) return;
 
       const TOKEN_KEY = "lolaelo_session";
-      const TRAVEL_ORIGIN = "https://lolaelo-web.github.io/travel"; // update if different
+      const TRAVEL_ORIGIN = "https://lolaelo-web.github.io/travel";
 
       function setToken(t){ if(t) { try{ localStorage.setItem(TOKEN_KEY, t); }catch{} } }
       function getToken(){ try{ return localStorage.getItem(TOKEN_KEY) || ""; } catch { return ""; } }
@@ -139,7 +149,7 @@
         if (!h.has("Content-Type") && (opts.method || "").toUpperCase() === "POST") {
           h.set("Content-Type", "application/json");
         }
-        return fetch(url, { ...opts, headers: h, credentials: "omit" });
+        return fetch(url, { cache:"no-store", ...opts, headers: h, credentials: "omit" });
       }
 
       function getTokenFn(){ return getToken(); }
@@ -151,7 +161,6 @@
         getToken: getTokenFn
       };
 
-      // Run once on load to ingest #token/?token if present
       document.addEventListener("DOMContentLoaded", normalizeTokenFromUrl);
       console.warn("LolaAuth polyfill active: /js/shared.js not found");
     })();
@@ -169,7 +178,11 @@
 
   <div class="wrap">
     <aside>
-      <div class="rooms-hdr">Room Types</div>
+      <!-- CHANGED: header now includes + Add button -->
+      <div class="rooms-hdr" style="display:flex;align-items:center;justify-content:space-between;">
+        <span>Room Types</span>
+        <button class="btn secondary" id="addRoomBtn" type="button" title="Create room type">+ Add</button>
+      </div>
       <ul class="room-list" id="roomList"></ul>
     </aside>
     <main>
@@ -181,6 +194,35 @@
   </div>
 
   <div class="toast" id="toast"></div>
+
+  <!-- Add Room Type modal -->
+  <div id="roomModal" class="modal-backdrop" aria-hidden="true">
+    <div class="modal" role="dialog" aria-modal="true" aria-labelledby="rm_h3">
+      <h3 id="rm_h3">Add Room Type</h3>
+
+      <label for="rm_name">Name *</label>
+      <input id="rm_name" type="text" placeholder="Standard King" />
+
+      <div class="row">
+        <div>
+          <label for="rm_occ">Occupancy</label>
+          <input id="rm_occ" type="number" inputmode="numeric" min="1" placeholder="2" />
+        </div>
+        <div>
+          <label for="rm_code">Code (optional)</label>
+          <input id="rm_code" type="text" placeholder="STD-K" />
+        </div>
+      </div>
+
+      <label for="rm_desc">Description (optional)</label>
+      <textarea id="rm_desc" placeholder="1 King bed, 250 sq ft"></textarea>
+
+      <div class="actions">
+        <button class="btn secondary" id="rm_cancel" type="button">Cancel</button>
+        <button class="btn primary" id="rm_save" type="button">Create</button>
+      </div>
+    </div>
+  </div>
 
   <script>
     // --- Helpers ---
@@ -232,7 +274,7 @@
     const dow      = (d) => d.toLocaleDateString(undefined, { weekday: 'short' });
 
     async function fetchRooms(){
-      const r = await LolaAuth.authFetch(API_BASE + '/');
+      const r = await LolaAuth.authFetch(API_BASE + '/?t=' + Date.now()); // cache-bust
       if(!r.ok){
         const txt = await r.text().catch(()=> '');
         console.error('Rooms list failed:', r.status, txt);
@@ -240,6 +282,13 @@
       }
       state.rooms = await r.json();
       renderRooms();
+
+      const statusEl = document.getElementById('status');
+      if (Array.isArray(state.rooms) && state.rooms.length === 0) {
+        statusEl.textContent = 'No room types found. Click “+ Add” to create one.';
+      } else {
+        statusEl.textContent = 'Select a room type to edit inventory & prices.';
+      }
     }
 
     function renderRooms(){
@@ -332,12 +381,12 @@
         const date    = $('[data-date]', col)?.dataset.date;
         if (!date) return;
         const open    = $('.open-input', col)?.value ?? '';
-        const minStay = $('.minstay-input', col)?.value ?? '';
+        theMinStay    = $('.minstay-input', col)?.value ?? '';
         const priceEl = $('.price-input', col);
         let price     = parseCurrency(priceEl?.value || '');
 
-        if (open !== '' || minStay !== ''){
-          invBulk.push({ date, roomsOpen: open===''?null:Number(open), minStay: minStay===''?null:Number(minStay), isClosed:false });
+        if (open !== '' || theMinStay !== ''){
+          invBulk.push({ date, roomsOpen: open===''?null:Number(open), minStay: theMinStay===''?null:Number(theMinStay), isClosed:false });
         }
         if (price !== ''){
           priceBulk.push({ date, price: Number(price), ratePlanId: null });
@@ -348,14 +397,12 @@
       const t0 = performance.now();
 
       try{
-        let invRes = { upserted: 0 }, priceRes = { upserted: 0 };
         if (invBulk.length){
           const r = await LolaAuth.authFetch(
             `${API_BASE}/${roomTypeId}/inventory/bulk`,
             { method:'POST', headers:{ 'Content-Type':'application/json' }, body: JSON.stringify({ start:startISO, end:endISO, items:invBulk }) }
           );
           if(!r.ok) throw new Error('Inventory save failed');
-          invRes = await r.json();
         }
         if (priceBulk.length){
           const r = await LolaAuth.authFetch(
@@ -363,7 +410,6 @@
             { method:'POST', headers:{ 'Content-Type':'application/json' }, body: JSON.stringify({ start:startISO, end:endISO, items:priceBulk }) }
           );
           if(!r.ok) throw new Error('Prices save failed');
-          priceRes = await r.json();
         }
         const dt = Math.max(0, 250 - (performance.now() - t0));
         await new Promise(res => setTimeout(res, dt));
@@ -385,6 +431,58 @@
       const base = 'https://lolaelo-web.github.io/travel/partners_app.html';
       const url  = t ? `${base}#token=${encodeURIComponent(t)}` : base;
       location.href = url;
+    });
+
+    // ----- Add Room Type modal wiring -----
+    const roomModal = document.getElementById('roomModal');
+    const rmName = document.getElementById('rm_name');
+    const rmOcc  = document.getElementById('rm_occ');
+    const rmCode = document.getElementById('rm_code');
+    const rmDesc = document.getElementById('rm_desc');
+
+    function openRoomModal(){
+      rmName.value = ''; rmOcc.value = ''; rmCode.value = ''; rmDesc.value = '';
+      roomModal.classList.add('show');
+      rmName.focus();
+    }
+    function closeRoomModal(){ roomModal.classList.remove('show'); }
+
+    document.getElementById('addRoomBtn').addEventListener('click', openRoomModal);
+    document.getElementById('rm_cancel').addEventListener('click', closeRoomModal);
+    roomModal.addEventListener('click', (e) => { if (e.target === roomModal) closeRoomModal(); });
+
+    document.getElementById('rm_save').addEventListener('click', async () => {
+      const name = rmName.value.trim();
+      if (!name) { showToast('Name is required', 'err'); return; }
+
+      const payload = { name };
+      const occ  = rmOcc.value.trim();  if (occ)  payload.occupancy = Number(occ);
+      const code = rmCode.value.trim(); if (code) payload.code = code;
+      const desc = rmDesc.value.trim(); if (desc) payload.description = desc;
+
+      try {
+        const r = await LolaAuth.authFetch(API_BASE + '/', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(payload)
+        });
+
+        if (r.status === 404 || r.status === 405) {
+          throw new Error('Creating room types is not enabled on this environment. Use admin/seed to create the first room.');
+        }
+        if (!r.ok) {
+          let msg = '';
+          try { msg = (await r.json()).error || ''; } catch {}
+          throw new Error(msg || `Create failed (${r.status})`);
+        }
+
+        closeRoomModal();
+        await fetchRooms();               // refresh list
+        showToast('Room type created', 'ok');
+      } catch (err) {
+        console.error(err);
+        showToast(err.message || 'Create failed', 'err');
+      }
     });
 
     // Init — normalize token then go
