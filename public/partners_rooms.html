@@ -41,6 +41,7 @@
     .actions{display:flex; gap:8px}
     .btn{background:#111827; color:var(--text); border:1px solid #1f2937; padding:8px 12px; border-radius:10px; cursor:pointer}
     .btn.primary{background:var(--brand); border-color:transparent; color:black; font-weight:600}
+    .btn.secondary{background:transparent; border-color:#2e7bff; color:#d7e5ff}
     .btn:focus-visible{outline:2px solid var(--focus); outline-offset:2px}
 
     /* Sidebar rooms list */
@@ -126,9 +127,12 @@
     /* Remove number spinners for consistent layout */
     input[type=number]::-webkit-inner-spin-button,
     input[type=number]::-webkit-outer-spin-button{ -webkit-appearance:none; margin:0 }
-    input[type=number]{ -moz-appearance:textfield }
+    input[type=number]{
+      -moz-appearance: textfield;
+      appearance: textfield;
+    }
 
-    /* Inline status + toasts */
+/* Inline status + toasts */
     .status{margin-top:8px; color:var(--muted); font-size:12px}
     .toast{position:fixed; bottom:20px; left:50%; transform:translateX(-50%); background:#0b1220; border:1px solid #20314a; padding:12px 16px; border-radius:12px; box-shadow:var(--shadow); z-index:9999; opacity:0; pointer-events:none; transition:opacity .2s ease, transform .2s ease}
     .toast.show{opacity:1; transform:translateX(-50%) translateY(-2px); pointer-events:auto}
@@ -149,9 +153,11 @@
   <header>
     <div class="brand"><span class="dot"></span> Rooms & Availability</div>
     <div class="actions">
+      <button class="btn secondary" id="backHubBtn" title="Back to hub">Back to Hub</button>
       <button class="btn" id="refreshBtn" title="Reload data">Reload</button>
       <button class="btn primary" id="bulkSaveBtn" title="Save visible changes">Save Changes</button>
     </div>
+
   </header>
   <div class="wrap">
     <aside>
@@ -392,6 +398,13 @@
     // --- Boot ---
     $('#bulkSaveBtn').addEventListener('click', saveVisible);
     $('#refreshBtn').addEventListener('click', ()=> state.selectedRoomId ? loadCalendar(state.selectedRoomId) : fetchRooms());
+    // Back to Hub: forward session token to the hub page (GitHub Pages)
+    document.getElementById('backHubBtn').addEventListener('click', () => {
+      const t = localStorage.getItem('partnerToken') || '';
+      const base = 'https://lolaelo-web.github.io/travel/partners_app.html';
+      const url  = t ? `${base}?token=${encodeURIComponent(t)}` : base;
+      location.href = url;
+    });
 
     (async function init(){
       if (!token){
