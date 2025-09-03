@@ -46,17 +46,17 @@
 
     /* Sidebar rooms list */
     .rooms-hdr{
-  font-size:12px; color:var(--muted); letter-spacing:.06em; text-transform:uppercase; margin:6px 8px;
-}
+      font-size:12px; color:var(--muted); letter-spacing:.06em; text-transform:uppercase; margin:6px 8px;
+    }
 
-.room-list{
-  list-style:none; margin:0; padding:0 0;               /* keep narrow padding */
-  display:flex; flex-direction:column; gap:6px;
-  height:100%;                                          /* takes the remaining sidebar height */
-  justify-content:center;                               /* NEW: center the items vertically */
-}
+    .room-list{
+      list-style:none; margin:0; padding:0 0;               /* keep narrow padding */
+      display:flex; flex-direction:column; gap:6px;
+      height:100%;                                          /* takes the remaining sidebar height */
+      justify-content:center;                               /* NEW: center the items vertically */
+    }
 
-/* Each room “pill” */
+    /* Each room “pill” */
     .room-item{
       position:relative;                                    /* needed for the divider line */
       display:flex; align-items:center; justify-content:space-between;
@@ -132,7 +132,7 @@
       appearance: textfield;
     }
 
-/* Inline status + toasts */
+    /* Inline status + toasts */
     .status{margin-top:8px; color:var(--muted); font-size:12px}
     .toast{position:fixed; bottom:20px; left:50%; transform:translateX(-50%); background:#0b1220; border:1px solid #20314a; padding:12px 16px; border-radius:12px; box-shadow:var(--shadow); z-index:9999; opacity:0; pointer-events:none; transition:opacity .2s ease, transform .2s ease}
     .toast.show{opacity:1; transform:translateX(-50%) translateY(-2px); pointer-events:auto}
@@ -148,6 +148,9 @@
       aside{position:sticky; top:0; z-index:4}
     }
   </style>
+
+  <!-- ADDED: API-origin shared helpers -->
+  <script src="/js/shared.js"></script>
 </head>
 <body>
   <header>
@@ -180,37 +183,7 @@
 
   <script>
     // --- Helpers ---
-const API_BASE = "/extranet/property/rooms";
-// Accept token via ?token=... or #token=... and store under the shared hub key
-const SESSION_KEY = "lolaelo_session";
-
-(function seedTokenFromUrl(){
-  const url = new URL(location.href);
-  const queryToken = url.searchParams.get("token");
-  const hashToken  = url.hash.startsWith("#token=") ? url.hash.slice(7) : null;
-  const incoming   = queryToken || hashToken;
-
-  if (incoming) {
-    try { localStorage.setItem(SESSION_KEY, incoming); } catch {}
-    // Clean just the token, keep other params if any
-    if (queryToken) {
-      const cleaned = new URL(location.href);
-      cleaned.searchParams.delete("token");
-      cleaned.hash = ""; // drop any hash token too
-      history.replaceState({}, "", cleaned.pathname + (cleaned.search || "") + (cleaned.hash || ""));
-    } else {
-      history.replaceState({}, "", location.pathname + location.search);
-    }
-  }
-})();
-
-const token = localStorage.getItem(SESSION_KEY) || "";
-
-const authHeaders = () => ({
-  "Content-Type": "application/json",
-  ...(token ? { Authorization: `Bearer ${token}` } : {})
-});
-
+    const API_BASE = "/extranet/property/rooms";
 
     const $ = (q, el=document) => el.querySelector(q);
     const $$ = (q, el=document) => Array.from(el.querySelectorAll(q));
@@ -266,8 +239,10 @@ const authHeaders = () => ({
     function addDays(d, n){ const x=new Date(d); x.setDate(x.getDate()+n); return x; }
     function dow(d){ return d.toLocaleDateString(undefined, { weekday: 'short' }); }
 
+    /* REMOVED: page-local token parsing & authHeaders(); now handled by shared.js */
+
     async function fetchRooms(){
-      const r = await fetch(API_BASE + '/', { headers: authHeaders() });
+      const r = await LolaAuth.authFetch(API_BASE + '/');              /* UPDATED */
       if(!r.ok){ throw new Error('Rooms list failed'); }
       state.rooms = await r.json();
       renderRooms();
@@ -301,8 +276,8 @@ const authHeaders = () => ({
       const invUrl = `${API_BASE}/${roomTypeId}/inventory?start=${startISO}&end=${endISO}`;
       const priceUrl = `${API_BASE}/${roomTypeId}/prices?start=${startISO}&end=${endISO}`;
       const [ri, rp] = await Promise.all([
-        fetch(invUrl, { headers: authHeaders() }).then(r=>r.json()),
-        fetch(priceUrl, { headers: authHeaders() }).then(r=>r.json()),
+        LolaAuth.authFetch(invUrl).then(r=>r.json()),                /* UPDATED */
+        LolaAuth.authFetch(priceUrl).then(r=>r.json()),              /* UPDATED */
       ]);
       state.inventoryByDate = Object.fromEntries(ri.map(x=>[x.date, x]));
       state.pricesByDate = Object.fromEntries(rp.map(x=>[x.date + '|' + (x.ratePlanId||'base'), x]));
@@ -386,12 +361,18 @@ const authHeaders = () => ({
       try{
         let invRes = { upserted: 0 }, priceRes = { upserted: 0 };
         if (invBulk.length){
-          const r = await fetch(`${API_BASE}/${roomTypeId}/inventory/bulk`, { method:'POST', headers: authHeaders(), body: JSON.stringify({ start: startISO, end: endISO, items: invBulk }) });
+          const r = await LolaAuth.authFetch(                                  /* UPDATED */
+            `${API_BASE}/${roomTypeId}/inventory/bulk`,
+            { method:'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ start: startISO, end: endISO, items: invBulk }) }
+          );
           if(!r.ok) throw new Error('Inventory save failed');
           invRes = await r.json();
         }
         if (priceBulk.length){
-          const r = await fetch(`${API_BASE}/${roomTypeId}/prices/bulk`, { method:'POST', headers: authHeaders(), body: JSON.stringify({ start: startISO, end: endISO, items: priceBulk }) });
+          const r = await LolaAuth.authFetch(                                  /* UPDATED */
+            `${API_BASE}/${roomTypeId}/prices/bulk`,
+            { method:'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ start: startISO, end: endISO, items: priceBulk }) }
+          );
           if(!r.ok) throw new Error('Prices save failed');
           priceRes = await r.json();
         }
@@ -407,20 +388,20 @@ const authHeaders = () => ({
     }
 
     // --- Boot ---
-    $('#bulkSaveBtn').addEventListener('click', saveVisible);
-    $('#refreshBtn').addEventListener('click', ()=> state.selectedRoomId ? loadCalendar(state.selectedRoomId) : fetchRooms());
-    // Back to Hub: forward session token to the hub page (GitHub Pages)
+    document.getElementById('bulkSaveBtn').addEventListener('click', saveVisible);
+    document.getElementById('refreshBtn').addEventListener('click', ()=> state.selectedRoomId ? loadCalendar(state.selectedRoomId) : fetchRooms());
+
+    // Back to Hub: send token back to travel origin via #token=
     document.getElementById('backHubBtn').addEventListener('click', () => {
-      const t = localStorage.getItem('partnerToken') || '';
+      const t = (window.LolaAuth && typeof LolaAuth.getToken === 'function') ? LolaAuth.getToken() : '';
+      // Replace with your live travel origin if different
       const base = 'https://lolaelo-web.github.io/travel/partners_app.html';
-      const url  = t ? `${base}?token=${encodeURIComponent(t)}` : base;
+      const url  = t ? `${base}#token=${encodeURIComponent(t)}` : base;
       location.href = url;
     });
 
     (async function init(){
-      if (!token){
-        $('#status').textContent = 'Not signed in. Use OTP: /login/request-code → /login/verify-code';
-      }
+      LolaAuth.requireToken();                                             /* UPDATED: enforce + normalize #token */
       try{
         await fetchRooms();
         if (state.selectedRoomId){ await loadCalendar(state.selectedRoomId); }
