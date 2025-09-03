@@ -42,12 +42,18 @@ model Partner {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
-  sessions  ExtranetSession[]
-  codes     ExtranetLoginCode[]
+  sessions ExtranetSession[]
+  codes    ExtranetLoginCode[]
 
   profile   PropertyProfile?
   photos    PropertyPhoto[]
   documents PropertyDocument[]
+
+  // Rooms & Availability relations
+  roomTypes     RoomType[]
+  ratePlans     RatePlan[]
+  roomInventory RoomInventory[]
+  roomPrices    RoomPrice[]
 }
 
 model ExtranetLoginCode {
@@ -149,4 +155,80 @@ model PropertyDocument {
 
   @@unique([partnerId, type])
   @@index([partnerId, status])
+}
+
+// -----------------------------
+// Rooms & Availability
+// -----------------------------
+model RoomType {
+  id          Int      @id @default(autoincrement())
+  partnerId   Int
+  name        String
+  description String?
+  maxGuests   Int      @default(2)
+  basePrice   Decimal  @db.Decimal(10, 2)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  partner   Partner         @relation(fields: [partnerId], references: [id], onDelete: Cascade)
+  rates     RatePlan[]
+  inventory RoomInventory[]
+  prices    RoomPrice[] // back-rel for RoomPrice.roomType
+
+  @@unique([partnerId, name])
+  @@index([partnerId])
+}
+
+model RatePlan {
+  id         Int      @id @default(autoincrement())
+  partnerId  Int
+  roomTypeId Int
+  name       String
+  policy     String?
+  priceDelta Decimal? @db.Decimal(10, 2)
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  roomType RoomType    @relation(fields: [roomTypeId], references: [id], onDelete: Cascade)
+  partner  Partner     @relation(fields: [partnerId], references: [id], onDelete: Cascade)
+  prices   RoomPrice[] // back-rel for RoomPrice.ratePlan
+
+  @@unique([roomTypeId, name])
+  @@index([partnerId])
+}
+
+model RoomInventory {
+  id         Int      @id @default(autoincrement())
+  partnerId  Int
+  roomTypeId Int
+  date       DateTime
+  roomsOpen  Int      @default(0)
+  isClosed   Boolean  @default(false)
+  minStay    Int?
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  roomType RoomType @relation(fields: [roomTypeId], references: [id], onDelete: Cascade)
+  partner  Partner  @relation(fields: [partnerId], references: [id], onDelete: Cascade)
+
+  @@unique([roomTypeId, date])
+  @@index([partnerId, date])
+}
+
+model RoomPrice {
+  id         Int      @id @default(autoincrement())
+  partnerId  Int
+  roomTypeId Int
+  ratePlanId Int?
+  date       DateTime
+  price      Decimal  @db.Decimal(10, 2)
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  roomType RoomType  @relation(fields: [roomTypeId], references: [id], onDelete: Cascade)
+  ratePlan RatePlan? @relation(fields: [ratePlanId], references: [id], onDelete: Cascade)
+  partner  Partner   @relation(fields: [partnerId], references: [id], onDelete: Cascade)
+
+  @@unique([roomTypeId, ratePlanId, date])
+  @@index([partnerId, date])
 }

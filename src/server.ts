@@ -9,6 +9,9 @@ import extranetAuth from "./routes/extranetAuth.js";
 import extranetDocuments from "./routes/extranetDocuments.js";
 import documentsUploadUrl from "./routes/extranetDocumentsUploadUrl.js";
 
+// NEW: Rooms & Availability router
+import extranetRooms from "./routes/extranetRooms.js";
+
 const app = express();
 
 //
@@ -72,6 +75,9 @@ app.use("/extranet/property/photos", extranetPhotos);
 
 app.use("/extranet/property/documents/upload-url", documentsUploadUrl);
 app.use("/extranet/property/documents", extranetDocuments);
+
+// NEW: Rooms & Availability endpoints
+app.use("/extranet/property/rooms", extranetRooms);
 
 app.use(extranetAuth);
 
