@@ -12,6 +12,13 @@ import documentsUploadUrl from "./routes/extranetDocumentsUploadUrl.js";
 // NEW: Rooms & Availability router
 import extranetRooms from "./routes/extranetRooms.js";
 
+import path from "path";
+import express from "express";
+
+const pubPath = path.join(__dirname, "..", "public");
+app.use(express.static(pubPath, { maxAge: "1h", etag: true }));          // serves /js/shared.js
+app.use("/public", express.static(pubPath, { maxAge: "1h", etag: true })); // also serves /public/js/shared.js
+
 const app = express();
 
 //
