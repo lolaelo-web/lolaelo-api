@@ -27,7 +27,13 @@
     }
     /* Layout */
     .wrap{display:grid; grid-template-columns: 280px 1fr; height:100%;}
-    aside{background:var(--panel); border-right:1px solid #0b1220; padding:16px 12px;}
+    aside{
+      background:var(--panel);
+      border-right:1px solid #0b1220;
+      padding:16px 12px;
+      display:grid;                 /* NEW: create header + content rows */
+      grid-template-rows:auto 1fr;  /* header, then list area */
+    }
     main{padding:16px; overflow:auto;}
     header{display:flex; align-items:center; justify-content:space-between; padding:8px 16px; border-bottom:1px solid #0b1220; background:linear-gradient(to bottom, rgba(255,255,255,.02), rgba(255,255,255,0)); position:sticky; top:0; z-index:5}
     .brand{display:flex; gap:10px; align-items:center; font-weight:600}
@@ -38,9 +44,37 @@
     .btn:focus-visible{outline:2px solid var(--focus); outline-offset:2px}
 
     /* Sidebar rooms list */
-    .rooms-hdr{font-size:12px; color:var(--muted); letter-spacing:.06em; text-transform:uppercase; margin:6px 8px}
-    .room-list{list-style:none; margin:0; padding:0; display:flex; flex-direction:column; gap:6px}
-    .room-item{display:flex; align-items:center; justify-content:space-between; padding:10px 12px; border-radius:10px; background:#0b1220; border:1px solid #101827; cursor:pointer}
+    .rooms-hdr{
+  font-size:12px; color:var(--muted); letter-spacing:.06em; text-transform:uppercase; margin:6px 8px;
+}
+
+.room-list{
+  list-style:none; margin:0; padding:0 0;               /* keep narrow padding */
+  display:flex; flex-direction:column; gap:6px;
+  height:100%;                                          /* takes the remaining sidebar height */
+  justify-content:center;                               /* NEW: center the items vertically */
+}
+
+/* Each room “pill” */
+    .room-item{
+      position:relative;                                    /* needed for the divider line */
+      display:flex; align-items:center; justify-content:space-between;
+      padding:10px 12px; border-radius:10px;
+      background:#0b1220; border:1px solid #101827; cursor:pointer;
+    }
+    .room-item:hover{border-color:#243244}
+    .room-item.is-selected{outline:2px solid var(--brand); outline-offset:0}
+    .room-item .name{font-weight:600}
+    .room-item .meta{color:var(--muted); font-size:12px}
+
+    /* NEW: thin divider between items (not before the first) */
+    .room-item + .room-item::before{
+      content:"";
+      position:absolute;
+      left:8px; right:8px; top:-8px;
+      height:1px; background:var(--sep);
+      border-radius:1px;
+    }
     .room-item:hover{border-color:#243244}
     .room-item.is-selected{outline:2px solid var(--brand); outline-offset:0}
     .room-item .name{font-weight:600}
