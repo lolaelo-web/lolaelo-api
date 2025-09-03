@@ -55,6 +55,16 @@
     .date .dow{color:var(--muted); font-size:12px}
     .date .dom{font-weight:700; letter-spacing:.02em}
 
+    /* Month label & first-of-month divider */
+    .month{
+      font-size:12px;
+      font-weight:700;
+      color:var(--text);
+      letter-spacing:.3px;
+      margin-bottom:2px;
+    }
+    .day.first-of-month{ border-top:2px solid var(--brand); }
+
     /* Chips row */
     .chips{display:grid; gap:8px}
     .chip{display:grid; grid-template-columns: 1fr; gap:4px; background:var(--chip); border:1px solid var(--chip-border); border-radius:12px; padding:8px}
@@ -67,7 +77,7 @@
       box-sizing:border-box;
       background:#0a0f1a;
       color:var(--text);
-      border:1px solid #223047; /* tighter alignment stays inside */
+      border:1px solid #223047;
       border-radius:10px;
       padding:10px 10px;
       font-size:14px;
@@ -94,7 +104,7 @@
     /* Selected room outline around calendar */
     .calendar-selected{box-shadow:0 0 0 2px var(--brand) inset}
 
-    /* Responsive safety: keep inputs inside chips at small widths */
+    /* Responsive safety */
     @media (max-width: 900px){
       .wrap{grid-template-columns: 1fr}
       aside{position:sticky; top:0; z-index:4}
@@ -130,7 +140,7 @@
 
   <script>
     // --- Helpers ---
-    const API_BASE = "/extranet/property/rooms"; // relies on same-origin proxy; change to absolute if needed
+    const API_BASE = "/extranet/property/rooms";
     const token = localStorage.getItem("partnerToken") || "";
     const authHeaders = () => ({
       "Content-Type": "application/json",
@@ -170,15 +180,11 @@
       input.addEventListener("blur", () => {
         input.value = fmtCurrency(input.value);
       });
-      // Initial formatting if value looks numeric
       if (input.value && /^[$\d]/.test(input.value)) input.value = fmtCurrency(input.value);
     }
 
-    // Keep inputs visually inside chips at every zoom/DP setting
     function tightenInputs(scope=document){
-      $$('.chip input', scope).forEach(inp => {
-        inp.style.maxWidth = '100%';
-      });
+      $$('.chip input', scope).forEach(inp => { inp.style.maxWidth = '100%'; });
     }
 
     // --- Data & Render ---
@@ -242,15 +248,23 @@
     function renderCalendar(){
       const daysEl = $("#days");
       daysEl.innerHTML = '';
+      const monthFmt = new Intl.DateTimeFormat('en-US', { month: 'short', year: 'numeric', timeZone: 'UTC' });
+
       for(let i=0;i<state.days;i++){
         const d = addDays(state.start, i);
         const dISO = iso(d);
         const inv = state.inventoryByDate[dISO] || { roomsOpen: '', minStay: '', isClosed: false };
         const price = state.pricesByDate[dISO+'|base'] || { price: '' };
 
+        const isFirstOfMonth = dISO.endsWith("-01");
+        const isFirstColumn  = i === 0;
+        const showMonthLabel = isFirstOfMonth || isFirstColumn;
+        const monthLabelText = showMonthLabel ? monthFmt.format(new Date(dISO + "T00:00:00Z")) : "";
+
         const col = document.createElement('div');
-        col.className = 'day';
+        col.className = 'day' + (isFirstOfMonth ? ' first-of-month' : '');
         col.innerHTML = `
+          ${showMonthLabel ? `<div class="month">${monthLabelText}</div>` : ""}
           <div class="date"><span class="dow">${dow(d)}</span><span class="dom">${d.getDate()}</span></div>
           <div class="chips">
             <div class="chip">
@@ -282,7 +296,6 @@
       const startISO = iso(state.start);
       const endISO = iso(addDays(state.start, state.days-1));
 
-      // Gather bulk payloads
       const invBulk = [];
       const priceBulk = [];
 
@@ -318,7 +331,7 @@
           priceRes = await r.json();
         }
         const dt = Math.max(0, 250 - (performance.now() - t0));
-        await new Promise(res => setTimeout(res, dt)); // ensure UI feels snappy but not flickery
+        await new Promise(res => setTimeout(res, dt));
         await loadCalendar(roomTypeId);
         status.textContent = `Saved: ${invBulk.length} inventory edits, ${priceBulk.length} price edits.`;
         showToast('Changes saved', 'ok');
