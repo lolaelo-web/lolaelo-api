@@ -175,7 +175,21 @@
   <script>
     // --- Helpers ---
     const API_BASE = "/extranet/property/rooms";
-    const token = localStorage.getItem("partnerToken") || "";
+    // Accept token via ?token=... or #token=... (for cross-origin handoff from partners_app.html)
+      {
+        const url = new URL(location.href);
+        const hashToken = url.hash.startsWith('#token=') ? url.hash.slice(7) : null;
+        const queryToken = url.searchParams.get('token');
+        const incomingToken = queryToken || hashToken;
+
+        if (incomingToken) {
+          localStorage.setItem('partnerToken', incomingToken);
+          // Clean URL (remove token)
+          history.replaceState(null, '', location.pathname);
+        }
+      }
+      const token = localStorage.getItem("partnerToken") || "";
+
     const authHeaders = () => ({
       "Content-Type": "application/json",
       ...(token ? { Authorization: `Bearer ${token}` } : {})
