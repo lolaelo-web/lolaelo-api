@@ -11,7 +11,14 @@ import documentsUploadUrl   from "./routes/extranetDocumentsUploadUrl.js";
 import extranetRooms        from "./routes/extranetRooms.js";
 
 const app = express();
+// Disable etag for API responses (prevents conditional GET -> 304)
+app.set("etag", false);
 
+// Force no-store on all /extranet/* endpoints
+app.use("/extranet", (_req, res, next) => {
+  res.set("Cache-Control", "no-store, no-cache, must-revalidate, max-age=0");
+  next();
+});
 /* --------- STATIC: serve /public at both / and /public ---------- */
 const pubPath = path.resolve(process.cwd(), "public");
 

@@ -40,12 +40,22 @@
     return t;
   }
 
-  async function authFetch(url, opts = {}){
-    const t = requireToken();
-    const headers = new Headers(opts.headers || {});
-    if (t) headers.set("Authorization", `Bearer ${t}`);
-    return fetch(url, { ...opts, headers, credentials: "omit" });
-  }
+  async function authFetch(url, opts = {}) {
+  const t = requireToken();
+  const headers = new Headers(opts.headers || {});
+  if (t) headers.set("Authorization", `Bearer ${t}`);
+
+  // prevent 304/ETag cache returns with empty body
+  const req = {
+    cache: "no-store",
+    credentials: "omit",
+    ...opts,
+    headers,
+  };
+
+  return fetch(url, req);
+}
+
 
   function logoutToLogin(){
     clearToken();
