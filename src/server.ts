@@ -36,6 +36,7 @@ app.use(express.static("public", { extensions: ["html"] }));
 const ALLOWED_ORIGINS = [
   "https://lolaelo.com",
   "https://www.lolaelo.com",
+  "https://lolaelo-web.github.io",
   // add dev origins temporarily only if you need them:
   // "http://localhost:5173",
   // "http://127.0.0.1:5173",
