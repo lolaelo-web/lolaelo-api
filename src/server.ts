@@ -31,6 +31,7 @@ app.all("/extranet/property/photos/__apptap/:id?", express.json(), (req, res) =>
 // Parse + CORS
 app.set("trust proxy", 1);
 app.use(express.json({ limit: "10mb" }));
+app.use(express.static("public", { extensions: ["html"] }));
 
 const ALLOWED_ORIGINS = [
   "https://lolaelo.com",
