@@ -180,26 +180,37 @@
 
   <script>
     // --- Helpers ---
-    const API_BASE = "/extranet/property/rooms";
-    // Accept token via ?token=... or #token=... (for cross-origin handoff from partners_app.html)
-      {
-        const url = new URL(location.href);
-        const hashToken = url.hash.startsWith('#token=') ? url.hash.slice(7) : null;
-        const queryToken = url.searchParams.get('token');
-        const incomingToken = queryToken || hashToken;
+const API_BASE = "/extranet/property/rooms";
+// Accept token via ?token=... or #token=... and store under the shared hub key
+const SESSION_KEY = "lolaelo_session";
 
-        if (incomingToken) {
-          localStorage.setItem('partnerToken', incomingToken);
-          // Clean URL (remove token)
-          history.replaceState(null, '', location.pathname);
-        }
-      }
-      const token = localStorage.getItem("partnerToken") || "";
+(function seedTokenFromUrl(){
+  const url = new URL(location.href);
+  const queryToken = url.searchParams.get("token");
+  const hashToken  = url.hash.startsWith("#token=") ? url.hash.slice(7) : null;
+  const incoming   = queryToken || hashToken;
 
-    const authHeaders = () => ({
-      "Content-Type": "application/json",
-      ...(token ? { Authorization: `Bearer ${token}` } : {})
-    });
+  if (incoming) {
+    try { localStorage.setItem(SESSION_KEY, incoming); } catch {}
+    // Clean just the token, keep other params if any
+    if (queryToken) {
+      const cleaned = new URL(location.href);
+      cleaned.searchParams.delete("token");
+      cleaned.hash = ""; // drop any hash token too
+      history.replaceState({}, "", cleaned.pathname + (cleaned.search || "") + (cleaned.hash || ""));
+    } else {
+      history.replaceState({}, "", location.pathname + location.search);
+    }
+  }
+})();
+
+const token = localStorage.getItem(SESSION_KEY) || "";
+
+const authHeaders = () => ({
+  "Content-Type": "application/json",
+  ...(token ? { Authorization: `Bearer ${token}` } : {})
+});
+
 
     const $ = (q, el=document) => el.querySelector(q);
     const $$ = (q, el=document) => Array.from(el.querySelectorAll(q));
