@@ -2,13 +2,7 @@
 import express from "express";
 import cors from "cors";
 import path from "path";
-import { fileURLToPath } from "url";
 
-// ESM-safe paths
-const __filename = fileURLToPath(import.meta.url);
-const __dirname  = path.dirname(__filename);
-
-// Routers
 import extranetPhotos       from "./routes/extranetPhotos.js";
 import photosUploadUrl      from "./routes/extranetPhotosUploadUrl.js";
 import extranetAuth         from "./routes/extranetAuth.js";
@@ -18,20 +12,20 @@ import extranetRooms        from "./routes/extranetRooms.js";
 
 const app = express();
 
-/* ---------- STATIC: serve /public at both / and /public ---------- */
-const pubPath = path.join(__dirname, "..", "public");
+/* --------- STATIC: serve /public at both / and /public ---------- */
+const pubPath = path.resolve(process.cwd(), "public");
 
 // /partners_rooms.html, /js/shared.js, etc.
 app.use(express.static(pubPath, { extensions: ["html"], maxAge: "1h", etag: true }));
 // also allow /public/partners_rooms.html, /public/js/shared.js
 app.use("/public", express.static(pubPath, { extensions: ["html"], maxAge: "1h", etag: true }));
 
-// belt & suspenders: serve shared.js explicitly
+// belt & suspenders: explicit route for shared.js
 app.get("/js/shared.js", (_req, res) => {
   res.sendFile(path.join(pubPath, "js", "shared.js"));
 });
 
-/* ---------------- MISC / CORS / PARSING ---------------- */
+/* -------------------- Parse + CORS -------------------- */
 app.set("trust proxy", 1);
 app.use(express.json({ limit: "10mb" }));
 
@@ -42,7 +36,6 @@ const ALLOWED_ORIGINS = [
   // "http://localhost:5173",
   // "http://127.0.0.1:5173",
 ];
-
 app.use(
   cors({
     origin: (origin, cb) => (!origin || ALLOWED_ORIGINS.includes(origin)) ? cb(null, true) : cb(null, false),
@@ -50,7 +43,6 @@ app.use(
     allowedHeaders: ["Content-Type", "Authorization", "x-partner-token", "Accept"],
   })
 );
-
 app.options("*", cors({
   origin: (origin, cb) => (!origin || ALLOWED_ORIGINS.includes(origin)) ? cb(null, true) : cb(null, false),
   methods: ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
@@ -58,35 +50,28 @@ app.options("*", cors({
   maxAge: 86400,
 }));
 
-// Health
+/* ---------------------- Health ----------------------- */
 app.get("/health", (_req, res) => res.status(200).send("OK v-AUTH-2"));
 
-/* ---------------------- ROUTES ---------------------- */
+/* ---------------------- Routes ----------------------- */
 app.use("/extranet/property/photos/upload-url", photosUploadUrl);
 app.use("/extranet/property/photos", extranetPhotos);
-
 app.use("/extranet/property/documents/upload-url", documentsUploadUrl);
 app.use("/extranet/property/documents", extranetDocuments);
-
 app.use("/extranet/property/rooms", extranetRooms);
-
-// Auth routes
 app.use(extranetAuth);
 
-// Diagnostics
+/* -------------------- Diagnostics -------------------- */
 app.get("/__routes", (req, res) => {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const stack = (req.app as any)?._router?.stack ?? [];
-  const routes = stack
-    .filter((l: any) => l.route)
+  const routes = stack.filter((l: any) => l.route)
     .map((l: any) => ({ path: l.route.path, methods: Object.keys(l.route.methods) }));
   res.json({ routes });
 });
 
-// 404
+/* ------------------ 404 / 500 ------------------ */
 app.use((req, res) => res.status(404).json({ error: "Not Found", path: req.path }));
-
-// 500
 // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unused-vars
 app.use((err: any, _req: express.Request, res: express.Response, _next: express.NextFunction) => {
   console.error("Unhandled error:", err);
