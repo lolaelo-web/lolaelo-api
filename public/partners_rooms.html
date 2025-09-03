@@ -150,7 +150,7 @@
   </style>
 
   <!-- ADDED: API-origin shared helpers -->
-  <script src="/public/js/shared.js"></script>
+  <script src="/js/shared.js"></script>
 
 </head>
 <body>
@@ -401,18 +401,18 @@
       location.href = url;
     });
 
-    (async function init(){
+  ;(async function init(){
   if (window.LolaAuth && typeof LolaAuth.normalizeTokenFromUrl === 'function') {
     LolaAuth.normalizeTokenFromUrl(); // ingest #token and strip it
   }
   LolaAuth.requireToken();            // redirect to travel login if still missing
 
-  try{
+  try {
     await fetchRooms();
-    if (state.selectedRoomId){ await loadCalendar(state.selectedRoomId); }
-  }catch(e){
+    if (state.selectedRoomId) await loadCalendar(state.selectedRoomId);
+  } catch (e) {
     console.error(e);
-    $('#status').textContent = 'Failed to load data.';
+    document.getElementById('status').textContent = 'Failed to load data.';
   }
 })();
 
