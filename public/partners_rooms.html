@@ -6,163 +6,154 @@
   <title>Lolaelo • Rooms & Availability</title>
   <style>
     :root{
-      --bg: #0b1220;
-      --panel: #0f172a;
-      --muted: #94a3b8;
-      --text: #e2e8f0;
-      --brand: #ff6a3d;
-      --ok: #16a34a;
-      --warn: #eab308;
-      --err: #ef4444;
-      --chip: #111827;
-      --chip-border: #1f2937;
-      --sep: rgba(148,163,184,.25);
-      --focus: #3b82f6;
-      --shadow: 0 10px 25px rgba(0,0,0,.35);
-      --radius: 14px;
+      --bg:#0b1220; --panel:#0f172a; --muted:#94a3b8; --text:#e2e8f0; --brand:#ff6a3d;
+      --ok:#16a34a; --warn:#eab308; --err:#ef4444; --chip:#111827; --chip-border:#1f2937;
+      --sep:rgba(148,163,184,.25); --focus:#3b82f6; --shadow:0 10px 25px rgba(0,0,0,.35); --radius:14px;
     }
-    html,body{height:100%;}
-    body{
-      margin:0; background:var(--bg); color:var(--text); font:14px/1.4 system-ui,-apple-system,Segoe UI,Roboto,Inter,"Helvetica Neue",Arial,"Noto Sans","Apple Color Emoji","Segoe UI Emoji";
+    html,body{height:100%}
+    body{margin:0;background:var(--bg);color:var(--text);font:14px/1.4 system-ui,-apple-system,Segoe UI,Roboto,Inter,"Helvetica Neue",Arial,"Noto Sans","Apple Color Emoji","Segoe UI Emoji"}
+    .wrap{
+      display:grid;
+      grid-template-columns:300px 1fr;   /* slightly wider sidebar */
+      column-gap:16px;                   /* visual gutter between sidebar and main */
+      height:100%;
     }
-    /* Layout */
-    .wrap{display:grid; grid-template-columns: 280px 1fr; height:100%;}
+
     aside{
       background:var(--panel);
-      border-right:1px solid #0b1220;
+      border-right:1px solid var(--sep);     /* lighter divider so it shows */
       padding:16px 12px;
-      display:grid; grid-template-rows:auto 1fr;
+      display:grid;
+      grid-template-rows:auto 1fr;
     }
-    main{padding:16px; overflow:auto;}
-    header{display:flex; align-items:center; justify-content:space-between; padding:8px 16px; border-bottom:1px solid #0b1220; background:linear-gradient(to bottom, rgba(255,255,255,.02), rgba(255,255,255,0)); position:sticky; top:0; z-index:5}
-    .brand{display:flex; gap:10px; align-items:center; font-weight:600}
-    .brand .dot{width:10px; height:10px; background:var(--brand); border-radius:999px; box-shadow:0 0 0 3px rgba(255,106,61,.15)}
-    .actions{display:flex; gap:8px}
-    .btn{background:#111827; color:var(--text); border:1px solid #1f2937; padding:8px 12px; border-radius:10px; cursor:pointer}
-    .btn.primary{background:var(--brand); border-color:transparent; color:black; font-weight:600}
-    .btn.secondary{background:transparent; border-color:#2e7bff; color:#d7e5ff}
-    .btn:focus-visible{outline:2px solid var(--focus); outline-offset:2px}
+    main{padding:16px;overflow:auto}
+    header{display:flex;align-items:center;justify-content:space-between;padding:8px 16px;border-bottom:1px solid #0b1220;background:linear-gradient(to bottom,rgba(255,255,255,.02),rgba(255,255,255,0));position:sticky;top:0;z-index:5}
+    .brand{display:flex;gap:10px;align-items:center;font-weight:600}
+    .brand .dot{width:10px;height:10px;background:var(--brand);border-radius:999px;box-shadow:0 0 0 3px rgba(255,106,61,.15)}
+    .actions{display:flex;gap:8px;flex-wrap:wrap}
+    .btn{background:#111827;color:var(--text);border:1px solid #1f2937;padding:8px 12px;border-radius:10px;cursor:pointer}
+    .btn.primary{background:var(--brand);border-color:transparent;color:black;font-weight:600}
+    .btn.secondary{background:transparent;border-color:#2e7bff;color:#d7e5ff}
+    .btn:focus-visible{outline:2px solid var(--focus);outline-offset:2px}
 
-    /* Sidebar rooms list */
-    .rooms-hdr{font-size:12px; color:var(--muted); letter-spacing:.06em; text-transform:uppercase; margin:6px 8px;}
-    .room-list{list-style:none; margin:0; padding:0 0; display:flex; flex-direction:column; gap:6px; height:100%; justify-content:center;}
-    .room-item{position:relative; display:flex; align-items:center; justify-content:space-between; padding:10px 12px; border-radius:10px; background:#0b1220; border:1px solid #101827; cursor:pointer;}
+    .rooms-hdr{
+      font-size:12px; color:var(--muted); letter-spacing:.06em; text-transform:uppercase;
+      margin:0 8px 8px;                 /* less top margin, small bottom */
+      display:flex; align-items:center; justify-content:space-between;
+    }
+    .rooms-hdr .btn{ padding:4px 8px; border-radius:8px; font-size:12px }
+    .room-list{
+      list-style:none; margin:0; padding:0;
+      display:flex; flex-direction:column;
+      gap:0;                               /* we’ll use borders as separators */
+      align-self:start;                    /* pin list to the top under header */
+    }
+    .room-item{
+      position:relative;
+      display:flex; align-items:center; justify-content:space-between;
+      padding:10px 12px; border-radius:10px;
+      background:#0b1220; border:1px solid #101827; cursor:pointer;
+      margin-top:6px;
+    }
+    /* clean separator between items (use border instead of pseudo) */
+    .room-item + .room-item::before{
+      content:"";
+      position:absolute;
+      left:8px; right:8px; top:-6px;
+      height:1px;
+      background:rgba(148,163,184,.40); /* a touch stronger than var(--sep) */
+      border-radius:1px;
+    }
     .room-item:hover{border-color:#243244}
-    .room-item.is-selected{outline:2px solid var(--brand); outline-offset:0}
     .room-item .name{font-weight:600}
-    .room-item .meta{color:var(--muted); font-size:12px}
-    .room-item + .room-item::before{content:""; position:absolute; left:8px; right:8px; top:-8px; height:1px; background:var(--sep); border-radius:1px;}
-
-    /* Calendar grid */
-    .cal-wrap{display:grid; grid-template-rows:auto 1fr; gap:12px}
-    .days{display:grid; grid-auto-flow:column; grid-auto-columns:minmax(120px,1fr); gap:0; border:1px solid #0e1625; border-radius:var(--radius); overflow:hidden; box-shadow:var(--shadow)}
-    .day{background:#0d1424; padding:10px; min-height:160px; position:relative}
-    .day + .day{border-left:1px solid var(--sep)}
-    .day .date{display:flex; align-items:baseline; gap:6px; margin-bottom:8px}
-    .date .dow{color:var(--muted); font-size:12px}
-    .date .dom{font-weight:700; letter-spacing:.02em}
-    .month{font-size:12px; font-weight:700; color:var(--text); letter-spacing:.3px; margin-bottom:2px;}
-    .day.first-of-month{ border-top:2px solid var(--brand); }
-
-    /* Chips */
-    .chips{display:grid; gap:8px}
-    .chip{display:grid; grid-template-columns:1fr; gap:4px; background:var(--chip); border:1px solid var(--chip-border); border-radius:12px; padding:8px}
-    .chip .label{font-size:11px; letter-spacing:.04em; text-transform:uppercase; color:var(--muted)}
-    .chip input[type="number"], .chip input[type="text"]{
-      width:100%; box-sizing:border-box; background:#0a0f1a; color:var(--text);
-      border:1px solid #223047; border-radius:10px; padding:10px 10px; font-size:14px; line-height:1.2; outline:none;
-      transition:border .15s ease, box-shadow .15s ease, background .15s ease;
+    .room-item .meta{color:var(--muted);font-size:12px}
+    .room-item.is-selected{
+      outline:2px solid var(--brand);
+      outline-offset:0;
+      background:#111a2a;        /* subtle lift */
+      border-color:#2a364c;
     }
+    .cal-wrap{display:grid;grid-template-rows:auto 1fr;gap:12px}
+    .days{display:grid;grid-auto-flow:column;grid-auto-columns:minmax(120px,1fr);gap:0;border:1px solid #0e1625;border-radius:var(--radius);overflow:hidden;box-shadow:var(--shadow)}
+    .day{
+      background:#0d1424;
+      padding:12px;              /* a bit more room so inputs don’t crowd borders */
+      min-height:160px;
+      position:relative;
+    }
+    .day + .day{border-left:1px solid var(--sep)}
+    .date{display:flex;align-items:baseline;gap:6px;margin-bottom:8px}
+    .date .dow{color:var(--muted);font-size:12px}
+    .date .dom{font-weight:700;letter-spacing:.02em}
+    .month{font-size:12px;font-weight:700;color:var(--text);letter-spacing:.3px;margin-bottom:2px}
+    .day.first-of-month{border-top:2px solid var(--brand)}
+
+    .chips{display:grid;gap:8px}
+    .chip{display:grid;grid-template-columns:1fr;gap:4px;background:var(--chip);border:1px solid var(--chip-border);border-radius:12px;padding:8px}
+    .chip .label{font-size:11px;letter-spacing:.04em;text-transform:uppercase;color:var(--muted)}
+    .chip input[type="number"], .chip input[type="text"]{width:100%;box-sizing:border-box;background:#0a0f1a;color:var(--text);border:1px solid #223047;border-radius:10px;padding:10px 10px;font-size:14px;line-height:1.2;outline:none;transition:border .15s, box-shadow .15s, background .15s}
     .chip input::placeholder{color:#52607a}
     .chip input:hover{border-color:#3a4e6c}
-    .chip input:focus{border-color:#f59e0b; box-shadow:0 0 0 3px rgba(245,158,11,.18); background:#0b1220}
+    .chip input:focus{border-color:var(--focus);box-shadow:0 0 0 3px rgba(59,130,246,.15);background:#0b1220}
 
-    /* Number spinners */
-    input[type=number]::-webkit-inner-spin-button,
-    input[type=number]::-webkit-outer-spin-button{-webkit-appearance:none; margin:0}
-    input[type=number]{-moz-appearance:textfield; appearance:textfield;}
+    input[type=number]::-webkit-inner-spin-button,input[type=number]::-webkit-outer-spin-button{-webkit-appearance:none;margin:0}
+    input[type=number]{-moz-appearance:textfield;appearance:textfield}
 
-    /* Status + toast */
-    .status{margin-top:8px; color:var(--muted); font-size:12px}
-    .toast{position:fixed; bottom:20px; left:50%; transform:translateX(-50%); background:#0b1220; border:1px solid #20314a; padding:12px 16px; border-radius:12px; box-shadow:var(--shadow); z-index:9999; opacity:0; pointer-events:none; transition:opacity .2s ease, transform .2s ease}
-    .toast.show{opacity:1; transform:translateX(-50%) translateY(-2px); pointer-events:auto}
+    .status{
+      margin:0 0 6px;                   /* no top margin; small bottom margin */
+      color:var(--muted);
+      font-size:12px;
+    }
+    .toast{position:fixed;bottom:20px;left:50%;transform:translateX(-50%);background:#0b1220;border:1px solid #20314a;padding:12px 16px;border-radius:12px;box-shadow:var(--shadow);z-index:9999;opacity:0;pointer-events:none;transition:opacity .2s, transform .2s}
+    .toast.show{opacity:1;transform:translateX(-50%) translateY(-2px);pointer-events:auto}
     .toast.ok{border-color:rgba(22,163,74,.35)}
     .toast.err{border-color:rgba(239,68,68,.35)}
-
     .calendar-selected{box-shadow:0 0 0 2px var(--brand) inset}
 
-    @media (max-width: 900px){
-      .wrap{grid-template-columns: 1fr}
-      aside{position:sticky; top:0; z-index:4}
+    /* Add Room modal */
+    .modal-backdrop{
+      position:fixed; inset:0; background:rgba(0,0,0,.5);
+      display:none; align-items:center; justify-content:center; z-index:50;
+    }
+    .modal{
+      background:#0f172a; border:1px solid #1f2937; border-radius:14px;
+      width:min(520px, 92vw); padding:16px; box-shadow:var(--shadow);
+    }
+    .modal, .modal *{ box-sizing:border-box }   /* <-- prevents input overflow */
+    .modal h3{ margin:0 0 10px; font-size:18px }
+    .modal .row{ display:grid; grid-template-columns:1fr 1fr; gap:10px }
+    .modal label{ display:block; font-size:12px; color:#cfe0ff; margin:10px 0 6px }
+    .modal input, .modal textarea{
+      width:100%; max-width:100%;       /* prevents any overflow */
+      padding:10px; border-radius:10px;
+      border:1px solid #1f2937; background:#0b1220; color:#e2e8f0;
+    }
+    .modal textarea{ min-height:80px; resize:vertical }
+    .modal .actions{ display:flex; gap:8px; justify-content:flex-end; margin-top:12px }
+
+    @media (max-width: 700px){
+      .modal .row{ grid-template-columns:1fr } /* stack fields on phones */
     }
 
-    /* ---- Modal (Add Room Type) ---- */
-    .modal-backdrop{ position:fixed; inset:0; background:rgba(0,0,0,.5); display:none; align-items:center; justify-content:center; z-index:1000; }
-    .modal{ background:#0f172a; border:1px solid #20314a; border-radius:12px; padding:16px; width:min(420px, 90vw); box-shadow:var(--shadow); }
-    .modal h3{ margin:0 0 8px; }
-    .modal .row{ display:grid; grid-template-columns:1fr 1fr; gap:10px; }
-    .modal .actions{ display:flex; gap:8px; justify-content:flex-end; margin-top:12px; }
-    .modal input, .modal textarea{ width:100%; background:#0a0f1a; border:1px solid #223047; border-radius:10px; color:var(--text); padding:10px; }
-    .modal input:focus, .modal textarea:focus{ border-color:var(--focus); box-shadow:0 0 0 3px rgba(59,130,246,.15); outline: none; }
-    .modal-backdrop.show{ display:flex; }
+    @media (max-width: 900px){ .wrap{grid-template-columns:1fr} aside{position:sticky;top:0;z-index:4} }
   </style>
 
-  <!-- Try to load the API-origin helper -->
+  <!-- Auth helper served by API -->
   <script src="/public/js/shared.js"></script>
 
-  <!-- Inline fallback if /js/shared.js is missing -->
+  <!-- Fallback if helper is missing -->
   <script>
     (function(){
       if (window.LolaAuth) return;
-
-      const TOKEN_KEY = "lolaelo_session";
-      const TRAVEL_ORIGIN = "https://lolaelo-web.github.io/travel";
-
-      function setToken(t){ if(t) { try{ localStorage.setItem(TOKEN_KEY, t); }catch{} } }
-      function getToken(){ try{ return localStorage.getItem(TOKEN_KEY) || ""; } catch { return ""; } }
-
-      function normalizeTokenFromUrl(){
-        const url = new URL(location.href);
-        let t = url.searchParams.get("token");
-        if (!t && location.hash.startsWith("#token=")) t = decodeURIComponent(location.hash.slice(7));
-        if (t){
-          setToken(t);
-          url.searchParams.delete("token");
-          history.replaceState(null, "", url.pathname + (url.search || ""));
-          if (location.hash.startsWith("#token=")) {
-            history.replaceState(null, "", url.pathname + (url.search || ""));
-          }
-        }
-      }
-
-      function requireToken(){
-        let t = getToken();
-        if (!t) { normalizeTokenFromUrl(); t = getToken(); }
-        if (!t) { location.href = TRAVEL_ORIGIN + "/partners_login.html"; }
-        return t;
-      }
-
-      async function authFetch(url, opts = {}){
-        const t = requireToken();
-        const h = new Headers(opts.headers || {});
-        h.set("Authorization", "Bearer " + t);
-        if (!h.has("Content-Type") && (opts.method || "").toUpperCase() === "POST") {
-          h.set("Content-Type", "application/json");
-        }
-        return fetch(url, { cache:"no-store", ...opts, headers: h, credentials: "omit" });
-      }
-
-      function getTokenFn(){ return getToken(); }
-
-      window.LolaAuth = {
-        normalizeTokenFromUrl,
-        requireToken,
-        authFetch,
-        getToken: getTokenFn
-      };
-
-      document.addEventListener("DOMContentLoaded", normalizeTokenFromUrl);
-      console.warn("LolaAuth polyfill active: /js/shared.js not found");
+      const TOKEN_KEY="lolaelo_session", ORIGIN="https://lolaelo-web.github.io/travel";
+      function get(){ try{return localStorage.getItem(TOKEN_KEY)||""}catch{return""} }
+      function set(t){ try{localStorage.setItem(TOKEN_KEY,t)}catch{} }
+      function norm(){ const u=new URL(location.href); let t=u.searchParams.get("token"); if(!t && location.hash.startsWith("#token=")) t=decodeURIComponent(location.hash.slice(7)); if(t){ set(t); u.searchParams.delete("token"); history.replaceState(null,"",u.pathname+(u.search||"")); } }
+      function req(){ let t=get(); if(!t){ norm(); t=get(); } if(!t){ location.href=ORIGIN+"/partners_login.html"; } return t; }
+      async function authFetch(url,opts={}){ const t=req(); const h=new Headers(opts.headers||{}); h.set("Authorization","Bearer "+t); return fetch(url,{...opts,headers:h,credentials:"omit"}); }
+      window.LolaAuth={ normalizeTokenFromUrl:norm, requireToken:req, authFetch, getToken:get };
+      document.addEventListener("DOMContentLoaded", norm);
+      console.warn("LolaAuth polyfill active");
     })();
   </script>
 </head>
@@ -170,18 +161,18 @@
   <header>
     <div class="brand"><span class="dot"></span> Rooms & Availability</div>
     <div class="actions">
-      <button class="btn secondary" id="backHubBtn" title="Back to hub">Back to Hub</button>
+      <button class="btn" id="addRoomBtn" title="Add a room type">+ Add</button>
       <button class="btn" id="refreshBtn" title="Reload data">Reload</button>
       <button class="btn primary" id="bulkSaveBtn" title="Save visible changes">Save Changes</button>
+      <button class="btn secondary" id="backHubBtn" title="Back to hub">Back to Hub</button>
     </div>
   </header>
 
   <div class="wrap">
     <aside>
-      <!-- CHANGED: header now includes + Add button -->
-      <div class="rooms-hdr" style="display:flex;align-items:center;justify-content:space-between;">
+      <div class="rooms-hdr">
         <span>Room Types</span>
-        <button class="btn secondary" id="addRoomBtn" type="button" title="Create room type">+ Add</button>
+        <button class="btn secondary" id="addRoomBtnSide" type="button" title="Create room type">+ Add</button>
       </div>
       <ul class="room-list" id="roomList"></ul>
     </aside>
@@ -195,156 +186,115 @@
 
   <div class="toast" id="toast"></div>
 
-  <!-- Add Room Type modal -->
-  <div id="roomModal" class="modal-backdrop" aria-hidden="true">
-    <div class="modal" role="dialog" aria-modal="true" aria-labelledby="rm_h3">
-      <h3 id="rm_h3">Add Room Type</h3>
-
-      <label for="rm_name">Name *</label>
-      <input id="rm_name" type="text" placeholder="Standard King" />
-
+  <!-- Add Room Modal -->
+  <div class="modal-backdrop" id="addModal">
+    <div class="modal">
+      <h3>Add Room Type</h3>
       <div class="row">
         <div>
-          <label for="rm_occ">Occupancy</label>
-          <input id="rm_occ" type="number" inputmode="numeric" min="1" placeholder="2" />
+          <label for="rm_name">Name *</label>
+          <input id="rm_name" type="text" placeholder="Standard King" />
         </div>
         <div>
-          <label for="rm_code">Code (optional)</label>
-          <input id="rm_code" type="text" placeholder="STD-K" />
+          <label for="rm_occ">Occupancy</label>
+          <input id="rm_occ" type="number" inputmode="numeric" placeholder="2" />
         </div>
       </div>
-
-      <label for="rm_desc">Description (optional)</label>
-      <textarea id="rm_desc" placeholder="1 King bed, 250 sq ft"></textarea>
-
+      <div class="row">
+        <div>
+          <label for="rm_code">Code</label>
+          <input id="rm_code" type="text" placeholder="STD-K" />
+        </div>
+        <div>
+          <label for="rm_desc">Description</label>
+          <input id="rm_desc" type="text" placeholder="1 king bed, 250 sqft" />
+        </div>
+      </div>
       <div class="actions">
-        <button class="btn secondary" id="rm_cancel" type="button">Cancel</button>
-        <button class="btn primary" id="rm_save" type="button">Create</button>
+        <button class="btn" id="saveRoomBtn">Create</button>
+        <button class="btn secondary" id="cancelRoomBtn">Cancel</button>
       </div>
     </div>
   </div>
 
   <script>
-    // --- Helpers ---
     const API_BASE = "/extranet/property/rooms";
     const $  = (q, el=document) => el.querySelector(q);
     const $$ = (q, el=document) => Array.from(el.querySelectorAll(q));
 
-    function showToast(msg, kind="ok"){
-      const t = $("#toast");
-      t.className = `toast show ${kind}`;
-      t.textContent = msg;
-      setTimeout(()=>{ t.classList.remove("show") }, 2200);
-    }
-
-    function fmtCurrency(v){
-      if (v === "" || v === null || v === undefined) return "";
-      const num = Number(String(v).replace(/[^0-9.-]/g, ""));
-      if (Number.isNaN(num)) return "";
-      return new Intl.NumberFormat(undefined, { style:"currency", currency:"USD", minimumFractionDigits:2 }).format(num);
-    }
-    function parseCurrency(text){
-      if (text === "") return "";
-      const num = Number(String(text).replace(/[^0-9.-]/g, ""));
-      return Number.isNaN(num) ? "" : String(num.toFixed(2));
-    }
+    function showToast(msg, kind="ok"){ const t=$("#toast"); t.className=`toast show ${kind}`; t.textContent=msg; setTimeout(()=>t.classList.remove("show"),2200); }
+    function fmtCurrency(v){ if(v===""||v==null) return ""; const n=Number(String(v).replace(/[^0-9.-]/g,"")); if(Number.isNaN(n)) return ""; return new Intl.NumberFormat(undefined,{style:"currency",currency:"USD",minimumFractionDigits:2}).format(n); }
+    function parseCurrency(text){ if(text==="") return ""; const n=Number(String(text).replace(/[^0-9.-]/g,"")); return Number.isNaN(n) ? "" : String(n.toFixed(2)); }
     function attachCurrencyHandlers(input){
-      input.addEventListener("focus", () => {
-        const raw = parseCurrency(input.value);
-        input.value = raw;
-        input.setSelectionRange(input.value.length, input.value.length);
-      });
-      input.addEventListener("blur", () => { input.value = fmtCurrency(input.value); });
-      if (input.value && /^[$\d]/.test(input.value)) input.value = fmtCurrency(input.value);
+      input.addEventListener("focus",()=>{ const raw=parseCurrency(input.value); input.value=raw; input.setSelectionRange(input.value.length,input.value.length); });
+      input.addEventListener("blur",()=>{ input.value=fmtCurrency(input.value); });
+      if(input.value && /^[$\d]/.test(input.value)) input.value=fmtCurrency(input.value);
     }
-    function tightenInputs(scope=document){ $$('.chip input', scope).forEach(inp => { inp.style.maxWidth = '100%'; }); }
+    function tightenInputs(scope=document){ $$('.chip input',scope).forEach(inp=>{ inp.style.maxWidth='100%'; }); }
 
-    // --- Data & Render ---
-    let state = {
-      rooms: [],
-      selectedRoomId: null,
-      start: new Date(),
-      days: 14,
-      inventoryByDate: {},
-      pricesByDate: {}
-    };
-
-    const iso      = (d) => d.toISOString().slice(0,10);
-    const addDays  = (d, n) => { const x=new Date(d); x.setDate(x.getDate()+n); return x; };
-    const dow      = (d) => d.toLocaleDateString(undefined, { weekday: 'short' });
+    let state = { rooms:[], selectedRoomId:null, start:new Date(), days:14, inventoryByDate:{}, pricesByDate:{} };
+    const iso = d => d.toISOString().slice(0,10);
+    const addDays = (d,n)=>{ const x=new Date(d); x.setDate(x.getDate()+n); return x; };
+    const dow = d => d.toLocaleDateString(undefined,{weekday:'short'});
 
     async function fetchRooms(){
-      const r = await LolaAuth.authFetch(API_BASE + '/?t=' + Date.now()); // cache-bust
-      if(!r.ok){
-        const txt = await r.text().catch(()=> '');
-        console.error('Rooms list failed:', r.status, txt);
-        throw new Error('Rooms list failed: ' + r.status);
-      }
+      const r = await LolaAuth.authFetch(API_BASE + '/');
+      if(!r.ok){ console.error('Rooms list failed', r.status); throw new Error('Rooms list failed'); }
       state.rooms = await r.json();
       renderRooms();
-
-      const statusEl = document.getElementById('status');
-      if (Array.isArray(state.rooms) && state.rooms.length === 0) {
-        statusEl.textContent = 'No room types found. Click “+ Add” to create one.';
-      } else {
-        statusEl.textContent = 'Select a room type to edit inventory & prices.';
+      // Auto-select first room and load its calendar if nothing is selected yet
+      if (!state.selectedRoomId && state.rooms.length) {
+        state.selectedRoomId = state.rooms[0].id;
+        await loadCalendar(state.selectedRoomId);
       }
     }
 
     function renderRooms(){
-      const ul = $("#roomList");
-      ul.innerHTML = '';
-      state.rooms.forEach(rt => {
-        const li = document.createElement('li');
-        li.className = 'room-item' + (rt.id === state.selectedRoomId ? ' is-selected' : '');
-        li.dataset.id = rt.id;
-        li.innerHTML = `<div class="name">${rt.name}</div><div class="meta">ID ${rt.id}</div>`;
+      const ul = $("#roomList"); ul.innerHTML='';
+      state.rooms.forEach(rt=>{
+        const li=document.createElement('li');
+        li.className='room-item'+(rt.id===state.selectedRoomId?' is-selected':'');
+        li.dataset.id=rt.id;
+        li.innerHTML=`<div class="name">${rt.name}</div><div class="meta">ID ${rt.id}</div>`;
         li.addEventListener('click', async ()=>{
-          state.selectedRoomId = rt.id;
+          state.selectedRoomId=rt.id;
           $$('.room-item').forEach(n=>n.classList.toggle('is-selected', Number(n.dataset.id)===rt.id));
           $("#days").classList.add("calendar-selected");
           await loadCalendar(rt.id);
         });
         ul.appendChild(li);
       });
-      if (!state.selectedRoomId && state.rooms[0]){ state.selectedRoomId = state.rooms[0].id; renderRooms(); }
+      if(!state.selectedRoomId && state.rooms[0]){ state.selectedRoomId = state.rooms[0].id; renderRooms(); }
+      if(!state.rooms.length){ $("#status").textContent='No room types yet. Click “+ Add” to create your first room.'; }
     }
 
     async function loadCalendar(roomTypeId){
-      const startISO = iso(state.start);
-      const endISO   = iso(addDays(state.start, state.days-1));
-      const invUrl   = `${API_BASE}/${roomTypeId}/inventory?start=${startISO}&end=${endISO}`;
-      const priceUrl = `${API_BASE}/${roomTypeId}/prices?start=${startISO}&end=${endISO}`;
+      const startISO=iso(state.start), endISO=iso(addDays(state.start,state.days-1));
       const [ri, rp] = await Promise.all([
-        LolaAuth.authFetch(invUrl).then(r=>r.json()),
-        LolaAuth.authFetch(priceUrl).then(r=>r.json()),
+        LolaAuth.authFetch(`${API_BASE}/${roomTypeId}/inventory?start=${startISO}&end=${endISO}`).then(r=>r.json()),
+        LolaAuth.authFetch(`${API_BASE}/${roomTypeId}/prices?start=${startISO}&end=${endISO}`).then(r=>r.json()),
       ]);
-      state.inventoryByDate = Object.fromEntries(ri.map(x=>[x.date, x]));
-      state.pricesByDate    = Object.fromEntries(rp.map(x=>[x.date + '|' + (x.ratePlanId||'base'), x]));
+      state.inventoryByDate = Object.fromEntries(ri.map(x=>[x.date,x]));
+      state.pricesByDate    = Object.fromEntries(rp.map(x=>[x.date+'|'+(x.ratePlanId||'base'),x]));
       renderCalendar();
       showToast(`Loaded ${state.days} days`, 'ok');
     }
 
     function renderCalendar(){
-      const daysEl = $("#days");
-      daysEl.innerHTML = '';
-      const monthFmt = new Intl.DateTimeFormat('en-US', { month:'short', year:'numeric', timeZone:'UTC' });
-
+      const daysEl=$("#days"); daysEl.innerHTML='';
+      const monthFmt=new Intl.DateTimeFormat('en-US',{month:'short',year:'numeric',timeZone:'UTC'});
       for(let i=0;i<state.days;i++){
-        const d    = addDays(state.start, i);
-        const dISO = iso(d);
-        const inv  = state.inventoryByDate[dISO] || { roomsOpen:'', minStay:'', isClosed:false };
-        const price= state.pricesByDate[dISO+'|base'] || { price:'' };
+        const d=addDays(state.start,i), dISO=iso(d);
+        const inv=state.inventoryByDate[dISO] || { roomsOpen:'', minStay:'', isClosed:false };
+        const price=state.pricesByDate[dISO+'|base'] || { price:'' };
+        const isFirstOfMonth=dISO.endsWith("-01"), isFirstColumn=i===0;
+        const showMonthLabel=isFirstOfMonth || isFirstColumn;
+        const monthLabelText=showMonthLabel ? monthFmt.format(new Date(dISO+"T00:00:00Z")) : "";
 
-        const isFirstOfMonth = dISO.endsWith("-01");
-        const isFirstColumn  = i === 0;
-        const showMonthLabel = isFirstOfMonth || isFirstColumn;
-        const monthLabelText = showMonthLabel ? monthFmt.format(new Date(dISO + "T00:00:00Z")) : "";
-
-        const col = document.createElement('div');
-        col.className = 'day' + (isFirstOfMonth ? ' first-of-month' : '');
-        col.innerHTML = `
-          ${showMonthLabel ? `<div class="month">${monthLabelText}</div>` : ""}
+        const col=document.createElement('div');
+        col.className='day'+(isFirstOfMonth?' first-of-month':'');
+        col.innerHTML=`
+          ${showMonthLabel?`<div class="month">${monthLabelText}</div>`:""}
           <div class="date"><span class="dow">${dow(d)}</span><span class="dom">${d.getDate()}</span></div>
           <div class="chips">
             <div class="chip">
@@ -363,142 +313,99 @@
         `;
         daysEl.appendChild(col);
       }
-
-      $$('.price-input', daysEl).forEach(attachCurrencyHandlers);
+      $$('.price-input',daysEl).forEach(attachCurrencyHandlers);
       tightenInputs(daysEl);
     }
 
     async function saveVisible(){
-      if (!state.selectedRoomId) return;
-      const roomTypeId = state.selectedRoomId;
-      const startISO   = iso(state.start);
-      const endISO     = iso(addDays(state.start, state.days-1));
-
-      const invBulk = [];
-      const priceBulk = [];
-
-      $$('.day').forEach(col => {
-        const date    = $('[data-date]', col)?.dataset.date;
-        if (!date) return;
-        const open    = $('.open-input', col)?.value ?? '';
-        theMinStay    = $('.minstay-input', col)?.value ?? '';
-        const priceEl = $('.price-input', col);
-        let price     = parseCurrency(priceEl?.value || '');
-
-        if (open !== '' || theMinStay !== ''){
-          invBulk.push({ date, roomsOpen: open===''?null:Number(open), minStay: theMinStay===''?null:Number(theMinStay), isClosed:false });
-        }
-        if (price !== ''){
-          priceBulk.push({ date, price: Number(price), ratePlanId: null });
-        }
+      if(!state.selectedRoomId) return;
+      const roomTypeId=state.selectedRoomId;
+      const startISO=iso(state.start), endISO=iso(addDays(state.start,state.days-1));
+      const invBulk=[], priceBulk=[];
+      $$('.day').forEach(col=>{
+        const date=$('[data-date]',col)?.dataset.date; if(!date) return;
+        const open=$('.open-input',col)?.value ?? '';
+        const minStay=$('.minstay-input',col)?.value ?? '';
+        const priceEl=$('.price-input',col);
+        const price=parseCurrency(priceEl?.value||'');
+        if(open!=='' || minStay!==''){ invBulk.push({ date, roomsOpen: open===''?null:Number(open), minStay: minStay===''?null:Number(minStay), isClosed:false }); }
+        if(price!==''){ priceBulk.push({ date, price: Number(price), ratePlanId:null }); }
       });
-
-      const status = $('#status');
-      const t0 = performance.now();
-
+      const status=$("#status"); const t0=performance.now();
       try{
-        if (invBulk.length){
-          const r = await LolaAuth.authFetch(
-            `${API_BASE}/${roomTypeId}/inventory/bulk`,
-            { method:'POST', headers:{ 'Content-Type':'application/json' }, body: JSON.stringify({ start:startISO, end:endISO, items:invBulk }) }
-          );
+        if(invBulk.length){
+          const r=await LolaAuth.authFetch(`${API_BASE}/${roomTypeId}/inventory/bulk`,{ method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ start:startISO, end:endISO, items:invBulk }) });
           if(!r.ok) throw new Error('Inventory save failed');
         }
-        if (priceBulk.length){
-          const r = await LolaAuth.authFetch(
-            `${API_BASE}/${roomTypeId}/prices/bulk`,
-            { method:'POST', headers:{ 'Content-Type':'application/json' }, body: JSON.stringify({ start:startISO, end:endISO, items:priceBulk }) }
-          );
+        if(priceBulk.length){
+          const r=await LolaAuth.authFetch(`${API_BASE}/${roomTypeId}/prices/bulk`,{ method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ start:startISO, end:endISO, items:priceBulk }) });
           if(!r.ok) throw new Error('Prices save failed');
         }
-        const dt = Math.max(0, 250 - (performance.now() - t0));
-        await new Promise(res => setTimeout(res, dt));
+        const dt=Math.max(0,250-(performance.now()-t0)); await new Promise(res=>setTimeout(res,dt));
         await loadCalendar(roomTypeId);
-        status.textContent = `Saved: ${invBulk.length} inventory edits, ${priceBulk.length} price edits.`;
-        showToast('Changes saved', 'ok');
-      }catch(err){
-        console.error(err);
-        showToast('Save failed', 'err');
-      }
+        status.textContent=`Saved: ${invBulk.length} inventory edits, ${priceBulk.length} price edits.`;
+        showToast('Changes saved','ok');
+      }catch(err){ console.error(err); showToast('Save failed','err'); }
     }
 
+    // --- Add Room modal wiring ---
+    const modal = $("#addModal");
+    const openModal = () => { modal.style.display="flex"; $("#rm_name").focus(); };
+    const closeModal = () => { modal.style.display="none"; };
+    $("#addRoomBtn").addEventListener("click", openModal);
+    document.getElementById("addRoomBtnSide")?.addEventListener("click", openModal);
+    $("#cancelRoomBtn").addEventListener("click", closeModal);
+    modal.addEventListener("click", (e)=>{ if(e.target===modal) closeModal(); });
+
+    $("#saveRoomBtn").addEventListener("click", async ()=>{
+      const name = $("#rm_name").value.trim();
+      const occ  = $("#rm_occ").value ? Number($("#rm_occ").value) : 2;
+      const code = $("#rm_code").value.trim() || null;
+      const desc = $("#rm_desc").value.trim() || null;
+      if(!name){ showToast("Name is required","err"); $("#rm_name").focus(); return; }
+
+      try{
+        const r = await LolaAuth.authFetch(`${API_BASE}/`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ name, occupancy: occ, code, description: desc })
+        });
+        if(!r.ok){
+          const t = await r.text().catch(()=> "");
+          throw new Error(`Create failed (${r.status}): ${t}`);
+        }
+        const created = await r.json();
+        closeModal();
+        showToast("Room created","ok");
+        await fetchRooms();
+        // auto-select the created room
+        const found = state.rooms.find(x=>x.id===created.id);
+        if(found){
+          state.selectedRoomId = found.id;
+          renderRooms();
+          await loadCalendar(found.id);
+        }
+      }catch(e){ console.error(e); showToast(e.message||"Create failed","err"); }
+    });
+
+    // Buttons
     document.getElementById('bulkSaveBtn').addEventListener('click', saveVisible);
     document.getElementById('refreshBtn').addEventListener('click', ()=> state.selectedRoomId ? loadCalendar(state.selectedRoomId) : fetchRooms());
-
-    // Back to Hub
     document.getElementById('backHubBtn').addEventListener('click', () => {
       const t = (window.LolaAuth && typeof LolaAuth.getToken === 'function') ? LolaAuth.getToken() : '';
-      const base = 'https://lolaelo-web.github.io/travel/partners_app.html';
-      const url  = t ? `${base}#token=${encodeURIComponent(t)}` : base;
+      const base='https://lolaelo-web.github.io/travel/partners_app.html';
+      const url = t ? `${base}#token=${encodeURIComponent(t)}` : base;
       location.href = url;
     });
 
-    // ----- Add Room Type modal wiring -----
-    const roomModal = document.getElementById('roomModal');
-    const rmName = document.getElementById('rm_name');
-    const rmOcc  = document.getElementById('rm_occ');
-    const rmCode = document.getElementById('rm_code');
-    const rmDesc = document.getElementById('rm_desc');
-
-    function openRoomModal(){
-      rmName.value = ''; rmOcc.value = ''; rmCode.value = ''; rmDesc.value = '';
-      roomModal.classList.add('show');
-      rmName.focus();
-    }
-    function closeRoomModal(){ roomModal.classList.remove('show'); }
-
-    document.getElementById('addRoomBtn').addEventListener('click', openRoomModal);
-    document.getElementById('rm_cancel').addEventListener('click', closeRoomModal);
-    roomModal.addEventListener('click', (e) => { if (e.target === roomModal) closeRoomModal(); });
-
-    document.getElementById('rm_save').addEventListener('click', async () => {
-      const name = rmName.value.trim();
-      if (!name) { showToast('Name is required', 'err'); return; }
-
-      const payload = { name };
-      const occ  = rmOcc.value.trim();  if (occ)  payload.occupancy = Number(occ);
-      const code = rmCode.value.trim(); if (code) payload.code = code;
-      const desc = rmDesc.value.trim(); if (desc) payload.description = desc;
-
-      try {
-        const r = await LolaAuth.authFetch(API_BASE + '/', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(payload)
-        });
-
-        if (r.status === 404 || r.status === 405) {
-          throw new Error('Creating room types is not enabled on this environment. Use admin/seed to create the first room.');
-        }
-        if (!r.ok) {
-          let msg = '';
-          try { msg = (await r.json()).error || ''; } catch {}
-          throw new Error(msg || `Create failed (${r.status})`);
-        }
-
-        closeRoomModal();
-        await fetchRooms();               // refresh list
-        showToast('Room type created', 'ok');
-      } catch (err) {
-        console.error(err);
-        showToast(err.message || 'Create failed', 'err');
-      }
-    });
-
-    // Init — normalize token then go
-    ;(async function init(){
-      if (window.LolaAuth && typeof LolaAuth.normalizeTokenFromUrl === 'function') {
-        LolaAuth.normalizeTokenFromUrl();
-      }
+    // Init
+    (async function init(){
+      if (window.LolaAuth?.normalizeTokenFromUrl) LolaAuth.normalizeTokenFromUrl();
       LolaAuth.requireToken();
-
-      try {
+      try{
         await fetchRooms();
-        if (state.selectedRoomId) await loadCalendar(state.selectedRoomId);
-      } catch (e) {
-        console.error(e);
-        document.getElementById('status').textContent = 'Failed to load data.';
-      }
+        if(state.selectedRoomId) await loadCalendar(state.selectedRoomId);
+      }catch(e){ console.error(e); document.getElementById('status').textContent='Failed to load data.'; }
     })();
   </script>
 </body>
