@@ -12,41 +12,56 @@
     }
     html,body{height:100%}
     body{margin:0;background:var(--bg);color:var(--text);font:14px/1.4 system-ui,-apple-system,Segoe UI,Roboto,Inter,"Helvetica Neue",Arial,"Noto Sans","Apple Color Emoji","Segoe UI Emoji"}
+
     .wrap{
       display:grid;
-      grid-template-columns:300px 1fr;   /* slightly wider sidebar */
-      column-gap:16px;                   /* visual gutter between sidebar and main */
+      grid-template-columns:300px 1fr;
+      column-gap:16px;
       height:100%;
     }
 
     aside{
       background:var(--panel);
-      border-right:1px solid var(--sep);     /* lighter divider so it shows */
+      border-right:1px solid var(--sep);
       padding:16px 12px;
       display:grid;
       grid-template-rows:auto 1fr;
     }
     main{padding:16px;overflow:auto}
-    header{display:flex;align-items:center;justify-content:space-between;padding:8px 16px;border-bottom:1px solid #0b1220;background:linear-gradient(to bottom,rgba(255,255,255,.02),rgba(255,255,255,0));position:sticky;top:0;z-index:5}
+
+    header{
+      display:flex;align-items:center;justify-content:space-between;
+      padding:8px 16px;border-bottom:1px solid #0b1220;
+      background:linear-gradient(to bottom,rgba(255,255,255,.02),rgba(255,255,255,0));
+      position:sticky;top:0;z-index:5
+    }
     .brand{display:flex;gap:10px;align-items:center;font-weight:600}
     .brand .dot{width:10px;height:10px;background:var(--brand);border-radius:999px;box-shadow:0 0 0 3px rgba(255,106,61,.15)}
-    .actions{display:flex;gap:8px;flex-wrap:wrap}
+    .actions{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
     .btn{background:#111827;color:var(--text);border:1px solid #1f2937;padding:8px 12px;border-radius:10px;cursor:pointer}
     .btn.primary{background:var(--brand);border-color:transparent;color:black;font-weight:600}
     .btn.secondary{background:transparent;border-color:#2e7bff;color:#d7e5ff}
     .btn:focus-visible{outline:2px solid var(--focus);outline-offset:2px}
 
+    /* View toggle segment */
+    .seg{display:inline-flex;border:1px solid #223047;border-radius:10px;overflow:hidden}
+    .seg button{
+      background:#0c1422;border:0;color:#cfe0ff;padding:8px 10px;cursor:pointer;font-size:12px;
+    }
+    .seg button + button{border-left:1px solid #223047}
+    .seg button.is-active{background:#1a2540;color:#fff}
+
     .rooms-hdr{
       font-size:12px; color:var(--muted); letter-spacing:.06em; text-transform:uppercase;
-      margin:0 8px 8px;                 /* less top margin, small bottom */
+      margin:0 8px 8px;
       display:flex; align-items:center; justify-content:space-between;
     }
     .rooms-hdr .btn{ padding:4px 8px; border-radius:8px; font-size:12px }
     .room-list{
       list-style:none; margin:0; padding:0;
       display:flex; flex-direction:column;
-      gap:0;                               /* we’ll use borders as separators */
-      align-self:start;                    /* pin list to the top under header */
+      gap:0;
+      align-self:start;
     }
     .room-item{
       position:relative;
@@ -55,31 +70,40 @@
       background:#0b1220; border:1px solid #101827; cursor:pointer;
       margin-top:6px;
     }
-    /* clean separator between items (use border instead of pseudo) */
     .room-item + .room-item::before{
-      content:"";
-      position:absolute;
-      left:8px; right:8px; top:-6px;
-      height:1px;
-      background:rgba(148,163,184,.40); /* a touch stronger than var(--sep) */
-      border-radius:1px;
+      content:""; position:absolute; left:8px; right:8px; top:-6px; height:1px;
+      background:rgba(148,163,184,.40); border-radius:1px;
     }
     .room-item:hover{border-color:#243244}
     .room-item .name{font-weight:600}
     .room-item .meta{color:var(--muted);font-size:12px}
     .room-item.is-selected{
-      outline:2px solid var(--brand);
-      outline-offset:0;
-      background:#111a2a;        /* subtle lift */
-      border-color:#2a364c;
+      outline:2px solid var(--brand); outline-offset:0; background:#111a2a; border-color:#2a364c;
     }
-    .cal-wrap{display:grid;grid-template-rows:auto 1fr;gap:12px}
-    .days{display:grid;grid-auto-flow:column;grid-auto-columns:minmax(120px,1fr);gap:0;border:1px solid #0e1625;border-radius:var(--radius);overflow:hidden;box-shadow:var(--shadow)}
+
+    .cal-wrap{display:grid;grid-template-rows:auto auto 1fr;gap:12px}
+
+    .days{
+      display:grid;
+      grid-auto-flow: column;
+      grid-auto-columns: 240px;
+      gap: 0;
+      border: 1px solid #0e1625;
+      border-radius: var(--radius);
+      box-shadow: var(--shadow);
+      width: 100%;
+      overflow-x: auto;
+      overflow-y: hidden;
+      scroll-snap-type: x proximity;
+      -webkit-overflow-scrolling: touch;
+      background:#0d1424;
+    }
     .day{
       background:#0d1424;
-      padding:12px;              /* a bit more room so inputs don’t crowd borders */
+      padding:12px;
       min-height:160px;
       position:relative;
+      scroll-snap-align: start;
     }
     .day + .day{border-left:1px solid var(--sep)}
     .date{display:flex;align-items:baseline;gap:6px;margin-bottom:8px}
@@ -91,7 +115,10 @@
     .chips{display:grid;gap:8px}
     .chip{display:grid;grid-template-columns:1fr;gap:4px;background:var(--chip);border:1px solid var(--chip-border);border-radius:12px;padding:8px}
     .chip .label{font-size:11px;letter-spacing:.04em;text-transform:uppercase;color:var(--muted)}
-    .chip input[type="number"], .chip input[type="text"]{width:100%;box-sizing:border-box;background:#0a0f1a;color:var(--text);border:1px solid #223047;border-radius:10px;padding:10px 10px;font-size:14px;line-height:1.2;outline:none;transition:border .15s, box-shadow .15s, background .15s}
+    .chip input[type="number"], .chip input[type="text"]{
+      width:100%;box-sizing:border-box;background:#0a0f1a;color:var(--text);
+      border:1px solid #223047;border-radius:10px;padding:10px 10px;font-size:14px;line-height:1.2;outline:none;transition:border .15s, box-shadow .15s, background .15s
+    }
     .chip input::placeholder{color:#52607a}
     .chip input:hover{border-color:#3a4e6c}
     .chip input:focus{border-color:var(--focus);box-shadow:0 0 0 3px rgba(59,130,246,.15);background:#0b1220}
@@ -99,42 +126,48 @@
     input[type=number]::-webkit-inner-spin-button,input[type=number]::-webkit-outer-spin-button{-webkit-appearance:none;margin:0}
     input[type=number]{-moz-appearance:textfield;appearance:textfield}
 
-    .status{
-      margin:0 0 6px;                   /* no top margin; small bottom margin */
-      color:var(--muted);
-      font-size:12px;
-    }
+    .status{margin:0 0 6px;color:var(--muted);font-size:12px}
     .toast{position:fixed;bottom:20px;left:50%;transform:translateX(-50%);background:#0b1220;border:1px solid #20314a;padding:12px 16px;border-radius:12px;box-shadow:var(--shadow);z-index:9999;opacity:0;pointer-events:none;transition:opacity .2s, transform .2s}
     .toast.show{opacity:1;transform:translateX(-50%) translateY(-2px);pointer-events:auto}
     .toast.ok{border-color:rgba(22,163,74,.35)}
     .toast.err{border-color:rgba(239,68,68,.35)}
     .calendar-selected{box-shadow:0 0 0 2px var(--brand) inset}
 
-    /* Add Room modal */
-    .modal-backdrop{
-      position:fixed; inset:0; background:rgba(0,0,0,.5);
-      display:none; align-items:center; justify-content:center; z-index:50;
+    /* Mini month calendar */
+    .mini-cal{ margin-top:8px; }
+    .mini-cal .hdr{
+      display:flex; align-items:center; justify-content:space-between;
+      margin:6px 2px; color:var(--muted); font-size:12px;
     }
+    .mini-cal .grid{ display:grid; grid-template-columns:repeat(7,1fr); gap:6px }
+    .mini-cal .dow{ color:var(--muted); font-size:11px; text-align:center }
+    .mini-cal .cell{
+      padding:6px 0; border:1px solid #0e1625; border-radius:8px;
+      text-align:center; background:#0b1220; cursor:pointer; user-select:none;
+    }
+    .mini-cal .cell:hover{ border-color:#243244 }
+    .mini-cal .cell.in-range{ background:#132037; border-color:#29507a }
+    .mini-cal .cell.today{ outline:2px solid var(--brand); outline-offset:1px }
+    .mini-cal .cell.out{ opacity:.4 }
+
+    /* Add Room modal */
+    .modal-backdrop{ position:fixed; inset:0; background:rgba(0,0,0,.5); display:none; align-items:center; justify-content:center; z-index:50; }
     .modal{
       background:#0f172a; border:1px solid #1f2937; border-radius:14px;
       width:min(520px, 92vw); padding:16px; box-shadow:var(--shadow);
     }
-    .modal, .modal *{ box-sizing:border-box }   /* <-- prevents input overflow */
+    .modal, .modal *{ box-sizing:border-box }
     .modal h3{ margin:0 0 10px; font-size:18px }
     .modal .row{ display:grid; grid-template-columns:1fr 1fr; gap:10px }
     .modal label{ display:block; font-size:12px; color:#cfe0ff; margin:10px 0 6px }
     .modal input, .modal textarea{
-      width:100%; max-width:100%;       /* prevents any overflow */
-      padding:10px; border-radius:10px;
+      width:100%; max-width:100%; padding:10px; border-radius:10px;
       border:1px solid #1f2937; background:#0b1220; color:#e2e8f0;
     }
     .modal textarea{ min-height:80px; resize:vertical }
     .modal .actions{ display:flex; gap:8px; justify-content:flex-end; margin-top:12px }
 
-    @media (max-width: 700px){
-      .modal .row{ grid-template-columns:1fr } /* stack fields on phones */
-    }
-
+    @media (max-width: 700px){ .modal .row{ grid-template-columns:1fr } }
     @media (max-width: 900px){ .wrap{grid-template-columns:1fr} aside{position:sticky;top:0;z-index:4} }
   </style>
 
@@ -161,6 +194,10 @@
   <header>
     <div class="brand"><span class="dot"></span> Rooms & Availability</div>
     <div class="actions">
+      <div class="seg" role="tablist" aria-label="View">
+        <button id="viewSingleBtn"  role="tab" aria-selected="true"  class="is-active">Single</button>
+        <button id="viewStackedBtn" role="tab" aria-selected="false">Stacked</button>
+      </div>
       <button class="btn" id="addRoomBtn" title="Add a room type">+ Add</button>
       <button class="btn" id="refreshBtn" title="Reload data">Reload</button>
       <button class="btn primary" id="bulkSaveBtn" title="Save visible changes">Save Changes</button>
@@ -176,10 +213,14 @@
       </div>
       <ul class="room-list" id="roomList"></ul>
     </aside>
+
     <main>
       <div class="cal-wrap">
-        <div class="status" id="status">Select a room type to edit inventory & prices.</div>
+        <div class="status" id="status" aria-live="polite">
+          Select a room type to edit inventory & prices.
+        </div>
         <div class="days" id="days"></div>
+        <div class="mini-cal" id="miniCal"></div>
       </div>
     </main>
   </div>
@@ -232,17 +273,75 @@
     }
     function tightenInputs(scope=document){ $$('.chip input',scope).forEach(inp=>{ inp.style.maxWidth='100%'; }); }
 
-    let state = { rooms:[], selectedRoomId:null, start:new Date(), days:14, inventoryByDate:{}, pricesByDate:{} };
+    // View toggle helper
+    function setView(v){
+      state.view = v;
+      const sBtn = document.getElementById('viewSingleBtn');
+      const tBtn = document.getElementById('viewStackedBtn');
+      if (sBtn && tBtn) {
+        sBtn.classList.toggle('is-active', v === 'single');
+        tBtn.classList.toggle('is-active', v === 'stacked');
+        sBtn.setAttribute('aria-selected', v === 'single');
+        tBtn.setAttribute('aria-selected', v === 'stacked');
+      }
+      if (state.selectedRoomId) renderCalendar();
+    }
+
+    let state = {
+      rooms:[], selectedRoomId:null, start:new Date(), days:14,
+      inventoryByDate:{}, pricesByDate:{},
+      view:'single'
+    };
     const iso = d => d.toISOString().slice(0,10);
     const addDays = (d,n)=>{ const x=new Date(d); x.setDate(x.getDate()+n); return x; };
     const dow = d => d.toLocaleDateString(undefined,{weekday:'short'});
+
+    function startOfDay(d){ const x=new Date(d); x.setHours(0,0,0,0); return x; }
+    function daysInMonth(y,m){ return new Date(y, m+1, 0).getDate(); }
+
+    function renderMiniCalendar(){
+      const wrap = document.getElementById('miniCal');
+      if(!wrap) return;
+
+      const base = startOfDay(state.start);
+      const y = base.getFullYear(), m = base.getMonth();
+      const first = new Date(y, m, 1);
+      const total = daysInMonth(y,m);
+      const endRange = startOfDay(addDays(state.start, state.days-1));
+
+      const monthLabel = first.toLocaleDateString(undefined, { month:'long', year:'numeric' });
+
+      let html = `<div class="hdr"><div>${monthLabel}</div></div>`;
+      html += `<div class="grid">` +
+              ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'].map(d=>`<div class="dow">${d}</div>`).join('');
+
+      const lead = first.getDay();
+      for(let i=0;i<lead;i++) html += `<div></div>`;
+
+      for(let d=1; d<=total; d++){
+        const cur = new Date(y, m, d);
+        const inRange = cur >= base && cur <= endRange;
+        const today = (new Date()).toDateString() === cur.toDateString();
+        html += `<div class="cell ${inRange?'in-range':''} ${today?'today':''}" data-date="${iso(cur)}">${d}</div>`;
+      }
+
+      html += `</div>`;
+      wrap.innerHTML = html;
+
+      wrap.querySelectorAll('.cell[data-date]').forEach(el=>{
+        el.addEventListener('click', async ()=>{
+          state.start = new Date(el.dataset.date + 'T00:00:00');
+          await loadCalendar(state.selectedRoomId);
+          document.getElementById('days')?.scrollTo({ left: 0, behavior: 'smooth' });
+        });
+      });
+    }
 
     async function fetchRooms(){
       const r = await LolaAuth.authFetch(API_BASE + '/');
       if(!r.ok){ console.error('Rooms list failed', r.status); throw new Error('Rooms list failed'); }
       state.rooms = await r.json();
       renderRooms();
-      // Auto-select first room and load its calendar if nothing is selected yet
       if (!state.selectedRoomId && state.rooms.length) {
         state.selectedRoomId = state.rooms[0].id;
         await loadCalendar(state.selectedRoomId);
@@ -264,7 +363,6 @@
         });
         ul.appendChild(li);
       });
-      if(!state.selectedRoomId && state.rooms[0]){ state.selectedRoomId = state.rooms[0].id; renderRooms(); }
       if(!state.rooms.length){ $("#status").textContent='No room types yet. Click “+ Add” to create your first room.'; }
     }
 
@@ -278,11 +376,24 @@
       state.pricesByDate    = Object.fromEntries(rp.map(x=>[x.date+'|'+(x.ratePlanId||'base'),x]));
       renderCalendar();
       showToast(`Loaded ${state.days} days`, 'ok');
+      const rn = (state.rooms.find(r=>r.id===roomTypeId)||{}).name || 'Room';
+      document.getElementById('status').textContent = `Editing “${rn}” • ${state.days} days`;
     }
 
+    // ------- View Dispatcher + Renderers -------
+
     function renderCalendar(){
+      if (state.view === 'stacked') {
+        renderStacked();
+      } else {
+        renderSingle();
+      }
+    }
+
+    function renderSingle(){
       const daysEl=$("#days"); daysEl.innerHTML='';
       const monthFmt=new Intl.DateTimeFormat('en-US',{month:'short',year:'numeric',timeZone:'UTC'});
+
       for(let i=0;i<state.days;i++){
         const d=addDays(state.start,i), dISO=iso(d);
         const inv=state.inventoryByDate[dISO] || { roomsOpen:'', minStay:'', isClosed:false };
@@ -299,15 +410,19 @@
           <div class="chips">
             <div class="chip">
               <div class="label">Open</div>
-              <input type="number" inputmode="numeric" placeholder="0" class="open-input" data-date="${dISO}" value="${inv.roomsOpen ?? ''}">
+              <input type="number" inputmode="numeric" placeholder="0" class="open-input"
+                     data-room="${state.selectedRoomId}" data-date="${dISO}" value="${inv.roomsOpen ?? ''}">
             </div>
             <div class="chip">
               <div class="label">Min Stay</div>
-              <input type="number" inputmode="numeric" placeholder="0" class="minstay-input" data-date="${dISO}" value="${inv.minStay ?? ''}">
+              <input type="number" inputmode="numeric" placeholder="0" class="minstay-input"
+                     data-room="${state.selectedRoomId}" data-date="${dISO}" value="${inv.minStay ?? ''}">
             </div>
             <div class="chip">
               <div class="label">Price</div>
-              <input type="text" placeholder="$0.00" class="price-input" data-date="${dISO}" value="${price.price!=='' && price.price!=null ? String(price.price) : ''}">
+              <input type="text" placeholder="$0.00" class="price-input"
+                     data-room="${state.selectedRoomId}" data-date="${dISO}"
+                     value="${price.price!=='' && price.price!=null ? String(price.price) : ''}">
             </div>
           </div>
         `;
@@ -315,30 +430,123 @@
       }
       $$('.price-input',daysEl).forEach(attachCurrencyHandlers);
       tightenInputs(daysEl);
+      renderMiniCalendar();
+    }
+
+    // MVP stacked (shows the selected room as a labeled row)
+    function renderStacked(){
+      const daysEl = document.getElementById('days');
+      daysEl.innerHTML = '';
+
+      const room = state.rooms.find(r => r.id === state.selectedRoomId);
+      const roomName = room ? room.name : 'Room';
+
+      const wrap = document.createElement('div');
+      wrap.style.display = 'grid';
+      wrap.style.gridTemplateRows = 'auto auto';
+      wrap.style.gap = '8px';
+
+      const rowHdr = document.createElement('div');
+      rowHdr.style.display = 'flex';
+      rowHdr.style.alignItems = 'center';
+      rowHdr.style.justifyContent = 'space-between';
+      rowHdr.innerHTML = `<div style="font-weight:600">${roomName}</div><div style="color:var(--muted);font-size:12px">Editing selected room</div>`;
+      wrap.appendChild(rowHdr);
+
+      const scroller = document.createElement('div');
+      scroller.className = 'days';
+      wrap.appendChild(scroller);
+
+      const monthFmt = new Intl.DateTimeFormat('en-US',{month:'short',year:'numeric',timeZone:'UTC'});
+
+      for (let i=0;i<state.days;i++){
+        const d = addDays(state.start, i);
+        const dISO = iso(d);
+        const inv  = state.inventoryByDate[dISO] || { roomsOpen:'', minStay:'', isClosed:false };
+        const price= state.pricesByDate[dISO+'|base'] || { price:'' };
+
+        const isFirstOfMonth = dISO.endsWith('-01');
+        const isFirstColumn  = i === 0;
+        const showMonthLabel = isFirstOfMonth || isFirstColumn;
+        const monthLabelText = showMonthLabel ? monthFmt.format(new Date(dISO + 'T00:00:00Z')) : '';
+
+        const col = document.createElement('div');
+        col.className = 'day' + (isFirstOfMonth ? ' first-of-month' : '');
+        col.innerHTML = `
+          ${showMonthLabel ? `<div class="month">${monthLabelText}</div>` : ''}
+          <div class="date"><span class="dow">${dow(d)}</span><span class="dom">${d.getDate()}</span></div>
+          <div class="chips">
+            <div class="chip">
+              <div class="label">Open</div>
+              <input type="number" inputmode="numeric" placeholder="0" class="open-input"
+                     data-room="${state.selectedRoomId}" data-date="${dISO}" value="${inv.roomsOpen ?? ''}">
+            </div>
+            <div class="chip">
+              <div class="label">Min Stay</div>
+              <input type="number" inputmode="numeric" placeholder="0" class="minstay-input"
+                     data-room="${state.selectedRoomId}" data-date="${dISO}" value="${inv.minStay ?? ''}">
+            </div>
+            <div class="chip">
+              <div class="label">Price</div>
+              <input type="text" placeholder="$0.00" class="price-input"
+                     data-room="${state.selectedRoomId}" data-date="${dISO}"
+                     value="${price.price!=='' && price.price!=null ? String(price.price) : ''}">
+            </div>
+          </div>
+        `;
+        scroller.appendChild(col);
+      }
+
+      daysEl.appendChild(wrap);
+      $$('.price-input', daysEl).forEach(attachCurrencyHandlers);
+      tightenInputs(daysEl);
+      renderMiniCalendar();
     }
 
     async function saveVisible(){
       if(!state.selectedRoomId) return;
       const roomTypeId=state.selectedRoomId;
       const startISO=iso(state.start), endISO=iso(addDays(state.start,state.days-1));
-      const invBulk=[], priceBulk=[];
-      $$('.day').forEach(col=>{
-        const date=$('[data-date]',col)?.dataset.date; if(!date) return;
-        const open=$('.open-input',col)?.value ?? '';
-        const minStay=$('.minstay-input',col)?.value ?? '';
-        const priceEl=$('.price-input',col);
-        const price=parseCurrency(priceEl?.value||'');
-        if(open!=='' || minStay!==''){ invBulk.push({ date, roomsOpen: open===''?null:Number(open), minStay: minStay===''?null:Number(minStay), isClosed:false }); }
-        if(price!==''){ priceBulk.push({ date, price: Number(price), ratePlanId:null }); }
-      });
+
+      const scope = document.getElementById('days');
+      const invBulk = [];
+      const priceBulk = [];
+
+      const byDate = new Map();
+      scope.querySelectorAll(`.open-input[data-room="${roomTypeId}"], .minstay-input[data-room="${roomTypeId}"], .price-input[data-room="${roomTypeId}"]`)
+        .forEach(el => {
+          const date = el.getAttribute('data-date');
+          if (!date) return;
+          if (!byDate.has(date)) byDate.set(date, { date, open:'', minStay:'', price:'' });
+          const rec = byDate.get(date);
+          if (el.classList.contains('open-input'))    rec.open    = el.value ?? '';
+          if (el.classList.contains('minstay-input')) rec.minStay = el.value ?? '';
+          if (el.classList.contains('price-input'))   rec.price   = parseCurrency(el.value || '');
+        });
+
+      for (const {date, open, minStay, price} of byDate.values()){
+        if (open !== '' || minStay !== '') {
+          invBulk.push({ date, roomsOpen: open===''?null:Number(open), minStay: minStay===''?null:Number(minStay), isClosed:false });
+        }
+        if (price !== '') {
+          priceBulk.push({ date, price: Number(price), ratePlanId:null });
+        }
+      }
+
       const status=$("#status"); const t0=performance.now();
       try{
         if(invBulk.length){
-          const r=await LolaAuth.authFetch(`${API_BASE}/${roomTypeId}/inventory/bulk`,{ method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ start:startISO, end:endISO, items:invBulk }) });
+          const r=await LolaAuth.authFetch(`${API_BASE}/${roomTypeId}/inventory/bulk`,{
+            method:'POST', headers:{'Content-Type':'application/json'},
+            body: JSON.stringify({ start:startISO, end:endISO, items:invBulk })
+          });
           if(!r.ok) throw new Error('Inventory save failed');
         }
         if(priceBulk.length){
-          const r=await LolaAuth.authFetch(`${API_BASE}/${roomTypeId}/prices/bulk`,{ method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ start:startISO, end:endISO, items:priceBulk }) });
+          const r=await LolaAuth.authFetch(`${API_BASE}/${roomTypeId}/prices/bulk`,{
+            method:'POST', headers:{'Content-Type':'application/json'},
+            body: JSON.stringify({ start:startISO, end:endISO, items:priceBulk })
+          });
           if(!r.ok) throw new Error('Prices save failed');
         }
         const dt=Math.max(0,250-(performance.now()-t0)); await new Promise(res=>setTimeout(res,dt));
@@ -378,7 +586,6 @@
         closeModal();
         showToast("Room created","ok");
         await fetchRooms();
-        // auto-select the created room
         const found = state.rooms.find(x=>x.id===created.id);
         if(found){
           state.selectedRoomId = found.id;
@@ -398,10 +605,15 @@
       location.href = url;
     });
 
+    // View toggle
+    document.getElementById('viewSingleBtn')?.addEventListener('click', () => setView('single'));
+    document.getElementById('viewStackedBtn')?.addEventListener('click', () => setView('stacked'));
+
     // Init
     (async function init(){
       if (window.LolaAuth?.normalizeTokenFromUrl) LolaAuth.normalizeTokenFromUrl();
       LolaAuth.requireToken();
+      setView('single');
       try{
         await fetchRooms();
         if(state.selectedRoomId) await loadCalendar(state.selectedRoomId);
