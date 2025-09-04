@@ -29,10 +29,11 @@ const T = {
 r.get("/", async (_req, res) => {
   try {
     const { rows } = await pool.query(
-      `SELECT "id","name","occupancy","code","description"
-         FROM ${T.rooms}
-        ORDER BY "id" ASC`
+      `SELECT "id","name","code","description"
+        FROM ${T.rooms}
+      ORDER BY "id" ASC`
     );
+
     return res.status(200).json(rows);
   } catch (e) {
     console.error("[rooms:get] db error", e);
@@ -47,13 +48,14 @@ r.post("/", async (req, res) => {
     if (!name || typeof name !== "string") {
       return res.status(400).json({ error: "name is required" });
     }
-    const occ = occupancy == null ? 2 : Number(occupancy);
+    // NOTE: occupancy is ignored because the table doesn't have this column.
     const { rows } = await pool.query(
-      `INSERT INTO ${T.rooms} ("name","occupancy","code","description")
-            VALUES ($1,$2,$3,$4)
-         RETURNING "id","name","occupancy","code","description"`,
-      [name.trim(), occ, code ?? null, description ?? null]
+      `INSERT INTO ${T.rooms} ("name","code","description")
+            VALUES ($1,$2,$3)
+        RETURNING "id","name","code","description"`,
+      [name.trim(), code ?? null, description ?? null]
     );
+
     return res.status(201).json(rows[0]);
   } catch (e) {
     console.error("[rooms:post] db error", e);
