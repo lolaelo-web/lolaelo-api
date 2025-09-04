@@ -109,14 +109,13 @@ r.post("/:id/inventory/bulk", async (req, res) => {
       const minStay = it.minStay == null ? null : Number(it.minStay);
       const isClosed = !!it.isClosed;
 
+      const partnerId = req.partner?.id || req.partnerId;
       await client.query(
-        `INSERT INTO ${T.inv} ("roomTypeId","date","roomsOpen","minStay","isClosed")
+        `INSERT INTO ${T.prices} ("partnerId","roomTypeId","date","ratePlanId","price")
               VALUES ($1,$2,$3,$4,$5)
-         ON CONFLICT ("roomTypeId","date")
-           DO UPDATE SET "roomsOpen" = EXCLUDED."roomsOpen",
-                         "minStay"   = EXCLUDED."minStay",
-                         "isClosed"  = EXCLUDED."isClosed"`,
-        [roomId, it.date, roomsOpen, minStay, isClosed]
+        ON CONFLICT ("roomTypeId","date","ratePlanId")
+          DO UPDATE SET "price" = EXCLUDED."price"`,
+        [partnerId, roomId, it.date, ratePlanId, price]
       );
       upserted++;
     }
