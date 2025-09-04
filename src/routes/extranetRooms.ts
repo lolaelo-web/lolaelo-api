@@ -6,34 +6,31 @@ const r = Router();
 // ---- PG pool (Render) ----
 const pool = new Pool({
   connectionString: process.env.DATABASE_URL,
-  // Render Postgres uses SSL
-  ssl: { rejectUnauthorized: false },
+  ssl: { rejectUnauthorized: false }, // Render Postgres uses SSL
 });
 
 // ---- Helpers ----
 function parseDate(s: string) {
-  // yyyy-mm-dd
   if (!/^\d{4}-\d{2}-\d{2}$/.test(s)) return null;
   const d = new Date(s + "T00:00:00Z");
   return Number.isNaN(d.getTime()) ? null : d;
 }
 
-// Use quoted, schema-qualified identifiers that match your DB
+// Table names
 const T = {
   rooms: `extranet."RoomType"`,
   inv: `extranet."RoomInventory"`,
   prices: `extranet."RoomPrice"`,
 };
 
-/** GET /extranet/property/rooms  -> list rooms */
+/** GET /extranet/property/rooms */
 r.get("/", async (_req, res) => {
   try {
     const { rows } = await pool.query(
       `SELECT "id","name","code","description"
-        FROM ${T.rooms}
-      ORDER BY "id" ASC`
+         FROM ${T.rooms}
+        ORDER BY "id" ASC`
     );
-
     return res.status(200).json(rows);
   } catch (e) {
     console.error("[rooms:get] db error", e);
@@ -41,14 +38,14 @@ r.get("/", async (_req, res) => {
   }
 });
 
-/** POST /extranet/property/rooms -> create room */
+/** POST /extranet/property/rooms */
 r.post("/", async (req, res) => {
   try {
-    const { name, occupancy, code, description } = req.body ?? {};
+    const { name, code, description } = req.body ?? {};
     if (!name || typeof name !== "string") {
       return res.status(400).json({ error: "name is required" });
     }
-    // NOTE: occupancy is ignored because the table doesn't have this column.
+
     const { rows } = await pool.query(
       `INSERT INTO ${T.rooms} ("name","code","description")
             VALUES ($1,$2,$3)
@@ -63,7 +60,7 @@ r.post("/", async (req, res) => {
   }
 });
 
-/** GET /:id/inventory?start=YYYY-MM-DD&end=YYYY-MM-DD */
+/** GET /:id/inventory */
 r.get("/:id/inventory", async (req, res) => {
   try {
     const roomId = Number(req.params.id);
@@ -74,17 +71,13 @@ r.get("/:id/inventory", async (req, res) => {
     if (!roomId || !ds || !de) return res.status(400).json({ error: "bad params" });
 
     const { rows } = await pool.query(
-      `SELECT "date",
-              "roomsOpen" AS "roomsOpen",
-              "minStay"   AS "minStay",
-              "isClosed"  AS "isClosed"
+      `SELECT "date","roomsOpen","minStay","isClosed"
          FROM ${T.inv}
         WHERE "roomTypeId" = $1
           AND "date" BETWEEN $2 AND $3
         ORDER BY "date" ASC`,
       [roomId, start, end]
     );
-
     return res.json(rows);
   } catch (e) {
     console.error("[inventory:get] db error", e);
@@ -92,7 +85,7 @@ r.get("/:id/inventory", async (req, res) => {
   }
 });
 
-/** POST /:id/inventory/bulk  { items:[{date,roomsOpen,minStay,isClosed}] } */
+/** POST /:id/inventory/bulk */
 r.post("/:id/inventory/bulk", async (req, res) => {
   const client = await pool.connect();
   try {
@@ -101,21 +94,22 @@ r.post("/:id/inventory/bulk", async (req, res) => {
     if (!roomId || !Array.isArray(items)) return res.status(400).json({ error: "bad payload" });
 
     await client.query("BEGIN");
-
     let upserted = 0;
+
     for (const it of items) {
       if (!it?.date || !parseDate(it.date)) continue;
       const roomsOpen = it.roomsOpen == null ? null : Number(it.roomsOpen);
       const minStay = it.minStay == null ? null : Number(it.minStay);
       const isClosed = !!it.isClosed;
 
-      const partnerId = req.partner?.id || req.partnerId;
       await client.query(
-        `INSERT INTO ${T.prices} ("partnerId","roomTypeId","date","ratePlanId","price")
+        `INSERT INTO ${T.inv} ("roomTypeId","date","roomsOpen","minStay","isClosed")
               VALUES ($1,$2,$3,$4,$5)
-        ON CONFLICT ("roomTypeId","date","ratePlanId")
-          DO UPDATE SET "price" = EXCLUDED."price"`,
-        [partnerId, roomId, it.date, ratePlanId, price]
+         ON CONFLICT ("roomTypeId","date")
+           DO UPDATE SET "roomsOpen" = EXCLUDED."roomsOpen",
+                         "minStay"   = EXCLUDED."minStay",
+                         "isClosed"  = EXCLUDED."isClosed"`,
+        [roomId, it.date, roomsOpen, minStay, isClosed]
       );
       upserted++;
     }
@@ -131,7 +125,7 @@ r.post("/:id/inventory/bulk", async (req, res) => {
   }
 });
 
-/** GET /:id/prices?start=YYYY-MM-DD&end=YYYY-MM-DD */
+/** GET /:id/prices */
 r.get("/:id/prices", async (req, res) => {
   try {
     const roomId = Number(req.params.id);
@@ -142,16 +136,13 @@ r.get("/:id/prices", async (req, res) => {
     if (!roomId || !ds || !de) return res.status(400).json({ error: "bad params" });
 
     const { rows } = await pool.query(
-      `SELECT "date",
-              "ratePlanId" AS "ratePlanId",
-              "price"
+      `SELECT "date","ratePlanId","price"
          FROM ${T.prices}
         WHERE "roomTypeId" = $1
           AND "date" BETWEEN $2 AND $3
         ORDER BY "date" ASC`,
       [roomId, start, end]
     );
-
     return res.json(rows);
   } catch (e) {
     console.error("[prices:get] db error", e);
@@ -159,7 +150,7 @@ r.get("/:id/prices", async (req, res) => {
   }
 });
 
-/** POST /:id/prices/bulk  { items:[{date,price,ratePlanId}] } */
+/** POST /:id/prices/bulk */
 r.post("/:id/prices/bulk", async (req, res) => {
   const client = await pool.connect();
   try {
@@ -168,20 +159,20 @@ r.post("/:id/prices/bulk", async (req, res) => {
     if (!roomId || !Array.isArray(items)) return res.status(400).json({ error: "bad payload" });
 
     await client.query("BEGIN");
-
     let upserted = 0;
+
     for (const it of items) {
       if (!it?.date || !parseDate(it.date)) continue;
-      // Use 'base' when no ratePlanId is provided so ON CONFLICT can match
-      const ratePlanId = (it.ratePlanId ?? "base") as string;
+      const ratePlanId = Number(it.ratePlanId ?? 1);
       const price = Number(it.price ?? 0);
+      const partnerId: number = (req as any).partnerId || (req as any).partner?.id;
 
       await client.query(
-        `INSERT INTO ${T.prices} ("roomTypeId","date","ratePlanId","price")
-              VALUES ($1,$2,$3,$4)
+        `INSERT INTO ${T.prices} ("partnerId","roomTypeId","date","ratePlanId","price")
+              VALUES ($1,$2,$3,$4,$5)
          ON CONFLICT ("roomTypeId","date","ratePlanId")
            DO UPDATE SET "price" = EXCLUDED."price"`,
-        [roomId, it.date, ratePlanId, price]
+        [partnerId, roomId, it.date, ratePlanId, price]
       );
       upserted++;
     }
@@ -197,16 +188,12 @@ r.post("/:id/prices/bulk", async (req, res) => {
   }
 });
 
-// Debug route (kept)
+// Debug
 const BOOT_ID = Math.random().toString(36).slice(2, 9);
 r.get("/__debug", async (_req, res) => {
   try {
     const ping = await pool.query("select now()");
-    res.json({
-      ok: true,
-      bootId: BOOT_ID,
-      dbNow: ping.rows?.[0]?.now ?? null,
-    });
+    res.json({ ok: true, bootId: BOOT_ID, dbNow: ping.rows?.[0]?.now ?? null });
   } catch (e) {
     res.json({ ok: false, bootId: BOOT_ID, dbError: String(e) });
   }
