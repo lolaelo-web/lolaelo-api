@@ -9,15 +9,16 @@ async function main() {
 
   console.log("\n--- Harden timestamps on extranet.\"RoomInventory\" ---\n");
 
-  // Add sane defaults for createdAt / updatedAt (safe if they already exist)
+  // 1) Add sane defaults for createdAt / updatedAt
   await client.query(`ALTER TABLE extranet."RoomInventory" ALTER COLUMN "createdAt" SET DEFAULT NOW();`);
   await client.query(`ALTER TABLE extranet."RoomInventory" ALTER COLUMN "updatedAt" SET DEFAULT NOW();`);
 
-  // Backfill any NULLs just in case
+  // 2) Backfill any NULLs
   const u1 = await client.query(`UPDATE extranet."RoomInventory" SET "createdAt" = NOW() WHERE "createdAt" IS NULL;`);
   const u2 = await client.query(`UPDATE extranet."RoomInventory" SET "updatedAt" = NOW() WHERE "updatedAt" IS NULL;`);
-  console.log(\`Backfilled createdAt: \${u1.rowCount}, updatedAt: \${u2.rowCount}\`);
+  console.log(`Backfilled createdAt: ${u1.rowCount}, updatedAt: ${u2.rowCount}`);
 
+  // 3) Show column defaults/nullability
   const cols = await client.query(`
     SELECT column_name, is_nullable, column_default
     FROM information_schema.columns
