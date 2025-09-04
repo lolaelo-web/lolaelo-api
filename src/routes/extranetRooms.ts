@@ -158,7 +158,7 @@ r.post("/:id/prices/bulk", async (req, res) => {
     const { items } = req.body ?? {};
     if (!roomId || !Array.isArray(items)) return res.status(400).json({ error: "bad payload" });
 
-    // 1) Resolve partnerId from the roomType (authoritative) — avoids reliance on middleware
+    // Resolve partnerId from the room type (authoritative)
     const roomRow = await client.query(
       `SELECT "partnerId" FROM ${T.rooms} WHERE "id" = $1`,
       [roomId]
@@ -169,17 +169,17 @@ r.post("/:id/prices/bulk", async (req, res) => {
     await client.query("BEGIN");
     let upserted = 0;
 
-    // 2) Upsert each price
     for (const it of items) {
       if (!it?.date || !parseDate(it.date)) continue;
       const ratePlanId = Number(it.ratePlanId ?? 1);
       const price = Number(it.price ?? 0);
 
       await client.query(
-        `INSERT INTO ${T.prices} ("partnerId","roomTypeId","date","ratePlanId","price")
-              VALUES ($1,$2,$3,$4,$5)
+        `INSERT INTO ${T.prices} ("partnerId","roomTypeId","date","ratePlanId","price","createdAt","updatedAt")
+              VALUES ($1,$2,$3,$4,$5, NOW(), NOW())
          ON CONFLICT ("roomTypeId","date","ratePlanId")
-           DO UPDATE SET "price" = EXCLUDED."price"`,
+           DO UPDATE SET "price" = EXCLUDED."price",
+                         "updatedAt" = NOW()`,
         [partnerId, roomId, it.date, ratePlanId, price]
       );
       upserted++;
