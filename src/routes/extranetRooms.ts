@@ -150,7 +150,7 @@ r.get("/:id/prices", async (req, res) => {
   }
 });
 
-/** POST /:id/prices/bulk */
+/** POST /:id/prices/bulk  { items:[{date,price,ratePlanId}] } */
 r.post("/:id/prices/bulk", async (req, res) => {
   const client = await pool.connect();
   try {
@@ -158,14 +158,22 @@ r.post("/:id/prices/bulk", async (req, res) => {
     const { items } = req.body ?? {};
     if (!roomId || !Array.isArray(items)) return res.status(400).json({ error: "bad payload" });
 
+    // 1) Resolve partnerId from the roomType (authoritative) — avoids reliance on middleware
+    const roomRow = await client.query(
+      `SELECT "partnerId" FROM ${T.rooms} WHERE "id" = $1`,
+      [roomId]
+    );
+    const partnerId: number | null = roomRow.rows?.[0]?.partnerId ?? null;
+    if (!partnerId) return res.status(400).json({ error: "invalid roomTypeId (no partner)" });
+
     await client.query("BEGIN");
     let upserted = 0;
 
+    // 2) Upsert each price
     for (const it of items) {
       if (!it?.date || !parseDate(it.date)) continue;
       const ratePlanId = Number(it.ratePlanId ?? 1);
       const price = Number(it.price ?? 0);
-      const partnerId: number = (req as any).partnerId || (req as any).partner?.id;
 
       await client.query(
         `INSERT INTO ${T.prices} ("partnerId","roomTypeId","date","ratePlanId","price")
