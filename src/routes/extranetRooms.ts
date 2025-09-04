@@ -40,23 +40,51 @@ r.get("/", async (_req, res) => {
 
 /** POST /extranet/property/rooms */
 r.post("/", async (req, res) => {
+  const client = await pool.connect();
   try {
-    const { name, code, description } = req.body ?? {};
+    const { name, code, description, occupancy } = req.body ?? {};
     if (!name || typeof name !== "string") {
       return res.status(400).json({ error: "name is required" });
     }
 
-    const { rows } = await pool.query(
-      `INSERT INTO ${T.rooms} ("name","code","description")
-            VALUES ($1,$2,$3)
-        RETURNING "id","name","code","description"`,
-      [name.trim(), code ?? null, description ?? null]
+    await client.query("BEGIN");
+
+    // derive partnerId: prefer auth, else reuse first existing room's partnerId
+    let partnerId: number | null =
+      (req as any).partner?.id ??
+      (req as any).partnerId ??
+      null;
+
+    if (!partnerId) {
+      const probe = await client.query(
+        `SELECT "partnerId" FROM ${T.rooms} ORDER BY "id" ASC LIMIT 1`
+      );
+      partnerId = probe.rows?.[0]?.partnerId ?? null;
+    }
+
+    if (!partnerId) {
+      await client.query("ROLLBACK");
+      return res.status(400).json({ error: "unable to determine partnerId for new room" });
+    }
+
+    const occ = occupancy == null || occupancy === "" ? null : Number(occupancy);
+
+    const { rows } = await client.query(
+      `INSERT INTO ${T.rooms}
+         ("partnerId","name","code","description","occupancy","createdAt","updatedAt")
+       VALUES ($1,$2,$3,$4,$5, NOW(), NOW())
+       RETURNING "id","name","code","description","occupancy"`,
+      [partnerId, name.trim(), code ?? null, description ?? null, occ]
     );
 
+    await client.query("COMMIT");
     return res.status(201).json(rows[0]);
   } catch (e) {
+    await client.query("ROLLBACK");
     console.error("[rooms:post] db error", e);
     return res.status(500).json({ error: "Create failed" });
+  } finally {
+    client.release();
   }
 });
 
