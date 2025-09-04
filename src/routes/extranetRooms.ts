@@ -85,7 +85,7 @@ r.get("/:id/inventory", async (req, res) => {
   }
 });
 
-/** POST /:id/inventory/bulk */
+/** POST /:id/inventory/bulk  { items:[{date,roomsOpen,minStay,isClosed}] } */
 r.post("/:id/inventory/bulk", async (req, res) => {
   const client = await pool.connect();
   try {
@@ -93,9 +93,17 @@ r.post("/:id/inventory/bulk", async (req, res) => {
     const { items } = req.body ?? {};
     if (!roomId || !Array.isArray(items)) return res.status(400).json({ error: "bad payload" });
 
-    await client.query("BEGIN");
-    let upserted = 0;
+    // Resolve partnerId from the room type (authoritative)
+    const roomRow = await client.query(
+      `SELECT "partnerId" FROM ${T.rooms} WHERE "id" = $1`,
+      [roomId]
+    );
+    const partnerId: number | null = roomRow.rows?.[0]?.partnerId ?? null;
+    if (!partnerId) return res.status(400).json({ error: "invalid roomTypeId (no partner)" });
 
+    await client.query("BEGIN");
+
+    let upserted = 0;
     for (const it of items) {
       if (!it?.date || !parseDate(it.date)) continue;
       const roomsOpen = it.roomsOpen == null ? null : Number(it.roomsOpen);
@@ -103,13 +111,14 @@ r.post("/:id/inventory/bulk", async (req, res) => {
       const isClosed = !!it.isClosed;
 
       await client.query(
-        `INSERT INTO ${T.inv} ("roomTypeId","date","roomsOpen","minStay","isClosed")
-              VALUES ($1,$2,$3,$4,$5)
+        `INSERT INTO ${T.inv} ("partnerId","roomTypeId","date","roomsOpen","minStay","isClosed","createdAt","updatedAt")
+              VALUES ($1,$2,$3,$4,$5,$6, NOW(), NOW())
          ON CONFLICT ("roomTypeId","date")
            DO UPDATE SET "roomsOpen" = EXCLUDED."roomsOpen",
                          "minStay"   = EXCLUDED."minStay",
-                         "isClosed"  = EXCLUDED."isClosed"`,
-        [roomId, it.date, roomsOpen, minStay, isClosed]
+                         "isClosed"  = EXCLUDED."isClosed",
+                         "updatedAt" = NOW()`,
+        [partnerId, roomId, it.date, roomsOpen, minStay, isClosed]
       );
       upserted++;
     }
