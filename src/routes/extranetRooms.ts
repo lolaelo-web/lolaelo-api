@@ -91,22 +91,31 @@ r.post("/:id/inventory/bulk", async (req, res) => {
   try {
     const roomId = Number(req.params.id);
     const { items } = req.body ?? {};
-    if (!roomId || !Array.isArray(items)) return res.status(400).json({ error: "bad payload" });
+    if (!roomId || !Array.isArray(items)) {
+      return res.status(400).json({ error: "bad payload" });
+    }
 
     // Resolve partnerId from the room type (authoritative)
     const roomRow = await client.query(
-      `SELECT "partnerId" FROM ${T.rooms} WHERE "id" = $1`,
+      `SELECT "partnerId","id" FROM ${T.rooms} WHERE "id" = $1`,
       [roomId]
     );
     const partnerId: number | null = roomRow.rows?.[0]?.partnerId ?? null;
-    if (!partnerId) return res.status(400).json({ error: "invalid roomTypeId (no partner)" });
+
+    // Log minimal context so we can correlate in runtime logs
+    console.log(`[inventory:bulk] ctx roomId=${roomId} partnerId=${partnerId} items=${items.length}`);
+
+    if (!partnerId) {
+      return res.status(400).json({ error: "invalid roomTypeId (no partner)" });
+    }
 
     await client.query("BEGIN");
 
     let upserted = 0;
     for (const it of items) {
       if (!it?.date || !parseDate(it.date)) continue;
-      // force safe values (roomsOpen/isClosed are NOT NULL in DB)
+
+      // Force NOT NULL-safe values for NOT NULL columns
       const roomsOpen = Number.isFinite(Number(it.roomsOpen)) ? Number(it.roomsOpen) : 0;
       const minStay = it.minStay == null ? null : Number(it.minStay);
       const isClosed = Boolean(it.isClosed);
@@ -114,11 +123,11 @@ r.post("/:id/inventory/bulk", async (req, res) => {
       await client.query(
         `INSERT INTO ${T.inv} ("partnerId","roomTypeId","date","roomsOpen","minStay","isClosed","createdAt","updatedAt")
               VALUES ($1,$2,$3,$4,$5,$6, NOW(), NOW())
-        ON CONFLICT ("roomTypeId","date")
-          DO UPDATE SET "roomsOpen" = EXCLUDED."roomsOpen",
-                        "minStay"   = EXCLUDED."minStay",
-                        "isClosed"  = EXCLUDED."isClosed",
-                        "updatedAt" = NOW()`,
+         ON CONFLICT ("roomTypeId","date")
+           DO UPDATE SET "roomsOpen" = EXCLUDED."roomsOpen",
+                         "minStay"   = EXCLUDED."minStay",
+                         "isClosed"  = EXCLUDED."isClosed",
+                         "updatedAt" = NOW()`,
         [partnerId, roomId, it.date, roomsOpen, minStay, isClosed]
       );
       upserted++;
