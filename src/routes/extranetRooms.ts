@@ -160,8 +160,8 @@ r.get("/:id/prices", async (req, res) => {
   }
 });
 
-/** POST /:id/prices/bulk  { items:[{date,price,ratePlanId}] } */
-r.post("/:id/prices/bulk", async (req, res) => {
+/** POST /:id/inventory/bulk  { items:[{date,roomsOpen,minStay,isClosed}] } */
+r.post("/:id/inventory/bulk", async (req, res) => {
   const client = await pool.connect();
   try {
     const roomId = Number(req.params.id);
@@ -177,20 +177,25 @@ r.post("/:id/prices/bulk", async (req, res) => {
     if (!partnerId) return res.status(400).json({ error: "invalid roomTypeId (no partner)" });
 
     await client.query("BEGIN");
-    let upserted = 0;
 
+    let upserted = 0;
     for (const it of items) {
       if (!it?.date || !parseDate(it.date)) continue;
-      const ratePlanId = Number(it.ratePlanId ?? 1);
-      const price = Number(it.price ?? 0);
+
+      // Force NOT NULL-safe values for NOT NULL columns
+      const roomsOpen = Number.isFinite(Number(it.roomsOpen)) ? Number(it.roomsOpen) : 0;
+      const minStay = it.minStay == null ? null : Number(it.minStay);
+      const isClosed = Boolean(it.isClosed);
 
       await client.query(
-        `INSERT INTO ${T.prices} ("partnerId","roomTypeId","date","ratePlanId","price","createdAt","updatedAt")
-              VALUES ($1,$2,$3,$4,$5, NOW(), NOW())
-         ON CONFLICT ("roomTypeId","date","ratePlanId")
-           DO UPDATE SET "price" = EXCLUDED."price",
+        `INSERT INTO ${T.inv} ("partnerId","roomTypeId","date","roomsOpen","minStay","isClosed","createdAt","updatedAt")
+              VALUES ($1,$2,$3,$4,$5,$6, NOW(), NOW())
+         ON CONFLICT ("roomTypeId","date")
+           DO UPDATE SET "roomsOpen" = EXCLUDED."roomsOpen",
+                         "minStay"   = EXCLUDED."minStay",
+                         "isClosed"  = EXCLUDED."isClosed",
                          "updatedAt" = NOW()`,
-        [partnerId, roomId, it.date, ratePlanId, price]
+        [partnerId, roomId, it.date, roomsOpen, minStay, isClosed]
       );
       upserted++;
     }
@@ -199,8 +204,8 @@ r.post("/:id/prices/bulk", async (req, res) => {
     return res.json({ ok: true, upserted });
   } catch (e) {
     await client.query("ROLLBACK");
-    console.error("[prices:bulk] db error", e);
-    return res.status(500).json({ error: "Prices save failed" });
+    console.error("[inventory:bulk] db error", e);
+    return res.status(500).json({ error: "Inventory save failed" });
   } finally {
     client.release();
   }
