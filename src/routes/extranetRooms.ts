@@ -18,7 +18,7 @@ function parseDate(s: string) {
   return Number.isNaN(d.getTime()) ? null : d;
 }
 
-// Always fully-qualify with schema "extranet" and quote PascalCase identifiers
+// Use quoted, schema-qualified identifiers that match your DB
 const T = {
   rooms: `extranet."RoomType"`,
   inv: `extranet."RoomInventory"`,
@@ -29,11 +29,9 @@ const T = {
 r.get("/", async (_req, res) => {
   try {
     const { rows } = await pool.query(
-      `
-      SELECT "id","name","occupancy","code","description"
-      FROM ${T.rooms}
-      ORDER BY "id" ASC
-      `
+      `SELECT "id","name","occupancy","code","description"
+         FROM ${T.rooms}
+        ORDER BY "id" ASC`
     );
     return res.status(200).json(rows);
   } catch (e) {
@@ -49,14 +47,12 @@ r.post("/", async (req, res) => {
     if (!name || typeof name !== "string") {
       return res.status(400).json({ error: "name is required" });
     }
-
+    const occ = occupancy == null ? 2 : Number(occupancy);
     const { rows } = await pool.query(
-      `
-      INSERT INTO ${T.rooms} ("name","occupancy","code","description")
-      VALUES ($1,$2,$3,$4)
-      RETURNING "id","name","occupancy","code","description"
-      `,
-      [name.trim(), occupancy == null ? 2 : Number(occupancy), code ?? null, description ?? null]
+      `INSERT INTO ${T.rooms} ("name","occupancy","code","description")
+            VALUES ($1,$2,$3,$4)
+         RETURNING "id","name","occupancy","code","description"`,
+      [name.trim(), occ, code ?? null, description ?? null]
     );
     return res.status(201).json(rows[0]);
   } catch (e) {
@@ -76,12 +72,14 @@ r.get("/:id/inventory", async (req, res) => {
     if (!roomId || !ds || !de) return res.status(400).json({ error: "bad params" });
 
     const { rows } = await pool.query(
-      `
-      SELECT "date","roomsOpen","minStay","isClosed"
-      FROM ${T.inv}
-      WHERE "roomTypeId" = $1 AND "date" BETWEEN $2 AND $3
-      ORDER BY "date" ASC
-      `,
+      `SELECT "date",
+              "roomsOpen" AS "roomsOpen",
+              "minStay"   AS "minStay",
+              "isClosed"  AS "isClosed"
+         FROM ${T.inv}
+        WHERE "roomTypeId" = $1
+          AND "date" BETWEEN $2 AND $3
+        ORDER BY "date" ASC`,
       [roomId, start, end]
     );
 
@@ -105,24 +103,18 @@ r.post("/:id/inventory/bulk", async (req, res) => {
     let upserted = 0;
     for (const it of items) {
       if (!it?.date || !parseDate(it.date)) continue;
+      const roomsOpen = it.roomsOpen == null ? null : Number(it.roomsOpen);
+      const minStay = it.minStay == null ? null : Number(it.minStay);
+      const isClosed = !!it.isClosed;
 
-      // delete + insert (avoids depending on a specific ON CONFLICT index)
       await client.query(
-        `DELETE FROM ${T.inv} WHERE "roomTypeId"=$1 AND "date"=$2`,
-        [roomId, it.date]
-      );
-      await client.query(
-        `
-        INSERT INTO ${T.inv} ("roomTypeId","date","roomsOpen","minStay","isClosed")
-        VALUES ($1,$2,$3,$4,$5)
-        `,
-        [
-          roomId,
-          it.date,
-          it.roomsOpen == null ? null : Number(it.roomsOpen),
-          it.minStay == null ? null : Number(it.minStay),
-          Boolean(it.isClosed),
-        ]
+        `INSERT INTO ${T.inv} ("roomTypeId","date","roomsOpen","minStay","isClosed")
+              VALUES ($1,$2,$3,$4,$5)
+         ON CONFLICT ("roomTypeId","date")
+           DO UPDATE SET "roomsOpen" = EXCLUDED."roomsOpen",
+                         "minStay"   = EXCLUDED."minStay",
+                         "isClosed"  = EXCLUDED."isClosed"`,
+        [roomId, it.date, roomsOpen, minStay, isClosed]
       );
       upserted++;
     }
@@ -149,12 +141,13 @@ r.get("/:id/prices", async (req, res) => {
     if (!roomId || !ds || !de) return res.status(400).json({ error: "bad params" });
 
     const { rows } = await pool.query(
-      `
-      SELECT "date","ratePlanId","price"
-      FROM ${T.prices}
-      WHERE "roomTypeId" = $1 AND "date" BETWEEN $2 AND $3
-      ORDER BY "date" ASC
-      `,
+      `SELECT "date",
+              "ratePlanId" AS "ratePlanId",
+              "price"
+         FROM ${T.prices}
+        WHERE "roomTypeId" = $1
+          AND "date" BETWEEN $2 AND $3
+        ORDER BY "date" ASC`,
       [roomId, start, end]
     );
 
@@ -178,23 +171,17 @@ r.post("/:id/prices/bulk", async (req, res) => {
     let upserted = 0;
     for (const it of items) {
       if (!it?.date || !parseDate(it.date)) continue;
-      const ratePlanId = it.ratePlanId ?? null;
-
-      // delete + insert while matching NULLs via IS NOT DISTINCT FROM
-      await client.query(
-        `DELETE FROM ${T.prices}
-         WHERE "roomTypeId"=$1 AND "date"=$2 AND ("ratePlanId" IS NOT DISTINCT FROM $3)`,
-        [roomId, it.date, ratePlanId]
-      );
+      // Use 'base' when no ratePlanId is provided so ON CONFLICT can match
+      const ratePlanId = (it.ratePlanId ?? "base") as string;
+      const price = Number(it.price ?? 0);
 
       await client.query(
-        `
-        INSERT INTO ${T.prices} ("roomTypeId","date","ratePlanId","price")
-        VALUES ($1,$2,$3,$4)
-        `,
-        [roomId, it.date, ratePlanId, Number(it.price ?? 0)]
+        `INSERT INTO ${T.prices} ("roomTypeId","date","ratePlanId","price")
+              VALUES ($1,$2,$3,$4)
+         ON CONFLICT ("roomTypeId","date","ratePlanId")
+           DO UPDATE SET "price" = EXCLUDED."price"`,
+        [roomId, it.date, ratePlanId, price]
       );
-
       upserted++;
     }
 
