@@ -106,18 +106,19 @@ r.post("/:id/inventory/bulk", async (req, res) => {
     let upserted = 0;
     for (const it of items) {
       if (!it?.date || !parseDate(it.date)) continue;
-      const roomsOpen = it.roomsOpen == null ? null : Number(it.roomsOpen);
+      // force safe values (roomsOpen/isClosed are NOT NULL in DB)
+      const roomsOpen = Number.isFinite(Number(it.roomsOpen)) ? Number(it.roomsOpen) : 0;
       const minStay = it.minStay == null ? null : Number(it.minStay);
-      const isClosed = !!it.isClosed;
+      const isClosed = Boolean(it.isClosed);
 
       await client.query(
         `INSERT INTO ${T.inv} ("partnerId","roomTypeId","date","roomsOpen","minStay","isClosed","createdAt","updatedAt")
               VALUES ($1,$2,$3,$4,$5,$6, NOW(), NOW())
-         ON CONFLICT ("roomTypeId","date")
-           DO UPDATE SET "roomsOpen" = EXCLUDED."roomsOpen",
-                         "minStay"   = EXCLUDED."minStay",
-                         "isClosed"  = EXCLUDED."isClosed",
-                         "updatedAt" = NOW()`,
+        ON CONFLICT ("roomTypeId","date")
+          DO UPDATE SET "roomsOpen" = EXCLUDED."roomsOpen",
+                        "minStay"   = EXCLUDED."minStay",
+                        "isClosed"  = EXCLUDED."isClosed",
+                        "updatedAt" = NOW()`,
         [partnerId, roomId, it.date, roomsOpen, minStay, isClosed]
       );
       upserted++;
