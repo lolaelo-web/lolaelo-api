@@ -4,12 +4,12 @@ import path from "path";
 import { fileURLToPath } from "url";
 
 // Routers (ESM build requires .js suffix)
-import extranetPhotos from "./routes/extranetPhotos";
-import photosUploadUrl from "./routes/extranetPhotosUploadUrl";
-import extranetAuth from "./routes/extranetAuth";
-import extranetDocuments from "./routes/extranetDocuments";
-import documentsUploadUrl from "./routes/extranetDocumentsUploadUrl";
-import extranetRooms from "./routes/extranetRooms";
+import extranetPhotos from "./routes/extranetPhotos.js";
+import photosUploadUrl from "./routes/extranetPhotosUploadUrl.js";
+import extranetAuth from "./routes/extranetAuth.js";
+import extranetDocuments from "./routes/extranetDocuments.js";
+import documentsUploadUrl from "./routes/extranetDocumentsUploadUrl.js";
+import extranetRooms from "./routes/extranetRooms.js";
 
 process.on("unhandledRejection", (e) => console.error("[unhandledRejection]", e));
 process.on("uncaughtException", (e) => console.error("[uncaughtException]", e));
