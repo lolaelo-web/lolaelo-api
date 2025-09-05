@@ -1,6 +1,7 @@
 // src/routes/extranetProperty.ts
-import { Router, Request, Response, NextFunction } from "express";
+import { Router } from "express";
 import { Pool } from "pg";
+import requirePartner from "./extranetAuth.js"; // <-- reuse the working guard
 
 const r = Router();
 
@@ -11,69 +12,20 @@ const pool = new Pool({
 
 // --- DB objects ---
 const TBL_PROFILE = `extranet."PropertyProfile"`;
-const TBL_SESSION = `extranet."PartnerSession"`;
 
-/** Helper: returns null for empty strings */
+/** Helper: tiny sanitizer -> returns null for empty strings */
 function nz(v: unknown) {
   if (v == null) return null;
   const s = String(v).trim();
   return s.length ? s : null;
 }
 
-/** Safe date check */
-function isExpired(expiresAt: unknown): boolean {
-  if (!expiresAt) return false;
-  const t = new Date(expiresAt as any).getTime();
-  return !Number.isFinite(t) || t <= Date.now();
-}
-
-// ---- Auth guard: Bearer <UUID token> validated against PartnerSession ----
-async function requirePartner(
-  req: Request & { partner?: { id: number; email?: string; name?: string } },
-  res: Response,
-  next: NextFunction
-) {
-  try {
-    const auth = String(req.headers["authorization"] || "");
-    const m = /^Bearer\s+(.+)$/.exec(auth);
-    if (!m) return res.status(401).json({ error: "unauthorized" });
-    const token = m[1].trim();
-
-    const { rows } = await pool.query(
-      `SELECT "partnerId","email","name","expiresAt"
-         FROM ${TBL_SESSION}
-        WHERE "token" = $1
-        LIMIT 1`,
-      [token]
-    );
-    if (!rows.length) return res.status(401).json({ error: "unauthorized" });
-
-    const s = rows[0] as {
-      partnerId: number;
-      email: string | null;
-      name: string | null;
-      expiresAt: string | Date | null;
-    };
-    if (isExpired(s.expiresAt)) return res.status(401).json({ error: "unauthorized" });
-
-    req.partner = {
-      id: Number(s.partnerId),
-      email: s.email ?? undefined,
-      name: s.name ?? undefined,
-    };
-    return next();
-  } catch (e) {
-    console.error("[property:auth] error", e);
-    return res.status(401).json({ error: "unauthorized" });
-  }
-}
-
 // All routes below require a valid partner session
 r.use(requirePartner);
 
-/** GET /extranet/property  -> returns the current partner’s profile */
-r.get("/", async (req, res) => {
-  const partnerId = (req as any)?.partner?.id;
+/** GET /extranet/property */
+r.get("/", async (req: any, res) => {
+  const partnerId = req.partner?.id;
   if (!partnerId) return res.status(401).json({ error: "unauthorized" });
 
   res.set("Cache-Control", "no-store, no-cache, must-revalidate");
@@ -102,9 +54,9 @@ r.get("/", async (req, res) => {
   }
 });
 
-/** PUT /extranet/property  -> upsert the partner’s profile */
-r.put("/", async (req, res) => {
-  const partnerId = (req as any)?.partner?.id;
+/** PUT /extranet/property */
+r.put("/", async (req: any, res) => {
+  const partnerId = req.partner?.id;
   if (!partnerId) return res.status(401).json({ error: "unauthorized" });
 
   res.set("Cache-Control", "no-store, no-cache, must-revalidate");
