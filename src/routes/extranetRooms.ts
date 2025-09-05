@@ -90,7 +90,7 @@ r.post("/", async (req, res) => {
   }
 });
 
-/** GET /:id/inventory */
+/** GET /:id/inventory?start=YYYY-MM-DD&end=YYYY-MM-DD */
 r.get("/:id/inventory", async (req, res) => {
   try {
     const roomId = Number(req.params.id);
@@ -101,13 +101,22 @@ r.get("/:id/inventory", async (req, res) => {
     if (!roomId || !ds || !de) return res.status(400).json({ error: "bad params" });
 
     const { rows } = await pool.query(
-      `SELECT "date","roomsOpen","minStay","isClosed"
-         FROM ${T.inv}
-        WHERE "roomTypeId" = $1
-          AND "date" BETWEEN $2 AND $3
-        ORDER BY "date" ASC`,
+      `WITH days AS (
+         SELECT generate_series($2::date, $3::date, '1 day')::date AS date
+       )
+       SELECT
+         d.date,
+         COALESCE(i."roomsOpen", 0)      AS "roomsOpen",
+         COALESCE(i."minStay",  0)       AS "minStay",
+         COALESCE(i."isClosed", false)   AS "isClosed"
+       FROM days d
+       LEFT JOIN ${T.inv} i
+         ON i."roomTypeId" = $1
+        AND i."date"::date = d.date         -- cast to date to avoid TZ/ts mismatches
+       ORDER BY d.date ASC`,
       [roomId, start, end]
     );
+
     return res.json(rows);
   } catch (e) {
     console.error("[inventory:get] db error", e);
@@ -174,24 +183,35 @@ r.post("/:id/inventory/bulk", async (req, res) => {
   }
 });
 
-/** GET /:id/prices */
+/** GET /:id/prices?start=YYYY-MM-DD&end=YYYY-MM-DD */
 r.get("/:id/prices", async (req, res) => {
   try {
     const roomId = Number(req.params.id);
     const start = String(req.query.start || "");
-    const end = String(req.query.end || "");
+    const end   = String(req.query.end   || "");
     const ds = parseDate(start);
     const de = parseDate(end);
     if (!roomId || !ds || !de) return res.status(400).json({ error: "bad params" });
 
+    const BASE_PLAN_ID = 1;
+
     const { rows } = await pool.query(
-      `SELECT "date","ratePlanId","price"
-         FROM ${T.prices}
-        WHERE "roomTypeId" = $1
-          AND "date" BETWEEN $2 AND $3
-        ORDER BY "date" ASC`,
-      [roomId, start, end]
+      `WITH days AS (
+         SELECT generate_series($2::date, $3::date, '1 day')::date AS date
+       )
+       SELECT
+         d.date,
+         $4::int                                AS "ratePlanId",
+         COALESCE(p."price", 0)::numeric        AS "price"
+       FROM days d
+       LEFT JOIN ${T.prices} p
+         ON p."roomTypeId" = $1
+        AND p."date"::date  = d.date            -- cast to date to avoid TZ/ts mismatches
+        AND p."ratePlanId"  = $4
+       ORDER BY d.date ASC`,
+      [roomId, start, end, BASE_PLAN_ID]
     );
+
     return res.json(rows);
   } catch (e) {
     console.error("[prices:get] db error", e);
