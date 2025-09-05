@@ -1,21 +1,22 @@
-﻿import express from "express";
+﻿// src/server.ts  (ESM build; note the .js route suffixes)
+import express from "express";
 import cors from "cors";
 import path from "path";
 import { fileURLToPath } from "url";
 
-// Routers (ESM build requires .js suffix)
-import extranetPhotos from "./routes/extranetPhotos.js";
-import photosUploadUrl from "./routes/extranetPhotosUploadUrl.js";
-import extranetAuth from "./routes/extranetAuth.js";
-import extranetDocuments from "./routes/extranetDocuments.js";
-import documentsUploadUrl from "./routes/extranetDocumentsUploadUrl.js";
-import extranetRooms from "./routes/extranetRooms.js";
-import extranetProperty from "./routes/extranetProperty.js"; // <-- NEW
+// Routers (compiled ESM requires .js suffix)
+import extranetPhotos        from "./routes/extranetPhotos.js";
+import photosUploadUrl       from "./routes/extranetPhotosUploadUrl.js";
+import extranetAuth          from "./routes/extranetAuth.js";
+import extranetDocuments     from "./routes/extranetDocuments.js";
+import documentsUploadUrl    from "./routes/extranetDocumentsUploadUrl.js";
+import extranetRooms         from "./routes/extranetRooms.js";
+import extranetProperty      from "./routes/extranetProperty.js";
 
 process.on("unhandledRejection", (e) => console.error("[unhandledRejection]", e));
-process.on("uncaughtException", (e) => console.error("[uncaughtException]", e));
+process.on("uncaughtException",  (e) => console.error("[uncaughtException]",  e));
 
-const app = express(); // CREATE APP FIRST
+const app = express();
 
 app.set("trust proxy", 1);
 app.use(express.json({ limit: "10mb" }));
@@ -36,8 +37,7 @@ const ALLOWED_ORIGINS = [
   // "http://127.0.0.1:5173",
 ];
 app.use(cors({
-  origin: (origin, cb) =>
-    (!origin || ALLOWED_ORIGINS.includes(origin)) ? cb(null, true) : cb(null, false),
+  origin: (origin, cb) => (!origin || ALLOWED_ORIGINS.includes(origin)) ? cb(null, true) : cb(null, false),
   methods: ["GET","POST","PUT","PATCH","DELETE","OPTIONS"],
   allowedHeaders: ["Content-Type","Authorization","x-partner-token","Accept"],
 }));
@@ -45,23 +45,14 @@ app.use(cors({
 // Health
 app.get("/health", (_req, res) => res.status(200).send("OK v-AUTH-2"));
 
-// ---------- Mount routers ----------
-// Company profile (GET/PUT /extranet/property)
-app.use("/extranet/property", extranetProperty);
-
-// Photos
-app.use("/extranet/property/photos/upload-url", photosUploadUrl);
-app.use("/extranet/property/photos", extranetPhotos);
-
-// Documents
+// Mount routers (order matters a bit; specific before generic)
+app.use("/extranet/property/photos/upload-url",    photosUploadUrl);
+app.use("/extranet/property/photos",               extranetPhotos);
 app.use("/extranet/property/documents/upload-url", documentsUploadUrl);
-app.use("/extranet/property/documents", extranetDocuments);
-
-// Rooms
-app.use("/extranet/property/rooms", extranetRooms);
-
-// Auth/session routes last among feature routers
-app.use(extranetAuth);
+app.use("/extranet/property/documents",            extranetDocuments);
+app.use("/extranet/property/rooms",                extranetRooms);
+app.use("/extranet/property",                      extranetProperty);
+app.use(extranetAuth); // auth/session routes (e.g., /extranet/session, /extranet/logout)
 
 // Routes list (debug)
 app.get("/__routes", (req, res) => {
