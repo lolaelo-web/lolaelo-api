@@ -101,19 +101,16 @@ r.get("/:id/inventory", async (req, res) => {
     if (!roomId || !ds || !de) return res.status(400).json({ error: "bad params" });
 
     const { rows } = await pool.query(
-      `WITH days AS (
-         SELECT generate_series($2::date, $3::date, '1 day')::date AS date
-       )
-       SELECT
-        d.date,
-        COALESCE(i."roomsOpen", 0)      AS "roomsOpen",
-        i."minStay"                      AS "minStay",   -- let null stay null
-        COALESCE(i."isClosed", false)   AS "isClosed"
-       FROM days d
-       LEFT JOIN ${T.inv} i
-         ON i."roomTypeId" = $1
-        AND i."date"::date = d.date         -- cast to date to avoid TZ/ts mismatches
-       ORDER BY d.date ASC`,
+        `SELECT
+          (i."date")::date AS "date",
+          i."roomsOpen"    AS "roomsOpen",
+          i."minStay"      AS "minStay",
+          i."isClosed"     AS "isClosed"
+        FROM ${T.inv} i
+        WHERE i."roomTypeId" = $1
+          AND i."date" >= $2::date
+          AND i."date" <  ($3::date + INTERVAL '1 day')
+        ORDER BY i."date" ASC`,
       [roomId, start, end]
     );
 
@@ -196,19 +193,16 @@ r.get("/:id/prices", async (req, res) => {
     const BASE_PLAN_ID = 1;
 
     const { rows } = await pool.query(
-      `WITH days AS (
-         SELECT generate_series($2::date, $3::date, '1 day')::date AS date
-       )
-       SELECT
-        d.date,
-        $4::int                           AS "ratePlanId",
-        p."price"::numeric                AS "price"   -- let null stay null
-       FROM days d
-       LEFT JOIN ${T.prices} p
-         ON p."roomTypeId" = $1
-        AND p."date"::date  = d.date            -- cast to date to avoid TZ/ts mismatches
-        AND p."ratePlanId"  = $4
-       ORDER BY d.date ASC`,
+      `SELECT
+        (p."date")::date        AS "date",
+        $4::int                 AS "ratePlanId",
+        (p."price")::numeric    AS "price"
+      FROM ${T.prices} p
+      WHERE p."roomTypeId" = $1
+        AND p."ratePlanId" = $4
+        AND p."date" >= $2::date
+        AND p."date" <  ($3::date + INTERVAL '1 day')
+      ORDER BY p."date" ASC`,
       [roomId, start, end, BASE_PLAN_ID]
     );
 
