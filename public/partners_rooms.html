@@ -260,6 +260,7 @@
 
   <script>
     const API_BASE = "/extranet/property/rooms";
+    const PLAN_KEY = '1'; // base plan id returned by the API
     const $  = (q, el=document) => el.querySelector(q);
     const $$ = (q, el=document) => Array.from(el.querySelectorAll(q));
 
@@ -382,14 +383,14 @@
           return [k, { ...x, date: k }];     // keep date normalized too
         })
       );
-
       state.pricesByDate = Object.fromEntries(
         rp.map(x => {
           const k = keyDate(x.date);
-          const plan = (x.ratePlanId ?? 'base');
-          return [k + '|' + plan, { ...x, date: k, ratePlanId: plan }];
+          return [k + '|' + PLAN_KEY, { ...x, date: k, ratePlanId: Number(PLAN_KEY) }];
         })
       );
+      console.log('inv keys', Object.keys(state.inventoryByDate));
+      console.log('price keys', Object.keys(state.pricesByDate));
       renderCalendar();
       showToast(`Loaded ${state.days} days`, 'ok');
       const rn = (state.rooms.find(r=>r.id===roomTypeId)||{}).name || 'Room';
@@ -413,7 +414,7 @@
       for(let i=0;i<state.days;i++){
         const d=addDays(state.start,i), dISO=iso(d);
         const inv=state.inventoryByDate[dISO] || { roomsOpen:'', minStay:'', isClosed:false };
-        const price=state.pricesByDate[dISO+'|base'] || { price:'' };
+        const price = state.pricesByDate[dISO + '|' + PLAN_KEY] || { price:'' };
         const isFirstOfMonth=dISO.endsWith("-01"), isFirstColumn=i===0;
         const showMonthLabel=isFirstOfMonth || isFirstColumn;
         const monthLabelText=showMonthLabel ? monthFmt.format(new Date(dISO+"T00:00:00Z")) : "";
@@ -479,8 +480,7 @@
         const d = addDays(state.start, i);
         const dISO = iso(d);
         const inv  = state.inventoryByDate[dISO] || { roomsOpen:'', minStay:'', isClosed:false };
-        const price= state.pricesByDate[dISO+'|base'] || { price:'' };
-
+        const price = state.pricesByDate[dISO + '|' + PLAN_KEY] || { price:'' };
         const isFirstOfMonth = dISO.endsWith('-01');
         const isFirstColumn  = i === 0;
         const showMonthLabel = isFirstOfMonth || isFirstColumn;
