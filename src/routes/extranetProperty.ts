@@ -12,11 +12,24 @@ const pool = new Pool({
 // --- DB objects ---
 const TBL_PROFILE = `extranet."PropertyProfile"`;
 
-/** Helper: returns null for empty strings */
+/** Helper: returns null for empty strings (trimmed); passthrough for non-strings */
 function nz(v: unknown) {
   if (v == null) return null;
-  const s = String(v).trim();
+  if (typeof v !== "string") return v as any;
+  const s = v.trim();
   return s.length ? s : null;
+}
+
+/** Normalizes all values in an object ("" -> null) */
+function norm<T extends Record<string, any>>(obj: T) {
+  const out: any = {};
+  for (const [k, v] of Object.entries(obj ?? {})) out[k] = nz(v);
+  return out as T;
+}
+
+/** Check all keys present on the body (even if null) */
+function hasAllKeys(body: any, keys: string[]) {
+  return keys.every((k) => Object.prototype.hasOwnProperty.call(body, k));
 }
 
 /** Safe date check */
@@ -140,7 +153,11 @@ r.get("/", async (req, res) => {
   }
 });
 
-/** PUT /extranet/property  -> upsert the partner’s profile */
+/**
+ * PUT /extranet/property
+ * Full replace (authoritative). Requires ALL fields present in body.
+ * name is required non-empty.
+ */
 r.put("/", async (req, res) => {
   const partnerId = (req as any)?.partner?.id;
   if (!partnerId) return res.status(401).json({ error: "unauthorized" });
@@ -148,15 +165,25 @@ r.put("/", async (req, res) => {
   res.set("Cache-Control", "no-store, no-cache, must-revalidate");
 
   const payload = req.body ?? {};
-  const name         = nz(payload.name);
-  const contactEmail = nz(payload.contactEmail);
-  const phone        = nz(payload.phone);
-  const country      = nz(payload.country);
-  const addressLine  = nz(payload.addressLine);
-  const city         = nz(payload.city);
-  const description  = nz(payload.description);
+  const KEYS = ["name","contactEmail","phone","country","addressLine","city","description"];
 
-  if (!name) return res.status(400).json({ error: "name is required" });
+  if (!hasAllKeys(payload, KEYS)) {
+    return res.status(400).json({ error: "PUT requires full object: " + KEYS.join(", ") });
+  }
+
+  const data = norm({
+    name:         payload.name,
+    contactEmail: payload.contactEmail,
+    phone:        payload.phone,
+    country:      payload.country,
+    addressLine:  payload.addressLine,
+    city:         payload.city,
+    description:  payload.description,
+  });
+
+  if (!data.name || typeof data.name !== "string") {
+    return res.status(400).json({ error: "name is required" });
+  }
 
   try {
     const { rows } = await pool.query(
@@ -175,13 +202,119 @@ r.put("/", async (req, res) => {
                "updatedAt"    = NOW()
        RETURNING "partnerId","name","contactEmail","phone","country",
                  "addressLine","city","description","updatedAt","createdAt"`,
-      [partnerId, name, contactEmail, phone, country, addressLine, city, description]
+      [
+        partnerId,
+        data.name,
+        data.contactEmail,
+        data.phone,
+        data.country,
+        data.addressLine,
+        data.city,
+        data.description,
+      ]
     );
 
     return res.json(rows[0]);
   } catch (e) {
     console.error("[property:put] db error", e);
     return res.status(500).json({ error: "Property save failed" });
+  }
+});
+
+/**
+ * PATCH /extranet/property
+ * Partial update (merge). Absent fields are left unchanged.
+ * Empty strings are normalized to null.
+ * If no row exists yet, PATCH creates it — but requires 'name' to be provided.
+ */
+r.patch("/", async (req, res) => {
+  const partnerId = (req as any)?.partner?.id;
+  if (!partnerId) return res.status(401).json({ error: "unauthorized" });
+
+  res.set("Cache-Control", "no-store, no-cache, must-revalidate");
+
+  // Filter allowed keys only
+  const allowed = new Set(["name","contactEmail","phone","country","addressLine","city","description"]);
+  const incoming: Record<string, any> = {};
+  for (const [k, v] of Object.entries(req.body ?? {})) {
+    if (allowed.has(k)) incoming[k] = v;
+  }
+
+  const patchData = norm(incoming);
+
+  try {
+    // Read current (if any)
+    const { rows: curRows } = await pool.query(
+      `SELECT "partnerId","name","contactEmail","phone","country",
+              "addressLine","city","description","updatedAt","createdAt"
+         FROM ${TBL_PROFILE}
+        WHERE "partnerId" = $1
+        LIMIT 1`,
+      [partnerId]
+    );
+
+    const curr = curRows[0] as
+      | {
+          partnerId: number;
+          name: string | null;
+          contactEmail: string | null;
+          phone: string | null;
+          country: string | null;
+          addressLine: string | null;
+          city: string | null;
+          description: string | null;
+        }
+      | undefined;
+
+    // If creating via PATCH, require name
+    if (!curr && (patchData.name == null || patchData.name === "")) {
+      return res.status(400).json({ error: "name is required to create profile" });
+    }
+
+    // Merge: provided keys override, others stay as-is
+    const next = {
+      name:         patchData.hasOwnProperty("name") ? patchData.name : (curr?.name ?? null),
+      contactEmail: patchData.hasOwnProperty("contactEmail") ? patchData.contactEmail : (curr?.contactEmail ?? null),
+      phone:        patchData.hasOwnProperty("phone") ? patchData.phone : (curr?.phone ?? null),
+      country:      patchData.hasOwnProperty("country") ? patchData.country : (curr?.country ?? null),
+      addressLine:  patchData.hasOwnProperty("addressLine") ? patchData.addressLine : (curr?.addressLine ?? null),
+      city:         patchData.hasOwnProperty("city") ? patchData.city : (curr?.city ?? null),
+      description:  patchData.hasOwnProperty("description") ? patchData.description : (curr?.description ?? null),
+    };
+
+    // Upsert merged state
+    const { rows } = await pool.query(
+      `INSERT INTO ${TBL_PROFILE}
+         ("partnerId","name","contactEmail","phone","country",
+          "addressLine","city","description","createdAt","updatedAt")
+       VALUES ($1,$2,$3,$4,$5,$6,$7,$8, NOW(), NOW())
+       ON CONFLICT ("partnerId") DO UPDATE
+           SET "name"         = EXCLUDED."name",
+               "contactEmail" = EXCLUDED."contactEmail",
+               "phone"        = EXCLUDED."phone",
+               "country"      = EXCLUDED."country",
+               "addressLine"  = EXCLUDED."addressLine",
+               "city"         = EXCLUDED."city",
+               "description"  = EXCLUDED."description",
+               "updatedAt"    = NOW()
+       RETURNING "partnerId","name","contactEmail","phone","country",
+                 "addressLine","city","description","updatedAt","createdAt"`,
+      [
+        partnerId,
+        next.name,
+        next.contactEmail,
+        next.phone,
+        next.country,
+        next.addressLine,
+        next.city,
+        next.description,
+      ]
+    );
+
+    return res.json(rows[0]);
+  } catch (e) {
+    console.error("[property:patch] db error", e);
+    return res.status(500).json({ error: "Property patch failed" });
   }
 });
 
