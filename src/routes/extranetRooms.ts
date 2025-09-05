@@ -103,24 +103,20 @@ r.get("/:id/inventory", async (req, res) => {
 
     // prevent caching so UI sees fresh values after save
     res.set("Cache-Control", "no-store");
-
-    // helpful server-side trace (shows up in Render logs)
     console.log("[inventory:get]", { roomId, start, end });
 
+    // Return only what exists; blanks remain blank in UI
     const { rows } = await pool.query(
-      `WITH days AS (
-         SELECT generate_series($2::date, $3::date, '1 day')::date AS date
-       )
-       SELECT
-         d.date,
-         i."roomsOpen" AS "roomsOpen",   -- keep NULL as NULL (UI should treat lack of record as blank)
-         i."minStay"   AS "minStay",
-         i."isClosed"  AS "isClosed"
-       FROM days d
-       LEFT JOIN ${T.inv} i
-         ON i."roomTypeId" = $1
-        AND i."date"::date = d.date
-       ORDER BY d.date ASC`,
+      `SELECT
+         (i."date")::date AS "date",
+         i."roomsOpen"    AS "roomsOpen",
+         i."minStay"      AS "minStay",
+         i."isClosed"     AS "isClosed"
+       FROM ${T.inv} i
+       WHERE i."roomTypeId" = $1
+         AND i."date" >= $2::date
+         AND i."date" <  ($3::date + INTERVAL '1 day')
+       ORDER BY i."date" ASC`,
       [roomId, start, end]
     );
 
@@ -148,7 +144,6 @@ r.post("/:id/inventory/bulk", async (req, res) => {
     );
     const partnerId: number | null = roomRow.rows?.[0]?.partnerId ?? null;
 
-    // Minimal context for runtime logs
     console.log(`[inventory:bulk] ctx roomId=${roomId} partnerId=${partnerId} items=${items.length}`);
 
     if (!partnerId) {
@@ -161,9 +156,16 @@ r.post("/:id/inventory/bulk", async (req, res) => {
     for (const it of items) {
       if (!it?.date || !parseDate(it.date)) continue;
 
-      // NOT NULL-safe values
-      const roomsOpen = Number.isFinite(Number(it.roomsOpen)) ? Number(it.roomsOpen) : 0;
-      const minStay = it.minStay == null ? null : Number(it.minStay);
+      // NOT NULL-safe / constraint-safe values
+      const roomsOpenNum = Number(it.roomsOpen);
+      const roomsOpen = Number.isFinite(roomsOpenNum) ? Math.max(0, roomsOpenNum) : 0;
+
+      const minStayNum = Number(it.minStay);
+      // treat blank/undefined/<=0 as "no restriction" (NULL) to satisfy CHECK (minStay IS NULL OR minStay >= 1)
+      const minStay = (it.minStay == null || it.minStay === "" || !Number.isFinite(minStayNum) || minStayNum <= 0)
+        ? null
+        : minStayNum;
+
       const isClosed = Boolean(it.isClosed);
 
       await client.query(
@@ -181,10 +183,24 @@ r.post("/:id/inventory/bulk", async (req, res) => {
 
     await client.query("COMMIT");
     return res.json({ ok: true, upserted });
-  } catch (e) {
+  } catch (e: any) {
     await client.query("ROLLBACK");
-    console.error("[inventory:bulk] db error", e);
-    return res.status(500).json({ error: "Inventory save failed" });
+    console.error("[inventory:bulk] db error", {
+      message: e?.message,
+      code: e?.code,
+      detail: e?.detail,
+      constraint: e?.constraint,
+      table: e?.table,
+      where: e?.where,
+      stack: e?.stack,
+    });
+    return res.status(500).json({
+      error: "Inventory save failed",
+      code: e?.code ?? null,
+      detail: e?.detail ?? null,
+      constraint: e?.constraint ?? null,
+      where: e?.where ?? null,
+    });
   } finally {
     client.release();
   }
@@ -200,29 +216,21 @@ r.get("/:id/prices", async (req, res) => {
     const de = parseDate(end);
     if (!roomId || !ds || !de) return res.status(400).json({ error: "bad params" });
 
-    // prevent caching
     res.set("Cache-Control", "no-store");
-
-    // pick plan (UI can send ?planId=...)
     const planId = Number(req.query.planId ?? 1);
-
-    // helpful server-side trace (shows up in Render logs)
     console.log("[prices:get]", { roomId, start, end, planId });
 
     const { rows } = await pool.query(
-      `WITH days AS (
-         SELECT generate_series($2::date, $3::date, '1 day')::date AS date
-       )
-       SELECT
-         d.date,
-         $4::int              AS "ratePlanId",
-         p."price"::numeric   AS "price"   -- keep NULL as NULL
-       FROM days d
-       LEFT JOIN ${T.prices} p
-         ON p."roomTypeId" = $1
-        AND p."date"::date  = d.date
-        AND p."ratePlanId"  = $4
-       ORDER BY d.date ASC`,
+      `SELECT
+         (p."date")::date      AS "date",
+         $4::int               AS "ratePlanId",
+         (p."price")::numeric  AS "price"
+       FROM ${T.prices} p
+       WHERE p."roomTypeId" = $1
+         AND p."ratePlanId" = $4
+         AND p."date" >= $2::date
+         AND p."date" <  ($3::date + INTERVAL '1 day')
+       ORDER BY p."date" ASC`,
       [roomId, start, end, planId]
     );
 
@@ -248,29 +256,23 @@ r.get("/:id/snapshot", async (req, res) => {
     console.log("[snapshot:get]", { roomId, start, end, planId });
 
     const { rows: inv } = await pool.query(
-      `WITH days AS (
-         SELECT generate_series($2::date, $3::date, '1 day')::date AS date
-       )
-       SELECT d.date, i."roomsOpen", i."minStay", i."isClosed"
-       FROM days d
-       LEFT JOIN ${T.inv} i
-         ON i."roomTypeId" = $1
-        AND i."date"::date = d.date
-       ORDER BY d.date ASC`,
+      `SELECT (i."date")::date AS date, i."roomsOpen", i."minStay", i."isClosed"
+         FROM ${T.inv} i
+        WHERE i."roomTypeId" = $1
+          AND i."date" >= $2::date
+          AND i."date" <  ($3::date + INTERVAL '1 day')
+        ORDER BY i."date" ASC`,
       [roomId, start, end]
     );
 
     const { rows: prices } = await pool.query(
-      `WITH days AS (
-         SELECT generate_series($2::date, $3::date, '1 day')::date AS date
-       )
-       SELECT d.date, $4::int AS "ratePlanId", p."price"::numeric AS "price"
-       FROM days d
-       LEFT JOIN ${T.prices} p
-         ON p."roomTypeId" = $1
-        AND p."date"::date  = d.date
-        AND p."ratePlanId"  = $4
-       ORDER BY d.date ASC`,
+      `SELECT (p."date")::date AS date, $4::int AS "ratePlanId", (p."price")::numeric AS "price"
+         FROM ${T.prices} p
+        WHERE p."roomTypeId" = $1
+          AND p."ratePlanId" = $4
+          AND p."date" >= $2::date
+          AND p."date" <  ($3::date + INTERVAL '1 day')
+        ORDER BY p."date" ASC`,
       [roomId, start, end, planId]
     );
 
@@ -304,7 +306,8 @@ r.post("/:id/prices/bulk", async (req, res) => {
     for (const it of items) {
       if (!it?.date || !parseDate(it.date)) continue;
       const ratePlanId = Number(it.ratePlanId ?? 1);
-      const price = Number(it.price ?? 0);
+      const priceNum = Number(it.price);
+      const price = Number.isFinite(priceNum) ? priceNum : 0;
 
       await client.query(
         `INSERT INTO ${T.prices} ("partnerId","roomTypeId","date","ratePlanId","price","createdAt","updatedAt")
@@ -319,10 +322,24 @@ r.post("/:id/prices/bulk", async (req, res) => {
 
     await client.query("COMMIT");
     return res.json({ ok: true, upserted });
-  } catch (e) {
+  } catch (e: any) {
     await client.query("ROLLBACK");
-    console.error("[prices:bulk] db error", e);
-    return res.status(500).json({ error: "Prices save failed" });
+    console.error("[prices:bulk] db error", {
+      message: e?.message,
+      code: e?.code,
+      detail: e?.detail,
+      constraint: e?.constraint,
+      table: e?.table,
+      where: e?.where,
+      stack: e?.stack,
+    });
+    return res.status(500).json({
+      error: "Prices save failed",
+      code: e?.code ?? null,
+      detail: e?.detail ?? null,
+      constraint: e?.constraint ?? null,
+      where: e?.where ?? null,
+    });
   } finally {
     client.release();
   }
