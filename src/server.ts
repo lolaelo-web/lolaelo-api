@@ -3,17 +3,14 @@ import cors from "cors";
 import path from "path";
 import { fileURLToPath } from "url";
 
-/**
- * IMPORTANT: We use ESM in the compiled output, so imports here must
- * include the `.js` suffix (TypeScript will keep them when compiling).
- */
+/** ESM output requires `.js` suffixes */
 import extranetAuth from "./routes/extranetAuth.js";
 import extranetRooms from "./routes/extranetRooms.js";
 import extranetPhotos from "./routes/extranetPhotos.js";
 import photosUploadUrl from "./routes/extranetPhotosUploadUrl.js";
 import extranetDocuments from "./routes/extranetDocuments.js";
 import documentsUploadUrl from "./routes/extranetDocumentsUploadUrl.js";
-import extranetProperty from "./routes/extranetProperty.js"; // property profile CRUD
+import extranetProperty from "./routes/extranetProperty.js";
 
 process.on("unhandledRejection", (e) => console.error("[unhandledRejection]", e));
 process.on("uncaughtException", (e) => console.error("[uncaughtException]", e));
@@ -23,14 +20,14 @@ const app = express();
 app.set("trust proxy", 1);
 app.use(express.json({ limit: "10mb" }));
 
-// ---- Static: serve /public and root ----
+// Static
 const __filename = fileURLToPath(import.meta.url);
-const __dirname = path.dirname(__filename);
-const pubPath = path.join(__dirname, "..", "public");
+const __dirname  = path.dirname(__filename);
+const pubPath    = path.join(__dirname, "..", "public");
 app.use("/public", express.static(pubPath, { maxAge: "1h", etag: true }));
 app.use(express.static(pubPath, { extensions: ["html"], maxAge: "1h", etag: true }));
 
-// ---- CORS ----
+// CORS
 const ALLOWED_ORIGINS = [
   "https://lolaelo.com",
   "https://www.lolaelo.com",
@@ -44,19 +41,19 @@ app.use(cors({
   allowedHeaders: ["Content-Type","Authorization","x-partner-token","Accept"],
 }));
 
-// ---- Health ----
-app.get("/health", (_req, res) => res.status(200).send("OK v-AUTH-2"));
+// Health (bump string to confirm deploy)
+app.get("/health", (_req, res) => res.status(200).send("OK v-ROUTES-1"));
 
-// ---- Mount routers (order matters a little less since they’re prefixed) ----
+// Routers
 app.use("/extranet/property/photos/upload-url", photosUploadUrl);
 app.use("/extranet/property/photos", extranetPhotos);
 app.use("/extranet/property/documents/upload-url", documentsUploadUrl);
 app.use("/extranet/property/documents", extranetDocuments);
 app.use("/extranet/property/rooms", extranetRooms);
-app.use("/extranet/property", extranetProperty);   // GET/PUT company profile
-app.use(extranetAuth);                              // /extranet/session, /extranet/logout, etc.
+app.use("/extranet/property", extranetProperty);
+app.use(extranetAuth); // /extranet/session, /extranet/logout, etc.
 
-// ---- Routes list (debug) ----
+// Debug route list
 app.get("/__routes", (req, res) => {
   const stack: any[] = (req.app as any)?._router?.stack ?? [];
   const routes = stack
@@ -65,10 +62,8 @@ app.get("/__routes", (req, res) => {
   res.json({ routes });
 });
 
-// ---- 404 ----
+// 404 + error handler
 app.use((req, res) => res.status(404).json({ error: "Not Found", path: req.path }));
-
-// ---- Error handler ----
 // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unused-vars
 app.use((err: any, _req: express.Request, res: express.Response, _next: express.NextFunction) => {
   console.error("Unhandled error:", err);
