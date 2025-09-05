@@ -1,5 +1,7 @@
+// src/routes/extranetProperty.ts
 import { Router, Request, Response, NextFunction } from "express";
 import { Pool } from "pg";
+import { prisma } from "../prisma.js";
 
 const r = Router();
 
@@ -10,8 +12,6 @@ const pool = new Pool({
 
 // --- DB objects ---
 const TBL_PROFILE = `extranet."PropertyProfile"`;
-// Session table aligned with /extranet/session behavior
-const TBL_SESSION = `extranet."PartnerSession"`;
 
 /** Helper: tiny sanitizer -> returns null for empty strings */
 function nz(v: unknown) {
@@ -20,7 +20,7 @@ function nz(v: unknown) {
   return s.length ? s : null;
 }
 
-// ---- Auth guard (align with /extranet/session): Bearer <UUID token> ----
+// ---- Auth guard (align with /extranet/session): Bearer <UUID token> via Prisma ----
 async function requirePartner(
   req: Request & { partner?: { id: number; email?: string; name?: string } },
   res: Response,
@@ -32,30 +32,10 @@ async function requirePartner(
     if (!m) return res.status(401).json({ error: "unauthorized" });
     const token = m[1].trim();
 
-    // Look up session by token; ensure not expired
-    // Expect columns: token (text), partnerId (int), email (text), name (text), expiresAt (timestamptz)
-    const { rows } = await pool.query(
-      `SELECT "partnerId","email","name","expiresAt"
-         FROM ${TBL_SESSION}
-        WHERE "token" = $1
-        LIMIT 1`,
-      [token]
-    );
-
-    if (!rows.length) return res.status(401).json({ error: "unauthorized" });
-
-    const s = rows[0] as {
-      partnerId: number;
-      email: string | null;
-      name: string | null;
-      expiresAt: string | Date | null;
-    };
-
-    if (s.expiresAt) {
-      const exp = new Date(s.expiresAt);
-      if (isNaN(exp.getTime()) || exp.getTime() <= Date.now()) {
-        return res.status(401).json({ error: "unauthorized" });
-      }
+    // Look up session by token via Prisma; ensure not expired
+    const s = await prisma.partnerSession.findUnique({ where: { token } });
+    if (!s || (s.expiresAt && s.expiresAt.getTime() <= Date.now())) {
+      return res.status(401).json({ error: "unauthorized" });
     }
 
     // Attach partner on req (shape used elsewhere)
