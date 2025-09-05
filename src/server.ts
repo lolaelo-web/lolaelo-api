@@ -1,34 +1,36 @@
-﻿// src/server.ts  (ESM build; note the .js route suffixes)
-import express from "express";
+﻿import express from "express";
 import cors from "cors";
 import path from "path";
 import { fileURLToPath } from "url";
 
-// Routers (compiled ESM requires .js suffix)
-import extranetPhotos        from "./routes/extranetPhotos.js";
-import photosUploadUrl       from "./routes/extranetPhotosUploadUrl.js";
-import extranetAuth          from "./routes/extranetAuth.js";
-import extranetDocuments     from "./routes/extranetDocuments.js";
-import documentsUploadUrl    from "./routes/extranetDocumentsUploadUrl.js";
-import extranetRooms         from "./routes/extranetRooms.js";
-import extranetProperty      from "./routes/extranetProperty.js";
+/**
+ * IMPORTANT: We use ESM in the compiled output, so imports here must
+ * include the `.js` suffix (TypeScript will keep them when compiling).
+ */
+import extranetAuth from "./routes/extranetAuth.js";
+import extranetRooms from "./routes/extranetRooms.js";
+import extranetPhotos from "./routes/extranetPhotos.js";
+import photosUploadUrl from "./routes/extranetPhotosUploadUrl.js";
+import extranetDocuments from "./routes/extranetDocuments.js";
+import documentsUploadUrl from "./routes/extranetDocumentsUploadUrl.js";
+import extranetProperty from "./routes/extranetProperty.js"; // property profile CRUD
 
 process.on("unhandledRejection", (e) => console.error("[unhandledRejection]", e));
-process.on("uncaughtException",  (e) => console.error("[uncaughtException]",  e));
+process.on("uncaughtException", (e) => console.error("[uncaughtException]", e));
 
 const app = express();
 
 app.set("trust proxy", 1);
 app.use(express.json({ limit: "10mb" }));
 
-// Static: serve /public and root
+// ---- Static: serve /public and root ----
 const __filename = fileURLToPath(import.meta.url);
-const __dirname  = path.dirname(__filename);
-const pubPath    = path.join(__dirname, "..", "public");
+const __dirname = path.dirname(__filename);
+const pubPath = path.join(__dirname, "..", "public");
 app.use("/public", express.static(pubPath, { maxAge: "1h", etag: true }));
 app.use(express.static(pubPath, { extensions: ["html"], maxAge: "1h", etag: true }));
 
-// CORS
+// ---- CORS ----
 const ALLOWED_ORIGINS = [
   "https://lolaelo.com",
   "https://www.lolaelo.com",
@@ -42,32 +44,31 @@ app.use(cors({
   allowedHeaders: ["Content-Type","Authorization","x-partner-token","Accept"],
 }));
 
-// Health
+// ---- Health ----
 app.get("/health", (_req, res) => res.status(200).send("OK v-AUTH-2"));
 
-// Mount routers (order matters a bit; specific before generic)
-app.use("/extranet/property/photos/upload-url",    photosUploadUrl);
-app.use("/extranet/property/photos",               extranetPhotos);
+// ---- Mount routers (order matters a little less since they’re prefixed) ----
+app.use("/extranet/property/photos/upload-url", photosUploadUrl);
+app.use("/extranet/property/photos", extranetPhotos);
 app.use("/extranet/property/documents/upload-url", documentsUploadUrl);
-app.use("/extranet/property/documents",            extranetDocuments);
-app.use("/extranet/property/rooms",                extranetRooms);
-app.use("/extranet/property",                      extranetProperty);
-app.use(extranetAuth); // auth/session routes (e.g., /extranet/session, /extranet/logout)
+app.use("/extranet/property/documents", extranetDocuments);
+app.use("/extranet/property/rooms", extranetRooms);
+app.use("/extranet/property", extranetProperty);   // GET/PUT company profile
+app.use(extranetAuth);                              // /extranet/session, /extranet/logout, etc.
 
-// Routes list (debug)
+// ---- Routes list (debug) ----
 app.get("/__routes", (req, res) => {
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const stack = (req.app as any)?._router?.stack ?? [];
+  const stack: any[] = (req.app as any)?._router?.stack ?? [];
   const routes = stack
     .filter((l: any) => l.route)
     .map((l: any) => ({ path: l.route.path, methods: Object.keys(l.route.methods) }));
   res.json({ routes });
 });
 
-// 404
+// ---- 404 ----
 app.use((req, res) => res.status(404).json({ error: "Not Found", path: req.path }));
 
-// Error handler
+// ---- Error handler ----
 // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unused-vars
 app.use((err: any, _req: express.Request, res: express.Response, _next: express.NextFunction) => {
   console.error("Unhandled error:", err);
