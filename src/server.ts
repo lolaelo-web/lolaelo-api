@@ -1,4 +1,4 @@
-﻿import express from "express";
+import express from "express";
 import cors from "cors";
 import path from "path";
 import { fileURLToPath } from "url";
@@ -42,7 +42,7 @@ app.use(cors({
 }));
 
 // Health (bump text so we can verify deploy)
-app.get("/health", (_req, res) => res.status(200).send("OK v-ROUTES-1"));
+app.get("/health", (_req, res) => res.status(200).send("OK v-ROUTES-3"));
 
 // Mount routers
 app.use("/extranet/property/photos/upload-url", photosUploadUrl);
