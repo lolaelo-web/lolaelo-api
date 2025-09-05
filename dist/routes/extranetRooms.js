@@ -34,22 +34,45 @@ r.get("/", async (_req, res) => {
 });
 /** POST /extranet/property/rooms */
 r.post("/", async (req, res) => {
+    const client = await pool.connect();
     try {
-        const { name, code, description } = req.body ?? {};
+        const { name, code, description, occupancy } = req.body ?? {};
         if (!name || typeof name !== "string") {
             return res.status(400).json({ error: "name is required" });
         }
-        const { rows } = await pool.query(`INSERT INTO ${T.rooms} ("name","code","description")
-            VALUES ($1,$2,$3)
-        RETURNING "id","name","code","description"`, [name.trim(), code ?? null, description ?? null]);
+        await client.query("BEGIN");
+        // derive partnerId: prefer auth, else reuse first existing room's partnerId
+        let partnerId = req.partner?.id ??
+            req.partnerId ??
+            null;
+        if (!partnerId) {
+            const probe = await client.query(`SELECT "partnerId" FROM ${T.rooms} ORDER BY "id" ASC LIMIT 1`);
+            partnerId = probe.rows?.[0]?.partnerId ?? null;
+        }
+        if (!partnerId) {
+            await client.query("ROLLBACK");
+            return res.status(400).json({ error: "unable to determine partnerId for new room" });
+        }
+        const occ = occupancy == null || occupancy === "" ? null : Number(occupancy);
+        const maxGuests = Number.isFinite(occ) ? occ : 2; // satisfies NOT NULL
+        const basePrice = 0.0; // satisfies NOT NULL
+        const { rows } = await client.query(`INSERT INTO ${T.rooms}
+         ("partnerId","name","code","description","occupancy","maxGuests","basePrice","createdAt","updatedAt")
+       VALUES ($1,$2,$3,$4,$5,$6,$7, NOW(), NOW())
+       RETURNING "id","name","code","description","occupancy","maxGuests","basePrice"`, [partnerId, name.trim(), code ?? null, description ?? null, occ, maxGuests, basePrice]);
+        await client.query("COMMIT");
         return res.status(201).json(rows[0]);
     }
     catch (e) {
+        await client.query("ROLLBACK");
         console.error("[rooms:post] db error", e);
         return res.status(500).json({ error: "Create failed" });
     }
+    finally {
+        client.release();
+    }
 });
-/** GET /:id/inventory */
+/** GET /:id/inventory?start=YYYY-MM-DD&end=YYYY-MM-DD */
 r.get("/:id/inventory", async (req, res) => {
     try {
         const roomId = Number(req.params.id);
@@ -59,11 +82,19 @@ r.get("/:id/inventory", async (req, res) => {
         const de = parseDate(end);
         if (!roomId || !ds || !de)
             return res.status(400).json({ error: "bad params" });
-        const { rows } = await pool.query(`SELECT "date","roomsOpen","minStay","isClosed"
-         FROM ${T.inv}
-        WHERE "roomTypeId" = $1
-          AND "date" BETWEEN $2 AND $3
-        ORDER BY "date" ASC`, [roomId, start, end]);
+        const { rows } = await pool.query(`WITH days AS (
+         SELECT generate_series($2::date, $3::date, '1 day')::date AS date
+       )
+       SELECT
+         d.date,
+         COALESCE(i."roomsOpen", 0)    AS "roomsOpen",
+         i."minStay"                   AS "minStay",  -- keep NULL if not set
+         COALESCE(i."isClosed", false) AS "isClosed"
+       FROM days d
+       LEFT JOIN ${T.inv} i
+         ON i."roomTypeId" = $1
+        AND i."date"::date = d.date
+       ORDER BY d.date ASC`, [roomId, start, end]);
         return res.json(rows);
     }
     catch (e) {
@@ -81,9 +112,9 @@ r.post("/:id/inventory/bulk", async (req, res) => {
             return res.status(400).json({ error: "bad payload" });
         }
         // Resolve partnerId from the room type (authoritative)
-        const roomRow = await client.query(`SELECT "partnerId","id" FROM ${T.rooms} WHERE "id" = $1`, [roomId]);
+        const roomRow = await client.query(`SELECT "partnerId" FROM ${T.rooms} WHERE "id" = $1`, [roomId]);
         const partnerId = roomRow.rows?.[0]?.partnerId ?? null;
-        // Log minimal context so we can correlate in runtime logs
+        // Minimal context for runtime logs
         console.log(`[inventory:bulk] ctx roomId=${roomId} partnerId=${partnerId} items=${items.length}`);
         if (!partnerId) {
             return res.status(400).json({ error: "invalid roomTypeId (no partner)" });
@@ -93,7 +124,7 @@ r.post("/:id/inventory/bulk", async (req, res) => {
         for (const it of items) {
             if (!it?.date || !parseDate(it.date))
                 continue;
-            // Force NOT NULL-safe values for NOT NULL columns
+            // NOT NULL-safe values
             const roomsOpen = Number.isFinite(Number(it.roomsOpen)) ? Number(it.roomsOpen) : 0;
             const minStay = it.minStay == null ? null : Number(it.minStay);
             const isClosed = Boolean(it.isClosed);
@@ -118,7 +149,7 @@ r.post("/:id/inventory/bulk", async (req, res) => {
         client.release();
     }
 });
-/** GET /:id/prices */
+/** GET /:id/prices?start=YYYY-MM-DD&end=YYYY-MM-DD */
 r.get("/:id/prices", async (req, res) => {
     try {
         const roomId = Number(req.params.id);
@@ -128,11 +159,20 @@ r.get("/:id/prices", async (req, res) => {
         const de = parseDate(end);
         if (!roomId || !ds || !de)
             return res.status(400).json({ error: "bad params" });
-        const { rows } = await pool.query(`SELECT "date","ratePlanId","price"
-         FROM ${T.prices}
-        WHERE "roomTypeId" = $1
-          AND "date" BETWEEN $2 AND $3
-        ORDER BY "date" ASC`, [roomId, start, end]);
+        const BASE_PLAN_ID = 1;
+        const { rows } = await pool.query(`WITH days AS (
+         SELECT generate_series($2::date, $3::date, '1 day')::date AS date
+       )
+       SELECT
+         d.date,
+         $4::int              AS "ratePlanId",
+         p."price"::numeric   AS "price"   -- keep NULL if not set
+       FROM days d
+       LEFT JOIN ${T.prices} p
+         ON p."roomTypeId" = $1
+        AND p."date"::date  = d.date
+        AND p."ratePlanId"  = $4
+       ORDER BY d.date ASC`, [roomId, start, end, BASE_PLAN_ID]);
         return res.json(rows);
     }
     catch (e) {
@@ -140,8 +180,8 @@ r.get("/:id/prices", async (req, res) => {
         return res.status(500).json({ error: "Prices fetch failed" });
     }
 });
-/** POST /:id/inventory/bulk  { items:[{date,roomsOpen,minStay,isClosed}] } */
-r.post("/:id/inventory/bulk", async (req, res) => {
+/** POST /:id/prices/bulk  { items:[{date,price,ratePlanId}] } */
+r.post("/:id/prices/bulk", async (req, res) => {
     const client = await pool.connect();
     try {
         const roomId = Number(req.params.id);
@@ -153,22 +193,19 @@ r.post("/:id/inventory/bulk", async (req, res) => {
         const partnerId = roomRow.rows?.[0]?.partnerId ?? null;
         if (!partnerId)
             return res.status(400).json({ error: "invalid roomTypeId (no partner)" });
+        console.log("[prices:bulk] ctx", { roomId, partnerId, itemsPreview: Array.isArray(items) ? items.slice(0, 3) : items });
         await client.query("BEGIN");
         let upserted = 0;
         for (const it of items) {
             if (!it?.date || !parseDate(it.date))
                 continue;
-            // Force NOT NULL-safe values for NOT NULL columns
-            const roomsOpen = Number.isFinite(Number(it.roomsOpen)) ? Number(it.roomsOpen) : 0;
-            const minStay = it.minStay == null ? null : Number(it.minStay);
-            const isClosed = Boolean(it.isClosed);
-            await client.query(`INSERT INTO ${T.inv} ("partnerId","roomTypeId","date","roomsOpen","minStay","isClosed","createdAt","updatedAt")
-              VALUES ($1,$2,$3,$4,$5,$6, NOW(), NOW())
-         ON CONFLICT ("roomTypeId","date")
-           DO UPDATE SET "roomsOpen" = EXCLUDED."roomsOpen",
-                         "minStay"   = EXCLUDED."minStay",
-                         "isClosed"  = EXCLUDED."isClosed",
-                         "updatedAt" = NOW()`, [partnerId, roomId, it.date, roomsOpen, minStay, isClosed]);
+            const ratePlanId = Number(it.ratePlanId ?? 1);
+            const price = Number(it.price ?? 0);
+            await client.query(`INSERT INTO ${T.prices} ("partnerId","roomTypeId","date","ratePlanId","price","createdAt","updatedAt")
+              VALUES ($1,$2,$3,$4,$5, NOW(), NOW())
+         ON CONFLICT ("roomTypeId","date","ratePlanId")
+           DO UPDATE SET "price" = EXCLUDED."price",
+                         "updatedAt" = NOW()`, [partnerId, roomId, it.date, ratePlanId, price]);
             upserted++;
         }
         await client.query("COMMIT");
@@ -176,8 +213,8 @@ r.post("/:id/inventory/bulk", async (req, res) => {
     }
     catch (e) {
         await client.query("ROLLBACK");
-        console.error("[inventory:bulk] db error", e);
-        return res.status(500).json({ error: "Inventory save failed" });
+        console.error("[prices:bulk] db error", e);
+        return res.status(500).json({ error: "Prices save failed" });
     }
     finally {
         client.release();

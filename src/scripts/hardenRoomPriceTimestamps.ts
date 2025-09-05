@@ -1,34 +1,66 @@
-// src/scripts/hardenRoomPriceTimestamps.ts
+// src/scripts/hardenRoomInventoryTimestamps.ts
 import { Client } from "pg";
+
+async function run(client: Client, sql: string) {
+  console.log("\n--- SQL ---\n" + sql.trim() + "\n");
+  const res = await client.query(sql);
+  return res;
+}
 
 async function main() {
   const url = process.env.DATABASE_URL;
   if (!url) throw new Error("DATABASE_URL is not set.");
   const client = new Client({ connectionString: url, ssl: { rejectUnauthorized: false } });
+
   await client.connect();
+  console.log("\n--- Harden timestamps on extranet.\"RoomInventory\" ---\n");
 
-  console.log("\n--- Harden timestamps on extranet.\"RoomPrice\" ---\n");
+  // 1) Set DEFAULTs
+  await run(
+    client,
+    `
+    ALTER TABLE extranet."RoomInventory" ALTER COLUMN "createdAt" SET DEFAULT NOW();
+    ALTER TABLE extranet."RoomInventory" ALTER COLUMN "updatedAt" SET DEFAULT NOW();
+  `
+  );
 
-  // 1) Add sane defaults
-  await client.query(`ALTER TABLE extranet."RoomPrice" ALTER COLUMN "createdAt" SET DEFAULT NOW();`);
-  await client.query(`ALTER TABLE extranet."RoomPrice" ALTER COLUMN "updatedAt" SET DEFAULT NOW();`);
+  // 2) Backfill NULLs (if any)
+  const u1 = await run(
+    client,
+    `
+    UPDATE extranet."RoomInventory"
+       SET "createdAt" = NOW()
+     WHERE "createdAt" IS NULL;
+  `
+  );
+  const u2 = await run(
+    client,
+    `
+    UPDATE extranet."RoomInventory"
+       SET "updatedAt" = NOW()
+     WHERE "updatedAt" IS NULL;
+  `
+  );
 
-  // 2) Backfill any NULLs
-  const upd1 = await client.query(`UPDATE extranet."RoomPrice" SET "createdAt" = NOW() WHERE "createdAt" IS NULL;`);
-  const upd2 = await client.query(`UPDATE extranet."RoomPrice" SET "updatedAt" = NOW() WHERE "updatedAt" IS NULL;`);
-  console.log(`Backfilled createdAt: ${upd1.rowCount}, updatedAt: ${upd2.rowCount}`);
+  // Plain string concatenation (avoid template literal pitfalls)
+  console.log("Backfilled createdAt: " + (u1.rowCount ?? 0) + ", updatedAt: " + (u2.rowCount ?? 0));
 
-  // 3) Show table column defaults & nullability for verification
-  const cols = await client.query(`
+  // 3) Show resulting columns/defaults
+  const cols = await run(
+    client,
+    `
     SELECT column_name, is_nullable, column_default
-    FROM information_schema.columns
-    WHERE table_schema='extranet' AND table_name='RoomPrice'
-    ORDER BY ordinal_position;
-  `);
-  console.table(cols.rows);
+      FROM information_schema.columns
+     WHERE table_schema='extranet' AND table_name='RoomInventory'
+     ORDER BY ordinal_position;
+  `
+  );
+  if ((cols as any).rows?.length) {
+    console.table((cols as any).rows);
+  }
 
   await client.end();
-  console.log("\n✅ RoomPrice timestamps hardened (defaults + backfill).\n");
+  console.log("\n✅ RoomInventory timestamps hardened (defaults + backfill).\n");
 }
 
 main().catch((e) => {

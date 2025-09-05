@@ -95,22 +95,25 @@ r.get("/:id/inventory", async (req, res) => {
   try {
     const roomId = Number(req.params.id);
     const start = String(req.query.start || "");
-    const end = String(req.query.end || "");
+    const end   = String(req.query.end   || "");
     const ds = parseDate(start);
     const de = parseDate(end);
     if (!roomId || !ds || !de) return res.status(400).json({ error: "bad params" });
 
     const { rows } = await pool.query(
-        `SELECT
-          (i."date")::date AS "date",
-          i."roomsOpen"    AS "roomsOpen",
-          i."minStay"      AS "minStay",
-          i."isClosed"     AS "isClosed"
-        FROM ${T.inv} i
-        WHERE i."roomTypeId" = $1
-          AND i."date" >= $2::date
-          AND i."date" <  ($3::date + INTERVAL '1 day')
-        ORDER BY i."date" ASC`,
+      `WITH days AS (
+         SELECT generate_series($2::date, $3::date, '1 day')::date AS date
+       )
+       SELECT
+         d.date,
+         COALESCE(i."roomsOpen", 0)    AS "roomsOpen",
+         i."minStay"                   AS "minStay",  -- keep NULL if not set
+         COALESCE(i."isClosed", false) AS "isClosed"
+       FROM days d
+       LEFT JOIN ${T.inv} i
+         ON i."roomTypeId" = $1
+        AND i."date"::date = d.date
+       ORDER BY d.date ASC`,
       [roomId, start, end]
     );
 
@@ -193,16 +196,19 @@ r.get("/:id/prices", async (req, res) => {
     const BASE_PLAN_ID = 1;
 
     const { rows } = await pool.query(
-      `SELECT
-        (p."date")::date        AS "date",
-        $4::int                 AS "ratePlanId",
-        (p."price")::numeric    AS "price"
-      FROM ${T.prices} p
-      WHERE p."roomTypeId" = $1
-        AND p."ratePlanId" = $4
-        AND p."date" >= $2::date
-        AND p."date" <  ($3::date + INTERVAL '1 day')
-      ORDER BY p."date" ASC`,
+      `WITH days AS (
+         SELECT generate_series($2::date, $3::date, '1 day')::date AS date
+       )
+       SELECT
+         d.date,
+         $4::int              AS "ratePlanId",
+         p."price"::numeric   AS "price"   -- keep NULL if not set
+       FROM days d
+       LEFT JOIN ${T.prices} p
+         ON p."roomTypeId" = $1
+        AND p."date"::date  = d.date
+        AND p."ratePlanId"  = $4
+       ORDER BY d.date ASC`,
       [roomId, start, end, BASE_PLAN_ID]
     );
 
@@ -228,6 +234,7 @@ r.post("/:id/prices/bulk", async (req, res) => {
     );
     const partnerId: number | null = roomRow.rows?.[0]?.partnerId ?? null;
     if (!partnerId) return res.status(400).json({ error: "invalid roomTypeId (no partner)" });
+    console.log("[prices:bulk] ctx", { roomId, partnerId, itemsPreview: Array.isArray(items) ? items.slice(0,3) : items });
 
     await client.query("BEGIN");
 

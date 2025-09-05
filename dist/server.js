@@ -14,6 +14,16 @@ process.on("uncaughtException", (e) => console.error("[uncaughtException]", e));
 const app = express(); // CREATE APP FIRST
 app.set("trust proxy", 1);
 app.use(express.json({ limit: "10mb" }));
+// optional: visibility for large bulk saves
+app.use(express.urlencoded({ extended: true, limit: "10mb" })); // harmless to add
+app.use((req, _res, next) => {
+    if (req.method === "POST" &&
+        /\/extranet\/property\/rooms\/\d+\/(inventory|prices)\/bulk$/i.test(req.url)) {
+        const len = req.headers["content-length"] ?? "unknown";
+        console.log(`[bulk] ${req.method} ${req.url} content-length=${len}`);
+    }
+    next();
+});
 // Static: serve /public and root
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
