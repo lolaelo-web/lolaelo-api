@@ -141,3 +141,7 @@ vite.config.ts.timestamp-*
 # compiled JS under src
 src/**/*.js
 src/**/*.js.map
+
+# ignore compiled JS under src
+src/**/*.js
+src/**/*.js.map
