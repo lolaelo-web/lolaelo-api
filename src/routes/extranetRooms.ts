@@ -26,6 +26,7 @@ const T = {
 /** GET /extranet/property/rooms */
 r.get("/", async (_req, res) => {
   try {
+    res.set("Cache-Control", "no-store");
     const { rows } = await pool.query(
       `SELECT "id","name","code","description"
          FROM ${T.rooms}
@@ -100,20 +101,22 @@ r.get("/:id/inventory", async (req, res) => {
     const de = parseDate(end);
     if (!roomId || !ds || !de) return res.status(400).json({ error: "bad params" });
 
+    res.set("Cache-Control", "no-store"); 
+
     const { rows } = await pool.query(
       `WITH days AS (
-         SELECT generate_series($2::date, $3::date, '1 day')::date AS date
-       )
-       SELECT
-         d.date,
-         COALESCE(i."roomsOpen", 0)    AS "roomsOpen",
-         i."minStay"                   AS "minStay",  -- keep NULL if not set
-         COALESCE(i."isClosed", false) AS "isClosed"
-       FROM days d
-       LEFT JOIN ${T.inv} i
-         ON i."roomTypeId" = $1
+        SELECT generate_series($2::date, $3::date, '1 day')::date AS date
+      )
+      SELECT
+        d.date,
+        i."roomsOpen" AS "roomsOpen",   -- leave NULL as NULL
+        i."minStay"   AS "minStay",
+        i."isClosed"  AS "isClosed"     -- leave NULL as NULL
+      FROM days d
+      LEFT JOIN ${T.inv} i
+        ON i."roomTypeId" = $1
         AND i."date"::date = d.date
-       ORDER BY d.date ASC`,
+      ORDER BY d.date ASC`,
       [roomId, start, end]
     );
 
@@ -193,7 +196,9 @@ r.get("/:id/prices", async (req, res) => {
     const de = parseDate(end);
     if (!roomId || !ds || !de) return res.status(400).json({ error: "bad params" });
 
-    const BASE_PLAN_ID = 1;
+    res.set("Cache-Control", "no-store");
+
+    const planId = Number(req.query.planId ?? 1);
 
     const { rows } = await pool.query(
       `WITH days AS (
@@ -209,7 +214,7 @@ r.get("/:id/prices", async (req, res) => {
         AND p."date"::date  = d.date
         AND p."ratePlanId"  = $4
        ORDER BY d.date ASC`,
-      [roomId, start, end, BASE_PLAN_ID]
+      [roomId, start, end, planId]
     );
 
     return res.json(rows);
