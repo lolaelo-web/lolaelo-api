@@ -101,22 +101,26 @@ r.get("/:id/inventory", async (req, res) => {
     const de = parseDate(end);
     if (!roomId || !ds || !de) return res.status(400).json({ error: "bad params" });
 
-    res.set("Cache-Control", "no-store"); 
+    // prevent caching so UI sees fresh values after save
+    res.set("Cache-Control", "no-store");
+
+    // helpful server-side trace (shows up in Render logs)
+    console.log("[inventory:get]", { roomId, start, end });
 
     const { rows } = await pool.query(
       `WITH days AS (
-        SELECT generate_series($2::date, $3::date, '1 day')::date AS date
-      )
-      SELECT
-        d.date,
-        i."roomsOpen" AS "roomsOpen",   -- leave NULL as NULL
-        i."minStay"   AS "minStay",
-        i."isClosed"  AS "isClosed"     -- leave NULL as NULL
-      FROM days d
-      LEFT JOIN ${T.inv} i
-        ON i."roomTypeId" = $1
+         SELECT generate_series($2::date, $3::date, '1 day')::date AS date
+       )
+       SELECT
+         d.date,
+         i."roomsOpen" AS "roomsOpen",   -- keep NULL as NULL (UI should treat lack of record as blank)
+         i."minStay"   AS "minStay",
+         i."isClosed"  AS "isClosed"
+       FROM days d
+       LEFT JOIN ${T.inv} i
+         ON i."roomTypeId" = $1
         AND i."date"::date = d.date
-      ORDER BY d.date ASC`,
+       ORDER BY d.date ASC`,
       [roomId, start, end]
     );
 
@@ -196,9 +200,14 @@ r.get("/:id/prices", async (req, res) => {
     const de = parseDate(end);
     if (!roomId || !ds || !de) return res.status(400).json({ error: "bad params" });
 
+    // prevent caching
     res.set("Cache-Control", "no-store");
 
+    // pick plan (UI can send ?planId=...)
     const planId = Number(req.query.planId ?? 1);
+
+    // helpful server-side trace (shows up in Render logs)
+    console.log("[prices:get]", { roomId, start, end, planId });
 
     const { rows } = await pool.query(
       `WITH days AS (
@@ -207,7 +216,7 @@ r.get("/:id/prices", async (req, res) => {
        SELECT
          d.date,
          $4::int              AS "ratePlanId",
-         p."price"::numeric   AS "price"   -- keep NULL if not set
+         p."price"::numeric   AS "price"   -- keep NULL as NULL
        FROM days d
        LEFT JOIN ${T.prices} p
          ON p."roomTypeId" = $1
@@ -221,6 +230,54 @@ r.get("/:id/prices", async (req, res) => {
   } catch (e) {
     console.error("[prices:get] db error", e);
     return res.status(500).json({ error: "Prices fetch failed" });
+  }
+});
+
+/** GET /:id/snapshot?start=YYYY-MM-DD&end=YYYY-MM-DD&planId=1 */
+r.get("/:id/snapshot", async (req, res) => {
+  try {
+    const roomId = Number(req.params.id);
+    const start = String(req.query.start || "");
+    const end   = String(req.query.end   || "");
+    const ds = parseDate(start);
+    const de = parseDate(end);
+    if (!roomId || !ds || !de) return res.status(400).json({ error: "bad params" });
+
+    res.set("Cache-Control", "no-store");
+    const planId = Number(req.query.planId ?? 1);
+    console.log("[snapshot:get]", { roomId, start, end, planId });
+
+    const { rows: inv } = await pool.query(
+      `WITH days AS (
+         SELECT generate_series($2::date, $3::date, '1 day')::date AS date
+       )
+       SELECT d.date, i."roomsOpen", i."minStay", i."isClosed"
+       FROM days d
+       LEFT JOIN ${T.inv} i
+         ON i."roomTypeId" = $1
+        AND i."date"::date = d.date
+       ORDER BY d.date ASC`,
+      [roomId, start, end]
+    );
+
+    const { rows: prices } = await pool.query(
+      `WITH days AS (
+         SELECT generate_series($2::date, $3::date, '1 day')::date AS date
+       )
+       SELECT d.date, $4::int AS "ratePlanId", p."price"::numeric AS "price"
+       FROM days d
+       LEFT JOIN ${T.prices} p
+         ON p."roomTypeId" = $1
+        AND p."date"::date  = d.date
+        AND p."ratePlanId"  = $4
+       ORDER BY d.date ASC`,
+      [roomId, start, end, planId]
+    );
+
+    return res.json({ inventory: inv, prices });
+  } catch (e) {
+    console.error("[snapshot:get] db error", e);
+    return res.status(500).json({ error: "Snapshot fetch failed" });
   }
 });
 
