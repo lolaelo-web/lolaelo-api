@@ -296,6 +296,10 @@
     const addDays = (d,n)=>{ const x=new Date(d); x.setDate(x.getDate()+n); return x; };
     const dow = d => d.toLocaleDateString(undefined,{weekday:'short'});
 
+    // Normalize API dates (which may come as "2025-09-18T00:00:00.000Z") to "2025-09-18"
+    const keyDate = d => (typeof d === 'string' ? d.slice(0, 10) : iso(new Date(d)));
+
+
     function startOfDay(d){ const x=new Date(d); x.setHours(0,0,0,0); return x; }
     function daysInMonth(y,m){ return new Date(y, m+1, 0).getDate(); }
 
@@ -372,8 +376,20 @@
         LolaAuth.authFetch(`${API_BASE}/${roomTypeId}/inventory?start=${startISO}&end=${endISO}`).then(r=>r.json()),
         LolaAuth.authFetch(`${API_BASE}/${roomTypeId}/prices?start=${startISO}&end=${endISO}`).then(r=>r.json()),
       ]);
-      state.inventoryByDate = Object.fromEntries(ri.map(x=>[x.date,x]));
-      state.pricesByDate    = Object.fromEntries(rp.map(x=>[x.date+'|'+(x.ratePlanId||'base'),x]));
+      state.inventoryByDate = Object.fromEntries(
+        ri.map(x => {
+          const k = keyDate(x.date);
+          return [k, { ...x, date: k }];     // keep date normalized too
+        })
+      );
+
+      state.pricesByDate = Object.fromEntries(
+        rp.map(x => {
+          const k = keyDate(x.date);
+          const plan = (x.ratePlanId ?? 'base');
+          return [k + '|' + plan, { ...x, date: k, ratePlanId: plan }];
+        })
+      );
       renderCalendar();
       showToast(`Loaded ${state.days} days`, 'ok');
       const rn = (state.rooms.find(r=>r.id===roomTypeId)||{}).name || 'Room';
