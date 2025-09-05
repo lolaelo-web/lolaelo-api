@@ -3,14 +3,14 @@ import cors from "cors";
 import path from "path";
 import { fileURLToPath } from "url";
 
-/** ESM output requires `.js` suffixes */
+/** ESM output requires .js suffixes */
 import extranetAuth from "./routes/extranetAuth.js";
 import extranetRooms from "./routes/extranetRooms.js";
+import extranetProperty from "./routes/extranetProperty.js";
 import extranetPhotos from "./routes/extranetPhotos.js";
 import photosUploadUrl from "./routes/extranetPhotosUploadUrl.js";
 import extranetDocuments from "./routes/extranetDocuments.js";
 import documentsUploadUrl from "./routes/extranetDocumentsUploadUrl.js";
-import extranetProperty from "./routes/extranetProperty.js";
 
 process.on("unhandledRejection", (e) => console.error("[unhandledRejection]", e));
 process.on("uncaughtException", (e) => console.error("[uncaughtException]", e));
@@ -41,10 +41,10 @@ app.use(cors({
   allowedHeaders: ["Content-Type","Authorization","x-partner-token","Accept"],
 }));
 
-// Health (bump string to confirm deploy)
+// Health (bump text so we can verify deploy)
 app.get("/health", (_req, res) => res.status(200).send("OK v-ROUTES-1"));
 
-// Routers
+// Mount routers
 app.use("/extranet/property/photos/upload-url", photosUploadUrl);
 app.use("/extranet/property/photos", extranetPhotos);
 app.use("/extranet/property/documents/upload-url", documentsUploadUrl);
@@ -53,7 +53,7 @@ app.use("/extranet/property/rooms", extranetRooms);
 app.use("/extranet/property", extranetProperty);
 app.use(extranetAuth); // /extranet/session, /extranet/logout, etc.
 
-// Debug route list
+// Route list (debug)
 app.get("/__routes", (req, res) => {
   const stack: any[] = (req.app as any)?._router?.stack ?? [];
   const routes = stack
