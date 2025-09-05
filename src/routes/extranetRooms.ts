@@ -105,10 +105,10 @@ r.get("/:id/inventory", async (req, res) => {
          SELECT generate_series($2::date, $3::date, '1 day')::date AS date
        )
        SELECT
-         d.date,
-         COALESCE(i."roomsOpen", 0)      AS "roomsOpen",
-         COALESCE(i."minStay",  0)       AS "minStay",
-         COALESCE(i."isClosed", false)   AS "isClosed"
+        d.date,
+        COALESCE(i."roomsOpen", 0)      AS "roomsOpen",
+        i."minStay"                      AS "minStay",   -- let null stay null
+        COALESCE(i."isClosed", false)   AS "isClosed"
        FROM days d
        LEFT JOIN ${T.inv} i
          ON i."roomTypeId" = $1
@@ -200,9 +200,9 @@ r.get("/:id/prices", async (req, res) => {
          SELECT generate_series($2::date, $3::date, '1 day')::date AS date
        )
        SELECT
-         d.date,
-         $4::int                                AS "ratePlanId",
-         COALESCE(p."price", 0)::numeric        AS "price"
+        d.date,
+        $4::int                           AS "ratePlanId",
+        p."price"::numeric                AS "price"   -- let null stay null
        FROM days d
        LEFT JOIN ${T.prices} p
          ON p."roomTypeId" = $1
