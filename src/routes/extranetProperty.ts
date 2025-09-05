@@ -1,7 +1,6 @@
 // src/routes/extranetProperty.ts
 import { Router, Request, Response, NextFunction } from "express";
 import { Pool } from "pg";
-import { prisma } from "../prisma.js";
 
 const r = Router();
 
@@ -12,15 +11,23 @@ const pool = new Pool({
 
 // --- DB objects ---
 const TBL_PROFILE = `extranet."PropertyProfile"`;
+const TBL_SESSION = `extranet."PartnerSession"`;
 
-/** Helper: tiny sanitizer -> returns null for empty strings */
+/** Helper: returns null for empty strings */
 function nz(v: unknown) {
   if (v == null) return null;
   const s = String(v).trim();
   return s.length ? s : null;
 }
 
-// ---- Auth guard (align with /extranet/session): Bearer <UUID token> via Prisma ----
+/** Safe date check */
+function isExpired(expiresAt: unknown): boolean {
+  if (!expiresAt) return false;
+  const t = new Date(expiresAt as any).getTime();
+  return !Number.isFinite(t) || t <= Date.now();
+}
+
+// ---- Auth guard: Bearer <UUID token> validated against PartnerSession ----
 async function requirePartner(
   req: Request & { partner?: { id: number; email?: string; name?: string } },
   res: Response,
@@ -32,14 +39,28 @@ async function requirePartner(
     if (!m) return res.status(401).json({ error: "unauthorized" });
     const token = m[1].trim();
 
-    // Look up session by token via Prisma; ensure not expired
-    const s = await prisma.partnerSession.findUnique({ where: { token } });
-    if (!s || (s.expiresAt && s.expiresAt.getTime() <= Date.now())) {
-      return res.status(401).json({ error: "unauthorized" });
-    }
+    const { rows } = await pool.query(
+      `SELECT "partnerId","email","name","expiresAt"
+         FROM ${TBL_SESSION}
+        WHERE "token" = $1
+        LIMIT 1`,
+      [token]
+    );
+    if (!rows.length) return res.status(401).json({ error: "unauthorized" });
 
-    // Attach partner on req (shape used elsewhere)
-    req.partner = { id: Number(s.partnerId), email: s.email ?? undefined, name: s.name ?? undefined };
+    const s = rows[0] as {
+      partnerId: number;
+      email: string | null;
+      name: string | null;
+      expiresAt: string | Date | null;
+    };
+    if (isExpired(s.expiresAt)) return res.status(401).json({ error: "unauthorized" });
+
+    req.partner = {
+      id: Number(s.partnerId),
+      email: s.email ?? undefined,
+      name: s.name ?? undefined,
+    };
     return next();
   } catch (e) {
     console.error("[property:auth] error", e);
@@ -55,7 +76,6 @@ r.get("/", async (req, res) => {
   const partnerId = (req as any)?.partner?.id;
   if (!partnerId) return res.status(401).json({ error: "unauthorized" });
 
-  // never cache this
   res.set("Cache-Control", "no-store, no-cache, must-revalidate");
 
   try {
@@ -67,7 +87,6 @@ r.get("/", async (req, res) => {
       [partnerId]
     );
 
-    // if not found, return an empty shell (front-end can treat as “missing info”)
     if (!rows.length) {
       return res.json({
         partnerId,
@@ -88,7 +107,6 @@ r.put("/", async (req, res) => {
   const partnerId = (req as any)?.partner?.id;
   if (!partnerId) return res.status(401).json({ error: "unauthorized" });
 
-  // never cache writes
   res.set("Cache-Control", "no-store, no-cache, must-revalidate");
 
   const payload = req.body ?? {};
@@ -105,7 +123,8 @@ r.put("/", async (req, res) => {
   try {
     const { rows } = await pool.query(
       `INSERT INTO ${TBL_PROFILE}
-         ("partnerId","name","contactEmail","phone","country","addressLine","city","description","createdAt","updatedAt")
+         ("partnerId","name","contactEmail","phone","country",
+          "addressLine","city","description","createdAt","updatedAt")
        VALUES ($1,$2,$3,$4,$5,$6,$7,$8, NOW(), NOW())
        ON CONFLICT ("partnerId") DO UPDATE
            SET "name"         = EXCLUDED."name",
