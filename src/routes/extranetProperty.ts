@@ -129,15 +129,22 @@ async function requirePartner(
     const sessionTbl = await detectSessionTable();
 
     const { rows } = await pool.query(
-      `SELECT "partnerId", 
-              COALESCE(NULLIF((to_jsonb(s)->>'email'),'null'), NULL) AS "email",
-              COALESCE(NULLIF((to_jsonb(s)->>'name'),'null'), NULL)  AS "name",
-              "expiresAt"
-         FROM ${sessionTbl} s
-        WHERE "token" = $1
-        LIMIT 1`,
-      [token]
-    );
+    `SELECT "partnerId",
+            COALESCE(
+              NULLIF((to_jsonb(s)->>'email'),'null'),
+              NULLIF((to_jsonb(s)->>'userEmail'),'null'),
+              NULLIF((to_jsonb(s)->>'contactEmail'),'null')
+            ) AS "email",
+            COALESCE(
+              NULLIF((to_jsonb(s)->>'name'),'null'),
+              NULLIF((to_jsonb(s)->>'userName'),'null')
+            ) AS "name",
+            "expiresAt"
+      FROM ${sessionTbl} s
+      WHERE "token" = $1
+      LIMIT 1`,
+    [token]
+  );
 
     if (!rows.length) return res.status(401).json({ error: "unauthorized" });
 
