@@ -39,6 +39,24 @@ function isExpired(expiresAt: unknown): boolean {
   return !Number.isFinite(t) || t <= Date.now();
 }
 
+function getClientIp(req: Request): string | null {
+  // Prefer Render/CF/Proxy headers; fall back to Express
+  const xf = (req.headers["x-forwarded-for"] as string) ?? "";
+  if (xf) return xf.split(",")[0].trim();
+  const xr = (req.headers["x-real-ip"] as string) ?? "";
+  if (xr) return xr.trim();
+  return (req.ip || "").trim() || null;
+}
+
+function getUserEmailFromReq(req: Request & { partner?: { email?: string } }): string | null {
+  // Primary: session-derived partner email
+  const a = (req.partner?.email ?? "").trim();
+  if (a) return a;
+  // Optional: allow upstream to pass it through a header if ever needed
+  const h = (req.headers["x-user-email"] as string) ?? "";
+  return h.trim() || null;
+}
+
 /** Write an audit row for PropertyProfile changes */
 async function logProfileAudit(args: {
   partnerId: number;
@@ -256,12 +274,13 @@ r.put("/", async (req, res) => {
         action: "PUT",
         oldValue: wasRows[0] ?? null,
         newValue: rows[0],
-        ip: req.ip,
-        userEmail: (req as any)?.partner?.email ?? null,
+        ip: getClientIp(req),
+        userEmail: getUserEmailFromReq(req),
       });
     } catch (e) {
       console.error("[property:put:audit] failed", e);
     }
+
 
     return res.json(rows[0]);
   } catch (e) {
@@ -367,12 +386,13 @@ r.patch("/", async (req, res) => {
         action: "PATCH",
         oldValue: curr ?? null,
         newValue: rows[0],
-        ip: req.ip,
-        userEmail: (req as any)?.partner?.email ?? null,
+        ip: getClientIp(req),
+        userEmail: getUserEmailFromReq(req),
       });
     } catch (e) {
       console.error("[property:patch:audit] failed", e);
     }
+
 
     return res.json(rows[0]);
   } catch (e) {
