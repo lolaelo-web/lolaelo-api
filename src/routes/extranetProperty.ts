@@ -39,6 +39,30 @@ function isExpired(expiresAt: unknown): boolean {
   return !Number.isFinite(t) || t <= Date.now();
 }
 
+/** Write an audit row for PropertyProfile changes */
+async function logProfileAudit(args: {
+  partnerId: number;
+  action: "PUT" | "PATCH";
+  oldValue: any;
+  newValue: any;
+  ip?: string | null;
+  userEmail?: string | null;
+}) {
+  await pool.query(
+    `INSERT INTO extranet."PropertyProfileAudit"
+       ("partnerId","action","oldValue","newValue","ip","userEmail")
+     VALUES ($1,$2,$3::jsonb,$4::jsonb,$5,$6)`,
+    [
+      args.partnerId,
+      args.action,
+      JSON.stringify(args.oldValue ?? null),
+      JSON.stringify(args.newValue ?? null),
+      args.ip ?? null,
+      args.userEmail ?? null,
+    ]
+  );
+}
+
 /** Cache for detected session table */
 let SESSION_TBL_CACHED: string | null = null;
 
@@ -186,6 +210,16 @@ r.put("/", async (req, res) => {
   }
 
   try {
+    // Pre-image for audit
+    const { rows: wasRows } = await pool.query(
+      `SELECT "partnerId","name","contactEmail","phone","country",
+              "addressLine","city","description","updatedAt","createdAt"
+         FROM ${TBL_PROFILE}
+        WHERE "partnerId" = $1
+        LIMIT 1`,
+      [partnerId]
+    );
+
     const { rows } = await pool.query(
       `INSERT INTO ${TBL_PROFILE}
          ("partnerId","name","contactEmail","phone","country",
@@ -213,6 +247,20 @@ r.put("/", async (req, res) => {
         data.description,
       ]
     );
+
+    // Audit (best-effort)
+    try {
+      await logProfileAudit({
+        partnerId,
+        action: "PUT",
+        oldValue: wasRows[0] ?? null,
+        newValue: rows[0],
+        ip: req.ip,
+        userEmail: (req as any)?.partner?.email ?? null,
+      });
+    } catch (e) {
+      console.error("[property:put:audit] failed", e);
+    }
 
     return res.json(rows[0]);
   } catch (e) {
@@ -243,7 +291,7 @@ r.patch("/", async (req, res) => {
   const patchData = norm(incoming);
 
   try {
-    // Read current (if any)
+    // Read current (if any) — also used as audit pre-image
     const { rows: curRows } = await pool.query(
       `SELECT "partnerId","name","contactEmail","phone","country",
               "addressLine","city","description","updatedAt","createdAt"
@@ -273,13 +321,13 @@ r.patch("/", async (req, res) => {
 
     // Merge: provided keys override, others stay as-is
     const next = {
-      name:         patchData.hasOwnProperty("name") ? patchData.name : (curr?.name ?? null),
-      contactEmail: patchData.hasOwnProperty("contactEmail") ? patchData.contactEmail : (curr?.contactEmail ?? null),
-      phone:        patchData.hasOwnProperty("phone") ? patchData.phone : (curr?.phone ?? null),
-      country:      patchData.hasOwnProperty("country") ? patchData.country : (curr?.country ?? null),
-      addressLine:  patchData.hasOwnProperty("addressLine") ? patchData.addressLine : (curr?.addressLine ?? null),
-      city:         patchData.hasOwnProperty("city") ? patchData.city : (curr?.city ?? null),
-      description:  patchData.hasOwnProperty("description") ? patchData.description : (curr?.description ?? null),
+      name:         Object.prototype.hasOwnProperty.call(patchData, "name") ? patchData.name : (curr?.name ?? null),
+      contactEmail: Object.prototype.hasOwnProperty.call(patchData, "contactEmail") ? patchData.contactEmail : (curr?.contactEmail ?? null),
+      phone:        Object.prototype.hasOwnProperty.call(patchData, "phone") ? patchData.phone : (curr?.phone ?? null),
+      country:      Object.prototype.hasOwnProperty.call(patchData, "country") ? patchData.country : (curr?.country ?? null),
+      addressLine:  Object.prototype.hasOwnProperty.call(patchData, "addressLine") ? patchData.addressLine : (curr?.addressLine ?? null),
+      city:         Object.prototype.hasOwnProperty.call(patchData, "city") ? patchData.city : (curr?.city ?? null),
+      description:  Object.prototype.hasOwnProperty.call(patchData, "description") ? patchData.description : (curr?.description ?? null),
     };
 
     // Upsert merged state
@@ -310,6 +358,20 @@ r.patch("/", async (req, res) => {
         next.description,
       ]
     );
+
+    // Audit (best-effort)
+    try {
+      await logProfileAudit({
+        partnerId,
+        action: "PATCH",
+        oldValue: curr ?? null,
+        newValue: rows[0],
+        ip: req.ip,
+        userEmail: (req as any)?.partner?.email ?? null,
+      });
+    } catch (e) {
+      console.error("[property:patch:audit] failed", e);
+    }
 
     return res.json(rows[0]);
   } catch (e) {
