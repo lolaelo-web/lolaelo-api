@@ -48,10 +48,11 @@ async function logProfileAudit(args: {
   ip?: string | null;
   userEmail?: string | null;
 }) {
+  // Table columns are lowercase (unquoted) in Postgres: partnerid, action, oldvalue, newvalue, ip, useremail
   await pool.query(
     `INSERT INTO extranet."PropertyProfileAudit"
-       ("partnerId","action","oldValue","newValue","ip","userEmail")
-     VALUES ($1,$2,$3::jsonb,$4::jsonb,$5,$6)`,
+       (partnerid, action, oldvalue, newvalue, ip, useremail)
+     VALUES ($1, $2, $3::jsonb, $4::jsonb, $5, $6)`,
     [
       args.partnerId,
       args.action,
