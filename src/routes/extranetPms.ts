@@ -647,5 +647,168 @@ router.get("/remote/availability", async (req, res) => {
     res.status(500).json({ error: "Internal", detail: String(e?.message || e) });
   }
 });
+/* ------------------------------ UIS SEARCH MERGE ------------------------------ */
+/**
+ * GET /extranet/uis/search?start=YYYY-MM-DD&end=YYYY-MM-DD&guests=2
+ * Returns combined extranet + PMS availability with prices.
+ * Shape:
+ * {
+ *   extranet: [{ source, date, roomTypeId, ratePlanId, name, maxGuests, price, currency }],
+ *   pms:      [{ source, date, connectionId, remoteRoomId, remoteRatePlanId, name, maxGuests, price, currency }]
+ * }
+ */
+router.get("/uis/search", async (req, res) => {
+  try {
+    const partnerId = Number((req as any).partnerId);
+    if (!partnerId) return res.status(401).json({ error: "Unauthorized" });
+
+    const startStr = String(req.query.start ?? "");
+    const endStr   = String(req.query.end ?? "");
+    const guests   = Number(req.query.guests ?? 2);
+
+    const start = new Date(startStr);
+    const end   = new Date(endStr);
+    if (Number.isNaN(start.valueOf()) || Number.isNaN(end.valueOf()) || end <= start) {
+      return res.status(400).json({ error: "Invalid date range" });
+    }
+
+    /* -------- build date list [start, end) in UTC YYYY-MM-DD -------- */
+    const days: string[] = [];
+    for (let d = new Date(Date.UTC(start.getUTCFullYear(), start.getUTCMonth(), start.getUTCDate())); d < end; d.setUTCDate(d.getUTCDate() + 1)) {
+      days.push(d.toISOString().slice(0, 10));
+    }
+
+    /* ------------------------------ EXTRANET SIDE ----------------------------- */
+    // Pull room types for partner (filter by maxGuests >= guests)
+    const rts = await (db as any).roomType.findMany({
+      where: { partnerId, maxGuests: { gte: Number.isNaN(guests) ? 1 : guests } },
+      select: { id: true, name: true, maxGuests: true, partnerId: true }
+    });
+
+    // Inventory where rooms are open and not closed
+    const inv = await (db as any).roomInventory.findMany({
+      where: {
+        partnerId,
+        date: { gte: start, lt: end },
+        isClosed: false,
+        roomsOpen: { gt: 0 },
+      },
+      select: { roomTypeId: true, date: true, roomsOpen: true }
+    });
+
+    // Prices for those room types in range (any rate plan); we'll pick the lowest per roomType/date
+    const prices = await (db as any).roomPrice.findMany({
+      where: { partnerId, date: { gte: start, lt: end } },
+      select: { roomTypeId: true, ratePlanId: true, date: true, price: true }
+    });
+
+    // Index helpers
+    const rtIndex = new Map<number, { id: number; name: string; maxGuests: number }>();
+    rts.forEach(rt => rtIndex.set(rt.id, rt));
+
+    // Build extranet rows = { date, roomTypeId, ratePlanId?, price(min), currency }
+    const extranet: any[] = [];
+    // Price map: key `${roomTypeId}|${YYYY-MM-DD}` -> min price
+    const minPrice = new Map<string, { price: any; ratePlanId: number | null }>();
+    for (const p of prices) {
+      const key = `${p.roomTypeId}|${(new Date(p.date)).toISOString().slice(0,10)}`;
+      const prev = minPrice.get(key);
+      if (!prev || Number(p.price) < Number(prev.price)) {
+        minPrice.set(key, { price: p.price, ratePlanId: p.ratePlanId ?? null });
+      }
+    }
+    for (const iv of inv) {
+      const dateStr = (new Date(iv.date)).toISOString().slice(0,10);
+      if (!days.includes(dateStr)) continue;
+      const rt = rtIndex.get(iv.roomTypeId);
+      if (!rt) continue;
+      const mp = minPrice.get(`${iv.roomTypeId}|${dateStr}`);
+      if (!mp) continue; // skip if no price
+      extranet.push({
+        source: "direct",
+        date: dateStr,
+        roomTypeId: rt.id,
+        ratePlanId: mp.ratePlanId,
+        name: rt.name,
+        maxGuests: rt.maxGuests,
+        price: mp.price,
+        currency: "USD", // adjust if you store currency per partner/price
+      });
+    }
+
+    /* -------------------------------- PMS SIDE -------------------------------- */
+    // Reuse the same logic as /remote/rooms + /remote/availability
+    // 1) Mappings
+    let mappings: any[] = [];
+    if (hasDelegates()) {
+      mappings = await (db as any).pmsMapping.findMany({
+        where: { active: true, connection: { partnerId } },
+        orderBy: { id: "asc" },
+      });
+    } else {
+      mappings = await (db as any).$queryRawUnsafe(
+        `SELECT m.* FROM "extranet"."PmsMapping" m
+         JOIN "extranet"."PmsConnection" c ON c."id" = m."pmsConnectionId"
+         WHERE m."active" = TRUE AND c."partnerId" = $1
+         ORDER BY m."id" ASC`,
+        partnerId
+      );
+    }
+
+    // 2) Build mock availability (same as /remote/availability)
+    const pms: any[] = [];
+    mappings.forEach((m) => {
+      days.forEach((ds, idx) => {
+        pms.push({
+          source: "pms",
+          date: ds,
+          connectionId: m.pmsConnectionId,
+          remoteRoomId: String(m.remoteRoomId),
+          remoteRatePlanId: m.remoteRatePlanId ? String(m.remoteRatePlanId) : null,
+          name: `Mock Room ${m.remoteRoomId}`,
+          maxGuests: 2,
+          price: 120 + (idx % 5) * 10,
+          currency: m.currency ?? "USD",
+        });
+      });
+    });
+
+    res.json({ extranet, pms });
+  } catch (e: any) {
+    console.error("[UIS GET /uis/search error]", e?.message || e);
+    res.status(500).json({ error: "Internal", detail: String(e?.message || e) });
+  }
+});
+
+/* ------------------------------ PMS DIAGNOSTICS ------------------------------ */
+// Lists routes mounted in this router (helps confirm deploy contents)
+router.get("/__routes", (_req, res) => {
+  try {
+    const stack: any[] = ((router as any).stack ?? []).filter((l: any) => l?.route);
+    const routes = stack.map((l: any) => ({
+      path: l.route?.path,
+      methods: l.route ? Object.keys(l.route.methods) : [],
+    }));
+    res.json({ ok: true, routes });
+  } catch (e: any) {
+    res.status(500).json({ ok: false, error: String(e?.message || e) });
+  }
+});
+
+// Pings DB safely (delegate if present else raw); never throws
+router.get("/__dbping", async (_req, res) => {
+  try {
+    if (hasDelegates()) {
+      // Use a harmless query via any known delegate
+      const one = await (db as any).roomType.findMany({ take: 1, select: { id: true } });
+      return res.json({ ok: true, via: "delegate", sample: one });
+    } else {
+      const rows: any = await (db as any).$queryRawUnsafe(`SELECT current_user, current_schema, NOW() as now, 1 as one`);
+      return res.json({ ok: true, via: "raw", rows });
+    }
+  } catch (e: any) {
+    return res.status(200).json({ ok: false, via: hasDelegates() ? "delegate" : "raw", error: String(e?.message || e) });
+  }
+});
 
 export default router;
