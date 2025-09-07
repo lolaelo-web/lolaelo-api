@@ -45,7 +45,7 @@ app.use(cors({
 }));
 
 // Health (bump text so we can verify deploy)
-app.get("/health", (_req, res) => res.status(200).send("OK v-ROUTES-4"));
+app.get("/health", (_req, res) => res.status(200).send("OK v-ROUTES-5"));
 
 // Mount routers
 app.use("/extranet/property/photos/upload-url", photosUploadUrl);
@@ -77,4 +77,5 @@ app.use((err: any, _req: express.Request, res: express.Response, _next: express.
 const PORT = Number(process.env.PORT || 3000);
 app.listen(PORT, () => console.log(`Server started on port ${PORT}`));
 export default app;
+
 

@@ -1,5 +1,5 @@
 // @ts-nocheck
-// src/routes/extranetPms.js
+// src/routes/extranetPms.ts
 import express from "express";
 import { prisma } from "../prisma.js";
 
