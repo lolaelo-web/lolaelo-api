@@ -1,0 +1,246 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <title>Documents</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+
+  <!-- Match partners_app look/feel -->
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
+  <style>
+  :root{
+    /* tokens lifted from partners_app */
+    --bg:#0b1320;
+    --card:#111a2b;
+    --fg:#e8eefc;
+    --muted:#9bb0d3;
+    --line:rgba(255,255,255,.08);
+
+    /* accents */
+    --brand-orange:#ff6a3d;  /* primary CTA */
+    --brand-blue:#2e7bff;    /* outline */
+  }
+  *{ box-sizing:border-box }
+  body{
+    margin:0; font-family:Inter,system-ui,Segoe UI,Roboto,Arial,sans-serif; color:var(--fg);
+    background: radial-gradient(1000px 600px at 20% -10%, #1a2b4a 0%, #0b1320 60%, #0b1320 100%);
+    min-height:100vh;
+  }
+
+  .page{ max-width:980px; margin:32px auto; padding:0 16px; }
+  .card{ background:var(--card); border:1px solid var(--line); border-radius:16px; padding:18px; box-shadow:0 8px 40px rgba(0,0,0,.45); }
+  .row{ display:flex; gap:12px; align-items:center; flex-wrap:wrap; }
+  .row.between{ justify-content:space-between; align-items:center; }
+  .row.bottom{ justify-content:flex-start; }
+  .spacer{ height:16px; }
+  .muted{ color:var(--muted); font-size:12px; }
+
+  /* Buttons – match hub */
+  .btn{ cursor:pointer; border-radius:999px; padding:9px 14px; font-weight:700; border:1px solid var(--brand-orange); background:var(--brand-orange); color:#fff; }
+  .btn:disabled{ opacity:.6; cursor:not-allowed; }
+  .btn-primary{ border-color:var(--brand-orange); background:var(--brand-orange); color:#111; }
+  .btn-danger{ background:transparent; border-color:#b91c1c; color:#ffcfcf; }
+  .btn-secondary-outline{
+    background:transparent; color:#d7e5ff;
+    border-color:var(--brand-blue);
+  }
+  .btn-secondary-outline:hover{ box-shadow:0 0 0 3px rgba(46,123,255,.20) inset; }
+
+  /* Inputs / select */
+  .input,.select{
+    border:1px solid var(--line); border-radius:10px; padding:10px 12px;
+    background:#0e1830; color:var(--fg);
+  }
+  .input:focus,.select:focus{
+    outline:none; border-color:var(--brand-blue); box-shadow:0 0 0 3px rgba(46,123,255,.20);
+  }
+  .select{
+    appearance:none; -webkit-appearance:none; -moz-appearance:none;
+    padding-right:36px;
+    background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='18' height='18' viewBox='0 0 24 24' fill='none' stroke='%23ff6a3d' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='6 9 12 15 18 9'%3E%3C/polyline%3E%3C/svg%3E");
+    background-repeat:no-repeat; background-position:right 10px center;
+  }
+
+  /* Table – same gray separators as hub */
+  .table{ width:100%; border-collapse:collapse; }
+  .table thead th{ border-bottom:2px solid var(--line); padding:10px 12px; text-align:left; }
+  .table td{ padding:10px 12px; border-bottom:1px solid var(--line); vertical-align:top; }
+  .nowrap{ white-space:nowrap; }
+
+  /* File links: orange, no underline */
+  .table a, .table a:visited{ color:var(--brand-orange); text-decoration:none; }
+  .table a:hover, .table a:focus{ color:#ff8a68; text-decoration:none; }
+
+  /* Status badges (kept) */
+  .badge{ display:inline-block; padding:2px 8px; border-radius:999px; font-size:12px; border:1px solid var(--line); }
+  .badge.SUBMITTED{ background:#1f2937; }
+  .badge.APPROVED{ background:#065f46; }
+  .badge.REJECTED{ background:#7f1d1d; }
+
+  textarea.notes{ width:100%; min-height:40px; resize:vertical; }
+  .actions{ display:flex; gap:8px; flex-wrap:wrap; }
+  </style>
+</head>
+
+<body>
+  <div class="page">
+    <div class="card">
+      <div class="row between">
+        <h1 style="margin:0;">Documents</h1>
+        <span></span>
+      </div>
+      <div class="muted">Upload W-9, insurance, vendor agreements, etc.</div>
+      <div class="spacer"></div>
+
+      <!-- Upload row -->
+      <div class="row">
+        <input id="file" type="file" class="input" />
+        <select id="docType" class="select">
+          <option>GOVT_ID</option>
+          <option selected>BUSINESS_REG</option>
+          <option>TAX_ID</option>
+          <option>BANK_PROOF</option>
+          <option>PROOF_OF_ADDRESS</option>
+          <option>INSURANCE_LIABILITY</option>
+          <option>PROPERTY_OWNERSHIP</option>
+          <option>LOCAL_LICENSE</option>
+        </select>
+        <button id="uploadBtn" class="btn btn-primary">Upload</button>
+        <span class="muted">Your current session is used for auth.</span>
+      </div>
+
+      <div class="spacer"></div>
+
+      <!-- Table -->
+      <table class="table" id="tbl">
+        <thead>
+          <tr>
+            <th class="nowrap">Type</th>
+            <th>File</th>
+            <th class="nowrap">Status</th>
+            <th class="nowrap">Uploaded</th>
+            <th>Comments</th>
+            <th class="nowrap">Actions</th>
+          </tr>
+        </thead>
+        <tbody></tbody>
+      </table>
+
+      <!-- Bottom back button -->
+      <div class="spacer"></div>
+      <div class="row bottom">
+        <button id="backBtn" class="btn btn-secondary-outline">Back to menu</button>
+      </div>
+    </div>
+  </div>
+
+<script>
+const BASE = 'https://lolaelo-api.onrender.com';
+
+// Token from partners hub
+function token() { return localStorage.getItem('lolaelo_session') || ''; }
+function headers(json = true) {
+  const t = token();
+  const h = { 'Authorization': 'Bearer ' + t, 'x-partner-token': t };
+  if (json) h['Content-Type'] = 'application/json';
+  return h;
+}
+function fmtDate(iso){ if(!iso) return ''; return new Date(iso).toLocaleString(); }
+function badge(status){
+  const s = (status || '').toUpperCase();
+  const span = document.createElement('span');
+  span.className = 'badge ' + s; span.textContent = s || '-'; return span;
+}
+
+async function listDocs(){
+  const tbody = document.querySelector('#tbl tbody');
+  tbody.innerHTML = '<tr><td colspan="6" class="muted">Loading…</td></tr>';
+  const r = await fetch(BASE + '/extranet/property/documents', { headers: headers(false) });
+  if (!r.ok){ tbody.innerHTML = `<tr><td colspan="6">Failed to load (${r.status}). Check your session.</td></tr>`; return; }
+  const raw = await r.json(); const rows = Array.isArray(raw.value) ? raw.value : raw;
+
+  tbody.innerHTML = '';
+  if (!rows.length){ tbody.innerHTML = '<tr><td colspan="6" class="muted">No documents yet.</td></tr>'; return; }
+
+  for (const row of rows){
+    const tr = document.createElement('tr');
+
+    const tdType = document.createElement('td'); tdType.textContent = row.type; tr.appendChild(tdType);
+
+    const tdFile = document.createElement('td');
+    const a = document.createElement('a'); a.href=row.url; a.target='_blank'; a.rel='noopener'; a.textContent=row.fileName||row.key;
+    tdFile.appendChild(a); tr.appendChild(tdFile);
+
+    const tdStatus = document.createElement('td'); tdStatus.appendChild(badge(row.status)); tr.appendChild(tdStatus);
+
+    const tdUp = document.createElement('td'); tdUp.className='nowrap'; tdUp.textContent = fmtDate(row.uploadedAt); tr.appendChild(tdUp);
+
+    const tdNotes = document.createElement('td');
+    const ta = document.createElement('textarea'); ta.className='notes input'; ta.value=row.notes||''; ta.placeholder='Add a comment…';
+    tdNotes.appendChild(ta); tr.appendChild(tdNotes);
+
+    const tdActions = document.createElement('td'); tdActions.className='actions';
+
+    const saveBtn = document.createElement('button');
+    saveBtn.className='btn btn-secondary-outline'; saveBtn.textContent='Save';
+    saveBtn.onclick = async () => {
+      saveBtn.disabled = true;
+      try{
+        const rr = await fetch(BASE + '/extranet/property/documents/' + row.id, {
+          method:'PUT', headers: headers(), body: JSON.stringify({ notes: ta.value })
+        });
+        if(!rr.ok){ const err = await rr.text(); alert('Save failed: ' + rr.status + '\n' + err); }
+      } finally { saveBtn.disabled = false; }
+    };
+
+    const delBtn = document.createElement('button');
+    delBtn.className='btn btn-danger'; delBtn.textContent='Delete';
+    delBtn.onclick = async () => {
+      if (!confirm('Delete this document?')) return;
+      delBtn.disabled = true;
+      try{
+        const rr = await fetch(BASE + '/extranet/property/documents/' + row.id, { method:'DELETE', headers: headers(false) });
+        if(!rr.ok && rr.status !== 204){ const err = await rr.text(); alert('Delete failed: ' + rr.status + '\n' + err); }
+        else { await listDocs(); }
+      } finally { delBtn.disabled = false; }
+    };
+
+    tdActions.appendChild(saveBtn);
+    tdActions.appendChild(delBtn);
+    tr.appendChild(tdActions);
+
+    tbody.appendChild(tr);
+  }
+}
+
+async function upload(){
+  const f = document.getElementById('file').files[0];
+  if(!f) return alert('Pick a file first.');
+  const type = document.getElementById('docType').value;
+  const contentType = f.type || 'application/octet-stream';
+
+  const r1 = await fetch(BASE + '/extranet/property/documents/upload-url', {
+    method:'POST', headers: headers(), body: JSON.stringify({ fileName: f.name, contentType, size: f.size })
+  });
+  if(!r1.ok) return alert('upload-url failed: ' + r1.status);
+  const up = await r1.json();
+
+  const r2 = await fetch(up.putUrl, { method:'PUT', headers:{ 'Content-Type': contentType }, body:f });
+  if(!r2.ok) return alert('S3 PUT failed: ' + r2.status);
+
+  const r3 = await fetch(BASE + '/extranet/property/documents', {
+    method:'POST', headers: headers(),
+    body: JSON.stringify({ type, key: up.key, url: up.publicUrl, fileName: f.name, contentType })
+  });
+  if(!r3.ok){ const err = await r3.text(); return alert('Create failed: ' + r3.status + '\n' + err); }
+
+  await listDocs(); alert('Uploaded.');
+}
+
+document.getElementById('uploadBtn').addEventListener('click', upload);
+document.getElementById('backBtn').addEventListener('click', () => { window.location.href = '/partners_app.html'; });
+
+listDocs();
+</script>
+</body>
+</html>

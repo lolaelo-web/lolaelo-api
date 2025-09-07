@@ -1,0 +1,174 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Lolaelo Extranet — Sign in</title>
+
+  <!-- Prevent caching so Back can't revive stale pages -->
+  <meta http-equiv="Cache-Control" content="no-store, no-cache, must-revalidate, max-age=0" />
+  <meta http-equiv="Pragma" content="no-cache" />
+  <meta http-equiv="Expires" content="0" />
+
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600&display=swap" rel="stylesheet">
+  <style>
+    :root{ --bg:#0b1320; --card:#111a2b; --fg:#e8eefc; --muted:#9bb0d3; --accent:#ff6a3d; }
+    *{ box-sizing:border-box; }
+    body{
+      margin:0; font-family:Inter,system-ui,Segoe UI,Roboto,Helvetica,Arial;
+      background: radial-gradient(1000px 600px at 20% -10%, #1a2b4a 0%, #0b1320 60%, #0b1320 100%);
+      color:var(--fg); display:flex; min-height:100vh; align-items:center; justify-content:center;
+    }
+    .card{
+      width:100%; max-width:420px; background:var(--card); border:1px solid rgba(255,255,255,.06);
+      border-radius:16px; padding:24px 22px; box-shadow:0 8px 40px rgba(0,0,0,.45);
+    }
+    h1{ margin:0 0 8px; font-size:22px; }
+    p{ margin:0 0 12px; color:var(--muted); }
+    label{ display:block; font-size:13px; color:#cfe0ff; margin:14px 0 6px; }
+    input{
+      width:100%; padding:12px 12px; border-radius:10px; border:1px solid rgba(255,255,255,.08);
+      background:#0e1830; color:var(--fg); outline:none;
+    }
+    input:focus{ border-color:#2e7bff; box-shadow:0 0 0 3px rgba(46,123,255,.20); }
+    button{
+      margin-top:14px; width:100%; padding:12px; border-radius:999px; border:1px solid var(--accent);
+      background:var(--accent); color:white; font-weight:700; cursor:pointer;
+    }
+    button[disabled]{ opacity:.6; cursor:not-allowed; }
+    button.secondary{ background:transparent; border-color:#2e7bff; color:#d7e5ff; margin-top:10px; }
+    .row{ display:flex; gap:10px; }
+    .hint{ font-size:12px; color:#a9bbde; margin-top:6px; }
+    .link{ margin-top:10px; font-size:13px; color:#ffd6c8; }
+    .link a{ color:#ffb59f; text-decoration:underline; }
+    .hidden{ display:none; }
+    .topbar{ position:fixed; top:12px; left:0; right:0; display:flex; justify-content:center; pointer-events:none; }
+    .toast{
+      pointer-events:auto; min-width:280px; max-width:520px; background:#0e1830; border:1px solid rgba(255,255,255,.07);
+      padding:10px 12px; border-radius:10px; box-shadow:0 10px 30px rgba(0,0,0,.45); font-size:14px;
+    }
+  </style>
+
+  <!-- Travel origin shared helpers -->
+  <!-- Use relative path since this is the travel site: /travel/js/shared.js => served as js/shared.js -->
+  <script src="js/shared.js"></script>
+</head>
+<body>
+  <div class="topbar"><div id="toast" class="toast hidden"></div></div>
+
+  <div class="card" role="main">
+    <h1>Sign in to Lolaelo Extranet</h1>
+    <p>Enter your work email. We’ll send a 6-digit code to sign in.</p>
+
+    <label for="email">Work email</label>
+    <input id="email" type="email" placeholder="you@hotel.com" autocomplete="email" />
+
+    <div class="row">
+      <button id="btnRequest">Send code</button>
+      <button id="btnClear" class="secondary" title="Forget saved session">Clear session</button>
+    </div>
+
+    <label for="code">6-digit code</label>
+    <input id="code" type="text" inputmode="numeric" placeholder="123456" maxlength="6" />
+
+    <button id="btnVerify">Verify & Sign in</button>
+
+    <div class="hint">For testing, the code may be shown after you click “Send code”.</div>
+    <div class="link">New partner? <a href="#" id="linkSignup">Request access</a></div>
+  </div>
+
+  <script>
+    const API_BASE = "https://lolaelo-api.onrender.com";
+    const SESSION_KEY = "lolaelo_session";
+
+    const el = (id) => document.getElementById(id);
+    const toastBox   = el('toast');
+    const emailInput = el('email');
+    const codeInput  = el('code');
+    const btnRequest = el('btnRequest');
+    const btnVerify  = el('btnVerify');
+    const btnClear   = el('btnClear');
+
+    function toast(html){
+      toastBox.innerHTML = html;
+      toastBox.classList.remove('hidden');
+      clearTimeout(window.__t);
+      window.__t = setTimeout(()=>toastBox.classList.add('hidden'), 4000);
+    }
+
+    btnClear.onclick = () => {
+      localStorage.removeItem(SESSION_KEY);
+      codeInput.value = "";
+      toast('Session cleared');
+    };
+
+    el('linkSignup').onclick = (e) => { e.preventDefault(); emailInput.focus(); };
+
+    // --- Send code ---
+    btnRequest.onclick = async () => {
+      const email = (emailInput.value || '').trim().toLowerCase();
+      if (!email || !email.includes("@")) return toast('Enter a valid email.');
+      btnRequest.disabled = true;
+      try {
+        const res = await fetch(`${API_BASE}/login/request-code`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ email })
+        });
+        const data = await res.json().catch(()=>({}));
+        if (!res.ok || !data.ok) throw new Error(data.error || `Could not send code (${res.status})`);
+        if (data.emailed) toast(`Code sent to <b>${email}</b>.`);
+        if (data.devCode) { codeInput.value = data.devCode; toast(`Dev code: <b>${data.devCode}</b> (prefilled)`); }
+        codeInput.focus();
+      } catch (e) {
+        console.error(e);
+        toast(e.message || 'Network error.');
+      } finally {
+        btnRequest.disabled = false;
+      }
+    };
+
+    // --- Verify & sign in ---
+    btnVerify.onclick = async () => {
+      const email = (emailInput.value || '').trim().toLowerCase();
+      const code  = (codeInput.value  || '').trim();
+      if (!email || !/^\d{6}$/.test(code)) return toast('Enter your email and a 6-digit code.');
+
+      try {
+        const res = await fetch(`${API_BASE}/login/verify-code`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ email, code })
+        });
+        const data = await res.json().catch(()=>({}));
+        if (!res.ok || !data.ok || !data.token) {
+          return toast(data.error || 'Invalid or expired code.');
+        }
+
+        // Use TravelAuth helper to persist token and go to hub (partners_app.html)
+        if (window.TravelAuth && typeof TravelAuth.onVerifySuccess === 'function') {
+          TravelAuth.onVerifySuccess(data);
+        } else {
+          // Fallback (shouldn't happen if shared.js is loaded)
+          localStorage.setItem(SESSION_KEY, data.token);
+          location.href = "/partners_app.html";
+        }
+      } catch (e) {
+        console.error(e);
+        toast('Verification failed.');
+      }
+    };
+
+    // --- If a token already exists, skip login (optional) ---
+    (function restore(){
+      try {
+        const t = (window.TravelAuth && typeof TravelAuth.getToken === 'function')
+          ? TravelAuth.getToken()
+          : localStorage.getItem(SESSION_KEY);
+
+        if (t) location.href = "/partners_app.html";
+      } catch {}
+    })();
+  </script>
+</body>
+</html>

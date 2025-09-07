@@ -1,76 +1,56 @@
-// lolaelo-api/public/js/shared.js
+// travel/js/shared.js
 (() => {
-  const TOKEN_KEY = "lolaelo_session";
-  // 👇 set to your live travel domain (login/hub)
-  const TRAVEL_ORIGIN = "https://lolaelo-web.github.io/travel";
+  const TOKEN_KEY  = "lolaelo_session";
+  const API_ORIGIN = "https://lolaelo-api.onrender.com";
 
-  // Safe localStorage helpers
-  const store = {
-    set(k, v) { try { localStorage.setItem(k, v); } catch {} },
-    get(k)    { try { return localStorage.getItem(k) || ""; } catch { return ""; } },
-    rm(k)     { try { localStorage.removeItem(k); } catch {} },
-  };
+  function setToken(t){ if (t) localStorage.setItem(TOKEN_KEY, t); }
+  function getToken(){ return localStorage.getItem(TOKEN_KEY) || ""; }
+  function clearToken(){ localStorage.removeItem(TOKEN_KEY); }
 
-  function setToken(t){ if (t) store.set(TOKEN_KEY, t); }
-  function getToken(){ return store.get(TOKEN_KEY); }
-  function clearToken(){ store.rm(TOKEN_KEY); }
+  // Capture token returned from API origin via #token=… (and clean URL)
+  function normalizeFromHash(){
+    if (location.hash && location.hash.startsWith("#token=")) {
+      const t = decodeURIComponent(location.hash.slice(7));
+      if (t) setToken(t);
+      history.replaceState(null, "", location.pathname + location.search); // strip hash
+    }
+  }
 
-  // Accept token via #token=... or ?token=... then strip it from the URL
-  function normalizeTokenFromUrl(){
+  // Legacy support: also accept ?token=… once, then clean URL
+  function normalizeFromQuery(){
     const url = new URL(location.href);
-    let t = url.searchParams.get("token");
-    if (!t && location.hash.startsWith("#token=")) {
-      t = decodeURIComponent(location.hash.slice(7));
-    }
-    if (t) {
-      setToken(t);
+    const q = url.searchParams.get("token");
+    if (q) {
+      setToken(q);
       url.searchParams.delete("token");
-      // drop both query + hash
-      history.replaceState(null, "", url.pathname + (url.search || ""));
+      history.replaceState(null, "", url.pathname + (url.search || "")); // strip ?token
     }
   }
 
-  function requireToken(){
-    let t = getToken();
-    if (!t) { normalizeTokenFromUrl(); t = getToken(); }
-    if (!t) {
-      location.href = `${TRAVEL_ORIGIN}/partners_login.html`;
-      return "";
-    }
-    return t;
+  // Called after /login/verify-code success
+  function onVerifySuccess(resp){
+    setToken(resp.token);
+    location.href = "/partners_app.html"; // stays on travel origin
   }
 
-  async function authFetch(url, opts = {}) {
-  const t = requireToken();
-  const headers = new Headers(opts.headers || {});
-  if (t) headers.set("Authorization", `Bearer ${t}`);
-
-  // prevent 304/ETag cache returns with empty body
-  const req = {
-    cache: "no-store",
-    credentials: "omit",
-    ...opts,
-    headers,
-  };
-
-  return fetch(url, req);
-}
-
-
-  function logoutToLogin(){
-    clearToken();
-    location.href = `${TRAVEL_ORIGIN}/partners_login.html`;
+  // Handoff from Hub → API Rooms using URL hash (not query)
+  function openRooms(){
+    const t = getToken();
+    if (!t) { location.href = "/partners_login.html"; return; }
+    location.href = `${API_ORIGIN}/partners_rooms.html#token=${encodeURIComponent(t)}`;
   }
 
-  window.LolaAuth = {
-    requireToken,
-    authFetch,
+  // Auto-normalize any incoming token on page load (hub, login, etc.)
+  document.addEventListener("DOMContentLoaded", () => {
+    normalizeFromHash();
+    normalizeFromQuery();
+  });
+
+  window.TravelAuth = {
+    onVerifySuccess,
+    openRooms,
     getToken,
     setToken,
     clearToken,
-    normalizeTokenFromUrl,
-    logoutToLogin,
   };
-
-  document.addEventListener("DOMContentLoaded", normalizeTokenFromUrl);
 })();
