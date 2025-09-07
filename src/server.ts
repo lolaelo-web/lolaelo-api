@@ -17,10 +17,7 @@ const app = express();
 app.disable("x-powered-by");
 
 // -------------------------------------------------------------
-// CORS: allow the public site to call this API from the browser
-// - Preflight handled globally
-// - Allow Cache-Control/Pragma headers your frontend sets
-// - Add Origin/Accept to cover stricter user-agents/proxies
+// CORS
 // -------------------------------------------------------------
 const CORS_ALLOWED_ORIGINS = ["https://www.lolaelo.com"]; // add more if needed
 
@@ -38,11 +35,11 @@ const corsOpts: cors.CorsOptions = {
   ],
   exposedHeaders: ["Content-Length", "ETag"],
   credentials: true,
-  maxAge: 60 * 60 * 24, // cache preflight for 1 day
+  maxAge: 60 * 60 * 24,
 };
 
 app.use(cors(corsOpts));
-app.options("*", cors(corsOpts)); // respond to all preflights
+app.options("*", cors(corsOpts));
 
 // -------------------------------------------------------------
 // Core middleware
@@ -53,7 +50,6 @@ app.use(express.urlencoded({ extended: true }));
 
 // -------------------------------------------------------------
 // Static files
-// Note: at runtime __dirname is dist/, so "../public" == repo /public
 // -------------------------------------------------------------
 const pubPath = path.join(__dirname, "..", "public");
 app.use("/public", express.static(pubPath, { maxAge: "1h", etag: true }));
@@ -63,11 +59,11 @@ app.use(express.static(pubPath, { extensions: ["html"], maxAge: "1h", etag: true
 // Health
 // -------------------------------------------------------------
 app.get("/health", (_req, res) => {
-  res.type("text/plain").send("OK v-ROUTES-23");
+  res.type("text/plain").send("OK v-ROUTES-24");
 });
 
 // -------------------------------------------------------------
-// Mount optional routers (non-fatal if they don't exist)
+// Mount optional routers (non-fatal if missing)
 // -------------------------------------------------------------
 async function tryMount(routePath: string, mountAt: string) {
   try {
@@ -84,16 +80,26 @@ async function tryMount(routePath: string, mountAt: string) {
   }
 }
 
-// IMPORTANT: session must be mounted at root for /login/*
-// Keep /extranet for existing callers.
-await tryMount("./session.js", "/");          // /login/request-code, /login/verify, /session if defined at root
-await tryMount("./session.js", "/extranet");  // /extranet/session, /extranet/logout, etc.
+// Keep /extranet for existing callers
+await tryMount("./session.js", "/extranet");
+await tryMount("./routes/extranetRooms.js", "/extranet");
+await tryMount("./routes/extranetPms.js", "/extranet/pms");
+await tryMount("./routes/property.js", "/extranet/property");
+await tryMount("./routes/propertyPhotos.js", "/extranet/property/photos");
 
-// Feature routers
-await tryMount("./routes/extranetRooms.js", "/extranet");                 // rooms endpoints
-await tryMount("./routes/extranetPms.js", "/extranet/pms");               // PMS router
-await tryMount("./routes/property.js", "/extranet/property");             // property CRUD (if present)
-await tryMount("./routes/propertyPhotos.js", "/extranet/property/photos"); // photos (if present)
+// -------------------------------------------------------------
+// LOGIN ALIASES (root -> /extranet)  **IMPORTANT**
+// Use 307 so POST body is preserved on redirect.
+// -------------------------------------------------------------
+app.post("/login/request-code", (req, res) => {
+  res.redirect(307, "/extranet/login/request-code");
+});
+app.post("/login/verify", (req, res) => {
+  res.redirect(307, "/extranet/login/verify");
+});
+
+// If you later add a GET status route at root, you can alias it too:
+// app.get("/login/status", (_req, res) => res.redirect(307, "/extranet/login/status"));
 
 // -------------------------------------------------------------
 // Fallbacks / errors
