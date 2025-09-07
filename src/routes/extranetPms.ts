@@ -19,6 +19,13 @@ router.get("/__ping", (_req, res) => {
   res.json({ ok: true, router: "pms", ts: new Date().toISOString() });
 });
 
+// DEBUG: list available Prisma delegates on this build (no DB access)
+router.get("/__client", (_req, res) => {
+  // exclude internal/private keys
+  const keys = Object.keys((prismaMod as any)?.default ?? {}).filter(k => !k.startsWith("_") && !k.startsWith("$"));
+  res.json({ ok: true, delegates: keys });
+});
+
 /**
  * Auth (Bearer -> ExtranetSession) with ~3s timeout.
  * Sets req.partnerId on success.
