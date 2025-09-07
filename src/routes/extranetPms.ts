@@ -3,6 +3,7 @@
 import express from "express";
 import * as prismaMod from "../prisma.js";
 
+// Defensive Prisma client resolution (works for named or default exports)
 const db: any =
   (prismaMod as any).prisma ??
   (prismaMod as any).default?.prisma ??
@@ -12,23 +13,33 @@ const db: any =
 const router = express.Router();
 
 /**
- * Lightweight health (no DB, no auth) to prove router is mounted.
- * GET /extranet/pms/__ping
+ * ---- PUBLIC (no auth) DIAGNOSTICS ----
+ *
+ * 1) GET /extranet/pms/__ping   -> proves router is mounted
+ * 2) GET /extranet/pms/__client -> lists Prisma delegates in this build (no DB calls)
  */
+
+// 1) Router ping
 router.get("/__ping", (_req, res) => {
   res.json({ ok: true, router: "pms", ts: new Date().toISOString() });
 });
 
-// DEBUG: list available Prisma delegates on this build (no DB access)
+// 2) Prisma client delegates present in this build
 router.get("/__client", (_req, res) => {
-  // exclude internal/private keys
-  const keys = Object.keys((prismaMod as any)?.default ?? {}).filter(k => !k.startsWith("_") && !k.startsWith("$"));
-  res.json({ ok: true, delegates: keys });
+  try {
+    // list enumerable keys on the Prisma client instance
+    const keys = Object.keys(db || {}).filter(
+      (k) => !k.startsWith("_") && !k.startsWith("$")
+    );
+    res.json({ ok: true, delegates: keys });
+  } catch (e: any) {
+    res.status(500).json({ ok: false, error: String(e?.message || e) });
+  }
 });
 
 /**
- * Auth (Bearer -> ExtranetSession) with ~3s timeout.
- * Sets req.partnerId on success.
+ * ---- AUTH (Bearer -> ExtranetSession) ----
+ * Adds req.partnerId on success. ~3s timeout on session lookup.
  */
 router.use(async (req, res, next) => {
   try {
@@ -58,8 +69,7 @@ router.use(async (req, res, next) => {
 });
 
 /**
- * Quick auth check (diagnostic)
- * GET /extranet/pms/whoami
+ * ---- AUTHED DIAGNOSTIC ----
  */
 router.get("/whoami", (req, res) => {
   res.json({ ok: true, partnerId: Number(req.partnerId) || null });
@@ -76,10 +86,8 @@ function getPartnerId(req: any) {
 }
 
 /**
- * CONNECTIONS
+ * ---- CONNECTIONS ----
  */
-
-// GET /extranet/pms/connections
 router.get("/connections", async (req, res) => {
   try {
     const partnerId = getPartnerId(req);
@@ -96,7 +104,6 @@ router.get("/connections", async (req, res) => {
   }
 });
 
-// POST /extranet/pms/connections  (create or upsert by provider)
 router.post("/connections", async (req, res) => {
   try {
     const partnerId = getPartnerId(req);
@@ -129,7 +136,6 @@ router.post("/connections", async (req, res) => {
   }
 });
 
-// PATCH /extranet/pms/connections/:id
 router.patch("/connections/:id", async (req, res) => {
   try {
     const partnerId = getPartnerId(req);
@@ -161,19 +167,17 @@ router.patch("/connections/:id", async (req, res) => {
   }
 });
 
-// POST /extranet/pms/connections/:id/test
 router.post("/connections/:id/test", async (req, res) => {
   try {
     const partnerId = getPartnerId(req);
     if (!partnerId || Number.isNaN(partnerId)) return res.status(401).json({ error: "Unauthorized" });
 
     const id = Number(req.params.id);
-
     const conn = await db.pmsConnection.findFirst({ where: { id, partnerId } });
     if (!conn) return res.status(404).json({ error: "Not found" });
 
     const start = Date.now();
-    const ok = true; // mock “ok”
+    const ok = true;
 
     const newConn = await db.pmsConnection.update({
       where: { id: conn.id },
@@ -199,7 +203,6 @@ router.post("/connections/:id/test", async (req, res) => {
   }
 });
 
-// DELETE /extranet/pms/connections/:id
 router.delete("/connections/:id", async (req, res) => {
   try {
     const partnerId = getPartnerId(req);
@@ -221,10 +224,8 @@ router.delete("/connections/:id", async (req, res) => {
 });
 
 /**
- * MAPPINGS
+ * ---- MAPPINGS ----
  */
-
-// GET /extranet/pms/mappings
 router.get("/mappings", async (req, res) => {
   try {
     const partnerId = getPartnerId(req);
@@ -247,7 +248,6 @@ router.get("/mappings", async (req, res) => {
   }
 });
 
-// POST /extranet/pms/mappings
 router.post("/mappings", async (req, res) => {
   try {
     const partnerId = getPartnerId(req);
@@ -287,7 +287,6 @@ router.post("/mappings", async (req, res) => {
   }
 });
 
-// PATCH /extranet/pms/mappings/:id
 router.patch("/mappings/:id", async (req, res) => {
   try {
     const partnerId = getPartnerId(req);
@@ -320,7 +319,6 @@ router.patch("/mappings/:id", async (req, res) => {
   }
 });
 
-// DELETE /extranet/pms/mappings/:id
 router.delete("/mappings/:id", async (req, res) => {
   try {
     const partnerId = getPartnerId(req);
@@ -342,10 +340,8 @@ router.delete("/mappings/:id", async (req, res) => {
 });
 
 /**
- * LOGS
+ * ---- LOGS ----
  */
-
-// GET /extranet/pms/logs?limit=50
 router.get("/logs", async (req, res) => {
   try {
     const partnerId = getPartnerId(req);
