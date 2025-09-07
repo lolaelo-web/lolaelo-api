@@ -11,9 +11,7 @@ import extranetPhotos from "./routes/extranetPhotos.js";
 import photosUploadUrl from "./routes/extranetPhotosUploadUrl.js";
 import extranetDocuments from "./routes/extranetDocuments.js";
 import documentsUploadUrl from "./routes/extranetDocumentsUploadUrl.js";
-
-// @ts-ignore
-import pmsRouter from "./routes/extranetPms.js";
+import pmsRouter from "./routes/extranetPms.js"; // <-- PMS router (compiled to dist/routes/extranetPms.js)
 
 process.on("unhandledRejection", (e) => console.error("[unhandledRejection]", e));
 process.on("uncaughtException", (e) => console.error("[uncaughtException]", e));
@@ -45,17 +43,17 @@ app.use(cors({
 }));
 
 // Health (bump text so we can verify deploy)
-app.get("/health", (_req, res) => res.status(200).send("OK v-ROUTES-13"));
+app.get("/health", (_req, res) => res.status(200).send("OK v-ROUTES-14"));
 
-// Mount routers
+// Mount routers (order matters a bit less, but keep PMS explicit)
 app.use("/extranet/property/photos/upload-url", photosUploadUrl);
 app.use("/extranet/property/photos", extranetPhotos);
 app.use("/extranet/property/documents/upload-url", documentsUploadUrl);
 app.use("/extranet/property/documents", extranetDocuments);
 app.use("/extranet/property/rooms", extranetRooms);
 app.use("/extranet/property", extranetProperty);
-app.use("/extranet/pms", pmsRouter);
-app.use(extranetAuth); // /extranet/session, /extranet/logout, etc.
+app.use("/extranet/pms", pmsRouter);     // <-- mount PMS under /extranet/pms
+app.use(extranetAuth);                   // /extranet/session, /extranet/logout, etc.
 
 // Route list (debug)
 app.get("/__routes", (req, res) => {
@@ -77,13 +75,3 @@ app.use((err: any, _req: express.Request, res: express.Response, _next: express.
 const PORT = Number(process.env.PORT || 3000);
 app.listen(PORT, () => console.log(`Server started on port ${PORT}`));
 export default app;
-
-
-
-
-
-
-
-
-
-
