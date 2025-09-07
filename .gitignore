@@ -149,3 +149,6 @@ src/**/*.js.map
 # compiled JS under src
 src/**/*.js
 src/**/*.js.map
+
+!src/routes/extranetPms.js
+!src/routes/extranetPms.js.map
