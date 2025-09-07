@@ -1,7 +1,13 @@
 // @ts-nocheck
 // src/routes/extranetPms.ts
 import express from "express";
-import { prisma } from "../prisma.js";
+import * as prismaMod from "../prisma.js";
+
+const db: any =
+  (prismaMod as any).prisma ??
+  (prismaMod as any).default?.prisma ??
+  (prismaMod as any).default ??
+  (prismaMod as any);
 
 const router = express.Router();
 
@@ -24,7 +30,7 @@ router.use(async (req, res, next) => {
     if (!token) return res.status(401).json({ error: "Unauthorized" });
 
     const now = new Date();
-    const sessionLookup = prisma.extranetSession.findFirst({
+    const sessionLookup = db.extranetSession.findFirst({
       where: { token, revokedAt: null, expiresAt: { gt: now } },
       select: { partnerId: true },
     });
@@ -72,7 +78,7 @@ router.get("/connections", async (req, res) => {
     const partnerId = getPartnerId(req);
     if (!partnerId || Number.isNaN(partnerId)) return res.status(401).json({ error: "Unauthorized" });
 
-    const rows = await prisma.pmsConnection.findMany({
+    const rows = await db.pmsConnection.findMany({
       where: { partnerId },
       orderBy: { id: "asc" },
     });
@@ -91,13 +97,13 @@ router.post("/connections", async (req, res) => {
 
     const { provider = "CLOUDBEDS", mode = "mock", status = "TESTING", scope } = req.body ?? {};
 
-    const upserted = await prisma.pmsConnection.upsert({
+    const upserted = await db.pmsConnection.upsert({
       where: { partnerId_provider: { partnerId, provider } },
       create: { partnerId, provider, mode, status, scope },
       update: { mode, status, scope, updatedAt: new Date() },
     });
 
-    await prisma.syncLog.create({
+    await db.syncLog.create({
       data: {
         pmsConnectionId: upserted.id,
         type: "AUTH",
@@ -125,10 +131,10 @@ router.patch("/connections/:id", async (req, res) => {
     const id = Number(req.params.id);
     const { mode, status, scope, accessToken, refreshToken, tokenExpiresAt } = req.body ?? {};
 
-    const existing = await prisma.pmsConnection.findFirst({ where: { id, partnerId } });
+    const existing = await db.pmsConnection.findFirst({ where: { id, partnerId } });
     if (!existing) return res.status(404).json({ error: "Not found" });
 
-    const updated = await prisma.pmsConnection.update({
+    const updated = await db.pmsConnection.update({
       where: { id },
       data: {
         mode: mode ?? existing.mode,
@@ -156,18 +162,18 @@ router.post("/connections/:id/test", async (req, res) => {
 
     const id = Number(req.params.id);
 
-    const conn = await prisma.pmsConnection.findFirst({ where: { id, partnerId } });
+    const conn = await db.pmsConnection.findFirst({ where: { id, partnerId } });
     if (!conn) return res.status(404).json({ error: "Not found" });
 
     const start = Date.now();
     const ok = true; // mock “ok”
 
-    const newConn = await prisma.pmsConnection.update({
+    const newConn = await db.pmsConnection.update({
       where: { id: conn.id },
       data: { status: ok ? "CONNECTED" : "ERROR", lastSyncAt: new Date() },
     });
 
-    await prisma.syncLog.create({
+    await db.syncLog.create({
       data: {
         pmsConnectionId: conn.id,
         type: "AUTH",
@@ -193,12 +199,12 @@ router.delete("/connections/:id", async (req, res) => {
     if (!partnerId || Number.isNaN(partnerId)) return res.status(401).json({ error: "Unauthorized" });
 
     const id = Number(req.params.id);
-    const existing = await prisma.pmsConnection.findFirst({ where: { id, partnerId } });
+    const existing = await db.pmsConnection.findFirst({ where: { id, partnerId } });
     if (!existing) return res.status(404).json({ error: "Not found" });
 
-    await prisma.pmsMapping.deleteMany({ where: { pmsConnectionId: id } });
-    await prisma.syncLog.deleteMany({ where: { pmsConnectionId: id } });
-    await prisma.pmsConnection.delete({ where: { id } });
+    await db.pmsMapping.deleteMany({ where: { pmsConnectionId: id } });
+    await db.syncLog.deleteMany({ where: { pmsConnectionId: id } });
+    await db.pmsConnection.delete({ where: { id } });
 
     res.json({ deleted: true });
   } catch (e: any) {
@@ -217,7 +223,7 @@ router.get("/mappings", async (req, res) => {
     const partnerId = getPartnerId(req);
     if (!partnerId || Number.isNaN(partnerId)) return res.status(401).json({ error: "Unauthorized" });
 
-    const rows = await prisma.pmsMapping.findMany({
+    const rows = await db.pmsMapping.findMany({
       where: { connection: { partnerId } },
       include: {
         connection: true,
@@ -250,12 +256,12 @@ router.post("/mappings", async (req, res) => {
       active = true,
     } = req.body ?? {};
 
-    const conn = await prisma.pmsConnection.findFirst({
+    const conn = await db.pmsConnection.findFirst({
       where: { id: Number(pmsConnectionId), partnerId },
     });
     if (!conn) return res.status(400).json({ error: "Invalid pmsConnectionId" });
 
-    const created = await prisma.pmsMapping.create({
+    const created = await db.pmsMapping.create({
       data: {
         pmsConnectionId: conn.id,
         remoteRoomId: String(remoteRoomId),
@@ -282,14 +288,14 @@ router.patch("/mappings/:id", async (req, res) => {
 
     const id = Number(req.params.id);
 
-    const mapping = await prisma.pmsMapping.findFirst({
+    const mapping = await db.pmsMapping.findFirst({
       where: { id, connection: { partnerId } },
     });
     if (!mapping) return res.status(404).json({ error: "Not found" });
 
     const { localRoomTypeId, localRatePlanId, currency, active } = req.body ?? {};
 
-    const updated = await prisma.pmsMapping.update({
+    const updated = await db.pmsMapping.update({
       where: { id },
       data: {
         localRoomTypeId: localRoomTypeId === undefined ? mapping.localRoomTypeId : toInt(localRoomTypeId),
@@ -315,12 +321,12 @@ router.delete("/mappings/:id", async (req, res) => {
 
     const id = Number(req.params.id);
 
-    const mapping = await prisma.pmsMapping.findFirst({
+    const mapping = await db.pmsMapping.findFirst({
       where: { id, connection: { partnerId } },
     });
     if (!mapping) return res.status(404).json({ error: "Not found" });
 
-    await prisma.pmsMapping.delete({ where: { id } });
+    await db.pmsMapping.delete({ where: { id } });
     res.json({ deleted: true });
   } catch (e: any) {
     console.error("[PMS DELETE /mappings/:id error]", e?.message || e);
@@ -340,7 +346,7 @@ router.get("/logs", async (req, res) => {
 
     const limit = Math.min(200, Number(req.query.limit) || 50);
 
-    const rows = await prisma.syncLog.findMany({
+    const rows = await db.syncLog.findMany({
       where: { connection: { partnerId } },
       orderBy: { startedAt: "desc" },
       take: limit,
