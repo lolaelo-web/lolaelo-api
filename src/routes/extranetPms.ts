@@ -12,7 +12,9 @@ globalThis.__pmsPrisma__ = db;
 
 const router = express.Router();
 
-/* ----------------------------- Diagnostics (no auth) ----------------------------- */
+/* ======================================================================
+   PUBLIC DIAGNOSTICS  (no auth; must be defined BEFORE any auth middleware)
+   ====================================================================== */
 
 router.get("/__ping", (_req, res) => {
   res.json({ ok: true, router: "pms", ts: new Date().toISOString() });
@@ -42,8 +44,40 @@ router.get("/__client", (_req, res) => {
   }
 });
 
-/* ----------------------------------- Auth ----------------------------------- */
-// Bearer token -> ExtranetSession (3s timeout), sets req.partnerId
+router.get("/__routes_public", (_req, res) => {
+  try {
+    const stack: any[] = ((router as any).stack ?? []).filter((l: any) => l?.route);
+    const routes = stack.map((l: any) => ({
+      path: l.route?.path,
+      methods: l.route ? Object.keys(l.route.methods) : [],
+    }));
+    res.json({ ok: true, routes });
+  } catch (e: any) {
+    res.status(500).json({ ok: false, error: String(e?.message || e) });
+  }
+});
+
+router.get("/__dbping_public", async (_req, res) => {
+  try {
+    if (hasDelegates()) {
+      const one = await (db as any).roomType.findMany({ take: 1, select: { id: true } });
+      return res.json({ ok: true, via: "delegate", sample: one });
+    } else {
+      const rows: any = await (db as any).$queryRawUnsafe(
+        `SELECT current_user, current_schema, NOW() as now, 1 as one`
+      );
+      return res.json({ ok: true, via: "raw", rows });
+    }
+  } catch (e: any) {
+    // Keep 200 with ok:false so health dashboards don't hard-fail
+    return res.json({ ok: false, via: hasDelegates() ? "delegate" : "raw", error: String(e?.message || e) });
+  }
+});
+
+/* ======================================================================
+   PRIVATE AUTH  (applies to everything below)
+   - Bearer token -> ExtranetSession (3s timeout), sets req.partnerId
+   ====================================================================== */
 router.use(async (req, res, next) => {
   try {
     const auth = req.headers?.authorization || "";
@@ -71,7 +105,9 @@ router.get("/whoami", (req, res) => {
   res.json({ ok: true, partnerId: Number((req as any).partnerId) || null });
 });
 
-/* --------------------------------- Helpers --------------------------------- */
+/* ======================================================================
+   HELPERS
+   ====================================================================== */
 
 function toInt(v: any) {
   if (v === undefined || v === null || v === "") return undefined;
@@ -81,6 +117,7 @@ function toInt(v: any) {
 function getPartnerId(req: any) {
   return Number(req.partnerId);
 }
+/** treat delegates as present only if ALL three exist (keeps fallback coherent) */
 function hasDelegates() {
   const anyDb: any = db;
   return (
@@ -90,7 +127,9 @@ function hasDelegates() {
   );
 }
 
-/* ------------------------------- CONNECTIONS ------------------------------- */
+/* ======================================================================
+   CONNECTIONS
+   ====================================================================== */
 
 // GET /extranet/pms/connections
 router.get("/connections", async (req, res) => {
@@ -142,7 +181,7 @@ router.post("/connections", async (req, res) => {
       return res.json(upserted);
     }
 
-    // RAW fallback: INSERT ... ON CONFLICT ("partnerId","provider") DO UPDATE ...
+    // RAW fallback
     const upsertSql = `
       INSERT INTO "extranet"."PmsConnection"
         ("partnerId","provider","mode","status","scope","createdAt","updatedAt")
@@ -152,12 +191,10 @@ router.post("/connections", async (req, res) => {
                     "status" = EXCLUDED."status",
                     "scope" = EXCLUDED."scope",
                     "updatedAt" = NOW()
-      RETURNING *;
-    `;
+      RETURNING *;`;
     const rows = await (db as any).$queryRawUnsafe(upsertSql, partnerId, provider, mode, status, scope);
     const conn = rows?.[0];
 
-    // log
     await (db as any).$executeRawUnsafe(
       `INSERT INTO "extranet"."SyncLog"
        ("pmsConnectionId","type","status","message","startedAt","finishedAt","durationMs","createdAt","updatedAt")
@@ -211,8 +248,7 @@ router.patch("/connections/:id", async (req, res) => {
           "tokenExpiresAt" = COALESCE($7,"tokenExpiresAt"),
           "updatedAt" = NOW()
       WHERE "id"=$1 AND "partnerId"=$8
-      RETURNING *;
-    `;
+      RETURNING *;`;
     const rows = await (db as any).$queryRawUnsafe(
       updateSql,
       id,
@@ -266,7 +302,8 @@ router.post("/connections/:id/test", async (req, res) => {
     // RAW fallback
     const connRows = await (db as any).$queryRawUnsafe(
       'SELECT * FROM "extranet"."PmsConnection" WHERE "id"=$1 AND "partnerId"=$2',
-      id, partnerId
+      id,
+      partnerId
     );
     if (!connRows?.length) return res.status(404).json({ error: "Not found" });
 
@@ -279,7 +316,9 @@ router.post("/connections/:id/test", async (req, res) => {
       `INSERT INTO "extranet"."SyncLog"
        ("pmsConnectionId","type","status","message","startedAt","finishedAt","durationMs","createdAt","updatedAt")
        VALUES ($1,'AUTH',$2,$3,NOW(),NOW(),0,NOW(),NOW())`,
-      id, ok ? "SUCCESS" : "ERROR", ok ? "Mock connection test passed" : "Mock connection test failed"
+      id,
+      ok ? "SUCCESS" : "ERROR",
+      ok ? "Mock connection test passed" : "Mock connection test failed"
     );
     const updated = await (db as any).$queryRawUnsafe('SELECT * FROM "extranet"."PmsConnection" WHERE "id"=$1', id);
     return res.json({ ok, connection: updated?.[0], logStatus: ok ? "SUCCESS" : "ERROR" });
@@ -310,7 +349,8 @@ router.delete("/connections/:id", async (req, res) => {
     await (db as any).$executeRawUnsafe('DELETE FROM "extranet"."SyncLog" WHERE "pmsConnectionId"=$1', id);
     const delRows = await (db as any).$queryRawUnsafe(
       'DELETE FROM "extranet"."PmsConnection" WHERE "id"=$1 AND "partnerId"=$2 RETURNING 1',
-      id, partnerId
+      id,
+      partnerId
     );
     if (!delRows?.length) return res.status(404).json({ error: "Not found" });
     return res.json({ deleted: true });
@@ -320,7 +360,9 @@ router.delete("/connections/:id", async (req, res) => {
   }
 });
 
-/* --------------------------------- MAPPINGS -------------------------------- */
+/* ======================================================================
+   MAPPINGS
+   ====================================================================== */
 
 router.get("/mappings", async (req, res) => {
   try {
@@ -340,7 +382,7 @@ router.get("/mappings", async (req, res) => {
       return res.json(rows);
     }
 
-    // RAW fallback (join for labels where present)
+    // RAW fallback
     const sql = `
       SELECT m.*,
              c."provider", c."mode", c."status" as "connectionStatus",
@@ -394,10 +436,11 @@ router.post("/mappings", async (req, res) => {
       return res.json(created);
     }
 
-    // RAW fallback: validate connection belongs to partner, then insert
+    // RAW fallback
     const connRows = await (db as any).$queryRawUnsafe(
       'SELECT "id" FROM "extranet"."PmsConnection" WHERE "id"=$1 AND "partnerId"=$2',
-      Number(pmsConnectionId), partnerId
+      Number(pmsConnectionId),
+      partnerId
     );
     if (!connRows?.length) return res.status(400).json({ error: "Invalid pmsConnectionId" });
 
@@ -504,32 +547,39 @@ router.delete("/mappings/:id", async (req, res) => {
   }
 });
 
-/* ----------------------------------- LOGS ---------------------------------- */
+/* ======================================================================
+   LOGS
+   ====================================================================== */
 
+// GET /extranet/pms/logs?limit=10
 router.get("/logs", async (req, res) => {
   try {
     const partnerId = getPartnerId(req);
     if (!partnerId || Number.isNaN(partnerId)) return res.status(401).json({ error: "Unauthorized" });
-    const limit = Math.min(200, Number(req.query.limit) || 50);
+    const limit = Math.min(Math.max(Number(req.query.limit ?? 10), 1), 100);
 
     if (hasDelegates()) {
       const rows = await (db as any).syncLog.findMany({
         where: { connection: { partnerId } },
-        orderBy: { startedAt: "desc" },
+        orderBy: [{ id: "desc" }],
         take: limit,
       });
       return res.json(rows);
     }
 
     // RAW fallback
-    const sql = `
-      SELECT s.*
-      FROM "extranet"."SyncLog" s
-      JOIN "extranet"."PmsConnection" c ON c."id" = s."pmsConnectionId"
+    const rows = await (db as any).$queryRawUnsafe(
+      `
+      SELECT l.*
+      FROM "extranet"."SyncLog" l
+      JOIN "extranet"."PmsConnection" c ON c."id" = l."pmsConnectionId"
       WHERE c."partnerId" = $1
-      ORDER BY s."startedAt" DESC
-      LIMIT $2;`;
-    const rows = await (db as any).$queryRawUnsafe(sql, partnerId, limit);
+      ORDER BY l."id" DESC
+      LIMIT $2
+      `,
+      partnerId,
+      limit
+    );
     return res.json(rows);
   } catch (e: any) {
     console.error("[PMS GET /logs error]", e?.message || e);
@@ -537,17 +587,16 @@ router.get("/logs", async (req, res) => {
   }
 });
 
-/* ---------------------------- MOCK REMOTE FIXTURES ---------------------------- */
-/**
- * GET /extranet/pms/remote/rooms
- * Returns mock room metadata for each active mapping (per partner).
- */
+/* ======================================================================
+   MOCK REMOTE FIXTURES
+   ====================================================================== */
+
+// GET /extranet/pms/remote/rooms
 router.get("/remote/rooms", async (req, res) => {
   try {
     const partnerId = Number((req as any).partnerId);
     if (!partnerId) return res.status(401).json({ error: "Unauthorized" });
 
-    // Read mappings via delegate (if present) else raw SQL
     let mappings: any[] = [];
     if (hasDelegates()) {
       mappings = await (db as any).pmsMapping.findMany({
@@ -564,7 +613,6 @@ router.get("/remote/rooms", async (req, res) => {
       );
     }
 
-    // Minimal mock catalog per mapping
     const rooms = mappings.map((m) => ({
       connectionId: m.pmsConnectionId,
       remoteRoomId: String(m.remoteRoomId),
@@ -584,24 +632,20 @@ router.get("/remote/rooms", async (req, res) => {
   }
 });
 
-/**
- * GET /extranet/pms/remote/availability?start=YYYY-MM-DD&end=YYYY-MM-DD
- * Returns mock availability + price per mapping per date.
- */
+// GET /extranet/pms/remote/availability?start=YYYY-MM-DD&end=YYYY-MM-DD
 router.get("/remote/availability", async (req, res) => {
   try {
     const partnerId = Number((req as any).partnerId);
     if (!partnerId) return res.status(401).json({ error: "Unauthorized" });
 
     const startStr = String(req.query.start ?? "");
-    const endStr   = String(req.query.end ?? "");
-    const start    = new Date(startStr);
-    const end      = new Date(endStr);
+    const endStr = String(req.query.end ?? "");
+    const start = new Date(startStr);
+    const end = new Date(endStr);
     if (Number.isNaN(start.valueOf()) || Number.isNaN(end.valueOf()) || end <= start) {
       return res.status(400).json({ error: "Invalid date range" });
     }
 
-    // Read mappings (active) for partner
     let mappings: any[] = [];
     if (hasDelegates()) {
       mappings = await (db as any).pmsMapping.findMany({
@@ -618,13 +662,15 @@ router.get("/remote/availability", async (req, res) => {
       );
     }
 
-    // Build date list [start, end)
     const days: string[] = [];
-    for (let d = new Date(Date.UTC(start.getUTCFullYear(), start.getUTCMonth(), start.getUTCDate())); d < end; d.setUTCDate(d.getUTCDate() + 1)) {
-      days.push(d.toISOString().slice(0, 10)); // YYYY-MM-DD
+    for (
+      let d = new Date(Date.UTC(start.getUTCFullYear(), start.getUTCMonth(), start.getUTCDate()));
+      d < end;
+      d.setUTCDate(d.getUTCDate() + 1)
+    ) {
+      days.push(d.toISOString().slice(0, 10));
     }
 
-    // Return deterministic mock: 3 rooms open, price = 120 + (dayIndex % 5) * 10
     const out: any[] = [];
     mappings.forEach((m) => {
       days.forEach((ds, idx) => {
@@ -647,83 +693,78 @@ router.get("/remote/availability", async (req, res) => {
     res.status(500).json({ error: "Internal", detail: String(e?.message || e) });
   }
 });
-/* ------------------------------ UIS SEARCH MERGE ------------------------------ */
-/**
- * GET /extranet/uis/search?start=YYYY-MM-DD&end=YYYY-MM-DD&guests=2
- * Returns combined extranet + PMS availability with prices.
- * Shape:
- * {
- *   extranet: [{ source, date, roomTypeId, ratePlanId, name, maxGuests, price, currency }],
- *   pms:      [{ source, date, connectionId, remoteRoomId, remoteRatePlanId, name, maxGuests, price, currency }]
- * }
- */
+
+/* ======================================================================
+   UIS SEARCH MERGE
+   ====================================================================== */
+
+// GET /extranet/pms/uis/search?start=YYYY-MM-DD&end=YYYY-MM-DD&guests=2
 router.get("/uis/search", async (req, res) => {
   try {
     const partnerId = Number((req as any).partnerId);
     if (!partnerId) return res.status(401).json({ error: "Unauthorized" });
 
     const startStr = String(req.query.start ?? "");
-    const endStr   = String(req.query.end ?? "");
-    const guests   = Number(req.query.guests ?? 2);
+    const endStr = String(req.query.end ?? "");
+    const guests = Number(req.query.guests ?? 2);
 
     const start = new Date(startStr);
-    const end   = new Date(endStr);
+    const end = new Date(endStr);
     if (Number.isNaN(start.valueOf()) || Number.isNaN(end.valueOf()) || end <= start) {
       return res.status(400).json({ error: "Invalid date range" });
     }
 
-    /* -------- build date list [start, end) in UTC YYYY-MM-DD -------- */
+    // Date list [start, end)
     const days: string[] = [];
-    for (let d = new Date(Date.UTC(start.getUTCFullYear(), start.getUTCMonth(), start.getUTCDate())); d < end; d.setUTCDate(d.getUTCDate() + 1)) {
+    for (
+      let d = new Date(Date.UTC(start.getUTCFullYear(), start.getUTCMonth(), start.getUTCDate()));
+      d < end;
+      d.setUTCDate(d.getUTCDate() + 1)
+    ) {
       days.push(d.toISOString().slice(0, 10));
     }
 
-    /* ------------------------------ EXTRANET SIDE ----------------------------- */
-    // Pull room types for partner (filter by maxGuests >= guests)
-    const rts = await (db as any).roomType.findMany({
-      where: { partnerId, maxGuests: { gte: Number.isNaN(guests) ? 1 : guests } },
-      select: { id: true, name: true, maxGuests: true, partnerId: true }
-    });
+    /* -------- EXTRANET: room types, inventory, min price per date -------- */
+    let rts: any[] = [];
+    let inv: any[] = [];
+    let prices: any[] = [];
+    try {
+      rts = await (db as any).roomType.findMany({
+        where: { partnerId, maxGuests: { gte: Number.isNaN(guests) ? 1 : guests } },
+        select: { id: true, name: true, maxGuests: true, partnerId: true },
+      });
+      inv = await (db as any).roomInventory.findMany({
+        where: { partnerId, date: { gte: start, lt: end }, isClosed: false, roomsOpen: { gt: 0 } },
+        select: { roomTypeId: true, date: true, roomsOpen: true },
+      });
+      prices = await (db as any).roomPrice.findMany({
+        where: { partnerId, date: { gte: start, lt: end } },
+        select: { roomTypeId: true, ratePlanId: true, date: true, price: true },
+      });
+    } catch {
+      // If any delegate unexpectedly missing, fall back to empty arrays
+      rts = []; inv = []; prices = [];
+    }
 
-    // Inventory where rooms are open and not closed
-    const inv = await (db as any).roomInventory.findMany({
-      where: {
-        partnerId,
-        date: { gte: start, lt: end },
-        isClosed: false,
-        roomsOpen: { gt: 0 },
-      },
-      select: { roomTypeId: true, date: true, roomsOpen: true }
-    });
-
-    // Prices for those room types in range (any rate plan); we'll pick the lowest per roomType/date
-    const prices = await (db as any).roomPrice.findMany({
-      where: { partnerId, date: { gte: start, lt: end } },
-      select: { roomTypeId: true, ratePlanId: true, date: true, price: true }
-    });
-
-    // Index helpers
     const rtIndex = new Map<number, { id: number; name: string; maxGuests: number }>();
-    rts.forEach(rt => rtIndex.set(rt.id, rt));
+    rts.forEach((rt) => rtIndex.set(rt.id, rt));
 
-    // Build extranet rows = { date, roomTypeId, ratePlanId?, price(min), currency }
     const extranet: any[] = [];
-    // Price map: key `${roomTypeId}|${YYYY-MM-DD}` -> min price
     const minPrice = new Map<string, { price: any; ratePlanId: number | null }>();
     for (const p of prices) {
-      const key = `${p.roomTypeId}|${(new Date(p.date)).toISOString().slice(0,10)}`;
+      const key = `${p.roomTypeId}|${new Date(p.date).toISOString().slice(0, 10)}`;
       const prev = minPrice.get(key);
       if (!prev || Number(p.price) < Number(prev.price)) {
         minPrice.set(key, { price: p.price, ratePlanId: p.ratePlanId ?? null });
       }
     }
     for (const iv of inv) {
-      const dateStr = (new Date(iv.date)).toISOString().slice(0,10);
+      const dateStr = new Date(iv.date).toISOString().slice(0, 10);
       if (!days.includes(dateStr)) continue;
       const rt = rtIndex.get(iv.roomTypeId);
       if (!rt) continue;
       const mp = minPrice.get(`${iv.roomTypeId}|${dateStr}`);
-      if (!mp) continue; // skip if no price
+      if (!mp) continue;
       extranet.push({
         source: "direct",
         date: dateStr,
@@ -732,13 +773,11 @@ router.get("/uis/search", async (req, res) => {
         name: rt.name,
         maxGuests: rt.maxGuests,
         price: mp.price,
-        currency: "USD", // adjust if you store currency per partner/price
+        currency: "USD",
       });
     }
 
-    /* -------------------------------- PMS SIDE -------------------------------- */
-    // Reuse the same logic as /remote/rooms + /remote/availability
-    // 1) Mappings
+    /* ----------------------- PMS (mock via mappings) ---------------------- */
     let mappings: any[] = [];
     if (hasDelegates()) {
       mappings = await (db as any).pmsMapping.findMany({
@@ -755,7 +794,6 @@ router.get("/uis/search", async (req, res) => {
       );
     }
 
-    // 2) Build mock availability (same as /remote/availability)
     const pms: any[] = [];
     mappings.forEach((m) => {
       days.forEach((ds, idx) => {
@@ -773,15 +811,17 @@ router.get("/uis/search", async (req, res) => {
       });
     });
 
-    res.json({ extranet, pms });
+    res.status(200).json({ extranet, pms });
   } catch (e: any) {
     console.error("[UIS GET /uis/search error]", e?.message || e);
     res.status(500).json({ error: "Internal", detail: String(e?.message || e) });
   }
 });
 
-/* ------------------------------ PMS DIAGNOSTICS ------------------------------ */
-// Lists routes mounted in this router (helps confirm deploy contents)
+/* ======================================================================
+   PRIVATE DIAGNOSTICS (require auth)
+   ====================================================================== */
+
 router.get("/__routes", (_req, res) => {
   try {
     const stack: any[] = ((router as any).stack ?? []).filter((l: any) => l?.route);
@@ -795,11 +835,9 @@ router.get("/__routes", (_req, res) => {
   }
 });
 
-// Pings DB safely (delegate if present else raw); never throws
 router.get("/__dbping", async (_req, res) => {
   try {
     if (hasDelegates()) {
-      // Use a harmless query via any known delegate
       const one = await (db as any).roomType.findMany({ take: 1, select: { id: true } });
       return res.json({ ok: true, via: "delegate", sample: one });
     } else {
@@ -807,7 +845,7 @@ router.get("/__dbping", async (_req, res) => {
       return res.json({ ok: true, via: "raw", rows });
     }
   } catch (e: any) {
-    return res.status(200).json({ ok: false, via: hasDelegates() ? "delegate" : "raw", error: String(e?.message || e) });
+    return res.json({ ok: false, via: hasDelegates() ? "delegate" : "raw", error: String(e?.message || e) });
   }
 });
 
