@@ -5,12 +5,18 @@ import { prisma } from "../prisma.js";
 
 const router = express.Router();
 
+// health for PMS router (no DB, no auth)
+router.get("/__ping", (_req, res) => {
+  res.json({ ok: true, router: "pms", ts: new Date().toISOString() });
+});
+
 /**
  * Lightweight auth for PMS routes:
  * - Reads Bearer token
  * - Looks up ExtranetSession (not revoked, not expired)
  * - Sets req.partnerId
  */
+// Auth (Bearer -> ExtranetSession) with 3s timeout
 router.use(async (req, res, next) => {
   try {
     const auth = req.headers?.authorization || "";
@@ -18,21 +24,26 @@ router.use(async (req, res, next) => {
     if (!token) return res.status(401).json({ error: "Unauthorized" });
 
     const now = new Date();
-    const session = await prisma.extranetSession.findFirst({
-      where: {
-        token,
-        revokedAt: null,
-        expiresAt: { gt: now },
-      },
+
+    const sessionLookup = prisma.extranetSession.findFirst({
+      where: { token, revokedAt: null, expiresAt: { gt: now } },
       select: { partnerId: true },
     });
+
+    // fail-fast timeout wrapper (~3s)
+    const timeout = new Promise((_, reject) =>
+      setTimeout(() => reject(new Error("AUTH_TIMEOUT")), 3000)
+    );
+
+    const session = await Promise.race([sessionLookup, timeout]);
+
     if (!session) return res.status(401).json({ error: "Unauthorized" });
 
     req.partnerId = session.partnerId;
     next();
   } catch (e) {
-    console.error("[PMS auth error]", e);
-    res.status(401).json({ error: "Unauthorized" });
+    console.error("[PMS auth error]", e?.message || e);
+    return res.status(401).json({ error: "Unauthorized" });
   }
 });
 
