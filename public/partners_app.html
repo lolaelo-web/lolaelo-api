@@ -1,0 +1,773 @@
+﻿<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Lolaelo Extranet - Partner Hub</title>
+
+  <!-- Prevent caching so Back can't revive stale pages -->
+  <meta http-equiv="Cache-Control" content="no-store, no-cache, must-revalidate, max-age=0" />
+  <meta http-equiv="Pragma" content="no-cache" />
+  <meta http-equiv="Expires" content="0" />
+
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
+  <style>
+  :root{
+    --bg:#0b1320; --card:#111a2b; --fg:#e8eefc; --muted:#9bb0d3; --accent:#ff6a3d; --line:rgba(255,255,255,.08);
+  }
+  *{ box-sizing:border-box }
+  body{
+    margin:0; font-family:Inter,system-ui,Segoe UI,Roboto,Helvetica,Arial;
+    background: radial-gradient(1000px 600px at 20% -10%, #1a2b4a 0%, #0b1320 60%, #0b1320 100%);
+    color:var(--fg); min-height:100vh; display:flex; flex-direction:column;
+  }
+  .wrap{ flex:1; display:flex; align-items:center; justify-content:center; padding:24px }
+  .shell{ width:100%; max-width:980px }
+  .topbar{ display:flex; align-items:center; justify-content:space-between; gap:12px; margin-bottom:18px }
+  .brand{ display:flex; align-items:center; gap:10px; }
+  .brand .dot{ width:10px; height:10px; border-radius:999px; background:#2bbb6f; box-shadow:0 0 0 3px rgba(43,187,111,.25) }
+  .brand .title{ font-size:16px; color:#cfe0ff }
+  .actions{ display:flex; gap:8px }
+  .btn{
+    appearance:none; border:1px solid var(--accent); background:var(--accent); color:#fff;
+    padding:9px 14px; border-radius:999px; font-weight:700; cursor:pointer;
+  }
+  .btn.secondary{ background:transparent; border-color:#2e7bff; color:#d7e5ff }
+  .btn.ghost{ background:transparent; border-color:var(--line); color:#cfe0ff }
+  .btn.small{ padding:6px 10px; border-radius:12px; font-size:12px }
+  .card{
+    background:var(--card); border:1px solid var(--line); border-radius:16px; padding:18px 18px;
+    box-shadow:0 8px 40px rgba(0,0,0,.45);
+  }
+  .hero{ display:flex; align-items:center; justify-content:space-between; gap:14px; margin-bottom:16px }
+  .hero h1{ margin:0; font-size:22px }
+  .hero p{ margin:6px 0 0; color:var(--muted); font-size:14px }
+  .grid{ display:grid; grid-template-columns:repeat(auto-fill,minmax(220px,1fr)); gap:12px; margin-top:8px }
+  .tile{
+    display:block; padding:16px; border:1px solid var(--line); background:#0e1830; border-radius:14px;
+    text-decoration:none; color:var(--fg); transition:.18s transform, .18s border-color, .18s background;
+    min-height:120px;
+  }
+  .tile:hover{ transform:translateY(-2px); border-color:#2e7bff; background:#0f1b36 }
+  .tile h3{ margin:0 0 6px; font-size:16px }
+  .tile p{ margin:0; color:var(--muted); font-size:13px; line-height:1.35 }
+  .badge{
+    display:inline-block; font-size:11px; padding:2px 8px; border-radius:999px; background:#193258; color:#bcd3ff; margin-left:6px; border:1px solid rgba(255,255,255,.08)
+  }
+  .status{ font-size:12px; color:#a9bbde; }
+  .status .ok{ color:#67e28f; font-weight:600 }
+  .status .todo{ color:#ff9a88; font-weight:600 }
+
+  .section{ margin-top:16px }
+  .section h2{ margin:0 0 10px; font-size:18px }
+  label{ display:block; font-size:13px; color:#cfe0ff; margin:12px 0 6px }
+  input, textarea, select{
+    width:100%; padding:12px; border-radius:10px; border:1px solid var(--line);
+    background:#0e1830; color:var(--fg); outline:none;
+  }
+  input::placeholder, textarea::placeholder{ color:var(--muted); opacity:1; }
+  textarea{ min-height:110px; resize:vertical }
+  input:focus, textarea:focus, select:focus{ border-color:#2e7bff; box-shadow:0 0 0 3px rgba(46,123,255,.20) }
+  .row{ display:grid; grid-template-columns:1fr 1fr; gap:12px }
+  .row3{ display:grid; grid-template-columns:1fr 1fr 1fr; gap:12px }
+  .backlink{ display:inline-block; margin-top:8px; font-size:13px; color:#ffb59f; text-decoration:underline; cursor:pointer }
+
+  .top-toast{ position:fixed; top:12px; left:0; right:0; display:flex; justify-content:center; pointer-events:none; z-index:10 }
+  .toast{
+    pointer-events:auto; min-width:280px; max-width:520px; background:#0e1830; border:1px solid rgba(255,255,255,.07);
+    padding:10px 12px; border-radius:10px; box-shadow:0 10px 30px rgba(0,0,0,.45); font-size:14px; color:#e8eefc;
+  }
+  .hidden{ display:none }
+
+  /* Photos grid */
+  .photos{ display:grid; grid-template-columns:repeat(auto-fill,minmax(140px,1fr)); gap:10px; margin-top:10px }
+  .photos .ph{ background:#0e1830; border:1px solid var(--line); border-radius:10px; padding:8px; }
+  .photos img{ width:100%; height:100px; object-fit:cover; border-radius:6px; display:block; }
+  .photos .meta{ font-size:11px; color:#a9bbde; margin-top:6px; word-break:break-all }
+
+  .photos .photo-actions{
+    display:flex; gap:6px; flex-wrap:wrap; margin-top:8px;
+  }
+
+  table{ width:100%; border-collapse:collapse; }
+  th, td{ padding:8px 10px; border-bottom:1px solid #203150; font-size:13px }
+  th{ text-align:left; color:#bcd3ff }
+  .muted{ color:var(--muted) }
+
+  @media (max-width: 700px){
+    .row, .row3{ grid-template-columns:1fr }
+  }
+  </style>
+
+  <!-- travel shared helpers -->
+  <script src="js/shared.js"></script>
+</head>
+<body>
+  <div class="top-toast"><div id="toast" class="toast hidden"></div></div>
+
+  <div class="wrap">
+    <div class="shell">
+      <div class="topbar">
+        <div class="brand">
+          <span class="dot" aria-hidden="true"></span>
+          <div class="title" id="brandTitle">Lolaelo Extranet</div>
+        </div>
+        <div class="actions">
+          <button id="btnLogout" class="btn ghost" title="Sign out">Sign out</button>
+        </div>
+      </div>
+
+      <!-- HUB -->
+      <div id="hub" class="card" role="main" aria-label="Partner Hub">
+        <div class="hero">
+          <div>
+            <h1 id="welcomeH1">Welcome</h1>
+            <p id="partnerEmail" class="muted">-</p>
+          </div>
+          <div class="status">
+            Profile: <span id="profileStatus" class="todo">Checking…</span>
+          </div>
+        </div>
+
+        <div class="grid">
+          <a id="tileProfile" class="tile" href="#profile">
+            <h3>Company Profile</h3>
+            <p>Manage your company details, contact info and description.</p>
+          </a>
+
+          <a class="tile" href="#" id="tilePhotos">
+            <h3>My Photos</h3>
+            <p>Browse the photos you’ve uploaded.</p>
+          </a>
+
+          <a class="tile" href="/partners_documents.html">
+            <h3>Documents</h3>
+            <p>Upload W-9, insurance, or vendor agreements.</p>
+          </a>
+
+          <a class="tile" href="#" id="tileRooms">
+            <h3>Rooms & Availability</h3>
+            <p>Edit room types, inventory & prices.</p>
+          </a>
+
+          <a class="tile" href="#" id="tilePmsConnections">
+            <h3>PMS Connections</h3>
+            <p>Connect Cloudbeds (mock), test, view logs.</p>
+          </a>
+
+          <a class="tile" href="#" id="tilePmsMappings">
+            <h3>PMS Mappings</h3>
+            <p>Map PMS rooms/rate plans to Extranet.</p>
+          </a>
+
+          <a class="tile" href="#" onclick="alert('Payment history is coming soon.'); return false;">
+            <h3>Payment History <span class="badge">Soon</span></h3>
+            <p>See past payouts and payment status (coming soon).</p>
+          </a>
+
+          <a class="tile" href="mailto:support@lolaelo.com">
+            <h3>Support</h3>
+            <p>Questions? Email our team - we're happy to help.</p>
+          </a>
+        </div>
+      </div>
+
+      <!-- Photos Panel -->
+      <div id="photosPanel" class="card section hidden">
+        <h2>Your Photos</h2>
+
+        <div id="photosActions" style="display:flex; gap:8px; align-items:center; margin:6px 0 10px">
+          <button id="btnUploadPhoto" class="btn" type="button">Upload photo</button>
+          <input id="fileInput" type="file" accept="image/*" style="display:none" />
+        </div>
+
+        <div id="photosGrid" class="photos"></div>
+
+        <div style="display:flex; gap:8px; margin-top:14px">
+          <button id="photosBackBtn" class="btn secondary" type="button">Back to menu</button>
+        </div>
+      </div>
+
+      <!-- COMPANY PROFILE -->
+      <div id="profile" class="card section hidden" aria-label="Company Profile">
+        <h2>Company Profile</h2>
+        <div class="row">
+          <div>
+            <label for="pp_name">Company name *</label>
+            <input id="pp_name" type="text" placeholder="Hotel Buena Vista" />
+          </div>
+          <div>
+            <label for="pp_contactEmail">Contact email</label>
+            <input id="pp_contactEmail" type="email" placeholder="frontdesk@hotel.com" />
+          </div>
+        </div>
+
+        <div class="row">
+          <div>
+            <label for="pp_phone">Phone</label>
+            <input id="pp_phone" type="tel" placeholder="+1 (555) 555-1234" />
+          </div>
+          <div>
+            <label for="pp_country">Country</label>
+            <input id="pp_country" type="text" placeholder="United States" />
+          </div>
+        </div>
+
+        <div class="row">
+          <div>
+            <label for="pp_address">Address</label>
+            <input id="pp_address" type="text" placeholder="123 Ocean Ave" />
+          </div>
+          <div>
+            <label for="pp_city">City</label>
+            <input id="pp_city" type="text" placeholder="Miami, FL" />
+          </div>
+        </div>
+
+        <label for="pp_desc">Description</label>
+        <textarea id="pp_desc" placeholder="Short description of your company, amenities, and any partner notes."></textarea>
+
+        <div style="display:flex; gap:8px; margin-top:14px">
+          <button id="btnSave" class="btn">Save changes</button>
+          <button id="btnBack" class="btn secondary" type="button">Back to menu</button>
+        </div>
+      </div>
+
+      <!-- PMS CONNECTIONS PANEL -->
+      <div id="pmsConnectionsPanel" class="card section hidden" aria-label="PMS Connections">
+        <h2>PMS Connections</h2>
+
+        <div style="display:flex; gap:8px; align-items:center; margin-bottom:10px">
+          <button id="btnUpsertCloudbeds" class="btn small" type="button">Add/Upsert Cloudbeds (mock)</button>
+          <button id="btnRefreshConns" class="btn secondary small" type="button">Refresh</button>
+          <span id="connMsg" class="muted"></span>
+        </div>
+
+        <div style="overflow:auto">
+          <table aria-label="Connections table">
+            <thead>
+              <tr><th>ID</th><th>Provider</th><th>Mode</th><th>Status</th><th>Scope</th><th>Updated</th><th>Actions</th></tr>
+            </thead>
+            <tbody id="connTbody"><tr><td class="muted" colspan="7">Loading…</td></tr></tbody>
+          </table>
+        </div>
+
+        <h3 style="margin-top:18px">Recent Logs</h3>
+        <ul id="connLogs" class="muted" style="padding-left:18px"><li>Loading…</li></ul>
+
+        <div style="display:flex; gap:8px; margin-top:14px">
+          <button id="connBackBtn" class="btn secondary" type="button">Back to menu</button>
+        </div>
+      </div>
+
+      <!-- PMS MAPPINGS PANEL -->
+      <div id="pmsMappingsPanel" class="card section hidden" aria-label="PMS Mappings">
+        <h2>PMS Mappings</h2>
+
+        <div class="row3">
+          <div>
+            <label for="map_conn">Connection *</label>
+            <select id="map_conn"></select>
+          </div>
+          <div>
+            <label for="map_room">Remote Room ID *</label>
+            <input id="map_room" type="text" placeholder="R1" />
+          </div>
+          <div>
+            <label for="map_rate">Remote Rate Plan ID</label>
+            <input id="map_rate" type="text" placeholder="STD" />
+          </div>
+        </div>
+
+        <div class="row3">
+          <div>
+            <label for="map_currency">Currency</label>
+            <input id="map_currency" type="text" placeholder="USD" />
+          </div>
+          <div>
+            <label for="map_active">Active</label>
+            <select id="map_active">
+              <option value="true" selected>True</option>
+              <option value="false">False</option>
+            </select>
+          </div>
+          <div style="display:flex; align-items:flex-end">
+            <button id="btnCreateMapping" class="btn small" type="button">Create mapping</button>
+          </div>
+        </div>
+
+        <div style="display:flex; gap:8px; align-items:center; margin:10px 0">
+          <button id="btnRefreshMaps" class="btn secondary small" type="button">Refresh</button>
+          <span id="mapMsg" class="muted"></span>
+        </div>
+
+        <div style="overflow:auto">
+          <table aria-label="Mappings table">
+            <thead>
+              <tr>
+                <th>ID</th><th>Conn</th><th>Remote Room</th><th>Remote Rate</th><th>Currency</th><th>Active</th><th>Actions</th>
+              </tr>
+            </thead>
+            <tbody id="mapTbody"><tr><td class="muted" colspan="7">Loading…</td></tr></tbody>
+          </table>
+        </div>
+
+        <div style="display:flex; gap:8px; margin-top:14px">
+          <button id="mapBackBtn" class="btn secondary" type="button">Back to menu</button>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+  <script>
+    // --- Config ---------------------------------------------------------------
+    const API_BASE    = "https://lolaelo-api.onrender.com";
+    const LOGIN_PAGE  = "partners_login.html";
+
+    // --- Token helper --------------------------------------------------------
+    function getToken() {
+      if (window.TravelAuth && typeof TravelAuth.getToken === 'function') {
+        const t = TravelAuth.getToken();
+        if (t) return t;
+      }
+      const p = localStorage.getItem("partnerToken");
+      if (p) return p;
+      return localStorage.getItem("lolaelo_session") || "";
+    }
+
+    // --- DOM helpers ---------------------------------------------------------
+    const $ = (id) => document.getElementById(id);
+    const toastBox = $('toast');
+    function toast(html, ok=false){
+      toastBox.innerHTML = html;
+      toastBox.style.borderColor = ok ? '#2bbb6f' : 'rgba(255,255,255,.07)';
+      toastBox.style.color = ok ? '#bff7d2' : '#e8eefc';
+      toastBox.classList.remove('hidden');
+      clearTimeout(window.__t); window.__t = setTimeout(()=>toastBox.classList.add('hidden'), 4000);
+    }
+    function show(id){ $(id).classList.remove('hidden') }
+    function hide(id){ $(id).classList.add('hidden') }
+
+    // --- Auth guard -----------------------------------------------------------
+    (function guard(){
+      const t = getToken();
+      if (!t) location.replace(LOGIN_PAGE);
+    })();
+
+    // --- Authed fetch (cache-busting + no-store) ------------------------------
+    async function authed(path, options = {}){
+      const t = getToken();
+      const isGet = !options.method || options.method.toUpperCase() === 'GET';
+      const bust  = isGet ? (path.includes('?') ? '&' : '?') + '__ts=' + Date.now() : '';
+      const url   = `${API_BASE}${path}${bust}`;
+
+      const r = await fetch(url, {
+        cache: 'no-store',
+        ...options,
+        headers: {
+          'Cache-Control': 'no-store',
+          'Pragma': 'no-cache',
+          ...(options.headers || {}),
+          'Authorization': `Bearer ${t || ''}`
+        }
+      });
+      if (r.status === 401 || r.status === 403) {
+        try { localStorage.removeItem("partnerToken"); localStorage.removeItem("lolaelo_session"); } catch {}
+        location.replace(LOGIN_PAGE);
+        throw new Error("unauthorized");
+      }
+      return r;
+    }
+    async function getJSON(path){
+      const r = await authed(path, { method:'GET' });
+      if (!r.ok) throw new Error(`GET ${path} -> ${r.status}`);
+      return r.json();
+    }
+
+    // --- Logout ---------------------------------------------------------------
+    $('btnLogout').onclick = async () => {
+      try {
+        const t = getToken();
+        await fetch(`${API_BASE}/extranet/logout`, {
+          method: 'POST',
+          headers: { Authorization: `Bearer ${t}` }
+        });
+      } catch {}
+      try { localStorage.removeItem("partnerToken"); localStorage.removeItem("lolaelo_session"); } catch {}
+      location.replace(LOGIN_PAGE);
+    };
+
+    // --- Navigation helpers ---------------------------------------------------
+    const backToHub   = () => { hide('profile'); hide('photosPanel'); hide('pmsConnectionsPanel'); hide('pmsMappingsPanel'); show('hub'); };
+
+    $('tileProfile').addEventListener('click', (e) => { e.preventDefault(); hide('hub'); show('profile'); });
+    $('btnBack').onclick = backToHub;
+
+    $('tilePhotos').addEventListener('click', async (e) => {
+      e.preventDefault();
+      hide('hub'); show('photosPanel'); await loadPhotos();
+    });
+    $('photosBackBtn').addEventListener('click', (e) => { e.preventDefault(); backToHub(); });
+
+    document.getElementById('tileRooms').addEventListener('click', (e) => {
+      e.preventDefault();
+      if (window.TravelAuth && typeof TravelAuth.openRooms === 'function') {
+        TravelAuth.openRooms();
+      } else {
+        const t = getToken();
+        const base = 'https://lolaelo-api.onrender.com/partners_rooms.html';
+        const url  = t ? `${base}#token=${encodeURIComponent(t)}` : base;
+        location.href = url;
+      }
+    });
+
+    // PMS Connections nav
+    $('tilePmsConnections').addEventListener('click', async (e) => {
+      e.preventDefault();
+      hide('hub'); show('pmsConnectionsPanel');
+      await refreshConnections();
+    });
+    $('connBackBtn').onclick = backToHub;
+
+    // PMS Mappings nav
+    $('tilePmsMappings').addEventListener('click', async (e) => {
+      e.preventDefault();
+      hide('hub'); show('pmsMappingsPanel');
+      await refreshMappings(true); // also repopulates connection select
+    });
+    $('mapBackBtn').onclick = backToHub;
+
+    // --- Profile load/save ----------------------------------------------------
+    function nz(v){ const s = (v ?? "").toString().trim(); return s.length ? s : null; }
+
+    async function loadPropertyIntoForm(){
+      const me = await getJSON('/extranet/session').catch(()=> ({}));
+      $('partnerEmail').textContent = me.email || '';
+      let company = me.name || 'Partner';
+
+      const p = await getJSON('/extranet/property').catch(()=> null);
+
+      if (p) {
+        $('pp_name').value         = p.name ?? company ?? '';
+        $('pp_contactEmail').value = p.contactEmail ?? me.email ?? '';
+        $('pp_phone').value        = p.phone ?? '';
+        $('pp_country').value      = p.country ?? '';
+        $('pp_address').value      = p.addressLine ?? '';
+        $('pp_city').value         = p.city ?? '';
+        $('pp_desc').value         = p.description ?? '';
+        $('profileStatus').textContent = p.name ? 'Complete' : 'Missing info';
+        $('profileStatus').className   = p.name ? 'ok' : 'todo';
+        if (p.name) company = p.name;
+      } else {
+        $('profileStatus').textContent = 'Missing info';
+        $('profileStatus').className   = 'todo';
+        $('pp_name').value             = company ?? '';
+        $('pp_contactEmail').value     = me.email ?? '';
+      }
+      $('brandTitle').textContent = company;
+      $('welcomeH1').textContent  = `Welcome, ${company}`;
+    }
+
+    async function saveProfile() {
+      const body = JSON.stringify({
+        name:         nz($('pp_name').value),
+        contactEmail: nz($('pp_contactEmail').value),
+        phone:        nz($('pp_phone').value),
+        addressLine:  nz($('pp_address').value),
+        city:         nz($('pp_city').value),
+        country:      nz($('pp_country').value),
+        description:  nz($('pp_desc').value),
+      });
+
+      const btn = $('btnSave'); btn.disabled = true;
+      try {
+        let r = await authed('/extranet/property', { method:'PUT', headers:{ 'Content-Type':'application/json' }, body });
+        if (r.status === 400) {
+          r = await authed('/extranet/property', { method:'PATCH', headers:{ 'Content-Type':'application/json' }, body });
+        }
+        if (!r.ok) {
+          let msg = ''; try { msg = (await r.json()).error || (await r.text()) || ''; } catch {}
+          throw new Error(msg || `Save failed: ${r.status}`);
+        }
+        await loadPropertyIntoForm();
+        toast('Saved.', true);
+      } catch (e) {
+        console.error(e);
+        toast(e.message || 'Network error.');
+      } finally {
+        btn.disabled = false;
+      }
+    }
+
+    $('btnSave').onclick = function (e) {
+      e.preventDefault();
+      var el = document.getElementById('pp_name');
+      var nameVal = ((el && el.value) ? el.value : '').trim();
+      if (!nameVal) { toast('Company name is required.'); return; }
+      saveProfile();
+    };
+
+    // --- Photos loader + renderer --------------------------------------------
+    let photosState = [];
+    async function loadPhotos(){
+      const grid = $('photosGrid');
+      grid.innerHTML = '<div class="muted">Loading…</div>';
+      try {
+        const r = await authed('/extranet/property/photos');
+        const arr = await r.json().catch(()=>[]);
+        photosState = Array.isArray(arr) ? arr : [];
+        renderPhotos();
+      } catch (e) {
+        console.error(e);
+        grid.innerHTML = '<div class="muted">Failed to load photos.</div>';
+      }
+    }
+    function renderPhotos(){
+      const grid = $('photosGrid');
+      if (!photosState.length) { grid.innerHTML = '<div class="muted">No photos yet.</div>'; return; }
+      grid.innerHTML = '';
+      photosState
+        .sort((a,b) => (a.sortOrder ?? 0) - (b.sortOrder ?? 0) || a.id - b.id)
+        .forEach(p => {
+          const card  = document.createElement('div'); card.className = 'ph';
+          const img   = document.createElement('img'); img.src = p.url || ''; img.alt = p.alt || '';
+          const meta  = document.createElement('div'); meta.className = 'meta'; meta.textContent = p.alt || p.caption || p.key || '';
+          const actions = document.createElement('div'); actions.className = 'photo-actions';
+          actions.innerHTML = `
+            <button class="btn secondary" data-act="cover" data-id="${p.id}" ${p.isCover ? 'disabled' : ''}>${p.isCover ? 'Cover' : 'Set cover'}</button>
+            <button class="btn secondary" data-act="edit"  data-id="${p.id}">Edit</button>
+            <button class="btn ghost"     data-act="del"   data-id="${p.id}">Delete</button>`;
+          card.appendChild(img); card.appendChild(meta); card.appendChild(actions); grid.appendChild(card);
+        });
+
+      grid.querySelectorAll('button[data-id]').forEach(btn => {
+        btn.onclick = async () => {
+          const id  = Number(btn.dataset.id);
+          const act = btn.dataset.act;
+          try {
+            if (act === 'del') {
+              if (!confirm('Delete this photo?')) return;
+              const resp = await authed(`/extranet/property/photos/${id}`, { method: 'DELETE' });
+              if (!resp.ok) throw new Error('Delete failed');
+              photosState = photosState.filter(x => x.id !== id); renderPhotos(); toast('Deleted.', true); return;
+            }
+            if (act === 'edit') {
+              const current = photosState.find(x => x.id === id);
+              const alt = prompt('Alt text / caption', (current && current.alt) ? current.alt : '');
+              if (alt === null) return;
+              const resp = await authed(`/extranet/property/photos/${id}`, {
+                method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ alt })
+              });
+              if (!resp.ok) throw new Error('Save failed');
+              if (current) current.alt = alt; renderPhotos(); toast('Saved.', true); return;
+            }
+            if (act === 'cover') {
+              const resp = await authed(`/extranet/property/photos/${id}`, {
+                method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ isCover: true })
+              });
+              if (!resp.ok) throw new Error('Save failed');
+              photosState = photosState.map(x => ({ ...x, isCover: x.id === id })); renderPhotos(); toast('Cover set.', true); return;
+            }
+          } catch (err) { console.error(err); toast(err.message || 'Action failed'); }
+        };
+      });
+    }
+
+    $('btnUploadPhoto').addEventListener('click', () => $('fileInput').click());
+    $('fileInput').addEventListener('change', async (e) => {
+      const file = e.target.files?.[0]; e.target.value=''; if (!file) return;
+      try {
+        const up = await authed('/extranet/property/photos/upload-url', {
+          method:'POST', headers:{ 'Content-Type': 'application/json' },
+          body: JSON.stringify({ fileName: file.name, contentType: (file.type || 'application/octet-stream'), size: file.size })
+        });
+        const data = await up.json().catch(()=> ({}));
+        const uploadUrl = data.uploadUrl || data.signedUrl || data.putUrl || data.url;
+        const key       = data.key ?? data.s3Key ?? data.path ?? data.objectKey;
+        const publicUrl = data.publicUrl || data.public_url || (uploadUrl ? uploadUrl.split('?')[0] : null);
+        if (!uploadUrl || !key) throw new Error('Bad upload-url response (missing uploadUrl/key)');
+        const put = await fetch(uploadUrl, { method:'PUT', headers:{ 'Content-Type': file.type || 'image/jpeg' }, body:file });
+        if (!put.ok) { let text = ''; try { text = await put.text(); } catch{}; throw new Error(`Storage upload failed: ${put.status} ${text}`); }
+        const create = await authed('/extranet/property/photos', {
+          method:'POST', headers:{ 'Content-Type': 'application/json' },
+          body: JSON.stringify({ key, url: publicUrl, alt: null, isCover: false })
+        });
+        if (!create.ok) throw new Error((await create.text()) || 'Create failed');
+        const created = await create.json(); photosState.push(created); renderPhotos(); toast('Uploaded.', true);
+      } catch (err) { console.error(err); toast(err.message || 'Upload failed'); }
+    });
+
+    // --- PMS Connections logic -----------------------------------------------
+    const connTbody = $('connTbody');
+    const connLogs  = $('connLogs');
+    const connMsg   = $('connMsg');
+
+    async function listConnections(){
+      return getJSON('/extranet/pms/connections').catch(()=>[]);
+    }
+    async function listLogs(limit=10){
+      return getJSON(`/extranet/pms/logs?limit=${limit}`).catch(()=>[]);
+    }
+    function renderConnections(rows){
+      if (!Array.isArray(rows) || !rows.length) {
+        connTbody.innerHTML = '<tr><td class="muted" colspan="7">No connections yet.</td></tr>';
+        return;
+      }
+      connTbody.innerHTML = rows.map(c => `
+        <tr>
+          <td>${c.id}</td>
+          <td>${c.provider}</td>
+          <td>${c.mode}</td>
+          <td>${c.status}</td>
+          <td>${c.scope || '-'}</td>
+          <td>${c.updatedAt ? new Date(c.updatedAt).toLocaleString() : '-'}</td>
+          <td>
+            <button class="btn small secondary" data-act="test" data-id="${c.id}">Test</button>
+            <button class="btn small ghost" data-act="del" data-id="${c.id}">Delete</button>
+          </td>
+        </tr>
+      `).join('');
+      connTbody.querySelectorAll('button[data-id]').forEach(btn => {
+        btn.onclick = async () => {
+          const id  = Number(btn.dataset.id);
+          const act = btn.dataset.act;
+          try {
+            if (act === 'test') {
+              connMsg.textContent = 'Testing…';
+              const r = await authed(`/extranet/pms/connections/${id}/test`, { method:'POST' });
+              if (!r.ok) throw new Error(`Test failed: ${r.status}`);
+              await refreshConnections();
+              toast('Connection test: SUCCESS', true);
+              connMsg.textContent = '';
+            } else if (act === 'del') {
+              if (!confirm('Delete connection (also deletes mappings & logs)?')) return;
+              const r = await authed(`/extranet/pms/connections/${id}`, { method:'DELETE' });
+              if (!r.ok) throw new Error(`Delete failed: ${r.status}`);
+              await refreshConnections();
+              toast('Connection deleted.', true);
+            }
+          } catch (e) { console.error(e); toast(e.message || 'Action failed'); connMsg.textContent=''; }
+        };
+      });
+    }
+    function renderLogs(rows){
+      if (!Array.isArray(rows) || !rows.length) { connLogs.innerHTML = '<li class="muted">No logs.</li>'; return; }
+      connLogs.innerHTML = rows.map(l => `<li><strong>${l.type}</strong> · <em>${l.status}</em> — ${l.message} <span class="muted">(${new Date(l.startedAt).toLocaleString()})</span></li>`).join('');
+    }
+    async function refreshConnections(){
+      connMsg.textContent = 'Loading…';
+      const [c,l] = await Promise.all([listConnections(), listLogs(10)]);
+      renderConnections(c); renderLogs(l); connMsg.textContent = '';
+      // also refresh mapping connection select if mappings panel is open
+      if (!$('pmsMappingsPanel').classList.contains('hidden')) await populateConnectionSelect(c);
+    }
+
+    $('btnUpsertCloudbeds').onclick = async () => {
+      try {
+        connMsg.textContent = 'Upserting…';
+        const r = await authed('/extranet/pms/connections', {
+          method:'POST',
+          headers:{ 'Content-Type': 'application/json' },
+          body: JSON.stringify({ provider:"CLOUDBEDS", mode:"mock", status:"TESTING", scope:"rates,availability:read" })
+        });
+        if (!r.ok) throw new Error(`Upsert failed: ${r.status}`);
+        await refreshConnections();
+        toast('Cloudbeds connection upserted.', true);
+      } catch (e) { console.error(e); toast(e.message || 'Upsert failed'); }
+      finally { connMsg.textContent = ''; }
+    };
+    $('btnRefreshConns').onclick = refreshConnections;
+
+    // --- PMS Mappings logic ---------------------------------------------------
+    const mapTbody = $('mapTbody');
+    const mapMsg   = $('mapMsg');
+    const mapConn  = $('map_conn');
+    const mapRoom  = $('map_room');
+    const mapRate  = $('map_rate');
+    const mapCurr  = $('map_currency');
+    const mapAct   = $('map_active');
+
+    async function listMappings(){
+      return getJSON('/extranet/pms/mappings').catch(()=>[]);
+    }
+    function renderMappings(rows){
+      if (!Array.isArray(rows) || !rows.length) {
+        mapTbody.innerHTML = '<tr><td class="muted" colspan="7">No mappings yet.</td></tr>';
+        return;
+      }
+      mapTbody.innerHTML = rows.map(m => `
+        <tr>
+          <td>${m.id}</td>
+          <td>${m.pmsConnectionId}</td>
+          <td>${m.remoteRoomId}</td>
+          <td>${m.remoteRatePlanId || '-'}</td>
+          <td>${m.currency || '-'}</td>
+          <td>${m.active ? 'true' : 'false'}</td>
+          <td>
+            <button class="btn small ghost" data-act="del" data-id="${m.id}">Delete</button>
+          </td>
+        </tr>
+      `).join('');
+      mapTbody.querySelectorAll('button[data-id]').forEach(btn => {
+        btn.onclick = async () => {
+          const id = Number(btn.dataset.id);
+          const act = btn.dataset.act;
+          if (act === 'del') {
+            if (!confirm('Delete mapping?')) return;
+            try {
+              const r = await authed(`/extranet/pms/mappings/${id}`, { method:'DELETE' });
+              if (!r.ok) throw new Error(`Delete failed: ${r.status}`);
+              await refreshMappings(false);
+              toast('Mapping deleted.', true);
+            } catch (e) { console.error(e); toast(e.message || 'Delete failed'); }
+          }
+        };
+      });
+    }
+    async function populateConnectionSelect(connections){
+      const conns = Array.isArray(connections) ? connections : await listConnections();
+      const options = conns.map(c => `<option value="${c.id}">#${c.id} · ${c.provider} (${c.mode}) · ${c.status}</option>`).join('');
+      mapConn.innerHTML = options || '<option value="">No connections</option>';
+    }
+    async function refreshMappings(refreshConnSelect){
+      mapMsg.textContent = 'Loading…';
+      if (refreshConnSelect) await populateConnectionSelect();
+      const rows = await listMappings();
+      renderMappings(rows);
+      mapMsg.textContent = '';
+    }
+    $('btnCreateMapping').onclick = async () => {
+      const cid = Number(mapConn.value);
+      const room = (mapRoom.value || '').trim();
+      const rate = (mapRate.value || '').trim() || null;
+      const curr = (mapCurr.value || '').trim() || null;
+      const active = mapAct.value === 'true';
+      if (!cid || !room) { toast('Connection and Remote Room ID are required.'); return; }
+      try {
+        mapMsg.textContent = 'Creating…';
+        const r = await authed('/extranet/pms/mappings', {
+          method:'POST',
+          headers:{ 'Content-Type':'application/json' },
+          body: JSON.stringify({ pmsConnectionId: cid, remoteRoomId: room, remoteRatePlanId: rate, currency: curr, active })
+        });
+        if (!r.ok) throw new Error(`Create failed: ${r.status}`);
+        await refreshMappings(false);
+        toast('Mapping created.', true);
+      } catch (e) { console.error(e); toast(e.message || 'Create failed'); }
+      finally { mapMsg.textContent = ''; }
+    };
+    $('btnRefreshMaps').onclick = () => refreshMappings(false);
+
+    // --- Init (fresh load) + BFCache restore hook ----------------------------
+    (async function init(){
+      try { await loadPropertyIntoForm(); } catch (e) {
+        console.error(e);
+        toast('Could not load your session. Please sign in again.');
+        setTimeout(()=>location.replace(LOGIN_PAGE), 1200);
+      }
+    })();
+    window.addEventListener('pageshow', (e) => { if (e.persisted) loadPropertyIntoForm(); });
+  </script>
+</body>
+</html>
