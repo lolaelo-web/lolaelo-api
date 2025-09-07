@@ -69,16 +69,15 @@ router.get("/__dbping_public", async (_req, res) => {
       return res.json({ ok: true, via: "raw", rows });
     }
   } catch (e: any) {
-    // Keep 200 with ok:false so health dashboards don't hard-fail
     return res.json({ ok: false, via: hasDelegates() ? "delegate" : "raw", error: String(e?.message || e) });
   }
 });
 
 /* ======================================================================
-   PRIVATE AUTH  (applies to everything below)
-   - Bearer token -> ExtranetSession (3s timeout), sets req.partnerId
+   AUTH (per-route)
    ====================================================================== */
-router.use(async (req, res, next) => {
+
+async function requirePartner(req: any, res: any, next: any) {
   try {
     const auth = req.headers?.authorization || "";
     const token = auth.startsWith("Bearer ") ? auth.slice(7) : null;
@@ -93,17 +92,13 @@ router.use(async (req, res, next) => {
     const session: any = await Promise.race([lookup, timeout]);
 
     if (!session) return res.status(401).json({ error: "Unauthorized" });
-    (req as any).partnerId = session.partnerId;
+    req.partnerId = session.partnerId;
     next();
   } catch (e: any) {
     console.error("[PMS auth error]", e?.message || e);
     return res.status(401).json({ error: "Unauthorized" });
   }
-});
-
-router.get("/whoami", (req, res) => {
-  res.json({ ok: true, partnerId: Number((req as any).partnerId) || null });
-});
+}
 
 /* ======================================================================
    HELPERS
@@ -128,14 +123,20 @@ function hasDelegates() {
 }
 
 /* ======================================================================
+   PRIVATE: WHOAMI
+   ====================================================================== */
+
+router.get("/whoami", requirePartner, (req, res) => {
+  res.json({ ok: true, partnerId: Number((req as any).partnerId) || null });
+});
+
+/* ======================================================================
    CONNECTIONS
    ====================================================================== */
 
-// GET /extranet/pms/connections
-router.get("/connections", async (req, res) => {
+router.get("/connections", requirePartner, async (req, res) => {
   try {
     const partnerId = getPartnerId(req);
-    if (!partnerId || Number.isNaN(partnerId)) return res.status(401).json({ error: "Unauthorized" });
 
     if (hasDelegates()) {
       const rows = await (db as any).pmsConnection.findMany({ where: { partnerId }, orderBy: { id: "asc" } });
@@ -154,11 +155,9 @@ router.get("/connections", async (req, res) => {
   }
 });
 
-// POST /extranet/pms/connections  (upsert by partnerId+provider)
-router.post("/connections", async (req, res) => {
+router.post("/connections", requirePartner, async (req, res) => {
   try {
     const partnerId = getPartnerId(req);
-    if (!partnerId || Number.isNaN(partnerId)) return res.status(401).json({ error: "Unauthorized" });
     const { provider = "CLOUDBEDS", mode = "mock", status = "TESTING", scope = null } = req.body ?? {};
 
     if (hasDelegates()) {
@@ -210,11 +209,9 @@ router.post("/connections", async (req, res) => {
   }
 });
 
-// PATCH /extranet/pms/connections/:id
-router.patch("/connections/:id", async (req, res) => {
+router.patch("/connections/:id", requirePartner, async (req, res) => {
   try {
     const partnerId = getPartnerId(req);
-    if (!partnerId || Number.isNaN(partnerId)) return res.status(401).json({ error: "Unauthorized" });
     const id = Number(req.params.id);
     const { mode, status, scope, accessToken, refreshToken, tokenExpiresAt } = req.body ?? {};
 
@@ -268,11 +265,9 @@ router.patch("/connections/:id", async (req, res) => {
   }
 });
 
-// POST /extranet/pms/connections/:id/test
-router.post("/connections/:id/test", async (req, res) => {
+router.post("/connections/:id/test", requirePartner, async (req, res) => {
   try {
     const partnerId = getPartnerId(req);
-    if (!partnerId || Number.isNaN(partnerId)) return res.status(401).json({ error: "Unauthorized" });
     const id = Number(req.params.id);
 
     const ok = true;
@@ -328,11 +323,9 @@ router.post("/connections/:id/test", async (req, res) => {
   }
 });
 
-// DELETE /extranet/pms/connections/:id
-router.delete("/connections/:id", async (req, res) => {
+router.delete("/connections/:id", requirePartner, async (req, res) => {
   try {
     const partnerId = getPartnerId(req);
-    if (!partnerId || Number.isNaN(partnerId)) return res.status(401).json({ error: "Unauthorized" });
     const id = Number(req.params.id);
 
     if (hasDelegates()) {
@@ -364,10 +357,9 @@ router.delete("/connections/:id", async (req, res) => {
    MAPPINGS
    ====================================================================== */
 
-router.get("/mappings", async (req, res) => {
+router.get("/mappings", requirePartner, async (req, res) => {
   try {
     const partnerId = getPartnerId(req);
-    if (!partnerId || Number.isNaN(partnerId)) return res.status(401).json({ error: "Unauthorized" });
 
     if (hasDelegates()) {
       const rows = await (db as any).pmsMapping.findMany({
@@ -401,10 +393,9 @@ router.get("/mappings", async (req, res) => {
   }
 });
 
-router.post("/mappings", async (req, res) => {
+router.post("/mappings", requirePartner, async (req, res) => {
   try {
     const partnerId = getPartnerId(req);
-    if (!partnerId || Number.isNaN(partnerId)) return res.status(401).json({ error: "Unauthorized" });
 
     const {
       pmsConnectionId,
@@ -466,10 +457,9 @@ router.post("/mappings", async (req, res) => {
   }
 });
 
-router.patch("/mappings/:id", async (req, res) => {
+router.patch("/mappings/:id", requirePartner, async (req, res) => {
   try {
     const partnerId = getPartnerId(req);
-    if (!partnerId || Number.isNaN(partnerId)) return res.status(401).json({ error: "Unauthorized" });
     const id = Number(req.params.id);
     const { localRoomTypeId, localRatePlanId, currency, active } = req.body ?? {};
 
@@ -518,10 +508,9 @@ router.patch("/mappings/:id", async (req, res) => {
   }
 });
 
-router.delete("/mappings/:id", async (req, res) => {
+router.delete("/mappings/:id", requirePartner, async (req, res) => {
   try {
     const partnerId = getPartnerId(req);
-    if (!partnerId || Number.isNaN(partnerId)) return res.status(401).json({ error: "Unauthorized" });
     const id = Number(req.params.id);
 
     if (hasDelegates()) {
@@ -551,11 +540,9 @@ router.delete("/mappings/:id", async (req, res) => {
    LOGS
    ====================================================================== */
 
-// GET /extranet/pms/logs?limit=10
-router.get("/logs", async (req, res) => {
+router.get("/logs", requirePartner, async (req, res) => {
   try {
     const partnerId = getPartnerId(req);
-    if (!partnerId || Number.isNaN(partnerId)) return res.status(401).json({ error: "Unauthorized" });
     const limit = Math.min(Math.max(Number(req.query.limit ?? 10), 1), 100);
 
     if (hasDelegates()) {
@@ -591,11 +578,9 @@ router.get("/logs", async (req, res) => {
    MOCK REMOTE FIXTURES
    ====================================================================== */
 
-// GET /extranet/pms/remote/rooms
-router.get("/remote/rooms", async (req, res) => {
+router.get("/remote/rooms", requirePartner, async (req, res) => {
   try {
     const partnerId = Number((req as any).partnerId);
-    if (!partnerId) return res.status(401).json({ error: "Unauthorized" });
 
     let mappings: any[] = [];
     if (hasDelegates()) {
@@ -632,11 +617,9 @@ router.get("/remote/rooms", async (req, res) => {
   }
 });
 
-// GET /extranet/pms/remote/availability?start=YYYY-MM-DD&end=YYYY-MM-DD
-router.get("/remote/availability", async (req, res) => {
+router.get("/remote/availability", requirePartner, async (req, res) => {
   try {
     const partnerId = Number((req as any).partnerId);
-    if (!partnerId) return res.status(401).json({ error: "Unauthorized" });
 
     const startStr = String(req.query.start ?? "");
     const endStr = String(req.query.end ?? "");
@@ -698,11 +681,9 @@ router.get("/remote/availability", async (req, res) => {
    UIS SEARCH MERGE
    ====================================================================== */
 
-// GET /extranet/pms/uis/search?start=YYYY-MM-DD&end=YYYY-MM-DD&guests=2
-router.get("/uis/search", async (req, res) => {
+router.get("/uis/search", requirePartner, async (req, res) => {
   try {
     const partnerId = Number((req as any).partnerId);
-    if (!partnerId) return res.status(401).json({ error: "Unauthorized" });
 
     const startStr = String(req.query.start ?? "");
     const endStr = String(req.query.end ?? "");
@@ -742,7 +723,6 @@ router.get("/uis/search", async (req, res) => {
         select: { roomTypeId: true, ratePlanId: true, date: true, price: true },
       });
     } catch {
-      // If any delegate unexpectedly missing, fall back to empty arrays
       rts = []; inv = []; prices = [];
     }
 
@@ -819,10 +799,10 @@ router.get("/uis/search", async (req, res) => {
 });
 
 /* ======================================================================
-   PRIVATE DIAGNOSTICS (require auth)
+   PRIVATE DIAGNOSTICS (auth)
    ====================================================================== */
 
-router.get("/__routes", (_req, res) => {
+router.get("/__routes", requirePartner, (_req, res) => {
   try {
     const stack: any[] = ((router as any).stack ?? []).filter((l: any) => l?.route);
     const routes = stack.map((l: any) => ({
@@ -835,7 +815,7 @@ router.get("/__routes", (_req, res) => {
   }
 });
 
-router.get("/__dbping", async (_req, res) => {
+router.get("/__dbping", requirePartner, async (_req, res) => {
   try {
     if (hasDelegates()) {
       const one = await (db as any).roomType.findMany({ take: 1, select: { id: true } });
