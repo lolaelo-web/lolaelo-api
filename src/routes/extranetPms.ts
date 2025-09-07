@@ -537,4 +537,115 @@ router.get("/logs", async (req, res) => {
   }
 });
 
+/* ---------------------------- MOCK REMOTE FIXTURES ---------------------------- */
+/**
+ * GET /extranet/pms/remote/rooms
+ * Returns mock room metadata for each active mapping (per partner).
+ */
+router.get("/remote/rooms", async (req, res) => {
+  try {
+    const partnerId = Number((req as any).partnerId);
+    if (!partnerId) return res.status(401).json({ error: "Unauthorized" });
+
+    // Read mappings via delegate (if present) else raw SQL
+    let mappings: any[] = [];
+    if (hasDelegates()) {
+      mappings = await (db as any).pmsMapping.findMany({
+        where: { active: true, connection: { partnerId } },
+        orderBy: { id: "asc" },
+      });
+    } else {
+      mappings = await (db as any).$queryRawUnsafe(
+        `SELECT m.* FROM "extranet"."PmsMapping" m
+         JOIN "extranet"."PmsConnection" c ON c."id" = m."pmsConnectionId"
+         WHERE m."active" = TRUE AND c."partnerId" = $1
+         ORDER BY m."id" ASC`,
+        partnerId
+      );
+    }
+
+    // Minimal mock catalog per mapping
+    const rooms = mappings.map((m) => ({
+      connectionId: m.pmsConnectionId,
+      remoteRoomId: String(m.remoteRoomId),
+      remoteRatePlanId: m.remoteRatePlanId ? String(m.remoteRatePlanId) : null,
+      name: `Mock Room ${m.remoteRoomId}`,
+      description: "Mock PMS room (fixture)",
+      maxGuests: 2,
+      currency: m.currency ?? "USD",
+      active: !!m.active,
+      source: "pms",
+    }));
+
+    res.json(rooms);
+  } catch (e: any) {
+    console.error("[PMS GET /remote/rooms error]", e?.message || e);
+    res.status(500).json({ error: "Internal", detail: String(e?.message || e) });
+  }
+});
+
+/**
+ * GET /extranet/pms/remote/availability?start=YYYY-MM-DD&end=YYYY-MM-DD
+ * Returns mock availability + price per mapping per date.
+ */
+router.get("/remote/availability", async (req, res) => {
+  try {
+    const partnerId = Number((req as any).partnerId);
+    if (!partnerId) return res.status(401).json({ error: "Unauthorized" });
+
+    const startStr = String(req.query.start ?? "");
+    const endStr   = String(req.query.end ?? "");
+    const start    = new Date(startStr);
+    const end      = new Date(endStr);
+    if (Number.isNaN(start.valueOf()) || Number.isNaN(end.valueOf()) || end <= start) {
+      return res.status(400).json({ error: "Invalid date range" });
+    }
+
+    // Read mappings (active) for partner
+    let mappings: any[] = [];
+    if (hasDelegates()) {
+      mappings = await (db as any).pmsMapping.findMany({
+        where: { active: true, connection: { partnerId } },
+        orderBy: { id: "asc" },
+      });
+    } else {
+      mappings = await (db as any).$queryRawUnsafe(
+        `SELECT m.* FROM "extranet"."PmsMapping" m
+         JOIN "extranet"."PmsConnection" c ON c."id" = m."pmsConnectionId"
+         WHERE m."active" = TRUE AND c."partnerId" = $1
+         ORDER BY m."id" ASC`,
+        partnerId
+      );
+    }
+
+    // Build date list [start, end)
+    const days: string[] = [];
+    for (let d = new Date(Date.UTC(start.getUTCFullYear(), start.getUTCMonth(), start.getUTCDate())); d < end; d.setUTCDate(d.getUTCDate() + 1)) {
+      days.push(d.toISOString().slice(0, 10)); // YYYY-MM-DD
+    }
+
+    // Return deterministic mock: 3 rooms open, price = 120 + (dayIndex % 5) * 10
+    const out: any[] = [];
+    mappings.forEach((m) => {
+      days.forEach((ds, idx) => {
+        out.push({
+          connectionId: m.pmsConnectionId,
+          remoteRoomId: String(m.remoteRoomId),
+          remoteRatePlanId: m.remoteRatePlanId ? String(m.remoteRatePlanId) : null,
+          date: ds,
+          roomsOpen: 3,
+          price: 120 + (idx % 5) * 10,
+          currency: m.currency ?? "USD",
+          source: "pms",
+        });
+      });
+    });
+
+    res.json(out);
+  } catch (e: any) {
+    console.error("[PMS GET /remote/availability error]", e?.message || e);
+    res.status(500).json({ error: "Internal", detail: String(e?.message || e) });
+  }
+});
+
 export default router;
