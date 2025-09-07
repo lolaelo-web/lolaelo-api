@@ -1,22 +1,20 @@
 // @ts-nocheck
 // src/routes/extranetPms.ts
 import express from "express";
-import * as prismaMod from "../prisma.js";
+import { PrismaClient } from "@prisma/client";
 
-// Defensive Prisma client resolution (works for named or default exports)
-const db: any =
-  (prismaMod as any).prisma ??
-  (prismaMod as any).default?.prisma ??
-  (prismaMod as any).default ??
-  (prismaMod as any);
+declare global {
+  // eslint-disable-next-line no-var
+  var __pmsPrisma__: PrismaClient | undefined;
+}
+// Single Prisma client for this process
+const db: PrismaClient = globalThis.__pmsPrisma__ ?? new PrismaClient();
+globalThis.__pmsPrisma__ = db;
 
 const router = express.Router();
 
 /**
  * ---- PUBLIC (no auth) DIAGNOSTICS ----
- *
- * 1) GET /extranet/pms/__ping   -> proves router is mounted
- * 2) GET /extranet/pms/__client -> lists Prisma delegates in this build (no DB calls)
  */
 
 // 1) Router ping
@@ -24,14 +22,28 @@ router.get("/__ping", (_req, res) => {
   res.json({ ok: true, router: "pms", ts: new Date().toISOString() });
 });
 
-// 2) Prisma client delegates present in this build
+// 2) Prisma delegates present in this build (non-enumerable-safe)
 router.get("/__client", (_req, res) => {
   try {
-    // list enumerable keys on the Prisma client instance
-    const keys = Object.keys(db || {}).filter(
-      (k) => !k.startsWith("_") && !k.startsWith("$")
-    );
-    res.json({ ok: true, delegates: keys });
+    const names = [
+      "extranetSession",
+      "pmsConnection",
+      "pmsMapping",
+      "syncLog",
+      "roomType",
+      "ratePlan",
+      "roomInventory",
+      "roomPrice",
+      "propertyProfile",
+      "propertyPhoto",
+      "propertyDocument",
+      "partner",
+    ];
+    const delegates: Record<string, boolean> = {};
+    for (const n of names) {
+      delegates[n] = typeof (db as any)[n]?.findMany === "function";
+    }
+    res.json({ ok: true, delegates });
   } catch (e: any) {
     res.status(500).json({ ok: false, error: String(e?.message || e) });
   }
@@ -60,7 +72,7 @@ router.use(async (req, res, next) => {
     const session: any = await Promise.race([sessionLookup, timeout]);
     if (!session) return res.status(401).json({ error: "Unauthorized" });
 
-    req.partnerId = session.partnerId;
+    (req as any).partnerId = session.partnerId;
     next();
   } catch (e: any) {
     console.error("[PMS auth error]", e?.message || e);
@@ -72,7 +84,7 @@ router.use(async (req, res, next) => {
  * ---- AUTHED DIAGNOSTIC ----
  */
 router.get("/whoami", (req, res) => {
-  res.json({ ok: true, partnerId: Number(req.partnerId) || null });
+  res.json({ ok: true, partnerId: Number((req as any).partnerId) || null });
 });
 
 // Helpers
