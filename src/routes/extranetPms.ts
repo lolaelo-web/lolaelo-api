@@ -96,6 +96,14 @@ function toInt(v: any) {
 function getPartnerId(req: any) {
   return Number(req.partnerId);
 }
+function hasPmsDelegates() {
+  const anyDb: any = db;
+  return (
+    typeof anyDb?.pmsConnection?.findMany === "function" &&
+    typeof anyDb?.pmsMapping?.findMany === "function" &&
+    typeof anyDb?.syncLog?.findMany === "function"
+  );
+}
 
 /**
  * ---- CONNECTIONS ----
@@ -105,7 +113,12 @@ router.get("/connections", async (req, res) => {
     const partnerId = getPartnerId(req);
     if (!partnerId || Number.isNaN(partnerId)) return res.status(401).json({ error: "Unauthorized" });
 
-    const rows = await db.pmsConnection.findMany({
+    if (!hasPmsDelegates()) {
+      // Migrations not deployed yet on Render — don’t 500, just return empty list
+      return res.json([]);
+    }
+
+    const rows = await (db as any).pmsConnection.findMany({
       where: { partnerId },
       orderBy: { id: "asc" },
     });
@@ -121,15 +134,19 @@ router.post("/connections", async (req, res) => {
     const partnerId = getPartnerId(req);
     if (!partnerId || Number.isNaN(partnerId)) return res.status(401).json({ error: "Unauthorized" });
 
+    if (!hasPmsDelegates()) {
+      return res.status(501).json({ error: "Unavailable", detail: "PMS tables not deployed yet (run migrations on Render)" });
+    }
+
     const { provider = "CLOUDBEDS", mode = "mock", status = "TESTING", scope } = req.body ?? {};
 
-    const upserted = await db.pmsConnection.upsert({
+    const upserted = await (db as any).pmsConnection.upsert({
       where: { partnerId_provider: { partnerId, provider } },
       create: { partnerId, provider, mode, status, scope },
       update: { mode, status, scope, updatedAt: new Date() },
     });
 
-    await db.syncLog.create({
+    await (db as any).syncLog.create({
       data: {
         pmsConnectionId: upserted.id,
         type: "AUTH",
@@ -153,13 +170,17 @@ router.patch("/connections/:id", async (req, res) => {
     const partnerId = getPartnerId(req);
     if (!partnerId || Number.isNaN(partnerId)) return res.status(401).json({ error: "Unauthorized" });
 
+    if (!hasPmsDelegates()) {
+      return res.status(501).json({ error: "Unavailable", detail: "PMS tables not deployed yet (run migrations on Render)" });
+    }
+
     const id = Number(req.params.id);
     const { mode, status, scope, accessToken, refreshToken, tokenExpiresAt } = req.body ?? {};
 
-    const existing = await db.pmsConnection.findFirst({ where: { id, partnerId } });
+    const existing = await (db as any).pmsConnection.findFirst({ where: { id, partnerId } });
     if (!existing) return res.status(404).json({ error: "Not found" });
 
-    const updated = await db.pmsConnection.update({
+    const updated = await (db as any).pmsConnection.update({
       where: { id },
       data: {
         mode: mode ?? existing.mode,
@@ -184,19 +205,23 @@ router.post("/connections/:id/test", async (req, res) => {
     const partnerId = getPartnerId(req);
     if (!partnerId || Number.isNaN(partnerId)) return res.status(401).json({ error: "Unauthorized" });
 
+    if (!hasPmsDelegates()) {
+      return res.status(501).json({ error: "Unavailable", detail: "PMS tables not deployed yet (run migrations on Render)" });
+    }
+
     const id = Number(req.params.id);
-    const conn = await db.pmsConnection.findFirst({ where: { id, partnerId } });
+    const conn = await (db as any).pmsConnection.findFirst({ where: { id, partnerId } });
     if (!conn) return res.status(404).json({ error: "Not found" });
 
     const start = Date.now();
     const ok = true;
 
-    const newConn = await db.pmsConnection.update({
+    const newConn = await (db as any).pmsConnection.update({
       where: { id: conn.id },
       data: { status: ok ? "CONNECTED" : "ERROR", lastSyncAt: new Date() },
     });
 
-    await db.syncLog.create({
+    await (db as any).syncLog.create({
       data: {
         pmsConnectionId: conn.id,
         type: "AUTH",
@@ -220,13 +245,17 @@ router.delete("/connections/:id", async (req, res) => {
     const partnerId = getPartnerId(req);
     if (!partnerId || Number.isNaN(partnerId)) return res.status(401).json({ error: "Unauthorized" });
 
+    if (!hasPmsDelegates()) {
+      return res.status(501).json({ error: "Unavailable", detail: "PMS tables not deployed yet (run migrations on Render)" });
+    }
+
     const id = Number(req.params.id);
-    const existing = await db.pmsConnection.findFirst({ where: { id, partnerId } });
+    const existing = await (db as any).pmsConnection.findFirst({ where: { id, partnerId } });
     if (!existing) return res.status(404).json({ error: "Not found" });
 
-    await db.pmsMapping.deleteMany({ where: { pmsConnectionId: id } });
-    await db.syncLog.deleteMany({ where: { pmsConnectionId: id } });
-    await db.pmsConnection.delete({ where: { id } });
+    await (db as any).pmsMapping.deleteMany({ where: { pmsConnectionId: id } });
+    await (db as any).syncLog.deleteMany({ where: { pmsConnectionId: id } });
+    await (db as any).pmsConnection.delete({ where: { id } });
 
     res.json({ deleted: true });
   } catch (e: any) {
@@ -243,7 +272,11 @@ router.get("/mappings", async (req, res) => {
     const partnerId = getPartnerId(req);
     if (!partnerId || Number.isNaN(partnerId)) return res.status(401).json({ error: "Unauthorized" });
 
-    const rows = await db.pmsMapping.findMany({
+    if (!hasPmsDelegates()) {
+      return res.json([]); // safe default until migrations are live
+    }
+
+    const rows = await (db as any).pmsMapping.findMany({
       where: { connection: { partnerId } },
       include: {
         connection: true,
@@ -265,6 +298,10 @@ router.post("/mappings", async (req, res) => {
     const partnerId = getPartnerId(req);
     if (!partnerId || Number.isNaN(partnerId)) return res.status(401).json({ error: "Unauthorized" });
 
+    if (!hasPmsDelegates()) {
+      return res.status(501).json({ error: "Unavailable", detail: "PMS tables not deployed yet (run migrations on Render)" });
+    }
+
     const {
       pmsConnectionId,
       remoteRoomId,
@@ -275,12 +312,12 @@ router.post("/mappings", async (req, res) => {
       active = true,
     } = req.body ?? {};
 
-    const conn = await db.pmsConnection.findFirst({
+    const conn = await (db as any).pmsConnection.findFirst({
       where: { id: Number(pmsConnectionId), partnerId },
     });
     if (!conn) return res.status(400).json({ error: "Invalid pmsConnectionId" });
 
-    const created = await db.pmsMapping.create({
+    const created = await (db as any).pmsMapping.create({
       data: {
         pmsConnectionId: conn.id,
         remoteRoomId: String(remoteRoomId),
@@ -304,16 +341,20 @@ router.patch("/mappings/:id", async (req, res) => {
     const partnerId = getPartnerId(req);
     if (!partnerId || Number.isNaN(partnerId)) return res.status(401).json({ error: "Unauthorized" });
 
+    if (!hasPmsDelegates()) {
+      return res.status(501).json({ error: "Unavailable", detail: "PMS tables not deployed yet (run migrations on Render)" });
+    }
+
     const id = Number(req.params.id);
 
-    const mapping = await db.pmsMapping.findFirst({
+    const mapping = await (db as any).pmsMapping.findFirst({
       where: { id, connection: { partnerId } },
     });
     if (!mapping) return res.status(404).json({ error: "Not found" });
 
     const { localRoomTypeId, localRatePlanId, currency, active } = req.body ?? {};
 
-    const updated = await db.pmsMapping.update({
+    const updated = await (db as any).pmsMapping.update({
       where: { id },
       data: {
         localRoomTypeId: localRoomTypeId === undefined ? mapping.localRoomTypeId : toInt(localRoomTypeId),
@@ -336,14 +377,18 @@ router.delete("/mappings/:id", async (req, res) => {
     const partnerId = getPartnerId(req);
     if (!partnerId || Number.isNaN(partnerId)) return res.status(401).json({ error: "Unauthorized" });
 
+    if (!hasPmsDelegates()) {
+      return res.status(501).json({ error: "Unavailable", detail: "PMS tables not deployed yet (run migrations on Render)" });
+    }
+
     const id = Number(req.params.id);
 
-    const mapping = await db.pmsMapping.findFirst({
+    const mapping = await (db as any).pmsMapping.findFirst({
       where: { id, connection: { partnerId } },
     });
     if (!mapping) return res.status(404).json({ error: "Not found" });
 
-    await db.pmsMapping.delete({ where: { id } });
+    await (db as any).pmsMapping.delete({ where: { id } });
     res.json({ deleted: true });
   } catch (e: any) {
     console.error("[PMS DELETE /mappings/:id error]", e?.message || e);
@@ -359,9 +404,13 @@ router.get("/logs", async (req, res) => {
     const partnerId = getPartnerId(req);
     if (!partnerId || Number.isNaN(partnerId)) return res.status(401).json({ error: "Unauthorized" });
 
+    if (!hasPmsDelegates()) {
+      return res.json([]); // safe default until migrations are live
+    }
+
     const limit = Math.min(200, Number(req.query.limit) || 50);
 
-    const rows = await db.syncLog.findMany({
+    const rows = await (db as any).syncLog.findMany({
       where: { connection: { partnerId } },
       orderBy: { startedAt: "desc" },
       take: limit,
