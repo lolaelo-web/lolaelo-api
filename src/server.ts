@@ -59,7 +59,7 @@ app.use(express.static(pubPath, { extensions: ["html"], maxAge: "1h", etag: true
 // Health
 // -------------------------------------------------------------
 app.get("/health", (_req, res) => {
-  res.type("text/plain").send("OK v-ROUTES-24");
+  res.type("text/plain").send("OK v-ROUTES-25");
 });
 
 // -------------------------------------------------------------
@@ -80,26 +80,15 @@ async function tryMount(routePath: string, mountAt: string) {
   }
 }
 
-// Keep /extranet for existing callers
+// IMPORTANT: mount session at root (for /login/*) AND /extranet (for /extranet/session, etc.)
+await tryMount("./session.js", "/");
 await tryMount("./session.js", "/extranet");
+
+// Feature routers
 await tryMount("./routes/extranetRooms.js", "/extranet");
 await tryMount("./routes/extranetPms.js", "/extranet/pms");
 await tryMount("./routes/property.js", "/extranet/property");
 await tryMount("./routes/propertyPhotos.js", "/extranet/property/photos");
-
-// -------------------------------------------------------------
-// LOGIN ALIASES (root -> /extranet)  **IMPORTANT**
-// Use 307 so POST body is preserved on redirect.
-// -------------------------------------------------------------
-app.post("/login/request-code", (req, res) => {
-  res.redirect(307, "/extranet/login/request-code");
-});
-app.post("/login/verify", (req, res) => {
-  res.redirect(307, "/extranet/login/verify");
-});
-
-// If you later add a GET status route at root, you can alias it too:
-// app.get("/login/status", (_req, res) => res.redirect(307, "/extranet/login/status"));
 
 // -------------------------------------------------------------
 // Fallbacks / errors
