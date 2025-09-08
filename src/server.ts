@@ -1,4 +1,4 @@
-// src/server.ts
+﻿// src/server.ts
 import express from "express";
 import cors from "cors";
 import path from "path";
@@ -65,7 +65,7 @@ await tryMount("./routes/sessionHttp.js", "/");
 await tryMount("./routes/sessionHttp.js", "/extranet");
 
 // features
-await tryMount("./routes/extranetRooms.js", "/extranet");
+await tryMount("./routes/extranetRooms.js", "/extranet/property/rooms");
 await tryMount("./routes/extranetPms.js", "/extranet/pms");
 await tryMount("./routes/property.js", "/extranet/property");
 await tryMount("./routes/propertyPhotos.js", "/extranet/property/photos");
@@ -93,3 +93,4 @@ if (process.env.NODE_ENV !== "test") {
 }
 
 export default app;
+
