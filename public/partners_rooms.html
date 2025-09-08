@@ -98,23 +98,25 @@
       padding:8px; min-height:120px; display:flex; flex-direction:column; gap:6px;
     }
     .day .date{ font-weight:600; font-size:12px; color:var(--muted); }
+    /* chip = label + value; keep value on the far right, fixed width inside the border */
     .chip{
       background:var(--chip); border:1px solid var(--border);
       padding:6px 8px; border-radius:10px; font-size:12px;
-      display:flex; align-items:center; justify-content:space-between; gap:8px;
+      display:grid;
+      grid-template-columns: 1fr minmax(64px, 90px); /* label grows, value stays inside */
+      align-items:center; gap:8px; min-width:0;
     }
     /* labels on calendar chips are NOT orange per request */
     .chip .tag{ color:var(--muted); font-size:11px; }
 
+    /* value field stays fully inside the chip, right-aligned */
     .chip input{
-      width:96px; max-width:96px;
-      text-align:right;
-      background:transparent; border:0;
-      color:var(--text);
-      padding:4px 6px;
-      font-variant-numeric:tabular-nums;
-      outline:none;
-      overflow:hidden; text-overflow:ellipsis; white-space:nowrap;
+      width:100%;
+      text-align:right;                 /* numbers to the right edge */
+      background:transparent; border:0; color:var(--text);
+      padding:4px 0;                    /* remove extra right padding to prevent spill */
+      outline:none; font-variant-numeric:tabular-nums;
+      overflow:hidden; text-overflow:clip; white-space:nowrap; min-width:0;
     }
     .chip input.error{ outline:1px solid var(--err); }
 
