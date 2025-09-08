@@ -118,6 +118,12 @@
       outline:none; font-variant-numeric:tabular-nums;
       overflow:hidden; text-overflow:clip; white-space:nowrap; min-width:0;
     }
+    /* Nudge Open / MinStay values ~2–3 characters left; keep Price as-is */
+    .chip input[data-kind="open"],
+    .chip input[data-kind="minstay"]{
+      padding-right: 12px; /* tweak to 14px if you want a bit more */
+    }
+
     .chip input.error{ outline:1px solid var(--err); }
 
     /* hide number spinners (standard + vendor-specific) */
