@@ -143,12 +143,33 @@
     .warn{ color:var(--warn); }
     code.k{ background:var(--chip); padding:2px 6px; border-radius:6px; }
     .disabled{ opacity:.6; pointer-events:none; }
+
+    /* Final nudge: keep Open/Price as-is; move MinStay ~1ch further left */
+    .chip input[data-kind="open"]{
+      padding-right: 2.5ch;   /* same as current — adjust only if yours differs */
+    }
+    .chip input[data-kind="price"]{
+      padding-right: 0;       /* unchanged */
+    }
+    .chip input[data-kind="minstay"]{
+      padding-right: 3.5ch;   /* one more character than Open */
+    }
+    /* Save button uses the same soft-orange as Rename */
+    #save{ background:var(--accent); color:#0b0d12; }
+    #save:disabled{ opacity:.6; cursor:not-allowed; }
+
+    /* Smaller action buttons on room tiles (~30% down) */
+    .room .actions button{
+      padding:6px 8px;        /* was ~8–12px */
+      font-size:12px;         /* was 14px */
+      border-radius:8px;
+    }
+
   </style>
 </head>
 <body>
   <header>
     <h1>Rooms & Availability — Extranet</h1>
-    <div class="note">Auth accepts <code class="k">x-partner-token</code> or <code class="k">Authorization: Bearer ...</code> from OTP flow.</div>
     <div class="spacer"></div>
     <div class="header-actions">
       <span id="status" class="note">Ready.</span>
