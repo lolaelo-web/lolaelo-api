@@ -246,15 +246,18 @@
           <button data-act="open" data-id="${rt.id}">Open</button>
         </div>`;
       div.addEventListener("click", async (e) => {
-        const btn = e.target.closest("button");
-        if (!btn) return;
-        const id = Number(btn.getAttribute("data-id"));
-        const act = btn.getAttribute("data-act");
-        if (act === "open") {
-          currentRoomTypeId = id;
-          await renderCalendar(); // loads inventory+prices too
-          await loadRooms(); // refresh selection highlight
-        } else if (act === "del") {
+          const btn = e.target.closest("button");
+          // If click wasn't on a button, treat it as "open" for this tile
+          const id = Number((btn || div.querySelector('[data-act="open"]')).getAttribute("data-id"));
+          const act = btn ? btn.getAttribute("data-act") : "open";
+
+          if (act === "open") {
+            currentRoomTypeId = id;
+            dirty?.clear?.(); // if present, reset per-day edits when switching rooms
+            await renderCalendar(); // loads inventory+prices too
+            await loadRooms(); // refresh selection highlight
+          } else if (act === "del") {
+            // ...
           if (!confirm("Delete this room type?")) return;
           const r = await authFetch(`/extranet/property/rooms/${id}`, { method:"DELETE" });
           if (r.status === 204) {
@@ -396,7 +399,7 @@
       });
     });
     updateDirtyUI();
-    setStatus("Calendar ready.", "");
+    if (!status.className.includes("ok")) setStatus("Calendar ready.", "");
   }
 
   // --- Bulk Apply: Inventory (items[]) ---
