@@ -59,7 +59,7 @@ app.use(express.static(pubPath, { extensions: ["html"], maxAge: "1h", etag: true
 // Health
 // -------------------------------------------------------------
 app.get("/health", (_req, res) => {
-  res.type("text/plain").send("OK v-ROUTES-25");
+  res.type("text/plain").send("OK v-ROUTES-26");
 });
 
 // -------------------------------------------------------------
@@ -80,9 +80,13 @@ async function tryMount(routePath: string, mountAt: string) {
   }
 }
 
-// IMPORTANT: mount session at root (for /login/*) AND /extranet (for /extranet/session, etc.)
+// IMPORTANT: mount session helpers (no routes) if present
 await tryMount("./session.js", "/");
 await tryMount("./session.js", "/extranet");
+
+// HTTP session router (adds /login/*, /session, /logout)
+await tryMount("./routes/sessionHttp.js", "/");         // root: /login/*, /session, /logout
+await tryMount("./routes/sessionHttp.js", "/extranet"); // keep /extranet/session, /extranet/logout
 
 // Feature routers
 await tryMount("./routes/extranetRooms.js", "/extranet");
