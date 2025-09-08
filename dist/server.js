@@ -1,74 +1,108 @@
+// src/server.ts
+// Express (ESM) with CORS for lolaelo.com and static hosting from /public
 import express from "express";
 import cors from "cors";
 import path from "path";
 import { fileURLToPath } from "url";
-// Routers (ESM build requires .js suffix)
-import extranetPhotos from "./routes/extranetPhotos.js";
-import photosUploadUrl from "./routes/extranetPhotosUploadUrl.js";
-import extranetAuth from "./routes/extranetAuth.js";
-import extranetDocuments from "./routes/extranetDocuments.js";
-import documentsUploadUrl from "./routes/extranetDocumentsUploadUrl.js";
-import extranetRooms from "./routes/extranetRooms.js";
-process.on("unhandledRejection", (e) => console.error("[unhandledRejection]", e));
-process.on("uncaughtException", (e) => console.error("[uncaughtException]", e));
-const app = express(); // CREATE APP FIRST
-app.set("trust proxy", 1);
-app.use(express.json({ limit: "10mb" }));
-// optional: visibility for large bulk saves
-app.use(express.urlencoded({ extended: true, limit: "10mb" })); // harmless to add
-app.use((req, _res, next) => {
-    if (req.method === "POST" &&
-        /\/extranet\/property\/rooms\/\d+\/(inventory|prices)\/bulk$/i.test(req.url)) {
-        const len = req.headers["content-length"] ?? "unknown";
-        console.log(`[bulk] ${req.method} ${req.url} content-length=${len}`);
-    }
-    next();
-});
-// Static: serve /public and root
+// -------------------------------------------------------------
+// ESM __dirname
+// -------------------------------------------------------------
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
+// -------------------------------------------------------------
+const app = express();
+app.disable("x-powered-by");
+// -------------------------------------------------------------
+// CORS
+// -------------------------------------------------------------
+const CORS_ALLOWED_ORIGINS = ["https://www.lolaelo.com"]; // add more if needed
+const corsOpts = {
+    origin: CORS_ALLOWED_ORIGINS,
+    methods: ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS", "HEAD"],
+    allowedHeaders: [
+        "Authorization",
+        "Content-Type",
+        "Cache-Control",
+        "Pragma",
+        "Origin",
+        "Accept",
+        "X-Requested-With",
+    ],
+    exposedHeaders: ["Content-Length", "ETag"],
+    credentials: true,
+    maxAge: 60 * 60 * 24,
+};
+app.use(cors(corsOpts));
+app.options("*", cors(corsOpts));
+// -------------------------------------------------------------
+// Core middleware
+// -------------------------------------------------------------
+app.set("trust proxy", 1);
+app.use(express.json({ limit: "2mb" }));
+app.use(express.urlencoded({ extended: true }));
+// -------------------------------------------------------------
+// Static files
+// -------------------------------------------------------------
 const pubPath = path.join(__dirname, "..", "public");
 app.use("/public", express.static(pubPath, { maxAge: "1h", etag: true }));
 app.use(express.static(pubPath, { extensions: ["html"], maxAge: "1h", etag: true }));
-// CORS
-const ALLOWED_ORIGINS = [
-    "https://lolaelo.com",
-    "https://www.lolaelo.com",
-    "https://lolaelo-web.github.io",
-    // "http://localhost:5173",
-    // "http://127.0.0.1:5173",
-];
-app.use(cors({
-    origin: (origin, cb) => (!origin || ALLOWED_ORIGINS.includes(origin)) ? cb(null, true) : cb(null, false),
-    methods: ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
-    allowedHeaders: ["Content-Type", "Authorization", "x-partner-token", "Accept"],
-}));
+// -------------------------------------------------------------
 // Health
-app.get("/health", (_req, res) => res.status(200).send("OK v-AUTH-2"));
-// Mount routers
-app.use("/extranet/property/photos/upload-url", photosUploadUrl);
-app.use("/extranet/property/photos", extranetPhotos);
-app.use("/extranet/property/documents/upload-url", documentsUploadUrl);
-app.use("/extranet/property/documents", extranetDocuments);
-app.use("/extranet/property/rooms", extranetRooms);
-app.use(extranetAuth); // auth/session routes
-// Routes list (debug)
-app.get("/__routes", (req, res) => {
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const stack = req.app?._router?.stack ?? [];
-    const routes = stack
-        .filter((l) => l.route)
-        .map((l) => ({ path: l.route.path, methods: Object.keys(l.route.methods) }));
-    res.json({ routes });
+// -------------------------------------------------------------
+app.get("/health", (_req, res) => {
+    res.type("text/plain").send("OK v-ROUTES-26");
 });
-// 404
-app.use((req, res) => res.status(404).json({ error: "Not Found", path: req.path }));
-// Error handler
-// eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unused-vars
+// -------------------------------------------------------------
+// Mount optional routers (non-fatal if missing)
+// -------------------------------------------------------------
+async function tryMount(routePath, mountAt) {
+    try {
+        const m = await import(routePath);
+        const r = (m.default ?? m.router ?? m);
+        if (typeof r === "function") {
+            app.use(mountAt, r);
+            console.log(`[server] mounted ${mountAt} from ${routePath}`);
+        }
+        else {
+            console.warn(`[server] ${routePath} did not export a router`);
+        }
+    }
+    catch (err) {
+        console.warn(`[server] optional route ${routePath} not mounted: ${err?.message || err}`);
+    }
+}
+// IMPORTANT: mount session helpers (no routes) if present
+await tryMount("./session.js", "/");
+await tryMount("./session.js", "/extranet");
+// HTTP session router (adds /login/*, /session, /logout)
+await tryMount("./routes/sessionHttp.js", "/"); // root: /login/*, /session, /logout
+await tryMount("./routes/sessionHttp.js", "/extranet"); // keep /extranet/session, /extranet/logout
+// Feature routers
+await tryMount("./routes/extranetRooms.js", "/extranet");
+await tryMount("./routes/extranetPms.js", "/extranet/pms");
+await tryMount("./routes/property.js", "/extranet/property");
+await tryMount("./routes/propertyPhotos.js", "/extranet/property/photos");
+// -------------------------------------------------------------
+// Fallbacks / errors
+// -------------------------------------------------------------
+app.use((req, res, next) => {
+    if (req.method === "GET" && req.accepts("html")) {
+        return res.status(404).sendFile(path.join(pubPath, "404.html"), (err) => {
+            if (err)
+                res.status(404).type("text/plain").send("Not Found");
+        });
+    }
+    next();
+});
 app.use((err, _req, res, _next) => {
-    console.error("Unhandled error:", err);
+    console.error("[server] unhandled error:", err?.stack || err);
     res.status(500).json({ error: "Internal Server Error" });
 });
+// -------------------------------------------------------------
 const PORT = Number(process.env.PORT || 3000);
-app.listen(PORT, () => console.log(`Server started on port ${PORT}`));
+if (process.env.NODE_ENV !== "test") {
+    app.listen(PORT, () => {
+        console.log(`[server] listening on port ${PORT} (public dir: ${pubPath})`);
+    });
+}
 export default app;

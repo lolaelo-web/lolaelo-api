@@ -6,8 +6,8 @@ const SESSION_TTL_DAYS = 30;
 const codes = new Map(); // key: email (OTP codes)
 const properties = new Map(); // key: email (profile draft cache)
 const now = () => Date.now();
-const addMin = (ms, m) => ms + m * 60000;
-const addDays = (ms, d) => ms + d * 86400000;
+const addMin = (ms, m) => ms + m * 60_000;
+const addDays = (ms, d) => ms + d * 86_400_000;
 const uuid = () => crypto.randomUUID();
 function nameFromEmail(email) {
     const base = email.split("@")[0] || "Partner";
