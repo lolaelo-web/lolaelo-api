@@ -14,47 +14,43 @@
       --text:#e7ecf3;
       --muted:#98a3b3;
       --brand:#4f8cff;
-      --accent:#ffb86b;        /* soft orange accent */
+      --accent:#ffb86b;          /* soft orange for CTA buttons */
       --ok:#2ecc71;
       --warn:#f39c12;
       --err:#e74c3c;
       --border:#222a3a;
       --chip:#1e2536;
+      --header-h:56px;           /* keep header and body in sync */
     }
 
     *{ box-sizing:border-box; }
 
-    /* Single-page scroll lives only in the calendar pane */
+    /* page scroll lives only in the calendar, not the whole document */
     body{
       margin:0;
       background:var(--bg);
       color:var(--text);
       font:14px/1.4 system-ui,-apple-system,Segoe UI,Roboto,"Helvetica Neue",Arial;
-      overflow:hidden; /* prevent page-level scrollbars */
+      overflow:hidden;
     }
 
     header{
       display:flex; gap:12px; align-items:center;
       padding:14px 18px;
+      height:var(--header-h);
       border-bottom:1px solid var(--border);
       background:var(--panel);
       position:sticky; top:0; z-index:5;
     }
     header h1{ font-size:16px; margin:0; letter-spacing:.2px; }
     .spacer{ flex:1; }
-
-    /* NEW: header-actions to match your HTML */
     .header-actions{ display:flex; gap:8px; align-items:center; }
-    .header-actions .note{ color:var(--muted); font-size:12px; white-space:nowrap; }
-
-    /* kept for backwards compatibility if needed elsewhere */
-    .actions{ display:flex; gap:8px; align-items:center; }
-    .actions .note{ white-space:nowrap; }
+    .header-actions .note{ white-space:nowrap; }
 
     .wrap{
       display:grid;
       grid-template-columns:300px 1fr;
-      height:calc(100vh - 56px);
+      height:calc(100vh - var(--header-h));
       overflow:hidden;
     }
     .left{
@@ -70,7 +66,7 @@
     }
 
     .toolbar{ display:flex; gap:8px; padding:10px; border-bottom:1px solid var(--border); background:var(--panel); }
-    .toolbar input, .toolbar select{ background:var(--chip); border:1px solid var(--border); color:var(--text); padding:8px 10px; border-radius:8px; }
+    .toolbar input,.toolbar select{ background:var(--chip); border:1px solid var(--border); color:var(--text); padding:8px 10px; border-radius:8px; }
     .toolbar button{ background:var(--brand); border:0; color:#fff; padding:8px 12px; border-radius:8px; cursor:pointer; }
     .toolbar button.secondary{ background:transparent; border:1px solid var(--border); color:var(--text); }
 
@@ -96,7 +92,7 @@
     .controls .flag{ display:flex; gap:6px; align-items:center; color:var(--muted); font-size:12px; }
 
     .calendar{ flex:1; overflow:auto; padding:12px; }   /* single scroll lives here */
-    .cal-grid{ display:grid; grid-auto-flow:column; grid-auto-columns:128px; gap:10px; }
+    .cal-grid{ display:grid; grid-auto-flow:column; grid-auto-columns:140px; gap:10px; }
     .day{
       background:var(--panel); border:1px solid var(--border); border-radius:10px;
       padding:8px; min-height:120px; display:flex; flex-direction:column; gap:6px;
@@ -107,33 +103,31 @@
       padding:6px 8px; border-radius:10px; font-size:12px;
       display:flex; align-items:center; justify-content:space-between; gap:8px;
     }
-    .chip .tag{ color:var(--accent); font-size:11px; }
+    /* labels on calendar chips are NOT orange per request */
+    .chip .tag{ color:var(--muted); font-size:11px; }
 
     .chip input{
-      width:84px;
+      width:96px; max-width:96px;
       text-align:right;
-      background:transparent;
-      border:0;
+      background:transparent; border:0;
       color:var(--text);
-      padding:4px 6px;                  /* allows 150.00 to fit comfortably */
-      font-variant-numeric: tabular-nums;
+      padding:4px 6px;
+      font-variant-numeric:tabular-nums;
       outline:none;
+      overflow:hidden; text-overflow:ellipsis; white-space:nowrap;
     }
     .chip input.error{ outline:1px solid var(--err); }
 
-    /* Hide number spinners (with standard + vendor-specific properties) */
-    input[type=number]{
-      appearance:textfield;              /* standard */
-      -moz-appearance:textfield;         /* Firefox */
-    }
+    /* hide number spinners (standard + vendor-specific) */
+    input[type=number]{ appearance:textfield; -moz-appearance:textfield; }
     input[type=number]::-webkit-outer-spin-button,
-    input[type=number]::-webkit-inner-spin-button{
-      -webkit-appearance:none; margin:0; /* Chrome/Safari */
-    }
+    input[type=number]::-webkit-inner-spin-button{ -webkit-appearance:none; margin:0; }
 
-    /* Buttons */
+    /* buttons */
     button{ background:var(--brand); color:#fff; border:0; border-radius:8px; padding:8px 12px; cursor:pointer; }
     button.secondary{ background:transparent; border:1px solid var(--border); color:var(--text); }
+    .btn-accent{ background:var(--accent); color:#0b0d12; }
+    .btn-accent:hover{ filter:brightness(1.05); }
 
     .note{ color:var(--muted); font-size:12px; padding:0 10px; }
     .error{ color:var(--err); }
@@ -252,9 +246,9 @@
 
   function daysBetween(startISO, endISO) {
     const s = new Date(startISO + "T00:00:00Z");
-    const e = new Date(endISO + "T00:00:00Z");
+    theEnd = new Date(endISO + "T00:00:00Z");
     const arr = [];
-    for (let d = new Date(s); d <= e; d = new Date(d.getTime() + 86400000)) {
+    for (let d = new Date(s); d <= theEnd; d = new Date(d.getTime() + 86400000)) {
       arr.push(iso(d));
     }
     return arr;
@@ -314,11 +308,11 @@
           <div class="meta">Base ${base || "-"} · Max ${maxGuests}</div>
         </div>
         <div class="actions">
-          <button class="secondary" data-act="edit" data-id="${rt.id}">Edit</button>
+          <button class="btn-accent" data-act="edit" data-id="${rt.id}">Rename</button>
           <button class="secondary" data-act="del"  data-id="${rt.id}">Delete</button>
-          <button data-act="open" data-id="${rt.id}">Open</button>
         </div>`;
 
+      // Click anywhere on the tile to "open" (except the buttons)
       div.addEventListener("click", async (e) => {
         const btn = e.target.closest("button");
         const act = btn ? btn.getAttribute("data-act") : "open";
@@ -455,7 +449,7 @@
       `;
       calGrid.appendChild(card);
 
-      // listeners to mark dirty + basic inline validation
+      // listeners to mark dirty + inline validation
       ['open','price','minstay'].forEach(kind => {
         const input = card.querySelector(`input[data-kind="${kind}"]`);
         input.addEventListener('input', () => {
@@ -589,7 +583,7 @@
   (async function init() {
     prepareRangeDefaults();
     await loadRooms();
-    const firstOpen = document.querySelector(".room [data-act='open']");
+    const firstOpen = document.querySelector(".room"); // clicking tile opens
     if (firstOpen) firstOpen.click();
   })();
 })();
