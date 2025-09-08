@@ -1,4 +1,4 @@
-﻿// src/server.ts
+// src/server.ts
 import express from "express";
 import cors from "cors";
 import path from "path";
@@ -41,7 +41,7 @@ app.use(express.static(pubPath, { extensions: ["html"], maxAge: "1h", etag: true
 
 // ---- Health ----
 app.get("/health", (_req, res) => {
-  res.type("text/plain").send("OK v-ROUTES-27");
+  res.type("text/plain").send("OK v-ROUTES-28");
 });
 
 // ---- Optional routers ----
