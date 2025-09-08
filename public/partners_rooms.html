@@ -42,6 +42,12 @@
     }
     header h1{ font-size:16px; margin:0; letter-spacing:.2px; }
     .spacer{ flex:1; }
+
+    /* NEW: header-actions to match your HTML */
+    .header-actions{ display:flex; gap:8px; align-items:center; }
+    .header-actions .note{ color:var(--muted); font-size:12px; white-space:nowrap; }
+
+    /* kept for backwards compatibility if needed elsewhere */
     .actions{ display:flex; gap:8px; align-items:center; }
     .actions .note{ white-space:nowrap; }
 
@@ -140,9 +146,9 @@
 <body>
   <header>
     <h1>Rooms & Availability — Extranet</h1>
-    <div class="note">Auth accepts <code class="k">x-partner-token</code> or <code class="k">Authorization: Bearer …</code> from OTP flow.</div>
+    <div class="note">Auth accepts <code class="k">x-partner-token</code> or <code class="k">Authorization: Bearer ...</code> from OTP flow.</div>
     <div class="spacer"></div>
-    <div class="actions">
+    <div class="header-actions">
       <span id="status" class="note">Ready.</span>
       <span id="dirty-count" class="note">No changes</span>
       <button id="save" disabled>Save changes</button>
