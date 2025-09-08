@@ -4,73 +4,156 @@
   <meta charset="utf-8" />
   <title>Partners · Rooms & Availability</title>
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'><rect width='16' height='16' fill='%234f8cff'/></svg>" type="image/svg+xml">
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'><rect width='16' height='16' fill='%234f8cff'/></svg>" type="image/svg+xml">
 
   <style>
-    :root {
-      --bg: #0b0d12;
-      --panel: #121621;
-      --panel-2: #161b28;
-      --text: #e7ecf3;
-      --muted: #98a3b3;
-      --brand: #4f8cff;
-      --ok: #2ecc71;
-      --warn: #f39c12;
-      --err: #e74c3c;
-      --border: #222a3a;
-      --chip: #1e2536;
+    :root{
+      --bg:#0b0d12;
+      --panel:#121621;
+      --panel-2:#161b28;
+      --text:#e7ecf3;
+      --muted:#98a3b3;
+      --brand:#4f8cff;
+      --accent:#ffb86b;        /* soft orange accent */
+      --ok:#2ecc71;
+      --warn:#f39c12;
+      --err:#e74c3c;
+      --border:#222a3a;
+      --chip:#1e2536;
     }
-    * { box-sizing: border-box; }
-    body { margin:0; background:var(--bg); color:var(--text); font:14px/1.4 system-ui, -apple-system, Segoe UI, Roboto, "Helvetica Neue", Arial; }
-    header { display:flex; gap:12px; align-items:center; padding:14px 18px; border-bottom:1px solid var(--border); background:var(--panel); position:sticky; top:0; z-index:5; }
-    header h1 { font-size:16px; margin:0; letter-spacing:.2px; }
-    .wrap { display:grid; grid-template-columns: 300px 1fr; height: calc(100vh - 56px); }
-    .left { border-right:1px solid var(--border); background:var(--panel); display:flex; flex-direction:column; }
-    .right { background:var(--panel-2); display:flex; flex-direction:column; }
 
-    .toolbar { display:flex; gap:8px; padding:10px; border-bottom:1px solid var(--border); background:var(--panel); }
-    .toolbar input, .toolbar select { background:var(--chip); border:1px solid var(--border); color:var(--text); padding:8px 10px; border-radius:8px; }
-    .toolbar button { background:var(--brand); border:0; color:white; padding:8px 12px; border-radius:8px; cursor:pointer; }
-    .toolbar button.secondary { background:transparent; border:1px solid var(--border); color:var(--text); }
+    *{ box-sizing:border-box; }
 
-    .list { flex:1; overflow:auto; padding:8px; }
-    .room { padding:10px; border:1px solid var(--border); border-radius:10px; background:var(--panel-2); margin-bottom:8px; display:flex; justify-content:space-between; align-items:center; }
-    .room.active { outline:2px solid var(--brand); }
-    .room .name { font-weight:600; }
-    .room .meta { color:var(--muted); font-size:12px; }
+    /* Single-page scroll lives only in the calendar pane */
+    body{
+      margin:0;
+      background:var(--bg);
+      color:var(--text);
+      font:14px/1.4 system-ui,-apple-system,Segoe UI,Roboto,"Helvetica Neue",Arial;
+      overflow:hidden; /* prevent page-level scrollbars */
+    }
 
-    .right .controls { display:flex; flex-wrap:wrap; gap:8px; padding:10px; border-bottom:1px solid var(--border); background:var(--panel); align-items:center; }
-    .controls input { background:var(--chip); border:1px solid var(--border); color:var(--text); padding:8px 10px; border-radius:8px; }
-    .controls .group { display:flex; gap:6px; align-items:center; }
-    .controls .group label { color:var(--muted); font-size:12px; }
-    .controls .flag { display:flex; gap:6px; align-items:center; color:var(--muted); font-size:12px; }
+    header{
+      display:flex; gap:12px; align-items:center;
+      padding:14px 18px;
+      border-bottom:1px solid var(--border);
+      background:var(--panel);
+      position:sticky; top:0; z-index:5;
+    }
+    header h1{ font-size:16px; margin:0; letter-spacing:.2px; }
+    .spacer{ flex:1; }
 
-    .calendar { flex:1; overflow:auto; padding:12px; }
-    .cal-grid { display:grid; grid-auto-flow:column; grid-auto-columns: 110px; gap:8px; }
-    .day { background:var(--panel); border:1px solid var(--border); border-radius:10px; padding:8px; min-height:120px; display:flex; flex-direction:column; gap:6px; }
-    .day .date { font-weight:600; font-size:12px; color:var(--muted); }
-    .chip { background:var(--chip); border:1px solid var(--border); padding:6px 8px; border-radius:8px; font-size:12px; display:flex; align-items:center; justify-content:space-between; gap:8px; }
-    .chip input { width:64px; text-align:right; background:transparent; border:0; color:var(--text); }
-    .chip input.error { outline:1px solid var(--err); }
-    .chip .tag { color:var(--muted); font-size:11px; }
-    .foot { display:flex; justify-content:space-between; padding:10px; border-top:1px solid var(--border); background:var(--panel); }
-    .foot .leftside { display:flex; gap:8px; align-items:center; color:var(--muted); font-size:12px; }
-    .foot button { background:var(--brand); border:0; color:white; padding:8px 12px; border-radius:8px; cursor:pointer;}
-    .foot button.secondary { background:transparent; border:1px solid var(--border); color:var(--text); }
-    .foot .rightside { display:flex; gap:8px; align-items:center; }
+    /* NEW: header-actions to match your HTML */
+    .header-actions{ display:flex; gap:8px; align-items:center; }
+    .header-actions .note{ color:var(--muted); font-size:12px; white-space:nowrap; }
 
-    .note { color:var(--muted); font-size:12px; padding:0 10px; }
-    .error { color:var(--err); }
-    .ok { color:var(--ok); }
-    .warn { color:var(--warn); }
-    code.k { background:var(--chip); padding:2px 6px; border-radius:6px; }
-    .disabled { opacity: .6; pointer-events: none; }
+    /* kept for backwards compatibility if needed elsewhere */
+    .actions{ display:flex; gap:8px; align-items:center; }
+    .actions .note{ white-space:nowrap; }
+
+    .wrap{
+      display:grid;
+      grid-template-columns:300px 1fr;
+      height:calc(100vh - 56px);
+      overflow:hidden;
+    }
+    .left{
+      border-right:1px solid var(--border);
+      background:var(--panel);
+      display:flex; flex-direction:column;
+      min-width:0;
+    }
+    .right{
+      background:var(--panel-2);
+      display:flex; flex-direction:column;
+      min-width:0;
+    }
+
+    .toolbar{ display:flex; gap:8px; padding:10px; border-bottom:1px solid var(--border); background:var(--panel); }
+    .toolbar input, .toolbar select{ background:var(--chip); border:1px solid var(--border); color:var(--text); padding:8px 10px; border-radius:8px; }
+    .toolbar button{ background:var(--brand); border:0; color:#fff; padding:8px 12px; border-radius:8px; cursor:pointer; }
+    .toolbar button.secondary{ background:transparent; border:1px solid var(--border); color:var(--text); }
+
+    .list{ flex:1; overflow:auto; padding:8px; }
+    .room{
+      padding:10px; border:1px solid var(--border); border-radius:10px;
+      background:var(--panel-2); margin-bottom:8px;
+      display:flex; justify-content:space-between; align-items:center;
+      cursor:pointer;
+    }
+    .room.active{ outline:2px solid var(--accent); }
+    .room .name{ font-weight:600; }
+    .room .meta{ color:var(--muted); font-size:12px; }
+    .room .actions{ display:flex; gap:6px; }
+
+    .right .controls{
+      display:flex; flex-wrap:wrap; gap:8px; padding:10px;
+      border-bottom:1px solid var(--border); background:var(--panel); align-items:center;
+    }
+    .controls input{ background:var(--chip); border:1px solid var(--border); color:var(--text); padding:8px 10px; border-radius:8px; }
+    .controls .group{ display:flex; gap:6px; align-items:center; }
+    .controls .group label{ color:var(--muted); font-size:12px; }
+    .controls .flag{ display:flex; gap:6px; align-items:center; color:var(--muted); font-size:12px; }
+
+    .calendar{ flex:1; overflow:auto; padding:12px; }   /* single scroll lives here */
+    .cal-grid{ display:grid; grid-auto-flow:column; grid-auto-columns:128px; gap:10px; }
+    .day{
+      background:var(--panel); border:1px solid var(--border); border-radius:10px;
+      padding:8px; min-height:120px; display:flex; flex-direction:column; gap:6px;
+    }
+    .day .date{ font-weight:600; font-size:12px; color:var(--muted); }
+    .chip{
+      background:var(--chip); border:1px solid var(--border);
+      padding:6px 8px; border-radius:10px; font-size:12px;
+      display:flex; align-items:center; justify-content:space-between; gap:8px;
+    }
+    .chip .tag{ color:var(--accent); font-size:11px; }
+
+    .chip input{
+      width:84px;
+      text-align:right;
+      background:transparent;
+      border:0;
+      color:var(--text);
+      padding:4px 6px;                  /* allows 150.00 to fit comfortably */
+      font-variant-numeric: tabular-nums;
+      outline:none;
+    }
+    .chip input.error{ outline:1px solid var(--err); }
+
+    /* Hide number spinners (with standard + vendor-specific properties) */
+    input[type=number]{
+      appearance:textfield;              /* standard */
+      -moz-appearance:textfield;         /* Firefox */
+    }
+    input[type=number]::-webkit-outer-spin-button,
+    input[type=number]::-webkit-inner-spin-button{
+      -webkit-appearance:none; margin:0; /* Chrome/Safari */
+    }
+
+    /* Buttons */
+    button{ background:var(--brand); color:#fff; border:0; border-radius:8px; padding:8px 12px; cursor:pointer; }
+    button.secondary{ background:transparent; border:1px solid var(--border); color:var(--text); }
+
+    .note{ color:var(--muted); font-size:12px; padding:0 10px; }
+    .error{ color:var(--err); }
+    .ok{ color:var(--ok); }
+    .warn{ color:var(--warn); }
+    code.k{ background:var(--chip); padding:2px 6px; border-radius:6px; }
+    .disabled{ opacity:.6; pointer-events:none; }
   </style>
 </head>
 <body>
   <header>
     <h1>Rooms & Availability — Extranet</h1>
     <div class="note">Auth accepts <code class="k">x-partner-token</code> or <code class="k">Authorization: Bearer ...</code> from OTP flow.</div>
+    <div class="spacer"></div>
+    <div class="header-actions">
+      <span id="status" class="note">Ready.</span>
+      <span id="dirty-count" class="note">No changes</span>
+      <button id="save" disabled>Save changes</button>
+      <button id="back" class="secondary" onclick="location.href='/partners_documents.html'">Back to menu</button>
+    </div>
   </header>
 
   <div class="wrap">
@@ -108,17 +191,6 @@
 
       <div class="calendar">
         <div id="cal-grid" class="cal-grid"></div>
-      </div>
-
-      <div class="foot">
-        <div class="leftside">
-          <span id="status" class="note">Ready.</span>
-        </div>
-        <div class="rightside">
-          <span id="dirty-count" class="note">No changes</span>
-          <button id="save" disabled>Save changes</button>
-          <button id="back" class="secondary" onclick="location.href='/partners_documents.html'">Back to menu</button>
-        </div>
       </div>
     </section>
   </div>
@@ -230,6 +302,7 @@
     if (!res.ok) { setStatus("Failed to load rooms ("+res.status+")", "error"); return; }
     const data = await res.json();
     if (!Array.isArray(data)) return;
+
     data.forEach(rt => {
       const div = document.createElement("div");
       div.className = "room" + (rt.id === currentRoomTypeId ? " active" : "");
@@ -240,24 +313,26 @@
           <div class="name">${rt.name}</div>
           <div class="meta">Base ${base || "-"} · Max ${maxGuests}</div>
         </div>
-        <div>
+        <div class="actions">
           <button class="secondary" data-act="edit" data-id="${rt.id}">Edit</button>
-          <button class="secondary" data-act="del" data-id="${rt.id}">Delete</button>
+          <button class="secondary" data-act="del"  data-id="${rt.id}">Delete</button>
           <button data-act="open" data-id="${rt.id}">Open</button>
         </div>`;
-      div.addEventListener("click", async (e) => {
-          const btn = e.target.closest("button");
-          // If click wasn't on a button, treat it as "open" for this tile
-          const id = Number((btn || div.querySelector('[data-act="open"]')).getAttribute("data-id"));
-          const act = btn ? btn.getAttribute("data-act") : "open";
 
-          if (act === "open") {
-            currentRoomTypeId = id;
-            dirty?.clear?.(); // if present, reset per-day edits when switching rooms
-            await renderCalendar(); // loads inventory+prices too
-            await loadRooms(); // refresh selection highlight
-          } else if (act === "del") {
-            // ...
+      div.addEventListener("click", async (e) => {
+        const btn = e.target.closest("button");
+        const act = btn ? btn.getAttribute("data-act") : "open";
+        const id  = btn ? Number(btn.getAttribute("data-id")) : rt.id;
+
+        if (act === "open") {
+          currentRoomTypeId = id;
+          if (dirty.clear) dirty.clear();
+          await renderCalendar();
+          await loadRooms(); // refresh highlight
+          return;
+        }
+
+        if (act === "del") {
           if (!confirm("Delete this room type?")) return;
           const r = await authFetch(`/extranet/property/rooms/${id}`, { method:"DELETE" });
           if (r.status === 204) {
@@ -268,7 +343,10 @@
           } else {
             setStatus("Delete failed ("+r.status+")", "error");
           }
-        } else if (act === "edit") {
+          return;
+        }
+
+        if (act === "edit") {
           const name = prompt("New name?");
           if (!name) return;
           const r = await authFetch(`/extranet/property/rooms/${id}`, {
@@ -279,6 +357,7 @@
           else setStatus("Update failed ("+r.status+")", "error");
         }
       });
+
       roomsList.appendChild(div);
     });
   }
@@ -510,8 +589,8 @@
   (async function init() {
     prepareRangeDefaults();
     await loadRooms();
-    const first = roomsList.querySelector(".room button[data-act='open']");
-    if (first) { first.click(); }
+    const firstOpen = document.querySelector(".room [data-act='open']");
+    if (firstOpen) firstOpen.click();
   })();
 })();
 </script>
