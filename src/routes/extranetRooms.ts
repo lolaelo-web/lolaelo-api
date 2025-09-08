@@ -27,11 +27,11 @@ const T = {
 r.get("/", async (_req, res) => {
   try {
     res.set("Cache-Control", "no-store");
-    const { rows } = await pool.query(
-      `SELECT "id","name","code","description"
-         FROM ${T.rooms}
-        ORDER BY "id" ASC`
-    );
+    const { rows } = await pool.query(`
+  SELECT "id","name","code","description","occupancy","maxGuests","basePrice"
+  FROM ${T.rooms}
+  ORDER BY "id" ASC
+`);
     return res.status(200).json(rows);
   } catch (e) {
     console.error("[rooms:get] db error", e);
