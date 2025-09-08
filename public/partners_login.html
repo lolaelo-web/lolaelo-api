@@ -10,6 +10,9 @@
   <meta http-equiv="Pragma" content="no-cache" />
   <meta http-equiv="Expires" content="0" />
 
+  <!-- Optional: silence favicon 404s -->
+  <link rel="icon" href="/favicon.ico" />
+
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600&display=swap" rel="stylesheet">
   <style>
     :root{ --bg:#0b1320; --card:#111a2b; --fg:#e8eefc; --muted:#9bb0d3; --accent:#ff6a3d; }
@@ -49,8 +52,7 @@
     }
   </style>
 
-  <!-- Travel origin shared helpers -->
-  <!-- Use relative path since this is the travel site: /travel/js/shared.js => served as js/shared.js -->
+  <!-- Shared helpers -->
   <script src="js/shared.js"></script>
 </head>
 <body>
@@ -98,6 +100,7 @@
 
     btnClear.onclick = () => {
       localStorage.removeItem(SESSION_KEY);
+      localStorage.removeItem('partnerToken');
       codeInput.value = "";
       toast('Session cleared');
     };
@@ -135,7 +138,8 @@
       if (!email || !/^\d{6}$/.test(code)) return toast('Enter your email and a 6-digit code.');
 
       try {
-        const res = await fetch(`${API_BASE}/login/verify-code`, {
+        // IMPORTANT: correct endpoint is /login/verify
+        const res = await fetch(`${API_BASE}/login/verify`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ email, code })
@@ -145,11 +149,11 @@
           return toast(data.error || 'Invalid or expired code.');
         }
 
-        // Use TravelAuth helper to persist token and go to hub (partners_app.html)
+        // Persist token (both keys for back-compat)
         if (window.TravelAuth && typeof TravelAuth.onVerifySuccess === 'function') {
           TravelAuth.onVerifySuccess(data);
         } else {
-          // Fallback (shouldn't happen if shared.js is loaded)
+          localStorage.setItem('partnerToken', data.token);
           localStorage.setItem(SESSION_KEY, data.token);
           location.href = "/partners_app.html";
         }
@@ -164,7 +168,7 @@
       try {
         const t = (window.TravelAuth && typeof TravelAuth.getToken === 'function')
           ? TravelAuth.getToken()
-          : localStorage.getItem(SESSION_KEY);
+          : (localStorage.getItem('partnerToken') || localStorage.getItem(SESSION_KEY));
 
         if (t) location.href = "/partners_app.html";
       } catch {}
