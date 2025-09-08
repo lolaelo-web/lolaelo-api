@@ -4,8 +4,7 @@
   <meta charset="utf-8" />
   <title>Partners · Rooms & Availability</title>
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <!-- If your documents page links a shared stylesheet, you can add it here too -->
-  <!-- <link rel="stylesheet" href="/assets/styles.css"> -->
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'><rect width='16' height='16' fill='%234f8cff'/></svg>" type="image/svg+xml">
 
   <style>
     :root {
@@ -44,6 +43,7 @@
     .controls input { background:var(--chip); border:1px solid var(--border); color:var(--text); padding:8px 10px; border-radius:8px; }
     .controls .group { display:flex; gap:6px; align-items:center; }
     .controls .group label { color:var(--muted); font-size:12px; }
+    .controls .flag { display:flex; gap:6px; align-items:center; color:var(--muted); font-size:12px; }
 
     .calendar { flex:1; overflow:auto; padding:12px; }
     .cal-grid { display:grid; grid-auto-flow:column; grid-auto-columns: 110px; gap:8px; }
@@ -51,22 +51,26 @@
     .day .date { font-weight:600; font-size:12px; color:var(--muted); }
     .chip { background:var(--chip); border:1px solid var(--border); padding:6px 8px; border-radius:8px; font-size:12px; display:flex; align-items:center; justify-content:space-between; gap:8px; }
     .chip input { width:64px; text-align:right; background:transparent; border:0; color:var(--text); }
+    .chip input.error { outline:1px solid var(--err); }
     .chip .tag { color:var(--muted); font-size:11px; }
     .foot { display:flex; justify-content:space-between; padding:10px; border-top:1px solid var(--border); background:var(--panel); }
     .foot .leftside { display:flex; gap:8px; align-items:center; color:var(--muted); font-size:12px; }
     .foot button { background:var(--brand); border:0; color:white; padding:8px 12px; border-radius:8px; cursor:pointer;}
     .foot button.secondary { background:transparent; border:1px solid var(--border); color:var(--text); }
+    .foot .rightside { display:flex; gap:8px; align-items:center; }
 
-    .note { color:var(--muted); font-size:12px; padding:8px 10px; }
+    .note { color:var(--muted); font-size:12px; padding:0 10px; }
     .error { color:var(--err); }
     .ok { color:var(--ok); }
+    .warn { color:var(--warn); }
     code.k { background:var(--chip); padding:2px 6px; border-radius:6px; }
+    .disabled { opacity: .6; pointer-events: none; }
   </style>
 </head>
 <body>
   <header>
     <h1>Rooms & Availability — Extranet</h1>
-    <div class="note">Auth expects <code class="k">x-partner-token</code> or <code class="k">Authorization: Bearer ...</code> from OTP flow.</div>
+    <div class="note">Auth accepts <code class="k">x-partner-token</code> or <code class="k">Authorization: Bearer ...</code> from OTP flow.</div>
   </header>
 
   <div class="wrap">
@@ -92,6 +96,7 @@
           <label>Inventory</label>
           <input type="number" id="inv-open" min="0" placeholder="roomsOpen" />
           <input type="number" id="inv-minstay" min="1" placeholder="minStay" />
+          <span class="flag"><input type="checkbox" id="inv-closed" /> Closed</span>
           <button id="apply-inv" class="secondary">Apply Inventory</button>
         </div>
         <div class="group">
@@ -110,6 +115,8 @@
           <span id="status" class="note">Ready.</span>
         </div>
         <div class="rightside">
+          <span id="dirty-count" class="note">No changes</span>
+          <button id="save" disabled>Save changes</button>
           <button id="back" class="secondary" onclick="location.href='/partners_documents.html'">Back to menu</button>
         </div>
       </div>
@@ -118,11 +125,30 @@
 
 <script>
 (() => {
-  // --- Auth token loading (same pattern as other extranet pages) ---
-  const token = localStorage.getItem("partnerToken") || "";
+  // --- Auth token loading (hash → localStorage → session key) + 401 redirect ---
+  (function ensureToken() {
+    const hashToken = new URLSearchParams(location.hash.slice(1)).get('token');
+    if (hashToken) localStorage.setItem('partnerToken', hashToken);
+  })();
+  const token =
+    localStorage.getItem("partnerToken") ||
+    localStorage.getItem("lolaelo_session") || // UUID session fallback
+    "";
+  const baseHeaders = { "Content-Type": "application/json" };
   const authHeaders = token
-    ? { "Content-Type": "application/json", "Authorization": "Bearer " + token }
-    : { "Content-Type": "application/json" }; // fallback; server will 401
+    ? { ...baseHeaders, "Authorization": "Bearer " + token, "x-partner-token": token }
+    : baseHeaders;
+
+  function authFetch(url, opts = {}) {
+    const merged = { ...opts, headers: { ...(opts.headers || {}), ...authHeaders } };
+    return fetch(url, merged).then(async (r) => {
+      if (r.status === 401) {
+        setStatus("Session expired. Redirecting to login…", "warn");
+        setTimeout(() => { location.href = "/partners_login.html"; }, 900);
+      }
+      return r;
+    });
+  }
 
   const el = (id) => document.getElementById(id);
   const status = el("status");
@@ -132,14 +158,25 @@
   // Selected roomTypeId
   let currentRoomTypeId = null;
   let currentRangeStart = null, currentRangeEnd = null;
+  let busy = false;
+
+  // Track per-day edits (dirty)
+  const dirty = new Map(); // date -> { price?:string, roomsOpen?:number, minStay?:number }
 
   // --- Utilities ---
+  const clamp = (v, min, max) => Math.min(Math.max(v, min), max);
+  const toNumber = (v) => {
+    if (v === null || v === undefined || v === "") return NaN;
+    const n = Number(String(v).replace(/[^0-9.-]/g, ""));
+    return Number.isFinite(n) ? n : NaN;
+  };
   const fmtUSD = (v) => {
-    const n = Number(v);
-    if (Number.isNaN(n)) return v;
+    const n = toNumber(v);
+    if (!Number.isFinite(n)) return "";
     return "$" + n.toFixed(2);
   };
   const iso = (d) => d.toISOString().slice(0,10);
+  const todayISO = () => iso(new Date());
 
   function daysBetween(startISO, endISO) {
     const s = new Date(startISO + "T00:00:00Z");
@@ -156,20 +193,52 @@
     status.textContent = msg;
   }
 
+  function disableWhileBusy(flag) {
+    busy = !!flag;
+    document.querySelectorAll("button, input").forEach(x => {
+      if (x.id !== "back") x.classList.toggle("disabled", busy);
+      x.disabled = busy && x.id !== "back";
+    });
+  }
+
+  function validateRangeOrWarn() {
+    const s = el("range-start").value;
+    const e = el("range-end").value;
+    if (!s || !e) { setStatus("Enter a start and end date.", "error"); return false; }
+    if (e < s) { setStatus("End date cannot be before start date.", "error"); return false; }
+    const t = todayISO();
+    if (s < t) { setStatus("Start date must be today or later.", "error"); return false; }
+    return true;
+  }
+
+  function setDirty(date, kind, value) {
+    if (!dirty.has(date)) dirty.set(date, {});
+    const obj = dirty.get(date);
+    obj[kind] = value;
+    updateDirtyUI();
+  }
+  function updateDirtyUI() {
+    const n = dirty.size;
+    el("save").disabled = n === 0;
+    el("dirty-count").textContent = n ? `${n} day${n>1?'s':''} changed` : "No changes";
+  }
+
   // --- Load Room Types ---
   async function loadRooms() {
     roomsList.innerHTML = "";
-    const res = await fetch("/extranet/property/rooms", { headers: authHeaders });
+    const res = await authFetch("/extranet/property/rooms");
     if (!res.ok) { setStatus("Failed to load rooms ("+res.status+")", "error"); return; }
     const data = await res.json();
     if (!Array.isArray(data)) return;
     data.forEach(rt => {
       const div = document.createElement("div");
       div.className = "room" + (rt.id === currentRoomTypeId ? " active" : "");
+      const base = fmtUSD(rt.basePrice);
+      const maxGuests = (rt.maxGuests ?? 2);
       div.innerHTML = `
         <div>
           <div class="name">${rt.name}</div>
-          <div class="meta">Base ${fmtUSD(rt.basePrice)} · Max ${rt.maxGuests}</div>
+          <div class="meta">Base ${base || "-"} · Max ${maxGuests}</div>
         </div>
         <div>
           <button class="secondary" data-act="edit" data-id="${rt.id}">Edit</button>
@@ -187,21 +256,21 @@
           await loadRooms(); // refresh selection highlight
         } else if (act === "del") {
           if (!confirm("Delete this room type?")) return;
-          const r = await fetch(`/extranet/property/rooms/${id}`, { method:"DELETE", headers: authHeaders });
+          const r = await authFetch(`/extranet/property/rooms/${id}`, { method:"DELETE" });
           if (r.status === 204) {
             if (currentRoomTypeId === id) currentRoomTypeId = null;
             setStatus("Room deleted", "ok");
             await loadRooms();
+            calGrid.innerHTML = "";
           } else {
             setStatus("Delete failed ("+r.status+")", "error");
           }
         } else if (act === "edit") {
           const name = prompt("New name?");
           if (!name) return;
-          const r = await fetch(`/extranet/property/rooms/${id}`, {
+          const r = await authFetch(`/extranet/property/rooms/${id}`, {
             method:"PUT",
-            headers: authHeaders,
-            body: JSON.stringify({ name })
+            body: JSON.stringify({ name: name.trim() })
           });
           if (r.ok) { setStatus("Updated", "ok"); await loadRooms(); }
           else setStatus("Update failed ("+r.status+")", "error");
@@ -214,13 +283,15 @@
   // --- Add Room Type ---
   el("rt-add").addEventListener("click", async () => {
     const name = el("rt-name").value.trim();
-    const price = el("rt-price").value.trim();
-    if (!name || !price) { setStatus("Name and Base Price required", "error"); return; }
-    const res = await fetch("/extranet/property/rooms", {
+    const priceRaw = el("rt-price").value.trim();
+    const basePrice = toNumber(priceRaw);
+    if (!name || !Number.isFinite(basePrice)) { setStatus("Name and valid Base Price required", "error"); return; }
+    disableWhileBusy(true);
+    const res = await authFetch("/extranet/property/rooms", {
       method: "POST",
-      headers: authHeaders,
-      body: JSON.stringify({ name, basePrice: price, maxGuests: 2, description: "" })
+      body: JSON.stringify({ name, basePrice: basePrice.toFixed(2), maxGuests: 2, description: "" })
     });
+    disableWhileBusy(false);
     if (!res.ok) { setStatus("Create failed ("+res.status+")", "error"); return; }
     const created = await res.json();
     currentRoomTypeId = created.id;
@@ -230,17 +301,26 @@
     await renderCalendar();
   });
 
-  // --- Calendar render (6 months horizontally) ---
+  // --- Range prep & listeners (default = 6 months from today) ---
   function prepareRangeDefaults() {
     const start = new Date();
     const end = new Date(start); end.setMonth(end.getMonth() + 6);
     const s = iso(start), e = iso(end);
-    el("range-start").value ||= s;
-    el("range-end").value ||= e;
+    if (!el("range-start").value) el("range-start").value = s;
+    if (!el("range-end").value)   el("range-end").value = e;
     currentRangeStart = el("range-start").value;
     currentRangeEnd   = el("range-end").value;
   }
+  ["range-start","range-end"].forEach(id => {
+    el(id).addEventListener("change", async () => {
+      if (!validateRangeOrWarn()) return;
+      currentRangeStart = el("range-start").value;
+      currentRangeEnd   = el("range-end").value;
+      await renderCalendar();
+    });
+  });
 
+  // --- Calendar render ---
   async function renderCalendar() {
     calGrid.innerHTML = "";
     if (!currentRoomTypeId) {
@@ -248,14 +328,14 @@
       return;
     }
     prepareRangeDefaults();
+    if (!validateRangeOrWarn()) return;
 
     // Fetch inventory + prices
     const invUrl = `/extranet/property/rooms/${currentRoomTypeId}/inventory?start=${currentRangeStart}&end=${currentRangeEnd}`;
     const prcUrl = `/extranet/property/rooms/${currentRoomTypeId}/prices?start=${currentRangeStart}&end=${currentRangeEnd}`;
-    const [invRes, prcRes] = await Promise.all([
-      fetch(invUrl, { headers: authHeaders }),
-      fetch(prcUrl, { headers: authHeaders })
-    ]);
+    disableWhileBusy(true);
+    const [invRes, prcRes] = await Promise.all([ authFetch(invUrl), authFetch(prcUrl) ]);
+    disableWhileBusy(false);
     if (!invRes.ok || !prcRes.ok) {
       setStatus("Failed loading data ("+invRes.status+"/"+prcRes.status+")", "error");
       return;
@@ -264,13 +344,15 @@
     const prcRows = await prcRes.json();
 
     // Index by date
-    const invByDate = new Map(invRows.map(r => [r.date.slice(0,10), r]));
-    const prcByDate = new Map(prcRows.map(r => [r.date.slice(0,10), r]));
+    const invByDate = new Map(invRows.map(r => [String(r.date).slice(0,10), r]));
+    const prcByDate = new Map(prcRows.map(r => [String(r.date).slice(0,10), r]));
 
     const days = daysBetween(currentRangeStart, currentRangeEnd);
     days.forEach(d => {
       const inv = invByDate.get(d);
       const prc = prcByDate.get(d);
+      const invOpen = inv ? clamp(Number(inv.roomsOpen) || 0, 0, 9999) : 0;
+      const invMinStay = inv && inv.minStay ? clamp(Number(inv.minStay) || 1, 1, 365) : "";
 
       const card = document.createElement("div");
       card.className = "day";
@@ -278,7 +360,7 @@
         <div class="date">${d}</div>
         <div class="chip" title="Rooms Open">
           <span class="tag">Open</span>
-          <input type="number" min="0" value="${inv ? inv.roomsOpen : 0}" data-date="${d}" data-kind="open">
+          <input type="number" min="0" value="${invOpen}" data-date="${d}" data-kind="open">
         </div>
         <div class="chip" title="Price (USD)">
           <span class="tag">Price</span>
@@ -286,56 +368,145 @@
         </div>
         <div class="chip" title="Min Stay">
           <span class="tag">MinStay</span>
-          <input type="number" min="1" value="${inv && inv.minStay ? inv.minStay : ""}" data-date="${d}" data-kind="minstay">
+          <input type="number" min="1" value="${invMinStay}" data-date="${d}" data-kind="minstay">
         </div>
       `;
       calGrid.appendChild(card);
+
+      // listeners to mark dirty + basic inline validation
+      ['open','price','minstay'].forEach(kind => {
+        const input = card.querySelector(`input[data-kind="${kind}"]`);
+        input.addEventListener('input', () => {
+          const date = input.getAttribute('data-date');
+          let val = input.value;
+          if (kind === 'open' || kind === 'minstay') {
+            if (val === '') { input.classList.remove('error'); setDirty(date, kind === 'open' ? 'roomsOpen' : 'minStay', undefined); return; }
+            const n = Number(val);
+            if (!Number.isFinite(n) || n < (kind === 'open' ? 0 : 1)) { input.classList.add('error'); return; }
+            input.classList.remove('error');
+            setDirty(date, kind === 'open' ? 'roomsOpen' : 'minStay', Math.floor(n));
+          } else if (kind === 'price') {
+            if (val === '') { input.classList.remove('error'); setDirty(date, 'price', undefined); return; }
+            const ok = /^(\d+)(\.\d{1,2})?$/.test(val) && parseFloat(val) >= 0;
+            if (!ok) { input.classList.add('error'); return; }
+            input.classList.remove('error');
+            setDirty(date, 'price', parseFloat(val).toFixed(2));
+          }
+        });
+      });
     });
+    updateDirtyUI();
     setStatus("Calendar ready.", "");
   }
 
-  // --- Bulk Apply ---
+  // --- Bulk Apply: Inventory (items[]) ---
   el("apply-inv").addEventListener("click", async () => {
     if (!currentRoomTypeId) return setStatus("Select a room type.", "error");
-    const start = el("range-start").value; const end = el("range-end").value;
-    const roomsOpen = Number(el("inv-open").value);
-    const minStay = el("inv-minstay").value ? Number(el("inv-minstay").value) : null;
-    if (Number.isNaN(roomsOpen)) return setStatus("roomsOpen must be a number", "error");
+    if (!validateRangeOrWarn()) return;
 
-    const res = await fetch(`/extranet/property/rooms/${currentRoomTypeId}/inventory/bulk`, {
-      method: "POST",
-      headers: authHeaders,
-      body: JSON.stringify({ start, end, roomsOpen, isClosed: false, minStay })
+    const start = el("range-start").value; const end = el("range-end").value;
+    const roomsOpenN = toNumber(el("inv-open").value);
+    const minStayN   = el("inv-minstay").value ? toNumber(el("inv-minstay").value) : NaN;
+    const isClosed   = !!el("inv-closed").checked;
+
+    if (!Number.isFinite(roomsOpenN) || roomsOpenN < 0) return setStatus("roomsOpen must be a non-negative number", "error");
+    if (el("inv-minstay").value && (!Number.isFinite(minStayN) || minStayN < 1)) return setStatus("minStay must be ≥ 1", "error");
+
+    const dates = daysBetween(start, end);
+    const items = dates.map(d => {
+      const o = { date: d, isClosed, roomsOpen: Math.floor(roomsOpenN) };
+      if (Number.isFinite(minStayN)) o.minStay = Math.floor(minStayN);
+      return o;
     });
+
+    disableWhileBusy(true);
+    const res = await authFetch(`/extranet/property/rooms/${currentRoomTypeId}/inventory/bulk`, {
+      method: "POST",
+      body: JSON.stringify({ items })
+    });
+    disableWhileBusy(false);
     if (!res.ok) return setStatus("Inventory apply failed ("+res.status+")", "error");
     const js = await res.json();
-    setStatus(`Inventory applied to ${js.count} days.`, "ok");
+    setStatus(`Inventory applied to ${js.upserted ?? js.count ?? items.length} day(s).`, "ok");
     await renderCalendar();
   });
 
+  // --- Bulk Apply: Prices (items[]) ---
   el("apply-price").addEventListener("click", async () => {
     if (!currentRoomTypeId) return setStatus("Select a room type.", "error");
-    const start = el("range-start").value; const end = el("range-end").value;
-    const price = (el("price").value || "").trim();
-    if (!price) return setStatus("Enter a price", "error");
+    if (!validateRangeOrWarn()) return;
 
-    const res = await fetch(`/extranet/property/rooms/${currentRoomTypeId}/prices/bulk`, {
+    const start = el("range-start").value; const end = el("range-end").value;
+    const priceN = toNumber(el("price").value);
+    if (!Number.isFinite(priceN) || priceN < 0) return setStatus("Enter a valid non-negative price", "error");
+
+    const dates = daysBetween(start, end);
+    const items = dates.map(d => ({ date: d, price: priceN.toFixed(2), ratePlanId: null }));
+
+    disableWhileBusy(true);
+    const res = await authFetch(`/extranet/property/rooms/${currentRoomTypeId}/prices/bulk`, {
       method: "POST",
-      headers: authHeaders,
-      body: JSON.stringify({ start, end, price, ratePlanId: null })
+      body: JSON.stringify({ items })
     });
+    disableWhileBusy(false);
     if (!res.ok) return setStatus("Price apply failed ("+res.status+")", "error");
     const js = await res.json();
-    setStatus(`Prices applied to ${js.count} days.`, "ok");
+    setStatus(`Prices applied to ${js.upserted ?? js.count ?? items.length} day(s).`, "ok");
     await renderCalendar();
+  });
+
+  // --- Save button: persist only dirty days (partial edits allowed) ---
+  el("save").addEventListener("click", async () => {
+    if (dirty.size === 0) return;
+
+    const invItems = [];
+    const prcItems = [];
+    for (const [date, obj] of dirty.entries()) {
+      const inv = {};
+      if (typeof obj.roomsOpen === 'number') inv.roomsOpen = obj.roomsOpen;
+      if (typeof obj.minStay   === 'number') inv.minStay   = obj.minStay;
+      if (Object.keys(inv).length) invItems.push({ date, isClosed:false, ...inv });
+
+      if (typeof obj.price === 'string' && obj.price !== '') {
+        prcItems.push({ date, price: obj.price, ratePlanId: null });
+      }
+    }
+    if (invItems.length === 0 && prcItems.length === 0) { setStatus("Nothing to save.", "warn"); return; }
+
+    setStatus("Saving…");
+    disableWhileBusy(true);
+    try {
+      const reqs = [];
+      if (invItems.length) {
+        reqs.push(authFetch(`/extranet/property/rooms/${currentRoomTypeId}/inventory/bulk`, {
+          method:"POST", body: JSON.stringify({ items: invItems })
+        }));
+      }
+      if (prcItems.length) {
+        reqs.push(authFetch(`/extranet/property/rooms/${currentRoomTypeId}/prices/bulk`, {
+          method:"POST", body: JSON.stringify({ items: prcItems })
+        }));
+      }
+      const resps = await Promise.all(reqs);
+      if (resps.some(r => !r.ok)) {
+        setStatus("Save failed (" + resps.map(r=>r.status).join("/") + ")", "error");
+      } else {
+        setStatus("Saved.", "ok");
+        dirty.clear();
+        updateDirtyUI();
+        await renderCalendar();
+      }
+    } catch (_e) {
+      setStatus("Save error", "error");
+    } finally {
+      disableWhileBusy(false);
+    }
   });
 
   // --- Init ---
   (async function init() {
-    // Prefill range
     prepareRangeDefaults();
     await loadRooms();
-    // Auto-open first room, if any
     const first = roomsList.querySelector(".room button[data-act='open']");
     if (first) { first.click(); }
   })();
