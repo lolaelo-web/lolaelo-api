@@ -15,6 +15,12 @@ function parseDate(s: string) {
   const d = new Date(s + "T00:00:00Z");
   return Number.isNaN(d.getTime()) ? null : d;
 }
+function authedPartnerId(req: any): number | null {
+  const v =
+    Number(req?.partner?.id) ??
+    Number(req?.partnerId);
+  return Number.isFinite(v) ? v : null;
+}
 
 // Table names
 const T = {
@@ -86,6 +92,48 @@ r.post("/", async (req, res) => {
     await client.query("ROLLBACK");
     console.error("[rooms:post] db error", e);
     return res.status(500).json({ error: "Create failed" });
+  } finally {
+    client.release();
+  }
+});
+
+/** PUT /extranet/property/rooms/:id  (rename only for now) */
+r.put("/:id", async (req, res) => {
+  const client = await pool.connect();
+  try {
+    const id = Number(req.params.id);
+    const { name } = req.body ?? {};
+    if (!Number.isFinite(id) || id <= 0) return res.status(400).json({ error: "invalid id" });
+    if (!name || typeof name !== "string") return res.status(400).json({ error: "name is required" });
+
+    const authed = authedPartnerId(req);
+    await client.query("BEGIN");
+
+    const room = await client.query(`SELECT "id","partnerId" FROM ${T.rooms} WHERE "id"=$1`, [id]);
+    if (room.rowCount === 0) {
+      await client.query("ROLLBACK");
+      return res.status(404).json({ error: "Not found" });
+    }
+    const owner = Number(room.rows[0].partnerId);
+    if (Number.isFinite(authed!) && authed !== owner) {
+      await client.query("ROLLBACK");
+      return res.status(403).json({ error: "Forbidden" });
+    }
+
+    const upd = await client.query(
+      `UPDATE ${T.rooms}
+          SET "name"=$2, "updatedAt"=NOW()
+        WHERE "id"=$1
+      RETURNING "id","name","code","description","occupancy","maxGuests","basePrice"`,
+      [id, name.trim()]
+    );
+
+    await client.query("COMMIT");
+    return res.status(200).json(upd.rows[0]);
+  } catch (e) {
+    await pool.query("ROLLBACK");
+    console.error("[rooms:put] db error", e);
+    return res.status(500).json({ error: "Update failed" });
   } finally {
     client.release();
   }
@@ -340,6 +388,48 @@ r.post("/:id/prices/bulk", async (req, res) => {
       constraint: e?.constraint ?? null,
       where: e?.where ?? null,
     });
+  } finally {
+    client.release();
+  }
+});
+
+/** DELETE /extranet/property/rooms/:id */
+r.delete("/:id", async (req, res) => {
+  const client = await pool.connect();
+  try {
+    const id = Number(req.params.id);
+    if (!Number.isFinite(id) || id <= 0) return res.status(400).json({ error: "invalid id" });
+
+    const authed = authedPartnerId(req);
+
+    await client.query("BEGIN");
+
+    const room = await client.query(
+      `SELECT "id","partnerId" FROM ${T.rooms} WHERE "id"=$1`,
+      [id]
+    );
+    if (room.rowCount === 0) {
+      await client.query("ROLLBACK");
+      return res.status(404).json({ error: "Not found" });
+    }
+    const owner = Number(room.rows[0].partnerId);
+    if (Number.isFinite(authed!) && authed !== owner) {
+      await client.query("ROLLBACK");
+      return res.status(403).json({ error: "Forbidden" });
+    }
+
+    // delete children first (if FKs are not ON DELETE CASCADE)
+    await client.query(`DELETE FROM ${T.inv}    WHERE "roomTypeId" = $1`, [id]);
+    await client.query(`DELETE FROM ${T.prices} WHERE "roomTypeId" = $1`, [id]);
+
+    await client.query(`DELETE FROM ${T.rooms} WHERE "id" = $1`, [id]);
+
+    await client.query("COMMIT");
+    return res.status(204).end();
+  } catch (e) {
+    await client.query("ROLLBACK");
+    console.error("[rooms:delete] db error", e);
+    return res.status(500).json({ error: "Delete failed" });
   } finally {
     client.release();
   }
