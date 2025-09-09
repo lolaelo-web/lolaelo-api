@@ -769,54 +769,65 @@
 })();
 </script>
 
-<!-- FP: MN10-override -->
+<!-- FP: MN-HARDFIX-LOCK — single source of truth for month-nav; exact 3-week stepping -->
 <script>
-/* === MN10 runtime override: continuous 3-week stepping, no gaps/overlaps === */
 (() => {
-  const ONE_DAY = 86400000;
   const iso = (d) => d.toISOString().slice(0,10);
-  const todayISO = () => iso(new Date());
+  const addDaysISO = (isoStr, n) => {
+    const d = new Date(isoStr + "T00:00:00Z");
+    d.setDate(d.getDate() + n);
+    return iso(d);
+  };
+
   const setLabel = (sISO) => {
     const lbl = document.getElementById('month-label');
     if (lbl) lbl.textContent = new Date(sISO + 'T00:00:00Z')
-      .toLocaleString(undefined, { month: 'short', year: 'numeric' });
+      .toLocaleString(undefined, { month:'short', year:'numeric' });
   };
-  const applyWindowFromStart = (startISO, weeks = 3, doRender = true) => {
-    const sDate = new Date(startISO + 'T00:00:00Z');
-    const eDate = new Date(sDate.getTime() + (weeks * 7 - 1) * ONE_DAY);
-    const s = iso(sDate), e = iso(eDate);
+
+  const setWindow = (sISO, doRender = true) => {
+    const eISO = addDaysISO(sISO, 21 - 1); // inclusive 3 weeks
     const rs = document.getElementById('range-start');
     const re = document.getElementById('range-end');
-    if (rs && re) { rs.value = s; re.value = e; }
-    window.currentRangeStart = s;
-    window.currentRangeEnd = e;
-    window.currentAnchor = sDate;
-    setLabel(s);
+    if (rs && re) { rs.value = sISO; re.value = eISO; }
+    // keep globals in sync so existing code doesn't fight us
+    window.currentRangeStart = sISO;
+    window.currentRangeEnd   = eISO;
+    window.currentAnchor     = new Date(sISO + 'T00:00:00Z');
+    setLabel(sISO);
     if (doRender && typeof window.renderCalendar === 'function') window.renderCalendar();
-  };
-  const stepFromDisplayed = (deltaWeeks) => {
-    const rs = (document.getElementById('range-start')?.value || window.currentRangeStart || todayISO());
-    const base = new Date(rs + 'T00:00:00Z');
-    base.setDate(base.getDate() + deltaWeeks * 7);
-    applyWindowFromStart(iso(base), 3, true);
   };
 
   const prev = document.getElementById('month-prev');
   const next = document.getElementById('month-next');
-  if (prev && next) {
-    prev.onclick = () => { console.debug('[MN10] prev'); stepFromDisplayed(-3); };
-    next.onclick = () => { console.debug('[MN10] next'); stepFromDisplayed(+3); };
-    console.debug('[MN10] override installed');
-  } else {
-    console.warn('[MN10] month nav buttons not found');
-  }
+  if (!prev || !next) { console.warn('[MN-HARDFIX-LOCK] nav buttons missing'); return; }
 
-  // First-run normalization: align current inputs to a 3-week window starting today (or keep existing start)
-  const initial = (document.getElementById('range-start')?.value || todayISO());
-  applyWindowFromStart(initial, 3, false);
+  // wipe any inline onclicks from older overrides
+  prev.onclick = null;
+  next.onclick = null;
+
+  // install exactly ONE capturing handler on each and block other listeners
+  const install = (el, dir) => {
+    el.addEventListener('click', (ev) => {
+      ev.stopImmediatePropagation();
+      ev.preventDefault();
+      const rs = document.getElementById('range-start')?.value || window.currentRangeStart;
+      const re = document.getElementById('range-end')?.value   || window.currentRangeEnd || rs;
+      const nextStart = (dir === 'next')
+        ? addDaysISO(re, +1)          // forward: previous end + 1 day
+        : addDaysISO(rs, -21);        // back: previous start - 3 weeks
+      setWindow(nextStart, true);
+    }, { capture: true });
+  };
+
+  install(prev, 'prev');
+  install(next, 'next');
+
+  // normalize once on load (don’t jump the user; reuse current start if present)
+  const initial = document.getElementById('range-start')?.value || window.currentRangeStart || iso(new Date());
+  setWindow(initial, false);
 })();
 </script>
 
 </body>
 </html>
-<!-- FP: redeploy-20250909-144929 -->
