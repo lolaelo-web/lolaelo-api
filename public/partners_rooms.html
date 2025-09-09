@@ -164,6 +164,7 @@
       font-size:12px;         /* was 14px */
       border-radius:8px;
     }
+    #add-room{ padding:8px 10px; font-weight:600; }
 
   </style>
 </head>
@@ -183,9 +184,7 @@
     <!-- LEFT: Room Types -->
     <aside class="left">
       <div class="toolbar">
-        <input id="rt-name" placeholder="Room name (e.g., Deluxe Queen)" />
-        <input id="rt-price" placeholder="Base USD (e.g., 129.00)" />
-        <button id="rt-add">Add</button>
+        <button id="add-room" class="btn-accent">+ Add room type</button>
       </div>
       <div class="list" id="rooms-list"></div>
     </aside>
@@ -324,6 +323,7 @@
     const res = await authFetch("/extranet/property/rooms");
     if (!res.ok) { setStatus("Failed to load rooms ("+res.status+")", "error"); return; }
     const data = await res.json();
+    data.sort((a,b) => String(a.name).localeCompare(String(b.name), undefined, { sensitivity: 'base' }));
     if (!Array.isArray(data)) return;
 
     data.forEach(rt => {
@@ -385,26 +385,37 @@
     });
   }
 
-  // --- Add Room Type ---
-  el("rt-add").addEventListener("click", async () => {
-    const name = el("rt-name").value.trim();
-    const priceRaw = el("rt-price").value.trim();
-    const basePrice = toNumber(priceRaw);
-    if (!name || !Number.isFinite(basePrice)) { setStatus("Name and valid Base Price required", "error"); return; }
-    disableWhileBusy(true);
-    const res = await authFetch("/extranet/property/rooms", {
-      method: "POST",
-      body: JSON.stringify({ name, basePrice: basePrice.toFixed(2), maxGuests: 2, description: "" })
-    });
-    disableWhileBusy(false);
-    if (!res.ok) { setStatus("Create failed ("+res.status+")", "error"); return; }
-    const created = await res.json();
-    currentRoomTypeId = created.id;
-    el("rt-name").value = ""; el("rt-price").value = "";
-    setStatus("Room created", "ok");
-    await loadRooms();
-    await renderCalendar();
+  // --- Add Room Type (prompt-based) ---
+el("add-room").addEventListener("click", async () => {
+  const name = (prompt("Room type name (e.g., Deluxe Queen):") || "").trim();
+  if (!name) { setStatus("Name is required.", "warn"); return; }
+
+  let p = prompt("Base price in USD (e.g., 129.00):") || "";
+  p = p.replace(/[^0-9.]/g, "");
+  const basePrice = Number(p);
+  if (!Number.isFinite(basePrice) || basePrice < 0) {
+    setStatus("Enter a valid non-negative price.", "error"); return;
+  }
+
+  disableWhileBusy(true);
+  const res = await authFetch("/extranet/property/rooms", {
+    method: "POST",
+    body: JSON.stringify({
+      name,
+      basePrice: basePrice.toFixed(2),
+      maxGuests: 2,
+      description: ""
+    })
   });
+  disableWhileBusy(false);
+
+  if (!res.ok) { setStatus("Create failed ("+res.status+")", "error"); return; }
+  const created = await res.json();
+  currentRoomTypeId = created.id;
+  setStatus("Room created", "ok");
+  await loadRooms();
+  await renderCalendar();
+});
 
   // --- Range prep & listeners (default = 6 months from today) ---
   function prepareRangeDefaults() {
