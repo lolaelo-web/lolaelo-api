@@ -151,6 +151,24 @@
     input, select, button { font-family: inherit; font-size: 14px; }
     input[type="date"]{ font-family: inherit; font-size: 14px; }
     input[type="date"]::-webkit-datetime-edit { font-family: inherit; }
+
+    /* ========== Month Navigator (Sprint 1 / Step 1) ========== */
+    .month-nav{
+      display:flex; align-items:center; gap:8px; padding:10px;
+      border-bottom:1px solid var(--border); background:var(--panel);
+    }
+    .month-nav .nav-btn{
+      border:1px solid var(--border);
+      background:var(--chip);
+      padding:.25rem .5rem; border-radius:.5rem; line-height:1.2; cursor:pointer;
+      color:var(--text);
+    }
+    .month-nav .nav-btn:hover{ filter:brightness(1.05); }
+    .month-nav .month-label{
+      font-weight:600; letter-spacing:.2px; min-width:8rem; text-align:center; user-select:none; cursor:default;
+      color:var(--text);
+    }
+    .month-select{ display:none; }
   </style>
 </head>
 <body>
@@ -176,6 +194,27 @@
 
     <!-- RIGHT: Calendar + Bulk editors -->
     <section class="right">
+      <!-- Month Navigator (Step 1: static label, no JS yet) -->
+      <div id="month-nav" class="month-nav" role="group" aria-label="Month navigator">
+        <button id="month-prev" class="nav-btn" type="button" aria-label="Previous month">◀</button>
+        <span id="month-label" class="month-label" title="Month">Sep 2025</span>
+        <select id="month-select" class="month-select" aria-label="Select month">
+          <option value="2025-01">Jan 2025</option>
+          <option value="2025-02">Feb 2025</option>
+          <option value="2025-03">Mar 2025</option>
+          <option value="2025-04">Apr 2025</option>
+          <option value="2025-05">May 2025</option>
+          <option value="2025-06">Jun 2025</option>
+          <option value="2025-07">Jul 2025</option>
+          <option value="2025-08">Aug 2025</option>
+          <option value="2025-09" selected>Sep 2025</option>
+          <option value="2025-10">Oct 2025</option>
+          <option value="2025-11">Nov 2025</option>
+          <option value="2025-12">Dec 2025</option>
+        </select>
+        <button id="month-next" class="nav-btn" type="button" aria-label="Next month">▶</button>
+      </div>
+
       <div class="controls">
         <div class="group">
           <label>Range</label>
@@ -204,6 +243,82 @@
 
 <script>
 (() => {
+    /* =================== Sprint 1: Month Navigator — Step 2 =================== */
+  // Config: 0 = Sunday, 1 = Monday. Adjust if your calendar convention differs.
+  const WEEK_START = 1;
+  let visibleWeeks = 3; // can tune to 2 if perf dips
+  // First day of the current month
+  let currentMonth = (() => { const d = new Date(); return new Date(d.getFullYear(), d.getMonth(), 1); })();
+
+  function startOfWeek(dt, weekStart = WEEK_START){
+    const d = new Date(dt.getFullYear(), dt.getMonth(), dt.getDate());
+    const day = d.getDay(); // 0..6 (Sun..Sat)
+    const diff = (day - weekStart + 7) % 7;
+    d.setDate(d.getDate() - diff);
+    d.setHours(0,0,0,0);
+    return d;
+  }
+  function addWeeks(dt, n){
+    const d = new Date(dt.getFullYear(), dt.getMonth(), dt.getDate());
+    d.setDate(d.getDate() + n * 7);
+    return d;
+  }
+  function monthLabel(dt){
+    return dt.toLocaleString(undefined, { month: "short", year: "numeric" });
+  }
+  function computeWindowFromMonth(){
+    // Start at week boundary that contains the 1st of currentMonth
+    const start = startOfWeek(currentMonth);
+    const end = new Date(addWeeks(start, visibleWeeks).getTime() - 86400000); // inclusive
+    const startISO = iso(start), endISO = iso(end);
+    console.debug("[month-nav] window", {
+      label: monthLabel(currentMonth),
+      startISO, endISO, visibleWeeks, weekStart: WEEK_START
+    });
+    return { startISO, endISO };
+  }
+  function setMonthLabel(){
+    const lbl = document.getElementById("month-label");
+    if (lbl) lbl.textContent = monthLabel(currentMonth);
+    // keep the hidden <select> in sync for later steps
+    const sel = document.getElementById("month-select");
+    if (sel){
+      const y = currentMonth.getFullYear();
+      const m = String(currentMonth.getMonth()+1).padStart(2,"0");
+      const v = `${y}-${m}`;
+      if (sel.value !== v && [...sel.options].some(o => o.value === v)) sel.value = v;
+    }
+  }
+
+    // Step 3: drive the visible window into the Range inputs (and optionally re-render)
+  function applyMonthWindowToRange({ rerender = false } = {}){
+    const { startISO, endISO } = computeWindowFromMonth();
+    const t = todayISO();
+
+    // Respect your existing validation (no past starts) by clamping start≥today
+    let s = startISO < t ? t : startISO;
+
+    // Guarantee ~visibleWeeks window if clamping collapses it
+    const minDays = (visibleWeeks * 7) - 1;
+    let e = endISO;
+    if (e <= s) {
+      const sDate = new Date(s + "T00:00:00Z");
+      const eDate = new Date(sDate.getTime() + (minDays * 86400000));
+      e = iso(eDate);
+    }
+
+    const rs = document.getElementById("range-start");
+    const re = document.getElementById("range-end");
+    if (rs && re) {
+      rs.value = s;
+      re.value = e;
+    }
+    currentRangeStart = s;
+    currentRangeEnd   = e;
+
+    if (rerender) { void renderCalendar(); }
+  }
+
   (function ensureToken() {
     const hashToken = new URLSearchParams(location.hash.slice(1)).get('token');
     if (hashToken) localStorage.setItem('partnerToken', hashToken);
@@ -231,6 +346,8 @@
   const status = el("status");
   const roomsList = el("rooms-list");
   const calGrid = el("cal-grid");
+  const monthPrevBtn = el("month-prev");
+  const monthNextBtn = el("month-next");
 
   let currentRoomTypeId = null;
   let currentRangeStart = null, currentRangeEnd = null;
@@ -254,7 +371,7 @@
 
   function daysBetween(startISO, endISO) {
     const s = new Date(startISO + "T00:00:00Z");
-    const theEnd = new Date(endISO + "T00:00:00Z");  // <-- add const
+    const theEnd = new Date(endISO + "T00:00:00Z");
     const arr = [];
     for (let d = new Date(s); d <= theEnd; d = new Date(d.getTime() + 86400000)) {
       arr.push(iso(d));
@@ -495,6 +612,18 @@
     if (!status.className.includes("ok")) setStatus("Calendar ready.", "");
   }
 
+    // --- Month nav listeners (Step 2: only logs & label update) ---
+    function shiftMonth(delta){
+    const y = currentMonth.getFullYear();
+    const m = currentMonth.getMonth();
+    currentMonth = new Date(y, m + delta, 1);
+    setMonthLabel();
+    computeWindowFromMonth();                 // keep the debug log
+    applyMonthWindowToRange({ rerender: true }); // now actually update range + calendar
+  }
+  if (monthPrevBtn) monthPrevBtn.addEventListener("click", () => shiftMonth(-1));
+  if (monthNextBtn) monthNextBtn.addEventListener("click", () => shiftMonth(+1));
+
   // --- Bulk Apply: Inventory ---
   el("apply-inv").addEventListener("click", async () => {
     if (!currentRoomTypeId) return setStatus("Select a room type.", "error");
@@ -599,12 +728,18 @@
     }
   });
 
-  (async function init() {
+    (async function init() {
     prepareRangeDefaults();
     await loadRooms();
     const firstOpen = document.querySelector(".room");
-    if (firstOpen) firstOpen.click();
+  if (firstOpen) firstOpen.click();
+
+  // Initialize month header + 3-week window, then render with that window
+  setMonthLabel();
+  computeWindowFromMonth();                 // debug log
+  applyMonthWindowToRange({ rerender: true });
   })();
+
 })();
 </script>
 </body>
