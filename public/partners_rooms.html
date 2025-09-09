@@ -5,6 +5,7 @@
   <title>Partners · Rooms & Availability</title>
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'><rect width='16' height='16' fill='%234f8cff'/></svg>" type="image/svg+xml">
+  <!-- FP: MN12-canonical -->
 
   <style>
     :root{
@@ -104,24 +105,9 @@
     .chip input[data-kind="minstay"]{ padding-right: 3.5ch; }
     .chip input.error{ outline:1px solid var(--err); }
 
-    /* "$" prefix next to the price input (UI only) */
-    .chip .money{
-      display:flex;                 /* $ + input side by side */
-      justify-content:flex-end;
-      align-items:center;
-      gap:6px;
-    }
-    .chip .money .prefix{
-      color:var(--muted);
-      font-weight:600;
-      user-select:none;
-    }
-    /* keep input behaving nicely inside the flex row */
-    .chip .money input{
-      flex:1 1 auto;
-      width:auto;                   /* override the 100% from .chip input */
-      min-width:0;
-    }
+    .chip .money{ display:flex; justify-content:flex-end; align-items:center; gap:6px; }
+    .chip .money .prefix{ color:var(--muted); font-weight:600; user-select:none; }
+    .chip .money input{ flex:1 1 auto; width:auto; min-width:0; }
 
     input[type=number]{ appearance:textfield; -moz-appearance:textfield; }
     input[type=number]::-webkit-outer-spin-button,
@@ -139,20 +125,17 @@
     code.k{ background:var(--chip); padding:2px 6px; border-radius:6px; }
     .disabled{ opacity:.6; pointer-events:none; }
 
-    /* Save button = orange */
     #save{ background:var(--accent); color:#0b0d12; }
     #save:disabled{ opacity:.6; cursor:not-allowed; }
 
-    /* Smaller action buttons on room tiles (~30% down) */
     .room .actions button{ padding:6px 8px; font-size:12px; border-radius:8px; }
     #add-room{ padding:8px 10px; font-weight:600; }
 
-    /* Normalize form control fonts (incl. date) */
     input, select, button { font-family: inherit; font-size: 14px; }
     input[type="date"]{ font-family: inherit; font-size: 14px; }
     input[type="date"]::-webkit-datetime-edit { font-family: inherit; }
 
-    /* ========== Month Navigator (Sprint 1 / Step 1) ========== */
+    /* Month Navigator */
     .month-nav{
       display:flex; align-items:center; gap:8px; padding:10px;
       border-bottom:1px solid var(--border); background:var(--panel);
@@ -184,7 +167,6 @@
   </header>
 
   <div class="wrap">
-    <!-- LEFT: Room Types -->
     <aside class="left">
       <div class="toolbar">
         <button id="add-room" class="btn-accent">+ Add room type</button>
@@ -192,27 +174,12 @@
       <div class="list" id="rooms-list"></div>
     </aside>
 
-    <!-- RIGHT: Calendar + Bulk editors -->
     <section class="right">
-      <!-- Month Navigator (Step 1: static label, no JS yet) -->
       <div id="month-nav" class="month-nav" role="group" aria-label="Month navigator">
-        <button id="month-prev" class="nav-btn" type="button" aria-label="Previous month">◀</button>
+        <button id="month-prev" class="nav-btn" type="button" aria-label="Previous window">◀</button>
         <span id="month-label" class="month-label" title="Month">Sep 2025</span>
-        <select id="month-select" class="month-select" aria-label="Select month">
-          <option value="2025-01">Jan 2025</option>
-          <option value="2025-02">Feb 2025</option>
-          <option value="2025-03">Mar 2025</option>
-          <option value="2025-04">Apr 2025</option>
-          <option value="2025-05">May 2025</option>
-          <option value="2025-06">Jun 2025</option>
-          <option value="2025-07">Jul 2025</option>
-          <option value="2025-08">Aug 2025</option>
-          <option value="2025-09" selected>Sep 2025</option>
-          <option value="2025-10">Oct 2025</option>
-          <option value="2025-11">Nov 2025</option>
-          <option value="2025-12">Dec 2025</option>
-        </select>
-        <button id="month-next" class="nav-btn" type="button" aria-label="Next month">▶</button>
+        <select id="month-select" class="month-select" aria-label="Select month"></select>
+        <button id="month-next" class="nav-btn" type="button" aria-label="Next window">▶</button>
       </div>
 
       <div class="controls">
@@ -243,82 +210,61 @@
 
 <script>
 (() => {
-    /* =================== Sprint 1: Month Navigator — Step 2 =================== */
-  // Config: 0 = Sunday, 1 = Monday. Adjust if your calendar convention differs.
-  const WEEK_START = 1;
-  let visibleWeeks = 3; // can tune to 2 if perf dips
-  // First day of the current month
-  let currentMonth = (() => { const d = new Date(); return new Date(d.getFullYear(), d.getMonth(), 1); })();
+  /* ===== Month window logic (continuous 3-week stepping) ===== */
+  const WEEK_START = 1;              // 0 Sun, 1 Mon
+  const visibleWeeks = 3;
+  const ONE_DAY = 86400000;
 
-  function startOfWeek(dt, weekStart = WEEK_START){
+  const el = (id) => document.getElementById(id);
+  const status = el("status");
+  const roomsList = el("rooms-list");
+  const calGrid = el("cal-grid");
+
+  let currentRoomTypeId = null;
+  let currentRangeStart = null, currentRangeEnd = null;
+  let busy = false;
+
+  const iso = (d) => d.toISOString().slice(0,10);
+  const todayISO = () => iso(new Date());
+  const addDays = (d, n) => { const x = new Date(d); x.setDate(x.getDate()+n); return x; };
+  const startOfWeek = (dt) => {
     const d = new Date(dt.getFullYear(), dt.getMonth(), dt.getDate());
-    const day = d.getDay(); // 0..6 (Sun..Sat)
-    const diff = (day - weekStart + 7) % 7;
-    d.setDate(d.getDate() - diff);
-    d.setHours(0,0,0,0);
+    const diff = (d.getDay() - WEEK_START + 7) % 7;
+    d.setDate(d.getDate() - diff); d.setHours(0,0,0,0);
     return d;
-  }
-  function addWeeks(dt, n){
-    const d = new Date(dt.getFullYear(), dt.getMonth(), dt.getDate());
-    d.setDate(d.getDate() + n * 7);
-    return d;
-  }
-  function monthLabel(dt){
-    return dt.toLocaleString(undefined, { month: "short", year: "numeric" });
-  }
-  function computeWindowFromMonth(){
-    // Start at week boundary that contains the 1st of currentMonth
-    const start = startOfWeek(currentMonth);
-    const end = new Date(addWeeks(start, visibleWeeks).getTime() - 86400000); // inclusive
-    const startISO = iso(start), endISO = iso(end);
-    console.debug("[month-nav] window", {
-      label: monthLabel(currentMonth),
-      startISO, endISO, visibleWeeks, weekStart: WEEK_START
-    });
-    return { startISO, endISO };
-  }
-  function setMonthLabel(){
-    const lbl = document.getElementById("month-label");
-    if (lbl) lbl.textContent = monthLabel(currentMonth);
-    // keep the hidden <select> in sync for later steps
-    const sel = document.getElementById("month-select");
-    if (sel){
-      const y = currentMonth.getFullYear();
-      const m = String(currentMonth.getMonth()+1).padStart(2,"0");
-      const v = `${y}-${m}`;
-      if (sel.value !== v && [...sel.options].some(o => o.value === v)) sel.value = v;
-    }
-  }
+  };
 
-    // Step 3: drive the visible window into the Range inputs (and optionally re-render)
-  function applyMonthWindowToRange({ rerender = false } = {}){
-    const { startISO, endISO } = computeWindowFromMonth();
-    const t = todayISO();
+  const setMonthLabelFromStart = (startISO) => {
+    const lbl = el("month-label");
+    if (!lbl) return;
+    const start = new Date(startISO + "T00:00:00Z");
+    lbl.textContent = start.toLocaleString(undefined, { month: "short", year: "numeric" });
+  };
 
-    // Respect your existing validation (no past starts) by clamping start≥today
-    let s = startISO < t ? t : startISO;
+  const applyWindowFromStart = async (startISO, { rerender = true } = {}) => {
+    const sDate = new Date(startISO + "T00:00:00Z");
+    const eDate = addDays(sDate, visibleWeeks*7 - 1);
+    const s = iso(sDate), e = iso(eDate);
 
-    // Guarantee ~visibleWeeks window if clamping collapses it
-    const minDays = (visibleWeeks * 7) - 1;
-    let e = endISO;
-    if (e <= s) {
-      const sDate = new Date(s + "T00:00:00Z");
-      const eDate = new Date(sDate.getTime() + (minDays * 86400000));
-      e = iso(eDate);
-    }
+    if (el("range-start")) el("range-start").value = s;
+    if (el("range-end"))   el("range-end").value   = e;
+    currentRangeStart = s; currentRangeEnd = e;
 
-    const rs = document.getElementById("range-start");
-    const re = document.getElementById("range-end");
-    if (rs && re) {
-      rs.value = s;
-      re.value = e;
-    }
-    currentRangeStart = s;
-    currentRangeEnd   = e;
+    setMonthLabelFromStart(s);
+    if (rerender) await renderCalendar();
+  };
 
-    if (rerender) { void renderCalendar(); }
+  function stepWindow(delta){
+    const rs = (el("range-start")?.value) || currentRangeStart || todayISO();
+    const re = (el("range-end")?.value)   || currentRangeEnd   || rs;
+    let nextStart;
+    if (delta > 0)       nextStart = iso(addDays(new Date(re + "T00:00:00Z"), 1));             // forward: end+1
+    else if (delta < 0)  nextStart = iso(addDays(new Date(rs + "T00:00:00Z"), -visibleWeeks*7)); // back: start-21
+    else                 nextStart = rs;
+    void applyWindowFromStart(nextStart, { rerender:true });
   }
 
+  /* ===== session/auth helpers (unchanged) ===== */
   (function ensureToken() {
     const hashToken = new URLSearchParams(location.hash.slice(1)).get('token');
     if (hashToken) localStorage.setItem('partnerToken', hashToken);
@@ -342,19 +288,6 @@
     });
   }
 
-  const el = (id) => document.getElementById(id);
-  const status = el("status");
-  const roomsList = el("rooms-list");
-  const calGrid = el("cal-grid");
-  const monthPrevBtn = el("month-prev");
-  const monthNextBtn = el("month-next");
-
-  let currentRoomTypeId = null;
-  let currentRangeStart = null, currentRangeEnd = null;
-  let busy = false;
-
-  const dirty = new Map(); // date -> { price?:string, roomsOpen?:number, minStay?:number }
-
   const clamp = (v, min, max) => Math.min(Math.max(v, min), max);
   const toNumber = (v) => {
     if (v === null || v === undefined || v === "") return NaN;
@@ -366,24 +299,18 @@
     if (!Number.isFinite(n)) return "";
     return "$" + n.toFixed(2);
   };
-  const iso = (d) => d.toISOString().slice(0,10);
-  const todayISO = () => iso(new Date());
-
-  function daysBetween(startISO, endISO) {
+  const daysBetween = (startISO, endISO) => {
     const s = new Date(startISO + "T00:00:00Z");
     const theEnd = new Date(endISO + "T00:00:00Z");
     const arr = [];
-    for (let d = new Date(s); d <= theEnd; d = new Date(d.getTime() + 86400000)) {
-      arr.push(iso(d));
-    }
+    for (let d = new Date(s); d <= theEnd; d = new Date(d.getTime() + ONE_DAY)) arr.push(iso(d));
     return arr;
-  }
+  };
 
   function setStatus(msg, cls="") {
     status.className = "note " + cls;
     status.textContent = msg;
   }
-
   function disableWhileBusy(flag) {
     busy = !!flag;
     document.querySelectorAll("button, input").forEach(x => {
@@ -391,7 +318,6 @@
       x.disabled = busy && x.id !== "back";
     });
   }
-
   function validateRangeOrWarn() {
     const s = el("range-start").value;
     const e = el("range-end").value;
@@ -402,6 +328,7 @@
     return true;
   }
 
+  const dirty = new Map();
   function setDirty(date, kind, value) {
     if (!dirty.has(date)) dirty.set(date, {});
     const obj = dirty.get(date);
@@ -414,7 +341,7 @@
     el("dirty-count").textContent = n ? `${n} day${n>1?'s':''} changed` : "No changes";
   }
 
-  // --- Load Room Types ---
+  /* ===== Rooms ===== */
   async function loadRooms() {
     roomsList.innerHTML = "";
     const res = await authFetch("/extranet/property/rooms");
@@ -481,7 +408,7 @@
     });
   }
 
-  // --- Add Room Type (prompt-based) ---
+  /* ===== Add Room ===== */
   el("add-room").addEventListener("click", async () => {
     const name = (prompt("Room type name (e.g., Deluxe Queen):") || "").trim();
     if (!name) { setStatus("Name is required.", "warn"); return; }
@@ -513,7 +440,7 @@
     await renderCalendar();
   });
 
-  // --- Range prep & listeners (default = 6 months from today) ---
+  /* ===== Range default/listeners ===== */
   function prepareRangeDefaults() {
     const start = new Date();
     const end = new Date(start); end.setMonth(end.getMonth() + 6);
@@ -532,7 +459,7 @@
     });
   });
 
-  // --- Calendar render ---
+  /* ===== Calendar render ===== */
   async function renderCalendar() {
     calGrid.innerHTML = "";
     if (!currentRoomTypeId) {
@@ -579,12 +506,10 @@
             <input type="text" value="${prc ? Number(prc.price).toFixed(2) : ""}" data-date="${d}" data-kind="price">
           </div>
         </div>
-
         <div class="chip" title="Min Stay">
           <span class="tag">MinStay</span>
           <input type="number" min="1" value="${invMinStay}" data-date="${d}" data-kind="minstay">
-        </div>
-      `;
+        </div>`;
       calGrid.appendChild(card);
 
       ['open','price','minstay'].forEach(kind => {
@@ -612,132 +537,23 @@
     if (!status.className.includes("ok")) setStatus("Calendar ready.", "");
   }
 
-    // --- Month nav listeners (Step 2: only logs & label update) ---
-    function shiftMonth(delta){
-    const y = currentMonth.getFullYear();
-    const m = currentMonth.getMonth();
-    currentMonth = new Date(y, m + delta, 1);
-    setMonthLabel();
-    computeWindowFromMonth();                 // keep the debug log
-    applyMonthWindowToRange({ rerender: true }); // now actually update range + calendar
-  }
-  if (monthPrevBtn) monthPrevBtn.addEventListener("click", () => shiftMonth(-1));
-  if (monthNextBtn) monthNextBtn.addEventListener("click", () => shiftMonth(+1));
+  /* ===== Nav buttons ===== */
+  el("month-prev")?.addEventListener("click", () => stepWindow(-1));
+  el("month-next")?.addEventListener("click", () => stepWindow(+1));
 
-  // --- Bulk Apply: Inventory ---
-  el("apply-inv").addEventListener("click", async () => {
-    if (!currentRoomTypeId) return setStatus("Select a room type.", "error");
-    if (!validateRangeOrWarn()) return;
+  /* ===== Init ===== */
+  (async function init() {
+    // Initial window: start-of-week(today), but clamp start >= today
+    const base = startOfWeek(new Date());
+    const s0 = iso(base) < todayISO() ? todayISO() : iso(base);
 
-    const start = el("range-start").value; const end = el("range-end").value;
-    const roomsOpenN = toNumber(el("inv-open").value);
-    const minStayN   = el("inv-minstay").value ? toNumber(el("inv-minstay").value) : NaN;
-    const isClosed   = !!el("inv-closed").checked;
+    // Set initial 3-week window, then load data
+    await applyWindowFromStart(s0, { rerender:false });
 
-    if (!Number.isFinite(roomsOpenN) || roomsOpenN < 0) return setStatus("roomsOpen must be a non-negative number", "error");
-    if (el("inv-minstay").value && (!Number.isFinite(minStayN) || minStayN < 1)) return setStatus("minStay must be ≥ 1", "error");
-
-    const dates = daysBetween(start, end);
-    const items = dates.map(d => {
-      const o = { date: d, isClosed, roomsOpen: Math.floor(roomsOpenN) };
-      if (Number.isFinite(minStayN)) o.minStay = Math.floor(minStayN);
-      return o;
-    });
-
-    disableWhileBusy(true);
-    const res = await authFetch(`/extranet/property/rooms/${currentRoomTypeId}/inventory/bulk`, {
-      method: "POST",
-      body: JSON.stringify({ items })
-    });
-    disableWhileBusy(false);
-    if (!res.ok) return setStatus("Inventory apply failed ("+res.status+")", "error");
-    const js = await res.json();
-    setStatus(`Inventory applied to ${js.upserted ?? js.count ?? items.length} day(s).`, "ok");
-    await renderCalendar();
-  });
-
-  // --- Bulk Apply: Prices ---
-  el("apply-price").addEventListener("click", async () => {
-    if (!currentRoomTypeId) return setStatus("Select a room type.", "error");
-    if (!validateRangeOrWarn()) return;
-
-    const start = el("range-start").value; const end = el("range-end").value;
-    const priceN = toNumber(el("price").value);
-    if (!Number.isFinite(priceN) || priceN < 0) return setStatus("Enter a valid non-negative price", "error");
-
-    const dates = daysBetween(start, end);
-    const items = dates.map(d => ({ date: d, price: priceN.toFixed(2), ratePlanId: null }));
-
-    disableWhileBusy(true);
-    const res = await authFetch(`/extranet/property/rooms/${currentRoomTypeId}/prices/bulk`, {
-      method: "POST",
-      body: JSON.stringify({ items })
-    });
-    disableWhileBusy(false);
-    if (!res.ok) return setStatus("Price apply failed ("+res.status+")", "error");
-    const js = await res.json();
-    setStatus(`Prices applied to ${js.upserted ?? js.count ?? items.length} day(s).`, "ok");
-    await renderCalendar();
-  });
-
-  // --- Save (partial edits only) ---
-  el("save").addEventListener("click", async () => {
-    if (dirty.size === 0) return;
-
-    const invItems = [];
-    const prcItems = [];
-    for (const [date, obj] of dirty.entries()) {
-      const inv = {};
-      if (typeof obj.roomsOpen === 'number') inv.roomsOpen = obj.roomsOpen;
-      if (typeof obj.minStay   === 'number') inv.minStay   = obj.minStay;
-      if (Object.keys(inv).length) invItems.push({ date, isClosed:false, ...inv });
-
-      if (typeof obj.price === 'string' && obj.price !== '') {
-        prcItems.push({ date, price: obj.price, ratePlanId: null });
-      }
-    }
-    if (invItems.length === 0 && prcItems.length === 0) { setStatus("Nothing to save.", "warn"); return; }
-
-    setStatus("Saving…");
-    disableWhileBusy(true);
-    try {
-      const reqs = [];
-      if (invItems.length) {
-        reqs.push(authFetch(`/extranet/property/rooms/${currentRoomTypeId}/inventory/bulk`, {
-          method:"POST", body: JSON.stringify({ items: invItems })
-        }));
-      }
-      if (prcItems.length) {
-        reqs.push(authFetch(`/extranet/property/rooms/${currentRoomTypeId}/prices/bulk`, {
-          method:"POST", body: JSON.stringify({ items: prcItems })
-        }));
-      }
-      const resps = await Promise.all(reqs);
-      if (resps.some(r => !r.ok)) {
-        setStatus("Save failed (" + resps.map(r=>r.status).join("/") + ")", "error");
-      } else {
-        setStatus("Saved.", "ok");
-        dirty.clear();
-        updateDirtyUI();
-        await renderCalendar();
-      }
-    } catch (_e) {
-      setStatus("Save error", "error");
-    } finally {
-      disableWhileBusy(false);
-    }
-  });
-
-    (async function init() {
-    prepareRangeDefaults();
     await loadRooms();
     const firstOpen = document.querySelector(".room");
-  if (firstOpen) firstOpen.click();
-
-  // Initialize month header + 3-week window, then render with that window
-  setMonthLabel();
-  computeWindowFromMonth();                 // debug log
-  applyMonthWindowToRange({ rerender: true });
+    if (firstOpen) firstOpen.click();               // sets currentRoomTypeId
+    await renderCalendar();                         // first render
   })();
 
 })();
