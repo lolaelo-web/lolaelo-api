@@ -1,11 +1,13 @@
 ﻿// src/server.ts
+import "dotenv/config";
 import express from "express";
 import cors from "cors";
 import path from "path";
 import { fileURLToPath } from "url";
+import { Client } from "pg";
 
 const __filename = fileURLToPath(import.meta.url);
-const __dirname  = path.dirname(__filename);
+const __dirname = path.dirname(__filename);
 
 const app = express();
 app.disable("x-powered-by");
@@ -18,7 +20,7 @@ const CORS_ALLOWED_ORIGINS = [
 const corsOpts: cors.CorsOptions = {
   origin: CORS_ALLOWED_ORIGINS,
   methods: ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS", "HEAD"],
-  // reflect request headers (incl. Authorization, x-partner-token)
+  // reflect requested headers (incl. Authorization, x-partner-token)
   allowedHeaders: undefined,
   exposedHeaders: ["Content-Length", "ETag"],
   credentials: true,
@@ -42,6 +44,9 @@ app.get("/health", (_req, res) => {
   res.type("text/plain").send("OK v-ROUTES-29");
 });
 
+// Track mounts so we can enumerate routes later
+const mountedRouters: Array<{ base: string; router: any; source: string }> = [];
+
 // ---- Dynamic route mounting helper ----
 async function tryMount(routePath: string, mountAt: string) {
   try {
@@ -59,16 +64,13 @@ async function tryMount(routePath: string, mountAt: string) {
   }
 }
 
-// Track mounts so we can enumerate routes later
-const mountedRouters: Array<{ base: string; router: any; source: string }> = [];
-
 // ---- Routers ----
 // session at / and /extranet
 await tryMount("./routes/sessionHttp.js", "/");
 await tryMount("./routes/sessionHttp.js", "/extranet");
 
 // features
-await tryMount("./routes/extranetRooms.js", "/extranet/property/rooms"); // <- rooms (correct base)
+await tryMount("./routes/extranetRooms.js", "/extranet/property/rooms");
 await tryMount("./routes/extranetPms.js", "/extranet/pms");
 await tryMount("./routes/property.js", "/extranet/property");
 await tryMount("./routes/propertyPhotos.js", "/extranet/property/photos");
@@ -78,7 +80,11 @@ app.get("/__ping", (_req, res) => {
   res.status(200).json({ ok: true, now: new Date().toISOString() });
 });
 
-function extractRouterRoutes(r: any, base: string, out: Array<{ path: string; methods: string[]; source?: string }>) {
+function extractRouterRoutes(
+  r: any,
+  base: string,
+  out: Array<{ path: string; methods: string[]; source?: string }>
+) {
   const stack = r?.stack ?? [];
   for (const layer of stack) {
     if (layer?.route) {
@@ -86,7 +92,6 @@ function extractRouterRoutes(r: any, base: string, out: Array<{ path: string; me
       const methods = Object.keys(layer.route.methods || {}).map((m) => m.toUpperCase());
       out.push({ path: base + (p === "/" ? "" : p), methods });
     } else if (layer?.name === "router" && layer?.handle?.stack) {
-      // nested router without an easily retrievable mount segment; recurse without changing base
       extractRouterRoutes(layer.handle, base, out);
     }
   }
@@ -112,22 +117,33 @@ app.get("/__routes_public", (_req, res) => {
 
   // sort & unique
   const key = (r: { path: string; methods: string[] }) => `${r.path}::${r.methods.sort().join(",")}`;
-  const uniq = Array.from(new Map(routes.map((r) => [key(r), r])).values())
-    .sort((a, b) => a.path.localeCompare(b.path));
+  const uniq = Array.from(new Map(routes.map((r) => [key(r), r])).values()).sort((a, b) =>
+    a.path.localeCompare(b.path)
+  );
 
   res.json(uniq);
 });
 
 app.get("/__dbping_public", async (_req, res) => {
   try {
-    const { Pool } = await import("pg");
-    const pool = new (Pool as any)({
-      connectionString: process.env.DATABASE_URL,
-      ssl: { rejectUnauthorized: false },
+    const cs = process.env.DATABASE_URL || "";
+    const wantsSSL = /\bsslmode=require\b/i.test(cs) || /render\.com/i.test(cs);
+    const client = new Client({
+      connectionString: cs,
+      ssl: wantsSSL ? { rejectUnauthorized: false } : undefined,
     });
-    const r = await pool.query("select now()");
-    await pool.end();
-    res.json({ ok: true, dbNow: r?.rows?.[0]?.now ?? null });
+    await client.connect();
+    const r = await client.query(
+      'select version(), current_database() as db, inet_server_addr() as host, now()'
+    );
+    await client.end();
+    res.json({
+      ok: true,
+      version: r.rows?.[0]?.version ?? null,
+      db: r.rows?.[0]?.db ?? null,
+      host: r.rows?.[0]?.host ?? null,
+      dbNow: r.rows?.[0]?.now ?? null,
+    });
   } catch (e: any) {
     res.status(500).json({ ok: false, error: String(e?.message || e) });
   }
@@ -143,10 +159,12 @@ app.use((req, res, next) => {
   next();
 });
 
-app.use((err: any, _req: express.Request, res: express.Response, _next: express.NextFunction) => {
-  console.error("[server] unhandled error:", err?.stack || err);
-  res.status(500).json({ error: "Internal Server Error" });
-});
+app.use(
+  (err: any, _req: express.Request, res: express.Response, _next: express.NextFunction) => {
+    console.error("[server] unhandled error:", err?.stack || err);
+    res.status(500).json({ error: "Internal Server Error" });
+  }
+);
 
 const PORT = Number(process.env.PORT || 3000);
 if (process.env.NODE_ENV !== "test") {
