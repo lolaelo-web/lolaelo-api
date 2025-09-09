@@ -624,15 +624,16 @@
 
     // --- Month nav listeners (Step 2: only logs & label update) ---
     function shiftWeeks(deltaWeeks){
-    // Use the *displayed* start (Range) so next/prev are strictly continuous
-    const rs = document.getElementById("range-start")?.value || todayISO();
-    const baseStart = startOfWeek(new Date(rs + "T00:00:00Z"), WEEK_START);
-    const nextStart = addWeeks(baseStart, deltaWeeks);
-    currentAnchor = nextStart;                    // drive the new window from here
+    // Step by exact N*7 days from the *displayed* start to avoid overlap/gaps
+    const rs = (typeof currentRangeStart === "string" && currentRangeStart) ? currentRangeStart : todayISO();
+    const nextStart = new Date(rs + "T00:00:00Z");
+    nextStart.setDate(nextStart.getDate() + (deltaWeeks * 7));
+    currentAnchor = nextStart;                    // anchor to the new displayed start
     setMonthLabel();
     computeWindowFromAnchor();                    // debug log
     applyMonthWindowToRange({ rerender: true });  // update range + calendar
   }
+
   if (monthPrevBtn) monthPrevBtn.addEventListener("click", () => shiftWeeks(-visibleWeeks));
   if (monthNextBtn) monthNextBtn.addEventListener("click", () => shiftWeeks(+visibleWeeks));
 
