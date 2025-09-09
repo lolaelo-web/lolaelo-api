@@ -5,7 +5,7 @@
   <title>Partners · Rooms & Availability</title>
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'><rect width='16' height='16' fill='%234f8cff'/></svg>" type="image/svg+xml">
-
+<!-- FP: MN8-no-overlap -->
   <style>
     :root{
       --bg:#0b0d12;
@@ -280,12 +280,11 @@
     });
     return { startISO, endISO };
   }
-  function setMonthLabel(){
-  const lbl = document.getElementById("month-label");
-  // Prefer the displayed Range start (what users actually see)
-  const rs = (typeof currentRangeStart === "string" && currentRangeStart) ? currentRangeStart : iso(startOfWeek(currentAnchor ?? new Date(), WEEK_START));
-  const start = new Date(rs + "T00:00:00Z");
-  if (lbl) lbl.textContent = monthLabel(start);
+    function setMonthLabel(){
+    const lbl = document.getElementById("month-label");
+    const rs = (typeof currentRangeStart === "string" && currentRangeStart) ? currentRangeStart : iso(currentAnchor ?? new Date());
+    const start = new Date(rs + "T00:00:00Z");
+    if (lbl) lbl.textContent = monthLabel(start);
 
   // keep the hidden <select> in sync for later steps
   const sel = document.getElementById("month-select");
@@ -624,15 +623,20 @@
 
     // --- Month nav listeners (Step 2: only logs & label update) ---
     function shiftWeeks(deltaWeeks){
-    // Step by exact N*7 days from the *displayed* start to avoid overlap/gaps
-    const rs = (typeof currentRangeStart === "string" && currentRangeStart) ? currentRangeStart : todayISO();
-    const nextStart = new Date(rs + "T00:00:00Z");
-    nextStart.setDate(nextStart.getDate() + (deltaWeeks * 7));
-    currentAnchor = nextStart;                    // anchor to the new displayed start
-    setMonthLabel();
-    computeWindowFromAnchor();                    // debug log
-    applyMonthWindowToRange({ rerender: true });  // update range + calendar
-  }
+      // Read the displayed Range Start directly from the DOM to avoid any stale state
+      const rsInput = document.getElementById("range-start");
+      const seed = (rsInput && rsInput.value) ? rsInput.value
+                  : (typeof currentRangeStart === "string" && currentRangeStart) ? currentRangeStart
+                  : todayISO();
+
+      const nextStart = new Date(seed + "T00:00:00Z");
+      nextStart.setDate(nextStart.getDate() + (deltaWeeks * 7));
+      currentAnchor = nextStart; // drive window from here
+
+      // Apply window first (sync updates currentRangeStart/End + inputs), then refresh label + render
+      applyMonthWindowToRange({ rerender: true });
+      setMonthLabel();
+    }
 
   if (monthPrevBtn) monthPrevBtn.addEventListener("click", () => shiftWeeks(-visibleWeeks));
   if (monthNextBtn) monthNextBtn.addEventListener("click", () => shiftWeeks(+visibleWeeks));
