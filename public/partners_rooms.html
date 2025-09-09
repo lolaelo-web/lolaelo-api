@@ -6,6 +6,8 @@
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'><rect width='16' height='16' fill='%234f8cff'/></svg>" type="image/svg+xml">
 <!-- FP: MN8-no-overlap -->
+ <!-- FP: MN9-dist-source -->
+
   <style>
     :root{
       --bg:#0b0d12;
@@ -623,6 +625,7 @@
 
     // --- Month nav listeners (Step 2: only logs & label update) ---
     function shiftWeeks(deltaWeeks){
+      console.debug("[MN9] DOM-driven shiftWeeks");
       // Read the displayed Range Start directly from the DOM to avoid any stale state
       const rsInput = document.getElementById("range-start");
       const seed = (rsInput && rsInput.value) ? rsInput.value
