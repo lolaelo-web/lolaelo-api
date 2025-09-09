@@ -249,6 +249,8 @@
   let visibleWeeks = 3; // can tune to 2 if perf dips
   // First day of the current month
   let currentMonth = (() => { const d = new Date(); return new Date(d.getFullYear(), d.getMonth(), 1); })();
+  // Anchor date for the current window (we step this by visibleWeeks)
+  let currentAnchor = null;
 
   function startOfWeek(dt, weekStart = WEEK_START){
     const d = new Date(dt.getFullYear(), dt.getMonth(), dt.getDate());
@@ -266,33 +268,37 @@
   function monthLabel(dt){
     return dt.toLocaleString(undefined, { month: "short", year: "numeric" });
   }
-  function computeWindowFromMonth(){
-    // Start at week boundary that contains the 1st of currentMonth
-    const start = startOfWeek(currentMonth);
+  function computeWindowFromAnchor(){
+    // Start at week boundary containing currentAnchor
+    const base = currentAnchor ?? new Date();
+    const start = startOfWeek(base);
     const end = new Date(addWeeks(start, visibleWeeks).getTime() - 86400000); // inclusive
     const startISO = iso(start), endISO = iso(end);
     console.debug("[month-nav] window", {
-      label: monthLabel(currentMonth),
+      label: monthLabel(start),
       startISO, endISO, visibleWeeks, weekStart: WEEK_START
     });
     return { startISO, endISO };
   }
   function setMonthLabel(){
-    const lbl = document.getElementById("month-label");
-    if (lbl) lbl.textContent = monthLabel(currentMonth);
-    // keep the hidden <select> in sync for later steps
-    const sel = document.getElementById("month-select");
-    if (sel){
-      const y = currentMonth.getFullYear();
-      const m = String(currentMonth.getMonth()+1).padStart(2,"0");
-      const v = `${y}-${m}`;
-      if (sel.value !== v && [...sel.options].some(o => o.value === v)) sel.value = v;
-    }
+  const lbl = document.getElementById("month-label");
+  // Use the window start’s month for label
+  const start = startOfWeek(currentAnchor ?? new Date());
+  if (lbl) lbl.textContent = monthLabel(start);
+
+  // keep the hidden <select> in sync for later steps
+  const sel = document.getElementById("month-select");
+  if (sel){
+    const y = start.getFullYear();
+    const m = String(start.getMonth()+1).padStart(2,"0");
+    const v = `${y}-${m}`;
+    if (sel.value !== v && [...sel.options].some(o => o.value === v)) sel.value = v;
   }
+}
 
     // Step 3: drive the visible window into the Range inputs (and optionally re-render)
   function applyMonthWindowToRange({ rerender = false } = {}){
-    const { startISO, endISO } = computeWindowFromMonth();
+    const { startISO, endISO } = computeWindowFromAnchor();
     const t = todayISO();
 
     // Respect your existing validation (no past starts) by clamping start≥today
@@ -313,8 +319,11 @@
       rs.value = s;
       re.value = e;
     }
+      // Keep anchor aligned to the *displayed* start so next/prev are continuous
+    currentAnchor = new Date(s + "T00:00:00Z");
     currentRangeStart = s;
     currentRangeEnd   = e;
+
 
     if (rerender) { void renderCalendar(); }
   }
@@ -613,16 +622,16 @@
   }
 
     // --- Month nav listeners (Step 2: only logs & label update) ---
-    function shiftMonth(delta){
-    const y = currentMonth.getFullYear();
-    const m = currentMonth.getMonth();
-    currentMonth = new Date(y, m + delta, 1);
+    function shiftWeeks(deltaWeeks){
+    // Step anchor by visibleWeeks to ensure no gaps/overlaps
+    const base = currentAnchor ?? new Date();
+    currentAnchor = addWeeks(base, deltaWeeks);
     setMonthLabel();
-    computeWindowFromMonth();                 // keep the debug log
-    applyMonthWindowToRange({ rerender: true }); // now actually update range + calendar
+    computeWindowFromAnchor();                    // debug log
+    applyMonthWindowToRange({ rerender: true });  // update range + calendar
   }
-  if (monthPrevBtn) monthPrevBtn.addEventListener("click", () => shiftMonth(-1));
-  if (monthNextBtn) monthNextBtn.addEventListener("click", () => shiftMonth(+1));
+  if (monthPrevBtn) monthPrevBtn.addEventListener("click", () => shiftWeeks(-visibleWeeks));
+  if (monthNextBtn) monthNextBtn.addEventListener("click", () => shiftWeeks(+visibleWeeks));
 
   // --- Bulk Apply: Inventory ---
   el("apply-inv").addEventListener("click", async () => {
@@ -731,13 +740,19 @@
     (async function init() {
     prepareRangeDefaults();
     await loadRooms();
-    const firstOpen = document.querySelector(".room");
-  if (firstOpen) firstOpen.click();
 
-  // Initialize month header + 3-week window, then render with that window
-  setMonthLabel();
-  computeWindowFromMonth();                 // debug log
-  applyMonthWindowToRange({ rerender: true });
+    // Initialize to *today*; applyMonthWindowToRange will clamp & set anchor
+    currentAnchor = new Date();
+    setMonthLabel();
+    computeWindowFromAnchor();                // debug log
+    applyMonthWindowToRange({ rerender: false });
+
+    const firstOpen = document.querySelector(".room");
+    if (firstOpen) {
+      firstOpen.click();                      // sets currentRoomTypeId
+      void renderCalendar();                  // first render uses the 3-week range
+    }
+
   })();
 
 })();
