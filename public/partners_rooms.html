@@ -14,33 +14,27 @@
       --text:#e7ecf3;
       --muted:#98a3b3;
       --brand:#4f8cff;
-      --accent:#ffb86b;          /* soft orange for CTA buttons */
+      --accent:#ffb86b;
       --ok:#2ecc71;
       --warn:#f39c12;
       --err:#e74c3c;
       --border:#222a3a;
       --chip:#1e2536;
-      --header-h:56px;           /* keep header and body in sync */
+      --header-h:56px;
     }
-
     *{ box-sizing:border-box; }
 
-    /* page scroll lives only in the calendar, not the whole document */
     body{
-      margin:0;
-      background:var(--bg);
-      color:var(--text);
+      margin:0; background:var(--bg); color:var(--text);
       font:14px/1.4 system-ui,-apple-system,Segoe UI,Roboto,"Helvetica Neue",Arial;
       overflow:hidden;
     }
 
     header{
       display:flex; gap:12px; align-items:center;
-      padding:14px 18px;
-      height:var(--header-h);
+      padding:14px 18px; height:var(--header-h);
       border-bottom:1px solid var(--border);
-      background:var(--panel);
-      position:sticky; top:0; z-index:5;
+      background:var(--panel); position:sticky; top:0; z-index:5;
     }
     header h1{ font-size:16px; margin:0; letter-spacing:.2px; }
     .spacer{ flex:1; }
@@ -48,21 +42,15 @@
     .header-actions .note{ white-space:nowrap; }
 
     .wrap{
-      display:grid;
-      grid-template-columns:300px 1fr;
-      height:calc(100vh - var(--header-h));
-      overflow:hidden;
+      display:grid; grid-template-columns:300px 1fr;
+      height:calc(100vh - var(--header-h)); overflow:hidden;
     }
     .left{
       border-right:1px solid var(--border);
-      background:var(--panel);
-      display:flex; flex-direction:column;
-      min-width:0;
+      background:var(--panel); display:flex; flex-direction:column; min-width:0;
     }
     .right{
-      background:var(--panel-2);
-      display:flex; flex-direction:column;
-      min-width:0;
+      background:var(--panel-2); display:flex; flex-direction:column; min-width:0;
     }
 
     .toolbar{ display:flex; gap:8px; padding:10px; border-bottom:1px solid var(--border); background:var(--panel); }
@@ -74,8 +62,7 @@
     .room{
       padding:10px; border:1px solid var(--border); border-radius:10px;
       background:var(--panel-2); margin-bottom:8px;
-      display:flex; justify-content:space-between; align-items:center;
-      cursor:pointer;
+      display:flex; justify-content:space-between; align-items:center; cursor:pointer;
     }
     .room.active{ outline:2px solid var(--accent); }
     .room .name{ font-weight:600; }
@@ -91,47 +78,55 @@
     .controls .group label{ color:var(--muted); font-size:12px; }
     .controls .flag{ display:flex; gap:6px; align-items:center; color:var(--muted); font-size:12px; }
 
-    .calendar{ flex:1; overflow:auto; padding:12px; }   /* single scroll lives here */
+    .calendar{ flex:1; overflow:auto; padding:12px; }
     .cal-grid{ display:grid; grid-auto-flow:column; grid-auto-columns:140px; gap:10px; }
     .day{
       background:var(--panel); border:1px solid var(--border); border-radius:10px;
       padding:8px; min-height:120px; display:flex; flex-direction:column; gap:6px;
     }
     .day .date{ font-weight:600; font-size:12px; color:var(--muted); }
-    /* chip = label + value; keep value on the far right, fixed width inside the border */
+
     .chip{
       background:var(--chip); border:1px solid var(--border);
       padding:6px 8px; border-radius:10px; font-size:12px;
-      display:grid;
-      grid-template-columns: 1fr minmax(64px, 90px); /* label grows, value stays inside */
+      display:grid; grid-template-columns: 1fr minmax(64px, 90px);
       align-items:center; gap:8px; min-width:0;
     }
-    /* labels on calendar chips are NOT orange per request */
     .chip .tag{ color:var(--muted); font-size:11px; }
 
-    /* value field stays fully inside the chip, right-aligned */
     .chip input{
-      width:100%;
-      text-align:right;                 /* numbers to the right edge */
-      background:transparent; border:0; color:var(--text);
-      padding:4px 0;                    /* remove extra right padding to prevent spill */
-      outline:none; font-variant-numeric:tabular-nums;
+      width:100%; text-align:right; background:transparent; border:0; color:var(--text);
+      padding:4px 0; outline:none; font-variant-numeric:tabular-nums;
       overflow:hidden; text-overflow:clip; white-space:nowrap; min-width:0;
     }
-    /* Nudge Open / MinStay values ~2–3 characters left; keep Price as-is */
-    .chip input[data-kind="open"],
-    .chip input[data-kind="minstay"]{
-      padding-right: 12px; /* tweak to 14px if you want a bit more */
-    }
-
+    .chip input[data-kind="open"]{    padding-right: 2.5ch; }
+    .chip input[data-kind="price"]{   padding-right: 0;    }
+    .chip input[data-kind="minstay"]{ padding-right: 3.5ch; }
     .chip input.error{ outline:1px solid var(--err); }
 
-    /* hide number spinners (standard + vendor-specific) */
+    /* "$" prefix next to the price input (UI only) */
+    .chip .money{
+      display:flex;                 /* $ + input side by side */
+      justify-content:flex-end;
+      align-items:center;
+      gap:6px;
+    }
+    .chip .money .prefix{
+      color:var(--muted);
+      font-weight:600;
+      user-select:none;
+    }
+    /* keep input behaving nicely inside the flex row */
+    .chip .money input{
+      flex:1 1 auto;
+      width:auto;                   /* override the 100% from .chip input */
+      min-width:0;
+    }
+
     input[type=number]{ appearance:textfield; -moz-appearance:textfield; }
     input[type=number]::-webkit-outer-spin-button,
     input[type=number]::-webkit-inner-spin-button{ -webkit-appearance:none; margin:0; }
 
-    /* buttons */
     button{ background:var(--brand); color:#fff; border:0; border-radius:8px; padding:8px 12px; cursor:pointer; }
     button.secondary{ background:transparent; border:1px solid var(--border); color:var(--text); }
     .btn-accent{ background:var(--accent); color:#0b0d12; }
@@ -144,28 +139,18 @@
     code.k{ background:var(--chip); padding:2px 6px; border-radius:6px; }
     .disabled{ opacity:.6; pointer-events:none; }
 
-    /* Final nudge: keep Open/Price as-is; move MinStay ~1ch further left */
-    .chip input[data-kind="open"]{
-      padding-right: 2.5ch;   /* same as current — adjust only if yours differs */
-    }
-    .chip input[data-kind="price"]{
-      padding-right: 0;       /* unchanged */
-    }
-    .chip input[data-kind="minstay"]{
-      padding-right: 3.5ch;   /* one more character than Open */
-    }
-    /* Save button uses the same soft-orange as Rename */
+    /* Save button = orange */
     #save{ background:var(--accent); color:#0b0d12; }
     #save:disabled{ opacity:.6; cursor:not-allowed; }
 
     /* Smaller action buttons on room tiles (~30% down) */
-    .room .actions button{
-      padding:6px 8px;        /* was ~8–12px */
-      font-size:12px;         /* was 14px */
-      border-radius:8px;
-    }
+    .room .actions button{ padding:6px 8px; font-size:12px; border-radius:8px; }
     #add-room{ padding:8px 10px; font-weight:600; }
 
+    /* Normalize form control fonts (incl. date) */
+    input, select, button { font-family: inherit; font-size: 14px; }
+    input[type="date"]{ font-family: inherit; font-size: 14px; }
+    input[type="date"]::-webkit-datetime-edit { font-family: inherit; }
   </style>
 </head>
 <body>
@@ -176,7 +161,7 @@
       <span id="status" class="note">Ready.</span>
       <span id="dirty-count" class="note">No changes</span>
       <button id="save" disabled>Save changes</button>
-      <button id="back" class="secondary" onclick="location.href='/partners_documents.html'">Back to menu</button>
+      <button id="back" class="secondary" onclick="location.href='/partners_app.html'">Back to menu</button>
     </div>
   </header>
 
@@ -219,15 +204,13 @@
 
 <script>
 (() => {
-  // --- Auth token loading (hash → localStorage → session key) + 401 redirect ---
   (function ensureToken() {
     const hashToken = new URLSearchParams(location.hash.slice(1)).get('token');
     if (hashToken) localStorage.setItem('partnerToken', hashToken);
   })();
   const token =
     localStorage.getItem("partnerToken") ||
-    localStorage.getItem("lolaelo_session") || // UUID session fallback
-    "";
+    localStorage.getItem("lolaelo_session") || "";
   const baseHeaders = { "Content-Type": "application/json" };
   const authHeaders = token
     ? { ...baseHeaders, "Authorization": "Bearer " + token, "x-partner-token": token }
@@ -249,15 +232,12 @@
   const roomsList = el("rooms-list");
   const calGrid = el("cal-grid");
 
-  // Selected roomTypeId
   let currentRoomTypeId = null;
   let currentRangeStart = null, currentRangeEnd = null;
   let busy = false;
 
-  // Track per-day edits (dirty)
   const dirty = new Map(); // date -> { price?:string, roomsOpen?:number, minStay?:number }
 
-  // --- Utilities ---
   const clamp = (v, min, max) => Math.min(Math.max(v, min), max);
   const toNumber = (v) => {
     if (v === null || v === undefined || v === "") return NaN;
@@ -274,7 +254,7 @@
 
   function daysBetween(startISO, endISO) {
     const s = new Date(startISO + "T00:00:00Z");
-    theEnd = new Date(endISO + "T00:00:00Z");
+    const theEnd = new Date(endISO + "T00:00:00Z");  // <-- add const
     const arr = [];
     for (let d = new Date(s); d <= theEnd; d = new Date(d.getTime() + 86400000)) {
       arr.push(iso(d));
@@ -341,7 +321,6 @@
           <button class="secondary" data-act="del"  data-id="${rt.id}">Delete</button>
         </div>`;
 
-      // Click anywhere on the tile to "open" (except the buttons)
       div.addEventListener("click", async (e) => {
         const btn = e.target.closest("button");
         const act = btn ? btn.getAttribute("data-act") : "open";
@@ -351,7 +330,7 @@
           currentRoomTypeId = id;
           if (dirty.clear) dirty.clear();
           await renderCalendar();
-          await loadRooms(); // refresh highlight
+          await loadRooms();
           return;
         }
 
@@ -386,36 +365,36 @@
   }
 
   // --- Add Room Type (prompt-based) ---
-el("add-room").addEventListener("click", async () => {
-  const name = (prompt("Room type name (e.g., Deluxe Queen):") || "").trim();
-  if (!name) { setStatus("Name is required.", "warn"); return; }
+  el("add-room").addEventListener("click", async () => {
+    const name = (prompt("Room type name (e.g., Deluxe Queen):") || "").trim();
+    if (!name) { setStatus("Name is required.", "warn"); return; }
 
-  let p = prompt("Base price in USD (e.g., 129.00):") || "";
-  p = p.replace(/[^0-9.]/g, "");
-  const basePrice = Number(p);
-  if (!Number.isFinite(basePrice) || basePrice < 0) {
-    setStatus("Enter a valid non-negative price.", "error"); return;
-  }
+    let p = prompt("Base price in USD (e.g., 129.00):") || "";
+    p = p.replace(/[^0-9.]/g, "");
+    const basePrice = Number(p);
+    if (!Number.isFinite(basePrice) || basePrice < 0) {
+      setStatus("Enter a valid non-negative price.", "error"); return;
+    }
 
-  disableWhileBusy(true);
-  const res = await authFetch("/extranet/property/rooms", {
-    method: "POST",
-    body: JSON.stringify({
-      name,
-      basePrice: basePrice.toFixed(2),
-      maxGuests: 2,
-      description: ""
-    })
+    disableWhileBusy(true);
+    const res = await authFetch("/extranet/property/rooms", {
+      method: "POST",
+      body: JSON.stringify({
+        name,
+        basePrice: basePrice.toFixed(2),
+        maxGuests: 2,
+        description: ""
+      })
+    });
+    disableWhileBusy(false);
+
+    if (!res.ok) { setStatus("Create failed ("+res.status+")", "error"); return; }
+    const created = await res.json();
+    currentRoomTypeId = created.id;
+    setStatus("Room created", "ok");
+    await loadRooms();
+    await renderCalendar();
   });
-  disableWhileBusy(false);
-
-  if (!res.ok) { setStatus("Create failed ("+res.status+")", "error"); return; }
-  const created = await res.json();
-  currentRoomTypeId = created.id;
-  setStatus("Room created", "ok");
-  await loadRooms();
-  await renderCalendar();
-});
 
   // --- Range prep & listeners (default = 6 months from today) ---
   function prepareRangeDefaults() {
@@ -446,7 +425,6 @@ el("add-room").addEventListener("click", async () => {
     prepareRangeDefaults();
     if (!validateRangeOrWarn()) return;
 
-    // Fetch inventory + prices
     const invUrl = `/extranet/property/rooms/${currentRoomTypeId}/inventory?start=${currentRangeStart}&end=${currentRangeEnd}`;
     const prcUrl = `/extranet/property/rooms/${currentRoomTypeId}/prices?start=${currentRangeStart}&end=${currentRangeEnd}`;
     disableWhileBusy(true);
@@ -459,7 +437,6 @@ el("add-room").addEventListener("click", async () => {
     const invRows = await invRes.json();
     const prcRows = await prcRes.json();
 
-    // Index by date
     const invByDate = new Map(invRows.map(r => [String(r.date).slice(0,10), r]));
     const prcByDate = new Map(prcRows.map(r => [String(r.date).slice(0,10), r]));
 
@@ -480,8 +457,12 @@ el("add-room").addEventListener("click", async () => {
         </div>
         <div class="chip" title="Price (USD)">
           <span class="tag">Price</span>
-          <input type="text" value="${prc ? Number(prc.price).toFixed(2) : ""}" data-date="${d}" data-kind="price">
+          <div class="money">
+            <span class="prefix">$</span>
+            <input type="text" value="${prc ? Number(prc.price).toFixed(2) : ""}" data-date="${d}" data-kind="price">
+          </div>
         </div>
+
         <div class="chip" title="Min Stay">
           <span class="tag">MinStay</span>
           <input type="number" min="1" value="${invMinStay}" data-date="${d}" data-kind="minstay">
@@ -489,7 +470,6 @@ el("add-room").addEventListener("click", async () => {
       `;
       calGrid.appendChild(card);
 
-      // listeners to mark dirty + inline validation
       ['open','price','minstay'].forEach(kind => {
         const input = card.querySelector(`input[data-kind="${kind}"]`);
         input.addEventListener('input', () => {
@@ -515,7 +495,7 @@ el("add-room").addEventListener("click", async () => {
     if (!status.className.includes("ok")) setStatus("Calendar ready.", "");
   }
 
-  // --- Bulk Apply: Inventory (items[]) ---
+  // --- Bulk Apply: Inventory ---
   el("apply-inv").addEventListener("click", async () => {
     if (!currentRoomTypeId) return setStatus("Select a room type.", "error");
     if (!validateRangeOrWarn()) return;
@@ -547,7 +527,7 @@ el("add-room").addEventListener("click", async () => {
     await renderCalendar();
   });
 
-  // --- Bulk Apply: Prices (items[]) ---
+  // --- Bulk Apply: Prices ---
   el("apply-price").addEventListener("click", async () => {
     if (!currentRoomTypeId) return setStatus("Select a room type.", "error");
     if (!validateRangeOrWarn()) return;
@@ -571,7 +551,7 @@ el("add-room").addEventListener("click", async () => {
     await renderCalendar();
   });
 
-  // --- Save button: persist only dirty days (partial edits allowed) ---
+  // --- Save (partial edits only) ---
   el("save").addEventListener("click", async () => {
     if (dirty.size === 0) return;
 
@@ -619,11 +599,10 @@ el("add-room").addEventListener("click", async () => {
     }
   });
 
-  // --- Init ---
   (async function init() {
     prepareRangeDefaults();
     await loadRooms();
-    const firstOpen = document.querySelector(".room"); // clicking tile opens
+    const firstOpen = document.querySelector(".room");
     if (firstOpen) firstOpen.click();
   })();
 })();
