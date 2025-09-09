@@ -282,8 +282,9 @@
   }
   function setMonthLabel(){
   const lbl = document.getElementById("month-label");
-  // Use the window start’s month for label
-  const start = startOfWeek(currentAnchor ?? new Date());
+  // Prefer the displayed Range start (what users actually see)
+  const rs = (typeof currentRangeStart === "string" && currentRangeStart) ? currentRangeStart : iso(startOfWeek(currentAnchor ?? new Date(), WEEK_START));
+  const start = new Date(rs + "T00:00:00Z");
   if (lbl) lbl.textContent = monthLabel(start);
 
   // keep the hidden <select> in sync for later steps
@@ -623,9 +624,11 @@
 
     // --- Month nav listeners (Step 2: only logs & label update) ---
     function shiftWeeks(deltaWeeks){
-    // Step anchor by visibleWeeks to ensure no gaps/overlaps
-    const base = currentAnchor ?? new Date();
-    currentAnchor = addWeeks(base, deltaWeeks);
+    // Use the *displayed* start (Range) so next/prev are strictly continuous
+    const rs = document.getElementById("range-start")?.value || todayISO();
+    const baseStart = startOfWeek(new Date(rs + "T00:00:00Z"), WEEK_START);
+    const nextStart = addWeeks(baseStart, deltaWeeks);
+    currentAnchor = nextStart;                    // drive the new window from here
     setMonthLabel();
     computeWindowFromAnchor();                    // debug log
     applyMonthWindowToRange({ rerender: true });  // update range + calendar
