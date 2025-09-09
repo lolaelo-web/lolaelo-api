@@ -152,3 +152,24 @@ src/**/*.js.map
 
 !src/routes/extranetPms.js
 !src/routes/extranetPms.js.map
+
+# local & scratch
+*.bak
+db_probe.*
+rotate_db_pw.mjs
+
+# build caches
+*.map
+
+# env & deps
+.env
+node_modules/
+
+# if you decide to stop tracking dist later:
+# dist/
+
+# local helpers
+*.bak
+db_probe.*
+rotate_db_pw.mjs
+
