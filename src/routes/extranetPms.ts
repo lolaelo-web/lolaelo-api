@@ -198,13 +198,11 @@ router.post("/connections", requirePartner, async (req, res) => {
 
     // RAW fallback
     // (Also ensure Partner exists in RAW path in case delegates are not present)
-    const partnerCode = `PT-${partnerId}`;
     await (db as any).$executeRawUnsafe(
-      `INSERT INTO "extranet"."Partner" ("id","code","name","email","createdAt","updatedAt")
-       VALUES ($1,$2,$3,$4,NOW(),NOW())
-       ON CONFLICT ("id") DO NOTHING`,
+      `INSERT INTO "extranet"."Partner" ("id","name","email","createdAt","updatedAt")
+      VALUES ($1,$2,$3,NOW(),NOW())
+      ON CONFLICT ("id") DO NOTHING`,
       partnerId,
-      partnerCode,
       `Partner ${partnerId}`,
       `partner${partnerId}@local`
     );
