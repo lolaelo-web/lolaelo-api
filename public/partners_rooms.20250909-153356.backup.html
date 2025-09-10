@@ -1,0 +1,734 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <title>Partners · Rooms & Availability</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'><rect width='16' height='16' fill='%234f8cff'/></svg>" type="image/svg+xml">
+
+  <!-- FP: MN12-sticky-nav -->
+  <style>
+    :root{
+      --bg:#0b0d12;
+      --panel:#121621;
+      --panel-2:#161b28;
+      --text:#e7ecf3;
+      --muted:#98a3b3;
+      --brand:#4f8cff;
+      --accent:#ffb86b;
+      --ok:#2ecc71;
+      --warn:#f39c12;
+      --err:#e74c3c;
+      --border:#222a3a;
+      --chip:#1e2536;
+      --header-h:56px;
+    }
+    *{ box-sizing:border-box; }
+
+    body{
+      margin:0; background:var(--bg); color:var(--text);
+      font:14px/1.4 system-ui,-apple-system,Segoe UI,Roboto,"Helvetica Neue",Arial;
+      overflow:hidden;
+    }
+
+    header{
+      display:flex; gap:12px; align-items:center;
+      padding:14px 18px; height:var(--header-h);
+      border-bottom:1px solid var(--border);
+      background:var(--panel); position:sticky; top:0; z-index:5;
+    }
+    header h1{ font-size:16px; margin:0; letter-spacing:.2px; }
+    .spacer{ flex:1; }
+    .header-actions{ display:flex; gap:8px; align-items:center; }
+    .header-actions .note{ white-space:nowrap; }
+
+    .wrap{
+      display:grid; grid-template-columns:300px 1fr;
+      height:calc(100vh - var(--header-h)); overflow:hidden;
+    }
+    .left{
+      border-right:1px solid var(--border);
+      background:var(--panel); display:flex; flex-direction:column; min-width:0;
+    }
+    .right{
+      background:var(--panel-2); display:flex; flex-direction:column; min-width:0;
+    }
+
+    .toolbar{ display:flex; gap:8px; padding:10px; border-bottom:1px solid var(--border); background:var(--panel); }
+    .toolbar input,.toolbar select{ background:var(--chip); border:1px solid var(--border); color:var(--text); padding:8px 10px; border-radius:8px; }
+    .toolbar button{ background:var(--brand); border:0; color:#fff; padding:8px 12px; border-radius:8px; cursor:pointer; }
+    .toolbar button.secondary{ background:transparent; border:1px solid var(--border); color:var(--text); }
+
+    .list{ flex:1; overflow:auto; padding:8px; }
+    .room{
+      padding:10px; border:1px solid var(--border); border-radius:10px;
+      background:var(--panel-2); margin-bottom:8px;
+      display:flex; justify-content:space-between; align-items:center; cursor:pointer;
+    }
+    .room.active{ outline:2px solid var(--accent); }
+    .room .name{ font-weight:600; }
+    .room .meta{ color:var(--muted); font-size:12px; }
+    .room .actions{ display:flex; gap:6px; }
+
+    .right .controls{
+      display:flex; flex-wrap:wrap; gap:8px; padding:10px;
+      border-bottom:1px solid var(--border); background:var(--panel); align-items:center;
+    }
+    .controls input{ background:var(--chip); border:1px solid var(--border); color:var(--text); padding:8px 10px; border-radius:8px; }
+    .controls .group{ display:flex; gap:6px; align-items:center; }
+    .controls .group label{ color:var(--muted); font-size:12px; }
+    .controls .flag{ display:flex; gap:6px; align-items:center; color:var(--muted); font-size:12px; }
+
+    .calendar{ flex:1; overflow:auto; padding:12px; }
+    .cal-grid{ display:grid; grid-auto-flow:column; grid-auto-columns:140px; gap:10px; }
+    .day{
+      background:var(--panel); border:1px solid var(--border); border-radius:10px;
+      padding:8px; min-height:120px; display:flex; flex-direction:column; gap:6px;
+    }
+    .day .date{ font-weight:600; font-size:12px; color:var(--muted); }
+
+    .chip{
+      background:var(--chip); border:1px solid var(--border);
+      padding:6px 8px; border-radius:10px; font-size:12px;
+      display:grid; grid-template-columns: 1fr minmax(64px, 90px);
+      align-items:center; gap:8px; min-width:0;
+    }
+    .chip .tag{ color:var(--muted); font-size:11px; }
+
+    .chip input{
+      width:100%; text-align:right; background:transparent; border:0; color:var(--text);
+      padding:4px 0; outline:none; font-variant-numeric:tabular-nums;
+      overflow:hidden; text-overflow:clip; white-space:nowrap; min-width:0;
+    }
+    .chip input[data-kind="open"]{    padding-right: 2.5ch; }
+    .chip input[data-kind="price"]{   padding-right: 0;    }
+    .chip input[data-kind="minstay"]{ padding-right: 3.5ch; }
+    .chip input.error{ outline:1px solid var(--err); }
+
+    .chip .money{
+      display:flex; justify-content:flex-end; align-items:center; gap:6px;
+    }
+    .chip .money .prefix{ color:var(--muted); font-weight:600; user-select:none; }
+    .chip .money input{ flex:1 1 auto; width:auto; min-width:0; }
+
+    input[type=number]{ appearance:textfield; -moz-appearance:textfield; }
+    input[type=number]::-webkit-outer-spin-button,
+    input[type=number]::-webkit-inner-spin-button{ -webkit-appearance:none; margin:0; }
+
+    button{ background:var(--brand); color:#fff; border:0; border-radius:8px; padding:8px 12px; cursor:pointer; }
+    button.secondary{ background:transparent; border:1px solid var(--border); color:var(--text); }
+    .btn-accent{ background:var(--accent); color:#0b0d12; }
+    .btn-accent:hover{ filter:brightness(1.05); }
+
+    .note{ color:var(--muted); font-size:12px; padding:0 10px; }
+    .error{ color:var(--err); }
+    .ok{ color:var(--ok); }
+    .warn{ color:var(--warn); }
+    code.k{ background:var(--chip); padding:2px 6px; border-radius:6px; }
+    .disabled{ opacity:.6; pointer-events:none; }
+
+    #save{ background:var(--accent); color:#0b0d12; }
+    #save:disabled{ opacity:.6; cursor:not-allowed; }
+
+    .room .actions button{ padding:6px 8px; font-size:12px; border-radius:8px; }
+    #add-room{ padding:8px 10px; font-weight:600; }
+
+    input, select, button { font-family: inherit; font-size: 14px; }
+    input[type="date"]{ font-family: inherit; font-size: 14px; }
+    input[type="date"]::-webkit-datetime-edit { font-family: inherit; }
+
+    /* Month Navigator */
+    .month-nav{
+      display:flex; align-items:center; gap:8px; padding:10px;
+      border-bottom:1px solid var(--border); background:var(--panel);
+    }
+    .month-nav .nav-btn{
+      border:1px solid var(--border);
+      background:var(--chip);
+      padding:.25rem .5rem; border-radius:.5rem; line-height:1.2; cursor:pointer;
+      color:var(--text);
+    }
+    .month-nav .nav-btn:hover{ filter:brightness(1.05); }
+    .month-nav .month-label{
+      font-weight:600; letter-spacing:.2px; min-width:8rem; text-align:center; user-select:none; cursor:default;
+      color:var(--text);
+    }
+    .month-select{ display:none; }
+  </style>
+</head>
+<body>
+  <header>
+    <h1>Rooms & Availability — Extranet</h1>
+    <div class="spacer"></div>
+    <div class="header-actions">
+      <span id="status" class="note">Ready.</span>
+      <span id="dirty-count" class="note">No changes</span>
+      <button id="save" disabled>Save changes</button>
+      <button id="back" class="secondary" onclick="location.href='/partners_app.html'">Back to menu</button>
+    </div>
+  </header>
+
+  <div class="wrap">
+    <aside class="left">
+      <div class="toolbar">
+        <button id="add-room" class="btn-accent">+ Add room type</button>
+      </div>
+      <div class="list" id="rooms-list"></div>
+    </aside>
+
+    <section class="right">
+      <!-- Month Navigator -->
+      <div id="month-nav" class="month-nav" role="group" aria-label="Month navigator">
+        <button id="month-prev" class="nav-btn" type="button" aria-label="Previous month">◀</button>
+        <span id="month-label" class="month-label" title="Month">Sep 2025</span>
+        <select id="month-select" class="month-select" aria-label="Select month">
+          <option value="2025-01">Jan 2025</option>
+          <option value="2025-02">Feb 2025</option>
+          <option value="2025-03">Mar 2025</option>
+          <option value="2025-04">Apr 2025</option>
+          <option value="2025-05">May 2025</option>
+          <option value="2025-06">Jun 2025</option>
+          <option value="2025-07">Jul 2025</option>
+          <option value="2025-08">Aug 2025</option>
+          <option value="2025-09" selected>Sep 2025</option>
+          <option value="2025-10">Oct 2025</option>
+          <option value="2025-11">Nov 2025</option>
+          <option value="2025-12">Dec 2025</option>
+        </select>
+        <button id="month-next" class="nav-btn" type="button" aria-label="Next month">▶</button>
+      </div>
+
+      <div class="controls">
+        <div class="group">
+          <label>Range</label>
+          <input type="date" id="range-start" />
+          <input type="date" id="range-end" />
+        </div>
+        <div class="group">
+          <label>Inventory</label>
+          <input type="number" id="inv-open" min="0" placeholder="roomsOpen" />
+          <input type="number" id="inv-minstay" min="1" placeholder="minStay" />
+          <span class="flag"><input type="checkbox" id="inv-closed" /> Closed</span>
+          <button id="apply-inv" class="secondary">Apply Inventory</button>
+        </div>
+        <div class="group">
+          <label>Price</label>
+          <input id="price" placeholder="149.00" />
+          <button id="apply-price" class="secondary">Apply Price</button>
+        </div>
+      </div>
+
+      <div class="calendar">
+        <div id="cal-grid" class="cal-grid"></div>
+      </div>
+    </section>
+  </div>
+
+<script>
+(() => {
+  // ===== Month Navigator core =====
+  const WEEK_START = 1;      // 0=Sun, 1=Mon
+  let visibleWeeks = 3;      // 3-week viewport
+  let currentMonth = (() => { const d = new Date(); return new Date(d.getFullYear(), d.getMonth(), 1); })();
+
+  function startOfWeek(dt, weekStart = WEEK_START){
+    const d = new Date(dt.getFullYear(), dt.getMonth(), dt.getDate());
+    const day = d.getDay();
+    const diff = (day - weekStart + 7) % 7;
+    d.setDate(d.getDate() - diff);
+    d.setHours(0,0,0,0);
+    return d;
+  }
+  function addWeeks(dt, n){
+    const d = new Date(dt.getFullYear(), dt.getMonth(), dt.getDate());
+    d.setDate(d.getDate() + n * 7);
+    return d;
+  }
+  function monthLabel(dt){
+    return dt.toLocaleString(undefined, { month: "short", year: "numeric" });
+  }
+  function iso(d){ return d.toISOString().slice(0,10); }
+  const todayISO = () => iso(new Date());
+
+  function computeWindowFromMonth(){
+    const start = startOfWeek(currentMonth);
+    const end = new Date(addWeeks(start, visibleWeeks).getTime() - 86400000); // inclusive
+    const startISO = iso(start), endISO = iso(end);
+    console.debug("[month-nav] window", { label: monthLabel(currentMonth), startISO, endISO, visibleWeeks, weekStart: WEEK_START });
+    return { startISO, endISO };
+  }
+  function setMonthLabel(){
+    const lbl = document.getElementById("month-label");
+    if (lbl) lbl.textContent = monthLabel(currentMonth);
+    const sel = document.getElementById("month-select");
+    if (sel){
+      const y = currentMonth.getFullYear();
+      const m = String(currentMonth.getMonth()+1).padStart(2,"0");
+      const v = `${y}-${m}`;
+      if (sel.value !== v && [...sel.options].some(o => o.value === v)) sel.value = v;
+    }
+  }
+  function applyMonthWindowToRange({ rerender = false } = {}){
+    const { startISO, endISO } = computeWindowFromMonth();
+    const t = todayISO();
+
+    let s = startISO < t ? t : startISO;
+    const minDays = (visibleWeeks * 7) - 1;
+    let e = endISO;
+    if (e <= s) {
+      const sDate = new Date(s + "T00:00:00Z");
+      const eDate = new Date(sDate.getTime() + (minDays * 86400000));
+      e = iso(eDate);
+    }
+
+    const rs = document.getElementById("range-start");
+    const re = document.getElementById("range-end");
+    if (rs && re) {
+      rs.value = s;
+      re.value = e;
+    }
+    currentRangeStart = s;
+    currentRangeEnd   = e;
+
+    if (rerender) { void renderCalendar(); }
+  }
+  function shiftMonth(delta){
+    const y = currentMonth.getFullYear();
+    const m = currentMonth.getMonth();
+    currentMonth = new Date(y, m + delta, 1);
+    setMonthLabel();
+    computeWindowFromMonth();                    // debug
+    applyMonthWindowToRange({ rerender: true }); // update and fetch
+  }
+
+  // ===== Existing app code (with small, safe tweaks) =====
+  (function ensureToken() {
+    const hashToken = new URLSearchParams(location.hash.slice(1)).get('token');
+    if (hashToken) localStorage.setItem('partnerToken', hashToken);
+  })();
+  const token = localStorage.getItem("partnerToken") || localStorage.getItem("lolaelo_session") || "";
+  const baseHeaders = { "Content-Type": "application/json" };
+  const authHeaders = token ? { ...baseHeaders, "Authorization": "Bearer " + token, "x-partner-token": token } : baseHeaders;
+
+  function authFetch(url, opts = {}) {
+    const merged = { ...opts, headers: { ...(opts.headers || {}), ...authHeaders } };
+    return fetch(url, merged).then(async (r) => {
+      if (r.status === 401) {
+        setStatus("Session expired. Redirecting to login…", "warn");
+        setTimeout(() => { location.href = "/partners_login.html"; }, 900);
+      }
+      return r;
+    });
+  }
+
+  const el = (id) => document.getElementById(id);
+  const status = el("status");
+  const roomsList = el("rooms-list");
+  const calGrid = el("cal-grid");
+  const monthPrevBtn = el("month-prev");
+  const monthNextBtn = el("month-next");
+
+  let currentRoomTypeId = null;
+  let currentRangeStart = null, currentRangeEnd = null;
+  let busy = false;
+  let renderSeq = 0;    // prevent stale renders
+
+  const dirty = new Map(); // date -> { price?:string, roomsOpen?:number, minStay?:number }
+
+  const clamp = (v, min, max) => Math.min(Math.max(v, min), max);
+  const toNumber = (v) => {
+    if (v === null || v === undefined || v === "") return NaN;
+    const n = Number(String(v).replace(/[^0-9.-]/g, ""));
+    return Number.isFinite(n) ? n : NaN;
+  };
+  const fmtUSD = (v) => { const n = toNumber(v); return Number.isFinite(n) ? "$" + n.toFixed(2) : ""; };
+
+  function daysBetween(startISO, endISO) {
+    const s = new Date(startISO + "T00:00:00Z");
+    const theEnd = new Date(endISO + "T00:00:00Z");
+    const arr = [];
+    for (let d = new Date(s); d <= theEnd; d = new Date(d.getTime() + 86400000)) {
+      arr.push(iso(d));
+    }
+    return arr;
+  }
+
+  function setStatus(msg, cls="") {
+    status.className = "note " + cls;
+    status.textContent = msg;
+  }
+
+  // keep month-nav clickable during fetches
+  function disableWhileBusy(flag) {
+    busy = !!flag;
+    document.querySelectorAll("button, input").forEach(x => {
+      if (x.id === "back" || x.id === "month-prev" || x.id === "month-next") return; // do NOT disable month nav
+      x.classList.toggle("disabled", busy);
+      x.disabled = busy && x.id !== "back";
+    });
+  }
+
+  function validateRangeOrWarn() {
+    const s = el("range-start").value;
+    const e = el("range-end").value;
+    if (!s || !e) { setStatus("Enter a start and end date.", "error"); return false; }
+    if (e < s)    { setStatus("End date cannot be before start date.", "error"); return false; }
+    const t = todayISO();
+    if (s < t)    { setStatus("Start date must be today or later.", "error"); return false; }
+    return true;
+  }
+
+  function setDirty(date, kind, value) {
+    if (!dirty.has(date)) dirty.set(date, {});
+    const obj = dirty.get(date);
+    obj[kind] = value;
+    updateDirtyUI();
+  }
+  function updateDirtyUI() {
+    const n = dirty.size;
+    el("save").disabled = n === 0;
+    el("dirty-count").textContent = n ? `${n} day${n>1?'s':''} changed` : "No changes";
+  }
+
+  async function loadRooms() {
+    roomsList.innerHTML = "";
+    const res = await authFetch("/extranet/property/rooms");
+    if (!res.ok) { setStatus("Failed to load rooms ("+res.status+")", "error"); return; }
+    const data = await res.json();
+    data.sort((a,b) => String(a.name).localeCompare(String(b.name), undefined, { sensitivity: 'base' }));
+    if (!Array.isArray(data)) return;
+
+    data.forEach(rt => {
+      const div = document.createElement("div");
+      div.className = "room" + (rt.id === currentRoomTypeId ? " active" : "");
+      const base = fmtUSD(rt.basePrice);
+      const maxGuests = (rt.maxGuests ?? 2);
+      div.innerHTML = `
+        <div>
+          <div class="name">${rt.name}</div>
+          <div class="meta">Base ${base || "-"} · Max ${maxGuests}</div>
+        </div>
+        <div class="actions">
+          <button class="btn-accent" data-act="edit" data-id="${rt.id}">Rename</button>
+          <button class="secondary" data-act="del"  data-id="${rt.id}">Delete</button>
+        </div>`;
+
+      div.addEventListener("click", async (e) => {
+        const btn = e.target.closest("button");
+        const act = btn ? btn.getAttribute("data-act") : "open";
+        const id  = btn ? Number(btn.getAttribute("data-id")) : rt.id;
+
+        if (act === "open") {
+          currentRoomTypeId = id;
+          if (dirty.clear) dirty.clear();
+          await renderCalendar();
+          await loadRooms();
+          return;
+        }
+
+        if (act === "del") {
+          if (!confirm("Delete this room type?")) return;
+          const r = await authFetch(`/extranet/property/rooms/${id}`, { method:"DELETE" });
+          if (r.status === 204) {
+            if (currentRoomTypeId === id) currentRoomTypeId = null;
+            setStatus("Room deleted", "ok");
+            await loadRooms();
+            calGrid.innerHTML = "";
+          } else {
+            setStatus("Delete failed ("+r.status+")", "error");
+          }
+          return;
+        }
+
+        if (act === "edit") {
+          const name = prompt("New name?");
+          if (!name) return;
+          const r = await authFetch(`/extranet/property/rooms/${id}`, {
+            method:"PUT",
+            body: JSON.stringify({ name: name.trim() })
+          });
+          if (r.ok) { setStatus("Updated", "ok"); await loadRooms(); }
+          else setStatus("Update failed ("+r.status+")", "error");
+        }
+      });
+
+      roomsList.appendChild(div);
+    });
+  }
+
+  // default 6-month inputs (kept for compatibility)
+  function prepareRangeDefaults() {
+    const start = new Date();
+    const end = new Date(start); end.setMonth(end.getMonth() + 6);
+    const s = iso(start), e = iso(end);
+    if (!el("range-start").value) el("range-start").value = s;
+    if (!el("range-end").value)   el("range-end").value = e;
+    currentRangeStart = el("range-start").value;
+    currentRangeEnd   = el("range-end").value;
+  }
+  ["range-start","range-end"].forEach(id => {
+    el(id).addEventListener("change", async () => {
+      if (!validateRangeOrWarn()) return;
+      currentRangeStart = el("range-start").value;
+      currentRangeEnd   = el("range-end").value;
+      await renderCalendar();
+    });
+  });
+
+  async function renderCalendar() {
+    calGrid.innerHTML = "";
+    if (!currentRoomTypeId) { setStatus("Pick a room type on the left.", ""); return; }
+
+    prepareRangeDefaults();
+    if (!validateRangeOrWarn()) return;
+
+    const invUrl = `/extranet/property/rooms/${currentRoomTypeId}/inventory?start=${currentRangeStart}&end=${currentRangeEnd}`;
+    const prcUrl = `/extranet/property/rooms/${currentRoomTypeId}/prices?start=${currentRangeStart}&end=${currentRangeEnd}`;
+
+    const seq = ++renderSeq;
+    disableWhileBusy(true);
+    const [invRes, prcRes] = await Promise.all([ authFetch(invUrl), authFetch(prcUrl) ]);
+    disableWhileBusy(false);
+    if (seq !== renderSeq) return; // stale
+
+    if (!invRes.ok || !prcRes.ok) {
+      setStatus("Failed loading data ("+invRes.status+"/"+prcRes.status+")", "error");
+      return;
+    }
+
+    const invRows = await invRes.json();
+    const prcRows = await prcRes.json();
+
+    if (seq !== renderSeq) return; // stale
+
+    const invByDate = new Map(invRows.map(r => [String(r.date).slice(0,10), r]));
+    const prcByDate = new Map(prcRows.map(r => [String(r.date).slice(0,10), r]));
+
+    const days = daysBetween(currentRangeStart, currentRangeEnd);
+    days.forEach(d => {
+      const inv = invByDate.get(d);
+      const prc = prcByDate.get(d);
+      const invOpen = inv ? clamp(Number(inv.roomsOpen) || 0, 0, 9999) : 0;
+      const invMinStay = inv && inv.minStay ? clamp(Number(inv.minStay) || 1, 1, 365) : "";
+
+      const card = document.createElement("div");
+      card.className = "day";
+      card.innerHTML = `
+        <div class="date">${d}</div>
+        <div class="chip" title="Rooms Open">
+          <span class="tag">Open</span>
+          <input type="number" min="0" value="${invOpen}" data-date="${d}" data-kind="open">
+        </div>
+        <div class="chip" title="Price (USD)">
+          <span class="tag">Price</span>
+          <div class="money">
+            <span class="prefix">$</span>
+            <input type="text" value="${prc ? Number(prc.price).toFixed(2) : ""}" data-date="${d}" data-kind="price">
+          </div>
+        </div>
+        <div class="chip" title="Min Stay">
+          <span class="tag">MinStay</span>
+          <input type="number" min="1" value="${invMinStay}" data-date="${d}" data-kind="minstay">
+        </div>
+      `;
+      calGrid.appendChild(card);
+
+      ['open','price','minstay'].forEach(kind => {
+        const input = card.querySelector(`input[data-kind="${kind}"]`);
+        input.addEventListener('input', () => {
+          const date = input.getAttribute('data-date');
+          let val = input.value;
+          if (kind === 'open' || kind === 'minstay') {
+            if (val === '') { input.classList.remove('error'); setDirty(date, kind === 'open' ? 'roomsOpen' : 'minStay', undefined); return; }
+            const n = Number(val);
+            if (!Number.isFinite(n) || n < (kind === 'open' ? 0 : 1)) { input.classList.add('error'); return; }
+            input.classList.remove('error');
+            setDirty(date, kind === 'open' ? 'roomsOpen' : 'MinStay', Math.floor(n));
+          } else if (kind === 'price') {
+            if (val === '') { input.classList.remove('error'); setDirty(date, 'price', undefined); return; }
+            const ok = /^(\d+)(\.\d{1,2})?$/.test(val) && parseFloat(val) >= 0;
+            if (!ok) { input.classList.add('error'); return; }
+            input.classList.remove('error');
+            setDirty(date, 'price', parseFloat(val).toFixed(2));
+          }
+        });
+      });
+    });
+    updateDirtyUI();
+    if (!status.className.includes("ok")) setStatus("Calendar ready.", "");
+  }
+
+  // Month nav hooks
+  if (monthPrevBtn) monthPrevBtn.addEventListener("click", () => shiftMonth(-1));
+  if (monthNextBtn) monthNextBtn.addEventListener("click", () => shiftMonth(+1));
+
+  // Bulk actions & save (unchanged)
+  document.getElementById("apply-inv").addEventListener("click", async () => {
+    if (!currentRoomTypeId) return setStatus("Select a room type.", "error");
+    if (!validateRangeOrWarn()) return;
+    const start = document.getElementById("range-start").value;
+    const end   = document.getElementById("range-end").value;
+    const roomsOpenN = toNumber(document.getElementById("inv-open").value);
+    const minStayN   = document.getElementById("inv-minstay").value ? toNumber(document.getElementById("inv-minstay").value) : NaN;
+    const isClosed   = !!document.getElementById("inv-closed").checked;
+    if (!Number.isFinite(roomsOpenN) || roomsOpenN < 0) return setStatus("roomsOpen must be a non-negative number", "error");
+    if (document.getElementById("inv-minstay").value && (!Number.isFinite(minStayN) || minStayN < 1)) return setStatus("minStay must be ≥ 1", "error");
+    const dates = daysBetween(start, end);
+    const items = dates.map(d => {
+      const o = { date: d, isClosed, roomsOpen: Math.floor(roomsOpenN) };
+      if (Number.isFinite(minStayN)) o.minStay = Math.floor(minStayN);
+      return o;
+    });
+    disableWhileBusy(true);
+    const res = await authFetch(`/extranet/property/rooms/${currentRoomTypeId}/inventory/bulk`, { method: "POST", body: JSON.stringify({ items }) });
+    disableWhileBusy(false);
+    if (!res.ok) return setStatus("Inventory apply failed ("+res.status+")", "error");
+    const js = await res.json();
+    setStatus(`Inventory applied to ${js.upserted ?? js.count ?? items.length} day(s).`, "ok");
+    await renderCalendar();
+  });
+
+  document.getElementById("apply-price").addEventListener("click", async () => {
+    if (!currentRoomTypeId) return setStatus("Select a room type.", "error");
+    if (!validateRangeOrWarn()) return;
+    const start = document.getElementById("range-start").value;
+    const end   = document.getElementById("range-end").value;
+    const priceN = toNumber(document.getElementById("price").value);
+    if (!Number.isFinite(priceN) || priceN < 0) return setStatus("Enter a valid non-negative price", "error");
+    const dates = daysBetween(start, end);
+    const items = dates.map(d => ({ date: d, price: priceN.toFixed(2), ratePlanId: null }));
+    disableWhileBusy(true);
+    const res = await authFetch(`/extranet/property/rooms/${currentRoomTypeId}/prices/bulk`, { method: "POST", body: JSON.stringify({ items }) });
+    disableWhileBusy(false);
+    if (!res.ok) return setStatus("Price apply failed ("+res.status+")", "error");
+    const js = await res.json();
+    setStatus(`Prices applied to ${js.upserted ?? js.count ?? items.length} day(s).`, "ok");
+    await renderCalendar();
+  });
+
+  document.getElementById("save").addEventListener("click", async () => {
+    if (dirty.size === 0) return;
+    const invItems = [];
+    const prcItems = [];
+    for (const [date, obj] of dirty.entries()) {
+      const inv = {};
+      if (typeof obj.roomsOpen === 'number') inv.roomsOpen = obj.roomsOpen;
+      if (typeof obj.minStay   === 'number') inv.minStay   = obj.minStay;
+      if (Object.keys(inv).length) invItems.push({ date, isClosed:false, ...inv });
+      if (typeof obj.price === 'string' && obj.price !== '') {
+        prcItems.push({ date, price: obj.price, ratePlanId: null });
+      }
+    }
+    if (!invItems.length && !prcItems.length) { setStatus("Nothing to save.", "warn"); return; }
+    setStatus("Saving…");
+    disableWhileBusy(true);
+    try {
+      const reqs = [];
+      if (invItems.length) reqs.push(authFetch(`/extranet/property/rooms/${currentRoomTypeId}/inventory/bulk`, { method:"POST", body: JSON.stringify({ items: invItems }) }));
+      if (prcItems.length) reqs.push(authFetch(`/extranet/property/rooms/${currentRoomTypeId}/prices/bulk`,     { method:"POST", body: JSON.stringify({ items: prcItems }) }));
+      const resps = await Promise.all(reqs);
+      if (resps.some(r => !r.ok)) {
+        setStatus("Save failed (" + resps.map(r=>r.status).join("/") + ")", "error");
+      } else {
+        setStatus("Saved.", "ok");
+        dirty.clear();
+        updateDirtyUI();
+        await renderCalendar();
+      }
+    } catch {
+      setStatus("Save error", "error");
+    } finally {
+      disableWhileBusy(false);
+    }
+  });
+
+  // init
+  (async function init() {
+    prepareRangeDefaults();
+    await loadRooms();
+
+    // Initialize month header & window from currentMonth (clamped to today for start)
+    setMonthLabel();
+    computeWindowFromMonth();                 // debug
+    applyMonthWindowToRange({ rerender: false });
+
+    const firstOpen = document.querySelector(".room");
+    if (firstOpen) { firstOpen.click(); }     // sets currentRoomTypeId and triggers first render
+  })();
+
+})();
+</script>
+
+<!-- FP: MN-SYNC-WEEKS v2 — runtime override: continuous 3-week stepping, no overlaps; neutralize old listeners -->
+<script>
+(() => {
+  const ONE_DAY = 86400000;
+  const iso = (d) => d.toISOString().slice(0,10);
+  const todayISO = () => iso(new Date());
+  const q = (id) => document.getElementById(id);
+
+  function setLabelFrom(startISO){
+    const lbl = q('month-label'); if (!lbl) return;
+    const d = new Date(startISO + 'T00:00:00Z');
+    lbl.textContent = d.toLocaleString(undefined, { month:'short', year:'numeric' });
+
+    // keep hidden <select> in sync if present
+    const sel = q('month-select');
+    if (sel){
+      const y = d.getFullYear();
+      const m = String(d.getMonth()+1).padStart(2,'0');
+      const v = `${y}-${m}`;
+      if (sel.value !== v && [...sel.options].some(o => o.value === v)) sel.value = v;
+    }
+  }
+
+  function applyWindowFrom(startISO, weeks = 3, doRender = true){
+    let s = startISO;
+    const t = todayISO();
+    if (s < t) s = t;                                  // clamp start to today
+
+    const sDate = new Date(s + 'T00:00:00Z');
+    const eDate = new Date(sDate.getTime() + (weeks*7 - 1)*ONE_DAY);
+
+    const rs = q('range-start'), re = q('range-end');
+    if (rs && re){ rs.value = s; re.value = iso(eDate); }
+
+    // keep globals aligned so the rest of the app stays happy
+    window.currentRangeStart = s;
+    window.currentRangeEnd   = iso(eDate);
+    window.currentMonth      = new Date(s + 'T00:00:00Z');
+
+    setLabelFrom(s);
+    if (doRender && typeof window.renderCalendar === 'function') window.renderCalendar();
+  }
+
+  function stepFromDisplayed(deltaWeeks){
+    const rs = q('range-start')?.value || window.currentRangeStart || todayISO();
+    const base = new Date(rs + 'T00:00:00Z');
+    base.setDate(base.getDate() + deltaWeeks*7);
+    applyWindowFrom(iso(base), 3, true);
+  }
+
+  // === Neutralize any old listeners by replacing the nodes ===
+  const prevBtn = q('month-prev');
+  const nextBtn = q('month-next');
+
+  if (prevBtn){
+    const clone = prevBtn.cloneNode(true);  // drops old listeners
+    prevBtn.replaceWith(clone);
+    clone.addEventListener('click', () => stepFromDisplayed(-3));
+  }
+  if (nextBtn){
+    const clone = nextBtn.cloneNode(true);  // drops old listeners
+    nextBtn.replaceWith(clone);
+    clone.addEventListener('click', () => stepFromDisplayed(+3));
+  }
+
+  // normalize the initial window/label based on whatever’s showing now
+  const first = q('range-start')?.value || todayISO();
+  applyWindowFrom(first, 3, false);
+})();
+</script>
+
+</body>
+</html>

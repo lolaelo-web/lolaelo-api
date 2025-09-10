@@ -108,18 +108,51 @@ r.post("/", async (req, res) => {
   }
 });
 
-/** PUT /extranet/property/rooms/:id  (rename only) */
+/** PUT /extranet/property/rooms/:id  (update name/basePrice/capacity) */
 r.put("/:id", async (req, res) => {
   const client = await pool.connect();
   try {
     const id = Number(req.params.id);
-    const { name } = req.body ?? {};
-    if (!Number.isFinite(id) || id <= 0)
+    if (!Number.isFinite(id) || id <= 0) {
       return res.status(400).json({ error: "invalid id" });
-    if (!name || typeof name !== "string")
-      return res.status(400).json({ error: "name is required" });
+    }
+
+    // Accept any subset: name, description, basePrice, maxGuests/occupancy
+    const { name, description, basePrice, maxGuests, occupancy } = req.body ?? {};
+    const sets: string[] = [];
+    const vals: any[] = [id];
+    let i = 2;
+
+    if (typeof name === "string" && name.trim()) {
+      sets.push(`"name"=$${i++}`); vals.push(name.trim());
+    }
+    if (typeof description === "string") {
+      sets.push(`"description"=$${i++}`); vals.push(description);
+    }
+    if (basePrice !== undefined && basePrice !== null && String(basePrice) !== "") {
+      const bp = Number(String(basePrice).replace(/[^0-9.]/g, ""));
+      if (!Number.isFinite(bp) || bp < 0) {
+        return res.status(400).json({ error: "bad basePrice" });
+      }
+      sets.push(`"basePrice"=$${i++}`); vals.push(bp.toFixed(2));
+    }
+    const cap = (maxGuests ?? occupancy);
+    if (cap !== undefined && cap !== null && String(cap) !== "") {
+      const cg = Number(cap);
+      if (!Number.isFinite(cg) || cg < 1) {
+        return res.status(400).json({ error: "bad capacity" });
+      }
+      sets.push(`"maxGuests"=$${i++}`); vals.push(cg);
+      sets.push(`"occupancy"=$${i++}`); vals.push(cg);
+    }
+
+    if (sets.length === 0) {
+      return res.status(400).json({ error: "no fields" });
+    }
+    sets.push(`"updatedAt"=NOW()`);
 
     const authed = authedPartnerId(req);
+
     await client.query("BEGIN");
 
     const room = await client.query(
@@ -138,10 +171,10 @@ r.put("/:id", async (req, res) => {
 
     const upd = await client.query(
       `UPDATE ${T.rooms}
-          SET "name"=$2, "updatedAt"=NOW()
-        WHERE "id"=$1
-      RETURNING "id","name","code","description","occupancy","maxGuests","basePrice"`,
-      [id, name.trim()]
+         SET ${sets.join(", ")}
+       WHERE "id"=$1
+       RETURNING "id","name","code","description","occupancy","maxGuests","basePrice"`,
+      vals
     );
 
     await client.query("COMMIT");
@@ -149,6 +182,94 @@ r.put("/:id", async (req, res) => {
   } catch (e) {
     await client.query("ROLLBACK");
     console.error("[rooms:put] db error", e);
+    return res.status(500).json({ error: "Update failed" });
+  } finally {
+    client.release();
+  }
+});
+
+/** PATCH /extranet/property/rooms/:id  (partial update) */
+r.patch("/:id", async (req, res) => {
+  const client = await pool.connect();
+  try {
+    const id = Number(req.params.id);
+    if (!Number.isFinite(id) || id <= 0) {
+      return res.status(400).json({ error: "invalid id" });
+    }
+
+    const b = req.body ?? {};
+    const sets: string[] = [];
+    const vals: any[] = [id];
+    let i = 2;
+
+    if (Object.prototype.hasOwnProperty.call(b, "name")) {
+      if (typeof b.name !== "string" || !b.name.trim()) {
+        return res.status(400).json({ error: "bad name" });
+      }
+      sets.push(`"name"=$${i++}`); vals.push(b.name.trim());
+    }
+    if (Object.prototype.hasOwnProperty.call(b, "description")) {
+      if (typeof b.description !== "string") {
+        return res.status(400).json({ error: "bad description" });
+      }
+      sets.push(`"description"=$${i++}`); vals.push(b.description);
+    }
+    if (Object.prototype.hasOwnProperty.call(b, "basePrice")) {
+      if (b.basePrice === null || String(b.basePrice) === "") {
+        return res.status(400).json({ error: "bad basePrice" });
+      }
+      const bp = Number(String(b.basePrice).replace(/[^0-9.]/g, ""));
+      if (!Number.isFinite(bp) || bp < 0) {
+        return res.status(400).json({ error: "bad basePrice" });
+      }
+      sets.push(`"basePrice"=$${i++}`); vals.push(bp.toFixed(2));
+    }
+    if (Object.prototype.hasOwnProperty.call(b, "maxGuests") || Object.prototype.hasOwnProperty.call(b, "occupancy")) {
+      const cap = (b.maxGuests ?? b.occupancy);
+      const cg = Number(cap);
+      if (!Number.isFinite(cg) || cg < 1) {
+        return res.status(400).json({ error: "bad capacity" });
+      }
+      sets.push(`"maxGuests"=$${i++}`); vals.push(cg);
+      sets.push(`"occupancy"=$${i++}`); vals.push(cg);
+    }
+
+    if (sets.length === 0) {
+      return res.status(400).json({ error: "no fields" });
+    }
+    sets.push(`"updatedAt"=NOW()`);
+
+    const authed = authedPartnerId(req);
+
+    await client.query("BEGIN");
+
+    const room = await client.query(
+      `SELECT "id","partnerId" FROM ${T.rooms} WHERE "id"=$1`,
+      [id]
+    );
+    if (room.rowCount === 0) {
+      await client.query("ROLLBACK");
+      return res.status(404).json({ error: "Not found" });
+    }
+    const owner = Number(room.rows[0].partnerId);
+    if (Number.isFinite(authed!) && authed !== owner) {
+      await client.query("ROLLBACK");
+      return res.status(403).json({ error: "Forbidden" });
+    }
+
+    const upd = await client.query(
+      `UPDATE ${T.rooms}
+         SET ${sets.join(", ")}
+       WHERE "id"=$1
+       RETURNING "id","name","code","description","occupancy","maxGuests","basePrice"`,
+      vals
+    );
+
+    await client.query("COMMIT");
+    return res.status(200).json(upd.rows[0]);
+  } catch (e) {
+    await client.query("ROLLBACK");
+    console.error("[rooms:patch] db error", e);
     return res.status(500).json({ error: "Update failed" });
   } finally {
     client.release();
