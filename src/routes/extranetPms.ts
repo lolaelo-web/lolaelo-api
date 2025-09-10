@@ -163,17 +163,17 @@ router.post("/connections", requirePartner, async (req, res) => {
       return res.status(401).json({ error: "no partner session" });
     }
 
-    // Ensure Partner row exists with required NOT NULLs (code, email) before inserting PmsConnection
-    await (db as any).partner.upsert({
-      where: { id: partnerId },
-      create: {
-        id: partnerId,
-        code: `PT-${partnerId}`,
-        name: `Partner ${partnerId}`,
-        email: `partner${partnerId}@local`
-      },
-      update: {},
-    });
+       // Ensure Partner row exists for this exact id (FK for PmsConnection)
+    // Prisma can't create with a fixed autoinc id; use RAW insert.
+    await (db as any).$executeRawUnsafe(
+      `INSERT INTO "extranet"."Partner" ("id","code","name","email","createdAt","updatedAt")
+      VALUES ($1,$2,$3,$4,NOW(),NOW())
+      ON CONFLICT ("id") DO NOTHING`,
+      partnerId,
+      `PT-${partnerId}`,
+      `Partner ${partnerId}`,
+      `partner${partnerId}@local`
+    );
 
     const { provider = "CLOUDBEDS", mode = "mock", status = "TESTING", scope = null } = req.body ?? {};
 
