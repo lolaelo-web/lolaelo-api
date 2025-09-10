@@ -158,8 +158,30 @@ router.get("/connections", requirePartner, async (req, res) => {
 router.post("/connections", requirePartner, async (req, res) => {
   try {
     const partnerId = getPartnerId(req);
-    const { provider = "CLOUDBEDS", mode = "mock", status = "TESTING", scope = null } = req.body ?? {};
+    
+        if (!Number.isFinite(partnerId)) {
+      return res.status(401).json({ error: "no partner session" });
+    }
 
+    // Ensure Partner row exists (prevents PmsConnection_partnerId_fkey)
+    if (hasDelegates()) {
+      await (db as any).partner.upsert({
+        where: { id: partnerId },
+        create: { id: partnerId, name: `Partner ${partnerId}` },
+        update: {},
+      });
+    } else {
+      await (db as any).$executeRawUnsafe(
+        `INSERT INTO "extranet"."Partner" ("id","name","createdAt","updatedAt")
+         VALUES ($1,$2,NOW(),NOW())
+         ON CONFLICT ("id") DO NOTHING`,
+        partnerId,
+        `Partner ${partnerId}`
+      );
+    }
+
+    const { provider = "CLOUDBEDS", mode = "mock", status = "TESTING", scope = null } = req.body ?? {};
+  
     if (hasDelegates()) {
       const upserted = await (db as any).pmsConnection.upsert({
         where: { partnerId_provider: { partnerId, provider } },
