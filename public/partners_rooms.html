@@ -209,6 +209,8 @@
   let currentRoomTypeId = null;
   let currentRangeStart = null, currentRangeEnd = null;
   let busy = false;
+  // Tracks rooms where server ignored base/max updates (read-only server fields)
+  const readOnlyRoomField = new Map(); // roomId -> true
 
   const clamp = (v,min,max)=>Math.min(Math.max(v,min),max);
   const toNumber = (v) => {
@@ -267,8 +269,15 @@
     const merged = { ...opts, headers: { ...(opts.headers||{}), ...authHeaders } };
     return fetch(url, merged).then(async (r) => {
       if (r.status === 401) {
-        setStatus("Session expired. Redirecting to login…", "warn");
-        setTimeout(() => { location.href = "/partners_login.html"; }, 900);
+        const hasToken = !!localStorage.getItem('partnerToken');
+        setStatus(hasToken ? "Auth failed. Check token or permissions." : "Not signed in.", "warn");
+        // Keep user on this page; show a login link instead of redirecting away.
+        const s = document.getElementById('status');
+        if (s) {
+          s.innerHTML = (hasToken
+            ? 'Auth failed. <a href="/partners_login.html" style="color:#4f8cff">Open login</a>'
+            : 'Not signed in. <a href="/partners_login.html" style="color:#4f8cff">Open login</a>');
+        }
       }
       return r;
     });
@@ -355,11 +364,14 @@
         const after = Array.isArray(list) ? list.find(x=>x.id===rt.id) : null;
         let warn = false;
         if (after) {
-          if ('basePrice' in payload && Number(after.basePrice) !== Number(payload.basePrice)) warn = true;
+          const afterBase = (after && after.basePrice != null) ? Number(String(after.basePrice)) : NaN;
+          const wantBase  = ('basePrice' in payload) ? Number(String(payload.basePrice)) : NaN;
+          if (Number.isFinite(afterBase) && Number.isFinite(wantBase) && afterBase !== wantBase) warn = true;
           const wantG = payload.occupancy ?? payload.maxGuests;
           const gotG  = Number(after.occupancy ?? after.maxGuests);
           if (wantG !== undefined && gotG !== wantG) warn = true;
         }
+        if (warn) readOnlyRoomField.set(rt.id, true);
         await loadRooms();
         setStatus(warn ? "Room updated (note: base/max may be read-only on server)." : "Room updated.", warn ? "warn" : "ok");
       }
@@ -387,15 +399,17 @@
       div.className = "room" + (rt.id === currentRoomTypeId ? " active" : "");
       const base = fmtUSD(rt.basePrice);
       const maxGuests = (rt.occupancy ?? rt.maxGuests ?? 2);
+      const roBadge = readOnlyRoomField.get(rt.id) ? ` <span class="warn" title="Server treated base/max as read-only">[read-only]</span>` : "";
       div.innerHTML = `
         <div>
           <div class="name">${rt.name}</div>
-          <div class="meta">Base ${base || "-"} · Max ${maxGuests}</div>
+          <div class="meta">Base ${base || "-"} · Max ${maxGuests}${roBadge}</div>
         </div>
         <div class="actions">
           <button class="btn-accent" data-act="edit" data-id="${rt.id}">Edit</button>
           <button class="secondary" data-act="del"  data-id="${rt.id}">Delete</button>
         </div>`;
+
       div.addEventListener("click", async (e)=>{
         const btn = e.target.closest("button");
         const act = btn ? btn.getAttribute("data-act") : "open";
