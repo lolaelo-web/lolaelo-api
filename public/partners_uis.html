@@ -1,0 +1,124 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <title>Partners · UIS Search</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <style>
+    :root{--bg:#0b0d12;--panel:#121621;--panel2:#161b28;--text:#e7ecf3;--muted:#98a3b3;--brand:#4f8cff;--border:#222a3a;--ok:#2ecc71;--warn:#f39c12;}
+    *{box-sizing:border-box} body{margin:0;background:var(--bg);color:var(--text);font:14px/1.4 system-ui,-apple-system,Segoe UI,Roboto}
+    header{display:flex;align-items:center;gap:12px;padding:12px 16px;background:var(--panel);border-bottom:1px solid var(--border)}
+    h1{font-size:16px;margin:0} .spacer{flex:1}
+    .btn{background:var(--brand);color:#fff;border:0;border-radius:8px;padding:8px 12px;cursor:pointer}
+    .btn.secondary{background:transparent;border:1px solid var(--border);color:var(--text)}
+    .wrap{padding:12px}
+    .card{background:var(--panel2);border:1px solid var(--border);border-radius:12px;padding:12px;margin:12px 0}
+    .row{display:grid;grid-template-columns:120px 1fr 1fr 1fr 120px;gap:8px;align-items:center}
+    .row input, .row select{width:100%;background:#1e2536;border:1px solid var(--border);color:var(--text);padding:8px 10px;border-radius:8px}
+    .status{color:var(--muted);font-size:12px}
+    table{width:100%;border-collapse:collapse;margin-top:8px}
+    th, td{border-bottom:1px solid var(--border);padding:8px;text-align:left;font-variant-numeric:tabular-nums}
+    th{color:var(--muted);font-weight:600}
+    .badge{display:inline-block;padding:2px 8px;border-radius:999px;font-size:11px;border:1px solid var(--border);background:#1e2536;color:var(--muted)}
+    .ok{color:var(--ok)} .warn{color:var(--warn)}
+  </style>
+</head>
+<body>
+  <header>
+    <h1>UIS Search — Extranet</h1>
+    <div class="spacer"></div>
+    <span id="status" class="status">Ready.</span>
+    <button class="btn secondary" onclick="location.href='/partners_app.html'">Back to menu</button>
+  </header>
+
+  <div class="wrap">
+    <div class="card">
+      <div class="row">
+        <label>Check-in</label><input type="date" id="start">
+        <label>Check-out</label><input type="date" id="end">
+        <label>Guests</label>
+        <select id="guests">
+          <option>1</option><option selected>2</option><option>3</option><option>4</option>
+        </select>
+        <button id="search" class="btn">Search</button>
+      </div>
+      <div class="status" style="margin-top:6px">Token hint: append <code>#token=…</code> to the URL once; it’s saved to localStorage.</div>
+    </div>
+
+    <div id="results"></div>
+  </div>
+
+<script>
+(() => {
+  // --- token bootstrap (same pattern as rooms page)
+  (function ensureToken(){ const t=new URLSearchParams(location.hash.slice(1)).get('token'); if(t) localStorage.setItem('partnerToken',t); })();
+  const token = localStorage.getItem('partnerToken') || localStorage.getItem('lolaelo_session') || '';
+  const H = token ? { 'Authorization':'Bearer '+token, 'x-partner-token':token } : {};
+
+  const el = (id)=>document.getElementById(id);
+  const status = el('status'), resBox = el('results');
+
+  // Defaults: today+7 to today+10
+  const iso = d => d.toISOString().slice(0,10);
+  const addDays = (d,n) => new Date(d.getFullYear(), d.getMonth(), d.getDate()+n);
+  const today = new Date();
+  el('start').value = iso(addDays(today,7));
+  el('end').value   = iso(addDays(today,10));
+
+  function setStatus(msg, cls=''){ status.className='status '+cls; status.textContent=msg; }
+
+  async function runSearch(){
+    const start = el('start').value, end = el('end').value, guests = Number(el('guests').value||2);
+    if (!start || !end || end <= start){ setStatus('Enter a valid date range','warn'); return; }
+    setStatus('Searching…');
+    resBox.innerHTML = '';
+
+    try{
+      const url = `/extranet/pms/uis/search?start=${encodeURIComponent(start)}&end=${encodeURIComponent(end)}&guests=${guests}`;
+      const r = await fetch(url, { headers: { ...H, 'Content-Type':'application/json' } });
+      if (!r.ok){ setStatus(`Search failed (${r.status})`,'warn'); return; }
+      const js = await r.json();
+      render(js);
+      setStatus('Results loaded.','ok');
+    }catch(e){ setStatus('Search error','warn'); }
+  }
+
+  function render(data){
+    const extranet = Array.isArray(data.extranet)?data.extranet:[], pms = Array.isArray(data.pms)?data.pms:[];
+    const sections = [
+      { title:`Direct inventory (${extranet.length})`, rows:extranet },
+      { title:`PMS inventory (${pms.length})`, rows:pms }
+    ];
+    resBox.innerHTML = sections.map(sec => `
+      <div class="card">
+        <div style="display:flex;align-items:center;gap:8px;">
+          <h3 style="margin:0;font-size:15px;">${sec.title}</h3>
+          <span class="badge">${sec.rows.length?'live':'empty'}</span>
+        </div>
+        <table>
+          <thead>
+            <tr><th>Date</th><th>Room</th><th>Guests</th><th>Price</th><th>Currency</th><th>Source</th></tr>
+          </thead>
+          <tbody>
+            ${sec.rows.map(r=>`
+              <tr>
+                <td>${r.date ?? ''}</td>
+                <td>${r.name ?? ''}</td>
+                <td>${r.maxGuests ?? ''}</td>
+                <td>${(r.price!=null)? Number(r.price).toFixed(2): ''}</td>
+                <td>${r.currency ?? ''}</td>
+                <td>${r.source ?? ''}</td>
+              </tr>`).join('')}
+          </tbody>
+        </table>
+      </div>`).join('');
+  }
+
+  el('search').addEventListener('click', runSearch);
+
+  // Quick smoke on load
+  setTimeout(runSearch, 50);
+})();
+</script>
+</body>
+</html>

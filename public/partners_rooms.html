@@ -209,6 +209,8 @@
   let currentRoomTypeId = null;
   let currentRangeStart = null, currentRangeEnd = null;
   let busy = false;
+  // Room-level edits queued from the Edit modal; saved by the top "Save changes" button.
+  const pendingRoomUpdates = new Map(); // roomId -> payload
   // Tracks rooms where server ignored base/max updates (read-only server fields)
   const readOnlyRoomField = new Map(); // roomId -> true
 
@@ -300,7 +302,16 @@
   }
   const dirty = new Map();
   function setDirty(date,kind,value){ if(!dirty.has(date)) dirty.set(date,{}); dirty.get(date)[kind]=value; updateDirtyUI(); }
-  function updateDirtyUI(){ const n=dirty.size; el("save").disabled=(n===0); el("dirty-count").textContent = n?`${n} day${n>1?'s':''} changed`:"No changes"; }
+  function updateDirtyUI(){
+  const nGrid = dirty.size;
+  const nRooms = pendingRoomUpdates.size;
+  const n = nGrid + nRooms;
+  const labelParts = [];
+  if (nGrid)  labelParts.push(`${nGrid} day${nGrid>1?'s':''} changed`);
+  if (nRooms) labelParts.push(`${nRooms} room edit${nRooms>1?'s':''}`);
+  el("save").disabled = (n===0) || busy;
+  el("dirty-count").textContent = n ? labelParts.join(" + ") : "No changes";
+  }
 
   /* ===== Rooms list & edit modal ===== */
   function openEditModal(rt){
@@ -341,42 +352,10 @@
 
       if (!Object.keys(payload).length) { m.classList.remove('open'); return; }
 
-      setStatus("Updating room…"); disableWhileBusy(true);
-      const url = `/extranet/property/rooms/${rt.id}`;
-
-      const tryOnce = async (method) => {
-        const res = await authFetch(url, { method, body: JSON.stringify(payload) });
-        return res;
-      };
-
-      // Prefer PATCH; fallback to PUT
-      let res = await tryOnce("PATCH");
-      if (!res.ok && (res.status === 405 || res.status === 404)) {
-        res = await tryOnce("PUT");
-      }
-
-      if (!res.ok) {
-        setStatus(`Update failed (${res.status})`, "error");
-      } else {
-        // Re-fetch and verify persisted fields
-        const listRes = await authFetch(`/extranet/property/rooms`);
-        const list = listRes.ok ? await listRes.json() : [];
-        const after = Array.isArray(list) ? list.find(x=>x.id===rt.id) : null;
-        let warn = false;
-        if (after) {
-          const afterBase = (after && after.basePrice != null) ? Number(String(after.basePrice)) : NaN;
-          const wantBase  = ('basePrice' in payload) ? Number(String(payload.basePrice)) : NaN;
-          if (Number.isFinite(afterBase) && Number.isFinite(wantBase) && afterBase !== wantBase) warn = true;
-          const wantG = payload.occupancy ?? payload.maxGuests;
-          const gotG  = Number(after.occupancy ?? after.maxGuests);
-          if (wantG !== undefined && gotG !== wantG) warn = true;
-        }
-        if (warn) readOnlyRoomField.set(rt.id, true);
-        await loadRooms();
-        setStatus(warn ? "Room updated (note: base/max may be read-only on server)." : "Room updated.", warn ? "warn" : "ok");
-      }
-
-      disableWhileBusy(false);
+      // Queue for top-level Save instead of immediate API call
+      pendingRoomUpdates.set(rt.id, payload);
+      updateDirtyUI();
+      setStatus("Room changes queued — click Save changes to apply.", "warn");
       m.classList.remove('open');
       el('edit-save').removeEventListener('click', onSave);
     };
@@ -617,7 +596,25 @@
 
   // Save (grid edits)
   el("save").addEventListener("click", async ()=>{
-    if (dirty.size===0) return;
+  const hasRoomEdits = pendingRoomUpdates.size > 0;
+  const hasGridEdits = dirty.size > 0;
+  if (!hasRoomEdits && !hasGridEdits){ setStatus("Nothing to save.","warn"); return; }
+
+  setStatus("Saving…"); disableWhileBusy(true);
+  try{
+    // 1) Apply queued room edits (PATCH → fallback PUT)
+    if (hasRoomEdits){
+      for (const [id, payload] of pendingRoomUpdates.entries()){
+        const url = `/extranet/property/rooms/${id}`;
+        let r = await authFetch(url, { method:"PATCH", body: JSON.stringify(payload) });
+        if (!r.ok && (r.status === 405 || r.status === 404)) {
+          r = await authFetch(url, { method:"PUT", body: JSON.stringify({ ...payload, id }) });
+        }
+        if (!r.ok) throw new Error(`Room ${id} update failed (${r.status})`);
+      }
+    }
+
+    // 2) Apply calendar (inventory + prices) edits if any
     const invItems=[], prcItems=[];
     for (const [date,obj] of dirty.entries()){
       const inv={}; if (typeof obj.roomsOpen==='number') inv.roomsOpen=obj.roomsOpen;
@@ -625,21 +622,27 @@
       if (Object.keys(inv).length) invItems.push({date,isClosed:false,...inv});
       if (typeof obj.price==='string' && obj.price!=='') prcItems.push({date,price:obj.price,ratePlanId:null});
     }
-    if (invItems.length===0 && prcItems.length===0){ setStatus("Nothing to save.","warn"); return; }
+    const reqs=[];
+    if (invItems.length) reqs.push(authFetch(`/extranet/property/rooms/${currentRoomTypeId}/inventory/bulk`,{method:"POST", body:JSON.stringify({items:invItems})}));
+    if (prcItems.length) reqs.push(authFetch(`/extranet/property/rooms/${currentRoomTypeId}/prices/bulk`,{method:"POST", body:JSON.stringify({items:prcItems})}));
+    if (reqs.length){
+      const resps = await Promise.all(reqs);
+      if (resps.some(r=>!r.ok)) throw new Error(`Grid save failed (${resps.map(r=>r.status).join('/')})`);
+    }
 
-    setStatus("Saving…"); disableWhileBusy(true);
-    try{
-      const reqs=[];
-      if (invItems.length) reqs.push(authFetch(`/extranet/property/rooms/${currentRoomTypeId}/inventory/bulk`,{method:"POST", body:JSON.stringify({items:invItems})}));
-      if (prcItems.length) reqs.push(authFetch(`/extranet/property/rooms/${currentRoomTypeId}/prices/bulk`,{method:"POST", body:JSON.stringify({items:prcItems})}));
-      const resps=await Promise.all(reqs);
-      if (resps.some(r=>!r.ok)){
-        setStatus("Save failed ("+resps.map(r=>r.status).join("/")+")","error");
-      } else {
-        setStatus("Saved.","ok"); dirty.clear(); updateDirtyUI(); await renderCalendar();
-      }
-    } catch(_e){ setStatus("Save error","error"); } finally { disableWhileBusy(false); }
-  });
+    // Refresh UI
+    pendingRoomUpdates.clear();
+    dirty.clear(); updateDirtyUI();
+    await loadRooms();
+    if (currentRoomTypeId) await renderCalendar();
+    setStatus("Saved.","ok");
+  } catch (e) {
+    console.error(e);
+    setStatus(String(e.message || "Save error"), "error");
+  } finally {
+    disableWhileBusy(false);
+  }
+});
 
   (async function init(){
     const start=iso(startOfWeek(new Date())); currentAnchor=new Date(start+"T00:00:00Z");
