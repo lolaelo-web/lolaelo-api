@@ -5,55 +5,28 @@
   <title>Partners · Rooms & Availability</title>
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'><rect width='16' height='16' fill='%234f8cff'/></svg>" type="image/svg+xml">
-<!-- FP: MN8-no-overlap -->
- <!-- FP: MN9-dist-source -->
+  <!-- FP: MN8-no-overlap -->
+  <!-- FP: MN9-dist-source -->
 
   <style>
     :root{
-      --bg:#0b0d12;
-      --panel:#121621;
-      --panel-2:#161b28;
-      --text:#e7ecf3;
-      --muted:#98a3b3;
-      --brand:#4f8cff;
-      --accent:#ffb86b;
-      --ok:#2ecc71;
-      --warn:#f39c12;
-      --err:#e74c3c;
-      --border:#222a3a;
-      --chip:#1e2536;
-      --header-h:56px;
+      --bg:#0b0d12; --panel:#121621; --panel-2:#161b28; --text:#e7ecf3; --muted:#98a3b3;
+      --brand:#4f8cff; --accent:#ffb86b; --ok:#2ecc71; --warn:#f39c12; --err:#e74c3c;
+      --border:#222a3a; --chip:#1e2536; --header-h:56px;
     }
     *{ box-sizing:border-box; }
-
-    body{
-      margin:0; background:var(--bg); color:var(--text);
-      font:14px/1.4 system-ui,-apple-system,Segoe UI,Roboto,"Helvetica Neue",Arial;
-      overflow:hidden;
-    }
-
-    header{
-      display:flex; gap:12px; align-items:center;
-      padding:14px 18px; height:var(--header-h);
-      border-bottom:1px solid var(--border);
-      background:var(--panel); position:sticky; top:0; z-index:5;
-    }
+    body{ margin:0; background:var(--bg); color:var(--text);
+      font:14px/1.4 system-ui,-apple-system,Segoe UI,Roboto,"Helvetica Neue",Arial; overflow:hidden; }
+    header{ display:flex; gap:12px; align-items:center; padding:14px 18px; height:var(--header-h);
+      border-bottom:1px solid var(--border); background:var(--panel); position:sticky; top:0; z-index:5; }
     header h1{ font-size:16px; margin:0; letter-spacing:.2px; }
     .spacer{ flex:1; }
     .header-actions{ display:flex; gap:8px; align-items:center; }
     .header-actions .note{ white-space:nowrap; }
 
-    .wrap{
-      display:grid; grid-template-columns:300px 1fr;
-      height:calc(100vh - var(--header-h)); overflow:hidden;
-    }
-    .left{
-      border-right:1px solid var(--border);
-      background:var(--panel); display:flex; flex-direction:column; min-width:0;
-    }
-    .right{
-      background:var(--panel-2); display:flex; flex-direction:column; min-width:0;
-    }
+    .wrap{ display:grid; grid-template-columns:300px 1fr; height:calc(100vh - var(--header-h)); overflow:hidden; }
+    .left{ border-right:1px solid var(--border); background:var(--panel); display:flex; flex-direction:column; min-width:0; }
+    .right{ background:var(--panel-2); display:flex; flex-direction:column; min-width:0; }
 
     .toolbar{ display:flex; gap:8px; padding:10px; border-bottom:1px solid var(--border); background:var(--panel); }
     .toolbar input,.toolbar select{ background:var(--chip); border:1px solid var(--border); color:var(--text); padding:8px 10px; border-radius:8px; }
@@ -61,20 +34,17 @@
     .toolbar button.secondary{ background:transparent; border:1px solid var(--border); color:var(--text); }
 
     .list{ flex:1; overflow:auto; padding:8px; }
-    .room{
-      padding:10px; border:1px solid var(--border); border-radius:10px;
-      background:var(--panel-2); margin-bottom:8px;
-      display:flex; justify-content:space-between; align-items:center; cursor:pointer;
-    }
+    .room{ padding:10px; border:1px solid var(--border); border-radius:10px; background:var(--panel-2);
+      margin-bottom:8px; display:flex; justify-content:space-between; align-items:center; cursor:pointer; }
     .room.active{ outline:2px solid var(--accent); }
     .room .name{ font-weight:600; }
     .room .meta{ color:var(--muted); font-size:12px; }
     .room .actions{ display:flex; gap:6px; }
+    .room .actions button{ padding:6px 8px; font-size:12px; border-radius:8px; }
+    #add-room{ padding:8px 10px; font-weight:600; }
 
-    .right .controls{
-      display:flex; flex-wrap:wrap; gap:8px; padding:10px;
-      border-bottom:1px solid var(--border); background:var(--panel); align-items:center;
-    }
+    .right .controls{ display:flex; flex-wrap:wrap; gap:8px; padding:10px;
+      border-bottom:1px solid var(--border); background:var(--panel); align-items:center; }
     .controls input{ background:var(--chip); border:1px solid var(--border); color:var(--text); padding:8px 10px; border-radius:8px; }
     .controls .group{ display:flex; gap:6px; align-items:center; }
     .controls .group label{ color:var(--muted); font-size:12px; }
@@ -82,48 +52,22 @@
 
     .calendar{ flex:1; overflow:auto; padding:12px; }
     .cal-grid{ display:grid; grid-auto-flow:column; grid-auto-columns:140px; gap:10px; }
-    .day{
-      background:var(--panel); border:1px solid var(--border); border-radius:10px;
-      padding:8px; min-height:120px; display:flex; flex-direction:column; gap:6px;
-    }
+    .day{ background:var(--panel); border:1px solid var(--border); border-radius:10px; padding:8px; min-height:120px; display:flex; flex-direction:column; gap:6px; }
     .day .date{ font-weight:600; font-size:12px; color:var(--muted); }
 
-    .chip{
-      background:var(--chip); border:1px solid var(--border);
-      padding:6px 8px; border-radius:10px; font-size:12px;
-      display:grid; grid-template-columns: 1fr minmax(64px, 90px);
-      align-items:center; gap:8px; min-width:0;
-    }
+    .chip{ background:var(--chip); border:1px solid var(--border); padding:6px 8px; border-radius:10px; font-size:12px;
+      display:grid; grid-template-columns: 1fr minmax(64px, 90px); align-items:center; gap:8px; min-width:0; }
     .chip .tag{ color:var(--muted); font-size:11px; }
-
-    .chip input{
-      width:100%; text-align:right; background:transparent; border:0; color:var(--text);
-      padding:4px 0; outline:none; font-variant-numeric:tabular-nums;
-      overflow:hidden; text-overflow:clip; white-space:nowrap; min-width:0;
-    }
+    .chip input{ width:100%; text-align:right; background:transparent; border:0; color:var(--text);
+      padding:4px 0; outline:none; font-variant-numeric:tabular-nums; overflow:hidden; text-overflow:clip; white-space:nowrap; min-width:0; }
     .chip input[data-kind="open"]{    padding-right: 2.5ch; }
-    .chip input[data-kind="price"]{   padding-right: 0;    }
+    .chip input[data-kind="price"]{   padding-right: 0; }
     .chip input[data-kind="minstay"]{ padding-right: 3.5ch; }
     .chip input.error{ outline:1px solid var(--err); }
 
-    /* "$" prefix next to the price input (UI only) */
-    .chip .money{
-      display:flex;                 /* $ + input side by side */
-      justify-content:flex-end;
-      align-items:center;
-      gap:6px;
-    }
-    .chip .money .prefix{
-      color:var(--muted);
-      font-weight:600;
-      user-select:none;
-    }
-    /* keep input behaving nicely inside the flex row */
-    .chip .money input{
-      flex:1 1 auto;
-      width:auto;                   /* override the 100% from .chip input */
-      min-width:0;
-    }
+    .chip .money{ display:flex; justify-content:flex-end; align-items:center; gap:6px; }
+    .chip .money .prefix{ color:var(--muted); font-weight:600; user-select:none; }
+    .chip .money input{ flex:1 1 auto; width:auto; min-width:0; }
 
     input[type=number]{ appearance:textfield; -moz-appearance:textfield; }
     input[type=number]::-webkit-outer-spin-button,
@@ -141,36 +85,27 @@
     code.k{ background:var(--chip); padding:2px 6px; border-radius:6px; }
     .disabled{ opacity:.6; pointer-events:none; }
 
-    /* Save button = orange */
     #save{ background:var(--accent); color:#0b0d12; }
     #save:disabled{ opacity:.6; cursor:not-allowed; }
 
-    /* Smaller action buttons on room tiles (~30% down) */
-    .room .actions button{ padding:6px 8px; font-size:12px; border-radius:8px; }
-    #add-room{ padding:8px 10px; font-weight:600; }
-
-    /* Normalize form control fonts (incl. date) */
-    input, select, button { font-family: inherit; font-size: 14px; }
-    input[type="date"]{ font-family: inherit; font-size: 14px; }
-    input[type="date"]::-webkit-datetime-edit { font-family: inherit; }
-
-    /* ========== Month Navigator (Sprint 1 / Step 1) ========== */
-    .month-nav{
-      display:flex; align-items:center; gap:8px; padding:10px;
-      border-bottom:1px solid var(--border); background:var(--panel);
-    }
-    .month-nav .nav-btn{
-      border:1px solid var(--border);
-      background:var(--chip);
-      padding:.25rem .5rem; border-radius:.5rem; line-height:1.2; cursor:pointer;
-      color:var(--text);
-    }
+    .month-nav{ display:flex; align-items:center; gap:8px; padding:10px; border-bottom:1px solid var(--border); background:var(--panel); }
+    .month-nav .nav-btn{ border:1px solid var(--border); background:var(--chip); padding:.25rem .5rem; border-radius:.5rem; line-height:1.2; cursor:pointer; color:var(--text); }
     .month-nav .nav-btn:hover{ filter:brightness(1.05); }
-    .month-nav .month-label{
-      font-weight:600; letter-spacing:.2px; min-width:8rem; text-align:center; user-select:none; cursor:default;
-      color:var(--text);
-    }
+    .month-nav .month-label{ font-weight:600; letter-spacing:.2px; min-width:8rem; text-align:center; user-select:none; cursor:default; color:var(--text); }
     .month-select{ display:none; }
+
+    /* Modal (Edit Room) */
+    .modal{ position:fixed; inset:0; display:none; place-items:center; background:rgba(0,0,0,.45); z-index:50; }
+    .modal.open{ display:grid; }
+    .dialog{ width:min(520px, calc(100vw - 24px)); background:var(--panel-2); border:1px solid var(--border); border-radius:12px; box-shadow:0 12px 26px rgba(0,0,0,.45); }
+    .dialog header{ display:flex; align-items:center; justify-content:space-between; padding:12px 14px; border-bottom:1px solid var(--border); background:var(--panel); }
+    .dialog header h3{ margin:0; font-size:15px; }
+    .dialog .body{ padding:14px; display:grid; gap:12px; }
+    .dialog .row{ display:grid; grid-template-columns:140px 1fr; gap:10px; align-items:center; }
+    .dialog input{ background:var(--chip); border:1px solid var(--border); color:var(--text); padding:9px 10px; border-radius:8px; width:100%; }
+    .dialog footer{ display:flex; gap:8px; justify-content:flex-end; padding:12px 14px; border-top:1px solid var(--border); background:var(--panel); }
+    .muted{ color:var(--muted); font-size:12px; }
+    .warn-msg{ color:var(--warn); font-size:12px; }
   </style>
 </head>
 <body>
@@ -186,7 +121,6 @@
   </header>
 
   <div class="wrap">
-    <!-- LEFT: Room Types -->
     <aside class="left">
       <div class="toolbar">
         <button id="add-room" class="btn-accent">+ Add room type</button>
@@ -194,26 +128,11 @@
       <div class="list" id="rooms-list"></div>
     </aside>
 
-    <!-- RIGHT: Calendar + Bulk editors -->
     <section class="right">
-      <!-- Month Navigator (Step 1: static label, no JS yet) -->
       <div id="month-nav" class="month-nav" role="group" aria-label="Month navigator">
         <button id="month-prev" class="nav-btn" type="button" aria-label="Previous month">◀</button>
         <span id="month-label" class="month-label" title="Month">Sep 2025</span>
-        <select id="month-select" class="month-select" aria-label="Select month">
-          <option value="2025-01">Jan 2025</option>
-          <option value="2025-02">Feb 2025</option>
-          <option value="2025-03">Mar 2025</option>
-          <option value="2025-04">Apr 2025</option>
-          <option value="2025-05">May 2025</option>
-          <option value="2025-06">Jun 2025</option>
-          <option value="2025-07">Jul 2025</option>
-          <option value="2025-08">Aug 2025</option>
-          <option value="2025-09" selected>Sep 2025</option>
-          <option value="2025-10">Oct 2025</option>
-          <option value="2025-11">Nov 2025</option>
-          <option value="2025-12">Dec 2025</option>
-        </select>
+        <select id="month-select" class="month-select" aria-label="Select month"></select>
         <button id="month-next" class="nav-btn" type="button" aria-label="Next month">▶</button>
       </div>
 
@@ -243,115 +162,42 @@
     </section>
   </div>
 
+  <!-- Edit Room Modal -->
+  <div id="edit-modal" class="modal" aria-modal="true" role="dialog" aria-labelledby="edit-title">
+    <div class="dialog">
+      <header>
+        <h3 id="edit-title">Edit room</h3>
+        <span class="muted" id="edit-id"></span>
+      </header>
+      <div class="body">
+        <div class="row">
+          <label for="edit-name" class="muted">Name</label>
+          <input id="edit-name" autocomplete="off" />
+        </div>
+        <div class="row">
+          <label for="edit-base" class="muted">Base price (USD)</label>
+          <input id="edit-base" inputmode="decimal" autocomplete="off" />
+        </div>
+        <div class="row">
+          <label for="edit-max" class="muted">Max capacity</label>
+          <input id="edit-max" type="number" min="1" step="1" />
+        </div>
+        <div class="warn-msg" id="edit-warn" style="display:none;"></div>
+      </div>
+      <footer>
+        <button id="edit-cancel" class="secondary" type="button">Cancel</button>
+        <button id="edit-save" class="btn-accent" type="button">Save</button>
+      </footer>
+    </div>
+  </div>
+
 <script>
 (() => {
-    /* =================== Sprint 1: Month Navigator — Step 2 =================== */
-  // Config: 0 = Sunday, 1 = Monday. Adjust if your calendar convention differs.
+  /* ===== Month window core (unchanged) ===== */
   const WEEK_START = 1;
-  let visibleWeeks = 3; // can tune to 2 if perf dips
-  // First day of the current month
-  let currentMonth = (() => { const d = new Date(); return new Date(d.getFullYear(), d.getMonth(), 1); })();
-  // Anchor date for the current window (we step this by visibleWeeks)
+  let visibleWeeks = 3;
+  let currentMonth = (() => { const d=new Date(); return new Date(d.getFullYear(), d.getMonth(), 1); })();
   let currentAnchor = null;
-
-  function startOfWeek(dt, weekStart = WEEK_START){
-    const d = new Date(dt.getFullYear(), dt.getMonth(), dt.getDate());
-    const day = d.getDay(); // 0..6 (Sun..Sat)
-    const diff = (day - weekStart + 7) % 7;
-    d.setDate(d.getDate() - diff);
-    d.setHours(0,0,0,0);
-    return d;
-  }
-  function addWeeks(dt, n){
-    const d = new Date(dt.getFullYear(), dt.getMonth(), dt.getDate());
-    d.setDate(d.getDate() + n * 7);
-    return d;
-  }
-  function monthLabel(dt){
-    return dt.toLocaleString(undefined, { month: "short", year: "numeric" });
-  }
-  function computeWindowFromAnchor(){
-    // Start at week boundary containing currentAnchor
-    const base = currentAnchor ?? new Date();
-    const start = startOfWeek(base);
-    const end = new Date(addWeeks(start, visibleWeeks).getTime() - 86400000); // inclusive
-    const startISO = iso(start), endISO = iso(end);
-    console.debug("[month-nav] window", {
-      label: monthLabel(start),
-      startISO, endISO, visibleWeeks, weekStart: WEEK_START
-    });
-    return { startISO, endISO };
-  }
-    function setMonthLabel(){
-    const lbl = document.getElementById("month-label");
-    const rs = (typeof currentRangeStart === "string" && currentRangeStart) ? currentRangeStart : iso(currentAnchor ?? new Date());
-    const start = new Date(rs + "T00:00:00Z");
-    if (lbl) lbl.textContent = monthLabel(start);
-
-  // keep the hidden <select> in sync for later steps
-  const sel = document.getElementById("month-select");
-  if (sel){
-    const y = start.getFullYear();
-    const m = String(start.getMonth()+1).padStart(2,"0");
-    const v = `${y}-${m}`;
-    if (sel.value !== v && [...sel.options].some(o => o.value === v)) sel.value = v;
-  }
-}
-
-    // Step 3: drive the visible window into the Range inputs (and optionally re-render)
-  function applyMonthWindowToRange({ rerender = false } = {}){
-    const { startISO, endISO } = computeWindowFromAnchor();
-    const t = todayISO();
-
-    // Respect your existing validation (no past starts) by clamping start≥today
-    let s = startISO < t ? t : startISO;
-
-    // Guarantee ~visibleWeeks window if clamping collapses it
-    const minDays = (visibleWeeks * 7) - 1;
-    let e = endISO;
-    if (e <= s) {
-      const sDate = new Date(s + "T00:00:00Z");
-      const eDate = new Date(sDate.getTime() + (minDays * 86400000));
-      e = iso(eDate);
-    }
-
-    const rs = document.getElementById("range-start");
-    const re = document.getElementById("range-end");
-    if (rs && re) {
-      rs.value = s;
-      re.value = e;
-    }
-      // Keep anchor aligned to the *displayed* start so next/prev are continuous
-    currentAnchor = new Date(s + "T00:00:00Z");
-    currentRangeStart = s;
-    currentRangeEnd   = e;
-
-
-    if (rerender) { void renderCalendar(); }
-  }
-
-  (function ensureToken() {
-    const hashToken = new URLSearchParams(location.hash.slice(1)).get('token');
-    if (hashToken) localStorage.setItem('partnerToken', hashToken);
-  })();
-  const token =
-    localStorage.getItem("partnerToken") ||
-    localStorage.getItem("lolaelo_session") || "";
-  const baseHeaders = { "Content-Type": "application/json" };
-  const authHeaders = token
-    ? { ...baseHeaders, "Authorization": "Bearer " + token, "x-partner-token": token }
-    : baseHeaders;
-
-  function authFetch(url, opts = {}) {
-    const merged = { ...opts, headers: { ...(opts.headers || {}), ...authHeaders } };
-    return fetch(url, merged).then(async (r) => {
-      if (r.status === 401) {
-        setStatus("Session expired. Redirecting to login…", "warn");
-        setTimeout(() => { location.href = "/partners_login.html"; }, 900);
-      }
-      return r;
-    });
-  }
 
   const el = (id) => document.getElementById(id);
   const status = el("status");
@@ -364,220 +210,294 @@
   let currentRangeStart = null, currentRangeEnd = null;
   let busy = false;
 
-  const dirty = new Map(); // date -> { price?:string, roomsOpen?:number, minStay?:number }
-
-  const clamp = (v, min, max) => Math.min(Math.max(v, min), max);
+  const clamp = (v,min,max)=>Math.min(Math.max(v,min),max);
   const toNumber = (v) => {
     if (v === null || v === undefined || v === "") return NaN;
     const n = Number(String(v).replace(/[^0-9.-]/g, ""));
     return Number.isFinite(n) ? n : NaN;
   };
-  const fmtUSD = (v) => {
-    const n = toNumber(v);
-    if (!Number.isFinite(n)) return "";
-    return "$" + n.toFixed(2);
-  };
-  const iso = (d) => d.toISOString().slice(0,10);
-  const todayISO = () => iso(new Date());
-
-  function daysBetween(startISO, endISO) {
-    const s = new Date(startISO + "T00:00:00Z");
-    const theEnd = new Date(endISO + "T00:00:00Z");
-    const arr = [];
-    for (let d = new Date(s); d <= theEnd; d = new Date(d.getTime() + 86400000)) {
-      arr.push(iso(d));
-    }
-    return arr;
+  const fmtUSD = (v) => { const n = toNumber(v); if (!Number.isFinite(n)) return ""; return "$" + n.toFixed(2); };
+  const iso = (d)=>d.toISOString().slice(0,10);
+  const todayISO = ()=>iso(new Date());
+  function startOfWeek(dt, weekStart=WEEK_START){
+    const d=new Date(dt.getFullYear(),dt.getMonth(),dt.getDate());
+    const diff=(d.getDay()-weekStart+7)%7; d.setDate(d.getDate()-diff); d.setHours(0,0,0,0); return d;
+  }
+  function addWeeks(dt,n){ const d=new Date(dt.getFullYear(),dt.getMonth(),dt.getDate()); d.setDate(d.getDate()+n*7); return d; }
+  function monthLabel(dt){ return dt.toLocaleString(undefined,{month:"short",year:"numeric"}); }
+  function computeWindowFromAnchor(){
+    const base=currentAnchor??new Date();
+    const start=startOfWeek(base);
+    const end=new Date(addWeeks(start,visibleWeeks).getTime()-86400000);
+    return { startISO: iso(start), endISO: iso(end) };
+  }
+  function setMonthLabel(){
+    const lbl=el("month-label");
+    const rs=(typeof currentRangeStart==="string"&&currentRangeStart)?currentRangeStart:iso(currentAnchor??new Date());
+    const start=new Date(rs+"T00:00:00Z");
+    if (lbl) lbl.textContent=monthLabel(start);
+  }
+  function applyMonthWindowToRange({rerender=false}={}){
+    const {startISO,endISO}=computeWindowFromAnchor();
+    const t=todayISO();
+    let s=startISO<t?t:startISO;
+    const minDays=(visibleWeeks*7)-1;
+    let e=endISO;
+    if (e<=s){ const sDate=new Date(s+"T00:00:00Z"); const eDate=new Date(sDate.getTime()+minDays*86400000); e=iso(eDate); }
+    const rs=el("range-start"), re=el("range-end");
+    if (rs&&re){ rs.value=s; re.value=e; }
+    currentAnchor=new Date(s+"T00:00:00Z");
+    currentRangeStart=s; currentRangeEnd=e;
+    if (rerender) void renderCalendar();
   }
 
-  function setStatus(msg, cls="") {
-    status.className = "note " + cls;
-    status.textContent = msg;
-  }
+  (function ensureToken(){
+    const hashToken = new URLSearchParams(location.hash.slice(1)).get('token');
+    if (hashToken) localStorage.setItem('partnerToken', hashToken);
+  })();
+  const token =
+    localStorage.getItem("partnerToken") ||
+    localStorage.getItem("lolaelo_session") || "";
+  const baseHeaders = { "Content-Type": "application/json" };
+  const authHeaders = token
+    ? { ...baseHeaders, "Authorization": "Bearer " + token, "x-partner-token": token }
+    : baseHeaders;
 
-  function disableWhileBusy(flag) {
-    busy = !!flag;
-    document.querySelectorAll("button, input").forEach(x => {
-      if (x.id !== "back") x.classList.toggle("disabled", busy);
-      x.disabled = busy && x.id !== "back";
+  function authFetch(url, opts = {}) {
+    const merged = { ...opts, headers: { ...(opts.headers||{}), ...authHeaders } };
+    return fetch(url, merged).then(async (r) => {
+      if (r.status === 401) {
+        setStatus("Session expired. Redirecting to login…", "warn");
+        setTimeout(() => { location.href = "/partners_login.html"; }, 900);
+      }
+      return r;
     });
   }
 
-  function validateRangeOrWarn() {
-    const s = el("range-start").value;
-    const e = el("range-end").value;
-    if (!s || !e) { setStatus("Enter a start and end date.", "error"); return false; }
-    if (e < s) { setStatus("End date cannot be before start date.", "error"); return false; }
-    const t = todayISO();
-    if (s < t) { setStatus("Start date must be today or later.", "error"); return false; }
+  function setStatus(msg, cls=""){ status.className="note "+cls; status.textContent=msg; }
+  function disableWhileBusy(flag){
+    busy=!!flag;
+    document.querySelectorAll("button, input").forEach(x=>{
+      if (x.id!=="back") x.classList.toggle("disabled", busy);
+      x.disabled = busy && x.id!=="back";
+    });
+  }
+  function validateRangeOrWarn(){
+    const s=el("range-start").value, e=el("range-end").value;
+    if (!s||!e){ setStatus("Enter a start and end date.","error"); return false; }
+    if (e<s){ setStatus("End date cannot be before start date.","error"); return false; }
+    const t=todayISO(); if (s<t){ setStatus("Start date must be today or later.","error"); return false; }
     return true;
   }
+  const dirty = new Map();
+  function setDirty(date,kind,value){ if(!dirty.has(date)) dirty.set(date,{}); dirty.get(date)[kind]=value; updateDirtyUI(); }
+  function updateDirtyUI(){ const n=dirty.size; el("save").disabled=(n===0); el("dirty-count").textContent = n?`${n} day${n>1?'s':''} changed`:"No changes"; }
 
-  function setDirty(date, kind, value) {
-    if (!dirty.has(date)) dirty.set(date, {});
-    const obj = dirty.get(date);
-    obj[kind] = value;
-    updateDirtyUI();
-  }
-  function updateDirtyUI() {
-    const n = dirty.size;
-    el("save").disabled = n === 0;
-    el("dirty-count").textContent = n ? `${n} day${n>1?'s':''} changed` : "No changes";
-  }
+  /* ===== Rooms list & edit modal ===== */
+  function openEditModal(rt){
+    const m = el('edit-modal');
+    el('edit-id').textContent = `#${rt.id}`;
+    el('edit-name').value = rt.name ?? '';
+    const basePlain = String(rt.basePrice ?? '').replace(/[^0-9.]/g,'');
+    el('edit-base').value = basePlain;
+    el('edit-max').value = (rt.occupancy ?? rt.maxGuests ?? 2);
+    el('edit-warn').style.display = 'none';
+    m.classList.add('open');
 
-  // --- Load Room Types ---
-  async function loadRooms() {
+    const onSave = async () => {
+      const nameVal = el('edit-name').value.trim();
+      const baseVal = el('edit-base').value.trim();
+      const maxVal  = el('edit-max').value.trim();
+
+      // Build payload only with changed+valid fields
+      const payload = {};
+      if (nameVal && nameVal !== rt.name) payload.name = nameVal;
+
+      if (baseVal !== "") {
+        const n = Number(baseVal);
+        if (!Number.isFinite(n) || n < 0) { setStatus("Base price must be a non-negative number.","error"); return; }
+        if (Number(rt.basePrice) !== n) payload.basePrice = n.toFixed(2); // send as "12.34"
+      }
+
+      if (maxVal !== "") {
+        const g = parseInt(maxVal, 10);
+        if (!Number.isFinite(g) || g < 1) { setStatus("Max capacity must be ≥ 1.","error"); return; }
+        const prevG = Number(rt.occupancy ?? rt.maxGuests);
+        if (!Number.isFinite(prevG) || prevG !== g) {
+          // send BOTH keys for compatibility
+          payload.occupancy = g;
+          payload.maxGuests = g;
+        }
+      }
+
+      if (!Object.keys(payload).length) { m.classList.remove('open'); return; }
+
+      setStatus("Updating room…"); disableWhileBusy(true);
+      const url = `/extranet/property/rooms/${rt.id}`;
+
+      const tryOnce = async (method) => {
+        const res = await authFetch(url, { method, body: JSON.stringify(payload) });
+        return res;
+      };
+
+      // Prefer PATCH; fallback to PUT
+      let res = await tryOnce("PATCH");
+      if (!res.ok && (res.status === 405 || res.status === 404)) {
+        res = await tryOnce("PUT");
+      }
+
+      if (!res.ok) {
+        setStatus(`Update failed (${res.status})`, "error");
+      } else {
+        // Re-fetch and verify persisted fields
+        const listRes = await authFetch(`/extranet/property/rooms`);
+        const list = listRes.ok ? await listRes.json() : [];
+        const after = Array.isArray(list) ? list.find(x=>x.id===rt.id) : null;
+        let warn = false;
+        if (after) {
+          if ('basePrice' in payload && Number(after.basePrice) !== Number(payload.basePrice)) warn = true;
+          const wantG = payload.occupancy ?? payload.maxGuests;
+          const gotG  = Number(after.occupancy ?? after.maxGuests);
+          if (wantG !== undefined && gotG !== wantG) warn = true;
+        }
+        await loadRooms();
+        setStatus(warn ? "Room updated (note: base/max may be read-only on server)." : "Room updated.", warn ? "warn" : "ok");
+      }
+
+      disableWhileBusy(false);
+      m.classList.remove('open');
+      el('edit-save').removeEventListener('click', onSave);
+    };
+
+    el('edit-save').addEventListener('click', onSave, { once:true });
+  }
+  el('edit-cancel').addEventListener('click', ()=>el('edit-modal').classList.remove('open'));
+  el('edit-modal').addEventListener('click', (e)=>{ if (e.target.id==='edit-modal') el('edit-modal').classList.remove('open'); });
+
+  async function loadRooms(){
     roomsList.innerHTML = "";
     const res = await authFetch("/extranet/property/rooms");
-    if (!res.ok) { setStatus("Failed to load rooms ("+res.status+")", "error"); return; }
+    if (!res.ok){ setStatus("Failed to load rooms ("+res.status+")","error"); return; }
     const data = await res.json();
-    data.sort((a,b) => String(a.name).localeCompare(String(b.name), undefined, { sensitivity: 'base' }));
+    data.sort((a,b)=>String(a.name).localeCompare(String(b.name), undefined, {sensitivity:'base'}));
     if (!Array.isArray(data)) return;
 
-    data.forEach(rt => {
+    data.forEach(rt=>{
       const div = document.createElement("div");
       div.className = "room" + (rt.id === currentRoomTypeId ? " active" : "");
       const base = fmtUSD(rt.basePrice);
-      const maxGuests = (rt.maxGuests ?? 2);
+      const maxGuests = (rt.occupancy ?? rt.maxGuests ?? 2);
       div.innerHTML = `
         <div>
           <div class="name">${rt.name}</div>
           <div class="meta">Base ${base || "-"} · Max ${maxGuests}</div>
         </div>
         <div class="actions">
-          <button class="btn-accent" data-act="edit" data-id="${rt.id}">Rename</button>
+          <button class="btn-accent" data-act="edit" data-id="${rt.id}">Edit</button>
           <button class="secondary" data-act="del"  data-id="${rt.id}">Delete</button>
         </div>`;
-
-      div.addEventListener("click", async (e) => {
+      div.addEventListener("click", async (e)=>{
         const btn = e.target.closest("button");
         const act = btn ? btn.getAttribute("data-act") : "open";
         const id  = btn ? Number(btn.getAttribute("data-id")) : rt.id;
 
-        if (act === "open") {
+        if (act === "open"){
           currentRoomTypeId = id;
           if (dirty.clear) dirty.clear();
           await renderCalendar();
           await loadRooms();
           return;
         }
-
-        if (act === "del") {
+        if (act === "del"){
           if (!confirm("Delete this room type?")) return;
           const r = await authFetch(`/extranet/property/rooms/${id}`, { method:"DELETE" });
-          if (r.status === 204) {
+          if (r.status === 204){
             if (currentRoomTypeId === id) currentRoomTypeId = null;
-            setStatus("Room deleted", "ok");
+            setStatus("Room deleted","ok");
             await loadRooms();
             calGrid.innerHTML = "";
           } else {
-            setStatus("Delete failed ("+r.status+")", "error");
+            setStatus("Delete failed ("+r.status+")","error");
           }
           return;
         }
-
-        if (act === "edit") {
-          const name = prompt("New name?");
-          if (!name) return;
-          const r = await authFetch(`/extranet/property/rooms/${id}`, {
-            method:"PUT",
-            body: JSON.stringify({ name: name.trim() })
-          });
-          if (r.ok) { setStatus("Updated", "ok"); await loadRooms(); }
-          else setStatus("Update failed ("+r.status+")", "error");
+        if (act === "edit"){
+          openEditModal(rt);
+          return;
         }
       });
-
       roomsList.appendChild(div);
     });
   }
 
-  // --- Add Room Type (prompt-based) ---
-  el("add-room").addEventListener("click", async () => {
-    const name = (prompt("Room type name (e.g., Deluxe Queen):") || "").trim();
-    if (!name) { setStatus("Name is required.", "warn"); return; }
-
+  // Add Room (unchanged)
+  el("add-room").addEventListener("click", async ()=>{
+    const name=(prompt("Room type name (e.g., Deluxe Queen):")||"").trim();
+    if (!name){ setStatus("Name is required.","warn"); return; }
     let p = prompt("Base price in USD (e.g., 129.00):") || "";
-    p = p.replace(/[^0-9.]/g, "");
+    p = p.replace(/[^0-9.]/g,"");
     const basePrice = Number(p);
-    if (!Number.isFinite(basePrice) || basePrice < 0) {
-      setStatus("Enter a valid non-negative price.", "error"); return;
-    }
+    if (!Number.isFinite(basePrice) || basePrice < 0){ setStatus("Enter a valid non-negative price.","error"); return; }
 
     disableWhileBusy(true);
     const res = await authFetch("/extranet/property/rooms", {
-      method: "POST",
-      body: JSON.stringify({
-        name,
-        basePrice: basePrice.toFixed(2),
-        maxGuests: 2,
-        description: ""
-      })
+      method:"POST",
+      body: JSON.stringify({ name, basePrice: basePrice.toFixed(2), maxGuests: 2, description: "" })
     });
     disableWhileBusy(false);
-
-    if (!res.ok) { setStatus("Create failed ("+res.status+")", "error"); return; }
+    if (!res.ok){ setStatus("Create failed ("+res.status+")","error"); return; }
     const created = await res.json();
     currentRoomTypeId = created.id;
-    setStatus("Room created", "ok");
+    setStatus("Room created","ok");
     await loadRooms();
     await renderCalendar();
   });
 
-  // --- Range prep & listeners (default = 6 months from today) ---
-  function prepareRangeDefaults() {
-    const start = new Date();
-    const end = new Date(start); end.setMonth(end.getMonth() + 6);
-    const s = iso(start), e = iso(end);
-    if (!el("range-start").value) el("range-start").value = s;
-    if (!el("range-end").value)   el("range-end").value = e;
-    currentRangeStart = el("range-start").value;
-    currentRangeEnd   = el("range-end").value;
+  // Range defaults + listeners
+  function prepareRangeDefaults(){
+    const start=new Date(); const end=new Date(start); end.setMonth(end.getMonth()+6);
+    const s=iso(start), e=iso(end);
+    if (!el("range-start").value) el("range-start").value=s;
+    if (!el("range-end").value)   el("range-end").value=e;
+    currentRangeStart=el("range-start").value; currentRangeEnd=el("range-end").value;
   }
-  ["range-start","range-end"].forEach(id => {
-    el(id).addEventListener("change", async () => {
+  ["range-start","range-end"].forEach(id=>{
+    el(id).addEventListener("change", async ()=>{
       if (!validateRangeOrWarn()) return;
-      currentRangeStart = el("range-start").value;
-      currentRangeEnd   = el("range-end").value;
+      currentRangeStart=el("range-start").value; currentRangeEnd=el("range-end").value;
       await renderCalendar();
     });
   });
 
-  // --- Calendar render ---
-  async function renderCalendar() {
+  // Calendar render
+  async function renderCalendar(){
     calGrid.innerHTML = "";
-    if (!currentRoomTypeId) {
-      setStatus("Pick a room type on the left.", "");
-      return;
-    }
+    if (!currentRoomTypeId){ setStatus("Pick a room type on the left.",""); return; }
     prepareRangeDefaults();
     if (!validateRangeOrWarn()) return;
 
-    const invUrl = `/extranet/property/rooms/${currentRoomTypeId}/inventory?start=${currentRangeStart}&end=${currentRangeEnd}`;
-    const prcUrl = `/extranet/property/rooms/${currentRoomTypeId}/prices?start=${currentRangeStart}&end=${currentRangeEnd}`;
+    const invUrl=`/extranet/property/rooms/${currentRoomTypeId}/inventory?start=${currentRangeStart}&end=${currentRangeEnd}`;
+    const prcUrl=`/extranet/property/rooms/${currentRoomTypeId}/prices?start=${currentRangeStart}&end=${currentRangeEnd}`;
     disableWhileBusy(true);
-    const [invRes, prcRes] = await Promise.all([ authFetch(invUrl), authFetch(prcUrl) ]);
+    const [invRes,prcRes]=await Promise.all([authFetch(invUrl),authFetch(prcUrl)]);
     disableWhileBusy(false);
-    if (!invRes.ok || !prcRes.ok) {
-      setStatus("Failed loading data ("+invRes.status+"/"+prcRes.status+")", "error");
-      return;
-    }
-    const invRows = await invRes.json();
-    const prcRows = await prcRes.json();
+    if (!invRes.ok || !prcRes.ok){ setStatus("Failed loading data ("+invRes.status+"/"+prcRes.status+")","error"); return; }
+    const invRows=await invRes.json(); const prcRows=await prcRes.json();
+    const invByDate=new Map(invRows.map(r=>[String(r.date).slice(0,10),r]));
+    const prcByDate=new Map(prcRows.map(r=>[String(r.date).slice(0,10),r]));
 
-    const invByDate = new Map(invRows.map(r => [String(r.date).slice(0,10), r]));
-    const prcByDate = new Map(prcRows.map(r => [String(r.date).slice(0,10), r]));
+    const ONE_DAY=86400000;
+    const daysBetween=(startISO,endISO)=>{ const s=new Date(startISO+"T00:00:00Z"); const theEnd=new Date(endISO+"T00:00:00Z"); const arr=[];
+      for (let d=new Date(s); d<=theEnd; d=new Date(d.getTime()+ONE_DAY)) arr.push(iso(d)); return arr; };
+    const days=daysBetween(currentRangeStart,currentRangeEnd);
+    days.forEach(d=>{
+      const inv=invByDate.get(d), prc=prcByDate.get(d);
+      const invOpen = inv ? clamp(Number(inv.roomsOpen)||0, 0, 9999) : 0;
+      const invMinStay = inv && inv.minStay ? clamp(Number(inv.minStay)||1, 1, 365) : "";
 
-    const days = daysBetween(currentRangeStart, currentRangeEnd);
-    days.forEach(d => {
-      const inv = invByDate.get(d);
-      const prc = prcByDate.get(d);
-      const invOpen = inv ? clamp(Number(inv.roomsOpen) || 0, 0, 9999) : 0;
-      const invMinStay = inv && inv.minStay ? clamp(Number(inv.minStay) || 1, 1, 365) : "";
-
-      const card = document.createElement("div");
-      card.className = "day";
-      card.innerHTML = `
+      const card=document.createElement("div");
+      card.className="day";
+      card.innerHTML=`
         <div class="date">${d}</div>
         <div class="chip" title="Rooms Open">
           <span class="tag">Open</span>
@@ -590,244 +510,156 @@
             <input type="text" value="${prc ? Number(prc.price).toFixed(2) : ""}" data-date="${d}" data-kind="price">
           </div>
         </div>
-
         <div class="chip" title="Min Stay">
           <span class="tag">MinStay</span>
           <input type="number" min="1" value="${invMinStay}" data-date="${d}" data-kind="minstay">
-        </div>
-      `;
+        </div>`;
       calGrid.appendChild(card);
 
-      ['open','price','minstay'].forEach(kind => {
-        const input = card.querySelector(`input[data-kind="${kind}"]`);
-        input.addEventListener('input', () => {
-          const date = input.getAttribute('data-date');
-          let val = input.value;
-          if (kind === 'open' || kind === 'minstay') {
-            if (val === '') { input.classList.remove('error'); setDirty(date, kind === 'open' ? 'roomsOpen' : 'minStay', undefined); return; }
-            const n = Number(val);
-            if (!Number.isFinite(n) || n < (kind === 'open' ? 0 : 1)) { input.classList.add('error'); return; }
+      ['open','price','minstay'].forEach(kind=>{
+        const input=card.querySelector(`input[data-kind="${kind}"]`);
+        input.addEventListener('input',()=>{
+          const date=input.getAttribute('data-date'); let val=input.value;
+          if (kind==='open' || kind==='minstay'){
+            if (val===''){ input.classList.remove('error'); setDirty(date, kind==='open'?'roomsOpen':'minStay', undefined); return; }
+            const n=Number(val);
+            if (!Number.isFinite(n) || n<(kind==='open'?0:1)){ input.classList.add('error'); return; }
             input.classList.remove('error');
-            setDirty(date, kind === 'open' ? 'roomsOpen' : 'minStay', Math.floor(n));
-          } else if (kind === 'price') {
-            if (val === '') { input.classList.remove('error'); setDirty(date, 'price', undefined); return; }
-            const ok = /^(\d+)(\.\d{1,2})?$/.test(val) && parseFloat(val) >= 0;
-            if (!ok) { input.classList.add('error'); return; }
+            setDirty(date, kind==='open'?'roomsOpen':'minStay', Math.floor(n));
+          } else if (kind==='price'){
+            if (val===''){ input.classList.remove('error'); setDirty(date,'price',undefined); return; }
+            const ok=/^(\d+)(\.\d{1,2})?$/.test(val) && parseFloat(val)>=0;
+            if (!ok){ input.classList.add('error'); return; }
             input.classList.remove('error');
-            setDirty(date, 'price', parseFloat(val).toFixed(2));
+            setDirty(date,'price',parseFloat(val).toFixed(2));
           }
         });
       });
     });
     updateDirtyUI();
-    if (!status.className.includes("ok")) setStatus("Calendar ready.", "");
+    if (!status.className.includes("ok")) setStatus("Calendar ready.","");
   }
 
-    // --- Month nav listeners (Step 2: only logs & label update) ---
-    function shiftWeeks(deltaWeeks){
-      console.debug("[MN9] DOM-driven shiftWeeks");
-      // Read the displayed Range Start directly from the DOM to avoid any stale state
-      const rsInput = document.getElementById("range-start");
-      const seed = (rsInput && rsInput.value) ? rsInput.value
-                  : (typeof currentRangeStart === "string" && currentRangeStart) ? currentRangeStart
-                  : todayISO();
-
-      const nextStart = new Date(seed + "T00:00:00Z");
-      nextStart.setDate(nextStart.getDate() + (deltaWeeks * 7));
-      currentAnchor = nextStart; // drive window from here
-
-      // Apply window first (sync updates currentRangeStart/End + inputs), then refresh label + render
-      applyMonthWindowToRange({ rerender: true });
-      setMonthLabel();
-    }
-
-  if (monthPrevBtn) monthPrevBtn.addEventListener("click", () => shiftWeeks(-visibleWeeks));
-  if (monthNextBtn) monthNextBtn.addEventListener("click", () => shiftWeeks(+visibleWeeks));
-
-  // --- Bulk Apply: Inventory ---
-  el("apply-inv").addEventListener("click", async () => {
-    if (!currentRoomTypeId) return setStatus("Select a room type.", "error");
-    if (!validateRangeOrWarn()) return;
-
-    const start = el("range-start").value; const end = el("range-end").value;
-    const roomsOpenN = toNumber(el("inv-open").value);
-    const minStayN   = el("inv-minstay").value ? toNumber(el("inv-minstay").value) : NaN;
-    const isClosed   = !!el("inv-closed").checked;
-
-    if (!Number.isFinite(roomsOpenN) || roomsOpenN < 0) return setStatus("roomsOpen must be a non-negative number", "error");
-    if (el("inv-minstay").value && (!Number.isFinite(minStayN) || minStayN < 1)) return setStatus("minStay must be ≥ 1", "error");
-
-    const dates = daysBetween(start, end);
-    const items = dates.map(d => {
-      const o = { date: d, isClosed, roomsOpen: Math.floor(roomsOpenN) };
-      if (Number.isFinite(minStayN)) o.minStay = Math.floor(minStayN);
-      return o;
-    });
-
-    disableWhileBusy(true);
-    const res = await authFetch(`/extranet/property/rooms/${currentRoomTypeId}/inventory/bulk`, {
-      method: "POST",
-      body: JSON.stringify({ items })
-    });
-    disableWhileBusy(false);
-    if (!res.ok) return setStatus("Inventory apply failed ("+res.status+")", "error");
-    const js = await res.json();
-    setStatus(`Inventory applied to ${js.upserted ?? js.count ?? items.length} day(s).`, "ok");
-    await renderCalendar();
-  });
-
-  // --- Bulk Apply: Prices ---
-  el("apply-price").addEventListener("click", async () => {
-    if (!currentRoomTypeId) return setStatus("Select a room type.", "error");
-    if (!validateRangeOrWarn()) return;
-
-    const start = el("range-start").value; const end = el("range-end").value;
-    const priceN = toNumber(el("price").value);
-    if (!Number.isFinite(priceN) || priceN < 0) return setStatus("Enter a valid non-negative price", "error");
-
-    const dates = daysBetween(start, end);
-    const items = dates.map(d => ({ date: d, price: priceN.toFixed(2), ratePlanId: null }));
-
-    disableWhileBusy(true);
-    const res = await authFetch(`/extranet/property/rooms/${currentRoomTypeId}/prices/bulk`, {
-      method: "POST",
-      body: JSON.stringify({ items })
-    });
-    disableWhileBusy(false);
-    if (!res.ok) return setStatus("Price apply failed ("+res.status+")", "error");
-    const js = await res.json();
-    setStatus(`Prices applied to ${js.upserted ?? js.count ?? items.length} day(s).`, "ok");
-    await renderCalendar();
-  });
-
-  // --- Save (partial edits only) ---
-  el("save").addEventListener("click", async () => {
-    if (dirty.size === 0) return;
-
-    const invItems = [];
-    const prcItems = [];
-    for (const [date, obj] of dirty.entries()) {
-      const inv = {};
-      if (typeof obj.roomsOpen === 'number') inv.roomsOpen = obj.roomsOpen;
-      if (typeof obj.minStay   === 'number') inv.minStay   = obj.minStay;
-      if (Object.keys(inv).length) invItems.push({ date, isClosed:false, ...inv });
-
-      if (typeof obj.price === 'string' && obj.price !== '') {
-        prcItems.push({ date, price: obj.price, ratePlanId: null });
-      }
-    }
-    if (invItems.length === 0 && prcItems.length === 0) { setStatus("Nothing to save.", "warn"); return; }
-
-    setStatus("Saving…");
-    disableWhileBusy(true);
-    try {
-      const reqs = [];
-      if (invItems.length) {
-        reqs.push(authFetch(`/extranet/property/rooms/${currentRoomTypeId}/inventory/bulk`, {
-          method:"POST", body: JSON.stringify({ items: invItems })
-        }));
-      }
-      if (prcItems.length) {
-        reqs.push(authFetch(`/extranet/property/rooms/${currentRoomTypeId}/prices/bulk`, {
-          method:"POST", body: JSON.stringify({ items: prcItems })
-        }));
-      }
-      const resps = await Promise.all(reqs);
-      if (resps.some(r => !r.ok)) {
-        setStatus("Save failed (" + resps.map(r=>r.status).join("/") + ")", "error");
-      } else {
-        setStatus("Saved.", "ok");
-        dirty.clear();
-        updateDirtyUI();
-        await renderCalendar();
-      }
-    } catch (_e) {
-      setStatus("Save error", "error");
-    } finally {
-      disableWhileBusy(false);
-    }
-  });
-
-    (async function init() {
-    prepareRangeDefaults();
-    await loadRooms();
-
-    // Initialize to *today*; applyMonthWindowToRange will clamp & set anchor
-    currentAnchor = new Date();
+  function shiftWeeks(deltaWeeks){
+    const rsInput=el("range-start");
+    const seed=(rsInput && rsInput.value) ? rsInput.value
+      : (typeof currentRangeStart==="string"&&currentRangeStart) ? currentRangeStart
+      : todayISO();
+    const nextStart=new Date(seed+"T00:00:00Z");
+    nextStart.setDate(nextStart.getDate() + (deltaWeeks * 7));
+    currentAnchor=nextStart;
+    applyMonthWindowToRange({ rerender:true });
     setMonthLabel();
-    computeWindowFromAnchor();                // debug log
-    applyMonthWindowToRange({ rerender: false });
+  }
+  if (monthPrevBtn) monthPrevBtn.addEventListener("click",()=>shiftWeeks(-visibleWeeks));
+  if (monthNextBtn) monthNextBtn.addEventListener("click",()=>shiftWeeks(+visibleWeeks));
 
-    const firstOpen = document.querySelector(".room");
-    if (firstOpen) {
-      firstOpen.click();                      // sets currentRoomTypeId
-      void renderCalendar();                  // first render uses the 3-week range
+  // Bulk inventory
+  el("apply-inv").addEventListener("click", async ()=>{
+    if (!currentRoomTypeId) return setStatus("Select a room type.","error");
+    if (!validateRangeOrWarn()) return;
+    const start=el("range-start").value, end=el("range-end").value;
+    const roomsOpenN=toNumber(el("inv-open").value);
+    const minStayN=el("inv-minstay").value ? toNumber(el("inv-minstay").value) : NaN;
+    const isClosed=!!el("inv-closed").checked;
+    if (!Number.isFinite(roomsOpenN) || roomsOpenN<0) return setStatus("roomsOpen must be a non-negative number","error");
+    if (el("inv-minstay").value && (!Number.isFinite(minStayN) || minStayN<1)) return setStatus("minStay must be ≥ 1","error");
+
+    const ONE_DAY=86400000;
+    const dates=[]; { const s=new Date(start+"T00:00:00Z"); const e=new Date(end+"T00:00:00Z");
+      for(let d=new Date(s); d<=e; d=new Date(d.getTime()+ONE_DAY)) dates.push(iso(d)); }
+    const items=dates.map(d=>{ const o={date:d,isClosed,roomsOpen:Math.floor(roomsOpenN)}; if (Number.isFinite(minStayN)) o.minStay=Math.floor(minStayN); return o; });
+
+    disableWhileBusy(true);
+    const res=await authFetch(`/extranet/property/rooms/${currentRoomTypeId}/inventory/bulk`,{ method:"POST", body:JSON.stringify({items}) });
+    disableWhileBusy(false);
+    if (!res.ok) return setStatus("Inventory apply failed ("+res.status+")","error");
+    const js=await res.json();
+    setStatus(`Inventory applied to ${js.upserted ?? js.count ?? items.length} day(s).`,"ok");
+    await renderCalendar();
+  });
+
+  // Bulk prices
+  el("apply-price").addEventListener("click", async ()=>{
+    if (!currentRoomTypeId) return setStatus("Select a room type.","error");
+    if (!validateRangeOrWarn()) return;
+    const start=el("range-start").value, end=el("range-end").value;
+    const priceN=toNumber(el("price").value);
+    if (!Number.isFinite(priceN) || priceN<0) return setStatus("Enter a valid non-negative price","error");
+
+    const ONE_DAY=86400000;
+    const dates=[]; { const s=new Date(start+"T00:00:00Z"); const e=new Date(end+"T00:00:00Z");
+      for(let d=new Date(s); d<=e; d=new Date(d.getTime()+ONE_DAY)) dates.push(iso(d)); }
+    const items=dates.map(d=>({date:d,price:priceN.toFixed(2),ratePlanId:null}));
+
+    disableWhileBusy(true);
+    const res=await authFetch(`/extranet/property/rooms/${currentRoomTypeId}/prices/bulk`,{ method:"POST", body:JSON.stringify({items}) });
+    disableWhileBusy(false);
+    if (!res.ok) return setStatus("Price apply failed ("+res.status+")","error");
+    const js=await res.json();
+    setStatus(`Prices applied to ${js.upserted ?? js.count ?? items.length} day(s).`,"ok");
+    await renderCalendar();
+  });
+
+  // Save (grid edits)
+  el("save").addEventListener("click", async ()=>{
+    if (dirty.size===0) return;
+    const invItems=[], prcItems=[];
+    for (const [date,obj] of dirty.entries()){
+      const inv={}; if (typeof obj.roomsOpen==='number') inv.roomsOpen=obj.roomsOpen;
+      if (typeof obj.minStay==='number') inv.minStay=obj.minStay;
+      if (Object.keys(inv).length) invItems.push({date,isClosed:false,...inv});
+      if (typeof obj.price==='string' && obj.price!=='') prcItems.push({date,price:obj.price,ratePlanId:null});
     }
+    if (invItems.length===0 && prcItems.length===0){ setStatus("Nothing to save.","warn"); return; }
 
+    setStatus("Saving…"); disableWhileBusy(true);
+    try{
+      const reqs=[];
+      if (invItems.length) reqs.push(authFetch(`/extranet/property/rooms/${currentRoomTypeId}/inventory/bulk`,{method:"POST", body:JSON.stringify({items:invItems})}));
+      if (prcItems.length) reqs.push(authFetch(`/extranet/property/rooms/${currentRoomTypeId}/prices/bulk`,{method:"POST", body:JSON.stringify({items:prcItems})}));
+      const resps=await Promise.all(reqs);
+      if (resps.some(r=>!r.ok)){
+        setStatus("Save failed ("+resps.map(r=>r.status).join("/")+")","error");
+      } else {
+        setStatus("Saved.","ok"); dirty.clear(); updateDirtyUI(); await renderCalendar();
+      }
+    } catch(_e){ setStatus("Save error","error"); } finally { disableWhileBusy(false); }
+  });
+
+  (async function init(){
+    const start=iso(startOfWeek(new Date())); currentAnchor=new Date(start+"T00:00:00Z");
+    setMonthLabel(); applyMonthWindowToRange({rerender:false});
+    await loadRooms();
+    const first = document.querySelector(".room"); if (first) { first.click(); void renderCalendar(); }
   })();
-
 })();
 </script>
 
 <!-- FP: MN-HARDFIX-LOCK — single source of truth for month-nav; exact 3-week stepping -->
 <script>
 (() => {
-  const iso = (d) => d.toISOString().slice(0,10);
-  const addDaysISO = (isoStr, n) => {
-    const d = new Date(isoStr + "T00:00:00Z");
-    d.setDate(d.getDate() + n);
-    return iso(d);
+  const iso = (d)=>d.toISOString().slice(0,10);
+  const addDaysISO=(isoStr,n)=>{ const d=new Date(isoStr+"T00:00:00Z"); d.setDate(d.getDate()+n); return iso(d); };
+  const setLabel=(sISO)=>{ const lbl=document.getElementById('month-label'); if(lbl) lbl.textContent=new Date(sISO+'T00:00:00Z').toLocaleString(undefined,{month:'short',year:'numeric'}); };
+  const setWindow=(sISO,doRender=true)=>{
+    const eISO=addDaysISO(sISO,21-1), rs=document.getElementById('range-start'), re=document.getElementById('range-end');
+    if (rs&&re){ rs.value=sISO; re.value=eISO; }
+    window.currentRangeStart=sISO; window.currentRangeEnd=eISO; window.currentAnchor=new Date(sISO+'T00:00:00Z');
+    setLabel(sISO); if (doRender && typeof window.renderCalendar==='function') window.renderCalendar();
   };
-
-  const setLabel = (sISO) => {
-    const lbl = document.getElementById('month-label');
-    if (lbl) lbl.textContent = new Date(sISO + 'T00:00:00Z')
-      .toLocaleString(undefined, { month:'short', year:'numeric' });
-  };
-
-  const setWindow = (sISO, doRender = true) => {
-    const eISO = addDaysISO(sISO, 21 - 1); // inclusive 3 weeks
-    const rs = document.getElementById('range-start');
-    const re = document.getElementById('range-end');
-    if (rs && re) { rs.value = sISO; re.value = eISO; }
-    // keep globals in sync so existing code doesn't fight us
-    window.currentRangeStart = sISO;
-    window.currentRangeEnd   = eISO;
-    window.currentAnchor     = new Date(sISO + 'T00:00:00Z');
-    setLabel(sISO);
-    if (doRender && typeof window.renderCalendar === 'function') window.renderCalendar();
-  };
-
-  const prev = document.getElementById('month-prev');
-  const next = document.getElementById('month-next');
-  if (!prev || !next) { console.warn('[MN-HARDFIX-LOCK] nav buttons missing'); return; }
-
-  // wipe any inline onclicks from older overrides
-  prev.onclick = null;
-  next.onclick = null;
-
-  // install exactly ONE capturing handler on each and block other listeners
-  const install = (el, dir) => {
-    el.addEventListener('click', (ev) => {
-      ev.stopImmediatePropagation();
-      ev.preventDefault();
-      const rs = document.getElementById('range-start')?.value || window.currentRangeStart;
-      const re = document.getElementById('range-end')?.value   || window.currentRangeEnd || rs;
-      const nextStart = (dir === 'next')
-        ? addDaysISO(re, +1)          // forward: previous end + 1 day
-        : addDaysISO(rs, -21);        // back: previous start - 3 weeks
-      setWindow(nextStart, true);
-    }, { capture: true });
-  };
-
-  install(prev, 'prev');
-  install(next, 'next');
-
-  // normalize once on load (don’t jump the user; reuse current start if present)
-  const initial = document.getElementById('range-start')?.value || window.currentRangeStart || iso(new Date());
-  setWindow(initial, false);
+  const prev=document.getElementById('month-prev'), next=document.getElementById('month-next'); if (!prev||!next){ console.warn('[MN-HARDFIX-LOCK] nav buttons missing'); return; }
+  prev.onclick=null; next.onclick=null;
+  const install=(el,dir)=>{ el.addEventListener('click',(ev)=>{ ev.stopImmediatePropagation(); ev.preventDefault();
+    const rs=document.getElementById('range-start')?.value || window.currentRangeStart;
+    const re=document.getElementById('range-end')?.value   || window.currentRangeEnd || rs;
+    const nextStart=(dir==='next') ? addDaysISO(re,+1) : addDaysISO(rs,-21);
+    setWindow(nextStart,true);
+  },{capture:true}); };
+  install(prev,'prev'); install(next,'next');
+  const initial=document.getElementById('range-start')?.value || window.currentRangeStart || iso(new Date());
+  setWindow(initial,false);
 })();
 </script>
-
 </body>
 </html>
