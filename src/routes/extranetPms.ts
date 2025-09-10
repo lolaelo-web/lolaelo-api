@@ -158,7 +158,7 @@ router.get("/connections", requirePartner, async (req, res) => {
 router.post("/connections", requirePartner, async (req, res) => {
   try {
     const partnerId = getPartnerId(req);
-    
+
         if (!Number.isFinite(partnerId)) {
       return res.status(401).json({ error: "no partner session" });
     }
@@ -167,7 +167,7 @@ router.post("/connections", requirePartner, async (req, res) => {
     if (hasDelegates()) {
       await (db as any).partner.upsert({
         where: { id: partnerId },
-        create: { id: partnerId, name: `Partner ${partnerId}` },
+        create: { id: partnerId, code: `PT-${partnerId}`, name: `Partner ${partnerId}` },
         update: {},
       });
     } else {
