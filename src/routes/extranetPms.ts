@@ -680,21 +680,56 @@ router.get("/remote/availability", requirePartner, async (req, res) => {
       days.push(d.toISOString().slice(0, 10));
     }
 
-    const out: any[] = [];
-    mappings.forEach((m) => {
-      days.forEach((ds, idx) => {
-        out.push({
-          connectionId: m.pmsConnectionId,
-          remoteRoomId: String(m.remoteRoomId),
-          remoteRatePlanId: m.remoteRatePlanId ? String(m.remoteRatePlanId) : null,
-          date: ds,
-          roomsOpen: 3,
-          price: 120 + (idx % 5) * 10,
-          currency: m.currency ?? "USD",
-          source: "pms",
-        });
-      });
+    // Mirror Direct inventory for mapped localRoomTypeId (dynamic mock)
+let localInv: any[] = [];
+if (hasDelegates()) {
+  localInv = await (db as any).roomInventory.findMany({
+    where: { partnerId, date: { gte: start, lt: end } },
+    select: { roomTypeId: true, date: true, roomsOpen: true, isClosed: true },
+  });
+} else {
+  localInv = await (db as any).$queryRawUnsafe(
+    `SELECT "roomTypeId","date","roomsOpen","isClosed"
+       FROM "extranet"."RoomInventory"
+      WHERE "partnerId" = $1
+        AND "date" >= $2
+        AND "date" <  $3
+      ORDER BY "date" ASC`,
+    partnerId, start, end
+  );
+}
+const invIndex = new Map<string, { roomsOpen: number; isClosed: boolean }>();
+localInv.forEach((iv: any) => {
+  const ds = new Date(iv.date).toISOString().slice(0, 10);
+  invIndex.set(`${Number(iv.roomTypeId)}|${ds}`, {
+    roomsOpen: Number(iv.roomsOpen ?? 0),
+    isClosed: !!iv.isClosed,
+  });
+});
+
+const out: any[] = [];
+mappings.forEach((m) => {
+  days.forEach((ds, idx) => {
+    let open = 0;
+    if (m.localRoomTypeId) {
+      const key = `${Number(m.localRoomTypeId)}|${ds}`;
+      const iv = invIndex.get(key);
+      open = iv ? (iv.isClosed ? 0 : Math.max(0, Number(iv.roomsOpen))) : 0;
+    }
+    out.push({
+      connectionId: m.pmsConnectionId,
+      remoteRoomId: String(m.remoteRoomId),
+      remoteRatePlanId: m.remoteRatePlanId ? String(m.remoteRatePlanId) : null,
+      date: ds,
+      roomsOpen: open,                    // ← mirrors Direct inventory
+      price: 120 + (idx % 5) * 10,        // simple stub
+      currency: m.currency ?? "USD",
+      source: "pms",
     });
+  });
+});
+
+return res.json(out);
 
     res.json(out);
   } catch (e: any) {
