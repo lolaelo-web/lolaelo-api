@@ -159,26 +159,16 @@ router.post("/connections", requirePartner, async (req, res) => {
   try {
     const partnerId = getPartnerId(req);
 
-        if (!Number.isFinite(partnerId)) {
+            if (!Number.isFinite(partnerId)) {
       return res.status(401).json({ error: "no partner session" });
     }
 
-    // Ensure Partner row exists (prevents PmsConnection_partnerId_fkey)
-    if (hasDelegates()) {
-      await (db as any).partner.upsert({
-        where: { id: partnerId },
-        create: { id: partnerId, code: `PT-${partnerId}`, name: `Partner ${partnerId}` },
-        update: {},
-      });
-    } else {
-      await (db as any).$executeRawUnsafe(
-        `INSERT INTO "extranet"."Partner" ("id","name","createdAt","updatedAt")
-         VALUES ($1,$2,NOW(),NOW())
-         ON CONFLICT ("id") DO NOTHING`,
-        partnerId,
-        `Partner ${partnerId}`
-      );
-    }
+    // Always use Prisma upsert to ensure Partner exists (avoids RAW 23502 on "code")
+    await (db as any).partner.upsert({
+      where: { id: partnerId },
+      create: { id: partnerId, code: `PT-${partnerId}`, name: `Partner ${partnerId}` },
+      update: {},
+    });
 
     const { provider = "CLOUDBEDS", mode = "mock", status = "TESTING", scope = null } = req.body ?? {};
   
