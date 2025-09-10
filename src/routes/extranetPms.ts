@@ -767,9 +767,11 @@ router.get("/uis/search", requirePartner, async (req, res) => {
     }
 
     /* -------- EXTRANET: room types, inventory, min price per date -------- */
-    let rts: any[] = [];
+        let rts: any[] = [];
     let inv: any[] = [];
     let prices: any[] = [];
+
+    // First try Prisma delegates
     try {
       rts = await (db as any).roomType.findMany({
         where: { partnerId, maxGuests: { gte: Number.isNaN(guests) ? 1 : guests } },
@@ -785,6 +787,44 @@ router.get("/uis/search", requirePartner, async (req, res) => {
       });
     } catch {
       rts = []; inv = []; prices = [];
+    }
+
+    // Fallback to RAW if Prisma came back empty (or partially empty)
+    if (!Array.isArray(rts) || rts.length === 0 ||
+        !Array.isArray(inv) || inv.length === 0 ||
+        !Array.isArray(prices) || prices.length === 0) {
+
+      const g = Number.isNaN(guests) ? 1 : guests;
+
+      rts = await (db as any).$queryRawUnsafe(
+        `SELECT "id","name","maxGuests"
+           FROM "extranet"."RoomType"
+          WHERE "partnerId" = $1
+            AND "maxGuests" >= $2
+          ORDER BY "id" ASC`,
+        partnerId, g
+      );
+
+      inv = await (db as any).$queryRawUnsafe(
+        `SELECT "roomTypeId", ("date")::date AS "date", "roomsOpen"
+           FROM "extranet"."RoomInventory"
+          WHERE "partnerId" = $1
+            AND "isClosed" = FALSE
+            AND "roomsOpen" > 0
+            AND "date" >= $2::date
+            AND "date" <  $3::date
+          ORDER BY "date" ASC`,
+        partnerId, startStr, endStr
+      );
+
+      prices = await (db as any).$queryRawUnsafe(
+        `SELECT "roomTypeId", "ratePlanId", ("date")::date AS "date", "price"
+           FROM "extranet"."RoomPrice"
+          WHERE "partnerId" = $1
+            AND "date" >= $2::date
+            AND "date" <  $3::date`,
+        partnerId, startStr, endStr
+      );
     }
 
     const rtIndex = new Map<number, { id: number; name: string; maxGuests: number }>();
