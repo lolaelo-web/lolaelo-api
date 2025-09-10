@@ -159,19 +159,24 @@ router.post("/connections", requirePartner, async (req, res) => {
   try {
     const partnerId = getPartnerId(req);
 
-            if (!Number.isFinite(partnerId)) {
+    if (!Number.isFinite(partnerId)) {
       return res.status(401).json({ error: "no partner session" });
     }
 
-    // Always use Prisma upsert to ensure Partner exists (avoids RAW 23502 on "code")
+    // Ensure Partner row exists with required NOT NULLs (code, email) before inserting PmsConnection
     await (db as any).partner.upsert({
       where: { id: partnerId },
-      create: { id: partnerId, code: `PT-${partnerId}`, name: `Partner ${partnerId}` },
+      create: {
+        id: partnerId,
+        code: `PT-${partnerId}`,
+        name: `Partner ${partnerId}`,
+        email: `partner${partnerId}@local`
+      },
       update: {},
     });
 
     const { provider = "CLOUDBEDS", mode = "mock", status = "TESTING", scope = null } = req.body ?? {};
-  
+
     if (hasDelegates()) {
       const upserted = await (db as any).pmsConnection.upsert({
         where: { partnerId_provider: { partnerId, provider } },
@@ -193,6 +198,18 @@ router.post("/connections", requirePartner, async (req, res) => {
     }
 
     // RAW fallback
+    // (Also ensure Partner exists in RAW path in case delegates are not present)
+    const partnerCode = `PT-${partnerId}`;
+    await (db as any).$executeRawUnsafe(
+      `INSERT INTO "extranet"."Partner" ("id","code","name","email","createdAt","updatedAt")
+       VALUES ($1,$2,$3,$4,NOW(),NOW())
+       ON CONFLICT ("id") DO NOTHING`,
+      partnerId,
+      partnerCode,
+      `Partner ${partnerId}`,
+      `partner${partnerId}@local`
+    );
+
     const upsertSql = `
       INSERT INTO "extranet"."PmsConnection"
         ("partnerId","provider","mode","status","scope","createdAt","updatedAt")
