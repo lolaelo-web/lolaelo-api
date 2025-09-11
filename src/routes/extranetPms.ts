@@ -739,24 +739,25 @@ return res.json(out);
 });
 
 /* ======================================================================
-   UIS SEARCH MERGE
+   UIS SEARCH MERGE  —  Direct plan selector (exposeToUis + uisPriority)
    ====================================================================== */
 
 router.get("/uis/search", requirePartner, async (req, res) => {
   try {
     const partnerId = Number((req as any).partnerId);
 
+    // inputs
     const startStr = String(req.query.start ?? "");
-    const endStr = String(req.query.end ?? "");
-    const guests = Number(req.query.guests ?? 2);
+    const endStr   = String(req.query.end ?? "");
+    const guests   = Number(req.query.guests ?? 2);
 
     const start = new Date(startStr);
-    const end = new Date(endStr);
+    const end   = new Date(endStr);
     if (Number.isNaN(start.valueOf()) || Number.isNaN(end.valueOf()) || end <= start) {
       return res.status(400).json({ error: "Invalid date range" });
     }
 
-    // Date list [start, end)
+    // Build day list [start, end)
     const days: string[] = [];
     for (
       let d = new Date(Date.UTC(start.getUTCFullYear(), start.getUTCMonth(), start.getUTCDate()));
@@ -766,146 +767,171 @@ router.get("/uis/search", requirePartner, async (req, res) => {
       days.push(d.toISOString().slice(0, 10));
     }
 
-        /* -------- EXTRANET: room types, inventory, min price per date -------- */
-    let rts: any[] = [];
-    let inv: any[] = [];
-    let prices: any[] = [];
-
+    // -------- DIRECT (Extranet/public schema via Prisma) --------
     const minGuests = Number.isNaN(guests) ? 1 : guests;
 
-    // Check if this partner actually has room types
-    let hasOwnedRT = false;
-    try {
-      const cnt = await (db as any).$queryRawUnsafe(
-        'SELECT COUNT(*)::int AS c FROM "extranet"."RoomType" WHERE "partnerId"=$1',
+    // Room types that meet capacity
+    const roomTypes = await (db as any).roomType.findMany({
+      where: { partnerId, maxGuests: { gte: minGuests } },
+      select: { id: true, name: true, maxGuests: true },
+      orderBy: { id: "asc" },
+    });
+    if (roomTypes.length === 0) {
+      return res.json({ extranet: [], pms: [] });
+    }
+    const rtIds = roomTypes.map((r: any) => r.id);
+
+    // Exposed rate plans ordered by priority.
+    // NOTE: this uses RAW (public schema) so it still works if you haven't added the 2 columns yet.
+    // If the columns don't exist, COALESCE gives defaults: exposeToUis=true, uisPriority=100.
+    const idList = "(" + rtIds.join(",") + ")";
+    const ratePlans: Array<{ id:number; roomTypeId:number; name:string; exposeToUis:boolean; uisPriority:number }> =
+      await (db as any).$queryRawUnsafe(
+        `
+        SELECT id,"roomTypeId",name,
+               COALESCE("exposeToUis", TRUE)  AS "exposeToUis",
+               COALESCE("uisPriority", 100)   AS "uisPriority"
+        FROM "RatePlan"
+        WHERE "partnerId" = $1 AND "roomTypeId" IN ${idList}
+        ORDER BY "roomTypeId" ASC, "uisPriority" ASC, id ASC
+        `,
         partnerId
       );
-      hasOwnedRT = Number(cnt?.[0]?.c ?? 0) > 0;
-    } catch {
-      hasOwnedRT = false;
+
+    const exposed = ratePlans.filter(rp => !!rp.exposeToUis);
+    const prioByPlan = new Map<number, number>();
+    const nameByPlan = new Map<number, string>();
+    const rpsByRoom  = new Map<number, Array<{id:number; name:string; uisPriority:number}>>();
+    for (const rp of exposed) {
+      prioByPlan.set(rp.id, rp.uisPriority);
+      nameByPlan.set(rp.id, rp.name);
+      const arr = rpsByRoom.get(rp.roomTypeId) ?? [];
+      arr.push({ id: rp.id, name: rp.name, uisPriority: rp.uisPriority });
+      rpsByRoom.set(rp.roomTypeId, arr);
     }
 
-    if (hasOwnedRT) {
-      // Normal, partner-scoped
-      rts = await (db as any).$queryRawUnsafe(
-        'SELECT "id","name","maxGuests" FROM "extranet"."RoomType" WHERE "partnerId"=$1 AND "maxGuests">=COALESCE($2,1) ORDER BY "id" ASC',
-        partnerId, minGuests
-      );
-      inv = await (db as any).$queryRawUnsafe(
-        `SELECT "roomTypeId", ("date")::date AS "date", "roomsOpen"
-          FROM "extranet"."RoomInventory"
-          WHERE "partnerId"=$1 AND "isClosed"=FALSE AND "roomsOpen">0
-            AND "date">=$2::date AND "date"<$3::date
-          ORDER BY "date" ASC`,
-        partnerId, start, end
-      );
-      prices = await (db as any).$queryRawUnsafe(
-        `SELECT "roomTypeId","ratePlanId", ("date")::date AS "date", "price"
-          FROM "extranet"."RoomPrice"
-          WHERE "partnerId"=$1
-            AND "date">=$2::date AND "date"<$3::date
-          ORDER BY "date" ASC`,
-        partnerId, start, end
-      );
-    } else {
-      // DEMO MODE: no room types for this partner -> show ALL room types
-      rts = await (db as any).$queryRawUnsafe(
-        'SELECT "id","name","maxGuests" FROM "extranet"."RoomType" WHERE "maxGuests">=COALESCE($1,1) ORDER BY "id" ASC',
-        minGuests
-      );
+    // Prices for the date range (all plans; we'll pick best exposed per day)
+    const prices = await (db as any).roomPrice.findMany({
+      where: {
+        partnerId,
+        roomTypeId: { in: rtIds },
+        date: { gte: start, lt: end },
+      },
+      select: { roomTypeId: true, ratePlanId: true, date: true, price: true },
+      orderBy: { date: "asc" },
+    });
 
-      const rtIds = rts.map((r: any) => Number(r.id)).filter(Boolean);
-      if (rtIds.length) {
-        const idList = '(' + rtIds.join(',') + ')';
-        inv = await (db as any).$queryRawUnsafe(
-          `SELECT "roomTypeId", ("date")::date AS "date", "roomsOpen"
-            FROM "extranet"."RoomInventory"
-            WHERE "roomTypeId" IN ${idList}
-              AND "isClosed"=FALSE AND "roomsOpen">0
-              AND "date">=$1::date AND "date"<$2::date
-            ORDER BY "date" ASC`,
-          start, end
-        );
-        prices = await (db as any).$queryRawUnsafe(
-          `SELECT "roomTypeId","ratePlanId", ("date")::date AS "date", "price"
-            FROM "extranet"."RoomPrice"
-            WHERE "roomTypeId" IN ${idList}
-              AND "date">=$1::date AND "date"<$2::date
-            ORDER BY "date" ASC`,
-          start, end
-        );
-      }
-    }
+    // Inventory (must be open) for the date range
+    const inv = await (db as any).roomInventory.findMany({
+      where: {
+        partnerId,
+        roomTypeId: { in: rtIds },
+        isClosed: false,
+        roomsOpen: { gt: 0 },
+        date: { gte: start, lt: end },
+      },
+      select: { roomTypeId: true, date: true, roomsOpen: true },
+      orderBy: { date: "asc" },
+    });
 
-    // Build indexes/min price map as before
-    const rtIndex = new Map<number, { id: number; name: string; maxGuests: number }>();
-    rts.forEach((rt: any) => rtIndex.set(Number(rt.id), { id: Number(rt.id), name: rt.name, maxGuests: Number(rt.maxGuests) }));
+    // Build lookups
+    const rtIndex = new Map<number, { id:number; name:string; maxGuests:number }>();
+    for (const rt of roomTypes) rtIndex.set(rt.id, rt);
 
-    const extranet: any[] = [];
-    const minPrice = new Map<string, { price: any; ratePlanId: number | null }>();
-    for (const p of prices) {
-      const key = `${Number(p.roomTypeId)}|${new Date(p.date).toISOString().slice(0, 10)}`;
-      const prev = minPrice.get(key);
-      if (!prev || Number(p.price) < Number(prev.price)) {
-        minPrice.set(key, { price: p.price, ratePlanId: p.ratePlanId ?? null });
-      }
-    }
+    const openIdx = new Set<string>(); // `${roomTypeId}|YYYY-MM-DD`
     for (const iv of inv) {
-      const dateStr = new Date(iv.date).toISOString().slice(0, 10);
-      const rt = rtIndex.get(Number(iv.roomTypeId));
-      if (!rt) continue;
-      const mp = minPrice.get(`${Number(iv.roomTypeId)}|${dateStr}`);
-      if (!mp) continue;
-      extranet.push({
-        source: "direct",
-        date: dateStr,
-        roomTypeId: rt.id,
-        ratePlanId: mp.ratePlanId,
-        name: rt.name,
-        maxGuests: rt.maxGuests,
-        price: mp.price,
-        currency: "USD",
-      });
+      const ds = new Date(iv.date).toISOString().slice(0,10);
+      openIdx.add(`${iv.roomTypeId}|${ds}`);
     }
 
-/* ----------------------- PMS (mock via mappings) ---------------------- */
-    let mappings: any[] = [];
+    // Choose best exposed plan per (roomType, date).
+    // If a price row has ratePlanId=null, treat it as fallback with very low priority (last resort).
+    type Key = string;
+    interface Chosen {
+      roomTypeId: number;
+      date: string;     // YYYY-MM-DD
+      price: any;
+      ratePlanId: number | null;
+      ratePlanName?: string;
+      priority: number; // lower is better
+    }
+    const chosen: Record<Key, Chosen> = {};
+    for (const p of prices) {
+      const ds = new Date(p.date).toISOString().slice(0,10);
+      const k  = `${p.roomTypeId}|${ds}`;
+      // Only consider if inventory is open that day
+      if (!openIdx.has(k)) continue;
+
+      // Only consider exposed plans. null plan (BAR/no-plan) => priority 999999
+      const priority = p.ratePlanId == null ? 999999 : (prioByPlan.get(p.ratePlanId) ?? 999999);
+      if (priority === 999999 && p.ratePlanId != null && !prioByPlan.has(p.ratePlanId)) {
+        // plan exists but not exposed → skip
+        continue;
+      }
+
+      const prev = chosen[k];
+      if (!prev || priority < prev.priority || (priority === prev.priority && Number(p.price) < Number(prev.price))) {
+        chosen[k] = {
+          roomTypeId: p.roomTypeId,
+          date: ds,
+          price: p.price,
+          ratePlanId: p.ratePlanId ?? null,
+          ratePlanName: p.ratePlanId ? nameByPlan.get(p.ratePlanId) : undefined,
+          priority,
+        };
+      }
+    }
+
+    const extranet = Object.values(chosen)
+      .map((c) => {
+        const rt = rtIndex.get(c.roomTypeId)!;
+        return {
+          source: "direct",
+          date: c.date,
+          roomTypeId: c.roomTypeId,
+          name: rt.name,
+          maxGuests: rt.maxGuests,
+          price: c.price,
+          currency: "USD",
+          ratePlanId: c.ratePlanId,
+          ratePlanName: c.ratePlanName,
+          priority: c.priority,
+        };
+      })
+      .sort((a,b) => a.date.localeCompare(b.date) || a.roomTypeId - b.roomTypeId || a.priority - b.priority);
+
+    // -------- PMS (mock) --------
+    // Your DB currently has no "extranet" schema; RAW fallback would fail.
+    // Return PMS=[] for now; when you add PmsMapping/PmsConnection models, flip this to use delegates.
+    const pms: any[] = [];
+    /*
     if (hasDelegates()) {
-      mappings = await (db as any).pmsMapping.findMany({
+      const mappings = await (db as any).pmsMapping.findMany({
         where: { active: true, connection: { partnerId } },
         orderBy: { id: "asc" },
       });
-    } else {
-      mappings = await (db as any).$queryRawUnsafe(
-        `SELECT m.* FROM "extranet"."PmsMapping" m
-         JOIN "extranet"."PmsConnection" c ON c."id" = m."pmsConnectionId"
-         WHERE m."active" = TRUE AND c."partnerId" = $1
-         ORDER BY m."id" ASC`,
-        partnerId
-      );
-    }
-
-    const pms: any[] = [];
-    mappings.forEach((m) => {
-      days.forEach((ds, idx) => {
-        pms.push({
-          source: "pms",
-          date: ds,
-          connectionId: m.pmsConnectionId,
-          remoteRoomId: String(m.remoteRoomId),
-          remoteRatePlanId: m.remoteRatePlanId ? String(m.remoteRatePlanId) : null,
-          name: `Mock Room ${m.remoteRoomId}`,
-          maxGuests: 2,
-          price: 120 + (idx % 5) * 10,
-          currency: m.currency ?? "USD",
+      mappings.forEach((m: any) => {
+        days.forEach((ds, idx) => {
+          pms.push({
+            source: "pms",
+            date: ds,
+            connectionId: m.pmsConnectionId,
+            remoteRoomId: String(m.remoteRoomId),
+            remoteRatePlanId: m.remoteRatePlanId ? String(m.remoteRatePlanId) : null,
+            name: `Mock Room ${m.remoteRoomId}`,
+            maxGuests: 2,
+            price: 120 + (idx % 5) * 10,
+            currency: m.currency ?? "USD",
+          });
         });
       });
-    });
+    }
+    */
 
-    res.status(200).json({ extranet, pms });
+    return res.status(200).json({ extranet, pms });
   } catch (e: any) {
     console.error("[UIS GET /uis/search error]", e?.message || e);
-    res.status(500).json({ error: "Internal", detail: String(e?.message || e) });
+    return res.status(500).json({ error: "Internal", detail: String(e?.message || e) });
   }
 });
 

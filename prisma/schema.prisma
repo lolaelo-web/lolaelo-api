@@ -166,6 +166,7 @@ model RoomType {
   name        String
   description String?
   maxGuests   Int      @default(2)
+  occupancy   Int      @default(2)
   basePrice   Decimal  @db.Decimal(10, 2)
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
@@ -184,6 +185,8 @@ model RatePlan {
   partnerId  Int
   roomTypeId Int
   name       String
+  exposeToUis Boolean  @default(true)
+  uisPriority  Int      @default(100)
   policy     String?
   priceDelta Decimal? @db.Decimal(10, 2)
   createdAt  DateTime @default(now())
@@ -195,6 +198,7 @@ model RatePlan {
 
   @@unique([roomTypeId, name])
   @@index([partnerId])
+  @@index([partnerId, uisPriority])
 }
 
 model RoomInventory {
