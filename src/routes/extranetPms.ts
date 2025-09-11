@@ -766,86 +766,86 @@ router.get("/uis/search", requirePartner, async (req, res) => {
       days.push(d.toISOString().slice(0, 10));
     }
 
-    /* -------- EXTRANET: room types, inventory, min price per date -------- */
-        let rts: any[] = [];
+    /* -------- /* -------- EXTRANET: room types, inventory, min price per date -------- */
+    let rts: any[] = [];
     let inv: any[] = [];
     let prices: any[] = [];
 
-    // First try Prisma delegates
-    try {
-      rts = await (db as any).roomType.findMany({
-        where: { partnerId, maxGuests: { gte: Number.isNaN(guests) ? 1 : guests } },
-        select: { id: true, name: true, maxGuests: true, partnerId: true },
-      });
-      inv = await (db as any).roomInventory.findMany({
-        where: { partnerId, date: { gte: start, lt: end }, isClosed: false, roomsOpen: { gt: 0 } },
-        select: { roomTypeId: true, date: true, roomsOpen: true },
-      });
-      prices = await (db as any).roomPrice.findMany({
-        where: { partnerId, date: { gte: start, lt: end } },
-        select: { roomTypeId: true, ratePlanId: true, date: true, price: true },
-      });
-    } catch {
-      rts = []; inv = []; prices = [];
-    }
-
-    // Fallback to RAW if Prisma came back empty (or partially empty)
-    if (!Array.isArray(rts) || rts.length === 0 ||
-        !Array.isArray(inv) || inv.length === 0 ||
-        !Array.isArray(prices) || prices.length === 0) {
-
-      const g = Number.isNaN(guests) ? 1 : guests;
-
-      rts = await (db as any).$queryRawUnsafe(
-        `SELECT "id","name","maxGuests"
-           FROM "extranet"."RoomType"
-          WHERE "partnerId" = $1
-            AND "maxGuests" >= $2
-          ORDER BY "id" ASC`,
-        partnerId, g
-      );
-
-      inv = await (db as any).$queryRawUnsafe(
-        `SELECT "roomTypeId", ("date")::date AS "date", "roomsOpen"
-           FROM "extranet"."RoomInventory"
-          WHERE "partnerId" = $1
-            AND "isClosed" = FALSE
-            AND "roomsOpen" > 0
-            AND "date" >= $2::date
-            AND "date" <  $3::date
-          ORDER BY "date" ASC`,
-        partnerId, startStr, endStr
-      );
-
-      prices = await (db as any).$queryRawUnsafe(
-        `SELECT "roomTypeId", "ratePlanId", ("date")::date AS "date", "price"
-           FROM "extranet"."RoomPrice"
-          WHERE "partnerId" = $1
-            AND "date" >= $2::date
-            AND "date" <  $3::date`,
-        partnerId, startStr, endStr
-      );
-    }
-
-    const rtIndex = new Map<number, { id: number; name: string; maxGuests: number }>();
-    rts.forEach((rt) => rtIndex.set(rt.id, rt));
-
-    const extranet: any[] = [];
-    const minPrice = new Map<string, { price: any; ratePlanId: number | null }>();
-    for (const p of prices) {
-      const key = `${p.roomTypeId}|${new Date(p.date).toISOString().slice(0, 10)}`;
-      const prev = minPrice.get(key);
-      if (!prev || Number(p.price) < Number(prev.price)) {
-        minPrice.set(key, { price: p.price, ratePlanId: p.ratePlanId ?? null });
+    if (hasDelegates()) {
+      try {
+        rts = await (db as any).roomType.findMany({
+          where: { partnerId, maxGuests: { gte: Number.isNaN(guests) ? 1 : guests } },
+          select: { id: true, name: true, maxGuests: true, partnerId: true },
+        });
+        inv = await (db as any).roomInventory.findMany({
+          where: { partnerId, date: { gte: start, lt: end }, isClosed: false, roomsOpen: { gt: 0 } },
+          select: { roomTypeId: true, date: true, roomsOpen: true, isClosed: true },
+        });
+        prices = await (db as any).roomPrice.findMany({
+          where: { partnerId, date: { gte: start, lt: end } },
+          select: { roomTypeId: true, ratePlanId: true, date: true, price: true },
+        });
+      } catch {
+        // fall through to RAW below
+        rts = []; inv = []; prices = [];
       }
     }
+
+    if (rts.length === 0 && inv.length === 0 && prices.length === 0) {
+      // RAW fallback (works even if Prisma delegates aren’t aligned)
+      const rtSql = `
+        SELECT "id","name","maxGuests" FROM "extranet"."RoomType"
+        WHERE "partnerId" = $1 AND "maxGuests" >= $2
+        ORDER BY "id" ASC`;
+      const invSql = `
+        SELECT "roomTypeId","date","roomsOpen","isClosed"
+        FROM "extranet"."RoomInventory"
+        WHERE "partnerId" = $1
+          AND "date" >= $2::date
+          AND "date" <  ($3::date + INTERVAL '1 day')
+          AND "isClosed" = FALSE AND "roomsOpen" > 0`;
+      const priceSql = `
+        SELECT "roomTypeId","ratePlanId","date","price"
+        FROM "extranet"."RoomPrice"
+        WHERE "partnerId" = $1
+          AND "date" >= $2::date
+          AND "date" <  ($3::date + INTERVAL '1 day')`;
+
+      rts = await (db as any).$queryRawUnsafe(rtSql, partnerId, Number.isNaN(guests) ? 1 : guests);
+      inv = await (db as any).$queryRawUnsafe(invSql, partnerId, startStr, endStr);
+      prices = await (db as any).$queryRawUnsafe(priceSql, partnerId, startStr, endStr);
+    }
+
+    // Index room types
+    const rtIndex = new Map<number, { id: number; name: string; maxGuests: number }>();
+    rts.forEach((rt) => rtIndex.set(Number(rt.id), {
+      id: Number(rt.id),
+      name: String(rt.name),
+      maxGuests: Number(rt.maxGuests),
+    }));
+
+    // Min price per room/date
+    const minPrice = new Map<string, { price: any; ratePlanId: number | null }>();
+    for (const p of prices) {
+      const rtId = Number(p.roomTypeId);
+      const dateStr = new Date(p.date).toISOString().slice(0, 10);
+      const key = `${rtId}|${dateStr}`;
+      const prev = minPrice.get(key);
+      if (!prev || Number(p.price) < Number(prev.price)) {
+        minPrice.set(key, { price: p.price, ratePlanId: p.ratePlanId ? Number(p.ratePlanId) : null });
+      }
+    }
+
+    // Build 'extranet' results
+    const extranet: any[] = [];
     for (const iv of inv) {
+      const rtId = Number(iv.roomTypeId);
       const dateStr = new Date(iv.date).toISOString().slice(0, 10);
       if (!days.includes(dateStr)) continue;
-      const rt = rtIndex.get(iv.roomTypeId);
+      const rt = rtIndex.get(rtId);
       if (!rt) continue;
-      const mp = minPrice.get(`${iv.roomTypeId}|${dateStr}`);
-      if (!mp) continue;
+      const mp = minPrice.get(`${rtId}|${dateStr}`);
+      if (!mp) continue; // only include if we have a price for that date
       extranet.push({
         source: "direct",
         date: dateStr,
