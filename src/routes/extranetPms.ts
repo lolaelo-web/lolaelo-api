@@ -775,20 +775,46 @@ router.get("/uis/search", requirePartner, async (req, res) => {
       try {
         rts = await (db as any).roomType.findMany({
           where: { partnerId, maxGuests: { gte: Number.isNaN(guests) ? 1 : guests } },
-          select: { id: true, name: true, maxGuests: true, partnerId: true },
+          select: { id: true, name: true, maxGuests: true },
         });
         inv = await (db as any).roomInventory.findMany({
           where: { partnerId, date: { gte: start, lt: end }, isClosed: false, roomsOpen: { gt: 0 } },
-          select: { roomTypeId: true, date: true, roomsOpen: true, isClosed: true },
+          select: { roomTypeId: true, date: true, roomsOpen: true },
         });
         prices = await (db as any).roomPrice.findMany({
           where: { partnerId, date: { gte: start, lt: end } },
           select: { roomTypeId: true, ratePlanId: true, date: true, price: true },
         });
       } catch {
-        // fall through to RAW below
         rts = []; inv = []; prices = [];
       }
+    } else {
+      // RAW fallback (used when Prisma delegates aren't available)
+      rts = await (db as any).$queryRawUnsafe(
+        'SELECT "id","name","maxGuests" FROM "extranet"."RoomType" WHERE "partnerId"=$1 AND "maxGuests">=COALESCE($2,1) ORDER BY "id" ASC',
+        partnerId,
+        Number.isNaN(guests) ? 1 : guests
+      );
+      inv = await (db as any).$queryRawUnsafe(
+        `SELECT "roomTypeId", ("date")::date AS "date", "roomsOpen"
+          FROM "extranet"."RoomInventory"
+          WHERE "partnerId"=$1 AND "isClosed"=FALSE AND "roomsOpen">0
+            AND "date">=$2::date AND "date"<$3::date
+          ORDER BY "date" ASC`,
+        partnerId,
+        start,
+        end
+      );
+      prices = await (db as any).$queryRawUnsafe(
+        `SELECT "roomTypeId","ratePlanId", ("date")::date AS "date", "price"
+          FROM "extranet"."RoomPrice"
+          WHERE "partnerId"=$1
+            AND "date">=$2::date AND "date"<$3::date
+          ORDER BY "date" ASC`,
+        partnerId,
+        start,
+        end
+      );
     }
 
     if (rts.length === 0 && inv.length === 0 && prices.length === 0) {
