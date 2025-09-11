@@ -788,6 +788,30 @@ router.get("/uis/search", requirePartner, async (req, res) => {
       } catch {
         rts = []; inv = []; prices = [];
       }
+       // Rescue: if delegates produced no data, fall back to RAW to pull direct rows
+      if ((rts?.length ?? 0) === 0 || (inv?.length ?? 0) === 0 || (prices?.length ?? 0) === 0) {
+        rts = await (db as any).$queryRawUnsafe(
+          'SELECT "id","name","maxGuests" FROM "extranet"."RoomType" WHERE "partnerId"=$1 AND "maxGuests">=COALESCE($2,1) ORDER BY "id" ASC',
+          partnerId,
+          Number.isNaN(guests) ? 1 : guests
+        );
+        inv = await (db as any).$queryRawUnsafe(
+          `SELECT "roomTypeId", ("date")::date AS "date", "roomsOpen"
+             FROM "extranet"."RoomInventory"
+            WHERE "partnerId"=$1 AND "isClosed"=FALSE AND "roomsOpen">0
+              AND "date">=$2::date AND "date"<$3::date
+            ORDER BY "date" ASC`,
+          partnerId, start, end
+        );
+        prices = await (db as any).$queryRawUnsafe(
+          `SELECT "roomTypeId","ratePlanId", ("date")::date AS "date", "price"
+             FROM "extranet"."RoomPrice"
+            WHERE "partnerId"=$1
+              AND "date">=$2::date AND "date"<$3::date
+            ORDER BY "date" ASC`,
+          partnerId, start, end
+        );
+      }
     } else {
       // RAW fallback (used when Prisma delegates aren't available)
       rts = await (db as any).$queryRawUnsafe(
@@ -815,31 +839,6 @@ router.get("/uis/search", requirePartner, async (req, res) => {
         start,
         end
       );
-    }
-
-    if (rts.length === 0 && inv.length === 0 && prices.length === 0) {
-      // RAW fallback (works even if Prisma delegates aren’t aligned)
-      const rtSql = `
-        SELECT "id","name","maxGuests" FROM "extranet"."RoomType"
-        WHERE "partnerId" = $1 AND "maxGuests" >= $2
-        ORDER BY "id" ASC`;
-      const invSql = `
-        SELECT "roomTypeId","date","roomsOpen","isClosed"
-        FROM "extranet"."RoomInventory"
-        WHERE "partnerId" = $1
-          AND "date" >= $2::date
-          AND "date" <  ($3::date + INTERVAL '1 day')
-          AND "isClosed" = FALSE AND "roomsOpen" > 0`;
-      const priceSql = `
-        SELECT "roomTypeId","ratePlanId","date","price"
-        FROM "extranet"."RoomPrice"
-        WHERE "partnerId" = $1
-          AND "date" >= $2::date
-          AND "date" <  ($3::date + INTERVAL '1 day')`;
-
-      rts = await (db as any).$queryRawUnsafe(rtSql, partnerId, Number.isNaN(guests) ? 1 : guests);
-      inv = await (db as any).$queryRawUnsafe(invSql, partnerId, startStr, endStr);
-      prices = await (db as any).$queryRawUnsafe(priceSql, partnerId, startStr, endStr);
     }
 
     // Index room types
