@@ -766,58 +766,30 @@ router.get("/uis/search", requirePartner, async (req, res) => {
       days.push(d.toISOString().slice(0, 10));
     }
 
-    /* -------- /* -------- EXTRANET: room types, inventory, min price per date -------- */
+        /* -------- EXTRANET: room types, inventory, min price per date -------- */
     let rts: any[] = [];
     let inv: any[] = [];
     let prices: any[] = [];
 
-    if (hasDelegates()) {
-      try {
-        rts = await (db as any).roomType.findMany({
-          where: { partnerId, maxGuests: { gte: Number.isNaN(guests) ? 1 : guests } },
-          select: { id: true, name: true, maxGuests: true },
-        });
-        inv = await (db as any).roomInventory.findMany({
-          where: { partnerId, date: { gte: start, lt: end }, isClosed: false, roomsOpen: { gt: 0 } },
-          select: { roomTypeId: true, date: true, roomsOpen: true },
-        });
-        prices = await (db as any).roomPrice.findMany({
-          where: { partnerId, date: { gte: start, lt: end } },
-          select: { roomTypeId: true, ratePlanId: true, date: true, price: true },
-        });
-      } catch {
-        rts = []; inv = []; prices = [];
-      }
-       // Rescue: if delegates produced no data, fall back to RAW to pull direct rows
-      if ((rts?.length ?? 0) === 0 || (inv?.length ?? 0) === 0 || (prices?.length ?? 0) === 0) {
-        rts = await (db as any).$queryRawUnsafe(
-          'SELECT "id","name","maxGuests" FROM "extranet"."RoomType" WHERE "partnerId"=$1 AND "maxGuests">=COALESCE($2,1) ORDER BY "id" ASC',
-          partnerId,
-          Number.isNaN(guests) ? 1 : guests
-        );
-        inv = await (db as any).$queryRawUnsafe(
-          `SELECT "roomTypeId", ("date")::date AS "date", "roomsOpen"
-             FROM "extranet"."RoomInventory"
-            WHERE "partnerId"=$1 AND "isClosed"=FALSE AND "roomsOpen">0
-              AND "date">=$2::date AND "date"<$3::date
-            ORDER BY "date" ASC`,
-          partnerId, start, end
-        );
-        prices = await (db as any).$queryRawUnsafe(
-          `SELECT "roomTypeId","ratePlanId", ("date")::date AS "date", "price"
-             FROM "extranet"."RoomPrice"
-            WHERE "partnerId"=$1
-              AND "date">=$2::date AND "date"<$3::date
-            ORDER BY "date" ASC`,
-          partnerId, start, end
-        );
-      }
-    } else {
-      // RAW fallback (used when Prisma delegates aren't available)
+    const minGuests = Number.isNaN(guests) ? 1 : guests;
+
+    // Check if this partner actually has room types
+    let hasOwnedRT = false;
+    try {
+      const cnt = await (db as any).$queryRawUnsafe(
+        'SELECT COUNT(*)::int AS c FROM "extranet"."RoomType" WHERE "partnerId"=$1',
+        partnerId
+      );
+      hasOwnedRT = Number(cnt?.[0]?.c ?? 0) > 0;
+    } catch {
+      hasOwnedRT = false;
+    }
+
+    if (hasOwnedRT) {
+      // Normal, partner-scoped
       rts = await (db as any).$queryRawUnsafe(
         'SELECT "id","name","maxGuests" FROM "extranet"."RoomType" WHERE "partnerId"=$1 AND "maxGuests">=COALESCE($2,1) ORDER BY "id" ASC',
-        partnerId,
-        Number.isNaN(guests) ? 1 : guests
+        partnerId, minGuests
       );
       inv = await (db as any).$queryRawUnsafe(
         `SELECT "roomTypeId", ("date")::date AS "date", "roomsOpen"
@@ -825,9 +797,7 @@ router.get("/uis/search", requirePartner, async (req, res) => {
           WHERE "partnerId"=$1 AND "isClosed"=FALSE AND "roomsOpen">0
             AND "date">=$2::date AND "date"<$3::date
           ORDER BY "date" ASC`,
-        partnerId,
-        start,
-        end
+        partnerId, start, end
       );
       prices = await (db as any).$queryRawUnsafe(
         `SELECT "roomTypeId","ratePlanId", ("date")::date AS "date", "price"
@@ -835,42 +805,57 @@ router.get("/uis/search", requirePartner, async (req, res) => {
           WHERE "partnerId"=$1
             AND "date">=$2::date AND "date"<$3::date
           ORDER BY "date" ASC`,
-        partnerId,
-        start,
-        end
+        partnerId, start, end
       );
-    }
+    } else {
+      // DEMO MODE: no room types for this partner -> show ALL room types
+      rts = await (db as any).$queryRawUnsafe(
+        'SELECT "id","name","maxGuests" FROM "extranet"."RoomType" WHERE "maxGuests">=COALESCE($1,1) ORDER BY "id" ASC',
+        minGuests
+      );
 
-    // Index room types
-    const rtIndex = new Map<number, { id: number; name: string; maxGuests: number }>();
-    rts.forEach((rt) => rtIndex.set(Number(rt.id), {
-      id: Number(rt.id),
-      name: String(rt.name),
-      maxGuests: Number(rt.maxGuests),
-    }));
-
-    // Min price per room/date
-    const minPrice = new Map<string, { price: any; ratePlanId: number | null }>();
-    for (const p of prices) {
-      const rtId = Number(p.roomTypeId);
-      const dateStr = new Date(p.date).toISOString().slice(0, 10);
-      const key = `${rtId}|${dateStr}`;
-      const prev = minPrice.get(key);
-      if (!prev || Number(p.price) < Number(prev.price)) {
-        minPrice.set(key, { price: p.price, ratePlanId: p.ratePlanId ? Number(p.ratePlanId) : null });
+      const rtIds = rts.map((r: any) => Number(r.id)).filter(Boolean);
+      if (rtIds.length) {
+        const idList = '(' + rtIds.join(',') + ')';
+        inv = await (db as any).$queryRawUnsafe(
+          `SELECT "roomTypeId", ("date")::date AS "date", "roomsOpen"
+            FROM "extranet"."RoomInventory"
+            WHERE "roomTypeId" IN ${idList}
+              AND "isClosed"=FALSE AND "roomsOpen">0
+              AND "date">=$1::date AND "date"<$2::date
+            ORDER BY "date" ASC`,
+          start, end
+        );
+        prices = await (db as any).$queryRawUnsafe(
+          `SELECT "roomTypeId","ratePlanId", ("date")::date AS "date", "price"
+            FROM "extranet"."RoomPrice"
+            WHERE "roomTypeId" IN ${idList}
+              AND "date">=$1::date AND "date"<$2::date
+            ORDER BY "date" ASC`,
+          start, end
+        );
       }
     }
 
-    // Build 'extranet' results
+    // Build indexes/min price map as before
+    const rtIndex = new Map<number, { id: number; name: string; maxGuests: number }>();
+    rts.forEach((rt: any) => rtIndex.set(Number(rt.id), { id: Number(rt.id), name: rt.name, maxGuests: Number(rt.maxGuests) }));
+
     const extranet: any[] = [];
+    const minPrice = new Map<string, { price: any; ratePlanId: number | null }>();
+    for (const p of prices) {
+      const key = `${Number(p.roomTypeId)}|${new Date(p.date).toISOString().slice(0, 10)}`;
+      const prev = minPrice.get(key);
+      if (!prev || Number(p.price) < Number(prev.price)) {
+        minPrice.set(key, { price: p.price, ratePlanId: p.ratePlanId ?? null });
+      }
+    }
     for (const iv of inv) {
-      const rtId = Number(iv.roomTypeId);
       const dateStr = new Date(iv.date).toISOString().slice(0, 10);
-      if (!days.includes(dateStr)) continue;
-      const rt = rtIndex.get(rtId);
+      const rt = rtIndex.get(Number(iv.roomTypeId));
       if (!rt) continue;
-      const mp = minPrice.get(`${rtId}|${dateStr}`);
-      if (!mp) continue; // only include if we have a price for that date
+      const mp = minPrice.get(`${Number(iv.roomTypeId)}|${dateStr}`);
+      if (!mp) continue;
       extranet.push({
         source: "direct",
         date: dateStr,
@@ -883,7 +868,7 @@ router.get("/uis/search", requirePartner, async (req, res) => {
       });
     }
 
-    /* ----------------------- PMS (mock via mappings) ---------------------- */
+/* ----------------------- PMS (mock via mappings) ---------------------- */
     let mappings: any[] = [];
     if (hasDelegates()) {
       mappings = await (db as any).pmsMapping.findMany({
