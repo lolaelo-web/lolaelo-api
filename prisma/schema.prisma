@@ -54,6 +54,9 @@ model Partner {
   ratePlans     RatePlan[]
   roomInventory RoomInventory[]
   roomPrices    RoomPrice[]
+
+  // PMS relations
+  pmsConnections PmsConnection[]
 }
 
 model ExtranetLoginCode {
@@ -174,27 +177,33 @@ model RoomType {
   partner   Partner         @relation(fields: [partnerId], references: [id], onDelete: Cascade)
   rates     RatePlan[]
   inventory RoomInventory[]
-  prices    RoomPrice[] // back-rel for RoomPrice.roomType
+  prices    RoomPrice[]
+
+  // PMS backrefs
+  pmsMappings PmsMapping[]
 
   @@unique([partnerId, name])
   @@index([partnerId])
 }
 
 model RatePlan {
-  id         Int      @id @default(autoincrement())
-  partnerId  Int
-  roomTypeId Int
-  name       String
+  id          Int      @id @default(autoincrement())
+  partnerId   Int
+  roomTypeId  Int
+  name        String
   exposeToUis Boolean  @default(true)
-  uisPriority  Int      @default(100)
-  policy     String?
-  priceDelta Decimal? @db.Decimal(10, 2)
-  createdAt  DateTime @default(now())
-  updatedAt  DateTime @updatedAt
+  uisPriority Int      @default(100)
+  policy      String?
+  priceDelta  Decimal? @db.Decimal(10, 2)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
 
-  roomType RoomType    @relation(fields: [roomTypeId], references: [id], onDelete: Cascade)
-  partner  Partner     @relation(fields: [partnerId], references: [id], onDelete: Cascade)
-  prices   RoomPrice[] // back-rel for RoomPrice.ratePlan
+  roomType RoomType @relation(fields: [roomTypeId], references: [id], onDelete: Cascade)
+  partner  Partner  @relation(fields: [partnerId], references: [id], onDelete: Cascade)
+  prices   RoomPrice[]
+
+  // PMS backrefs
+  pmsMappings PmsMapping[]
 
   @@unique([roomTypeId, name])
   @@index([partnerId])
@@ -235,4 +244,67 @@ model RoomPrice {
 
   @@unique([roomTypeId, ratePlanId, date])
   @@index([partnerId, date])
+}
+
+// -----------------------------
+// PMS integration (public schema)
+// -----------------------------
+model PmsConnection {
+  id             Int       @id @default(autoincrement())
+  partnerId      Int
+  provider       String
+  mode           String    @default("mock")     // mock | live
+  status         String    @default("TESTING")  // TESTING | CONNECTED | ERROR
+  scope          String?
+  accessToken    String?
+  refreshToken   String?
+  tokenExpiresAt DateTime?
+  lastSyncAt     DateTime?
+  createdAt      DateTime  @default(now())
+  updatedAt      DateTime  @updatedAt
+
+  partner   Partner     @relation(fields: [partnerId], references: [id], onDelete: Cascade)
+  mappings  PmsMapping[]
+  logs      SyncLog[]
+
+  @@unique([partnerId, provider])
+  @@index([partnerId])
+}
+
+model PmsMapping {
+  id               Int          @id @default(autoincrement())
+  pmsConnectionId  Int
+  remoteRoomId     String
+  remoteRatePlanId String?
+  localRoomTypeId  Int?
+  localRatePlanId  Int?
+  currency         String?
+  active           Boolean      @default(true)
+  createdAt        DateTime     @default(now())
+  updatedAt        DateTime     @updatedAt
+
+  connection PmsConnection @relation(fields: [pmsConnectionId], references: [id], onDelete: Cascade)
+  roomType   RoomType?     @relation(fields: [localRoomTypeId], references: [id])
+  ratePlan   RatePlan?     @relation(fields: [localRatePlanId], references: [id])
+
+  @@index([pmsConnectionId])
+  @@index([localRoomTypeId])
+  @@index([localRatePlanId])
+}
+
+model SyncLog {
+  id              Int           @id @default(autoincrement())
+  pmsConnectionId Int
+  type            String        // AUTH | AVAILABILITY | RATES | RESERVATIONS...
+  status          String        // SUCCESS | ERROR
+  message         String?
+  startedAt       DateTime?
+  finishedAt      DateTime?
+  durationMs      Int?
+  createdAt       DateTime      @default(now())
+  updatedAt       DateTime      @updatedAt
+
+  connection PmsConnection @relation(fields: [pmsConnectionId], references: [id], onDelete: Cascade)
+
+  @@index([pmsConnectionId])
 }
