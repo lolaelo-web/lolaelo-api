@@ -74,24 +74,29 @@
 
     // Try to show company/property name instead of partnerId (best-effort)
     async function loadOrgName(){
-      const candidates = [
-        '/extranet/property/profile',
-        '/extranet/property/__profile',
-        '/extranet/property/__debug',
-      ];
-      for (const path of candidates){
-        try {
-          const j = await apiGet(path);
-          const name = j?.companyName || j?.name || j?.propertyName || j?.property?.name || null;
-          if (name){ state.orgName = String(name); break; }
-        } catch(_){}
-      }
-      const label = state.orgName ? state.orgName : (state.whoami ? `partnerId=${state.whoami.partnerId}` : '—');
-      el('#orgLabel').textContent = label;
-      el('#orgLabel').title = state.orgName ? `Partner ${state.whoami?.partnerId}` : '';
+      // Allow manual override
+      const saved = localStorage.partnerOrgName;
+      if (saved) state.orgName = saved;
+      // Try common endpoints
+      const candidates = ['/extranet/property/profile','/extranet/property/__profile','/extranet/property/__debug'];
+      (async ()=>{
+        for (const path of candidates){
+          try{
+            const j = await apiGet(path);
+            const name = j?.companyName || j?.name || j?.propertyName || j?.property?.name || j?.profile?.name || null;
+            if (name){ state.orgName = String(name); break; }
+          }catch(_){/* ignore */}
+        }
+        const label = state.orgName ? state.orgName : (state.whoami ? `partnerId=${state.whoami.partnerId}` : '—');
+        el('#orgLabel').textContent = label;
+        el('#orgLabel').title = state.orgName ? `Partner ${state.whoami?.partnerId}` : '';
+      })();
     }
 
     async function loadConnections(){
+      state.connections = await apiGet('/extranet/pms/connections');
+      renderConnections();
+    }(){
       state.connections = await apiGet('/extranet/pms/connections');
       renderConnections();
     }
@@ -239,6 +244,14 @@
     }
 
     window.addEventListener('DOMContentLoaded', bootstrap);
+    window.editOrgName = function(){
+      const cur = state.orgName || '';
+      const v = prompt('Set display name for this partner/company:', cur);
+      if (v!==null){
+        const name = v.trim();
+        if (name){ localStorage.partnerOrgName = name; state.orgName = name; el('#orgLabel').textContent = name; }
+      }
+    };
     window.saveToken = saveToken;
     window.upsertConnection = upsertConnection;
     window.updateConnection = updateConnection;
@@ -272,7 +285,7 @@
     table { width:100%; border-collapse:collapse; table-layout: fixed; }
     th, td { border-bottom:1px solid var(--border); padding:8px; vertical-align:top; }
     th { text-align:left; color:var(--muted); font-weight:600; }
-    .card { border:1px solid var(--border); background:var(--card); border-radius:12px; padding:12px; }
+    .card { border:1px solid var(--border); background:var(--card); border-radius:12px; padding:12px; overflow-x:auto; }
     .grid { display:grid; grid-template-columns: 1fr; gap:14px; }
     @media (min-width: 960px){ .grid { grid-template-columns: 1fr 1fr; } }
     .muted { color:var(--muted); font-size:12px; }
@@ -286,16 +299,18 @@
     .btn-primary{ background:var(--primary); color:white; }
     .btn-primary:hover{ background:var(--primary-600); }
     .btn-secondary{ background:#475569; color:white; }
+    .btn-xs{ padding:4px 8px; font-size:12px; }
     .btn-danger{ background:var(--danger); color:white; }
 
     .token-col{ display:flex; flex-direction:column; gap:6px; }
     .token-col input{ width:100%; }
 
-    .actions-col{ display:flex; flex-direction:column; gap:6px; min-width: 140px; }
-    .actions-col .btn{ width:100%; }
+    .actions-col{ display:flex; gap:6px; flex-wrap:wrap; justify-content:flex-start; min-width: 160px; }
+    .actions-col .btn{ flex:1 1 90px; }
     @media (min-width: 1100px){ .actions-col{ flex-direction:row; } }
 
     #header { display:flex; align-items:center; justify-content:space-between; gap:12px; }
+    #orgLabel { font-weight:600; }
     #orgLabel { font-weight:600; }
   </style>
 </head>
@@ -303,14 +318,15 @@
   <div id="header" class="row">
     <h1>PMS Admin — Connections & Mappings</h1>
     <div class="row">
-      <span id="orgLabel" class="muted mono">—</span>
+      <span id="orgLabel" class="muted">—</span>
     </div>
+    <button class="btn btn-secondary btn-xs" onclick="editOrgName()">Edit name</button>
   </div>
 
   <div class="row" style="margin-top:6px;">
     <input id="partnerToken" type="password" placeholder="partner session token" style="width:360px"/>
     <button class="btn btn-primary" onclick="saveToken()">Set token</button>
-    <span id="whoami" class="muted mono">partnerId=—</span>
+    <span id="whoami" class="muted">&nbsp;</span>
   </div>
   <div id="status" class="status">Loading…</div>
 
