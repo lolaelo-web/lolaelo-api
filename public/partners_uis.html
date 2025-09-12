@@ -17,6 +17,7 @@
     body{ margin:0; background:var(--bg); color:var(--text);
       font:14px/1.4 system-ui,-apple-system,Segoe UI,Roboto,"Helvetica Neue",Arial; }
 
+    /* Header bar (same as rooms page) */
     header{ display:flex; gap:12px; align-items:center; padding:14px 18px; height:var(--header-h);
       border-bottom:1px solid var(--border); background:var(--panel); position:sticky; top:0; z-index:5; }
     header h1{ font-size:16px; margin:0; letter-spacing:.2px; }
@@ -24,6 +25,7 @@
     .header-actions{ display:flex; gap:8px; align-items:center; }
     .header-actions .note{ white-space:nowrap; }
 
+    /* Controls + layout */
     .wrap{ display:flex; flex-direction:column; min-height:calc(100vh - var(--header-h)); }
     .controls{ display:flex; flex-wrap:wrap; gap:8px; padding:10px;
       border-bottom:1px solid var(--border); background:var(--panel); align-items:center; }
@@ -33,15 +35,16 @@
       color:var(--text); padding:8px 10px; border-radius:8px; }
     .controls button.secondary{ background:transparent; border:1px solid var(--border); color:var(--text); }
 
+    /* Table */
     .content{ padding:12px; background:var(--panel-2); }
     table{ width:100%; border-collapse:separate; border-spacing:0; }
     thead th{ text-align:left; font-size:12px; color:var(--muted); padding:10px; border-bottom:1px solid var(--border); position:sticky; top:calc(var(--header-h) + 49px); background:var(--panel-2); }
     tbody td{ padding:10px; border-bottom:1px solid var(--border); font-variant-numeric:tabular-nums; }
-
     .badge{ display:inline-block; padding:2px 6px; border-radius:8px; font-size:11px; border:1px solid var(--border); background:var(--chip); color:var(--muted); }
     .badge.direct{ color:#84d6a2; }
     .badge.pms{ color:#86b5ff; }
 
+    /* Buttons (identical to rooms page) */
     button{ background:var(--brand); color:#fff; border:0; border-radius:8px; padding:8px 12px; cursor:pointer; }
     button.secondary{ background:transparent; border:1px solid var(--border); color:var(--text); }
     .btn-accent{ background:var(--accent); color:#0b0d12; }
@@ -52,6 +55,7 @@
     .note{ color:var(--muted); font-size:12px; }
     .ok{ color:var(--ok); } .warn{ color:var(--warn); } .error{ color:var(--err); }
 
+    /* Source chip inside table cell */
     .src-cell{ display:flex; align-items:center; gap:8px; }
   </style>
 </head>
@@ -67,6 +71,7 @@
     </div>
   </header>
 
+  <!-- Controls strip (dates, guests, Search) -->
   <div class="controls">
     <div class="group">
       <label>Check-in</label>
@@ -103,23 +108,31 @@
 
 <script>
 (() => {
+  // Copy of rooms page status helpers for consistency
   const statusEl = document.getElementById('status');
   const dirtyEl  = document.getElementById('dirty-count');
   const saveBtn  = document.getElementById('save');
+
   function setStatus(msg, cls=""){ statusEl.className="note "+cls; statusEl.textContent=msg; }
   function setSaved(){ dirtyEl.textContent = "No changes"; saveBtn.disabled = true; }
-  setSaved();
+  setSaved(); // UIS has nothing to persist
 
+  // Token: accept #token=... once, store as localStorage.partnerToken
   (function ensureToken(){
     const hash = new URLSearchParams(location.hash.slice(1));
     const t = hash.get('token');
     if (t) localStorage.setItem('partnerToken', t);
   })();
+
   const token =
     localStorage.getItem("partnerToken") ||
     localStorage.getItem("lolaelo_session") || "";
-  const H = token ? { "Authorization":"Bearer "+token, "x-partner-token":token } : {};
 
+  const H = token
+    ? { "Authorization":"Bearer "+token, "x-partner-token":token }
+    : {};
+
+  // Defaults similar to partners_uis prior behavior
   const startInp = document.getElementById('start');
   const endInp   = document.getElementById('end');
   const guestsInp= document.getElementById('guests');
@@ -127,12 +140,15 @@
 
   const todayISO = ()=>new Date().toISOString().slice(0,10);
   function addDaysISO(iso, n){ const d=new Date(iso+"T00:00:00Z"); d.setUTCDate(d.getUTCDate()+n); return d.toISOString().slice(0,10); }
+
+  // Initialize date inputs (3 nights window)
   const s0 = todayISO();
   const e0 = addDaysISO(s0, 3);
-  startInp.value ||= s0;
-  endInp.value   ||= e0;
+  startInp.value = startInp.value || s0;
+  endInp.value   = endInp.value   || e0;
 
   function money(v){ const n=Number(v); return Number.isFinite(n) ? "$"+n.toFixed(2) : ""; }
+
   function rowHtml(r){
     const src = (r.source||"").toLowerCase();
     const badgeCls = src === "pms" ? "badge pms" : "badge direct";
@@ -153,22 +169,36 @@
     const start = startInp.value;
     const end   = endInp.value;
     const guests= Math.max(1, parseInt(guestsInp.value||"2",10));
-    if (!start || !end || end <= start){ setStatus("Enter a valid date window (end must be after start).", "warn"); return; }
+
+    if (!start || !end || end <= start){
+      setStatus("Enter a valid date window (end must be after start).", "warn");
+      return;
+    }
     setStatus("Searching…");
+
     try{
+      // PMS mock should mirror Direct inventory when mappings exist
       const url = `/extranet/pms/uis/search?start=${encodeURIComponent(start)}&end=${encodeURIComponent(end)}&guests=${guests}`;
       const r = await fetch(url, { headers: H });
-      if (!r.ok){ setStatus(`Search failed (${r.status})`, "error"); return; }
+      if (!r.ok){
+        setStatus(`Search failed (${r.status})`, "error");
+        return;
+      }
       const x = await r.json();
       const rows = []
         .concat(Array.isArray(x.extranet) ? x.extranet : [])
         .concat(Array.isArray(x.pms) ? x.pms : []);
       rowsBody.innerHTML = rows.map(rowHtml).join("") || `<tr><td colspan="6" class="note">No results.</td></tr>`;
       setStatus(`Found ${rows.length} result${rows.length===1?"":"s"}.`, "ok");
-    }catch(e){ console.error(e); setStatus("Search error", "error"); }
+    }catch(e){
+      console.error(e);
+      setStatus("Search error", "error");
+    }
   }
 
   document.getElementById('search').addEventListener('click', runSearch);
+
+  // Auto-run once
   runSearch();
 })();
 </script>
