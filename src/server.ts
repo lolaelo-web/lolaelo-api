@@ -1,6 +1,7 @@
 // src/server.ts
 import "dotenv/config";
-import express from "express";
+import express 
+import { requireWriteToken } from './middleware/requireWriteToken';
 import cors from "cors";
 import path from "path";
 import { fileURLToPath } from "url";
@@ -174,4 +175,5 @@ if (process.env.NODE_ENV !== "test") {
 }
 
 export default app;
+
 
