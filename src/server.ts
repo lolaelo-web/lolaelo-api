@@ -1,4 +1,4 @@
-﻿// src/server.ts
+// src/server.ts
 import "dotenv/config";
 import express from "express";
 import cors from "cors";
@@ -174,3 +174,4 @@ if (process.env.NODE_ENV !== "test") {
 }
 
 export default app;
+
