@@ -1,3 +1,3 @@
-﻿-- Placeholder for '20250902095447_fix_propertydocument_fk'
+-- Placeholder for '20250902095447_fix_propertydocument_fk'
 -- This file exists so Prisma sees the same migration lineage as the database.
 -- The database already reflects the current schema (enforced via db push).

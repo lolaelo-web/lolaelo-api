@@ -1,3 +1,3 @@
-﻿-- Placeholder for '20250903010442_init_rooms_availability'
+-- Placeholder for '20250903010442_init_rooms_availability'
 -- This file exists so Prisma sees the same migration lineage as the database.
 -- The database already reflects the current schema (enforced via db push).
