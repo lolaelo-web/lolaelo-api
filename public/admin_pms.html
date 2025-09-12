@@ -1,404 +1,422 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="en">
 <head>
   <meta charset="utf-8" />
+  <title>Partners · PMS Connections & Mappings</title>
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>PMS Admin — Connections & Mappings</title>
-  <script>
-    // --- tiny helper: el() ---
-    const el = (sel, root=document) => root.querySelector(sel);
-    const els = (sel, root=document) => Array.from(root.querySelectorAll(sel));
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'><rect width='16' height='16' fill='%234f8cff'/></svg>" type="image/svg+xml">
 
-    // --- state ---
-    const state = {
-      token: localStorage.partnerToken || "",
-      whoami: null,
-      orgName: null,
-      connections: [],
-      mappings: [],
-    };
-
-    // --- HTTP helpers ---
-    function headers(json=true){
-      const h = { 'Authorization': 'Bearer ' + (state.token||''), 'x-partner-token': (state.token||'') };
-      if (json) h['Content-Type'] = 'application/json';
-      return h;
-    }
-    async function apiGet(path){
-      const r = await fetch(path, { headers: headers(false) });
-      if (!r.ok) throw new Error(await r.text());
-      return r.json();
-    }
-    async function apiJson(method, path, body){
-      const r = await fetch(path, { method, headers: headers(true), body: JSON.stringify(body||{}) });
-      if (!r.ok){
-        let msg = '';
-        try { msg = JSON.stringify(await r.json()); } catch { msg = await r.text(); }
-        throw new Error(msg || (r.status+':'+r.statusText));
-      }
-      try { return await r.json(); } catch { return {}; }
-    }
-
-    // --- UI helpers ---
-    function setStatus(text, kind='info'){
-      const box = el('#status');
-      box.textContent = text;
-      box.className = 'status ' + kind;
-    }
-    function fmtIso(dt){
-      if (!dt) return '';
-      try { return new Date(dt).toISOString().slice(0,19).replace('T',' '); } catch { return dt; }
-    }
-
-    // --- token & org controls ---
-    function loadTokenFromHash(){
-      const m = location.hash.match(/[#&]token=([^&]+)/);
-      if (m && m[1]){
-        state.token = decodeURIComponent(m[1]);
-        localStorage.partnerToken = state.token;
-      }
-      el('#partnerToken').value = state.token;
-    }
-    function saveToken(){
-      state.token = el('#partnerToken').value.trim();
-      if (!state.token){ setStatus('Token cleared. Set a valid token.', 'warn'); return; }
-      localStorage.partnerToken = state.token;
-      setStatus('Token saved to localStorage.','ok');
-      bootstrap();
-    }
-
-    async function loadWhoAmI(){
-      state.whoami = await apiGet('/extranet/pms/whoami');
-      el('#whoami').textContent = `partnerId=${state.whoami?.partnerId ?? '—'}`;
-    }
-
-    // Try to show company/property name instead of partnerId (best-effort)
-    async function loadOrgName(){
-      // Allow manual override
-      const saved = localStorage.partnerOrgName;
-      if (saved) state.orgName = saved;
-      // Try common endpoints
-      const candidates = ['/extranet/property/profile','/extranet/property/__profile','/extranet/property/__debug'];
-      (async ()=>{
-        for (const path of candidates){
-          try{
-            const j = await apiGet(path);
-            const name = j?.companyName || j?.name || j?.propertyName || j?.property?.name || j?.profile?.name || null;
-            if (name){ state.orgName = String(name); break; }
-          }catch(_){/* ignore */}
-        }
-        const label = state.orgName ? state.orgName : (state.whoami ? `partnerId=${state.whoami.partnerId}` : '—');
-        el('#orgLabel').textContent = label;
-        el('#orgLabel').title = state.orgName ? `Partner ${state.whoami?.partnerId}` : '';
-      })();
-    }
-
-    async function loadConnections(){
-      state.connections = await apiGet('/extranet/pms/connections');
-      renderConnections();
-    }(){
-      state.connections = await apiGet('/extranet/pms/connections');
-      renderConnections();
-    }
-    async function loadMappings(){
-      state.mappings = await apiGet('/extranet/pms/mappings');
-      renderMappings();
-    }
-
-    // --- actions: connections ---
-    async function upsertConnection(ev){
-      ev?.preventDefault();
-      const f = ev.target.closest('form');
-      const payload = {
-        provider: el('[name=provider]', f).value.trim() || 'CLOUDBEDS',
-        mode: el('[name=mode]', f).value.trim() || 'mock',
-        status: el('[name=status]', f).value.trim() || 'TESTING',
-        scope: el('[name=scope]', f).value.trim() || null,
-      };
-      const row = await apiJson('POST','/extranet/pms/connections', payload);
-      setStatus(`Connection upserted (id=${row.id}, status=${row.status}).`, 'ok');
-      await loadConnections();
-    }
-    async function updateConnection(id){
-      const rowEl = el(`[data-conn-id="${id}"]`);
-      const payload = {
-        mode: el('[data-f=mode]', rowEl).value.trim() || undefined,
-        status: el('[data-f=status]', rowEl).value.trim() || undefined,
-        scope: el('[data-f=scope]', rowEl).value.trim() || undefined,
-        accessToken: el('[data-f=accessToken]', rowEl).value || undefined,
-        refreshToken: el('[data-f=refreshToken]', rowEl).value || undefined,
-        tokenExpiresAt: el('[data-f=tokenExpiresAt]', rowEl).value || undefined,
-      };
-      const row = await apiJson('PATCH',`/extranet/pms/connections/${id}`, payload);
-      setStatus(`Connection ${id} updated (status=${row.status}).`, 'ok');
-      await loadConnections();
-    }
-    async function testConnection(id){
-      const r = await apiJson('POST',`/extranet/pms/connections/${id}/test`,{});
-      setStatus(`Test ${r.ok?'ok':'fail'} for connection ${id}.`, r.ok?'ok':'error');
-      await loadConnections();
-    }
-    async function deleteConnection(id){
-      if (!confirm(`Delete connection ${id}? This also removes mappings.`)) return;
-      await apiJson('DELETE',`/extranet/pms/connections/${id}`);
-      setStatus(`Connection ${id} deleted.`, 'ok');
-      await Promise.all([loadConnections(), loadMappings()]);
-    }
-
-    // --- actions: mappings ---
-    async function createMapping(ev){
-      ev?.preventDefault();
-      const f = ev.target.closest('form');
-      const payload = {
-        pmsConnectionId: Number(el('[name=pmsConnectionId]', f).value),
-        remoteRoomId: el('[name=remoteRoomId]', f).value.trim(),
-        remoteRatePlanId: el('[name=remoteRatePlanId]', f).value.trim() || null,
-        localRoomTypeId: Number(el('[name=localRoomTypeId]', f).value) || null,
-        localRatePlanId: Number(el('[name=localRatePlanId]', f).value) || null,
-        currency: el('[name=currency]', f).value.trim() || 'USD',
-        active: el('[name=active]', f).checked,
-      };
-      const row = await apiJson('POST','/extranet/pms/mappings', payload);
-      setStatus(`Mapping created (id=${row.id}).`, 'ok');
-      await loadMappings();
-    }
-    async function updateMapping(id){
-      const rowEl = el(`[data-map-id="${id}"]`);
-      const payload = {
-        localRoomTypeId: Number(el('[data-f=localRoomTypeId]', rowEl).value)||null,
-        localRatePlanId: Number(el('[data-f=localRatePlanId]', rowEl).value)||null,
-        currency: el('[data-f=currency]', rowEl).value.trim()||null,
-        active: el('[data-f=active]', rowEl).checked,
-      };
-      const row = await apiJson('PATCH',`/extranet/pms/mappings/${id}`, payload);
-      setStatus(`Mapping ${id} updated.`, 'ok');
-      await loadMappings();
-    }
-    async function deleteMapping(id){
-      if (!confirm(`Delete mapping ${id}?`)) return;
-      await apiJson('DELETE',`/extranet/pms/mappings/${id}`);
-      setStatus(`Mapping ${id} deleted.`, 'ok');
-      await loadMappings();
-    }
-
-    // --- renderers ---
-    function renderConnections(){
-      const tbody = el('#connRows');
-      tbody.innerHTML = '';
-      for (const c of state.connections){
-        const tr = document.createElement('tr');
-        tr.dataset.connId = String(c.id);
-        tr.innerHTML = `
-          <td class="mono">${c.id}</td>
-          <td>${c.provider}</td>
-          <td><input data-f="mode" value="${c.mode||''}"/></td>
-          <td><input data-f="status" value="${c.status||''}"/></td>
-          <td><input data-f="scope" value="${c.scope||''}"/></td>
-          <td>
-            <div class="token-col">
-              <input data-f="accessToken" type="password" placeholder="accessToken" />
-              <input data-f="refreshToken" type="password" placeholder="refreshToken" />
-              <input data-f="tokenExpiresAt" type="datetime-local" />
-            </div>
-          </td>
-          <td class="actions-col">
-            <button class="btn btn-primary" onclick="updateConnection(${c.id})">Save</button>
-            <button class="btn btn-secondary" onclick="testConnection(${c.id})">Test</button>
-            <button class="btn btn-danger" onclick="deleteConnection(${c.id})">Delete</button>
-          </td>`;
-        tbody.appendChild(tr);
-      }
-    }
-    function renderMappings(){
-      const tbody = el('#mapRows');
-      tbody.innerHTML = '';
-      for (const m of state.mappings){
-        const tr = document.createElement('tr');
-        tr.dataset.mapId = String(m.id);
-        tr.innerHTML = `
-          <td class="mono">${m.id}</td>
-          <td class="mono">${m.pmsConnectionId}</td>
-          <td class="mono">${m.remoteRoomId}</td>
-          <td><input data-f="localRoomTypeId" value="${m.localRoomTypeId??''}"/></td>
-          <td><input data-f="localRatePlanId" value="${m.localRatePlanId??''}"/></td>
-          <td><input data-f="currency" value="${m.currency||'USD'}"/></td>
-          <td><input data-f="active" type="checkbox" ${m.active?'checked':''}/></td>
-          <td class="actions-col">
-            <button class="btn btn-primary" onclick="updateMapping(${m.id})">Save</button>
-            <button class="btn btn-danger" onclick="deleteMapping(${m.id})">Delete</button>
-          </td>`;
-        tbody.appendChild(tr);
-      }
-    }
-
-    // --- bootstrap ---
-    async function bootstrap(){
-      try{
-        loadTokenFromHash();
-        if (!state.token){ setStatus('Set a partner token to begin.', 'warn'); return; }
-        await loadWhoAmI();
-        await loadOrgName();
-        await Promise.all([loadConnections(), loadMappings()]);
-        setStatus('Ready', 'ok');
-      }catch(e){ setStatus(String(e.message||e), 'error'); }
-    }
-
-    window.addEventListener('DOMContentLoaded', bootstrap);
-    window.editOrgName = function(){
-      const cur = state.orgName || '';
-      const v = prompt('Set display name for this partner/company:', cur);
-      if (v!==null){
-        const name = v.trim();
-        if (name){ localStorage.partnerOrgName = name; state.orgName = name; el('#orgLabel').textContent = name; }
-      }
-    };
-    window.saveToken = saveToken;
-    window.upsertConnection = upsertConnection;
-    window.updateConnection = updateConnection;
-    window.testConnection = testConnection;
-    window.deleteConnection = deleteConnection;
-    window.createMapping = createMapping;
-    window.updateMapping = updateMapping;
-    window.deleteMapping = deleteMapping;
-  </script>
   <style>
     :root{
-      --bg: #0f172a;          /* slate-900 like UIS */
-      --card: #111827;        /* gray-900 */
-      --text: #e5e7eb;        /* gray-200 */
-      --muted: #94a3b8;       /* slate-400 */
-      --border: #1f2937;      /* gray-800 */
-      --primary: #3b82f6;     /* blue-500 */
-      --primary-600: #2563eb; /* blue-600 */
-      --danger: #ef4444;      /* red-500 */
-      --ok: #22c55e;          /* green-500 */
-      --warn: #f59e0b;        /* amber-500 */
-      --input: #0b1222;       /* near bg */
+      --bg:#0b0d12; --panel:#121621; --panel-2:#161b28; --text:#e7ecf3; --muted:#98a3b3;
+      --brand:#4f8cff; --accent:#ffb86b; --ok:#2ecc71; --warn:#f39c12; --err:#e74c3c;
+      --border:#222a3a; --chip:#1e2536; --header-h:56px;
     }
-    *{ box-sizing:border-box }
-    body { background:var(--bg); color:var(--text); font-family: system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif; margin: 20px; }
-    h1 { font-size: 18px; margin:0 0 10px; }
-    h2 { font-size: 15px; margin:14px 0 10px; }
-    .row { display:flex; gap:10px; align-items:center; flex-wrap:wrap; }
-    input, button, select { padding:8px 10px; border:1px solid var(--border); border-radius:8px; font-size:14px; color:var(--text); background:var(--input); }
-    input::placeholder{ color:var(--muted) }
-    table { width:100%; border-collapse:collapse; table-layout: fixed; }
-    th, td { border-bottom:1px solid var(--border); padding:8px; vertical-align:top; }
-    th { text-align:left; color:var(--muted); font-weight:600; }
-    .card { border:1px solid var(--border); background:var(--card); border-radius:12px; padding:12px; overflow-x:auto; }
-    .grid { display:grid; grid-template-columns: 1fr; gap:14px; }
-    @media (min-width: 960px){ .grid { grid-template-columns: 1fr 1fr; } }
-    .muted { color:var(--muted); font-size:12px; }
-    .mono { font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; }
-    .status { margin-top:12px; padding:8px 10px; border-radius:8px; display:inline-block; background:var(--border); }
-    .status.ok { background: rgba(34,197,94,0.15); color:#bbf7d0; }
-    .status.warn { background: rgba(245,158,11,0.15); color:#fde68a; }
-    .status.error { background: rgba(239,68,68,0.15); color:#fecaca; }
+    *{ box-sizing:border-box; }
+    body{ margin:0; background:var(--bg); color:var(--text);
+      font:14px/1.4 system-ui,-apple-system,Segoe UI,Roboto,"Helvetica Neue",Arial; }
 
-    .btn{ cursor:pointer; border:none; border-radius:8px; padding:8px 10px; font-weight:600; }
-    .btn-primary{ background:var(--primary); color:white; }
-    .btn-primary:hover{ background:var(--primary-600); }
-    .btn-secondary{ background:#475569; color:white; }
-    .btn-xs{ padding:4px 8px; font-size:12px; }
-    .btn-danger{ background:var(--danger); color:white; }
+    header{ display:flex; gap:12px; align-items:center; padding:14px 18px; height:var(--header-h);
+      border-bottom:1px solid var(--border); background:var(--panel); position:sticky; top:0; z-index:5; }
+    header h1{ font-size:16px; margin:0; letter-spacing:.2px; }
+    .spacer{ flex:1; }
+    .header-actions{ display:flex; gap:8px; align-items:center; }
+    .header-actions .note{ white-space:nowrap; }
+    button{ background:var(--brand); color:#fff; border:0; border-radius:8px; padding:8px 12px; cursor:pointer; }
+    button.secondary{ background:transparent; border:1px solid var(--border); color:var(--text); }
+    .btn-accent{ background:var(--accent); color:#0b0d12; }
+    .btn-accent:hover{ filter:brightness(1.05); }
+    #save{ background:var(--accent); color:#0b0d12; }
+    #save:disabled{ opacity:.6; cursor:not-allowed; }
 
-    .token-col{ display:flex; flex-direction:column; gap:6px; }
-    .token-col input{ width:100%; }
+    .note{ color:var(--muted); font-size:12px; }
+    .ok{ color:var(--ok); } .warn{ color:var(--warn); } .error{ color:var(--err); }
 
-    .actions-col{ display:flex; gap:6px; flex-wrap:wrap; justify-content:flex-start; min-width: 160px; }
-    .actions-col .btn{ flex:1 1 90px; }
-    @media (min-width: 1100px){ .actions-col{ flex-direction:row; } }
+    .wrap{ padding:12px; display:grid; gap:12px; background:var(--panel-2); }
 
-    #header { display:flex; align-items:center; justify-content:space-between; gap:12px; }
-    #orgLabel { font-weight:600; }
-    #orgLabel { font-weight:600; }
+    .card{ border:1px solid var(--border); border-radius:10px; background:var(--panel); }
+    .card header{ background:transparent; border-bottom:1px solid var(--border); height:auto; padding:10px 12px; position:static; }
+    .card h3{ font-size:14px; margin:0; }
+    .card .body{ padding:12px; display:grid; gap:10px; }
+    .card .footer{ display:flex; gap:8px; padding:10px 12px; border-top:1px solid var(--border); }
+    .left-actions{ justify-content:flex-start; }
+
+    .row{ display:flex; gap:8px; flex-wrap:wrap; }
+    .row input,.row select{ background:var(--chip); border:1px solid var(--border); color:var(--text); padding:8px 10px; border-radius:8px; }
+    .row label{ color:var(--muted); font-size:12px; }
+
+    table{ width:100%; border-collapse:separate; border-spacing:0; }
+    thead th{ text-align:left; font-size:12px; color:var(--muted); padding:10px; border-bottom:1px solid var(--border); }
+    tbody td{ padding:10px; border-bottom:1px solid var(--border); vertical-align:middle; }
+    td.actions{ white-space:nowrap; }
+
+    .token-wrap{ display:flex; align-items:center; gap:8px; }
+    .eye{ cursor:pointer; user-select:none; border:1px solid var(--border); background:var(--chip);
+      padding:6px 8px; border-radius:8px; font-size:12px; }
+    .pill{ display:inline-block; padding:2px 8px; border-radius:999px; background:var(--chip); border:1px solid var(--border); color:var(--muted); font-size:12px; }
   </style>
 </head>
 <body>
-  <div id="header" class="row">
+  <header>
     <h1>PMS Admin — Connections & Mappings</h1>
-    <div class="row">
-      <span id="orgLabel" class="muted">—</span>
+    <div class="spacer"></div>
+    <div class="header-actions">
+      <span id="status" class="note">Ready.</span>
+      <span id="dirty" class="note">No changes</span>
+      <button id="save" disabled>Save changes</button>
+      <button class="secondary" onclick="location.href='/partners_app.html'">Back to menu</button>
     </div>
-    <button class="btn btn-secondary btn-xs" onclick="editOrgName()">Edit name</button>
-  </div>
+  </header>
 
-  <div class="row" style="margin-top:6px;">
-    <input id="partnerToken" type="password" placeholder="partner session token" style="width:360px"/>
-    <button class="btn btn-primary" onclick="saveToken()">Set token</button>
-    <span id="whoami" class="muted">&nbsp;</span>
-  </div>
-  <div id="status" class="status">Loading…</div>
-
-  <div class="grid" style="margin-top:16px;">
+  <div class="wrap">
+    <!-- Token + partner label -->
     <div class="card">
-      <h2>Create / Upsert Connection</h2>
-      <form onsubmit="upsertConnection(event)">
-        <div class="row" style="margin-bottom:8px;">
-          <input name="provider" placeholder="provider (e.g. CLOUDBEDS)" style="width:200px"/>
-          <input name="mode" placeholder="mode (mock|live)" style="width:120px"/>
-          <input name="status" placeholder="status (TESTING|CONNECTED|ERROR)" style="width:220px"/>
-          <input name="scope" placeholder="scope (optional)" style="width:240px"/>
-          <button class="btn btn-primary" type="submit">Upsert</button>
+      <header><h3>Partner session</h3></header>
+      <div class="body">
+        <div class="row">
+          <div class="token-wrap">
+            <input id="token" placeholder="partner session token" style="min-width:320px" />
+            <button class="eye" id="eye" type="button">👁</button>
+            <button class="btn-accent" id="set-token" type="button">Set token</button>
+            <span id="partner-label" class="pill">partnerId=?</span>
+          </div>
         </div>
-        <div class="muted">Use the table below to set access/refresh tokens and expiry, then Save + Test.</div>
-      </form>
+      </div>
+      <div class="footer left-actions">
+        <span class="note">Tip: pass once via <code style="background:var(--chip); padding:2px 6px; border-radius:6px;">#token=&lt;value&gt;</code>. Stored as <code style="background:var(--chip); padding:2px 6px; border-radius:6px;">localStorage.partnerToken</code>.</span>
+      </div>
     </div>
 
+    <!-- Create / Upsert Connection -->
     <div class="card">
-      <h2>Create Mapping</h2>
-      <form onsubmit="createMapping(event)">
-        <div class="row" style="margin-bottom:8px;">
-          <input name="pmsConnectionId" placeholder="pmsConnectionId" style="width:140px"/>
-          <input name="remoteRoomId" placeholder="remoteRoomId (e.g. R101)" style="width:180px"/>
-          <input name="remoteRatePlanId" placeholder="remoteRatePlanId (e.g. BAR)" style="width:180px"/>
-          <input name="localRoomTypeId" placeholder="localRoomTypeId" style="width:140px"/>
-          <input name="localRatePlanId" placeholder="localRatePlanId (optional)" style="width:170px"/>
-          <input name="currency" placeholder="currency (USD)" style="width:120px"/>
-          <label class="row" style="gap:6px"><input name="active" type="checkbox" checked/> active</label>
-          <button class="btn btn-primary" type="submit">Create</button>
+      <header><h3>Create / Upsert Connection</h3></header>
+      <div class="body">
+        <div class="row">
+          <input id="provider" placeholder="provider (e.g. CLOUDBEDS)" />
+          <input id="mode" placeholder="mode (mock|live)" />
+          <input id="status-in" placeholder="status (TESTING|CONNECTED)" />
+          <input id="scope" placeholder="scope (optional)" />
         </div>
-      </form>
+      </div>
+      <div class="footer left-actions">
+        <button id="upsert" class="btn-accent" type="button">Upsert</button>
+      </div>
+    </div>
+
+    <!-- Create Mapping -->
+    <div class="card">
+      <header><h3>Create Mapping</h3></header>
+      <div class="body">
+        <div class="row">
+          <input id="map-conn" placeholder="pmsConnectionId" style="width:160px" />
+          <input id="map-remote-room" placeholder="remoteRoomId (e.g. R101)" />
+          <input id="map-remote-rp" placeholder="remoteRatePlanId (e.g. BAR)" />
+          <input id="map-local-rt" placeholder="localRoomTypeId" style="width:160px" />
+          <input id="map-local-rp" placeholder="localRatePlanId (optional)" />
+          <input id="map-currency" placeholder="currency (USD)" style="width:140px" />
+          <label><input type="checkbox" id="map-active" checked /> active</label>
+        </div>
+      </div>
+      <div class="footer left-actions">
+        <button id="create-map" class="btn-accent" type="button">Create</button>
+      </div>
+    </div>
+
+    <!-- Connections table -->
+    <div class="card">
+      <header><h3>Connections</h3></header>
+      <div class="body">
+        <table id="conn-table">
+          <thead>
+            <tr>
+              <th style="width:60px;">id</th>
+              <th>provider</th>
+              <th>mode</th>
+              <th>status</th>
+              <th>scope</th>
+              <th style="width:220px;">accessToken</th>
+              <th style="width:220px;">refreshToken</th>
+              <th style="width:180px;">expiresAt</th>
+              <th class="actions" style="width:220px;">actions</th>
+            </tr>
+          </thead>
+          <tbody id="conn-rows"></tbody>
+        </table>
+      </div>
+      <div class="footer left-actions">
+        <span class="note">Use Save to persist tokens, then Test to validate connectivity.</span>
+      </div>
+    </div>
+
+    <!-- Mappings table -->
+    <div class="card">
+      <header><h3>Mappings</h3></header>
+      <div class="body">
+        <table id="map-table">
+          <thead>
+            <tr>
+              <th style="width:60px;">id</th>
+              <th style="width:80px;">conn</th>
+              <th style="width:140px;">remote</th>
+              <th style="width:120px;">local RT</th>
+              <th style="width:120px;">local RP</th>
+              <th style="width:120px;">currency</th>
+              <th style="width:80px;">active</th>
+              <th class="actions" style="width:160px;">actions</th>
+            </tr>
+          </thead>
+          <tbody id="map-rows"></tbody>
+        </table>
+      </div>
+      <div class="footer left-actions">
+        <span class="note">PMS mock mirrors Direct inventory for mapped local room types inside the query window.</span>
+      </div>
     </div>
   </div>
 
-  <div class="card" style="margin-top:16px;">
-    <h2>Connections</h2>
-    <table>
-      <thead>
-        <tr>
-          <th style="width:60px">id</th>
-          <th style="width:150px">provider</th>
-          <th style="width:120px">mode</th>
-          <th style="width:150px">status</th>
-          <th>scope</th>
-          <th style="width:420px">tokens</th>
-          <th style="width:160px">actions</th>
-        </tr>
-      </thead>
-      <tbody id="connRows"></tbody>
-    </table>
-  </div>
+<script>
+(() => {
+  // Status/dirty
+  const statusEl = document.getElementById('status');
+  const dirtyEl  = document.getElementById('dirty');
+  const saveBtn  = document.getElementById('save');
+  function setStatus(msg, cls=""){ statusEl.className="note "+cls; statusEl.textContent=msg; }
+  function setSaved(){ dirtyEl.textContent="No changes"; saveBtn.disabled=true; }
+  function setDirty(){ dirtyEl.textContent="Unsaved changes"; saveBtn.disabled=false; }
+  setSaved();
 
-  <div class="card" style="margin-top:16px;">
-    <h2>Mappings</h2>
-    <table>
-      <thead>
-        <tr>
-          <th style="width:60px">id</th>
-          <th style="width:80px">conn</th>
-          <th style="width:140px">remote</th>
-          <th style="width:140px">local RT</th>
-          <th style="width:140px">local RP</th>
-          <th style="width:120px">currency</th>
-          <th style="width:90px">active</th>
-          <th style="width:160px">actions</th>
-        </tr>
-      </thead>
-      <tbody id="mapRows"></tbody>
-    </table>
-  </div>
+  // Token handling + whoami + profile label
+  (function ensureToken(){
+    const hash = new URLSearchParams(location.hash.slice(1));
+    const t = hash.get('token');
+    if (t) localStorage.setItem('partnerToken', t);
+  })();
+  const tokenInput = document.getElementById('token');
+  const eyeBtn     = document.getElementById('eye');
+  const setTokenBtn= document.getElementById('set-token');
+  const partnerLbl = document.getElementById('partner-label');
 
-  <p class="muted" style="margin-top:14px;">Secrets aren’t logged. Token is read from <span class="mono">#token</span> once and stored in <span class="mono">localStorage.partnerToken</span>.</p>
+  // Initialize token field with masked value length
+  const storedToken = localStorage.getItem('partnerToken') || '';
+  tokenInput.value = storedToken ? '•'.repeat(Math.min(storedToken.length, 24)) : '';
+  tokenInput.dataset.masked = '1';
+
+  eyeBtn.addEventListener('click', () => {
+    if (!storedToken) return;
+    const masked = tokenInput.dataset.masked === '1';
+    tokenInput.value = masked ? storedToken : '•'.repeat(Math.min(storedToken.length, 24));
+    tokenInput.dataset.masked = masked ? '0' : '1';
+  });
+
+  setTokenBtn.addEventListener('click', ()=>{
+    const raw = prompt("Paste your partner session token:") || "";
+    if (!raw.trim()) return;
+    localStorage.setItem('partnerToken', raw.trim());
+    tokenInput.value = '•'.repeat(Math.min(raw.length, 24));
+    tokenInput.dataset.masked = '1';
+    initAuth().then(()=>refreshAll());
+  });
+
+  function authHeaders(){
+    const t =
+      localStorage.getItem("partnerToken") ||
+      localStorage.getItem("lolaelo_session") || "";
+    return t ? { "Authorization":"Bearer "+t, "x-partner-token":t } : {};
+  }
+
+  async function initAuth(){
+    try{
+      const w = await fetch('/extranet/pms/whoami', { headers: authHeaders() });
+      if (w.ok){
+        const js = await w.json();
+        const pid = js.partnerId ?? '?';
+        partnerLbl.textContent = `partnerId=${pid}`;
+        // Try to fetch company name
+        try{
+          const prof = await fetch('/extranet/property/profile', { headers: authHeaders() });
+          if (prof.ok){
+            const pjs = await prof.json();
+            if (pjs?.name) partnerLbl.textContent = `${pjs.name} · partnerId=${pid}`;
+          }
+        }catch{}
+      }else{
+        partnerLbl.textContent = 'partnerId=?';
+      }
+    }catch{
+      partnerLbl.textContent = 'partnerId=?';
+    }
+  }
+
+  // Upsert connection
+  document.getElementById('upsert').addEventListener('click', async ()=>{
+    const body = {
+      provider: (document.getElementById('provider').value||'CLOUDBEDS').trim(),
+      mode: (document.getElementById('mode').value||'mock').trim(),
+      status: (document.getElementById('status-in').value||'TESTING').trim(),
+      scope: (document.getElementById('scope').value||null)
+    };
+    setStatus('Upserting…');
+    const r = await fetch('/extranet/pms/connections', {
+      method:'POST',
+      headers: { 'Content-Type':'application/json', ...authHeaders() },
+      body: JSON.stringify(body)
+    });
+    if (!r.ok){ setStatus(`Upsert failed (${r.status})`,'error'); return; }
+    setStatus('Connection upserted.','ok'); await loadConnections();
+  });
+
+  // Create mapping
+  document.getElementById('create-map').addEventListener('click', async ()=>{
+    const body = {
+      pmsConnectionId: Number(document.getElementById('map-conn').value||0),
+      remoteRoomId: (document.getElementById('map-remote-room').value||'').trim(),
+      remoteRatePlanId: (document.getElementById('map-remote-rp').value||'').trim() || null,
+      localRoomTypeId: Number(document.getElementById('map-local-rt').value||0) || null,
+      localRatePlanId: Number(document.getElementById('map-local-rp').value||0) || null,
+      currency: (document.getElementById('map-currency').value||'USD').trim(),
+      active: !!document.getElementById('map-active').checked
+    };
+    if (!body.pmsConnectionId || !body.remoteRoomId){ setStatus('Provide connection id and remoteRoomId','warn'); return; }
+    setStatus('Creating mapping…');
+    const r = await fetch('/extranet/pms/mappings', {
+      method:'POST',
+      headers: { 'Content-Type':'application/json', ...authHeaders() },
+      body: JSON.stringify(body)
+    });
+    if (!r.ok){ setStatus(`Create mapping failed (${r.status})`,'error'); return; }
+    setStatus('Mapping created.','ok'); await loadMappings();
+  });
+
+  // Tables render
+  const connRows = document.getElementById('conn-rows');
+  const mapRows  = document.getElementById('map-rows');
+
+  async function loadConnections(){
+    const r = await fetch('/extranet/pms/connections', { headers: authHeaders() });
+    if (!r.ok){ setStatus(`Load connections failed (${r.status})`,'error'); return; }
+    const rows = await r.json();
+    connRows.innerHTML = rows.map(c => `
+      <tr data-id="${c.id}">
+        <td>${c.id}</td>
+        <td>${c.provider}</td>
+        <td><input value="${c.mode??''}" data-k="mode" /></td>
+        <td><input value="${c.status??''}" data-k="status" /></td>
+        <td><input value="${c.scope??''}" data-k="scope" /></td>
+        <td><input value="${c.accessToken??''}" data-k="accessToken" /></td>
+        <td><input value="${c.refreshToken??''}" data-k="refreshToken" /></td>
+        <td><input type="datetime-local" value="${toLocalDT(c.tokenExpiresAt)}" data-k="tokenExpiresAt" /></td>
+        <td class="actions">
+          <button class="btn-accent" data-act="save">Save</button>
+          <button class="secondary" data-act="test">Test</button>
+          <button class="secondary" data-act="del">Delete</button>
+        </td>
+      </tr>
+    `).join('') || `<tr><td colspan="9" class="note">No connections.</td></tr>`;
+  }
+
+  async function loadMappings(){
+    const r = await fetch('/extranet/pms/mappings', { headers: authHeaders() });
+    if (!r.ok){ setStatus(`Load mappings failed (${r.status})`,'error'); return; }
+    const rows = await r.json();
+    mapRows.innerHTML = rows.map(m => `
+      <tr data-id="${m.id}">
+        <td>${m.id}</td>
+        <td>${m.pmsConnectionId}</td>
+        <td>${esc(m.remoteRoomId)}${m.remoteRatePlanId?` · ${esc(m.remoteRatePlanId)}`:''}</td>
+        <td><input value="${m.localRoomTypeId??''}" data-k="localRoomTypeId" /></td>
+        <td><input value="${m.localRatePlanId??''}" data-k="localRatePlanId" /></td>
+        <td><input value="${m.currency??'USD'}" data-k="currency" /></td>
+        <td><input type="checkbox" ${m.active?'checked':''} data-k="active" /></td>
+        <td class="actions">
+          <button class="btn-accent" data-act="save">Save</button>
+          <button class="secondary" data-act="del">Delete</button>
+        </td>
+      </tr>
+    `).join('') || `<tr><td colspan="8" class="note">No mappings.</td></tr>`;
+  }
+
+  // Helpers
+  function esc(s){ return String(s??'').replace(/[&<>"]/g, c=>({ '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;' }[c])); }
+  function toLocalDT(v){
+    if (!v) return '';
+    const d = new Date(v);
+    if (isNaN(d)) return '';
+    const pad = n=>String(n).padStart(2,'0');
+    return `${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`;
+  }
+
+  // Connections row actions
+  connRows.addEventListener('click', async (e)=>{
+    const btn = e.target.closest('button'); if (!btn) return;
+    const tr = btn.closest('tr'); const id = Number(tr.dataset.id);
+    if (btn.dataset.act === 'save'){
+      const payload = pickInputs(tr, ['mode','status','scope','accessToken','refreshToken','tokenExpiresAt']);
+      setStatus('Saving connection…');
+      const r = await fetch(`/extranet/pms/connections/${id}`, {
+        method:'PATCH',
+        headers: { 'Content-Type':'application/json', ...authHeaders() },
+        body: JSON.stringify(payload)
+      });
+      if (!r.ok){ setStatus(`Save failed (${r.status})`,'error'); return; }
+      setStatus('Saved.','ok'); setSaved(); await loadConnections();
+    } else if (btn.dataset.act === 'test'){
+      setStatus('Testing…');
+      const r = await fetch(`/extranet/pms/connections/${id}/test`, { method:'POST', headers: authHeaders() });
+      if (!r.ok){ setStatus(`Test failed (${r.status})`,'error'); return; }
+      setStatus('Test success.','ok'); await loadConnections();
+    } else if (btn.dataset.act === 'del'){
+      if (!confirm('Delete this connection (and its mappings)?')) return;
+      setStatus('Deleting…');
+      const r = await fetch(`/extranet/pms/connections/${id}`, { method:'DELETE', headers: authHeaders() });
+      if (!r.ok){ setStatus(`Delete failed (${r.status})`,'error'); return; }
+      setStatus('Deleted.','ok'); await refreshAll();
+    }
+  });
+
+  // Mappings row actions
+  mapRows.addEventListener('click', async (e)=>{
+    const btn = e.target.closest('button'); if (!btn) return;
+    const tr = btn.closest('tr'); const id = Number(tr.dataset.id);
+    if (btn.dataset.act === 'save'){
+      const payload = pickInputs(tr, ['localRoomTypeId','localRatePlanId','currency','active']);
+      setStatus('Saving mapping…');
+      const r = await fetch(`/extranet/pms/mappings/${id}`, {
+        method:'PATCH',
+        headers: { 'Content-Type':'application/json', ...authHeaders() },
+        body: JSON.stringify(payload)
+      });
+      if (!r.ok){ setStatus(`Save failed (${r.status})`,'error'); return; }
+      setStatus('Saved.','ok'); setSaved(); await loadMappings();
+    } else if (btn.dataset.act === 'del'){
+      if (!confirm('Delete this mapping?')) return;
+      setStatus('Deleting…');
+      const r = await fetch(`/extranet/pms/mappings/${id}`, { method:'DELETE', headers: authHeaders() });
+      if (!r.ok){ setStatus(`Delete failed (${r.status})`,'error'); return; }
+      setStatus('Deleted.','ok'); await loadMappings();
+    }
+  });
+
+  function pickInputs(tr, keys){
+    const obj = {};
+    keys.forEach(k=>{
+      const el = tr.querySelector(`[data-k="${k}"]`);
+      if (!el) return;
+      if (el.type === 'checkbox') obj[k] = !!el.checked;
+      else obj[k] = el.value || null;
+    });
+    return obj;
+  }
+
+  saveBtn.addEventListener('click', ()=>{}); // present for consistency; row-level saves handle changes
+  ['input','change'].forEach(evt=>{
+    document.body.addEventListener(evt, (e)=>{
+      if (e.target.closest('#conn-table') || e.target.closest('#map-table')) setDirty();
+    }, true);
+  });
+
+  async function refreshAll(){ await Promise.all([loadConnections(), loadMappings(), initAuth()]); }
+  initAuth().then(()=>refreshAll());
+})();
+</script>
 </body>
 </html>

@@ -2,9 +2,11 @@
 <html lang="en">
 <head>
   <meta charset="utf-8" />
-  <title>Partners · UIS Search</title>
+  <title>Partners · Unified Inventory Search (UIS)</title>
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'><rect width='16' height='16' fill='%234f8cff'/></svg>" type="image/svg+xml">
+
+  <!-- Style system copied from partners_rooms.html for pixel-consistent UI -->
   <style>
     :root{
       --bg:#0b0d12; --panel:#121621; --panel-2:#161b28; --text:#e7ecf3; --muted:#98a3b3;
@@ -12,27 +14,45 @@
       --border:#222a3a; --chip:#1e2536; --header-h:56px;
     }
     *{ box-sizing:border-box; }
-    body{ margin:0; background:var(--bg); color:var(--text); font:14px/1.4 system-ui,-apple-system,Segoe UI,Roboto,"Helvetica Neue",Arial; }
+    body{ margin:0; background:var(--bg); color:var(--text);
+      font:14px/1.4 system-ui,-apple-system,Segoe UI,Roboto,"Helvetica Neue",Arial; }
+
     header{ display:flex; gap:12px; align-items:center; padding:14px 18px; height:var(--header-h);
       border-bottom:1px solid var(--border); background:var(--panel); position:sticky; top:0; z-index:5; }
     header h1{ font-size:16px; margin:0; letter-spacing:.2px; }
     .spacer{ flex:1; }
     .header-actions{ display:flex; gap:8px; align-items:center; }
+    .header-actions .note{ white-space:nowrap; }
+
+    .wrap{ display:flex; flex-direction:column; min-height:calc(100vh - var(--header-h)); }
+    .controls{ display:flex; flex-wrap:wrap; gap:8px; padding:10px;
+      border-bottom:1px solid var(--border); background:var(--panel); align-items:center; }
+    .controls .group{ display:flex; gap:6px; align-items:center; }
+    .controls .group label{ color:var(--muted); font-size:12px; }
+    .controls input,.controls select{ background:var(--chip); border:1px solid var(--border);
+      color:var(--text); padding:8px 10px; border-radius:8px; }
+    .controls button.secondary{ background:transparent; border:1px solid var(--border); color:var(--text); }
+
+    .content{ padding:12px; background:var(--panel-2); }
+    table{ width:100%; border-collapse:separate; border-spacing:0; }
+    thead th{ text-align:left; font-size:12px; color:var(--muted); padding:10px; border-bottom:1px solid var(--border); position:sticky; top:calc(var(--header-h) + 49px); background:var(--panel-2); }
+    tbody td{ padding:10px; border-bottom:1px solid var(--border); font-variant-numeric:tabular-nums; }
+
+    .badge{ display:inline-block; padding:2px 6px; border-radius:8px; font-size:11px; border:1px solid var(--border); background:var(--chip); color:var(--muted); }
+    .badge.direct{ color:#84d6a2; }
+    .badge.pms{ color:#86b5ff; }
+
+    button{ background:var(--brand); color:#fff; border:0; border-radius:8px; padding:8px 12px; cursor:pointer; }
+    button.secondary{ background:transparent; border:1px solid var(--border); color:var(--text); }
+    .btn-accent{ background:var(--accent); color:#0b0d12; }
+    .btn-accent:hover{ filter:brightness(1.05); }
+    #save{ background:var(--accent); color:#0b0d12; }
+    #save:disabled{ opacity:.6; cursor:not-allowed; }
+
     .note{ color:var(--muted); font-size:12px; }
-    .btn{ background:var(--brand); color:#fff; border:0; border-radius:8px; padding:8px 12px; cursor:pointer; }
-    .btn.secondary{ background:transparent; border:1px solid var(--border); color:var(--text); }
-    main{ padding:14px; display:grid; gap:12px; }
-    .panel{ background:var(--panel-2); border:1px solid var(--border); border-radius:12px; padding:12px; }
-    .form{ display:flex; flex-wrap:wrap; gap:10px; align-items:end; }
-    .form .field{ display:grid; gap:6px; }
-    .form label{ color:var(--muted); font-size:12px; }
-    .form input{ background:var(--chip); border:1px solid var(--border); color:var(--text); padding:9px 10px; border-radius:8px; }
-    .grid{ overflow:auto; max-height:65vh; }
-    table{ width:100%; border-collapse:collapse; font-size:13px; }
-    th, td{ padding:8px 10px; border-bottom:1px solid var(--border); white-space:nowrap; }
-    th{ text-align:left; color:var(--muted); position:sticky; top:0; background:var(--panel); }
-    .tag{ display:inline-block; padding:2px 6px; border-radius:999px; font-size:11px; background:var(--chip); border:1px solid var(--border); color:var(--muted); }
-    .ok{ color:var(--ok); } .warn{ color:var(--warn); } .err{ color:var(--err); }
+    .ok{ color:var(--ok); } .warn{ color:var(--warn); } .error{ color:var(--err); }
+
+    .src-cell{ display:flex; align-items:center; gap:8px; }
   </style>
 </head>
 <body>
@@ -41,125 +61,115 @@
     <div class="spacer"></div>
     <div class="header-actions">
       <span id="status" class="note">Ready.</span>
-      <button class="btn secondary" onclick="location.href='/partners_app.html'">Back to menu</button>
+      <span id="dirty-count" class="note">No changes</span>
+      <button id="save" disabled>Save changes</button>
+      <button id="back" class="secondary" onclick="location.href='/partners_app.html'">Back to menu</button>
     </div>
   </header>
 
-  <main>
-    <section class="panel">
-      <form id="qform" class="form">
-        <div class="field">
-          <label>Check-in</label>
-          <input id="start" type="date" required />
-        </div>
-        <div class="field">
-          <label>Check-out</label>
-          <input id="end" type="date" required />
-        </div>
-        <div class="field">
-          <label>Guests</label>
-          <input id="guests" type="number" min="1" step="1" value="2" required />
-        </div>
-        <button id="go" class="btn" type="submit">Search</button>
-      </form>
-      <div class="note" id="hint">Tip: token can be passed with <code>#token=&lt;value&gt;</code>. Stored as <code>partnerToken</code>.</div>
-    </section>
+  <div class="controls">
+    <div class="group">
+      <label>Check-in</label>
+      <input type="date" id="start" />
+    </div>
+    <div class="group">
+      <label>Check-out</label>
+      <input type="date" id="end" />
+    </div>
+    <div class="group">
+      <label>Guests</label>
+      <input type="number" min="1" id="guests" value="2" />
+    </div>
+    <div class="group">
+      <button id="search" class="secondary" type="button">Search</button>
+    </div>
+  </div>
 
-    <section class="panel grid">
-      <table>
-        <thead>
-          <tr>
-            <th>Date</th>
-            <th>Source</th>
-            <th>Room</th>
-            <th>Max</th>
-            <th>Price</th>
-            <th>RatePlan</th>
-          </tr>
-        </thead>
-        <tbody id="rows"></tbody>
-      </table>
-    </section>
-  </main>
+  <div class="content">
+    <table aria-label="UIS results">
+      <thead>
+        <tr>
+          <th style="width:120px;">Date</th>
+          <th style="width:100px;">Source</th>
+          <th>Room</th>
+          <th style="width:80px;">Max</th>
+          <th style="width:120px;">Price</th>
+          <th style="width:100px;">RatePlan</th>
+        </tr>
+      </thead>
+      <tbody id="rows"></tbody>
+    </table>
+  </div>
 
 <script>
 (() => {
-  // --- token bootstrap ---
-  const hashToken = new URLSearchParams(location.hash.slice(1)).get('token');
-  if (hashToken) localStorage.setItem('partnerToken', hashToken);
-  const token = localStorage.getItem('partnerToken') || localStorage.getItem('lolaelo_session') || '';
-  const H = token ? {
-    'Authorization': 'Bearer ' + token,
-    'x-partner-token': token,
-    'Content-Type': 'application/json'
-  } : { 'Content-Type': 'application/json' };
+  const statusEl = document.getElementById('status');
+  const dirtyEl  = document.getElementById('dirty-count');
+  const saveBtn  = document.getElementById('save');
+  function setStatus(msg, cls=""){ statusEl.className="note "+cls; statusEl.textContent=msg; }
+  function setSaved(){ dirtyEl.textContent = "No changes"; saveBtn.disabled = true; }
+  setSaved();
 
-  const el = id => document.getElementById(id);
-  const status = el('status');
-  const rows = el('rows');
-
-  function setStatus(msg, cls=''){ status.className = 'note ' + cls; status.textContent = msg; }
-
-  // defaults: 7 days from today, 3-night window
-  (function defaults(){
-    const pad = n => String(n).padStart(2,'0');
-    const iso = d => `${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}`;
-    const today = new Date();
-    const start = new Date(today.getFullYear(), today.getMonth(), today.getDate()+7);
-    const end   = new Date(today.getFullYear(), today.getMonth(), today.getDate()+10);
-    el('start').value = iso(start);
-    el('end').value = iso(end);
+  (function ensureToken(){
+    const hash = new URLSearchParams(location.hash.slice(1));
+    const t = hash.get('token');
+    if (t) localStorage.setItem('partnerToken', t);
   })();
+  const token =
+    localStorage.getItem("partnerToken") ||
+    localStorage.getItem("lolaelo_session") || "";
+  const H = token ? { "Authorization":"Bearer "+token, "x-partner-token":token } : {};
 
-  async function search(){
-    const start = el('start').value;
-    const end   = el('end').value;
-    const guests = Math.max(1, Number(el('guests').value||2));
-    if (!start || !end || end <= start){ setStatus('Invalid dates','err'); return; }
+  const startInp = document.getElementById('start');
+  const endInp   = document.getElementById('end');
+  const guestsInp= document.getElementById('guests');
+  const rowsBody = document.getElementById('rows');
 
-    setStatus('Searching…');
-    rows.innerHTML = '';
+  const todayISO = ()=>new Date().toISOString().slice(0,10);
+  function addDaysISO(iso, n){ const d=new Date(iso+"T00:00:00Z"); d.setUTCDate(d.getUTCDate()+n); return d.toISOString().slice(0,10); }
+  const s0 = todayISO();
+  const e0 = addDaysISO(s0, 3);
+  startInp.value ||= s0;
+  endInp.value   ||= e0;
 
-    const url = `/extranet/pms/uis/search?start=${start}&end=${end}&guests=${guests}`;
-    const r = await fetch(url, { headers: H });
-    if (!r.ok){ setStatus(`Search failed (${r.status})`,'err'); return; }
-    const data = await r.json();
-
-    const all = [
-      ...(Array.isArray(data.extranet)? data.extranet : []),
-      ...(Array.isArray(data.pms)? data.pms : []),
-    ];
-    if (all.length === 0){ setStatus('No results','warn'); return; }
-
-    const fmtUSD = v => typeof v==='number' ? '$'+v.toFixed(2) : (v?('$'+Number(v).toFixed?Number(v).toFixed(2):String(v)):'-');
-
-    all.sort((a,b)=> (a.date||'').localeCompare(b.date||''));
-    const frag = document.createDocumentFragment();
-    all.forEach(x=>{
-      const tr = document.createElement('tr');
-      const source = x.source === 'pms' ? '<span class="tag">PMS</span>' : '<span class="tag">Direct</span>';
-      const room = x.source === 'pms'
-        ? (x.name || `Remote ${x.remoteRoomId||''}`)
-        : (x.name || `RoomType ${x.roomTypeId||''}`);
-      const rp = x.source === 'pms' ? (x.remoteRatePlanId ?? '-') : (x.ratePlanId ?? '-');
-      tr.innerHTML = `
-        <td>${x.date || '-'}</td>
-        <td>${source}</td>
-        <td>${room}</td>
-        <td>${x.maxGuests ?? '-'}</td>
-        <td>${fmtUSD(Number(x.price))}</td>
-        <td>${rp}</td>
-      `;
-      frag.appendChild(tr);
-    });
-    rows.appendChild(frag);
-    setStatus(`Found ${all.length} result(s).`,`ok`);
+  function money(v){ const n=Number(v); return Number.isFinite(n) ? "$"+n.toFixed(2) : ""; }
+  function rowHtml(r){
+    const src = (r.source||"").toLowerCase();
+    const badgeCls = src === "pms" ? "badge pms" : "badge direct";
+    const max = Number.isFinite(Number(r.maxGuests)) ? Number(r.maxGuests) : "-";
+    const price = money(r.price);
+    const rp = r.ratePlanId || r.ratePlanName || "-";
+    return `<tr>
+      <td>${r.date}</td>
+      <td><div class="src-cell"><span class="${badgeCls}">${src === "pms" ? "PMS" : "Direct"}</span></div></td>
+      <td>${r.name ?? ""}</td>
+      <td>${max}</td>
+      <td>${price}</td>
+      <td>${rp}</td>
+    </tr>`;
   }
 
-  el('qform').addEventListener('submit', (e)=>{ e.preventDefault(); search(); });
+  async function runSearch(){
+    const start = startInp.value;
+    const end   = endInp.value;
+    const guests= Math.max(1, parseInt(guestsInp.value||"2",10));
+    if (!start || !end || end <= start){ setStatus("Enter a valid date window (end must be after start).", "warn"); return; }
+    setStatus("Searching…");
+    try{
+      const url = `/extranet/pms/uis/search?start=${encodeURIComponent(start)}&end=${encodeURIComponent(end)}&guests=${guests}`;
+      const r = await fetch(url, { headers: H });
+      if (!r.ok){ setStatus(`Search failed (${r.status})`, "error"); return; }
+      const x = await r.json();
+      const rows = []
+        .concat(Array.isArray(x.extranet) ? x.extranet : [])
+        .concat(Array.isArray(x.pms) ? x.pms : []);
+      rowsBody.innerHTML = rows.map(rowHtml).join("") || `<tr><td colspan="6" class="note">No results.</td></tr>`;
+      setStatus(`Found ${rows.length} result${rows.length===1?"":"s"}.`, "ok");
+    }catch(e){ console.error(e); setStatus("Search error", "error"); }
+  }
 
-  // auto-run on load
-  search();
+  document.getElementById('search').addEventListener('click', runSearch);
+  runSearch();
 })();
 </script>
 </body>
