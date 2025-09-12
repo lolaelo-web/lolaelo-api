@@ -7,7 +7,6 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
-// Public data
 model Waitlist {
   id        Int      @id @default(autoincrement())
   email     String
@@ -34,29 +33,21 @@ model ContentBlock {
   updatedAt DateTime @updatedAt
 }
 
-// Extranet auth models
 model Partner {
-  id        Int      @id @default(autoincrement())
-  email     String   @unique
-  name      String?
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-
-  sessions ExtranetSession[]
-  codes    ExtranetLoginCode[]
-
-  profile   PropertyProfile?
-  photos    PropertyPhoto[]
-  documents PropertyDocument[]
-
-  // Rooms & Availability relations
-  roomTypes     RoomType[]
+  id            Int                 @id @default(autoincrement())
+  email         String              @unique
+  name          String?
+  createdAt     DateTime            @default(now())
+  updatedAt     DateTime            @updatedAt
+  codes         ExtranetLoginCode[]
+  sessions      ExtranetSession[]
+  documents     PropertyDocument[]
+  photos        PropertyPhoto[]
+  profile       PropertyProfile?
   ratePlans     RatePlan[]
   roomInventory RoomInventory[]
   roomPrices    RoomPrice[]
-
-  // PMS relations
-  pmsConnections PmsConnection[]
+  roomTypes     RoomType[]
 }
 
 model ExtranetLoginCode {
@@ -66,8 +57,7 @@ model ExtranetLoginCode {
   expiresAt DateTime
   createdAt DateTime  @default(now())
   usedAt    DateTime?
-
-  partner Partner @relation(fields: [partnerId], references: [id], onDelete: Cascade)
+  partner   Partner   @relation(fields: [partnerId], references: [id], onDelete: Cascade)
 
   @@index([partnerId])
   @@index([expiresAt])
@@ -80,14 +70,12 @@ model ExtranetSession {
   expiresAt DateTime
   createdAt DateTime  @default(now())
   revokedAt DateTime?
-
-  partner Partner @relation(fields: [partnerId], references: [id], onDelete: Cascade)
+  partner   Partner   @relation(fields: [partnerId], references: [id], onDelete: Cascade)
 
   @@index([partnerId])
   @@index([expiresAt])
 }
 
-// Property Profile (1:1)
 model PropertyProfile {
   id           Int      @id @default(autoincrement())
   partnerId    Int      @unique
@@ -100,11 +88,9 @@ model PropertyProfile {
   description  String?
   createdAt    DateTime @default(now())
   updatedAt    DateTime @updatedAt
-
-  partner Partner @relation(fields: [partnerId], references: [id], onDelete: Cascade)
+  partner      Partner  @relation(fields: [partnerId], references: [id], onDelete: Cascade)
 }
 
-// Photos persisted per partner
 model PropertyPhoto {
   id        Int      @id @default(autoincrement())
   partnerId Int
@@ -116,10 +102,102 @@ model PropertyPhoto {
   width     Int?
   height    Int?
   createdAt DateTime @default(now())
-
-  partner Partner @relation(fields: [partnerId], references: [id], onDelete: Cascade)
+  partner   Partner  @relation(fields: [partnerId], references: [id], onDelete: Cascade)
 
   @@index([partnerId, sortOrder])
+}
+
+model PropertyDocument {
+  id          Int            @id @default(autoincrement())
+  partnerId   Int
+  type        DocumentType
+  key         String         @unique
+  url         String
+  fileName    String?
+  contentType String?
+  status      DocumentStatus @default(SUBMITTED)
+  uploadedAt  DateTime       @default(now())
+  verifiedAt  DateTime?
+  expiresAt   DateTime?
+  notes       String?
+  partner     Partner        @relation(fields: [partnerId], references: [id], onDelete: Cascade)
+
+  @@unique([partnerId, type])
+  @@index([partnerId, status])
+}
+
+model RoomType {
+  id          Int             @id @default(autoincrement())
+  partnerId   Int
+  name        String
+  description String?
+  maxGuests   Int             @default(2)
+  occupancy   Int             @default(2)
+  basePrice   Decimal         @db.Decimal(10, 2)
+  createdAt   DateTime        @default(now())
+  updatedAt   DateTime        @updatedAt
+  rates       RatePlan[]
+  inventory   RoomInventory[]
+  prices      RoomPrice[]
+  partner     Partner         @relation(fields: [partnerId], references: [id], onDelete: Cascade)
+
+  @@unique([partnerId, name])
+  @@index([partnerId])
+}
+
+model RatePlan {
+  id          Int         @id @default(autoincrement())
+  partnerId   Int
+  roomTypeId  Int
+  name        String
+  exposeToUis Boolean     @default(true)
+  uisPriority Int         @default(100)
+  policy      String?
+  priceDelta  Decimal?    @db.Decimal(10, 2)
+  createdAt   DateTime    @default(now())
+  updatedAt   DateTime    @updatedAt
+  partner     Partner     @relation(fields: [partnerId], references: [id], onDelete: Cascade)
+  roomType    RoomType    @relation(fields: [roomTypeId], references: [id], onDelete: Cascade)
+  prices      RoomPrice[]
+
+  @@unique([roomTypeId, name])
+  @@index([partnerId])
+  @@index([partnerId, uisPriority])
+  @@index([partnerId, uisPriority], map: "RatePlan_partner_uisPriority_idx")
+}
+
+model RoomInventory {
+  id         Int      @id @default(autoincrement())
+  partnerId  Int
+  roomTypeId Int
+  date       DateTime
+  roomsOpen  Int      @default(0)
+  isClosed   Boolean  @default(false)
+  minStay    Int?
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+  partner    Partner  @relation(fields: [partnerId], references: [id], onDelete: Cascade)
+  roomType   RoomType @relation(fields: [roomTypeId], references: [id], onDelete: Cascade)
+
+  @@unique([roomTypeId, date])
+  @@index([partnerId, date])
+}
+
+model RoomPrice {
+  id         Int       @id @default(autoincrement())
+  partnerId  Int
+  roomTypeId Int
+  ratePlanId Int?
+  date       DateTime
+  price      Decimal   @db.Decimal(10, 2)
+  createdAt  DateTime  @default(now())
+  updatedAt  DateTime  @updatedAt
+  partner    Partner   @relation(fields: [partnerId], references: [id], onDelete: Cascade)
+  ratePlan   RatePlan? @relation(fields: [ratePlanId], references: [id], onDelete: Cascade)
+  roomType   RoomType  @relation(fields: [roomTypeId], references: [id], onDelete: Cascade)
+
+  @@unique([roomTypeId, ratePlanId, date])
+  @@index([partnerId, date])
 }
 
 enum DocumentType {
@@ -138,173 +216,4 @@ enum DocumentStatus {
   SUBMITTED
   APPROVED
   REJECTED
-}
-
-model PropertyDocument {
-  id          Int            @id @default(autoincrement())
-  partnerId   Int
-  type        DocumentType
-  key         String         @unique
-  url         String
-  fileName    String?
-  contentType String?
-  status      DocumentStatus @default(SUBMITTED)
-  notes       String?
-  expiresAt   DateTime?
-  uploadedAt  DateTime       @default(now())
-  verifiedAt  DateTime?
-
-  partner Partner @relation(fields: [partnerId], references: [id], onDelete: Cascade)
-
-  @@unique([partnerId, type])
-  @@index([partnerId, status])
-}
-
-// -----------------------------
-// Rooms & Availability
-// -----------------------------
-model RoomType {
-  id          Int      @id @default(autoincrement())
-  partnerId   Int
-  name        String
-  description String?
-  maxGuests   Int      @default(2)
-  occupancy   Int      @default(2)
-  basePrice   Decimal  @db.Decimal(10, 2)
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
-
-  partner   Partner         @relation(fields: [partnerId], references: [id], onDelete: Cascade)
-  rates     RatePlan[]
-  inventory RoomInventory[]
-  prices    RoomPrice[]
-
-  // PMS backrefs
-  pmsMappings PmsMapping[]
-
-  @@unique([partnerId, name])
-  @@index([partnerId])
-}
-
-model RatePlan {
-  id          Int      @id @default(autoincrement())
-  partnerId   Int
-  roomTypeId  Int
-  name        String
-  exposeToUis Boolean  @default(true)
-  uisPriority Int      @default(100)
-  policy      String?
-  priceDelta  Decimal? @db.Decimal(10, 2)
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
-
-  roomType RoomType @relation(fields: [roomTypeId], references: [id], onDelete: Cascade)
-  partner  Partner  @relation(fields: [partnerId], references: [id], onDelete: Cascade)
-  prices   RoomPrice[]
-
-  // PMS backrefs
-  pmsMappings PmsMapping[]
-
-  @@unique([roomTypeId, name])
-  @@index([partnerId])
-  @@index([partnerId, uisPriority])
-}
-
-model RoomInventory {
-  id         Int      @id @default(autoincrement())
-  partnerId  Int
-  roomTypeId Int
-  date       DateTime
-  roomsOpen  Int      @default(0)
-  isClosed   Boolean  @default(false)
-  minStay    Int?
-  createdAt  DateTime @default(now())
-  updatedAt  DateTime @updatedAt
-
-  roomType RoomType @relation(fields: [roomTypeId], references: [id], onDelete: Cascade)
-  partner  Partner  @relation(fields: [partnerId], references: [id], onDelete: Cascade)
-
-  @@unique([roomTypeId, date])
-  @@index([partnerId, date])
-}
-
-model RoomPrice {
-  id         Int      @id @default(autoincrement())
-  partnerId  Int
-  roomTypeId Int
-  ratePlanId Int?
-  date       DateTime
-  price      Decimal  @db.Decimal(10, 2)
-  createdAt  DateTime @default(now())
-  updatedAt  DateTime @updatedAt
-
-  roomType RoomType  @relation(fields: [roomTypeId], references: [id], onDelete: Cascade)
-  ratePlan RatePlan? @relation(fields: [ratePlanId], references: [id], onDelete: Cascade)
-  partner  Partner   @relation(fields: [partnerId], references: [id], onDelete: Cascade)
-
-  @@unique([roomTypeId, ratePlanId, date])
-  @@index([partnerId, date])
-}
-
-// -----------------------------
-// PMS integration (public schema)
-// -----------------------------
-model PmsConnection {
-  id             Int       @id @default(autoincrement())
-  partnerId      Int
-  provider       String
-  mode           String    @default("mock")     // mock | live
-  status         String    @default("TESTING")  // TESTING | CONNECTED | ERROR
-  scope          String?
-  accessToken    String?
-  refreshToken   String?
-  tokenExpiresAt DateTime?
-  lastSyncAt     DateTime?
-  createdAt      DateTime  @default(now())
-  updatedAt      DateTime  @updatedAt
-
-  partner   Partner     @relation(fields: [partnerId], references: [id], onDelete: Cascade)
-  mappings  PmsMapping[]
-  logs      SyncLog[]
-
-  @@unique([partnerId, provider])
-  @@index([partnerId])
-}
-
-model PmsMapping {
-  id               Int          @id @default(autoincrement())
-  pmsConnectionId  Int
-  remoteRoomId     String
-  remoteRatePlanId String?
-  localRoomTypeId  Int?
-  localRatePlanId  Int?
-  currency         String?
-  active           Boolean      @default(true)
-  createdAt        DateTime     @default(now())
-  updatedAt        DateTime     @updatedAt
-
-  connection PmsConnection @relation(fields: [pmsConnectionId], references: [id], onDelete: Cascade)
-  roomType   RoomType?     @relation(fields: [localRoomTypeId], references: [id])
-  ratePlan   RatePlan?     @relation(fields: [localRatePlanId], references: [id])
-
-  @@index([pmsConnectionId])
-  @@index([localRoomTypeId])
-  @@index([localRatePlanId])
-}
-
-model SyncLog {
-  id              Int           @id @default(autoincrement())
-  pmsConnectionId Int
-  type            String        // AUTH | AVAILABILITY | RATES | RESERVATIONS...
-  status          String        // SUCCESS | ERROR
-  message         String?
-  startedAt       DateTime?
-  finishedAt      DateTime?
-  durationMs      Int?
-  createdAt       DateTime      @default(now())
-  updatedAt       DateTime      @updatedAt
-
-  connection PmsConnection @relation(fields: [pmsConnectionId], references: [id], onDelete: Cascade)
-
-  @@index([pmsConnectionId])
 }
