@@ -54,6 +54,43 @@
     .eye{ cursor:pointer; user-select:none; border:1px solid var(--border); background:var(--chip);
       padding:6px 8px; border-radius:8px; font-size:12px; }
     .pill{ display:inline-block; padding:2px 8px; border-radius:999px; background:var(--chip); border:1px solid var(--border); color:var(--muted); font-size:12px; }
+    /* --- Responsive: wrap table rows into a grid on narrow viewports --- */
+@media (max-width: 1100px) {
+  /* turn each data row into a wrapping grid */
+  .connections tbody tr,
+  .mappings tbody tr {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+    gap: 8px;
+  }
+
+  /* trim spacing so wrapped rows look tidy */
+  .connections td,
+  .mappings td {
+    padding: 6px 8px;
+    border-bottom: 0;
+  }
+
+  /* inputs/selects shouldn’t overflow their grid cell */
+  .connections input,
+  .connections select,
+  .mappings input,
+  .mappings select {
+    width: 100%;
+    min-width: 0;
+  }
+
+  /* place the action buttons (Save/Test/Delete) on their own full-width row,
+     bottom-left of the section */
+  .connections tbody tr > td:last-child,
+  .mappings  tbody tr > td:last-child {
+    grid-column: 1 / -1;
+    display: flex;
+    gap: 8px;
+    justify-content: flex-start;
+    align-items: center;
+  }
+}
   </style>
 </head>
 <body>
