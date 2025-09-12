@@ -54,47 +54,67 @@
     .eye{ cursor:pointer; user-select:none; border:1px solid var(--border); background:var(--chip);
       padding:6px 8px; border-radius:8px; font-size:12px; }
     .pill{ display:inline-block; padding:2px 8px; border-radius:999px; background:var(--chip); border:1px solid var(--border); color:var(--muted); font-size:12px; }
-    /* --- Responsive: wrap table rows into a grid on narrow viewports --- */
-    @media (max-width: 1100px) {
-      /* hide table headers on small screens */
-      .connections thead,
-      .mappings thead { display: none; }
+    /* --- Responsive: wrap tables; keep per-cell labels --- */
+      @media (max-width: 1400px) {
 
-      /* turn each data row into a wrapping grid */
-      .connections tbody tr,
-      .mappings tbody tr {
-        display: grid;
-        grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
-        gap: 8px;
-      }
+        /* We’ll show labels inside each cell, so hide the header row on narrow screens */
+        .connections thead,
+        .mappings thead { display: none; }
 
-      /* trim spacing so wrapped rows look tidy */
-      .connections td,
-      .mappings td {
-        padding: 6px 8px;
-        border-bottom: 0;
-      }
+        /* Turn each data row into a wrapping grid */
+        .connections tbody tr,
+        .mappings tbody tr {
+          display: grid;
+          grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+          gap: 10px;
+          align-items: center;
+        }
 
-      /* inputs/selects shouldn’t overflow their grid cell */
-      .connections input,
-      .connections select,
-      .mappings input,
-      .mappings select {
-        width: 100%;
-        min-width: 0;
-      }
+        /* Give each cell its own block layout and compact spacing */
+        .connections td,
+        .mappings td {
+          padding: 6px 8px;
+          border-bottom: 0;
+        }
 
-      /* place the action buttons (Save/Test/Delete) on their own full-width row,
-        bottom-left of the section */
-      .connections tbody tr > td:last-child,
-      .mappings  tbody tr > td:last-child {
-        grid-column: 1 / -1;
-        display: flex;
-        gap: 8px;
-        justify-content: flex-start;
-        align-items: center;
+        /* Show the column label inside each cell */
+        .connections td::before,
+        .mappings td::before {
+          content: attr(data-label);
+          display: block;
+          font-size: 11px;
+          color: var(--muted);
+          margin-bottom: 4px;
+          line-height: 1.2;
+        }
+
+        /* Inputs/selects shouldn’t overflow their grid cell */
+        .connections input,
+        .connections select,
+        .connections textarea,
+        .mappings input,
+        .mappings select,
+        .mappings textarea {
+          width: 100%;
+          min-width: 0;
+        }
+
+        /* Place the action buttons (Save/Test/Delete) on their own full-width row,
+          bottom-left of the section */
+        .connections tbody tr > td.actions,
+        .mappings  tbody tr > td.actions {
+          grid-column: 1 / -1;
+          display: flex;
+          gap: 8px;
+          justify-content: flex-start;
+          align-items: center;
+        }
+        /* Fallback if the actions <td> didn’t get the 'actions' class */
+        .connections tbody tr > td:last-child,
+        .mappings  tbody tr > td:last-child {
+          grid-column: 1 / -1;
+        }
       }
-    }
   </style>
 </head>
 <body>
@@ -170,15 +190,15 @@
         <table id="conn-table" class="connections">
           <thead>
             <tr>
-              <th style="width:60px;">id</th>
+              <th>id</th>
               <th>provider</th>
               <th>mode</th>
               <th>status</th>
               <th>scope</th>
-              <th style="width:220px;">accessToken</th>
-              <th style="width:220px;">refreshToken</th>
-              <th style="width:180px;">expiresAt</th>
-              <th class="actions" style="width:220px;">actions</th>
+              <th>accessToken</th>
+              <th>refreshToken</th>
+              <th>expiresAt</th>
+              <th class="actions">actions</th>
             </tr>
           </thead>
           <tbody id="conn-rows"></tbody>
@@ -196,14 +216,14 @@
         <table id="map-table" class="mappings">
           <thead>
             <tr>
-              <th style="width:60px;">id</th>
-              <th style="width:80px;">conn</th>
-              <th style="width:140px;">remote</th>
-              <th style="width:120px;">local RT</th>
-              <th style="width:120px;">local RP</th>
-              <th style="width:120px;">currency</th>
-              <th style="width:80px;">active</th>
-              <th class="actions" style="width:160px;">actions</th>
+              <th>id</th>
+              <th>conn</th>
+              <th>remote</th>
+              <th>local RT</th>
+              <th>local RP</th>
+              <th>currency</th>
+              <th>active</th>
+              <th class="actions">actions</th>
             </tr>
           </thead>
           <tbody id="map-rows"></tbody>
