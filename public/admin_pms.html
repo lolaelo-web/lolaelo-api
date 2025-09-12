@@ -13,6 +13,7 @@
     const state = {
       token: localStorage.partnerToken || "",
       whoami: null,
+      orgName: null,
       connections: [],
       mappings: [],
     };
@@ -49,7 +50,7 @@
       try { return new Date(dt).toISOString().slice(0,19).replace('T',' '); } catch { return dt; }
     }
 
-    // --- token controls ---
+    // --- token & org controls ---
     function loadTokenFromHash(){
       const m = location.hash.match(/[#&]token=([^&]+)/);
       if (m && m[1]){
@@ -66,19 +67,34 @@
       bootstrap();
     }
 
-    // --- data loaders ---
     async function loadWhoAmI(){
-      try {
-        state.whoami = await apiGet('/extranet/pms/whoami');
-        el('#whoami').textContent = `partnerId=${state.whoami?.partnerId ?? '—'}`;
-      } catch(e){ setStatus('Auth failed — set a valid token.', 'error'); throw e; }
+      state.whoami = await apiGet('/extranet/pms/whoami');
+      el('#whoami').textContent = `partnerId=${state.whoami?.partnerId ?? '—'}`;
+    }
+
+    // Try to show company/property name instead of partnerId (best-effort)
+    async function loadOrgName(){
+      const candidates = [
+        '/extranet/property/profile',
+        '/extranet/property/__profile',
+        '/extranet/property/__debug',
+      ];
+      for (const path of candidates){
+        try {
+          const j = await apiGet(path);
+          const name = j?.companyName || j?.name || j?.propertyName || j?.property?.name || null;
+          if (name){ state.orgName = String(name); break; }
+        } catch(_){}
+      }
+      const label = state.orgName ? state.orgName : (state.whoami ? `partnerId=${state.whoami.partnerId}` : '—');
+      el('#orgLabel').textContent = label;
+      el('#orgLabel').title = state.orgName ? `Partner ${state.whoami?.partnerId}` : '';
     }
 
     async function loadConnections(){
       state.connections = await apiGet('/extranet/pms/connections');
       renderConnections();
     }
-
     async function loadMappings(){
       state.mappings = await apiGet('/extranet/pms/mappings');
       renderMappings();
@@ -98,7 +114,6 @@
       setStatus(`Connection upserted (id=${row.id}, status=${row.status}).`, 'ok');
       await loadConnections();
     }
-
     async function updateConnection(id){
       const rowEl = el(`[data-conn-id="${id}"]`);
       const payload = {
@@ -113,13 +128,11 @@
       setStatus(`Connection ${id} updated (status=${row.status}).`, 'ok');
       await loadConnections();
     }
-
     async function testConnection(id){
       const r = await apiJson('POST',`/extranet/pms/connections/${id}/test`,{});
       setStatus(`Test ${r.ok?'ok':'fail'} for connection ${id}.`, r.ok?'ok':'error');
       await loadConnections();
     }
-
     async function deleteConnection(id){
       if (!confirm(`Delete connection ${id}? This also removes mappings.`)) return;
       await apiJson('DELETE',`/extranet/pms/connections/${id}`);
@@ -144,7 +157,6 @@
       setStatus(`Mapping created (id=${row.id}).`, 'ok');
       await loadMappings();
     }
-
     async function updateMapping(id){
       const rowEl = el(`[data-map-id="${id}"]`);
       const payload = {
@@ -157,7 +169,6 @@
       setStatus(`Mapping ${id} updated.`, 'ok');
       await loadMappings();
     }
-
     async function deleteMapping(id){
       if (!confirm(`Delete mapping ${id}?`)) return;
       await apiJson('DELETE',`/extranet/pms/mappings/${id}`);
@@ -173,25 +184,26 @@
         const tr = document.createElement('tr');
         tr.dataset.connId = String(c.id);
         tr.innerHTML = `
-          <td>${c.id}</td>
+          <td class="mono">${c.id}</td>
           <td>${c.provider}</td>
           <td><input data-f="mode" value="${c.mode||''}"/></td>
           <td><input data-f="status" value="${c.status||''}"/></td>
           <td><input data-f="scope" value="${c.scope||''}"/></td>
           <td>
-            <input data-f="accessToken" type="password" placeholder="accessToken" />
-            <input data-f="refreshToken" type="password" placeholder="refreshToken" />
-            <input data-f="tokenExpiresAt" type="datetime-local" />
+            <div class="token-col">
+              <input data-f="accessToken" type="password" placeholder="accessToken" />
+              <input data-f="refreshToken" type="password" placeholder="refreshToken" />
+              <input data-f="tokenExpiresAt" type="datetime-local" />
+            </div>
           </td>
-          <td>
-            <button onclick="updateConnection(${c.id})">Save</button>
-            <button onclick="testConnection(${c.id})">Test</button>
-            <button class="danger" onclick="deleteConnection(${c.id})">Delete</button>
+          <td class="actions-col">
+            <button class="btn btn-primary" onclick="updateConnection(${c.id})">Save</button>
+            <button class="btn btn-secondary" onclick="testConnection(${c.id})">Test</button>
+            <button class="btn btn-danger" onclick="deleteConnection(${c.id})">Delete</button>
           </td>`;
         tbody.appendChild(tr);
       }
     }
-
     function renderMappings(){
       const tbody = el('#mapRows');
       tbody.innerHTML = '';
@@ -199,16 +211,16 @@
         const tr = document.createElement('tr');
         tr.dataset.mapId = String(m.id);
         tr.innerHTML = `
-          <td>${m.id}</td>
-          <td>${m.pmsConnectionId}</td>
-          <td>${m.remoteRoomId}</td>
+          <td class="mono">${m.id}</td>
+          <td class="mono">${m.pmsConnectionId}</td>
+          <td class="mono">${m.remoteRoomId}</td>
           <td><input data-f="localRoomTypeId" value="${m.localRoomTypeId??''}"/></td>
           <td><input data-f="localRatePlanId" value="${m.localRatePlanId??''}"/></td>
           <td><input data-f="currency" value="${m.currency||'USD'}"/></td>
           <td><input data-f="active" type="checkbox" ${m.active?'checked':''}/></td>
-          <td>
-            <button onclick="updateMapping(${m.id})">Save</button>
-            <button class="danger" onclick="deleteMapping(${m.id})">Delete</button>
+          <td class="actions-col">
+            <button class="btn btn-primary" onclick="updateMapping(${m.id})">Save</button>
+            <button class="btn btn-danger" onclick="deleteMapping(${m.id})">Delete</button>
           </td>`;
         tbody.appendChild(tr);
       }
@@ -220,6 +232,7 @@
         loadTokenFromHash();
         if (!state.token){ setStatus('Set a partner token to begin.', 'warn'); return; }
         await loadWhoAmI();
+        await loadOrgName();
         await Promise.all([loadConnections(), loadMappings()]);
         setStatus('Ready', 'ok');
       }catch(e){ setStatus(String(e.message||e), 'error'); }
@@ -236,33 +249,67 @@
     window.deleteMapping = deleteMapping;
   </script>
   <style>
-    body { font-family: system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif; margin: 20px; color:#0f172a; }
-    h1 { font-size: 20px; margin:0 0 10px; }
-    h2 { font-size: 16px; margin:24px 0 8px; }
+    :root{
+      --bg: #0f172a;          /* slate-900 like UIS */
+      --card: #111827;        /* gray-900 */
+      --text: #e5e7eb;        /* gray-200 */
+      --muted: #94a3b8;       /* slate-400 */
+      --border: #1f2937;      /* gray-800 */
+      --primary: #3b82f6;     /* blue-500 */
+      --primary-600: #2563eb; /* blue-600 */
+      --danger: #ef4444;      /* red-500 */
+      --ok: #22c55e;          /* green-500 */
+      --warn: #f59e0b;        /* amber-500 */
+      --input: #0b1222;       /* near bg */
+    }
+    *{ box-sizing:border-box }
+    body { background:var(--bg); color:var(--text); font-family: system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif; margin: 20px; }
+    h1 { font-size: 18px; margin:0 0 10px; }
+    h2 { font-size: 15px; margin:14px 0 10px; }
     .row { display:flex; gap:10px; align-items:center; flex-wrap:wrap; }
-    input, button, select { padding:6px 8px; border:1px solid #cbd5e1; border-radius:8px; font-size:14px; }
-    button { background:#0ea5e9; color:white; border:none; cursor:pointer; }
-    button:hover { filter:brightness(0.95); }
-    button.danger { background:#ef4444; }
-    table { width:100%; border-collapse:collapse; }
-    th, td { border-bottom:1px solid #e2e8f0; padding:8px; vertical-align:top; }
-    th { text-align:left; font-weight:600; color:#334155; }
-    .status { margin-top:12px; padding:8px 10px; border-radius:8px; background:#e2e8f0; display:inline-block; }
-    .status.ok { background:#dcfce7; color:#14532d; }
-    .status.warn { background:#fef9c3; color:#713f12; }
-    .status.error { background:#fee2e2; color:#7f1d1d; }
-    .card { border:1px solid #e2e8f0; border-radius:12px; padding:12px; }
+    input, button, select { padding:8px 10px; border:1px solid var(--border); border-radius:8px; font-size:14px; color:var(--text); background:var(--input); }
+    input::placeholder{ color:var(--muted) }
+    table { width:100%; border-collapse:collapse; table-layout: fixed; }
+    th, td { border-bottom:1px solid var(--border); padding:8px; vertical-align:top; }
+    th { text-align:left; color:var(--muted); font-weight:600; }
+    .card { border:1px solid var(--border); background:var(--card); border-radius:12px; padding:12px; }
     .grid { display:grid; grid-template-columns: 1fr; gap:14px; }
     @media (min-width: 960px){ .grid { grid-template-columns: 1fr 1fr; } }
-    .muted { color:#64748b; font-size:12px; }
+    .muted { color:var(--muted); font-size:12px; }
     .mono { font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; }
+    .status { margin-top:12px; padding:8px 10px; border-radius:8px; display:inline-block; background:var(--border); }
+    .status.ok { background: rgba(34,197,94,0.15); color:#bbf7d0; }
+    .status.warn { background: rgba(245,158,11,0.15); color:#fde68a; }
+    .status.error { background: rgba(239,68,68,0.15); color:#fecaca; }
+
+    .btn{ cursor:pointer; border:none; border-radius:8px; padding:8px 10px; font-weight:600; }
+    .btn-primary{ background:var(--primary); color:white; }
+    .btn-primary:hover{ background:var(--primary-600); }
+    .btn-secondary{ background:#475569; color:white; }
+    .btn-danger{ background:var(--danger); color:white; }
+
+    .token-col{ display:flex; flex-direction:column; gap:6px; }
+    .token-col input{ width:100%; }
+
+    .actions-col{ display:flex; flex-direction:column; gap:6px; min-width: 140px; }
+    .actions-col .btn{ width:100%; }
+    @media (min-width: 1100px){ .actions-col{ flex-direction:row; } }
+
+    #header { display:flex; align-items:center; justify-content:space-between; gap:12px; }
+    #orgLabel { font-weight:600; }
   </style>
 </head>
 <body>
-  <h1>PMS Admin — Connections & Mappings</h1>
-  <div class="row">
+  <div id="header" class="row">
+    <h1>PMS Admin — Connections & Mappings</h1>
+    <div class="row">
+      <span id="orgLabel" class="muted mono">—</span>
+    </div>
+  </div>
+
+  <div class="row" style="margin-top:6px;">
     <input id="partnerToken" type="password" placeholder="partner session token" style="width:360px"/>
-    <button onclick="saveToken()">Set token</button>
+    <button class="btn btn-primary" onclick="saveToken()">Set token</button>
     <span id="whoami" class="muted mono">partnerId=—</span>
   </div>
   <div id="status" class="status">Loading…</div>
@@ -274,11 +321,11 @@
         <div class="row" style="margin-bottom:8px;">
           <input name="provider" placeholder="provider (e.g. CLOUDBEDS)" style="width:200px"/>
           <input name="mode" placeholder="mode (mock|live)" style="width:120px"/>
-          <input name="status" placeholder="status (TESTING|CONNECTED|ERROR)" style="width:200px"/>
+          <input name="status" placeholder="status (TESTING|CONNECTED|ERROR)" style="width:220px"/>
           <input name="scope" placeholder="scope (optional)" style="width:240px"/>
-          <button type="submit">Upsert</button>
+          <button class="btn btn-primary" type="submit">Upsert</button>
         </div>
-        <div class="muted">Use the table below to set access/refresh tokens and expiry, then “Save” + “Test”.</div>
+        <div class="muted">Use the table below to set access/refresh tokens and expiry, then Save + Test.</div>
       </form>
     </div>
 
@@ -293,7 +340,7 @@
           <input name="localRatePlanId" placeholder="localRatePlanId (optional)" style="width:170px"/>
           <input name="currency" placeholder="currency (USD)" style="width:120px"/>
           <label class="row" style="gap:6px"><input name="active" type="checkbox" checked/> active</label>
-          <button type="submit">Create</button>
+          <button class="btn btn-primary" type="submit">Create</button>
         </div>
       </form>
     </div>
@@ -304,13 +351,13 @@
     <table>
       <thead>
         <tr>
-          <th>id</th>
-          <th>provider</th>
-          <th>mode</th>
-          <th>status</th>
+          <th style="width:60px">id</th>
+          <th style="width:150px">provider</th>
+          <th style="width:120px">mode</th>
+          <th style="width:150px">status</th>
           <th>scope</th>
-          <th>tokens</th>
-          <th>actions</th>
+          <th style="width:420px">tokens</th>
+          <th style="width:160px">actions</th>
         </tr>
       </thead>
       <tbody id="connRows"></tbody>
@@ -322,14 +369,14 @@
     <table>
       <thead>
         <tr>
-          <th>id</th>
-          <th>conn</th>
-          <th>remote</th>
-          <th>local RT</th>
-          <th>local RP</th>
-          <th>currency</th>
-          <th>active</th>
-          <th>actions</th>
+          <th style="width:60px">id</th>
+          <th style="width:80px">conn</th>
+          <th style="width:140px">remote</th>
+          <th style="width:140px">local RT</th>
+          <th style="width:140px">local RP</th>
+          <th style="width:120px">currency</th>
+          <th style="width:90px">active</th>
+          <th style="width:160px">actions</th>
         </tr>
       </thead>
       <tbody id="mapRows"></tbody>
