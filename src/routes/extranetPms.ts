@@ -680,28 +680,21 @@ router.get("/remote/availability", requirePartner, async (req, res) => {
       days.push(d.toISOString().slice(0, 10));
     }
 
-    // Mirror Direct inventory for mapped localRoomTypeId (dynamic mock)
-let localInv: any[] = [];
-if (hasDelegates()) {
-  localInv = await (db as any).roomInventory.findMany({
-    where: { partnerId, date: { gte: start, lt: end } },
-    select: { roomTypeId: true, date: true, roomsOpen: true, isClosed: true },
-  });
-} else {
-  localInv = await (db as any).$queryRawUnsafe(
-    `SELECT "roomTypeId","date","roomsOpen","isClosed"
-       FROM "extranet"."RoomInventory"
-      WHERE "partnerId" = $1
-        AND "date" >= $2
-        AND "date" <  $3
-      ORDER BY "date" ASC`,
-    partnerId, start, end
-  );
-}
+    // Mirror Direct inventory for mapped localRoomTypeId (dynamic mock) — ALWAYS read from EXTRANET schema to avoid drift
+const localInv: any[] = await (db as any).$queryRawUnsafe(
+  `SELECT "roomTypeId","date","roomsOpen","isClosed"
+     FROM "extranet"."RoomInventory"
+    WHERE "partnerId" = $1
+      AND "date" >= $2
+      AND "date" <  $3
+    ORDER BY "date" ASC`,
+  partnerId, start, end
+);
+
 const invIndex = new Map<string, { roomsOpen: number; isClosed: boolean }>();
 localInv.forEach((iv: any) => {
-  const ds = new Date(iv.date).toISOString().slice(0, 10);
-  invIndex.set(`${Number(iv.roomTypeId)}|${ds}`, {
+  const dsIso = new Date(iv.date).toISOString().slice(0, 10);
+  invIndex.set(`${Number(iv.roomTypeId)}|${dsIso}`, {
     roomsOpen: Number(iv.roomsOpen ?? 0),
     isClosed: !!iv.isClosed,
   });
@@ -731,7 +724,6 @@ mappings.forEach((m) => {
 
 return res.json(out);
 
-    res.json(out);
   } catch (e: any) {
     console.error("[PMS GET /remote/availability error]", e?.message || e);
     res.status(500).json({ error: "Internal", detail: String(e?.message || e) });
@@ -840,8 +832,77 @@ router.get("/uis/search", requirePartner, async (req, res) => {
         currency: "USD",
       });
     }
+// PMS side (mock mirror): use mappings + Extranet inventory, end-exclusive window
+let mappings: any[] = [];
+if (hasDelegates()) {
+  mappings = await (db as any).pmsMapping.findMany({
+    where: { active: true, connection: { partnerId } },
+    orderBy: { id: "asc" },
+  });
+} else {
+  mappings = await (db as any).$queryRawUnsafe(
+    `SELECT m.* FROM "extranet"."PmsMapping" m
+     JOIN "extranet"."PmsConnection" c ON c."id" = m."pmsConnectionId"
+     WHERE m."active" = TRUE AND c."partnerId" = $1
+     ORDER BY m."id" ASC`,
+    partnerId
+  );
+}
 
-    return res.json({ extranet, pms: [] });
+    // Build day list (UTC), end-exclusive
+    const days: string[] = [];
+    for (
+      let d = new Date(Date.UTC(start.getUTCFullYear(), start.getUTCMonth(), start.getUTCDate()));
+      d < end;
+      d.setUTCDate(d.getUTCDate() + 1)
+    ) {
+      days.push(d.toISOString().slice(0, 10));
+    }
+
+    // Read Extranet inventory from correct schema and index it
+    const invRaw: any[] = await (db as any).$queryRawUnsafe(
+      `SELECT "roomTypeId","date","roomsOpen","isClosed"
+        FROM "extranet"."RoomInventory"
+        WHERE "partnerId" = $1
+          AND "date" >= $2
+          AND "date" <  $3
+        ORDER BY "date" ASC`,
+      partnerId, start, end
+    );
+    const invIdx = new Map<string, { roomsOpen: number; isClosed: boolean }>();
+    invRaw.forEach((iv: any) => {
+      const dsIso = new Date(iv.date).toISOString().slice(0, 10);
+      invIdx.set(`${Number(iv.roomTypeId)}|${dsIso}`, {
+        roomsOpen: Number(iv.roomsOpen ?? 0),
+        isClosed: !!iv.isClosed,
+      });
+    });
+
+    // Assemble PMS rows mirroring Direct inventory (simple price stub)
+    const pms: any[] = [];
+    mappings.forEach((m) => {
+      days.forEach((ds, idx) => {
+        let open = 0;
+        if (m.localRoomTypeId != null) {
+          const iv = invIdx.get(`${Number(m.localRoomTypeId)}|${ds}`);
+          open = iv ? (iv.isClosed ? 0 : Math.max(0, Number(iv.roomsOpen))) : 0;
+        }
+        pms.push({
+          source: "pms",
+          date: ds,
+          connectionId: m.pmsConnectionId,
+          remoteRoomId: String(m.remoteRoomId),
+          remoteRatePlanId: m.remoteRatePlanId ? String(m.remoteRatePlanId) : null,
+          roomsOpen: open,
+          price: 120 + (idx % 5) * 10,
+          currency: m.currency ?? "USD",
+        });
+      });
+    });
+
+// Final response includes PMS
+    return res.json({ extranet, pms });
+
   } catch (e: any) {
     console.error("[UIS GET /uis/search error]", e?.message || e);
     res.status(500).json({ error: "Internal", detail: String(e?.message || e) });
