@@ -114,6 +114,36 @@
         .mappings  tbody tr > td:last-child {
           grid-column: 1 / -1;
         }
+        /* Show per-cell labels when headers are hidden (mobile) */
+        .connections td::before,
+        .mappings td::before{
+          display:block;
+          font-size:11px;
+          color:var(--muted);
+          margin-bottom:4px;
+          letter-spacing:.2px;
+        }
+
+        /* Connections column labels */
+        .connections tbody td:nth-child(1)::before  { content:"id"; }
+        .connections tbody td:nth-child(2)::before  { content:"provider"; }
+        .connections tbody td:nth-child(3)::before  { content:"mode"; }
+        .connections tbody td:nth-child(4)::before  { content:"status"; }
+        .connections tbody td:nth-child(5)::before  { content:"scope"; }
+        .connections tbody td:nth-child(6)::before  { content:"accessToken"; }
+        .connections tbody td:nth-child(7)::before  { content:"refreshToken"; }
+        .connections tbody td:nth-child(8)::before  { content:"expiresAt"; }
+        .connections tbody td:nth-child(9)::before  { content:"actions"; }
+
+        /* Mappings column labels */
+        .mappings tbody td:nth-child(1)::before  { content:"id"; }
+        .mappings tbody td:nth-child(2)::before  { content:"conn"; }
+        .mappings tbody td:nth-child(3)::before  { content:"remote"; }
+        .mappings tbody td:nth-child(4)::before  { content:"local RT"; }
+        .mappings tbody td:nth-child(5)::before  { content:"local RP"; }
+        .mappings tbody td:nth-child(6)::before  { content:"currency"; }
+        .mappings tbody td:nth-child(7)::before  { content:"active"; }
+        .mappings tbody td:nth-child(8)::before  { content:"actions"; }
       }
   </style>
 </head>
