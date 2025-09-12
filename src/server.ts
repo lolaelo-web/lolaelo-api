@@ -73,8 +73,10 @@ await tryMount("./routes/sessionHttp.js", "/extranet");
 // features
 await tryMount("./routes/extranetRooms.js", "/extranet/property/rooms");
 await tryMount("./routes/extranetPms.js", "/extranet/pms");
-await tryMount("./routes/property.js", "/extranet/property");
-await tryMount("./routes/propertyPhotos.js", "/extranet/property/photos");
+app.use('/extranet/property', requireWriteToken);
+
+app.use('/extranet/property', requireWriteToken);
+
 
 // ---- Diagnostics ----
 app.get("/__ping", (_req, res) => {
@@ -175,5 +177,7 @@ if (process.env.NODE_ENV !== "test") {
 }
 
 export default app;
+
+
 
 
