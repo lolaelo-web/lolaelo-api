@@ -1,0 +1,341 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>PMS Admin — Connections & Mappings</title>
+  <script>
+    // --- tiny helper: el() ---
+    const el = (sel, root=document) => root.querySelector(sel);
+    const els = (sel, root=document) => Array.from(root.querySelectorAll(sel));
+
+    // --- state ---
+    const state = {
+      token: localStorage.partnerToken || "",
+      whoami: null,
+      connections: [],
+      mappings: [],
+    };
+
+    // --- HTTP helpers ---
+    function headers(json=true){
+      const h = { 'Authorization': 'Bearer ' + (state.token||''), 'x-partner-token': (state.token||'') };
+      if (json) h['Content-Type'] = 'application/json';
+      return h;
+    }
+    async function apiGet(path){
+      const r = await fetch(path, { headers: headers(false) });
+      if (!r.ok) throw new Error(await r.text());
+      return r.json();
+    }
+    async function apiJson(method, path, body){
+      const r = await fetch(path, { method, headers: headers(true), body: JSON.stringify(body||{}) });
+      if (!r.ok){
+        let msg = '';
+        try { msg = JSON.stringify(await r.json()); } catch { msg = await r.text(); }
+        throw new Error(msg || (r.status+':'+r.statusText));
+      }
+      try { return await r.json(); } catch { return {}; }
+    }
+
+    // --- UI helpers ---
+    function setStatus(text, kind='info'){
+      const box = el('#status');
+      box.textContent = text;
+      box.className = 'status ' + kind;
+    }
+    function fmtIso(dt){
+      if (!dt) return '';
+      try { return new Date(dt).toISOString().slice(0,19).replace('T',' '); } catch { return dt; }
+    }
+
+    // --- token controls ---
+    function loadTokenFromHash(){
+      const m = location.hash.match(/[#&]token=([^&]+)/);
+      if (m && m[1]){
+        state.token = decodeURIComponent(m[1]);
+        localStorage.partnerToken = state.token;
+      }
+      el('#partnerToken').value = state.token;
+    }
+    function saveToken(){
+      state.token = el('#partnerToken').value.trim();
+      if (!state.token){ setStatus('Token cleared. Set a valid token.', 'warn'); return; }
+      localStorage.partnerToken = state.token;
+      setStatus('Token saved to localStorage.','ok');
+      bootstrap();
+    }
+
+    // --- data loaders ---
+    async function loadWhoAmI(){
+      try {
+        state.whoami = await apiGet('/extranet/pms/whoami');
+        el('#whoami').textContent = `partnerId=${state.whoami?.partnerId ?? '—'}`;
+      } catch(e){ setStatus('Auth failed — set a valid token.', 'error'); throw e; }
+    }
+
+    async function loadConnections(){
+      state.connections = await apiGet('/extranet/pms/connections');
+      renderConnections();
+    }
+
+    async function loadMappings(){
+      state.mappings = await apiGet('/extranet/pms/mappings');
+      renderMappings();
+    }
+
+    // --- actions: connections ---
+    async function upsertConnection(ev){
+      ev?.preventDefault();
+      const f = ev.target.closest('form');
+      const payload = {
+        provider: el('[name=provider]', f).value.trim() || 'CLOUDBEDS',
+        mode: el('[name=mode]', f).value.trim() || 'mock',
+        status: el('[name=status]', f).value.trim() || 'TESTING',
+        scope: el('[name=scope]', f).value.trim() || null,
+      };
+      const row = await apiJson('POST','/extranet/pms/connections', payload);
+      setStatus(`Connection upserted (id=${row.id}, status=${row.status}).`, 'ok');
+      await loadConnections();
+    }
+
+    async function updateConnection(id){
+      const rowEl = el(`[data-conn-id="${id}"]`);
+      const payload = {
+        mode: el('[data-f=mode]', rowEl).value.trim() || undefined,
+        status: el('[data-f=status]', rowEl).value.trim() || undefined,
+        scope: el('[data-f=scope]', rowEl).value.trim() || undefined,
+        accessToken: el('[data-f=accessToken]', rowEl).value || undefined,
+        refreshToken: el('[data-f=refreshToken]', rowEl).value || undefined,
+        tokenExpiresAt: el('[data-f=tokenExpiresAt]', rowEl).value || undefined,
+      };
+      const row = await apiJson('PATCH',`/extranet/pms/connections/${id}`, payload);
+      setStatus(`Connection ${id} updated (status=${row.status}).`, 'ok');
+      await loadConnections();
+    }
+
+    async function testConnection(id){
+      const r = await apiJson('POST',`/extranet/pms/connections/${id}/test`,{});
+      setStatus(`Test ${r.ok?'ok':'fail'} for connection ${id}.`, r.ok?'ok':'error');
+      await loadConnections();
+    }
+
+    async function deleteConnection(id){
+      if (!confirm(`Delete connection ${id}? This also removes mappings.`)) return;
+      await apiJson('DELETE',`/extranet/pms/connections/${id}`);
+      setStatus(`Connection ${id} deleted.`, 'ok');
+      await Promise.all([loadConnections(), loadMappings()]);
+    }
+
+    // --- actions: mappings ---
+    async function createMapping(ev){
+      ev?.preventDefault();
+      const f = ev.target.closest('form');
+      const payload = {
+        pmsConnectionId: Number(el('[name=pmsConnectionId]', f).value),
+        remoteRoomId: el('[name=remoteRoomId]', f).value.trim(),
+        remoteRatePlanId: el('[name=remoteRatePlanId]', f).value.trim() || null,
+        localRoomTypeId: Number(el('[name=localRoomTypeId]', f).value) || null,
+        localRatePlanId: Number(el('[name=localRatePlanId]', f).value) || null,
+        currency: el('[name=currency]', f).value.trim() || 'USD',
+        active: el('[name=active]', f).checked,
+      };
+      const row = await apiJson('POST','/extranet/pms/mappings', payload);
+      setStatus(`Mapping created (id=${row.id}).`, 'ok');
+      await loadMappings();
+    }
+
+    async function updateMapping(id){
+      const rowEl = el(`[data-map-id="${id}"]`);
+      const payload = {
+        localRoomTypeId: Number(el('[data-f=localRoomTypeId]', rowEl).value)||null,
+        localRatePlanId: Number(el('[data-f=localRatePlanId]', rowEl).value)||null,
+        currency: el('[data-f=currency]', rowEl).value.trim()||null,
+        active: el('[data-f=active]', rowEl).checked,
+      };
+      const row = await apiJson('PATCH',`/extranet/pms/mappings/${id}`, payload);
+      setStatus(`Mapping ${id} updated.`, 'ok');
+      await loadMappings();
+    }
+
+    async function deleteMapping(id){
+      if (!confirm(`Delete mapping ${id}?`)) return;
+      await apiJson('DELETE',`/extranet/pms/mappings/${id}`);
+      setStatus(`Mapping ${id} deleted.`, 'ok');
+      await loadMappings();
+    }
+
+    // --- renderers ---
+    function renderConnections(){
+      const tbody = el('#connRows');
+      tbody.innerHTML = '';
+      for (const c of state.connections){
+        const tr = document.createElement('tr');
+        tr.dataset.connId = String(c.id);
+        tr.innerHTML = `
+          <td>${c.id}</td>
+          <td>${c.provider}</td>
+          <td><input data-f="mode" value="${c.mode||''}"/></td>
+          <td><input data-f="status" value="${c.status||''}"/></td>
+          <td><input data-f="scope" value="${c.scope||''}"/></td>
+          <td>
+            <input data-f="accessToken" type="password" placeholder="accessToken" />
+            <input data-f="refreshToken" type="password" placeholder="refreshToken" />
+            <input data-f="tokenExpiresAt" type="datetime-local" />
+          </td>
+          <td>
+            <button onclick="updateConnection(${c.id})">Save</button>
+            <button onclick="testConnection(${c.id})">Test</button>
+            <button class="danger" onclick="deleteConnection(${c.id})">Delete</button>
+          </td>`;
+        tbody.appendChild(tr);
+      }
+    }
+
+    function renderMappings(){
+      const tbody = el('#mapRows');
+      tbody.innerHTML = '';
+      for (const m of state.mappings){
+        const tr = document.createElement('tr');
+        tr.dataset.mapId = String(m.id);
+        tr.innerHTML = `
+          <td>${m.id}</td>
+          <td>${m.pmsConnectionId}</td>
+          <td>${m.remoteRoomId}</td>
+          <td><input data-f="localRoomTypeId" value="${m.localRoomTypeId??''}"/></td>
+          <td><input data-f="localRatePlanId" value="${m.localRatePlanId??''}"/></td>
+          <td><input data-f="currency" value="${m.currency||'USD'}"/></td>
+          <td><input data-f="active" type="checkbox" ${m.active?'checked':''}/></td>
+          <td>
+            <button onclick="updateMapping(${m.id})">Save</button>
+            <button class="danger" onclick="deleteMapping(${m.id})">Delete</button>
+          </td>`;
+        tbody.appendChild(tr);
+      }
+    }
+
+    // --- bootstrap ---
+    async function bootstrap(){
+      try{
+        loadTokenFromHash();
+        if (!state.token){ setStatus('Set a partner token to begin.', 'warn'); return; }
+        await loadWhoAmI();
+        await Promise.all([loadConnections(), loadMappings()]);
+        setStatus('Ready', 'ok');
+      }catch(e){ setStatus(String(e.message||e), 'error'); }
+    }
+
+    window.addEventListener('DOMContentLoaded', bootstrap);
+    window.saveToken = saveToken;
+    window.upsertConnection = upsertConnection;
+    window.updateConnection = updateConnection;
+    window.testConnection = testConnection;
+    window.deleteConnection = deleteConnection;
+    window.createMapping = createMapping;
+    window.updateMapping = updateMapping;
+    window.deleteMapping = deleteMapping;
+  </script>
+  <style>
+    body { font-family: system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif; margin: 20px; color:#0f172a; }
+    h1 { font-size: 20px; margin:0 0 10px; }
+    h2 { font-size: 16px; margin:24px 0 8px; }
+    .row { display:flex; gap:10px; align-items:center; flex-wrap:wrap; }
+    input, button, select { padding:6px 8px; border:1px solid #cbd5e1; border-radius:8px; font-size:14px; }
+    button { background:#0ea5e9; color:white; border:none; cursor:pointer; }
+    button:hover { filter:brightness(0.95); }
+    button.danger { background:#ef4444; }
+    table { width:100%; border-collapse:collapse; }
+    th, td { border-bottom:1px solid #e2e8f0; padding:8px; vertical-align:top; }
+    th { text-align:left; font-weight:600; color:#334155; }
+    .status { margin-top:12px; padding:8px 10px; border-radius:8px; background:#e2e8f0; display:inline-block; }
+    .status.ok { background:#dcfce7; color:#14532d; }
+    .status.warn { background:#fef9c3; color:#713f12; }
+    .status.error { background:#fee2e2; color:#7f1d1d; }
+    .card { border:1px solid #e2e8f0; border-radius:12px; padding:12px; }
+    .grid { display:grid; grid-template-columns: 1fr; gap:14px; }
+    @media (min-width: 960px){ .grid { grid-template-columns: 1fr 1fr; } }
+    .muted { color:#64748b; font-size:12px; }
+    .mono { font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; }
+  </style>
+</head>
+<body>
+  <h1>PMS Admin — Connections & Mappings</h1>
+  <div class="row">
+    <input id="partnerToken" type="password" placeholder="partner session token" style="width:360px"/>
+    <button onclick="saveToken()">Set token</button>
+    <span id="whoami" class="muted mono">partnerId=—</span>
+  </div>
+  <div id="status" class="status">Loading…</div>
+
+  <div class="grid" style="margin-top:16px;">
+    <div class="card">
+      <h2>Create / Upsert Connection</h2>
+      <form onsubmit="upsertConnection(event)">
+        <div class="row" style="margin-bottom:8px;">
+          <input name="provider" placeholder="provider (e.g. CLOUDBEDS)" style="width:200px"/>
+          <input name="mode" placeholder="mode (mock|live)" style="width:120px"/>
+          <input name="status" placeholder="status (TESTING|CONNECTED|ERROR)" style="width:200px"/>
+          <input name="scope" placeholder="scope (optional)" style="width:240px"/>
+          <button type="submit">Upsert</button>
+        </div>
+        <div class="muted">Use the table below to set access/refresh tokens and expiry, then “Save” + “Test”.</div>
+      </form>
+    </div>
+
+    <div class="card">
+      <h2>Create Mapping</h2>
+      <form onsubmit="createMapping(event)">
+        <div class="row" style="margin-bottom:8px;">
+          <input name="pmsConnectionId" placeholder="pmsConnectionId" style="width:140px"/>
+          <input name="remoteRoomId" placeholder="remoteRoomId (e.g. R101)" style="width:180px"/>
+          <input name="remoteRatePlanId" placeholder="remoteRatePlanId (e.g. BAR)" style="width:180px"/>
+          <input name="localRoomTypeId" placeholder="localRoomTypeId" style="width:140px"/>
+          <input name="localRatePlanId" placeholder="localRatePlanId (optional)" style="width:170px"/>
+          <input name="currency" placeholder="currency (USD)" style="width:120px"/>
+          <label class="row" style="gap:6px"><input name="active" type="checkbox" checked/> active</label>
+          <button type="submit">Create</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <div class="card" style="margin-top:16px;">
+    <h2>Connections</h2>
+    <table>
+      <thead>
+        <tr>
+          <th>id</th>
+          <th>provider</th>
+          <th>mode</th>
+          <th>status</th>
+          <th>scope</th>
+          <th>tokens</th>
+          <th>actions</th>
+        </tr>
+      </thead>
+      <tbody id="connRows"></tbody>
+    </table>
+  </div>
+
+  <div class="card" style="margin-top:16px;">
+    <h2>Mappings</h2>
+    <table>
+      <thead>
+        <tr>
+          <th>id</th>
+          <th>conn</th>
+          <th>remote</th>
+          <th>local RT</th>
+          <th>local RP</th>
+          <th>currency</th>
+          <th>active</th>
+          <th>actions</th>
+        </tr>
+      </thead>
+      <tbody id="mapRows"></tbody>
+    </table>
+  </div>
+
+  <p class="muted" style="margin-top:14px;">Secrets aren’t logged. Token is read from <span class="mono">#token</span> once and stored in <span class="mono">localStorage.partnerToken</span>.</p>
+</body>
+</html>
