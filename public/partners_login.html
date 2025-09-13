@@ -155,7 +155,8 @@
         } else {
           localStorage.setItem('partnerToken', data.token);
           localStorage.setItem(SESSION_KEY, data.token);
-          location.href = "/partners_app.html";
+          const target = `https://lolaelo-api.onrender.com/partners_app.html#token=${encodeURIComponent(token)}`;
+            location.replace(target);
         }
       } catch (e) {
         console.error(e);
