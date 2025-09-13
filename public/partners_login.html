@@ -10,8 +10,8 @@
   <meta http-equiv="Pragma" content="no-cache" />
   <meta http-equiv="Expires" content="0" />
 
-  <!-- Optional: silence favicon 404s -->
-  <link rel="icon" href="/favicon.ico" />
+  <!-- Tiny inline favicon to avoid 404s -->
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'><rect width='16' height='16' fill='%234f8cff'/></svg>" />
 
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600&display=swap" rel="stylesheet">
   <style>
@@ -52,7 +52,7 @@
     }
   </style>
 
-  <!-- Shared helpers -->
+  <!-- Shared helpers (ok if absent) -->
   <script src="js/shared.js"></script>
 </head>
 <body>
@@ -71,7 +71,7 @@
     </div>
 
     <label for="code">6-digit code</label>
-    <input id="code" type="text" inputmode="numeric" placeholder="123456" maxlength="6" />
+    <input id="code" type="text" inputmode="numeric" autocomplete="one-time-code" placeholder="123456" maxlength="6" />
 
     <button id="btnVerify">Verify & Sign in</button>
 
@@ -80,7 +80,8 @@
   </div>
 
   <script>
-    const API_BASE = "https://lolaelo-api.onrender.com";
+    // Serve and talk to the SAME origin (Render host)
+    const API_BASE   = "https://lolaelo-api.onrender.com";
     const SESSION_KEY = "lolaelo_session";
 
     const el = (id) => document.getElementById(id);
@@ -99,21 +100,23 @@
     }
 
     btnClear.onclick = () => {
-      localStorage.removeItem(SESSION_KEY);
-      localStorage.removeItem('partnerToken');
+      try {
+        localStorage.removeItem(SESSION_KEY);
+        localStorage.removeItem('partnerToken');
+      } catch {}
       codeInput.value = "";
       toast('Session cleared');
     };
 
     el('linkSignup').onclick = (e) => { e.preventDefault(); emailInput.focus(); };
 
-    // --- Send code ---
+    // --- Send code (namespaced endpoint) ---
     btnRequest.onclick = async () => {
       const email = (emailInput.value || '').trim().toLowerCase();
       if (!email || !email.includes("@")) return toast('Enter a valid email.');
       btnRequest.disabled = true;
       try {
-        const res = await fetch(`${API_BASE}/login/request-code`, {
+        const res = await fetch(`${API_BASE}/extranet/login/request-code`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ email })
@@ -131,47 +134,47 @@
       }
     };
 
-    // --- Verify & sign in ---
+    // --- Verify & sign in (namespaced endpoint) ---
     btnVerify.onclick = async () => {
       const email = (emailInput.value || '').trim().toLowerCase();
       const code  = (codeInput.value  || '').trim();
       if (!email || !/^\d{6}$/.test(code)) return toast('Enter your email and a 6-digit code.');
 
+      btnVerify.disabled = true;
       try {
-        // IMPORTANT: correct endpoint is /login/verify
-        const res = await fetch(`${API_BASE}/login/verify`, {
+        const res = await fetch(`${API_BASE}/extranet/login/verify`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ email, code })
         });
         const data = await res.json().catch(()=>({}));
         if (!res.ok || !data.ok || !data.token) {
+          btnVerify.disabled = false;
           return toast(data.error || 'Invalid or expired code.');
         }
 
-        // Persist token (both keys for back-compat)
-        if (window.TravelAuth && typeof TravelAuth.onVerifySuccess === 'function') {
-          TravelAuth.onVerifySuccess(data);
-        } else {
+        // Persist token under both keys for compatibility
+        try {
           localStorage.setItem('partnerToken', data.token);
           localStorage.setItem(SESSION_KEY, data.token);
-          const target = `https://lolaelo-api.onrender.com/partners_app.html#token=${encodeURIComponent(token)}`;
-            location.replace(target);
-        }
+        } catch {}
+
+        // SAME-ORIGIN redirect to hub with #token so the hub can capture/clean it
+        location.href = '/partners_app.html#token=' + encodeURIComponent(data.token);
       } catch (e) {
         console.error(e);
         toast('Verification failed.');
+        btnVerify.disabled = false;
       }
     };
 
-    // --- If a token already exists, skip login (optional) ---
+    // --- If a token already exists, skip login (optional, same-origin) ---
     (function restore(){
       try {
         const t = (window.TravelAuth && typeof TravelAuth.getToken === 'function')
           ? TravelAuth.getToken()
           : (localStorage.getItem('partnerToken') || localStorage.getItem(SESSION_KEY));
-
-        if (t) location.href = "/partners_app.html";
+        if (t) location.href = '/partners_app.html';
       } catch {}
     })();
   </script>
