@@ -73,6 +73,7 @@ await tryMount("./routes/sessionHttp.js", "/extranet");
 // features
 await tryMount("./routes/extranetRooms.js", "/extranet/property/rooms");
 await tryMount("./routes/extranetPms.js", "/extranet/pms");
+await tryMount("./routes/extranetProperty.js", "/extranet/property"); 
 
 // write-guard for property writes
 app.use("/extranet/property", requireWriteToken);
