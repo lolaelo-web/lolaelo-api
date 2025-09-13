@@ -1,11 +1,11 @@
 // src/server.ts
 import "dotenv/config";
-import express 
-import { requireWriteToken } from './middleware/requireWriteToken';
-import cors from "cors";
-import path from "path";
-import { fileURLToPath } from "url";
+import express, { type Router, type Request, type Response, type NextFunction } from "express";
+import cors, { type CorsOptions } from "cors";
+import path from "node:path";
+import { fileURLToPath } from "node:url";
 import { Client } from "pg";
+import { requireWriteToken } from "./middleware/requireWriteToken.js";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -18,7 +18,7 @@ const CORS_ALLOWED_ORIGINS = [
   "https://www.lolaelo.com",
   "https://lolaelo.com",
 ];
-const corsOpts: cors.CorsOptions = {
+const corsOpts: CorsOptions = {
   origin: CORS_ALLOWED_ORIGINS,
   methods: ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS", "HEAD"],
   // reflect requested headers (incl. Authorization, x-partner-token)
@@ -46,13 +46,13 @@ app.get("/health", (_req, res) => {
 });
 
 // Track mounts so we can enumerate routes later
-const mountedRouters: Array<{ base: string; router: any; source: string }> = [];
+const mountedRouters: Array<{ base: string; router: Router; source: string }> = [];
 
 // ---- Dynamic route mounting helper ----
 async function tryMount(routePath: string, mountAt: string) {
   try {
     const m = await import(routePath);
-    const r = (m.default ?? (m as any).router ?? m) as express.Router;
+    const r = (m.default ?? (m as any).router ?? m) as Router;
     if (typeof r === "function") {
       app.use(mountAt, r);
       mountedRouters.push({ base: mountAt, router: r, source: routePath });
@@ -73,10 +73,9 @@ await tryMount("./routes/sessionHttp.js", "/extranet");
 // features
 await tryMount("./routes/extranetRooms.js", "/extranet/property/rooms");
 await tryMount("./routes/extranetPms.js", "/extranet/pms");
-app.use('/extranet/property', requireWriteToken);
 
-app.use('/extranet/property', requireWriteToken);
-
+// write-guard for property writes
+app.use("/extranet/property", requireWriteToken);
 
 // ---- Diagnostics ----
 app.get("/__ping", (_req, res) => {
@@ -162,12 +161,10 @@ app.use((req, res, next) => {
   next();
 });
 
-app.use(
-  (err: any, _req: express.Request, res: express.Response, _next: express.NextFunction) => {
-    console.error("[server] unhandled error:", err?.stack || err);
-    res.status(500).json({ error: "Internal Server Error" });
-  }
-);
+app.use((err: any, _req: Request, res: Response, _next: NextFunction) => {
+  console.error("[server] unhandled error:", err?.stack || err);
+  res.status(500).json({ error: "Internal Server Error" });
+});
 
 const PORT = Number(process.env.PORT || 3000);
 if (process.env.NODE_ENV !== "test") {
@@ -177,7 +174,3 @@ if (process.env.NODE_ENV !== "test") {
 }
 
 export default app;
-
-
-
-
