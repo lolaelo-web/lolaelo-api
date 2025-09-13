@@ -11,6 +11,7 @@
   <meta http-equiv="Expires" content="0" />
 
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'><rect width='16' height='16' fill='%234f8cff'/></svg>">
   <style>
   :root{
     --bg:#0b1320; --card:#111a2b; --fg:#e8eefc; --muted:#9bb0d3; --accent:#ff6a3d; --line:rgba(255,255,255,.08);
@@ -369,7 +370,8 @@
           'Cache-Control': 'no-store',
           'Pragma': 'no-cache',
           ...(options.headers || {}),
-          'Authorization': `Bearer ${t || ''}`
+          'Authorization': `Bearer ${t || ''}`,
+          'x-partner-token': t || ''
         }
       });
       if (r.status === 401 || r.status === 403) {
