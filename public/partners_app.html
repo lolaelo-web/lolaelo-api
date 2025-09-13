@@ -364,8 +364,22 @@
 
     // --- Auth guard -----------------------------------------------------------
     (function guard(){
+      // 1) If URL includes #token=..., persist it immediately (before any API calls)
+      const ht = new URLSearchParams(location.hash.slice(1)).get('token');
+      if (ht) {
+        try {
+          localStorage.setItem('partnerToken', ht);
+          localStorage.setItem('lolaelo_session', ht);
+          history.replaceState(null, '', location.pathname + location.search);
+        } catch {}
+      }
+
+      // 2) Now decide whether we have a token
       const t = getToken();
-      if (!t) location.replace(LOGIN_PAGE);
+      if (!t) {
+        // If we ever land here without a token, send to login
+        location.replace(LOGIN_PAGE);
+      }
     })();
 
     // --- Authed fetch (cache-busting + no-store) ------------------------------
