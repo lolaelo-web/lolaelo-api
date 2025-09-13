@@ -322,9 +322,8 @@
   </div>
 
   <script>
-    // Capture #token or ?token on first load, then clean the URL
-    (function () {
-      try {
+    (function captureTokenOnce(){
+      try{
         const h = new URLSearchParams(location.hash.slice(1));
         const q = new URLSearchParams(location.search.slice(1));
         const t = h.get('token') || q.get('token');
@@ -332,9 +331,14 @@
           localStorage.setItem('partnerToken', t);
           localStorage.setItem('lolaelo_session', t);
           history.replaceState(null, '', location.pathname);
+          console.log('[hub] token captured');
+        } else {
+          console.log('[hub] no token in URL');
         }
-      } catch (e) {}
-    })();
+      } catch (e) {
+        console.warn('[hub] capture error', e);
+      }
+})();
     // --- Config ---------------------------------------------------------------
     const API_BASE    = "https://lolaelo-api.onrender.com";
     const LOGIN_PAGE  = "partners_login.html";
