@@ -326,6 +326,18 @@
     const API_BASE    = "https://lolaelo-api.onrender.com";
     const LOGIN_PAGE  = "partners_login.html";
 
+    // Accept #token=... once and persist it so the hub can open directly
+    (function captureHashToken(){
+      const t = new URLSearchParams(location.hash.slice(1)).get('token');
+      if (t) {
+        try {
+          localStorage.setItem('partnerToken', t);
+          localStorage.setItem('lolaelo_session', t);
+          // Optional: clean the hash so refreshes don’t keep it around
+          history.replaceState(null, '', location.pathname + location.search);
+        } catch {}
+      }
+    })();
     // --- Token helper --------------------------------------------------------
     function getToken() {
       if (window.TravelAuth && typeof TravelAuth.getToken === 'function') {
