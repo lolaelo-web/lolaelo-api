@@ -1,4 +1,4 @@
-// @ts-nocheck
+﻿// @ts-nocheck
 // src/routes/extranetPms.ts
 import express from "express";
 import { PrismaClient } from "@prisma/client";
@@ -145,7 +145,7 @@ router.get("/connections", requirePartner, async (req, res) => {
 
     // RAW fallback
     const rows = await (db as any).$queryRawUnsafe(
-      'SELECT * FROM "extranet"."PmsConnection" WHERE "partnerId" = $1 ORDER BY "id" ASC',
+      'SELECT * FROM "public"."PmsConnection" WHERE "partnerId" = $1 ORDER BY "id" ASC',
       partnerId
     );
     return res.json(rows);
@@ -166,7 +166,7 @@ router.post("/connections", requirePartner, async (req, res) => {
     // Ensure Partner row exists for this exact id (FK for PmsConnection)
     // Prisma can't create with a fixed autoinc id; use RAW insert.
     await (db as any).$executeRawUnsafe(
-      `INSERT INTO "extranet"."Partner" ("id","name","email","createdAt","updatedAt")
+      `INSERT INTO "public"."Partner" ("id","name","email","createdAt","updatedAt")
       VALUES ($1,$2,$3,NOW(),NOW())
       ON CONFLICT ("id") DO NOTHING`,
       partnerId,
@@ -199,7 +199,7 @@ router.post("/connections", requirePartner, async (req, res) => {
     // RAW fallback
     // (Also ensure Partner exists in RAW path in case delegates are not present)
     await (db as any).$executeRawUnsafe(
-      `INSERT INTO "extranet"."Partner" ("id","name","email","createdAt","updatedAt")
+      `INSERT INTO "public"."Partner" ("id","name","email","createdAt","updatedAt")
       VALUES ($1,$2,$3,NOW(),NOW())
       ON CONFLICT ("id") DO NOTHING`,
       partnerId,
@@ -208,7 +208,7 @@ router.post("/connections", requirePartner, async (req, res) => {
     );
 
     const upsertSql = `
-      INSERT INTO "extranet"."PmsConnection"
+      INSERT INTO "public"."PmsConnection"
         ("partnerId","provider","mode","status","scope","createdAt","updatedAt")
       VALUES ($1,$2,$3,$4,$5, NOW(), NOW())
       ON CONFLICT ("partnerId","provider")
@@ -221,7 +221,7 @@ router.post("/connections", requirePartner, async (req, res) => {
     const conn = rows?.[0];
 
     await (db as any).$executeRawUnsafe(
-      `INSERT INTO "extranet"."SyncLog"
+      `INSERT INTO "public"."SyncLog"
        ("pmsConnectionId","type","status","message","startedAt","finishedAt","durationMs","createdAt","updatedAt")
        VALUES ($1,'AUTH','SUCCESS',$2,NOW(),NOW(),0,NOW(),NOW())`,
       conn.id,
@@ -262,7 +262,7 @@ router.patch("/connections/:id", requirePartner, async (req, res) => {
 
     // RAW fallback
     const updateSql = `
-      UPDATE "extranet"."PmsConnection"
+      UPDATE "public"."PmsConnection"
       SET "mode" = COALESCE($2,"mode"),
           "status" = COALESCE($3,"status"),
           "scope" = COALESCE($4,"scope"),
@@ -322,26 +322,26 @@ router.post("/connections/:id/test", requirePartner, async (req, res) => {
 
     // RAW fallback
     const connRows = await (db as any).$queryRawUnsafe(
-      'SELECT * FROM "extranet"."PmsConnection" WHERE "id"=$1 AND "partnerId"=$2',
+      'SELECT * FROM "public"."PmsConnection" WHERE "id"=$1 AND "partnerId"=$2',
       id,
       partnerId
     );
     if (!connRows?.length) return res.status(404).json({ error: "Not found" });
 
     await (db as any).$executeRawUnsafe(
-      'UPDATE "extranet"."PmsConnection" SET "status"=$1, "lastSyncAt"=NOW(), "updatedAt"=NOW() WHERE "id"=$2',
+      'UPDATE "public"."PmsConnection" SET "status"=$1, "lastSyncAt"=NOW(), "updatedAt"=NOW() WHERE "id"=$2',
       ok ? "CONNECTED" : "ERROR",
       id
     );
     await (db as any).$executeRawUnsafe(
-      `INSERT INTO "extranet"."SyncLog"
+      `INSERT INTO "public"."SyncLog"
        ("pmsConnectionId","type","status","message","startedAt","finishedAt","durationMs","createdAt","updatedAt")
        VALUES ($1,'AUTH',$2,$3,NOW(),NOW(),0,NOW(),NOW())`,
       id,
       ok ? "SUCCESS" : "ERROR",
       ok ? "Mock connection test passed" : "Mock connection test failed"
     );
-    const updated = await (db as any).$queryRawUnsafe('SELECT * FROM "extranet"."PmsConnection" WHERE "id"=$1', id);
+    const updated = await (db as any).$queryRawUnsafe('SELECT * FROM "public"."PmsConnection" WHERE "id"=$1', id);
     return res.json({ ok, connection: updated?.[0], logStatus: ok ? "SUCCESS" : "ERROR" });
   } catch (e: any) {
     console.error("[PMS POST /connections/:id/test error]", e?.message || e);
@@ -364,10 +364,10 @@ router.delete("/connections/:id", requirePartner, async (req, res) => {
     }
 
     // RAW fallback
-    await (db as any).$executeRawUnsafe('DELETE FROM "extranet"."PmsMapping" WHERE "pmsConnectionId"=$1', id);
-    await (db as any).$executeRawUnsafe('DELETE FROM "extranet"."SyncLog" WHERE "pmsConnectionId"=$1', id);
+    await (db as any).$executeRawUnsafe('DELETE FROM "public"."PmsMapping" WHERE "pmsConnectionId"=$1', id);
+    await (db as any).$executeRawUnsafe('DELETE FROM "public"."SyncLog" WHERE "pmsConnectionId"=$1', id);
     const delRows = await (db as any).$queryRawUnsafe(
-      'DELETE FROM "extranet"."PmsConnection" WHERE "id"=$1 AND "partnerId"=$2 RETURNING 1',
+      'DELETE FROM "public"."PmsConnection" WHERE "id"=$1 AND "partnerId"=$2 RETURNING 1',
       id,
       partnerId
     );
@@ -406,10 +406,10 @@ router.get("/mappings", requirePartner, async (req, res) => {
              c."provider", c."mode", c."status" as "connectionStatus",
              rt."name" as "roomTypeName",
              rp."name" as "ratePlanName"
-      FROM "extranet"."PmsMapping" m
-      JOIN "extranet"."PmsConnection" c ON c."id" = m."pmsConnectionId" AND c."partnerId" = $1
-      LEFT JOIN "extranet"."RoomType" rt ON rt."id" = m."localRoomTypeId"
-      LEFT JOIN "extranet"."RatePlan" rp ON rp."id" = m."localRatePlanId"
+      FROM "public"."PmsMapping" m
+      JOIN "public"."PmsConnection" c ON c."id" = m."pmsConnectionId" AND c."partnerId" = $1
+      LEFT JOIN "public"."RoomType" rt ON rt."id" = m."localRoomTypeId"
+      LEFT JOIN "public"."RatePlan" rp ON rp."id" = m."localRatePlanId"
       ORDER BY m."id" ASC`;
     const rows = await (db as any).$queryRawUnsafe(sql, partnerId);
     return res.json(rows);
@@ -455,14 +455,14 @@ router.post("/mappings", requirePartner, async (req, res) => {
 
     // RAW fallback
     const connRows = await (db as any).$queryRawUnsafe(
-      'SELECT "id" FROM "extranet"."PmsConnection" WHERE "id"=$1 AND "partnerId"=$2',
+      'SELECT "id" FROM "public"."PmsConnection" WHERE "id"=$1 AND "partnerId"=$2',
       Number(pmsConnectionId),
       partnerId
     );
     if (!connRows?.length) return res.status(400).json({ error: "Invalid pmsConnectionId" });
 
     const insSql = `
-      INSERT INTO "extranet"."PmsMapping"
+      INSERT INTO "public"."PmsMapping"
         ("pmsConnectionId","remoteRoomId","remoteRatePlanId","localRoomTypeId","localRatePlanId","currency","active","createdAt","updatedAt")
       VALUES ($1,$2,$3,$4,$5,$6,$7,NOW(),NOW())
       RETURNING *;`;
@@ -507,14 +507,14 @@ router.patch("/mappings/:id", requirePartner, async (req, res) => {
 
     // RAW fallback
     const updSql = `
-      UPDATE "extranet"."PmsMapping"
+      UPDATE "public"."PmsMapping"
       SET "localRoomTypeId" = COALESCE($2,"localRoomTypeId"),
           "localRatePlanId" = COALESCE($3,"localRatePlanId"),
           "currency" = COALESCE($4,"currency"),
           "active" = COALESCE($5,"active"),
           "updatedAt" = NOW()
       WHERE "id"=$1 AND "pmsConnectionId" IN (
-        SELECT "id" FROM "extranet"."PmsConnection" WHERE "partnerId"=$6
+        SELECT "id" FROM "public"."PmsConnection" WHERE "partnerId"=$6
       )
       RETURNING *;`;
     const rows = await (db as any).$queryRawUnsafe(
@@ -548,9 +548,9 @@ router.delete("/mappings/:id", requirePartner, async (req, res) => {
 
     // RAW fallback
     const delSql = `
-      DELETE FROM "extranet"."PmsMapping"
+      DELETE FROM "public"."PmsMapping"
       WHERE "id"=$1 AND "pmsConnectionId" IN (
-        SELECT "id" FROM "extranet"."PmsConnection" WHERE "partnerId"=$2
+        SELECT "id" FROM "public"."PmsConnection" WHERE "partnerId"=$2
       )
       RETURNING 1;`;
     const rows = await (db as any).$queryRawUnsafe(delSql, id, partnerId);
@@ -584,8 +584,8 @@ router.get("/logs", requirePartner, async (req, res) => {
     const rows = await (db as any).$queryRawUnsafe(
       `
       SELECT l.*
-      FROM "extranet"."SyncLog" l
-      JOIN "extranet"."PmsConnection" c ON c."id" = l."pmsConnectionId"
+      FROM "public"."SyncLog" l
+      JOIN "public"."PmsConnection" c ON c."id" = l."pmsConnectionId"
       WHERE c."partnerId" = $1
       ORDER BY l."id" DESC
       LIMIT $2
@@ -616,8 +616,8 @@ router.get("/remote/rooms", requirePartner, async (req, res) => {
       });
     } else {
       mappings = await (db as any).$queryRawUnsafe(
-        `SELECT m.* FROM "extranet"."PmsMapping" m
-         JOIN "extranet"."PmsConnection" c ON c."id" = m."pmsConnectionId"
+        `SELECT m.* FROM "public"."PmsMapping" m
+         JOIN "public"."PmsConnection" c ON c."id" = m."pmsConnectionId"
          WHERE m."active" = TRUE AND c."partnerId" = $1
          ORDER BY m."id" ASC`,
         partnerId
@@ -663,8 +663,8 @@ router.get("/remote/availability", requirePartner, async (req, res) => {
       });
     } else {
       mappings = await (db as any).$queryRawUnsafe(
-        `SELECT m.* FROM "extranet"."PmsMapping" m
-         JOIN "extranet"."PmsConnection" c ON c."id" = m."pmsConnectionId"
+        `SELECT m.* FROM "public"."PmsMapping" m
+         JOIN "public"."PmsConnection" c ON c."id" = m."pmsConnectionId"
          WHERE m."active" = TRUE AND c."partnerId" = $1
          ORDER BY m."id" ASC`,
         partnerId
@@ -680,10 +680,10 @@ router.get("/remote/availability", requirePartner, async (req, res) => {
       days.push(d.toISOString().slice(0, 10));
     }
 
-    // Mirror Direct inventory for mapped localRoomTypeId (dynamic mock) — ALWAYS read from EXTRANET schema to avoid drift
+    // Mirror Direct inventory for mapped localRoomTypeId (dynamic mock) â€” ALWAYS read from EXTRANET schema to avoid drift
 const localInv: any[] = await (db as any).$queryRawUnsafe(
   `SELECT "roomTypeId","date","roomsOpen","isClosed"
-     FROM "extranet"."RoomInventory"
+     FROM "public"."RoomInventory"
     WHERE "partnerId" = $1
       AND "date" >= $2
       AND "date" <  $3
@@ -714,7 +714,7 @@ mappings.forEach((m) => {
       remoteRoomId: String(m.remoteRoomId),
       remoteRatePlanId: m.remoteRatePlanId ? String(m.remoteRatePlanId) : null,
       date: ds,
-      roomsOpen: open,                    // ← mirrors Direct inventory
+      roomsOpen: open,                    // â† mirrors Direct inventory
       price: 120 + (idx % 5) * 10,        // simple stub
       currency: m.currency ?? "USD",
       source: "pms",
@@ -758,7 +758,7 @@ router.get("/uis/search", requirePartner, async (req, res) => {
 
     const rtIds = rts.map((r: any) => Number(r.id));
 
-    // 2) Exposed plans → choose best (lowest uisPriority) per room type
+    // 2) Exposed plans â†’ choose best (lowest uisPriority) per room type
     const plans = await (db as any).ratePlan.findMany({
       where: { partnerId, roomTypeId: { in: rtIds }, exposeToUis: true },
       select: { id: true, roomTypeId: true, name: true, uisPriority: true },
@@ -799,7 +799,7 @@ router.get("/uis/search", requirePartner, async (req, res) => {
       orderBy: { date: "asc" },
     });
 
-    // 5) Map (roomTypeId|date) → price
+    // 5) Map (roomTypeId|date) â†’ price
     const priceByKey = new Map<string, { price: any; ratePlanId: number }>();
     for (const p of prices) {
       const k = `${Number(p.roomTypeId)}|${new Date(p.date).toISOString().slice(0, 10)}`;
@@ -841,8 +841,8 @@ if (hasDelegates()) {
   });
 } else {
   mappings = await (db as any).$queryRawUnsafe(
-    `SELECT m.* FROM "extranet"."PmsMapping" m
-     JOIN "extranet"."PmsConnection" c ON c."id" = m."pmsConnectionId"
+    `SELECT m.* FROM "public"."PmsMapping" m
+     JOIN "public"."PmsConnection" c ON c."id" = m."pmsConnectionId"
      WHERE m."active" = TRUE AND c."partnerId" = $1
      ORDER BY m."id" ASC`,
     partnerId
@@ -862,7 +862,7 @@ if (hasDelegates()) {
     // Read Extranet inventory from correct schema and index it
     const invRaw: any[] = await (db as any).$queryRawUnsafe(
       `SELECT "roomTypeId","date","roomsOpen","isClosed"
-        FROM "extranet"."RoomInventory"
+        FROM "public"."RoomInventory"
         WHERE "partnerId" = $1
           AND "date" >= $2
           AND "date" <  $3
