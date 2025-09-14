@@ -170,71 +170,50 @@ function qident(id: string) {
   return `"${id.replace(/"/g, '""')}"`;
 }
 
-// ---- Auth guard: Bearer <UUID token> validated against any detected session table ----
+// ---- Auth guard: Bearer <UUID token> validated against detected session table ----
 async function requirePartner(
   req: Request & { partner?: { id: number; email?: string; name?: string } },
   res: Response,
   next: NextFunction
 ) {
+
   try {
-    // Extract bearer token
+    // 1) Extract bearer token
     const auth = String(req.headers["authorization"] || "");
     const m = /^Bearer\s+(.+)$/.exec(auth);
     if (!m) return res.status(401).json({ error: "unauthorized" });
     const token = m[1].trim();
 
-    // Try cached table first, then fall back to scanning all candidates
-    const tried: string[] = [];
-    const candidates: string[] = [];
+    // 2) Detect the session table (cached after first call)
+    const sessionTbl = await detectSessionTable();
 
-    if (SESSION_TBL_CACHED) candidates.push(SESSION_TBL_CACHED);
-    for (const c of await listSessionCandidates()) {
-      const tbl = `${c.schema}.${qident(c.name)}`;
-      if (!candidates.includes(tbl)) candidates.push(tbl);
-    }
+    // 3) Read session row using JSONB-safe selectors (no s.email / s.name columns)
+    const { rows } = await pool.query(
+      `
+      SELECT
+        (to_jsonb(s)->>'partnerId')::int  AS "partnerId",
+        NULLIF(to_jsonb(s)->>'email','')  AS "email",
+        NULLIF(to_jsonb(s)->>'name','')   AS "name",
+        to_jsonb(s)->>'expiresAt'         AS "expiresAt"
+      FROM ${sessionTbl} s
+      WHERE to_jsonb(s)->>'token' = $1
+      LIMIT 1
+      `,
+      [token]
+    );
 
-    let row:
-      | { partnerId: number; email: string | null; name: string | null; expiresAt: string | number | null }
-      | null = null;
+    if (!rows.length) return res.status(401).json({ error: "unauthorized" });
 
-    for (const tbl of candidates) {
-      tried.push(tbl);
-      // Support both real columns and jsonb(row) access; cast token to text for comparison
-      const { rows } = await pool.query(
-        `
-        SELECT
-          COALESCE( (to_jsonb(s)->>'partnerId')::int, NULLIF(s."partnerId", NULL)::int ) AS "partnerId",
-          COALESCE( NULLIF(to_jsonb(s)->>'email',''), NULLIF(s."email"::text,'') )        AS "email",
-          COALESCE( NULLIF(to_jsonb(s)->>'name',''),  NULLIF(s."name"::text,'') )         AS "name",
-          COALESCE( to_jsonb(s)->>'expiresAt', (s."expiresAt")::text )                    AS "expiresAt"
-        FROM ${tbl} s
-        WHERE
-          (to_jsonb(s)->>'token') = $1
-          OR (s."token"::text = $1)
-        LIMIT 1
-        `,
-        [token]
-      );
+    const s = rows[0]; // { partnerId, email, name, expiresAt }
 
-      if (rows.length) {
-        row = rows[0];
-        SESSION_TBL_CACHED = tbl; // cache the winner
-        break;
-      }
-    }
+    // 4) Expiry check (works with number/string/ISO); assumes isExpired is defined
+    if (isExpired(s.expiresAt)) return res.status(401).json({ error: "unauthorized" });
 
-    if (!row) {
-      console.warn(`[property:auth] token not found in candidates: ${tried.join(", ")}`);
-      return res.status(401).json({ error: "unauthorized" });
-    }
-
-    // Honor numeric, string, or ISO timestamps
-    if (isExpired(row.expiresAt)) return res.status(401).json({ error: "unauthorized" });
-
+    // 5) Attach to req for downstream handlers (like GET /extranet/property)
     req.partner = {
-      id: Number(row.partnerId),
-      email: row.email ?? undefined,
-      name: row.name ?? undefined,
+      id: Number(s.partnerId),
+      email: s.email || undefined,
+      name:  s.name  || undefined,
     };
 
     return next();
