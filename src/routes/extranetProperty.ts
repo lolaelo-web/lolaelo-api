@@ -34,9 +34,25 @@ function hasAllKeys(body: any, keys: string[]) {
 
 /** Safe date check */
 function isExpired(expiresAt: unknown): boolean {
-  if (!expiresAt) return false;
-  const t = new Date(expiresAt as any).getTime();
-  return !Number.isFinite(t) || t <= Date.now();
+  if (expiresAt == null) return false;
+
+  let ms: number;
+
+  if (typeof expiresAt === "number") {
+    // already epoch ms
+    ms = expiresAt;
+  } else if (typeof expiresAt === "string") {
+    // support BIGINT as text (e.g., "1760382891779")
+    if (/^\d+$/.test(expiresAt)) {
+      ms = Number(expiresAt);
+    } else {
+      ms = new Date(expiresAt as any).getTime();
+    }
+  } else {
+    ms = new Date(expiresAt as any).getTime();
+  }
+
+  return !Number.isFinite(ms) || ms <= Date.now();
 }
 
 function getClientIp(req: Request): string | null {
