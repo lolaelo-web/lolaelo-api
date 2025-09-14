@@ -100,6 +100,24 @@
   }
   </style>
 
+  <!-- Early token capture: run before anything else -->
+  <script>
+  (function () {
+    try {
+      const hash = new URLSearchParams(location.hash.slice(1));
+      const query = new URLSearchParams(location.search.slice(1));
+      const t = hash.get('token') || query.get('token');
+      if (t) {
+        localStorage.setItem('partnerToken', t);
+        localStorage.setItem('lolaelo_session', t);
+        // Clean the URL (keep path+query, drop #token)
+        history.replaceState(null, '', location.pathname + location.search);
+        console.log('[hub] token captured (head)');
+      }
+    } catch {}
+  })();
+  </script>
+
   <!-- travel shared helpers -->
   <script src="js/shared.js"></script>
 </head>
@@ -249,7 +267,7 @@
             <thead>
               <tr><th>ID</th><th>Provider</th><th>Mode</th><th>Status</th><th>Scope</th><th>Updated</th><th>Actions</th></tr>
             </thead>
-            <tbody id="connTbody"><tr><td class="muted" colspan="7">Loading…</td></tr></tbody>
+            <tbody id="connTbody"><tr><td class="muted" colspan="7">No connections yet.</td></tr></tbody>
           </table>
         </div>
 
@@ -309,7 +327,7 @@
                 <th>ID</th><th>Conn</th><th>Remote Room</th><th>Remote Rate</th><th>Currency</th><th>Active</th><th>Actions</th>
               </tr>
             </thead>
-            <tbody id="mapTbody"><tr><td class="muted" colspan="7">Loading…</td></tr></tbody>
+            <tbody id="mapTbody"><tr><td class="muted" colspan="7">No mappings yet.</td></tr></tbody>
           </table>
         </div>
 
@@ -322,51 +340,88 @@
   </div>
 
   <script>
-    (function captureTokenOnce(){
-      try{
-        const h = new URLSearchParams(location.hash.slice(1));
-        const q = new URLSearchParams(location.search.slice(1));
-        const t = h.get('token') || q.get('token');
-        if (t) {
-          localStorage.setItem('partnerToken', t);
-          localStorage.setItem('lolaelo_session', t);
-          history.replaceState(null, '', location.pathname);
-          console.log('[hub] token captured');
-        } else {
-          console.log('[hub] no token in URL');
-        }
-      } catch (e) {
-        console.warn('[hub] capture error', e);
-      }
-})();
     // --- Config ---------------------------------------------------------------
-    const API_BASE    = "https://lolaelo-api.onrender.com";
-    const LOGIN_PAGE  = "partners_login.html";
+    const API_BASE   = "https://lolaelo-api.onrender.com";
+    const LOGIN_PAGE = "partners_login.html";
+    const SESSION_KEY = "lolaelo_session";
 
-    // Accept #token=... once and persist it so the hub can open directly
-    (function acceptHashTokenOnce() {
-      const t = new URLSearchParams(location.hash.slice(1)).get('token');
-      if (!t) return;
-      try {
-        localStorage.setItem('partnerToken', t);
-        localStorage.setItem('lolaelo_session', t);
-        // clean the hash so refreshes don’t keep it around
-        history.replaceState(null, '', location.pathname + location.search);
-      } catch {}
-    })();
-
-    // --- Token helper --------------------------------------------------------
-    function getToken() {
+    // --- Token helpers --------------------------------------------------------
+    function readToken() {
       if (window.TravelAuth && typeof TravelAuth.getToken === 'function') {
         const t = TravelAuth.getToken();
         if (t) return t;
       }
-      const p = localStorage.getItem("partnerToken");
-      if (p) return p;
-      return localStorage.getItem("lolaelo_session") || "";
+      return localStorage.getItem('partnerToken') || localStorage.getItem(SESSION_KEY) || '';
+    }
+    function writeToken(t) {
+      try {
+        localStorage.setItem('partnerToken', t);
+        localStorage.setItem(SESSION_KEY, t);
+      } catch {}
     }
 
-    // --- DOM helpers ---------------------------------------------------------
+    // Guard: if no token AND no hash token, go to login.
+    (function guard(){
+      const hasHashToken = new URLSearchParams(location.hash.slice(1)).has('token');
+      const t = readToken();
+      if (!(t || hasHashToken)) {
+        location.replace(LOGIN_PAGE);
+      }
+    })();
+
+    // --- Authed fetch (retry once) -------------------------------------------
+    async function authed(path, options = {}){
+      let t = readToken();
+      const isGet = !options.method || options.method.toUpperCase() === 'GET';
+      const bust  = isGet ? (path.includes('?') ? '&' : '?') + '__ts=' + Date.now() : '';
+      const url   = `${API_BASE}${path}${bust}`;
+
+      async function doFetch() {
+        return fetch(url, {
+          cache: 'no-store',
+          ...options,
+          headers: {
+            'Cache-Control': 'no-store',
+            'Pragma': 'no-cache',
+            ...(options.headers || {}),
+            'Authorization': `Bearer ${t || ''}`
+          }
+        });
+      }
+
+      let r = await doFetch();
+      if (r.status === 401 || r.status === 403) {
+        // One soft retry in case token just got written from #token
+        t = readToken();
+        r = await doFetch();
+        if (r.status === 401 || r.status === 403) {
+          try { localStorage.removeItem('partnerToken'); localStorage.removeItem(SESSION_KEY); } catch {}
+          location.replace(LOGIN_PAGE);
+          throw new Error("unauthorized");
+        }
+      }
+      return r;
+    }
+    async function getJSON(path){
+      const r = await authed(path, { method:'GET' });
+      if (!r.ok) throw new Error(`GET ${path} -> ${r.status}`);
+      return r.json();
+    }
+
+    // --- Logout ---------------------------------------------------------------
+    document.getElementById('btnLogout').onclick = async () => {
+      try {
+        const t = readToken();
+        await fetch(`${API_BASE}/extranet/logout`, {
+          method: 'POST',
+          headers: { Authorization: `Bearer ${t}` }
+        });
+      } catch {}
+      try { localStorage.removeItem('partnerToken'); localStorage.removeItem(SESSION_KEY); } catch {}
+      location.replace(LOGIN_PAGE);
+    };
+
+    // --- DOM helpers ----------------------------------------------------------
     const $ = (id) => document.getElementById(id);
     const toastBox = $('toast');
     function toast(html, ok=false){
@@ -379,72 +434,8 @@
     function show(id){ $(id).classList.remove('hidden') }
     function hide(id){ $(id).classList.add('hidden') }
 
-    // --- Auth guard -----------------------------------------------------------
-    (function guard(){
-      // 1) If URL includes #token=..., persist it immediately (before any API calls)
-      const ht = new URLSearchParams(location.hash.slice(1)).get('token');
-      if (ht) {
-        try {
-          localStorage.setItem('partnerToken', ht);
-          localStorage.setItem('lolaelo_session', ht);
-          history.replaceState(null, '', location.pathname + location.search);
-        } catch {}
-      }
-
-      // 2) Now decide whether we have a token
-      const t = getToken();
-      if (!t) {
-        // If we ever land here without a token, send to login
-        location.replace(LOGIN_PAGE);
-      }
-    })();
-
-    // --- Authed fetch (cache-busting + no-store) ------------------------------
-    async function authed(path, options = {}){
-      const t = getToken();
-      const isGet = !options.method || options.method.toUpperCase() === 'GET';
-      const bust  = isGet ? (path.includes('?') ? '&' : '?') + '__ts=' + Date.now() : '';
-      const url   = `${API_BASE}${path}${bust}`;
-
-      const r = await fetch(url, {
-        cache: 'no-store',
-        ...options,
-        headers: {
-          'Cache-Control': 'no-store',
-          'Pragma': 'no-cache',
-          ...(options.headers || {}),
-          'Authorization': `Bearer ${t || ''}`,
-          'x-partner-token': t || ''
-        }
-      });
-      if (r.status === 401 || r.status === 403) {
-        try { localStorage.removeItem("partnerToken"); localStorage.removeItem("lolaelo_session"); } catch {}
-        location.replace(LOGIN_PAGE);
-        throw new Error("unauthorized");
-      }
-      return r;
-    }
-    async function getJSON(path){
-      const r = await authed(path, { method:'GET' });
-      if (!r.ok) throw new Error(`GET ${path} -> ${r.status}`);
-      return r.json();
-    }
-
-    // --- Logout ---------------------------------------------------------------
-    $('btnLogout').onclick = async () => {
-      try {
-        const t = getToken();
-        await fetch(`${API_BASE}/extranet/logout`, {
-          method: 'POST',
-          headers: { Authorization: `Bearer ${t}` }
-        });
-      } catch {}
-      try { localStorage.removeItem("partnerToken"); localStorage.removeItem("lolaelo_session"); } catch {}
-      location.replace(LOGIN_PAGE);
-    };
-
     // --- Navigation helpers ---------------------------------------------------
-    const backToHub   = () => { hide('profile'); hide('photosPanel'); hide('pmsConnectionsPanel'); hide('pmsMappingsPanel'); show('hub'); };
+    const backToHub = () => { hide('profile'); hide('photosPanel'); hide('pmsConnectionsPanel'); hide('pmsMappingsPanel'); show('hub'); };
 
     $('tileProfile').addEventListener('click', (e) => { e.preventDefault(); hide('hub'); show('profile'); });
     $('btnBack').onclick = backToHub;
@@ -460,8 +451,8 @@
       if (window.TravelAuth && typeof TravelAuth.openRooms === 'function') {
         TravelAuth.openRooms();
       } else {
-        const t = getToken();
-        const base = 'https://lolaelo-api.onrender.com/partners_rooms.html';
+        const t = readToken();
+        const base = '/partners_rooms.html';
         const url  = t ? `${base}#token=${encodeURIComponent(t)}` : base;
         location.href = url;
       }
@@ -544,11 +535,10 @@
         btn.disabled = false;
       }
     }
-
     $('btnSave').onclick = function (e) {
       e.preventDefault();
-      var el = document.getElementById('pp_name');
-      var nameVal = ((el && el.value) ? el.value : '').trim();
+      const el = document.getElementById('pp_name');
+      const nameVal = ((el && el.value) ? el.value : '').trim();
       if (!nameVal) { toast('Company name is required.'); return; }
       saveProfile();
     };
@@ -619,31 +609,7 @@
       });
     }
 
-    $('btnUploadPhoto').addEventListener('click', () => $('fileInput').click());
-    $('fileInput').addEventListener('change', async (e) => {
-      const file = e.target.files?.[0]; e.target.value=''; if (!file) return;
-      try {
-        const up = await authed('/extranet/property/photos/upload-url', {
-          method:'POST', headers:{ 'Content-Type': 'application/json' },
-          body: JSON.stringify({ fileName: file.name, contentType: (file.type || 'application/octet-stream'), size: file.size })
-        });
-        const data = await up.json().catch(()=> ({}));
-        const uploadUrl = data.uploadUrl || data.signedUrl || data.putUrl || data.url;
-        const key       = data.key ?? data.s3Key ?? data.path ?? data.objectKey;
-        const publicUrl = data.publicUrl || data.public_url || (uploadUrl ? uploadUrl.split('?')[0] : null);
-        if (!uploadUrl || !key) throw new Error('Bad upload-url response (missing uploadUrl/key)');
-        const put = await fetch(uploadUrl, { method:'PUT', headers:{ 'Content-Type': file.type || 'image/jpeg' }, body:file });
-        if (!put.ok) { let text = ''; try { text = await put.text(); } catch{}; throw new Error(`Storage upload failed: ${put.status} ${text}`); }
-        const create = await authed('/extranet/property/photos', {
-          method:'POST', headers:{ 'Content-Type': 'application/json' },
-          body: JSON.stringify({ key, url: publicUrl, alt: null, isCover: false })
-        });
-        if (!create.ok) throw new Error((await create.text()) || 'Create failed');
-        const created = await create.json(); photosState.push(created); renderPhotos(); toast('Uploaded.', true);
-      } catch (err) { console.error(err); toast(err.message || 'Upload failed'); }
-    });
-
-    // --- PMS Connections logic -----------------------------------------------
+    // --- PMS Connections logic ------------------------------------------------
     const connTbody = $('connTbody');
     const connLogs  = $('connLogs');
     const connMsg   = $('connMsg');
@@ -704,7 +670,6 @@
       connMsg.textContent = 'Loading…';
       const [c,l] = await Promise.all([listConnections(), listLogs(10)]);
       renderConnections(c); renderLogs(l); connMsg.textContent = '';
-      // also refresh mapping connection select if mappings panel is open
       if (!$('pmsMappingsPanel').classList.contains('hidden')) await populateConnectionSelect(c);
     }
 
