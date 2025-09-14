@@ -98,36 +98,50 @@ async function logProfileAudit(args: {
   );
 }
 
-/** Cache for detected session table */
+/** Cache for detected session table (schema-qualified) */
 let SESSION_TBL_CACHED: string | null = null;
 
-/** Find a table with token/partnerId/expiresAt in schema extranet OR public (prefer extranet) */
+/**
+ * Find a table with columns token, partnerId, expiresAt (and optionally email, name).
+ * Prefer schema 'extranet', else fall back to 'public'.
+ */
 async function detectSessionTable(): Promise<string> {
   if (SESSION_TBL_CACHED) return SESSION_TBL_CACHED;
 
-  const { rows } = await pool.query(`
+  const { rows } = await pool.query(
+    `
     WITH cols AS (
       SELECT table_schema, table_name, column_name
       FROM information_schema.columns
       WHERE table_schema IN ('extranet','public')
-        AND column_name IN ('token','partnerId','expiresAt','email','name','userEmail','userName','contactEmail')
+        AND column_name IN ('token','partnerId','expiresAt','email','name')
+    ),
+    candidates AS (
+      SELECT table_schema, table_name
+      FROM cols
+      GROUP BY table_schema, table_name
+      HAVING COUNT(*) FILTER (WHERE column_name = 'token') > 0
+         AND COUNT(*) FILTER (WHERE column_name = 'partnerId') > 0
+         AND COUNT(*) FILTER (WHERE column_name = 'expiresAt') > 0
     )
     SELECT table_schema, table_name
-    FROM cols
-    GROUP BY table_schema, table_name
-    HAVING COUNT(*) FILTER (WHERE column_name = 'token') > 0
-       AND COUNT(*) FILTER (WHERE column_name = 'partnerId') > 0
-       AND COUNT(*) FILTER (WHERE column_name = 'expiresAt') > 0
-    ORDER BY CASE WHEN table_schema = 'extranet' THEN 0 ELSE 1 END, table_name
-  `);
+    FROM candidates
+    ORDER BY (table_schema = 'extranet') DESC, table_name ASC
+    LIMIT 1
+    `
+  );
 
   if (!rows.length) {
-    throw new Error("No session table with token/partnerId/expiresAt found in extranet/public");
+    throw new Error("No session table with token/partnerId/expiresAt found in schemas extranet/public");
   }
 
-  const s = rows[0].table_schema;
-  const t = rows[0].table_name;
-  SESSION_TBL_CACHED = `"${s}"."${t}"`;
+  const schema = rows[0].table_schema as string;
+  const name   = rows[0].table_name as string;
+  SESSION_TBL_CACHED = `${schema}."${name}"`;
+
+  // Light debug so we can confirm in logs which table is used
+  console.log(`[property] session table => ${SESSION_TBL_CACHED}`);
+
   return SESSION_TBL_CACHED;
 }
 
