@@ -130,6 +130,39 @@ app.get("/__session_probe_public", async (_req, res) => {
   }
 });
 
+// ---- Schema tables/columns probe (TEMP) ----
+app.get("/__tables_public", async (_req, res) => {
+  try {
+    const cs = process.env.DATABASE_URL || "";
+    const wantsSSL = /\bsslmode=require\b/i.test(cs) || /render\.com/i.test(cs);
+    const client = new Client({
+      connectionString: cs,
+      ssl: wantsSSL ? { rejectUnauthorized: false } : undefined,
+    });
+    await client.connect();
+
+    const q = await client.query(`
+      SELECT table_name, column_name, data_type
+      FROM information_schema.columns
+      WHERE table_schema = 'extranet'
+      ORDER BY table_name, ordinal_position
+    `);
+
+    // group columns by table_name for readability
+    const grouped: Record<string, Array<{ column: string; type: string }>> = {};
+    for (const r of q.rows) {
+      const t = r.table_name as string;
+      if (!grouped[t]) grouped[t] = [];
+      grouped[t].push({ column: r.column_name, type: r.data_type });
+    }
+
+    await client.end();
+    res.json({ ok: true, schema: "extranet", tables: grouped });
+  } catch (e: any) {
+    res.status(500).json({ ok: false, error: String(e?.message || e) });
+  }
+});
+
 // ---- Diagnostics ----
 app.get("/__ping", (_req, res) => {
   res.status(200).json({ ok: true, now: new Date().toISOString() });
