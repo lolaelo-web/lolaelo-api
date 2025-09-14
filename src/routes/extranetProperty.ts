@@ -96,18 +96,19 @@ async function logProfileAudit(args: {
 let SESSION_TBL_CACHED: string | null = null;
 
 /**
- * Find a table that has token, partnerId, expiresAt columns.
- * Prefer schema 'extranet', otherwise fall back to 'public'.
+ * Find a table with columns token, partnerId, expiresAt (and optionally email, name).
+ * Prefer schema 'extranet', else fall back to 'public'.
  */
 async function detectSessionTable(): Promise<string> {
   if (SESSION_TBL_CACHED) return SESSION_TBL_CACHED;
 
-  const { rows } = await pool.query(`
+  const { rows } = await pool.query(
+    `
     WITH cols AS (
       SELECT table_schema, table_name, column_name
       FROM information_schema.columns
       WHERE table_schema IN ('extranet','public')
-        AND column_name IN ('token','partnerId','expiresAt')
+        AND column_name IN ('token','partnerId','expiresAt','email','name')
     ),
     candidates AS (
       SELECT table_schema, table_name
@@ -121,16 +122,20 @@ async function detectSessionTable(): Promise<string> {
     FROM candidates
     ORDER BY (table_schema = 'extranet') DESC, table_name ASC
     LIMIT 1
-  `);
+    `
+  );
 
   if (!rows.length) {
     throw new Error("No session table with token/partnerId/expiresAt found in schemas extranet/public");
   }
 
   const schema = rows[0].table_schema as string;
-  const name   = rows[0].table_name  as string;
+  const name   = rows[0].table_name as string;
   SESSION_TBL_CACHED = `${schema}."${name}"`;
+
+  // Light debug so we can confirm in logs which table is used
   console.log(`[property] session table => ${SESSION_TBL_CACHED}`);
+
   return SESSION_TBL_CACHED;
 }
 
