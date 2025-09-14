@@ -75,12 +75,34 @@ await tryMount("./routes/extranetRooms.js", "/extranet/property/rooms");
 await tryMount("./routes/extranetPms.js", "/extranet/pms");
 await tryMount("./routes/extranetProperty.js", "/extranet/property"); 
 
-// write-guard for property writes
-app.use("/extranet/property", requireWriteToken);
-
 // ---- Diagnostics ----
 app.get("/__ping", (_req, res) => {
   res.status(200).json({ ok: true, now: new Date().toISOString() });
+});
+
+// DB info (which DB/user/host are we actually connected to?)
+app.get("/__dbinfo", async (_req, res) => {
+  try {
+    const cs = process.env.DATABASE_URL || "";
+    const wantsSSL = /\bsslmode=require\b/i.test(cs) || /render\.com/i.test(cs);
+    const client = new Client({
+      connectionString: cs,
+      ssl: wantsSSL ? { rejectUnauthorized: false } : undefined,
+    });
+    await client.connect();
+    const { rows } = await client.query(`
+      SELECT
+        current_database() AS db,
+        current_user       AS "user",
+        inet_server_addr() AS host,
+        inet_server_port() AS port,
+        now()              AS db_now
+    `);
+    await client.end();
+    res.json({ ok: true, ...rows[0] });
+  } catch (e: any) {
+    res.status(500).json({ ok: false, error: String(e?.message || e) });
+  }
 });
 
 function extractRouterRoutes(
