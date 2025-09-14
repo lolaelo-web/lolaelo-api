@@ -85,32 +85,33 @@ async function logProfileAudit(args: {
 /** Cache for detected session table */
 let SESSION_TBL_CACHED: string | null = null;
 
-/** Find a table in schema `extranet` with columns token, partnerId, expiresAt (and optionally email, name) */
+/** Find a table with token/partnerId/expiresAt in schema extranet OR public (prefer extranet) */
 async function detectSessionTable(): Promise<string> {
   if (SESSION_TBL_CACHED) return SESSION_TBL_CACHED;
 
-  const { rows } = await pool.query(
-    `
+  const { rows } = await pool.query(`
     WITH cols AS (
-      SELECT table_name, column_name
+      SELECT table_schema, table_name, column_name
       FROM information_schema.columns
-      WHERE table_schema = 'extranet'
-        AND column_name IN ('token','partnerId','expiresAt','email','name')
+      WHERE table_schema IN ('extranet','public')
+        AND column_name IN ('token','partnerId','expiresAt','email','name','userEmail','userName','contactEmail')
     )
-    SELECT table_name
+    SELECT table_schema, table_name
     FROM cols
-    GROUP BY table_name
+    GROUP BY table_schema, table_name
     HAVING COUNT(*) FILTER (WHERE column_name = 'token') > 0
        AND COUNT(*) FILTER (WHERE column_name = 'partnerId') > 0
        AND COUNT(*) FILTER (WHERE column_name = 'expiresAt') > 0
-    ORDER BY table_name
-    `
-  );
+    ORDER BY CASE WHEN table_schema = 'extranet' THEN 0 ELSE 1 END, table_name
+  `);
+
   if (!rows.length) {
-    throw new Error("No session table with token/partnerId/expiresAt found in schema extranet");
+    throw new Error("No session table with token/partnerId/expiresAt found in extranet/public");
   }
+
+  const s = rows[0].table_schema;
   const t = rows[0].table_name;
-  SESSION_TBL_CACHED = `extranet."${t}"`;
+  SESSION_TBL_CACHED = `"${s}"."${t}"`;
   return SESSION_TBL_CACHED;
 }
 
