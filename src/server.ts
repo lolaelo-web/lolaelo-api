@@ -75,6 +75,61 @@ await tryMount("./routes/extranetRooms.js", "/extranet/property/rooms");
 await tryMount("./routes/extranetPms.js", "/extranet/pms");
 await tryMount("./routes/extranetProperty.js", "/extranet/property"); 
 
+// ---- Session probe (TEMP, safe to remove later) ----
+app.get("/__session_probe_public", async (_req, res) => {
+  try {
+    const cs = process.env.DATABASE_URL || "";
+    const wantsSSL = /\bsslmode=require\b/i.test(cs) || /render\.com/i.test(cs);
+    const client = new Client({
+      connectionString: cs,
+      ssl: wantsSSL ? { rejectUnauthorized: false } : undefined,
+    });
+    await client.connect();
+
+    // Find a candidate session table in extranet/ public with token+partnerId+expiresAt-ish
+    const meta = await client.query(`
+      WITH cols AS (
+        SELECT table_schema, table_name, column_name
+        FROM information_schema.columns
+        WHERE table_schema IN ('extranet','public')
+          AND column_name IN ('token','sessionToken','session_token','authToken','bearer','id',
+                              'partnerId','partner_id','partnerid',
+                              'expiresAt','expires_at','expiry','expires')
+      ),
+      cand AS (
+        SELECT table_schema, table_name,
+               COUNT(*) FILTER (WHERE column_name IN ('token','sessionToken','session_token','authToken','bearer','id')) AS has_token,
+               COUNT(*) FILTER (WHERE column_name IN ('partnerId','partner_id','partnerid')) AS has_partner,
+               COUNT(*) FILTER (WHERE column_name IN ('expiresAt','expires_at','expiry','expires')) AS has_expiry
+        FROM cols
+        GROUP BY table_schema, table_name
+      )
+      SELECT table_schema, table_name
+      FROM cand
+      WHERE has_token > 0 AND has_partner > 0 AND has_expiry > 0
+      ORDER BY (table_schema = 'extranet') DESC, table_name ASC
+      LIMIT 1
+    `);
+
+    if (!meta.rows.length) {
+      await client.end();
+      return res.json({ ok: false, error: "No candidate session table found" });
+    }
+
+    const schema = String(meta.rows[0].table_schema);
+    const name   = String(meta.rows[0].table_name);
+
+    const sample = await client.query(`SELECT to_jsonb(s) AS j FROM ${schema}."${name}" s LIMIT 3`);
+    const sampleJson = sample.rows.map(r => r.j ?? {});
+    const keys = Array.from(new Set(sampleJson.flatMap(obj => Object.keys(obj || {}))));
+
+    await client.end();
+    res.json({ ok: true, schema, table: name, keys, sample: sampleJson });
+  } catch (e: any) {
+    res.status(500).json({ ok: false, error: String(e?.message || e) });
+  }
+});
+
 // ---- Diagnostics ----
 app.get("/__ping", (_req, res) => {
   res.status(200).json({ ok: true, now: new Date().toISOString() });
