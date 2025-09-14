@@ -32,27 +32,21 @@ function hasAllKeys(body: any, keys: string[]) {
   return keys.every((k) => Object.prototype.hasOwnProperty.call(body, k));
 }
 
-/** Safe date check */
+/** Safe date check (handles ms / seconds / ISO strings) */
 function isExpired(expiresAt: unknown): boolean {
   if (expiresAt == null) return false;
+  const v = String(expiresAt).trim();
+  let t: number;
 
-  let ms: number;
-
-  if (typeof expiresAt === "number") {
-    // already epoch ms
-    ms = expiresAt;
-  } else if (typeof expiresAt === "string") {
-    // support BIGINT as text (e.g., "1760382891779")
-    if (/^\d+$/.test(expiresAt)) {
-      ms = Number(expiresAt);
-    } else {
-      ms = new Date(expiresAt as any).getTime();
-    }
+  if (/^\d{13}$/.test(v)) {
+    t = parseInt(v, 10);            // epoch ms
+  } else if (/^\d{10}$/.test(v)) {
+    t = parseInt(v, 10) * 1000;     // epoch seconds -> ms
   } else {
-    ms = new Date(expiresAt as any).getTime();
+    t = Date.parse(v);              // ISO or other parseable
   }
 
-  return !Number.isFinite(ms) || ms <= Date.now();
+  return !Number.isFinite(t) || t <= Date.now();
 }
 
 function getClientIp(req: Request): string | null {
@@ -102,19 +96,18 @@ async function logProfileAudit(args: {
 let SESSION_TBL_CACHED: string | null = null;
 
 /**
- * Find a table with columns token, partnerId, expiresAt (and optionally email, name).
- * Prefer schema 'extranet', else fall back to 'public'.
+ * Find a table that has token, partnerId, expiresAt columns.
+ * Prefer schema 'extranet', otherwise fall back to 'public'.
  */
 async function detectSessionTable(): Promise<string> {
   if (SESSION_TBL_CACHED) return SESSION_TBL_CACHED;
 
-  const { rows } = await pool.query(
-    `
+  const { rows } = await pool.query(`
     WITH cols AS (
       SELECT table_schema, table_name, column_name
       FROM information_schema.columns
       WHERE table_schema IN ('extranet','public')
-        AND column_name IN ('token','partnerId','expiresAt','email','name')
+        AND column_name IN ('token','partnerId','expiresAt')
     ),
     candidates AS (
       SELECT table_schema, table_name
@@ -128,20 +121,16 @@ async function detectSessionTable(): Promise<string> {
     FROM candidates
     ORDER BY (table_schema = 'extranet') DESC, table_name ASC
     LIMIT 1
-    `
-  );
+  `);
 
   if (!rows.length) {
     throw new Error("No session table with token/partnerId/expiresAt found in schemas extranet/public");
   }
 
   const schema = rows[0].table_schema as string;
-  const name   = rows[0].table_name as string;
+  const name   = rows[0].table_name  as string;
   SESSION_TBL_CACHED = `${schema}."${name}"`;
-
-  // Light debug so we can confirm in logs which table is used
   console.log(`[property] session table => ${SESSION_TBL_CACHED}`);
-
   return SESSION_TBL_CACHED;
 }
 
@@ -152,30 +141,29 @@ async function requirePartner(
   next: NextFunction
 ) {
   try {
+    // Extract bearer token
     const auth = String(req.headers["authorization"] || "");
     const m = /^Bearer\s+(.+)$/.exec(auth);
     if (!m) return res.status(401).json({ error: "unauthorized" });
     const token = m[1].trim();
 
+    // Detect the session table (cached after first call)
     const sessionTbl = await detectSessionTable();
 
+    // Read session row using flexible jsonb-based access
     const { rows } = await pool.query(
-    `SELECT "partnerId",
-            COALESCE(
-              NULLIF((to_jsonb(s)->>'email'),'null'),
-              NULLIF((to_jsonb(s)->>'userEmail'),'null'),
-              NULLIF((to_jsonb(s)->>'contactEmail'),'null')
-            ) AS "email",
-            COALESCE(
-              NULLIF((to_jsonb(s)->>'name'),'null'),
-              NULLIF((to_jsonb(s)->>'userName'),'null')
-            ) AS "name",
-            "expiresAt"
+      `
+      SELECT
+        (to_jsonb(s)->>'partnerId')::int  AS "partnerId",
+        NULLIF(to_jsonb(s)->>'email','')  AS "email",
+        NULLIF(to_jsonb(s)->>'name','')   AS "name",
+        to_jsonb(s)->>'expiresAt'         AS "expiresAt"
       FROM ${sessionTbl} s
-      WHERE "token" = $1
-      LIMIT 1`,
-    [token]
-  );
+      WHERE to_jsonb(s)->>'token' = $1
+      LIMIT 1
+      `,
+      [token]
+    );
 
     if (!rows.length) return res.status(401).json({ error: "unauthorized" });
 
@@ -183,16 +171,19 @@ async function requirePartner(
       partnerId: number;
       email: string | null;
       name: string | null;
-      expiresAt: string | Date | null;
+      expiresAt: string | number | null;
     };
 
+    // Honor numeric, string, or ISO timestamps
     if (isExpired(s.expiresAt)) return res.status(401).json({ error: "unauthorized" });
 
+    // Attach to req for downstream handlers
     req.partner = {
       id: Number(s.partnerId),
       email: s.email ?? undefined,
       name: s.name ?? undefined,
     };
+
     return next();
   } catch (e) {
     console.error("[property:auth] error", e);
