@@ -176,18 +176,26 @@ async function requirePartner(
   res: Response,
   next: NextFunction
 ) {
-
   try {
     // 1) Extract bearer token
     const auth = String(req.headers["authorization"] || "");
     const m = /^Bearer\s+(.+)$/.exec(auth);
-    if (!m) return res.status(401).json({ error: "unauthorized" });
+    if (!m) {
+      console.log("[property:auth] no bearer header");
+      return res.status(401).json({ error: "unauthorized" });
+    }
     const token = m[1].trim();
+
+    // DEBUG: token prefix only (safe)
+    console.log("[property:auth] bearer prefix:", token.slice(0, 8));
 
     // 2) Detect the session table (cached after first call)
     const sessionTbl = await detectSessionTable();
 
-    // 3) Read session row using JSONB-safe selectors (no s.email / s.name columns)
+    // DEBUG: which table are we reading
+    console.log("[property:auth] using session table:", sessionTbl);
+
+    // 3) Read session row (flexible jsonb access)
     const { rows } = await pool.query(
       `
       SELECT
@@ -202,18 +210,24 @@ async function requirePartner(
       [token]
     );
 
+    // DEBUG: did we find a row?
+    console.log("[property:auth] query rows:", rows.length);
+
     if (!rows.length) return res.status(401).json({ error: "unauthorized" });
 
-    const s = rows[0]; // { partnerId, email, name, expiresAt }
+    const s = rows[0] as {
+      partnerId: number;
+      email: string | null;
+      name: string | null;
+      expiresAt: string | number | null;
+    };
 
-    // 4) Expiry check (works with number/string/ISO); assumes isExpired is defined
     if (isExpired(s.expiresAt)) return res.status(401).json({ error: "unauthorized" });
 
-    // 5) Attach to req for downstream handlers (like GET /extranet/property)
     req.partner = {
       id: Number(s.partnerId),
-      email: s.email || undefined,
-      name:  s.name  || undefined,
+      email: s.email ?? undefined,
+      name: s.name ?? undefined,
     };
 
     return next();
@@ -222,6 +236,7 @@ async function requirePartner(
     return res.status(401).json({ error: "unauthorized" });
   }
 }
+
 
 // All routes below require a valid partner session
 r.use(requirePartner);
