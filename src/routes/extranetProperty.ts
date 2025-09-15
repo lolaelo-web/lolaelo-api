@@ -92,7 +92,7 @@ async function logProfileAudit(args: {
   );
 }
 
-/** Cache for detected session table (schema-qualified) */
+/** /** Cache for detected session table (schema-qualified) */
 let SESSION_TBL_CACHED: string | null = null;
 
 /**
@@ -102,8 +102,7 @@ let SESSION_TBL_CACHED: string | null = null;
 async function detectSessionTable(): Promise<string> {
   if (SESSION_TBL_CACHED) return SESSION_TBL_CACHED;
 
-  const { rows } = await pool.query(
-    `
+  const { rows } = await pool.query(`
     WITH cols AS (
       SELECT table_schema, table_name, column_name
       FROM information_schema.columns
@@ -122,8 +121,7 @@ async function detectSessionTable(): Promise<string> {
     FROM candidates
     ORDER BY (table_schema = 'extranet') DESC, table_name ASC
     LIMIT 1
-    `
-  );
+  `);
 
   if (!rows.length) {
     throw new Error("No session table with token/partnerId/expiresAt found in schemas extranet/public");
@@ -133,9 +131,7 @@ async function detectSessionTable(): Promise<string> {
   const name   = rows[0].table_name as string;
   SESSION_TBL_CACHED = `${schema}."${name}"`;
 
-  // Light debug so we can confirm in logs which table is used
   console.log(`[property] session table => ${SESSION_TBL_CACHED}`);
-
   return SESSION_TBL_CACHED;
 }
 
@@ -196,19 +192,27 @@ async function requirePartner(
     console.log("[property:auth] using session table:", sessionTbl);
 
     // 3) Read session row (flexible jsonb access)
-    const { rows } = await pool.query(
-      `
-      SELECT
-        (to_jsonb(s)->>'partnerId')::int  AS "partnerId",
-        NULLIF(to_jsonb(s)->>'email','')  AS "email",
-        NULLIF(to_jsonb(s)->>'name','')   AS "name",
-        to_jsonb(s)->>'expiresAt'         AS "expiresAt"
-      FROM ${sessionTbl} s
-      WHERE to_jsonb(s)->>'token' = $1
-      LIMIT 1
-      `,
-      [token]
-    );
+   const { rows } = await pool.query(
+  `
+  SELECT
+    COALESCE( (to_jsonb(s)->>'partnerId')::int, "partnerId" ) AS "partnerId",
+    COALESCE( NULLIF(to_jsonb(s)->>'email',''), "email" )     AS "email",
+    COALESCE( NULLIF(to_jsonb(s)->>'name',''),  "name" )      AS "name",
+    COALESCE(
+      to_jsonb(s)->>'expiresAt',
+      CASE
+        WHEN pg_typeof("expiresAt")::text = 'bigint' THEN "expiresAt"::text
+        WHEN pg_typeof("expiresAt")::text = 'timestamp without time zone' THEN to_char("expiresAt",'YYYY-MM-DD"T"HH24:MI:SS.MS"Z"')
+        WHEN pg_typeof("expiresAt")::text = 'timestamp with time zone' THEN to_char("expiresAt",'YYYY-MM-DD"T"HH24:MI:SS.MS"Z"')
+        ELSE "expiresAt"::text
+      END
+    ) AS "expiresAt"
+  FROM ${sessionTbl} s
+  WHERE COALESCE(to_jsonb(s)->>'token', "token"::text) = $1
+  LIMIT 1
+  `,
+  [token]
+);
 
     // DEBUG: did we find a row?
     console.log("[property:auth] query rows:", rows.length);
