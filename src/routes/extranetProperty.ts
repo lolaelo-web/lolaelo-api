@@ -191,48 +191,31 @@ async function requirePartner(
     // DEBUG: which table are we reading
     console.log("[property:auth] using session table:", sessionTbl);
 
-    // 3) Read session row (flexible jsonb access)
-   const { rows } = await pool.query(
+  // 3) Read session row using real columns (no JSON operators)
+const { rows } = await pool.query(
   `
-  SELECT
-    COALESCE( (to_jsonb(s)->>'partnerId')::int, "partnerId" ) AS "partnerId",
-    COALESCE( NULLIF(to_jsonb(s)->>'email',''), "email" )     AS "email",
-    COALESCE( NULLIF(to_jsonb(s)->>'name',''),  "name" )      AS "name",
-    COALESCE(
-      to_jsonb(s)->>'expiresAt',
-      CASE
-        WHEN pg_typeof("expiresAt")::text = 'bigint' THEN "expiresAt"::text
-        WHEN pg_typeof("expiresAt")::text = 'timestamp without time zone' THEN to_char("expiresAt",'YYYY-MM-DD"T"HH24:MI:SS.MS"Z"')
-        WHEN pg_typeof("expiresAt")::text = 'timestamp with time zone' THEN to_char("expiresAt",'YYYY-MM-DD"T"HH24:MI:SS.MS"Z"')
-        ELSE "expiresAt"::text
-      END
-    ) AS "expiresAt"
-  FROM ${sessionTbl} s
-  WHERE COALESCE(to_jsonb(s)->>'token', "token"::text) = $1
+  SELECT "partnerId", "expiresAt", "revokedAt"
+  FROM ${sessionTbl}
+  WHERE "token" = $1
   LIMIT 1
   `,
   [token]
 );
 
-    // DEBUG: did we find a row?
-    console.log("[property:auth] query rows:", rows.length);
+if (!rows.length) return res.status(401).json({ error: "unauthorized" });
 
-    if (!rows.length) return res.status(401).json({ error: "unauthorized" });
+const s = rows[0] as {
+  partnerId: number;
+  expiresAt: string | number | Date | null;
+  revokedAt?: string | Date | null;
+};
 
-    const s = rows[0] as {
-      partnerId: number;
-      email: string | null;
-      name: string | null;
-      expiresAt: string | number | null;
-    };
+// treat revoked/expired as unauthorized
+if (s.revokedAt) return res.status(401).json({ error: "unauthorized" });
+if (isExpired(s.expiresAt)) return res.status(401).json({ error: "unauthorized" });
 
-    if (isExpired(s.expiresAt)) return res.status(401).json({ error: "unauthorized" });
-
-    req.partner = {
-      id: Number(s.partnerId),
-      email: s.email ?? undefined,
-      name: s.name ?? undefined,
-    };
+// attach only the id (email/name aren’t in this table)
+req.partner = { id: Number(s.partnerId) };
 
     return next();
   } catch (e) {
