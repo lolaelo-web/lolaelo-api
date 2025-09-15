@@ -292,6 +292,43 @@ r.get("/__probe_session", async (req, res) => {
   }
 });
 
+// --- TEMP PROBE: inspect session table & matching logic (no auth) ---
+r.get("/__probe_guard", async (req, res) => {
+  try {
+    const auth = String(req.headers["authorization"] || "");
+    const m = /^Bearer\s+(.+)$/.exec(auth);
+    const token = m ? m[1].trim() : null;
+
+    const sessionTbl = await detectSessionTable();
+
+    // Show a few raw rows so we see the exact JSON keys
+    const sample = await pool.query(
+      `SELECT to_jsonb(s) AS row FROM ${sessionTbl} s LIMIT 3`
+    );
+
+    // Try the same predicate our guard uses
+    const byJson = await pool.query(
+      `SELECT to_jsonb(s) AS row
+         FROM ${sessionTbl} s
+        WHERE to_jsonb(s)->>'token' = $1
+        LIMIT 1`,
+      [token]
+    );
+
+    res.json({
+      sessionTbl,
+      tokenPreview: token ? token.slice(0, 8) : null,
+      sample: sample.rows?.map(r => r.row) ?? [],
+      matchWithJsonArrow: {
+        found: !!byJson.rows?.length,
+        row: byJson.rows?.[0]?.row ?? null,
+      },
+    });
+  } catch (e: any) {
+    res.status(500).json({ ok: false, error: String(e?.message || e) });
+  }
+});
+
 // All routes below require a valid partner session
 r.use(requirePartner);
 
