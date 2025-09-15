@@ -166,6 +166,24 @@ function qident(id: string) {
   return `"${id.replace(/"/g, '""')}"`;
 }
 
+/** Return session row from public first, then extranet; null if missing */
+async function getSessionRow(token: string): Promise<null | {
+  partnerId: number;
+  expiresAt: any;
+  revokedAt: any;
+  _tbl: 'public."ExtranetSession"' | 'extranet."ExtranetSession"';
+}> {
+  const qPub = `SELECT "partnerId","expiresAt","revokedAt" FROM public."ExtranetSession" WHERE "token" = $1 LIMIT 1`;
+  const r1 = await pool.query(qPub, [token]);
+  if (r1.rowCount) return { ...r1.rows[0], _tbl: 'public."ExtranetSession"' };
+
+  const qExt = `SELECT "partnerId","expiresAt","revokedAt" FROM extranet."ExtranetSession" WHERE "token" = $1 LIMIT 1`;
+  const r2 = await pool.query(qExt, [token]);
+  if (r2.rowCount) return { ...r2.rows[0], _tbl: 'extranet."ExtranetSession"' };
+
+  return null;
+}
+
 // ---- Auth guard: Bearer <UUID token> validated against detected session table ----
 async function requirePartner(
   req: Request & { partner?: { id: number; email?: string; name?: string } },
@@ -173,7 +191,6 @@ async function requirePartner(
   next: NextFunction
 ) {
   try {
-    // 1) Extract bearer token
     const auth = String(req.headers["authorization"] || "");
     const m = /^Bearer\s+(.+)$/.exec(auth);
     if (!m) {
@@ -181,58 +198,15 @@ async function requirePartner(
       return res.status(401).json({ error: "unauthorized" });
     }
     const token = m[1].trim();
-
-    // DEBUG: token prefix only (safe)
     console.log("[property:auth] bearer prefix:", token.slice(0, 8));
 
-    // 2) Detect the session table (cached after first call)
-    const sessionTbl = await detectSessionTable();
+    // Dual-schema lookup (public -> extranet)
+    const row = await getSessionRow(token);
+    if (!row) return res.status(401).json({ error: "unauthorized" });
+    if (row.revokedAt) return res.status(401).json({ error: "unauthorized" });
+    if (isExpired(row.expiresAt)) return res.status(401).json({ error: "unauthorized" });
 
-    // 3) Read session row using flexible (column OR jsonb) access
-    const { rows } = await pool.query(
-      `
-      SELECT
-        COALESCE( (to_jsonb(s)->>'partnerId')::int, "partnerId" ) AS "partnerId",
-        COALESCE(
-          to_jsonb(s)->>'expiresAt',
-          CASE
-            WHEN "expiresAt" IS NULL THEN NULL
-            WHEN pg_typeof("expiresAt")::text = 'bigint' THEN "expiresAt"::text
-            WHEN pg_typeof("expiresAt")::text LIKE 'timestamp%' THEN to_char("expiresAt",'YYYY-MM-DD"T"HH24:MI:SS.MS"Z"')
-            ELSE "expiresAt"::text
-          END
-        ) AS "expiresAt",
-        COALESCE(
-          to_jsonb(s)->>'revokedAt',
-          CASE
-            WHEN "revokedAt" IS NULL THEN NULL
-            WHEN pg_typeof("revokedAt")::text LIKE 'timestamp%' THEN to_char("revokedAt",'YYYY-MM-DD"T"HH24:MI:SS.MS"Z"')
-            ELSE "revokedAt"::text
-          END
-        ) AS "revokedAt"
-      FROM ${sessionTbl} s
-      WHERE COALESCE(to_jsonb(s)->>'token', "token"::text) = $1
-      LIMIT 1
-      `,
-      [token]
-    );
-
-
-if (!rows.length) return res.status(401).json({ error: "unauthorized" });
-
-const s = rows[0] as {
-  partnerId: number;
-  expiresAt: string | number | Date | null;
-  revokedAt?: string | Date | null;
-};
-
-// treat revoked/expired as unauthorized
-if (s.revokedAt) return res.status(401).json({ error: "unauthorized" });
-if (isExpired(s.expiresAt)) return res.status(401).json({ error: "unauthorized" });
-
-// attach only the id (email/name aren’t in this table)
-req.partner = { id: Number(s.partnerId) };
-
+    req.partner = { id: Number(row.partnerId) };
     return next();
   } catch (e) {
     console.error("[property:auth] error", e);
@@ -332,42 +306,35 @@ r.get("/__probe_guard", async (req, res) => {
 // --- DEBUG PROBE: inspect auth state without blocking (remove after debugging) ---
 r.get("/__probe_auth", async (req, res) => {
   try {
-    // 1) Extract bearer token
     const auth = String(req.headers["authorization"] || "");
     const m = /^Bearer\s+(.+)$/.exec(auth);
     if (!m) return res.status(200).json({ ok: false, why: "no-bearer" });
     const token = m[1].trim();
     const tok8 = token.slice(0, 8);
 
-    // 2) Which table are we using?
-    const sessionTbl = await detectSessionTable();
+    const qPub = `SELECT "id","partnerId","token","expiresAt","revokedAt"
+                  FROM public."ExtranetSession" WHERE "token" = $1 LIMIT 1`;
+    const r1 = await pool.query(qPub, [token]);
 
-    // 3) Read the row by real columns (no JSON ops)
-    const q = `
-      SELECT "id","partnerId","token","expiresAt","revokedAt"
-      FROM ${sessionTbl}
-      WHERE "token" = $1
-      LIMIT 1
-    `;
-    const { rows } = await pool.query(q, [token]);
+    let tbl = `public."ExtranetSession"`;
+    let row: any = r1.rows?.[0];
 
-    if (!rows.length) {
+    if (!row) {
+      const qExt = `SELECT "id","partnerId","token","expiresAt","revokedAt"
+                    FROM extranet."ExtranetSession" WHERE "token" = $1 LIMIT 1`;
+      const r2 = await pool.query(qExt, [token]);
+      row = r2.rows?.[0];
+      tbl = `extranet."ExtranetSession"`;
+    }
+
+    if (!row) {
       return res.status(200).json({
         ok: false,
         why: "no-row",
         tokenPreview: tok8,
-        sessionTbl,
-        query: q
+        checked: [`public."ExtranetSession"`, `extranet."ExtranetSession"`],
       });
     }
-
-    const row = rows[0] as {
-      id: number;
-      partnerId: number;
-      token: string;
-      expiresAt: any;
-      revokedAt?: any;
-    };
 
     const expired = isExpired(row.expiresAt);
     const revoked = !!row.revokedAt;
@@ -375,7 +342,7 @@ r.get("/__probe_auth", async (req, res) => {
     return res.status(200).json({
       ok: !expired && !revoked,
       tokenPreview: tok8,
-      sessionTbl,
+      sessionTbl: tbl,
       row,
       checks: { expired, revoked },
     });
