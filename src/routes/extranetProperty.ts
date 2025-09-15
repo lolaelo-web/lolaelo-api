@@ -185,17 +185,14 @@ async function requirePartner(
     // DEBUG: token prefix only (safe)
     console.log("[property:auth] bearer prefix:", token.slice(0, 8));
 
-    // 2) Detect the session table (cached after first call)
-    const sessionTbl = await detectSessionTable();
-
-    // DEBUG: which table are we reading
-    console.log("[property:auth] using session table:", sessionTbl);
-
-  // 3) Read session row using real columns (no JSON operators)
+    // Read the session row directly from the concrete table
 const { rows } = await pool.query(
   `
-  SELECT "partnerId", "expiresAt", "revokedAt"
-  FROM ${sessionTbl}
+  SELECT
+    "partnerId"         AS "partnerId",
+    "expiresAt"         AS "expiresAt",
+    COALESCE("revokedAt", NULL) AS "revokedAt"
+  FROM extranet."ExtranetSession"
   WHERE "token" = $1
   LIMIT 1
   `,
