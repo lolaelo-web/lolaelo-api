@@ -92,7 +92,7 @@ async function logProfileAudit(args: {
   );
 }
 
-/** /** Cache for detected session table (schema-qualified) */
+/** Cache for detected session table (schema-qualified) */
 let SESSION_TBL_CACHED: string | null = null;
 
 /**
@@ -185,19 +185,38 @@ async function requirePartner(
     // DEBUG: token prefix only (safe)
     console.log("[property:auth] bearer prefix:", token.slice(0, 8));
 
-    // Read the session row directly from the concrete table
-const { rows } = await pool.query(
-  `
-  SELECT
-    "partnerId"         AS "partnerId",
-    "expiresAt"         AS "expiresAt",
-    COALESCE("revokedAt", NULL) AS "revokedAt"
-  FROM extranet."ExtranetSession"
-  WHERE "token" = $1
-  LIMIT 1
-  `,
-  [token]
-);
+    // 2) Detect the session table (cached after first call)
+    const sessionTbl = await detectSessionTable();
+
+    // 3) Read session row using flexible (column OR jsonb) access
+    const { rows } = await pool.query(
+      `
+      SELECT
+        COALESCE( (to_jsonb(s)->>'partnerId')::int, "partnerId" ) AS "partnerId",
+        COALESCE(
+          to_jsonb(s)->>'expiresAt',
+          CASE
+            WHEN "expiresAt" IS NULL THEN NULL
+            WHEN pg_typeof("expiresAt")::text = 'bigint' THEN "expiresAt"::text
+            WHEN pg_typeof("expiresAt")::text LIKE 'timestamp%' THEN to_char("expiresAt",'YYYY-MM-DD"T"HH24:MI:SS.MS"Z"')
+            ELSE "expiresAt"::text
+          END
+        ) AS "expiresAt",
+        COALESCE(
+          to_jsonb(s)->>'revokedAt',
+          CASE
+            WHEN "revokedAt" IS NULL THEN NULL
+            WHEN pg_typeof("revokedAt")::text LIKE 'timestamp%' THEN to_char("revokedAt",'YYYY-MM-DD"T"HH24:MI:SS.MS"Z"')
+            ELSE "revokedAt"::text
+          END
+        ) AS "revokedAt"
+      FROM ${sessionTbl} s
+      WHERE COALESCE(to_jsonb(s)->>'token', "token"::text) = $1
+      LIMIT 1
+      `,
+      [token]
+    );
+
 
 if (!rows.length) return res.status(401).json({ error: "unauthorized" });
 
