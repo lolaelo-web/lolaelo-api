@@ -92,80 +92,6 @@ async function logProfileAudit(args: {
   );
 }
 
-/** Cache for detected session table (schema-qualified) */
-let SESSION_TBL_CACHED: string | null = null;
-
-/**
- * Find a table with columns token, partnerId, expiresAt (and optionally email, name).
- * Prefer schema 'extranet', else fall back to 'public'.
- */
-async function detectSessionTable(): Promise<string> {
-  if (SESSION_TBL_CACHED) return SESSION_TBL_CACHED;
-
-  const { rows } = await pool.query(`
-    WITH cols AS (
-      SELECT table_schema, table_name, column_name
-      FROM information_schema.columns
-      WHERE table_schema IN ('extranet','public')
-        AND column_name IN ('token','partnerId','expiresAt','email','name')
-    ),
-    candidates AS (
-      SELECT table_schema, table_name
-      FROM cols
-      GROUP BY table_schema, table_name
-      HAVING COUNT(*) FILTER (WHERE column_name = 'token') > 0
-         AND COUNT(*) FILTER (WHERE column_name = 'partnerId') > 0
-         AND COUNT(*) FILTER (WHERE column_name = 'expiresAt') > 0
-    )
-    SELECT table_schema, table_name
-    FROM candidates
-    ORDER BY (table_schema = 'extranet') DESC, table_name ASC
-    LIMIT 1
-  `);
-
-  if (!rows.length) {
-    throw new Error("No session table with token/partnerId/expiresAt found in schemas extranet/public");
-  }
-
-  const schema = rows[0].table_schema as string;
-  const name   = rows[0].table_name as string;
-  SESSION_TBL_CACHED = `${schema}."${name}"`;
-
-  console.log(`[property] session table => ${SESSION_TBL_CACHED}`);
-  return SESSION_TBL_CACHED;
-}
-
-/** List session-table candidates in both schemas */
-async function listSessionCandidates(): Promise<Array<{ schema: string; name: string }>> {
-  const { rows } = await pool.query(
-    `
-    WITH cols AS (
-      SELECT table_schema, table_name, column_name
-      FROM information_schema.columns
-      WHERE table_schema IN ('extranet','public')
-        AND column_name IN ('token','partnerId','expiresAt','email','name')
-    ),
-    candidates AS (
-      SELECT table_schema, table_name
-      FROM cols
-      GROUP BY table_schema, table_name
-      HAVING COUNT(*) FILTER (WHERE column_name = 'token') > 0
-         AND COUNT(*) FILTER (WHERE column_name = 'partnerId') > 0
-         AND COUNT(*) FILTER (WHERE column_name = 'expiresAt') > 0
-    )
-    SELECT table_schema, table_name
-    FROM candidates
-    ORDER BY (table_schema = 'extranet') DESC, table_name ASC
-    `
-  );
-  return rows.map(r => ({ schema: r.table_schema as string, name: r.table_name as string }));
-}
-
-/** Quote an identifier safely */
-function qident(id: string) {
-  return `"${id.replace(/"/g, '""')}"`;
-}
-
 /** Return session row from extranet view; null if missing */
 async function getSessionRow(token: string): Promise<null | {
   partnerId: number;
@@ -182,13 +108,14 @@ async function getSessionRow(token: string): Promise<null | {
   return null;
 }
 
-// ---- Auth guard: Bearer <UUID token> validated against detected session table ----
+// ---- Auth guard: Bearer <UUID token>, validated against extranet.ExtranetSession VIEW ----
 async function requirePartner(
   req: Request & { partner?: { id: number; email?: string; name?: string } },
   res: Response,
   next: NextFunction
 ) {
   try {
+    // 1) Extract bearer token
     const auth = String(req.headers["authorization"] || "");
     const m = /^Bearer\s+(.+)$/.exec(auth);
     if (!m) {
@@ -198,12 +125,13 @@ async function requirePartner(
     const token = m[1].trim();
     console.log("[property:auth] bearer prefix:", token.slice(0, 8));
 
-    // Dual-schema lookup (public -> extranet)
+    // 2) Lookup in extranet view
     const row = await getSessionRow(token);
     if (!row) return res.status(401).json({ error: "unauthorized" });
     if (row.revokedAt) return res.status(401).json({ error: "unauthorized" });
     if (isExpired(row.expiresAt)) return res.status(401).json({ error: "unauthorized" });
 
+    // 3) Attach partner context
     req.partner = { id: Number(row.partnerId) };
     return next();
   } catch (e) {
@@ -212,142 +140,140 @@ async function requirePartner(
   }
 }
 
-// --- debug: probe the current token against whatever session table we detect ---
-r.get("/__probe_session", async (req, res) => {
-  try {
-    const auth = String(req.headers["authorization"] || "");
-    const m = /^Bearer\s+(.+)$/.exec(auth);
-    if (!m) return res.status(401).json({ ok: false, error: "unauthorized" });
-    const token = m[1].trim();
+// --- Debug probes: only enabled outside production ---
+if (process.env.NODE_ENV !== "production") {
+  // JSONB-only probe (legacy structures)
+  r.get("/__probe_session", async (req, res) => {
+    try {
+      const auth = String(req.headers["authorization"] || "");
+      const m = /^Bearer\s+(.+)$/.exec(auth);
+      if (!m) return res.status(401).json({ ok: false, error: "unauthorized" });
+      const token = m[1].trim();
 
-    const sessionTbl = await detectSessionTable();
-
-    // JSONB-only selectors (no direct "email"/"name" columns expected)
-    const q = `
-      SELECT
-        (to_jsonb(s)->>'partnerId')::int AS "partnerId",
-        to_jsonb(s)->>'email'            AS "email",
-        to_jsonb(s)->>'name'             AS "name",
-        to_jsonb(s)->>'expiresAt'        AS "expiresAt",
-        to_jsonb(s)->>'token'            AS "token_text"
-      FROM ${sessionTbl} s
-      WHERE to_jsonb(s)->>'token' = $1
-      LIMIT 1
-    `;
-    const { rows } = await pool.query(q, [token]);
-
-    if (!rows.length) {
-      return res.json({ ok: true, found: false, sessionTbl });
-    }
-    const s = rows[0] as {
-      partnerId: number;
-      email: string | null;
-      name: string | null;
-      expiresAt: string | null;
-      token_text: string | null;
-    };
-
-    return res.json({
-      ok: true,
-      found: true,
-      sessionTbl,
-      partnerId: s.partnerId,
-      email: s.email ?? null,
-      name: s.name ?? null,
-      expiresAt: s.expiresAt ?? null,
-      token: s.token_text ?? null,
-    });
-  } catch (e) {
-    console.error("[property:__probe_session] error", e);
-    return res.status(500).json({ ok: false, error: "probe failed" });
-  }
-});
-
-// --- TEMP PROBE: inspect session table & matching logic (no auth) ---
-r.get("/__probe_guard", async (req, res) => {
-  try {
-    const auth = String(req.headers["authorization"] || "");
-    const m = /^Bearer\s+(.+)$/.exec(auth);
-    const token = m ? m[1].trim() : null;
-
-    const sessionTbl = await detectSessionTable();
-
-    // Show a few raw rows so we see the exact JSON keys
-    const sample = await pool.query(
-      `SELECT to_jsonb(s) AS row FROM ${sessionTbl} s LIMIT 3`
-    );
-
-    // Try the same predicate our guard uses
-    const byJson = await pool.query(
-      `SELECT to_jsonb(s) AS row
-         FROM ${sessionTbl} s
+      const sessionTbl = `extranet."ExtranetSession"`;
+      const q = `
+        SELECT
+          (to_jsonb(s)->>'partnerId')::int AS "partnerId",
+          to_jsonb(s)->>'email'            AS "email",
+          to_jsonb(s)->>'name'             AS "name",
+          to_jsonb(s)->>'expiresAt'        AS "expiresAt",
+          to_jsonb(s)->>'token'            AS "token_text"
+        FROM ${sessionTbl} s
         WHERE to_jsonb(s)->>'token' = $1
-        LIMIT 1`,
-      [token]
-    );
+        LIMIT 1
+      `;
+      const { rows } = await pool.query(q, [token]);
 
-    res.json({
-      sessionTbl,
-      tokenPreview: token ? token.slice(0, 8) : null,
-      sample: sample.rows?.map(r => r.row) ?? [],
-      matchWithJsonArrow: {
-        found: !!byJson.rows?.length,
-        row: byJson.rows?.[0]?.row ?? null,
-      },
-    });
-  } catch (e: any) {
-    res.status(500).json({ ok: false, error: String(e?.message || e) });
-  }
-});
+      if (!rows.length) {
+        return res.json({ ok: true, found: false, sessionTbl });
+      }
+      const s = rows[0] as {
+        partnerId: number;
+        email: string | null;
+        name: string | null;
+        expiresAt: string | null;
+        token_text: string | null;
+      };
 
-
-// --- DEBUG PROBE: inspect auth state without blocking (remove after debugging) ---
-r.get("/__probe_auth", async (req, res) => {
-  try {
-    const auth = String(req.headers["authorization"] || "");
-    const m = /^Bearer\s+(.+)$/.exec(auth);
-    if (!m) return res.status(200).json({ ok: false, why: "no-bearer" });
-    const token = m[1].trim();
-    const tok8 = token.slice(0, 8);
-
-    const qPub = `SELECT "id","partnerId","token","expiresAt","revokedAt"
-                  FROM public."ExtranetSession" WHERE "token" = $1 LIMIT 1`;
-    const r1 = await pool.query(qPub, [token]);
-
-    let tbl = `public."ExtranetSession"`;
-    let row: any = r1.rows?.[0];
-
-    if (!row) {
-      const qExt = `SELECT "id","partnerId","token","expiresAt","revokedAt"
-                    FROM extranet."ExtranetSession" WHERE "token" = $1 LIMIT 1`;
-      const r2 = await pool.query(qExt, [token]);
-      row = r2.rows?.[0];
-      tbl = `extranet."ExtranetSession"`;
-    }
-
-    if (!row) {
-      return res.status(200).json({
-        ok: false,
-        why: "no-row",
-        tokenPreview: tok8,
-        checked: [`public."ExtranetSession"`, `extranet."ExtranetSession"`],
+      return res.json({
+        ok: true,
+        found: true,
+        sessionTbl,
+        partnerId: s.partnerId,
+        email: s.email ?? null,
+        name: s.name ?? null,
+        expiresAt: s.expiresAt ?? null,
+        token: s.token_text ?? null,
       });
+    } catch (e) {
+      console.error("[property:__probe_session] error", e);
+      return res.status(500).json({ ok: false, error: "probe failed" });
     }
+  });
 
-    const expired = isExpired(row.expiresAt);
-    const revoked = !!row.revokedAt;
+  // Table sample + match check
+  r.get("/__probe_guard", async (req, res) => {
+    try {
+      const auth = String(req.headers["authorization"] || "");
+      const m = /^Bearer\s+(.+)$/.exec(auth);
+      const token = m ? m[1].trim() : null;
 
-    return res.status(200).json({
-      ok: !expired && !revoked,
-      tokenPreview: tok8,
-      sessionTbl: tbl,
-      row,
-      checks: { expired, revoked },
-    });
-  } catch (e: any) {
-    return res.status(200).json({ ok: false, error: String(e?.message || e) });
-  }
-});
+      const sessionTbl = `extranet."ExtranetSession"`;
+
+      const sample = await pool.query(
+        `SELECT to_jsonb(s) AS row FROM ${sessionTbl} s LIMIT 3`
+      );
+
+      const byJson = await pool.query(
+        `SELECT to_jsonb(s) AS row
+           FROM ${sessionTbl} s
+          WHERE to_jsonb(s)->>'token' = $1
+          LIMIT 1`,
+        [token]
+      );
+
+      res.json({
+        sessionTbl,
+        tokenPreview: token ? token.slice(0, 8) : null,
+        sample: sample.rows?.map(r => r.row) ?? [],
+        matchWithJsonArrow: {
+          found: !!byJson.rows?.length,
+          row: byJson.rows?.[0]?.row ?? null,
+        },
+      });
+    } catch (e: any) {
+      res.status(500).json({ ok: false, error: String(e?.message || e) });
+    }
+  });
+
+  // Dual-table auth probe for quick diagnosis
+  r.get("/__probe_auth", async (req, res) => {
+    try {
+      const auth = String(req.headers["authorization"] || "");
+      const m = /^Bearer\s+(.+)$/.exec(auth);
+      if (!m) return res.status(200).json({ ok: false, why: "no-bearer" });
+      const token = m[1].trim();
+      const tok8 = token.slice(0, 8);
+
+      const qPub = `SELECT "id","partnerId","token","expiresAt","revokedAt"
+                    FROM public."ExtranetSession" WHERE "token" = $1 LIMIT 1`;
+      const r1 = await pool.query(qPub, [token]);
+
+      let tbl = `public."ExtranetSession"`;
+      let row: any = r1.rows?.[0];
+
+      if (!row) {
+        const qExt = `SELECT "id","partnerId","token","expiresAt","revokedAt"
+                      FROM extranet."ExtranetSession" WHERE "token" = $1 LIMIT 1`;
+        const r2 = await pool.query(qExt, [token]);
+        row = r2.rows?.[0];
+        tbl = `extranet."ExtranetSession"`;
+      }
+
+      if (!row) {
+        return res.status(200).json({
+          ok: false,
+          why: "no-row",
+          tokenPreview: tok8,
+          checked: [`public."ExtranetSession"`, `extranet."ExtranetSession"`],
+        });
+      }
+
+      const expired = isExpired(row.expiresAt);
+      const revoked = !!row.revokedAt;
+
+      return res.status(200).json({
+        ok: !expired && !revoked,
+        tokenPreview: tok8,
+        sessionTbl: tbl,
+        row,
+        checks: { expired, revoked },
+      });
+    } catch (e: any) {
+      return res.status(200).json({ ok: false, error: String(e?.message || e) });
+    }
+  });
+}
 
 // All routes below require a valid partner session
 r.use(requirePartner);
@@ -468,7 +394,6 @@ r.put("/", async (req, res) => {
       console.error("[property:put:audit] failed", e);
     }
 
-
     return res.json(rows[0]);
   } catch (e) {
     console.error("[property:put] db error", e);
@@ -579,7 +504,6 @@ r.patch("/", async (req, res) => {
     } catch (e) {
       console.error("[property:patch:audit] failed", e);
     }
-
 
     return res.json(rows[0]);
   } catch (e) {
