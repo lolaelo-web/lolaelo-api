@@ -1,4 +1,4 @@
-﻿-- Ensure schema exists
+-- Ensure schema exists
 CREATE SCHEMA IF NOT EXISTS extranet;
 
 -- If a TABLE exists with this name, rename it once (no-op if not a table)
