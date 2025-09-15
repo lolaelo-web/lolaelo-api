@@ -118,11 +118,14 @@ async function requirePartner(
     // 1) Extract bearer token
     const auth = String(req.headers["authorization"] || "");
     const m = /^Bearer\s+(.+)$/.exec(auth);
-    if (!m) {
-      console.log("[property:auth] no bearer header");
-      return res.status(401).json({ error: "unauthorized" });
+    let token = m ? m[1].trim() : "";
+    if (!token) {
+      token = String(req.headers["x-partner-token"] || "").trim();
+      if (!token) {
+        console.log("[property:auth] no token (Authorization or x-partner-token)");
+        return res.status(401).json({ error: "unauthorized" });
+      }
     }
-    const token = m[1].trim();
     console.log("[property:auth] bearer prefix:", token.slice(0, 8));
 
     // 2) Lookup in extranet view
