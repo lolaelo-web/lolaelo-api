@@ -312,6 +312,61 @@ r.get("/__probe_guard", async (req, res) => {
 // All routes below require a valid partner session
 r.use(requirePartner);
 
+// --- DEBUG PROBE: inspect auth state without blocking (remove after debugging) ---
+r.get("/__probe_auth", async (req, res) => {
+  try {
+    // 1) Extract bearer token
+    const auth = String(req.headers["authorization"] || "");
+    const m = /^Bearer\s+(.+)$/.exec(auth);
+    if (!m) return res.status(200).json({ ok: false, why: "no-bearer" });
+    const token = m[1].trim();
+    const tok8 = token.slice(0, 8);
+
+    // 2) Which table are we using?
+    const sessionTbl = await detectSessionTable();
+
+    // 3) Read the row by real columns (no JSON ops)
+    const q = `
+      SELECT "id","partnerId","token","expiresAt","revokedAt"
+      FROM ${sessionTbl}
+      WHERE "token" = $1
+      LIMIT 1
+    `;
+    const { rows } = await pool.query(q, [token]);
+
+    if (!rows.length) {
+      return res.status(200).json({
+        ok: false,
+        why: "no-row",
+        tokenPreview: tok8,
+        sessionTbl,
+        query: q
+      });
+    }
+
+    const row = rows[0] as {
+      id: number;
+      partnerId: number;
+      token: string;
+      expiresAt: any;
+      revokedAt?: any;
+    };
+
+    const expired = isExpired(row.expiresAt);
+    const revoked = !!row.revokedAt;
+
+    return res.status(200).json({
+      ok: !expired && !revoked,
+      tokenPreview: tok8,
+      sessionTbl,
+      row,
+      checks: { expired, revoked },
+    });
+  } catch (e: any) {
+    return res.status(200).json({ ok: false, error: String(e?.message || e) });
+  }
+});
+
 /** GET /extranet/property  -> returns the current partner’s profile */
 r.get("/", async (req, res) => {
   const partnerId = (req as any)?.partner?.id;
