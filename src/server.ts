@@ -1,4 +1,4 @@
-// src/server.ts
+﻿// src/server.ts
 import "dotenv/config";
 import express, { type Router, type Request, type Response, type NextFunction } from "express";
 import cors, { type CorsOptions } from "cors";
@@ -42,7 +42,7 @@ app.use(express.static(pubPath, { extensions: ["html"], maxAge: "1h", etag: true
 
 // ---- Health ----
 app.get("/health", (_req, res) => {
-  res.type("text/plain").send("OK v-ROUTES-29");
+  res.type("text/plain").send("OK v-ROUTES-30");
 });
 
 // Track mounts so we can enumerate routes later
@@ -285,3 +285,4 @@ if (process.env.NODE_ENV !== "test") {
 }
 
 export default app;
+
