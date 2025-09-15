@@ -11,6 +11,7 @@ const pool = new Pool({
 
 // --- DB objects ---
 const TBL_PROFILE = `extranet."PropertyProfile"`;
+const TBL_PHOTO   = `public."PropertyPhoto"`;
 
 /** Helper: returns null for empty strings (trimmed); passthrough for non-strings */
 function nz(v: unknown) {
@@ -512,6 +513,28 @@ r.patch("/", async (req, res) => {
   } catch (e) {
     console.error("[property:patch] db error", e);
     return res.status(500).json({ error: "Property patch failed" });
+  }
+});
+
+/** GET /extranet/property/photos -> list photos for current partner */
+r.get("/photos", async (req, res) => {
+  const partnerId = (req as any)?.partner?.id;
+  if (!partnerId) return res.status(401).json({ error: "unauthorized" });
+
+  res.set("Cache-Control", "no-store, no-cache, must-revalidate");
+
+  try {
+    const { rows } = await pool.query(
+      `SELECT "id","key","url","alt","sortOrder","isCover","width","height","createdAt"
+         FROM ${TBL_PHOTO}
+        WHERE "partnerId" = $1
+        ORDER BY "isCover" DESC, "sortOrder" ASC, "id" ASC`,
+      [partnerId]
+    );
+    return res.json({ value: rows, Count: rows.length });
+  } catch (e) {
+    console.error("[property:photos:list] db error", e);
+    return res.status(500).json({ error: "Photos fetch failed" });
   }
 });
 
