@@ -166,21 +166,19 @@ function qident(id: string) {
   return `"${id.replace(/"/g, '""')}"`;
 }
 
-/** Return session row from public first, then extranet; null if missing */
+/** Return session row from extranet view; null if missing */
 async function getSessionRow(token: string): Promise<null | {
   partnerId: number;
   expiresAt: any;
   revokedAt: any;
-  _tbl: 'public."ExtranetSession"' | 'extranet."ExtranetSession"';
+  _tbl: 'extranet."ExtranetSession"';
 }> {
-  const qPub = `SELECT "partnerId","expiresAt","revokedAt" FROM public."ExtranetSession" WHERE "token" = $1 LIMIT 1`;
-  const r1 = await pool.query(qPub, [token]);
-  if (r1.rowCount) return { ...r1.rows[0], _tbl: 'public."ExtranetSession"' };
-
-  const qExt = `SELECT "partnerId","expiresAt","revokedAt" FROM extranet."ExtranetSession" WHERE "token" = $1 LIMIT 1`;
-  const r2 = await pool.query(qExt, [token]);
-  if (r2.rowCount) return { ...r2.rows[0], _tbl: 'extranet."ExtranetSession"' };
-
+  const q = `SELECT "partnerId","expiresAt","revokedAt"
+             FROM extranet."ExtranetSession"
+             WHERE "token" = $1
+             LIMIT 1`;
+  const r = await pool.query(q, [token]);
+  if (r.rowCount) return { ...r.rows[0], _tbl: 'extranet."ExtranetSession"' };
   return null;
 }
 
