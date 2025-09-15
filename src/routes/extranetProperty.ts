@@ -241,68 +241,54 @@ async function requirePartner(
   }
 }
 
-// ---- TEMP PROBE: raw session read (remove after debug) ----
+// --- debug: probe the current token against whatever session table we detect ---
 r.get("/__probe_session", async (req, res) => {
   try {
     const auth = String(req.headers["authorization"] || "");
     const m = /^Bearer\s+(.+)$/.exec(auth);
-    if (!m) return res.status(400).json({ error: "missing Bearer token" });
+    if (!m) return res.status(401).json({ ok: false, error: "unauthorized" });
     const token = m[1].trim();
 
-    const sessionTbl = await (async function detectSessionTable(): Promise<string> {
-      // Prefer 'extranet', fallback to 'public'
-      const { rows } = await pool.query(`
-        WITH cols AS (
-          SELECT table_schema, table_name, column_name
-          FROM information_schema.columns
-          WHERE table_schema IN ('extranet','public')
-            AND column_name IN ('token','partnerId','expiresAt','email','name')
-        ),
-        candidates AS (
-          SELECT table_schema, table_name
-          FROM cols
-          GROUP BY table_schema, table_name
-          HAVING COUNT(*) FILTER (WHERE column_name = 'token') > 0
-             AND COUNT(*) FILTER (WHERE column_name = 'partnerId') > 0
-             AND COUNT(*) FILTER (WHERE column_name = 'expiresAt') > 0
-        )
-        SELECT table_schema, table_name
-        FROM candidates
-        ORDER BY (table_schema = 'extranet') DESC, table_name ASC
-        LIMIT 1
-      `);
-      if (!rows.length) throw new Error("no session table found in extranet/public");
-      return `${rows[0].table_schema}."${rows[0].table_name}"`;
-    })();
+    const sessionTbl = await detectSessionTable();
 
+    // JSONB-only selectors (no direct "email"/"name" columns expected)
     const q = `
       SELECT
-        COALESCE((to_jsonb(s)->>'partnerId')::int, "partnerId") AS "partnerId",
-        COALESCE(NULLIF(to_jsonb(s)->>'email',''), "email")     AS "email",
-        COALESCE(NULLIF(to_jsonb(s)->>'name',''),  "name")      AS "name",
-        COALESCE(
-          to_jsonb(s)->>'expiresAt',
-          CASE
-            WHEN pg_typeof("expiresAt")::text = 'bigint' THEN "expiresAt"::text
-            WHEN pg_typeof("expiresAt")::text LIKE 'timestamp%' THEN to_char("expiresAt",'YYYY-MM-DD"T"HH24:MI:SS.MS"Z"')
-            ELSE COALESCE("expiresAt"::text, NULL)
-          END
-        ) AS "expiresAt",
-        COALESCE(to_jsonb(s)->>'token', "token"::text)          AS "token_text"
+        (to_jsonb(s)->>'partnerId')::int AS "partnerId",
+        to_jsonb(s)->>'email'            AS "email",
+        to_jsonb(s)->>'name'             AS "name",
+        to_jsonb(s)->>'expiresAt'        AS "expiresAt",
+        to_jsonb(s)->>'token'            AS "token_text"
       FROM ${sessionTbl} s
-      WHERE COALESCE(to_jsonb(s)->>'token', "token"::text) = $1
+      WHERE to_jsonb(s)->>'token' = $1
       LIMIT 1
     `;
     const { rows } = await pool.query(q, [token]);
 
-    res.json({
-      sessionTable: sessionTbl,
-      found: rows.length > 0,
-      row: rows[0] || null
+    if (!rows.length) {
+      return res.json({ ok: true, found: false, sessionTbl });
+    }
+    const s = rows[0] as {
+      partnerId: number;
+      email: string | null;
+      name: string | null;
+      expiresAt: string | null;
+      token_text: string | null;
+    };
+
+    return res.json({
+      ok: true,
+      found: true,
+      sessionTbl,
+      partnerId: s.partnerId,
+      email: s.email ?? null,
+      name: s.name ?? null,
+      expiresAt: s.expiresAt ?? null,
+      token: s.token_text ?? null,
     });
-  } catch (e: any) {
-    console.error("[property::__probe_session] error", e);
-    res.status(500).json({ error: String(e?.message || e) });
+  } catch (e) {
+    console.error("[property:__probe_session] error", e);
+    return res.status(500).json({ ok: false, error: "probe failed" });
   }
 });
 
