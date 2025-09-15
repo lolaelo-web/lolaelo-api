@@ -309,8 +309,6 @@ r.get("/__probe_guard", async (req, res) => {
   }
 });
 
-// All routes below require a valid partner session
-r.use(requirePartner);
 
 // --- DEBUG PROBE: inspect auth state without blocking (remove after debugging) ---
 r.get("/__probe_auth", async (req, res) => {
@@ -366,6 +364,9 @@ r.get("/__probe_auth", async (req, res) => {
     return res.status(200).json({ ok: false, error: String(e?.message || e) });
   }
 });
+
+// All routes below require a valid partner session
+r.use(requirePartner);
 
 /** GET /extranet/property  -> returns the current partner’s profile */
 r.get("/", async (req, res) => {
