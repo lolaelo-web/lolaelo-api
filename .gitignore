@@ -174,3 +174,6 @@ db_probe.*
 rotate_db_pw.mjs
 
 .DS_Store
+
+# Ignore local mock files
+/public/LLCFormation.pdf
