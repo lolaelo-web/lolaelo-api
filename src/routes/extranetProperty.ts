@@ -694,7 +694,7 @@ r.post("/documents/upload-url", async (req, res) => {
 /**
  * POST /extranet/property/documents
  * Body: { type: string, key: string, url: string, fileName: string, contentType: string, notes?: string }
- * Upserts by (partnerId, type). Sets status SUBMITTED and uploadedAt NOW().
+ * Creates a new document row (multiple per type now allowed). Sets status SUBMITTED and uploadedAt NOW().
  */
 r.post("/documents", async (req, res) => {
   const partnerId = (req as any)?.partner?.id;
@@ -730,15 +730,6 @@ r.post("/documents", async (req, res) => {
       INSERT INTO ${TBL_DOC}
         ("partnerId","type","key","url","fileName","contentType","status","uploadedAt","notes")
       VALUES ($1,$2,$3,$4,$5,$6,'SUBMITTED', NOW(), $7)
-      ON CONFLICT ("partnerId","type") DO UPDATE
-         SET "key"         = EXCLUDED."key",
-             "url"         = EXCLUDED."url",
-             "fileName"    = EXCLUDED."fileName",
-             "contentType" = EXCLUDED."contentType",
-             "status"      = 'SUBMITTED',
-             "uploadedAt"  = NOW(),
-             "notes"       = EXCLUDED."notes",
-             "verifiedAt"  = NULL
       RETURNING
         "id","partnerId","type","key","url","fileName","contentType",
         "status","uploadedAt","verifiedAt","expiresAt","notes"
@@ -750,6 +741,57 @@ r.post("/documents", async (req, res) => {
   } catch (e) {
     console.error("[documents:create] db error", e);
     return res.status(500).json({ error: "Document save failed" });
+  }
+});
+
+/** PUT /extranet/property/documents/:id  -> update notes */
+r.put("/documents/:id", async (req, res) => {
+  const partnerId = (req as any)?.partner?.id;
+  if (!partnerId) return res.status(401).json({ error: "unauthorized" });
+
+  const id = Number(req.params.id) || 0;
+  if (!id) return res.status(400).json({ error: "invalid id" });
+
+  const { notes } = (req.body ?? {}) as { notes?: string };
+  const n = (v: any) => (typeof v === "string" ? (v.trim() || null) : v);
+
+  try {
+    const { rowCount, rows } = await pool.query(
+      `
+      UPDATE ${TBL_DOC}
+         SET "notes" = $1
+       WHERE "id" = $2 AND "partnerId" = $3
+       RETURNING "id","partnerId","type","key","url","fileName","contentType",
+                 "status","uploadedAt","verifiedAt","expiresAt","notes"
+      `,
+      [n(notes), id, partnerId]
+    );
+    if (!rowCount) return res.status(404).json({ error: "not found" });
+    return res.json(rows[0]);
+  } catch (e) {
+    console.error("[documents:update] db error", e);
+    return res.status(500).json({ error: "Document update failed" });
+  }
+});
+
+/** DELETE /extranet/property/documents/:id */
+r.delete("/documents/:id", async (req, res) => {
+  const partnerId = (req as any)?.partner?.id;
+  if (!partnerId) return res.status(401).json({ error: "unauthorized" });
+
+  const id = Number(req.params.id) || 0;
+  if (!id) return res.status(400).json({ error: "invalid id" });
+
+  try {
+    const { rowCount } = await pool.query(
+      `DELETE FROM ${TBL_DOC} WHERE "id" = $1 AND "partnerId" = $2`,
+      [id, partnerId]
+    );
+    if (!rowCount) return res.status(404).json({ error: "not found" });
+    return res.status(204).end();
+  } catch (e) {
+    console.error("[documents:delete] db error", e);
+    return res.status(500).json({ error: "Document delete failed" });
   }
 });
 
