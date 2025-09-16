@@ -15,7 +15,7 @@ const TBL_PROFILE = `extranet."PropertyProfile"`;
 const TBL_DOC     = `public."PropertyDocument"`;
 const TBL_PHOTO   = `public."PropertyPhoto"`;
 
-// --- S3 helpers (for document hard-delete) ---
+// --- S3 helpers (for document/photo hard-delete) ---
 const s3Region =
   process.env.AWS_REGION || process.env.S3_REGION || "us-east-1";
 const s3AccessKeyId =
@@ -41,7 +41,21 @@ function docsBucket() {
   );
 }
 
-// --- Upload constraints ---
+// --- Photo upload constraints ---
+const PHOTOS_MAX_BYTES = Number(process.env.PHOTOS_MAX_BYTES || 12 * 1024 * 1024); // 12 MB default
+const PHOTOS_ALLOWED_CT = String(process.env.PHOTOS_ALLOWED_CT || "image/jpeg,image/png,image/webp")
+  .split(",").map(s => s.trim().toLowerCase()).filter(Boolean);
+
+function photosBucket() {
+  return (
+    process.env.PHOTOS_BUCKET ||
+    process.env.S3_BUCKET ||
+    process.env.DOCS_BUCKET ||
+    ""
+  );
+}
+
+// --- Document upload constraints ---
 const DOCS_MAX_BYTES = Number(process.env.DOCS_MAX_BYTES || 10 * 1024 * 1024); // 10 MB default
 const DOCS_ALLOWED_CT = String(process.env.DOCS_ALLOWED_CT || "application/pdf,image/png,image/jpeg,text/plain")
   .split(",")
@@ -573,6 +587,195 @@ r.get("/photos", async (req, res) => {
   }
 });
 
+/**
+ * POST /extranet/property/photos/upload-url
+ * Body: { fileName: string, contentType: string, size: number }
+ */
+r.post("/photos/upload-url", async (req, res) => {
+  const partnerId = (req as any)?.partner?.id;
+  if (!partnerId) return res.status(401).json({ error: "unauthorized" });
+
+  const { fileName, contentType, size } = (req.body ?? {}) as { fileName?: string; contentType?: string; size?: number; };
+  if (!fileName || !contentType || (size == null)) {
+    return res.status(400).json({ error: "fileName, contentType, size are required" });
+  }
+  const sz = Number(size);
+  if (!Number.isFinite(sz) || sz <= 0 || sz > PHOTOS_MAX_BYTES) {
+    return res.status(413).json({ error: "File too large", maxBytes: PHOTOS_MAX_BYTES });
+  }
+  const ct = String(contentType).toLowerCase();
+  if (!PHOTOS_ALLOWED_CT.includes(ct)) {
+    return res.status(415).json({ error: "Unsupported content type", allowed: PHOTOS_ALLOWED_CT });
+  }
+
+  // Key: <PHOTOS_PREFIX>/<partnerId>/<uuid>-<safeName>
+  const prefix = (process.env.PHOTOS_PREFIX || "photos/gallery").replace(/^\/+|\/+$/g, "");
+  const safeName = String(fileName).replace(/[^a-zA-Z0-9._-]+/g, "_").slice(-120);
+  let uuid: string;
+  try { uuid = require("crypto").randomUUID(); } catch { uuid = Math.random().toString(36).slice(2); }
+  const key = `${prefix}/${partnerId}/${uuid}-${safeName}`;
+
+  const Bucket = photosBucket();
+  const region =
+    process.env.AWS_REGION ||
+    process.env.AWS_DEFAULT_REGION ||
+    process.env.S3_REGION || "us-east-1";
+  const accessKey =
+    process.env.AWS_ACCESS_KEY_ID || process.env.S3_ACCESS_KEY_ID;
+  const secretKey =
+    process.env.AWS_SECRET_ACCESS_KEY || process.env.S3_SECRET_ACCESS_KEY;
+
+  if (!Bucket) return res.status(501).json({ error: "photos bucket not configured" });
+  if (!(accessKey && secretKey) && !process.env.AWS_PROFILE) {
+    return res.status(501).json({ error: "upload signing not configured (missing AWS/S3 credentials)" });
+  }
+
+  // Dynamic import (match documents endpoint pattern)
+  let S3ClientDyn: any, PutObjectCommand: any, getSignedUrl: any;
+  try {
+    const s3mod = await import("@aws-sdk/client-s3");
+    const pres  = await import("@aws-sdk/s3-request-presigner");
+    S3ClientDyn = s3mod.S3Client;
+    PutObjectCommand = s3mod.PutObjectCommand;
+    getSignedUrl = pres.getSignedUrl;
+  } catch (e) {
+    console.error("[photos:upload-url] import error", e);
+    return res.status(501).json({ error: "missing @aws-sdk packages" });
+  }
+
+  try {
+    const s3dyn = new S3ClientDyn({
+      region,
+      credentials: (accessKey && secretKey) ? { accessKeyId: accessKey, secretAccessKey: secretKey } : undefined,
+    });
+    const cmd = new PutObjectCommand({ Bucket, Key: key, ContentType: contentType, ACL: "private" });
+    const uploadUrl = await getSignedUrl(s3dyn, cmd, { expiresIn: 600 });
+    const publicBase =
+      (process.env.PHOTOS_PUBLIC_BASE_URL ||
+       process.env.S3_PUBLIC_BASE_URL ||
+       `https://${Bucket}.s3.${region}.amazonaws.com`).replace(/\/+$/,"");
+    const url = `${publicBase}/${key}`;
+    return res.json({ key, url, uploadUrl, headers: { "Content-Type": contentType } });
+  } catch (e) {
+    console.error("[photos:upload-url] signing error", e);
+    return res.status(500).json({ error: "Failed to generate upload URL" });
+  }
+});
+
+/**
+ * POST /extranet/property/photos
+ * Body: { key: string, url: string, alt?: string, width?: number, height?: number, isCover?: boolean }
+ */
+r.post("/photos", async (req, res) => {
+  const partnerId = (req as any)?.partner?.id;
+  if (!partnerId) return res.status(401).json({ error: "unauthorized" });
+
+  const { key, url, alt, width, height, isCover } = (req.body ?? {}) as any;
+  if (!key || !url) return res.status(400).json({ error: "key and url are required" });
+
+  try {
+    // Next sortOrder = max + 1
+    const nextSort = await pool.query(
+      `SELECT COALESCE(MAX("sortOrder"),0)+1 AS n FROM ${TBL_PHOTO} WHERE "partnerId" = $1`,
+      [partnerId]
+    );
+    const sortOrder = Number(nextSort.rows?.[0]?.n ?? 1);
+
+    // If setting as cover, clear others
+    if (isCover === true) {
+      await pool.query(
+        `UPDATE ${TBL_PHOTO} SET "isCover" = FALSE WHERE "partnerId" = $1`,
+        [partnerId]
+      );
+    }
+
+    const { rows } = await pool.query(
+      `INSERT INTO ${TBL_PHOTO}
+         ("partnerId","key","url","alt","sortOrder","isCover","width","height","createdAt")
+       VALUES ($1,$2,$3,$4,$5,$6,$7,$8, NOW())
+       RETURNING "id","key","url","alt","sortOrder","isCover","width","height","createdAt"`,
+      [partnerId, key, url, alt ?? null, sortOrder, !!isCover, Number(width) || null, Number(height) || null]
+    );
+
+    return res.json(rows[0]);
+  } catch (e) {
+    console.error("[photos:create] db error", e);
+    return res.status(500).json({ error: "Photo save failed" });
+  }
+});
+
+/** PUT /extranet/property/photos/:id  -> update alt, isCover, sortOrder */
+r.put("/photos/:id", async (req, res) => {
+  const partnerId = (req as any)?.partner?.id;
+  if (!partnerId) return res.status(401).json({ error: "unauthorized" });
+
+  const id = Number(req.params.id) || 0;
+  if (!id) return res.status(400).json({ error: "invalid id" });
+
+  const { alt, isCover, sortOrder } = (req.body ?? {}) as any;
+
+  try {
+    if (isCover === true) {
+      await pool.query(
+        `UPDATE ${TBL_PHOTO} SET "isCover" = FALSE WHERE "partnerId" = $1`,
+        [partnerId]
+      );
+    }
+    const { rowCount, rows } = await pool.query(
+      `UPDATE ${TBL_PHOTO}
+          SET "alt" = COALESCE($1, "alt"),
+              "isCover" = COALESCE($2, "isCover"),
+              "sortOrder" = COALESCE($3, "sortOrder")
+        WHERE "id" = $4 AND "partnerId" = $5
+        RETURNING "id","key","url","alt","sortOrder","isCover","width","height","createdAt"`,
+      [alt ?? null, (isCover === undefined ? null : !!isCover), (sortOrder == null ? null : Number(sortOrder)), id, partnerId]
+    );
+    if (!rowCount) return res.status(404).json({ error: "not found" });
+    return res.json(rows[0]);
+  } catch (e) {
+    console.error("[photos:update] db error", e);
+    return res.status(500).json({ error: "Photo update failed" });
+  }
+});
+
+/** DELETE /extranet/property/photos/:id */
+r.delete("/photos/:id", async (req, res) => {
+  const partnerId = (req as any)?.partner?.id;
+  if (!partnerId) return res.status(401).json({ error: "unauthorized" });
+
+  const id = Number(req.params.id) || 0;
+  if (!id) return res.status(400).json({ error: "invalid id" });
+
+  try {
+    const { rows } = await pool.query(
+      `SELECT "id","key" FROM ${TBL_PHOTO} WHERE "id" = $1 AND "partnerId" = $2 LIMIT 1`,
+      [id, partnerId]
+    );
+    if (!rows.length) return res.status(404).json({ error: "not found" });
+
+    const key: string | null = rows[0].key ?? null;
+
+    // Best-effort S3 delete
+    try {
+      const Bucket = photosBucket();
+      if (Bucket && key) {
+        await s3.send(new DeleteObjectCommand({ Bucket, Key: key }));
+      }
+    } catch (err) {
+      console.error("[photos:delete] S3 DeleteObject failed:", err);
+    }
+
+    await pool.query(
+      `DELETE FROM ${TBL_PHOTO} WHERE "id" = $1 AND "partnerId" = $2`,
+      [id, partnerId]
+    );
+    return res.status(204).end();
+  } catch (e) {
+    console.error("[photos:delete] db error", e);
+    return res.status(500).json({ error: "Photo delete failed" });
+  }
+});
+
 /** GET /extranet/property/documents -> list documents for current partner */
 r.get("/documents", async (req, res) => {
   const partnerId = (req as any)?.partner?.id;
@@ -687,11 +890,11 @@ r.post("/documents/upload-url", async (req, res) => {
   }
 
   // Dynamic ESM import (Node 20+)
-  let S3Client: any, PutObjectCommand: any, getSignedUrl: any;
+  let S3ClientDyn: any, PutObjectCommand: any, getSignedUrl: any;
   try {
     const s3mod = await import("@aws-sdk/client-s3");
     const pres  = await import("@aws-sdk/s3-request-presigner");
-    S3Client = s3mod.S3Client;
+    S3ClientDyn = s3mod.S3Client;
     PutObjectCommand = s3mod.PutObjectCommand;
     getSignedUrl = pres.getSignedUrl;
   } catch (e) {
@@ -703,7 +906,7 @@ r.post("/documents/upload-url", async (req, res) => {
   }
 
   try {
-    const s3 = new S3Client({
+    const s3Local = new S3ClientDyn({
       region,
       credentials: (accessKey && secretKey)
         ? { accessKeyId: accessKey, secretAccessKey: secretKey }
@@ -718,7 +921,7 @@ r.post("/documents/upload-url", async (req, res) => {
       // ContentLength: size, // optional: enforce size if desired
     });
 
-    const uploadUrl = await getSignedUrl(s3, cmd, { expiresIn: 600 }); // 10 min
+    const uploadUrl = await getSignedUrl(s3Local, cmd, { expiresIn: 600 }); // 10 min
     const url = `${publicBase}/${key}`;
 
     return res.json({
