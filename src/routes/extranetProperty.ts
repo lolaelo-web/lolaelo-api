@@ -704,7 +704,7 @@ r.post("/photos", async (req, res) => {
   }
 });
 
-/** PUT /extranet/property/photos/:id  -> update alt, isCover, sortOrder */
+/** PUT /extranet/property/photos/:id  -> update alt, isCover, sortOrder (safe ordering) */
 r.put("/photos/:id", async (req, res) => {
   const partnerId = (req as any)?.partner?.id;
   if (!partnerId) return res.status(401).json({ error: "unauthorized" });
@@ -714,27 +714,55 @@ r.put("/photos/:id", async (req, res) => {
 
   const { alt, isCover, sortOrder } = (req.body ?? {}) as any;
 
+  const client = await pool.connect();
   try {
-    if (isCover === true) {
-      await pool.query(
-        `UPDATE ${TBL_PHOTO} SET "isCover" = FALSE WHERE "partnerId" = $1`,
-        [partnerId]
-      );
+    await client.query("BEGIN");
+
+    // Verify target exists first
+    const exists = await client.query(
+      `SELECT "id" FROM ${TBL_PHOTO} WHERE "id" = $1 AND "partnerId" = $2 LIMIT 1`,
+      [id, partnerId]
+    );
+    if (!exists.rowCount) {
+      await client.query("ROLLBACK");
+      return res.status(404).json({ error: "not found" });
     }
-    const { rowCount, rows } = await pool.query(
+
+    // Update the target row
+    const upd = await client.query(
       `UPDATE ${TBL_PHOTO}
           SET "alt" = COALESCE($1, "alt"),
               "isCover" = COALESCE($2, "isCover"),
               "sortOrder" = COALESCE($3, "sortOrder")
         WHERE "id" = $4 AND "partnerId" = $5
         RETURNING "id","key","url","alt","sortOrder","isCover","width","height","createdAt"`,
-      [alt ?? null, (isCover === undefined ? null : !!isCover), (sortOrder == null ? null : Number(sortOrder)), id, partnerId]
+      [
+        alt ?? null,
+        (isCover === undefined ? null : !!isCover),
+        (sortOrder == null ? null : Number(sortOrder)),
+        id,
+        partnerId,
+      ]
     );
-    if (!rowCount) return res.status(404).json({ error: "not found" });
-    return res.json(rows[0]);
+
+    // If we've set this as the cover, clear others now (and only now)
+    if (isCover === true) {
+      await client.query(
+        `UPDATE ${TBL_PHOTO}
+            SET "isCover" = FALSE
+          WHERE "partnerId" = $1 AND "id" <> $2`,
+        [partnerId, id]
+      );
+    }
+
+    await client.query("COMMIT");
+    return res.json(upd.rows[0]);
   } catch (e) {
+    await client.query("ROLLBACK");
     console.error("[photos:update] db error", e);
     return res.status(500).json({ error: "Photo update failed" });
+  } finally {
+    client.release();
   }
 });
 
