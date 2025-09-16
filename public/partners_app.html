@@ -145,7 +145,7 @@
             <p>Manage your company details, contact info and description.</p>
           </a>
 
-          <a class="tile" href="/partners_photos.html" id="tilePhotos">
+          <a class="tile" href="https://lolaelo-api.onrender.com/partners_photos.html" id="tilePhotos">
             <h3>My Photos</h3>
             <p>Browse the photos you’ve uploaded.</p>
           </a>
@@ -613,10 +613,22 @@
   </script>
 
   <script>
-  (function () {
-    var a = document.getElementById('tilePhotos');
-    if (a) a.href = '/partners_photos.html?cb=' + Date.now(); // direct nav with cache-bust
-  })();
+// Make the Photos tile open the API-hosted page, passing the token
+(function () {
+  var a = document.getElementById('tilePhotos');
+  if (!a) return;
+
+  a.addEventListener('click', function (e) {
+    e.preventDefault();
+    var t = localStorage.getItem('partnerToken') || localStorage.getItem('lolaelo_session') || '';
+    var base = (location.hostname.endsWith('lolaelo.com'))
+      ? 'https://lolaelo-api.onrender.com/partners_photos.html'
+      : '/partners_photos.html';
+    // cache-bust as query, token in hash (early-capture on target reads both)
+    var url = base + '?cb=' + Date.now() + (t ? '#token=' + encodeURIComponent(t) : '');
+    location.href = url;
+  });
+})();
 </script>
 
 </body>
