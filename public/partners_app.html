@@ -182,22 +182,6 @@
         </div>
       </div>
 
-      <!-- Photos Panel -->
-      <div id="photosPanel" class="card section hidden">
-        <h2>Your Photos</h2>
-
-        <div id="photosActions" style="display:flex; gap:8px; align-items:center; margin:6px 0 10px">
-          <button id="btnUploadPhoto" class="btn" type="button">Upload photo</button>
-          <input id="fileInput" type="file" accept="image/*" style="display:none" />
-        </div>
-
-        <div id="photosGrid" class="photos"></div>
-
-        <div style="display:flex; gap:8px; margin-top:14px">
-          <button id="photosBackBtn" class="btn secondary" type="button">Back to menu</button>
-        </div>
-      </div>
-
       <!-- COMPANY PROFILE -->
       <div id="profile" class="card section hidden" aria-label="Company Profile">
         <h2>Company Profile</h2>
@@ -403,11 +387,10 @@
     };
 
     // --- Navigation -----------------------------------------------------------
-    const backToHub = () => { hide('profile'); hide('photosPanel'); hide('pmsConnectionsPanel'); hide('pmsMappingsPanel'); show('hub'); };
+    const backToHub = () => { hide('profile'); hide('pmsConnectionsPanel'); hide('pmsMappingsPanel'); show('hub'); };
     $('tileProfile').addEventListener('click', (e) => { e.preventDefault(); hide('hub'); show('profile'); });
     $('btnBack').onclick = backToHub;
-    $('photosBackBtn').addEventListener('click', (e) => { e.preventDefault(); backToHub(); });
-
+    
     document.getElementById('tileRooms').addEventListener('click', (e) => {
       e.preventDefault();
       const t = getToken();
@@ -483,71 +466,6 @@
       }
     }
     $('btnSave').onclick = (e) => { e.preventDefault(); if (!($('pp_name').value || '').trim()) { toast('Company name is required.'); return; } saveProfile(); };
-
-    // --- Photos ---------------------------------------------------------------
-    let photosState = [];
-    async function loadPhotos(){
-      const grid = $('photosGrid');
-      grid.innerHTML = '<div class="muted">Loading…</div>';
-      try {
-        const r = await authed('/extranet/property/photos');
-        const arr = await r.json().catch(()=>[]);
-        photosState = Array.isArray(arr) ? arr : [];
-        renderPhotos();
-      } catch (e) {
-        console.error(e); grid.innerHTML = '<div class="muted">Failed to load photos.</div>';
-      }
-    }
-    function renderPhotos(){
-      const grid = $('photosGrid');
-      if (!photosState.length) { grid.innerHTML = '<div class="muted">No photos yet.</div>'; return; }
-      grid.innerHTML = '';
-      photosState
-        .sort((a,b) => (a.sortOrder ?? 0) - (b.sortOrder ?? 0) || a.id - b.id)
-        .forEach(p => {
-          const card  = document.createElement('div'); card.className = 'ph';
-          const img   = document.createElement('img'); img.src = p.url || ''; img.alt = p.alt || '';
-          const meta  = document.createElement('div'); meta.className = 'meta'; meta.textContent = p.alt || p.caption || p.key || '';
-          const actions = document.createElement('div'); actions.className = 'photo-actions';
-          actions.innerHTML = `
-            <button class="btn secondary" data-act="cover" data-id="${p.id}" ${p.isCover ? 'disabled' : ''}>${p.isCover ? 'Cover' : 'Set cover'}</button>
-            <button class="btn secondary" data-act="edit"  data-id="${p.id}">Edit</button>
-            <button class="btn ghost"     data-act="del"   data-id="${p.id}">Delete</button>`;
-          card.appendChild(img); card.appendChild(meta); card.appendChild(actions); grid.appendChild(card);
-        });
-
-      grid.querySelectorAll('button[data-id]').forEach(btn => {
-        btn.onclick = async () => {
-          const id  = Number(btn.dataset.id);
-          const act = btn.dataset.act;
-          try {
-            if (act === 'del') {
-              if (!confirm('Delete this photo?')) return;
-              const resp = await authed(`/extranet/property/photos/${id}`, { method: 'DELETE' });
-              if (!resp.ok) throw new Error('Delete failed');
-              photosState = photosState.filter(x => x.id !== id); renderPhotos(); toast('Deleted.', true); return;
-            }
-            if (act === 'edit') {
-              const current = photosState.find(x => x.id === id);
-              const alt = prompt('Alt text / caption', (current && current.alt) ? current.alt : '');
-              if (alt === null) return;
-              const resp = await authed(`/extranet/property/photos/${id}`, {
-                method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ alt })
-              });
-              if (!resp.ok) throw new Error('Save failed');
-              if (current) current.alt = alt; renderPhotos(); toast('Saved.', true); return;
-            }
-            if (act === 'cover') {
-              const resp = await authed(`/extranet/property/photos/${id}`, {
-                method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ isCover: true })
-              });
-              if (!resp.ok) throw new Error('Save failed');
-              photosState = photosState.map(x => ({ ...x, isCover: x.id === id })); renderPhotos(); toast('Cover set.', true); return;
-            }
-          } catch (err) { console.error(err); toast(err.message || 'Action failed'); }
-        };
-      });
-    }
 
     // --- PMS Connections / Mappings ------------------------------------------
     const connTbody = $('connTbody');
@@ -697,7 +615,7 @@
   <script>
   (function () {
     var a = document.getElementById('tilePhotos');
-    if (a) a.href = '/partners_photos.html?cb=' + Date.now(); // cache-busted direct nav
+    if (a) a.href = '/partners_photos.html?cb=' + Date.now(); // direct nav with cache-bust
   })();
 </script>
 
