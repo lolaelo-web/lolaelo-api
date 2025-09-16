@@ -4,21 +4,19 @@
   <meta charset="utf-8" />
   <title>Documents</title>
   <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <!-- Inline favicon to stop /favicon.ico 404 -->
+  <link rel="icon" href="data:image/svg+xml;utf8,
+  <svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'>
+    <rect width='64' height='64' rx='12' fill='%23111a2b'/>
+    <circle cx='32' cy='32' r='18' fill='%23ff6a3d'/>
+  </svg>" />
 
   <!-- Match partners_app look/feel -->
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
   <style>
   :root{
-    /* tokens lifted from partners_app */
-    --bg:#0b1320;
-    --card:#111a2b;
-    --fg:#e8eefc;
-    --muted:#9bb0d3;
-    --line:rgba(255,255,255,.08);
-
-    /* accents */
-    --brand-orange:#ff6a3d;  /* primary CTA */
-    --brand-blue:#2e7bff;    /* outline */
+    --bg:#0b1320; --card:#111a2b; --fg:#e8eefc; --muted:#9bb0d3; --line:rgba(255,255,255,.08);
+    --brand-orange:#ff6a3d; --brand-blue:#2e7bff;
   }
   *{ box-sizing:border-box }
   body{
@@ -35,25 +33,17 @@
   .spacer{ height:16px; }
   .muted{ color:var(--muted); font-size:12px; }
 
-  /* Buttons – match hub */
-  .btn{ cursor:pointer; border-radius:999px; padding:9px 14px; font-weight:700; border:1px solid var(--brand-orange); background:var(--brand-orange); color:#fff; }
+  .btn{ cursor:pointer; border-radius:999px; padding:9px 14px; font-weight:700; border:1px solid var(--brand-orange); background:var(--brand-orange); color:#111; }
   .btn:disabled{ opacity:.6; cursor:not-allowed; }
-  .btn-primary{ border-color:var(--brand-orange); background:var(--brand-orange); color:#111; }
   .btn-danger{ background:transparent; border-color:#b91c1c; color:#ffcfcf; }
-  .btn-secondary-outline{
-    background:transparent; color:#d7e5ff;
-    border-color:var(--brand-blue);
-  }
+  .btn-secondary-outline{ background:transparent; color:#d7e5ff; border-color:var(--brand-blue); }
   .btn-secondary-outline:hover{ box-shadow:0 0 0 3px rgba(46,123,255,.20) inset; }
 
-  /* Inputs / select */
   .input,.select{
     border:1px solid var(--line); border-radius:10px; padding:10px 12px;
     background:#0e1830; color:var(--fg);
   }
-  .input:focus,.select:focus{
-    outline:none; border-color:var(--brand-blue); box-shadow:0 0 0 3px rgba(46,123,255,.20);
-  }
+  .input:focus,.select:focus{ outline:none; border-color:var(--brand-blue); box-shadow:0 0 0 3px rgba(46,123,255,.20); }
   .select{
     appearance:none; -webkit-appearance:none; -moz-appearance:none;
     padding-right:36px;
@@ -61,17 +51,15 @@
     background-repeat:no-repeat; background-position:right 10px center;
   }
 
-  /* Table – same gray separators as hub */
-  .table{ width:100%; border-collapse:collapse; }
+  /* Table */
+  .table{ width:100%; border-collapse:collapse; table-layout:fixed; }
   .table thead th{ border-bottom:2px solid var(--line); padding:10px 12px; text-align:left; }
-  .table td{ padding:10px 12px; border-bottom:1px solid var(--line); vertical-align:top; }
+  .table td{ padding:10px 12px; border-bottom:1px solid var(--line); vertical-align:top; word-break:break-word; overflow-wrap:anywhere; }
   .nowrap{ white-space:nowrap; }
 
-  /* File links: orange, no underline */
   .table a, .table a:visited{ color:var(--brand-orange); text-decoration:none; }
   .table a:hover, .table a:focus{ color:#ff8a68; text-decoration:none; }
 
-  /* Status badges (kept) */
   .badge{ display:inline-block; padding:2px 8px; border-radius:999px; font-size:12px; border:1px solid var(--line); }
   .badge.SUBMITTED{ background:#1f2937; }
   .badge.APPROVED{ background:#065f46; }
@@ -79,6 +67,21 @@
 
   textarea.notes{ width:100%; min-height:40px; resize:vertical; }
   .actions{ display:flex; gap:8px; flex-wrap:wrap; }
+
+  /* Responsive: turn rows into a simple grid on small screens */
+  @media (max-width: 720px){
+    .table thead{ display:none; }
+    .table tr{
+      display:grid;
+      grid-template-columns: 1fr 1fr;
+      gap:8px;
+      border-bottom:1px solid var(--line);
+      padding:8px 0;
+    }
+    .table td{ border:none; padding:6px 6px; }
+    .nowrap{ white-space:normal; }
+    .td-notes, .td-actions{ grid-column: 1 / -1; }
+  }
   </style>
 </head>
 
@@ -89,12 +92,15 @@
         <h1 style="margin:0;">Documents</h1>
         <span></span>
       </div>
-      <div class="muted">Upload W-9, insurance, vendor agreements, etc.</div>
+      <div class="muted">
+        Upload W-9, insurance, vendor agreements, etc.<br/>
+        <strong>Note:</strong> Uploading another file for the <em>same Type</em> replaces the previous one.
+      </div>
       <div class="spacer"></div>
 
       <!-- Upload row -->
       <div class="row">
-        <input id="file" type="file" class="input" accept="application/pdf,image/*" />
+        <input id="file" type="file" class="input" />
         <select id="docType" class="select">
           <option>GOVT_ID</option>
           <option selected>BUSINESS_REG</option>
@@ -105,7 +111,7 @@
           <option>PROPERTY_OWNERSHIP</option>
           <option>LOCAL_LICENSE</option>
         </select>
-        <button id="uploadBtn" class="btn btn-primary">Upload</button>
+        <button id="uploadBtn" class="btn">Upload</button>
         <span class="muted">Your current session is used for auth.</span>
       </div>
 
@@ -126,7 +132,6 @@
         <tbody></tbody>
       </table>
 
-      <!-- Bottom back button -->
       <div class="spacer"></div>
       <div class="row bottom">
         <button id="backBtn" class="btn btn-secondary-outline">Back to menu</button>
@@ -155,13 +160,8 @@ function badge(status){
 async function listDocs(){
   const tbody = document.querySelector('#tbl tbody');
   tbody.innerHTML = '<tr><td colspan="6" class="muted">Loading…</td></tr>';
-  const r = await fetch(`${BASE}/extranet/property/documents`, { headers: headers(false) });
-  if (!r.ok){
-    const t = await r.text().catch(()=> '');
-    console.error('[listDocs] failed', r.status, t);
-    tbody.innerHTML = `<tr><td colspan="6">Failed to load (${r.status}). Check your session.</td></tr>`;
-    return;
-  }
+  const r = await fetch(BASE + '/extranet/property/documents', { headers: headers(false) });
+  if (!r.ok){ tbody.innerHTML = `<tr><td colspan="6">Failed to load (${r.status}). Check your session.</td></tr>`; return; }
   const raw = await r.json(); const rows = Array.isArray(raw.value) ? raw.value : raw;
 
   tbody.innerHTML = '';
@@ -180,18 +180,18 @@ async function listDocs(){
 
     const tdUp = document.createElement('td'); tdUp.className='nowrap'; tdUp.textContent = fmtDate(row.uploadedAt); tr.appendChild(tdUp);
 
-    const tdNotes = document.createElement('td');
+    const tdNotes = document.createElement('td'); tdNotes.className='td-notes';
     const ta = document.createElement('textarea'); ta.className='notes input'; ta.value=row.notes||''; ta.placeholder='Add a comment…';
     tdNotes.appendChild(ta); tr.appendChild(tdNotes);
 
-    const tdActions = document.createElement('td'); tdActions.className='actions';
+    const tdActions = document.createElement('td'); tdActions.className='actions td-actions';
 
     const saveBtn = document.createElement('button');
     saveBtn.className='btn btn-secondary-outline'; saveBtn.textContent='Save';
     saveBtn.onclick = async () => {
       saveBtn.disabled = true;
       try{
-        const rr = await fetch(`${BASE}/extranet/property/documents/${row.id}`, {
+        const rr = await fetch(BASE + '/extranet/property/documents/' + row.id, {
           method:'PUT', headers: headers(), body: JSON.stringify({ notes: ta.value })
         });
         if(!rr.ok){ const err = await rr.text(); alert('Save failed: ' + rr.status + '\n' + err); }
@@ -204,7 +204,7 @@ async function listDocs(){
       if (!confirm('Delete this document?')) return;
       delBtn.disabled = true;
       try{
-        const rr = await fetch(`${BASE}/extranet/property/documents/${row.id}`, { method:'DELETE', headers: headers(false) });
+        const rr = await fetch(BASE + '/extranet/property/documents/' + row.id, { method:'DELETE', headers: headers(false) });
         if(!rr.ok && rr.status !== 204){ const err = await rr.text(); alert('Delete failed: ' + rr.status + '\n' + err); }
         else { await listDocs(); }
       } finally { delBtn.disabled = false; }
@@ -218,71 +218,30 @@ async function listDocs(){
   }
 }
 
-async function upload () {
+async function upload(){
   const f = document.getElementById('file').files[0];
-  if (!f) return alert('Pick a file first.');
-
+  if(!f) return alert('Pick a file first.');
   const type = document.getElementById('docType').value;
-  const contentType = f.type || 'application/pdf'; // default for most docs
+  const contentType = f.type || 'application/octet-stream';
 
-  // 1) Ask API for a presigned URL
-  const r1 = await fetch(`${BASE}/extranet/property/documents/upload-url`, {
-    method: 'POST',
-    headers: headers(),
-    body: JSON.stringify({ fileName: f.name, contentType, size: f.size }),
+  const r1 = await fetch(BASE + '/extranet/property/documents/upload-url', {
+    method:'POST', headers: headers(), body: JSON.stringify({ fileName: f.name, contentType, size: f.size })
   });
-
-  if (!r1.ok) {
-    const txt = await r1.text().catch(()=> '');
-    console.error('[upload-url] failed', r1.status, txt);
-    return alert('upload-url failed: ' + r1.status);
-  }
-  const up = await r1.json().catch(() => ({}));
+  if(!r1.ok) return alert('upload-url failed: ' + r1.status);
+  const up = await r1.json();
   console.log('[upload-url] response', up);
 
-  // Use uploadUrl (new), fall back to putUrl (old), else error
-  const putUrl = up.uploadUrl || up.putUrl || null;
-  if (!putUrl) {
-    console.error('No uploadUrl/putUrl in response', up);
-    return alert('S3 PUT failed: missing uploadUrl');
-  }
+  const r2 = await fetch(up.uploadUrl, { method:'PUT', headers: up.headers, body: f });
+  if(!r2.ok) return alert('S3 PUT failed: ' + r2.status);
+  console.log('[S3 PUT]', r2.status, up.uploadUrl);
 
-  // 2) PUT the file directly to S3 using the presigned URL
-  const r2 = await fetch(putUrl, {
-    method: 'PUT',
-    headers: { 'Content-Type': contentType },
-    body: f,
+  const r3 = await fetch(BASE + '/extranet/property/documents', {
+    method:'POST', headers: headers(),
+    body: JSON.stringify({ type, key: up.key, url: up.url, fileName: f.name, contentType })
   });
-  console.log('[S3 PUT]', r2.status, putUrl);
+  if(!r3.ok){ const err = await r3.text(); return alert('Create failed: ' + r3.status + '\n' + err); }
 
-  if (!r2.ok) {
-    const txt = await r2.text().catch(()=> '');
-    console.error('[S3 PUT] error', r2.status, txt);
-    return alert('S3 PUT failed: ' + r2.status);
-  }
-
-  // 3) Save document row in our DB (API returns `url`, not `publicUrl`)
-  const r3 = await fetch(`${BASE}/extranet/property/documents`, {
-    method: 'POST',
-    headers: headers(),
-    body: JSON.stringify({
-      type,
-      key: up.key,
-      url: up.url,
-      fileName: f.name,
-      contentType
-    }),
-  });
-
-  if (!r3.ok) {
-    const txt = await r3.text().catch(()=> '');
-    console.error('[documents POST] failed', r3.status, txt);
-    return alert('Save document failed: ' + r3.status);
-  }
-
-  // 4) Refresh list
-  await listDocs();
-  alert('Uploaded!');
+  await listDocs(); alert('Uploaded.');
 }
 
 document.getElementById('uploadBtn').addEventListener('click', upload);
