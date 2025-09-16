@@ -403,7 +403,6 @@
     const backToHub = () => { hide('profile'); hide('photosPanel'); hide('pmsConnectionsPanel'); hide('pmsMappingsPanel'); show('hub'); };
     $('tileProfile').addEventListener('click', (e) => { e.preventDefault(); hide('hub'); show('profile'); });
     $('btnBack').onclick = backToHub;
-    $('tilePhotos').addEventListener('click', async (e) => { e.preventDefault(); hide('hub'); show('photosPanel'); await loadPhotos(); });
     $('photosBackBtn').addEventListener('click', (e) => { e.preventDefault(); backToHub(); });
 
     document.getElementById('tileRooms').addEventListener('click', (e) => {
@@ -695,11 +694,7 @@
   <script>
   (function () {
     var a = document.getElementById('tilePhotos');
-    if (!a) return;
-    a.addEventListener('click', function (e) {
-      e.preventDefault();
-      location.href = a.getAttribute('href') + '?cb=' + Date.now();
-    });
+    if (a) a.href = '/partners_photos.html?cb=' + Date.now(); // cache-busted direct nav
   })();
 </script>
 
