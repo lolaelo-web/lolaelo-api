@@ -584,7 +584,7 @@ r.get("/documents/types", async (_req, res) => {
 /**
  * POST /extranet/property/documents/upload-url
  * Body: { fileName: string, contentType: string, size?: number }
- * Returns a presigned S3 URL when AWS is configured; otherwise 501.
+ * Returns a presigned S3 URL when AWS/S3 env is configured; otherwise 501.
  */
 r.post("/documents/upload-url", async (req, res) => {
   const partnerId = (req as any)?.partner?.id;
@@ -597,21 +597,54 @@ r.post("/documents/upload-url", async (req, res) => {
     return res.status(400).json({ error: "fileName and contentType are required" });
   }
 
-  // Safe key: docs/<partnerId>/<uuid>-<sanitizedName>
+  // Key: <DOCS_PREFIX>/<partnerId>/<uuid>-<sanitizedName>
+  const prefix   = (process.env.DOCS_PREFIX || "docs").replace(/^\/+|\/+$/g, "");
   const safeName = String(fileName).replace(/[^a-zA-Z0-9._-]+/g, "_").slice(-120);
   let uuid: string;
-  try {
-    uuid = require("crypto").randomUUID();
-  } catch {
-    uuid = Math.random().toString(36).slice(2);
+  try { uuid = require("crypto").randomUUID(); } catch { uuid = Math.random().toString(36).slice(2); }
+  const key = `${prefix}/${partnerId}/${uuid}-${safeName}`;
+
+  // -------- Env configuration (supports both AWS_* and S3_* conventions) --------
+  const bucket =
+    process.env.DOCS_BUCKET ||
+    process.env.S3_BUCKET_DOCS ||
+    process.env.S3_BUCKET ||
+    process.env.PHOTOS_BUCKET || // last-resort shared bucket
+    "lolaelo-docs-prod";
+
+  const region =
+    process.env.AWS_REGION ||
+    process.env.AWS_DEFAULT_REGION ||
+    process.env.S3_REGION ||
+    "us-east-1";
+
+  const accessKey =
+    process.env.AWS_ACCESS_KEY_ID ||
+    process.env.S3_ACCESS_KEY_ID;
+
+  const secretKey =
+    process.env.AWS_SECRET_ACCESS_KEY ||
+    process.env.S3_SECRET_ACCESS_KEY;
+
+  const publicBase =
+    (process.env.DOCS_PUBLIC_BASE_URL ||
+     process.env.S3_PUBLIC_BASE_URL ||
+     `https://${bucket}.s3.${region}.amazonaws.com`).replace(/\/+$/,"");
+
+  // Ensure credentials exist
+  const hasCreds = !!(accessKey && secretKey) || !!process.env.AWS_PROFILE;
+  if (!hasCreds) {
+    return res.status(501).json({
+      error: "upload signing not configured (missing AWS/S3 credentials)",
+      needsEnv: [
+        "AWS_ACCESS_KEY_ID or S3_ACCESS_KEY_ID",
+        "AWS_SECRET_ACCESS_KEY or S3_SECRET_ACCESS_KEY",
+        "AWS_REGION or S3_REGION",
+      ],
+    });
   }
-  const key = `docs/${partnerId}/${uuid}-${safeName}`;
 
-  const bucket = process.env.DOCS_BUCKET || process.env.S3_BUCKET_DOCS || "lolaelo-docs-prod";
-  const region = process.env.AWS_REGION || process.env.AWS_DEFAULT_REGION || "us-east-1";
-
-  // Dynamic import so the app still builds if AWS SDK isn’t installed
-    // Dynamic ESM import (works in Node 20+ even if project is ESM)
+  // -------- Dynamic ESM import (Node 20+) --------
   let S3Client: any, PutObjectCommand: any, getSignedUrl: any;
   try {
     const s3mod = await import("@aws-sdk/client-s3");
@@ -627,32 +660,28 @@ r.post("/documents/upload-url", async (req, res) => {
     });
   }
 
-  const hasCreds =
-    !!(process.env.AWS_ACCESS_KEY_ID && process.env.AWS_SECRET_ACCESS_KEY) ||
-    !!process.env.AWS_PROFILE;
-  if (!hasCreds) {
-    return res.status(501).json({
-      error: "upload signing not configured (missing AWS credentials)",
-      needsEnv: ["AWS_ACCESS_KEY_ID", "AWS_SECRET_ACCESS_KEY", "AWS_REGION"],
-    });
-  }
-
   try {
-    const s3 = new S3Client({ region });
+    const s3 = new S3Client({
+      region,
+      // If S3_* creds are used, pass explicitly; AWS_* will be picked up automatically as well
+      credentials: (accessKey && secretKey) ? { accessKeyId: accessKey, secretAccessKey: secretKey } : undefined,
+    });
+
     const cmd = new PutObjectCommand({
       Bucket: bucket,
       Key: key,
       ContentType: contentType,
       ACL: "private",
-      // ContentLength: size, // (optional) enforce size if desired
+      // ContentLength: size, // optional: enforce size if desired
     });
+
     const uploadUrl = await getSignedUrl(s3, cmd, { expiresIn: 600 }); // 10 min
-    const url = `https://${bucket}.s3.amazonaws.com/${key}`;
+    const url = `${publicBase}/${key}`;
 
     return res.json({
       key,
-      url,
-      uploadUrl,
+      url,            // public URL after upload
+      uploadUrl,      // presigned PUT URL
       headers: { "Content-Type": contentType },
     });
   } catch (e) {
