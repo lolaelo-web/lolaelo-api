@@ -11,6 +11,7 @@ const pool = new Pool({
 
 // --- DB objects ---
 const TBL_PROFILE = `extranet."PropertyProfile"`;
+const TBL_DOC     = `public."PropertyDocument"`;
 const TBL_PHOTO   = `public."PropertyPhoto"`;
 
 /** Helper: returns null for empty strings (trimmed); passthrough for non-strings */
@@ -535,6 +536,48 @@ r.get("/photos", async (req, res) => {
   } catch (e) {
     console.error("[property:photos:list] db error", e);
     return res.status(500).json({ error: "Photos fetch failed" });
+  }
+});
+
+/** GET /extranet/property/documents -> list documents for current partner */
+r.get("/documents", async (req, res) => {
+  const partnerId = (req as any)?.partner?.id;
+  if (!partnerId) return res.status(401).json({ error: "unauthorized" });
+
+  res.set("Cache-Control", "no-store, no-cache, must-revalidate");
+
+  try {
+    const { rows } = await pool.query(
+      `SELECT "id","partnerId","type","key","url","fileName","contentType",
+              "status","uploadedAt","verifiedAt","expiresAt","notes"
+         FROM ${TBL_DOC}
+        WHERE "partnerId" = $1
+        ORDER BY "uploadedAt" DESC, "id" DESC`,
+      [partnerId]
+    );
+    return res.json({ value: rows, Count: rows.length });
+  } catch (e) {
+    console.error("[property:documents:list] db error", e);
+    return res.status(500).json({ error: "Documents fetch failed" });
+  }
+});
+
+/** GET /extranet/property/documents/types -> enum values for DocumentType */
+r.get("/documents/types", async (_req, res) => {
+  try {
+    const { rows } = await pool.query(`
+      SELECT e.enumlabel AS value
+      FROM pg_type t
+      JOIN pg_enum e ON t.oid = e.enumtypid
+      JOIN pg_namespace n ON n.oid = t.typnamespace
+      WHERE n.nspname = 'public' AND t.typname = 'DocumentType'
+      ORDER BY e.enumsortorder
+    `);
+    const values = rows.map(r => r.value);
+    return res.json({ value: values, Count: values.length });
+  } catch (e) {
+    console.error("[property:documents:types] db error", e);
+    return res.status(500).json({ error: "Document types fetch failed" });
   }
 });
 
