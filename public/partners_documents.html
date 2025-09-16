@@ -2,10 +2,14 @@
 <html lang="en">
 <head>
   <meta charset="utf-8" />
+  <meta http-equiv="Cache-Control" content="no-store, no-cache, must-revalidate">
+  <meta http-equiv="Pragma" content="no-cache">
+  <meta http-equiv="Expires" content="0">
+
   <title>Documents</title>
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <!-- Inline favicon to stop /favicon.ico 404 -->
-  <link rel="icon" href="data:image/svg+xml;utf8,
+  <link rel="icon" href='data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64"><circle cx="32" cy="32" r="28" fill="%23ff6a3d"/></svg>'>
   <svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'>
     <rect width='64' height='64' rx='12' fill='%23111a2b'/>
     <circle cx='32' cy='32' r='18' fill='%23ff6a3d'/>
@@ -160,7 +164,8 @@ function badge(status){
 async function listDocs(){
   const tbody = document.querySelector('#tbl tbody');
   tbody.innerHTML = '<tr><td colspan="6" class="muted">Loading…</td></tr>';
-  const r = await fetch(BASE + '/extranet/property/documents', { headers: headers(false) });
+  const url = BASE + '/extranet/property/documents?cb=' + Date.now();
+  const r = await fetch(url, { headers: headers(false), cache: 'no-store' });
   if (!r.ok){ tbody.innerHTML = `<tr><td colspan="6">Failed to load (${r.status}). Check your session.</td></tr>`; return; }
   const raw = await r.json(); const rows = Array.isArray(raw.value) ? raw.value : raw;
 
@@ -243,6 +248,11 @@ async function upload(){
 
   await listDocs(); alert('Uploaded.');
 }
+
+// Ensure refresh on bfcache restore or after login redirects
+window.addEventListener('pageshow', () => {
+  if (typeof listDocs === 'function') listDocs();
+});
 
 document.getElementById('uploadBtn').addEventListener('click', upload);
 document.getElementById('backBtn').addEventListener('click', () => { window.location.href = '/partners_app.html'; });
