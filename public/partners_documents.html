@@ -101,16 +101,7 @@
       <!-- Upload row -->
       <div class="row">
         <input id="file" type="file" class="input" />
-        <select id="docType" class="select">
-          <option>GOVT_ID</option>
-          <option selected>BUSINESS_REG</option>
-          <option>TAX_ID</option>
-          <option>BANK_PROOF</option>
-          <option>PROOF_OF_ADDRESS</option>
-          <option>INSURANCE_LIABILITY</option>
-          <option>PROPERTY_OWNERSHIP</option>
-          <option>LOCAL_LICENSE</option>
-        </select>
+        <select id="docType" class="select"></select>
         <button id="uploadBtn" class="btn">Upload</button>
         <span class="muted">Your current session is used for auth.</span>
       </div>
@@ -155,6 +146,38 @@ function badge(status){
   const s = (status || '').toUpperCase();
   const span = document.createElement('span');
   span.className = 'badge ' + s; span.textContent = s || '-'; return span;
+}
+
+async function loadDocTypes(){
+  const sel = document.getElementById('docType');
+  sel.innerHTML = '<option disabled>Loading…</option>';
+  try {
+    const r = await fetch(BASE + '/extranet/property/documents/types?cb=' + Date.now(), {
+      headers: headers(false),
+      cache: 'no-store'
+    });
+    if (!r.ok) throw new Error(String(r.status));
+    const raw = await r.json();
+    const items = Array.isArray(raw.value) ? raw.value : raw;
+
+    sel.innerHTML = '';
+    for (const v of items) {
+      const opt = document.createElement('option');
+      opt.value = v; opt.textContent = v;
+      sel.appendChild(opt);
+    }
+    if (items.includes('BUSINESS_REG')) sel.value = 'BUSINESS_REG';
+  } catch (e) {
+    // Fallback list if the API call fails
+    const fallback = ['GOVT_ID','BUSINESS_REG','TAX_ID','BANK_PROOF','PROOF_OF_ADDRESS','INSURANCE_LIABILITY','PROPERTY_OWNERSHIP','LOCAL_LICENSE'];
+    sel.innerHTML = '';
+    for (const v of fallback) {
+      const opt = document.createElement('option');
+      opt.value = v; opt.textContent = v;
+      sel.appendChild(opt);
+    }
+    sel.value = 'BUSINESS_REG';
+  }
 }
 
 async function listDocs(){
@@ -253,7 +276,8 @@ window.addEventListener('pageshow', () => {
 document.getElementById('uploadBtn').addEventListener('click', upload);
 document.getElementById('backBtn').addEventListener('click', () => { window.location.href = '/partners_app.html'; });
 
-listDocs();
+loadDocTypes().then(listDocs);
+
 </script>
 </body>
 </html>
