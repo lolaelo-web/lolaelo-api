@@ -145,7 +145,7 @@
             <p>Manage your company details, contact info and description.</p>
           </a>
 
-          <a class="tile" href="#" id="tilePhotos">
+          <a class="tile" href="/partners_photos.html" id="tilePhotos">
             <h3>My Photos</h3>
             <p>Browse the photos you’ve uploaded.</p>
           </a>
@@ -691,5 +691,17 @@
 
     window.addEventListener('pageshow', (e) => { if (e.persisted) loadPropertyIntoForm(); });
   </script>
+
+  <script>
+  (function () {
+    var a = document.getElementById('tilePhotos');
+    if (!a) return;
+    a.addEventListener('click', function (e) {
+      e.preventDefault();
+      location.href = a.getAttribute('href') + '?cb=' + Date.now();
+    });
+  })();
+</script>
+
 </body>
 </html>
