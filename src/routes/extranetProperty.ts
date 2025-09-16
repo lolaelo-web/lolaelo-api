@@ -1,6 +1,7 @@
 // src/routes/extranetProperty.ts
 import { Router, Request, Response, NextFunction } from "express";
 import { Pool } from "pg";
+import { S3Client, DeleteObjectCommand } from "@aws-sdk/client-s3";
 
 const r = Router();
 
@@ -13,6 +14,32 @@ const pool = new Pool({
 const TBL_PROFILE = `extranet."PropertyProfile"`;
 const TBL_DOC     = `public."PropertyDocument"`;
 const TBL_PHOTO   = `public."PropertyPhoto"`;
+
+// --- S3 helpers (for document hard-delete) ---
+const s3Region =
+  process.env.AWS_REGION || process.env.S3_REGION || "us-east-1";
+const s3AccessKeyId =
+  process.env.AWS_ACCESS_KEY_ID || process.env.S3_ACCESS_KEY_ID || "";
+const s3SecretAccessKey =
+  process.env.AWS_SECRET_ACCESS_KEY || process.env.S3_SECRET_ACCESS_KEY || "";
+
+const s3 = new S3Client({
+  region: s3Region,
+  credentials:
+    s3AccessKeyId && s3SecretAccessKey
+      ? { accessKeyId: s3AccessKeyId, secretAccessKey: s3SecretAccessKey }
+      : undefined,
+});
+
+function docsBucket() {
+  return (
+    process.env.DOCS_BUCKET ||
+    process.env.S3_BUCKET_DOCS ||
+    process.env.S3_BUCKET ||
+    process.env.PHOTOS_BUCKET ||
+    ""
+  );
+}
 
 /** Helper: returns null for empty strings (trimmed); passthrough for non-strings */
 function nz(v: unknown) {
@@ -783,11 +810,29 @@ r.delete("/documents/:id", async (req, res) => {
   if (!id) return res.status(400).json({ error: "invalid id" });
 
   try {
-    const { rowCount } = await pool.query(
+    // Fetch to get the S3 key
+    const { rows } = await pool.query(
+      `SELECT "id","key" FROM ${TBL_DOC} WHERE "id" = $1 AND "partnerId" = $2 LIMIT 1`,
+      [id, partnerId]
+    );
+    if (!rows.length) return res.status(404).json({ error: "not found" });
+
+    const key: string | null = rows[0].key ?? null;
+
+    // Best-effort S3 delete (non-fatal if it fails or bucket not configured)
+    try {
+      const Bucket = docsBucket();
+      if (Bucket && key) {
+        await s3.send(new DeleteObjectCommand({ Bucket, Key: key }));
+      }
+    } catch (err) {
+      console.error("[documents:delete] S3 DeleteObject failed:", err);
+    }
+
+    await pool.query(
       `DELETE FROM ${TBL_DOC} WHERE "id" = $1 AND "partnerId" = $2`,
       [id, partnerId]
     );
-    if (!rowCount) return res.status(404).json({ error: "not found" });
     return res.status(204).end();
   } catch (e) {
     console.error("[documents:delete] db error", e);
