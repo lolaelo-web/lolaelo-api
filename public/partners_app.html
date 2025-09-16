@@ -332,7 +332,10 @@
 
   <script>
     // --- Config ---------------------------------------------------------------
-    const API_BASE   = location.origin; // same origin
+    // Use Render API in prod site; fall back to same-origin for the API-hosted UI
+    const API_BASE = (location.hostname.endsWith('lolaelo.com'))
+      ? 'https://lolaelo-api.onrender.com'
+      : location.origin;
     const LOGIN_PAGE = "partners_login.html";
     const DEBUG = true;
 
