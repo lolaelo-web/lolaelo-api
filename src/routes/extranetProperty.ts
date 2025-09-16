@@ -604,13 +604,13 @@ r.post("/documents/upload-url", async (req, res) => {
   try { uuid = require("crypto").randomUUID(); } catch { uuid = Math.random().toString(36).slice(2); }
   const key = `${prefix}/${partnerId}/${uuid}-${safeName}`;
 
-  // -------- Env configuration (supports both AWS_* and S3_* conventions) --------
+  // Env (supports AWS_* or S3_*); bucket defaults to your existing photos bucket if not overridden
   const bucket =
     process.env.DOCS_BUCKET ||
     process.env.S3_BUCKET_DOCS ||
     process.env.S3_BUCKET ||
-    process.env.PHOTOS_BUCKET || // last-resort shared bucket
-    "lolaelo-docs-prod";
+    process.env.PHOTOS_BUCKET ||
+    "lolaelo-photos-prod";
 
   const region =
     process.env.AWS_REGION ||
@@ -644,7 +644,7 @@ r.post("/documents/upload-url", async (req, res) => {
     });
   }
 
-  // -------- Dynamic ESM import (Node 20+) --------
+  // Dynamic ESM import (Node 20+)
   let S3Client: any, PutObjectCommand: any, getSignedUrl: any;
   try {
     const s3mod = await import("@aws-sdk/client-s3");
@@ -663,8 +663,9 @@ r.post("/documents/upload-url", async (req, res) => {
   try {
     const s3 = new S3Client({
       region,
-      // If S3_* creds are used, pass explicitly; AWS_* will be picked up automatically as well
-      credentials: (accessKey && secretKey) ? { accessKeyId: accessKey, secretAccessKey: secretKey } : undefined,
+      credentials: (accessKey && secretKey)
+        ? { accessKeyId: accessKey, secretAccessKey: secretKey }
+        : undefined, // allow default provider if AWS_* present
     });
 
     const cmd = new PutObjectCommand({
