@@ -581,4 +581,79 @@ r.get("/documents/types", async (_req, res) => {
   }
 });
 
+/**
+ * POST /extranet/property/documents/upload-url
+ * Body: { fileName: string, contentType: string, size?: number }
+ * Returns a presigned S3 URL when AWS is configured; otherwise 501.
+ */
+r.post("/documents/upload-url", async (req, res) => {
+  const partnerId = (req as any)?.partner?.id;
+  if (!partnerId) return res.status(401).json({ error: "unauthorized" });
+
+  const { fileName, contentType, size } = (req.body ?? {}) as {
+    fileName?: string; contentType?: string; size?: number;
+  };
+  if (!fileName || !contentType) {
+    return res.status(400).json({ error: "fileName and contentType are required" });
+  }
+
+  // Safe key: docs/<partnerId>/<uuid>-<sanitizedName>
+  const safeName = String(fileName).replace(/[^a-zA-Z0-9._-]+/g, "_").slice(-120);
+  let uuid: string;
+  try {
+    uuid = require("crypto").randomUUID();
+  } catch {
+    uuid = Math.random().toString(36).slice(2);
+  }
+  const key = `docs/${partnerId}/${uuid}-${safeName}`;
+
+  const bucket = process.env.DOCS_BUCKET || process.env.S3_BUCKET_DOCS || "lolaelo-docs-prod";
+  const region = process.env.AWS_REGION || process.env.AWS_DEFAULT_REGION || "us-east-1";
+
+  // Dynamic import so the app still builds if AWS SDK isn’t installed
+  let S3Client: any, PutObjectCommand: any, getSignedUrl: any;
+  try {
+    ({ S3Client, PutObjectCommand } = require("@aws-sdk/client-s3"));
+    ({ getSignedUrl } = require("@aws-sdk/s3-request-presigner"));
+  } catch {
+    return res.status(501).json({
+      error: "upload signing not configured (missing @aws-sdk/* packages)",
+      needs: ["@aws-sdk/client-s3", "@aws-sdk/s3-request-presigner"],
+    });
+  }
+
+  const hasCreds =
+    !!(process.env.AWS_ACCESS_KEY_ID && process.env.AWS_SECRET_ACCESS_KEY) ||
+    !!process.env.AWS_PROFILE;
+  if (!hasCreds) {
+    return res.status(501).json({
+      error: "upload signing not configured (missing AWS credentials)",
+      needsEnv: ["AWS_ACCESS_KEY_ID", "AWS_SECRET_ACCESS_KEY", "AWS_REGION"],
+    });
+  }
+
+  try {
+    const s3 = new S3Client({ region });
+    const cmd = new PutObjectCommand({
+      Bucket: bucket,
+      Key: key,
+      ContentType: contentType,
+      ACL: "private",
+      // ContentLength: size, // (optional) enforce size if desired
+    });
+    const uploadUrl = await getSignedUrl(s3, cmd, { expiresIn: 600 }); // 10 min
+    const url = `https://${bucket}.s3.amazonaws.com/${key}`;
+
+    return res.json({
+      key,
+      url,
+      uploadUrl,
+      headers: { "Content-Type": contentType },
+    });
+  } catch (e) {
+    console.error("[documents:upload-url] signing error", e);
+    return res.status(500).json({ error: "Failed to generate upload URL" });
+  }
+});
+
 export default r;
