@@ -691,4 +691,66 @@ r.post("/documents/upload-url", async (req, res) => {
   }
 });
 
+/**
+ * POST /extranet/property/documents
+ * Body: { type: string, key: string, url: string, fileName: string, contentType: string, notes?: string }
+ * Upserts by (partnerId, type). Sets status SUBMITTED and uploadedAt NOW().
+ */
+r.post("/documents", async (req, res) => {
+  const partnerId = (req as any)?.partner?.id;
+  if (!partnerId) return res.status(401).json({ error: "unauthorized" });
+
+  const { type, key, url, fileName, contentType, notes } = (req.body ?? {}) as {
+    type?: string; key?: string; url?: string; fileName?: string; contentType?: string; notes?: string;
+  };
+
+  const DOC_TYPES = [
+    "GOVT_ID",
+    "BUSINESS_REG",
+    "TAX_ID",
+    "BANK_PROOF",
+    "PROOF_OF_ADDRESS",
+    "INSURANCE_LIABILITY",
+    "PROPERTY_OWNERSHIP",
+    "LOCAL_LICENSE",
+  ];
+
+  if (!type || !DOC_TYPES.includes(type)) {
+    return res.status(400).json({ error: "invalid or missing type", allowed: DOC_TYPES });
+  }
+  if (!key || !url || !fileName || !contentType) {
+    return res.status(400).json({ error: "key, url, fileName, contentType are required" });
+  }
+
+  const n = (v: any) => (typeof v === "string" ? (v.trim() || null) : v);
+
+  try {
+    const { rows } = await pool.query(
+      `
+      INSERT INTO ${TBL_DOC}
+        ("partnerId","type","key","url","fileName","contentType","status","uploadedAt","notes")
+      VALUES ($1,$2,$3,$4,$5,$6,'SUBMITTED', NOW(), $7)
+      ON CONFLICT ("partnerId","type") DO UPDATE
+         SET "key"         = EXCLUDED."key",
+             "url"         = EXCLUDED."url",
+             "fileName"    = EXCLUDED."fileName",
+             "contentType" = EXCLUDED."contentType",
+             "status"      = 'SUBMITTED',
+             "uploadedAt"  = NOW(),
+             "notes"       = EXCLUDED."notes",
+             "verifiedAt"  = NULL
+      RETURNING
+        "id","partnerId","type","key","url","fileName","contentType",
+        "status","uploadedAt","verifiedAt","expiresAt","notes"
+      `,
+      [partnerId, type, n(key), n(url), n(fileName), n(contentType), n(notes)]
+    );
+
+    return res.json(rows[0]);
+  } catch (e) {
+    console.error("[documents:create] db error", e);
+    return res.status(500).json({ error: "Document save failed" });
+  }
+});
+
 export default r;
