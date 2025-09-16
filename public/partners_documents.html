@@ -94,7 +94,7 @@
 
       <!-- Upload row -->
       <div class="row">
-        <input id="file" type="file" class="input" />
+        <input id="file" type="file" class="input" accept="application/pdf,image/*" />
         <select id="docType" class="select">
           <option>GOVT_ID</option>
           <option selected>BUSINESS_REG</option>
@@ -155,8 +155,13 @@ function badge(status){
 async function listDocs(){
   const tbody = document.querySelector('#tbl tbody');
   tbody.innerHTML = '<tr><td colspan="6" class="muted">Loading…</td></tr>';
-  const r = await fetch(BASE + '/extranet/property/documents', { headers: headers(false) });
-  if (!r.ok){ tbody.innerHTML = `<tr><td colspan="6">Failed to load (${r.status}). Check your session.</td></tr>`; return; }
+  const r = await fetch(`${BASE}/extranet/property/documents`, { headers: headers(false) });
+  if (!r.ok){
+    const t = await r.text().catch(()=> '');
+    console.error('[listDocs] failed', r.status, t);
+    tbody.innerHTML = `<tr><td colspan="6">Failed to load (${r.status}). Check your session.</td></tr>`;
+    return;
+  }
   const raw = await r.json(); const rows = Array.isArray(raw.value) ? raw.value : raw;
 
   tbody.innerHTML = '';
@@ -186,7 +191,7 @@ async function listDocs(){
     saveBtn.onclick = async () => {
       saveBtn.disabled = true;
       try{
-        const rr = await fetch(BASE + '/extranet/property/documents/' + row.id, {
+        const rr = await fetch(`${BASE}/extranet/property/documents/${row.id}`, {
           method:'PUT', headers: headers(), body: JSON.stringify({ notes: ta.value })
         });
         if(!rr.ok){ const err = await rr.text(); alert('Save failed: ' + rr.status + '\n' + err); }
@@ -199,7 +204,7 @@ async function listDocs(){
       if (!confirm('Delete this document?')) return;
       delBtn.disabled = true;
       try{
-        const rr = await fetch(BASE + '/extranet/property/documents/' + row.id, { method:'DELETE', headers: headers(false) });
+        const rr = await fetch(`${BASE}/extranet/property/documents/${row.id}`, { method:'DELETE', headers: headers(false) });
         if(!rr.ok && rr.status !== 204){ const err = await rr.text(); alert('Delete failed: ' + rr.status + '\n' + err); }
         else { await listDocs(); }
       } finally { delBtn.disabled = false; }
@@ -213,28 +218,71 @@ async function listDocs(){
   }
 }
 
-async function upload(){
+async function upload () {
   const f = document.getElementById('file').files[0];
-  if(!f) return alert('Pick a file first.');
+  if (!f) return alert('Pick a file first.');
+
   const type = document.getElementById('docType').value;
-  const contentType = f.type || 'application/octet-stream';
+  const contentType = f.type || 'application/pdf'; // default for most docs
 
-  const r1 = await fetch(BASE + '/extranet/property/documents/upload-url', {
-    method:'POST', headers: headers(), body: JSON.stringify({ fileName: f.name, contentType, size: f.size })
+  // 1) Ask API for a presigned URL
+  const r1 = await fetch(`${BASE}/extranet/property/documents/upload-url`, {
+    method: 'POST',
+    headers: headers(),
+    body: JSON.stringify({ fileName: f.name, contentType, size: f.size }),
   });
-  if(!r1.ok) return alert('upload-url failed: ' + r1.status);
-  const up = await r1.json();
 
-  const r2 = await fetch(up.putUrl, { method:'PUT', headers:{ 'Content-Type': contentType }, body:f });
-  if(!r2.ok) return alert('S3 PUT failed: ' + r2.status);
+  if (!r1.ok) {
+    const txt = await r1.text().catch(()=> '');
+    console.error('[upload-url] failed', r1.status, txt);
+    return alert('upload-url failed: ' + r1.status);
+  }
+  const up = await r1.json().catch(() => ({}));
+  console.log('[upload-url] response', up);
 
-  const r3 = await fetch(BASE + '/extranet/property/documents', {
-    method:'POST', headers: headers(),
-    body: JSON.stringify({ type, key: up.key, url: up.publicUrl, fileName: f.name, contentType })
+  // Use uploadUrl (new), fall back to putUrl (old), else error
+  const putUrl = up.uploadUrl || up.putUrl || null;
+  if (!putUrl) {
+    console.error('No uploadUrl/putUrl in response', up);
+    return alert('S3 PUT failed: missing uploadUrl');
+  }
+
+  // 2) PUT the file directly to S3 using the presigned URL
+  const r2 = await fetch(putUrl, {
+    method: 'PUT',
+    headers: { 'Content-Type': contentType },
+    body: f,
   });
-  if(!r3.ok){ const err = await r3.text(); return alert('Create failed: ' + r3.status + '\n' + err); }
+  console.log('[S3 PUT]', r2.status, putUrl);
 
-  await listDocs(); alert('Uploaded.');
+  if (!r2.ok) {
+    const txt = await r2.text().catch(()=> '');
+    console.error('[S3 PUT] error', r2.status, txt);
+    return alert('S3 PUT failed: ' + r2.status);
+  }
+
+  // 3) Save document row in our DB (API returns `url`, not `publicUrl`)
+  const r3 = await fetch(`${BASE}/extranet/property/documents`, {
+    method: 'POST',
+    headers: headers(),
+    body: JSON.stringify({
+      type,
+      key: up.key,
+      url: up.url,
+      fileName: f.name,
+      contentType
+    }),
+  });
+
+  if (!r3.ok) {
+    const txt = await r3.text().catch(()=> '');
+    console.error('[documents POST] failed', r3.status, txt);
+    return alert('Save document failed: ' + r3.status);
+  }
+
+  // 4) Refresh list
+  await listDocs();
+  alert('Uploaded!');
 }
 
 document.getElementById('uploadBtn').addEventListener('click', upload);
