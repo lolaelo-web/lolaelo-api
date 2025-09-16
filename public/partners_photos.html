@@ -34,7 +34,7 @@
 
   .btn{ cursor:pointer; border-radius:999px; padding:9px 14px; font-weight:700; border:1px solid var(--brand-orange); background:var(--brand-orange); color:#fff; }
   .btn:disabled{ opacity:.6; cursor:not-allowed; }
-  .btn-danger{ background:transparent; border-color:#b91c1c; color:#ffcfcf; }
+  .btn-danger{ background:transparent; border-color:#b91c1c; color:#fff; }
   .btn-secondary-outline{ background:transparent; color:#d7e5ff; border-color:var(--brand-blue); }
   .btn-secondary-outline:hover{ box-shadow:0 0 0 3px rgba(46,123,255,.20) inset; }
 
@@ -43,6 +43,45 @@
     background:#0e1830; color:var(--fg);
   }
   .input:focus{ outline:none; border-color:var(--brand-blue); box-shadow:0 0 0 3px rgba(46,123,255,.20); }
+
+/* Make the native "Choose File" button match our blue-outline Save button */
+input[type="file"].input {            /* keep field height tidy */
+padding: 0 12px;
+}
+
+/* Modern browsers */
+input[type="file"].input::file-selector-button {
+font: inherit;
+padding: 9px 14px;
+border-radius: 999px;
+border: 1px solid var(--brand-blue);
+background: transparent;
+color: #d7e5ff;
+cursor: pointer;
+margin-right: 10px;                 /* space before filename */
+transition: box-shadow .12s ease, transform .12s ease;
+}
+input[type="file"].input::file-selector-button:hover {
+box-shadow: 0 0 0 3px rgba(46,123,255,.20) inset;
+transform: translateY(-1px);
+}
+
+/* WebKit fallback (older Safari/Chromium) */
+input[type="file"].input::-webkit-file-upload-button {
+font: inherit;
+padding: 9px 14px;
+border-radius: 999px;
+border: 1px solid var(--brand-blue);
+background: transparent;
+color: #d7e5ff;
+cursor: pointer;
+margin-right: 10px;
+transition: box-shadow .12s ease, transform .12s ease;
+}
+input[type="file"].input::-webkit-file-upload-button:hover {
+box-shadow: 0 0 0 3px rgba(46,123,255,.20) inset;
+transform: translateY(-1px);
+}
 
   /* Grid */
   .grid{ display:grid; grid-template-columns: repeat(3, 1fr); gap:14px; }
@@ -80,7 +119,7 @@
       <!-- Upload row -->
       <div class="row">
         <input id="file" type="file" accept="image/jpeg,image/png,image/webp" class="input" />
-        <button id="uploadBtn" class="btn">Upload Photo</button>
+        <button id="uploadBtn" class="btn btn-secondary-outline">Upload Photo</button>
         <span class="muted">Your current session is used for auth.</span>
       </div>
 
@@ -154,8 +193,10 @@ async function listPhotos(){
     };
     actions.appendChild(saveBtn);
 
+    // new: match blue-outline like Save / Back to menu
     const coverBtn = document.createElement('button');
-    coverBtn.className='btn'; coverBtn.textContent='Make Cover';
+    coverBtn.className = 'btn btn-secondary-outline';
+    coverBtn.textContent = row.isCover ? 'Cover' : 'Make Cover';
     coverBtn.disabled = !!row.isCover;
     coverBtn.onclick = async () => {
       coverBtn.disabled = true;
