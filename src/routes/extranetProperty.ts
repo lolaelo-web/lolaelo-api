@@ -611,13 +611,18 @@ r.post("/documents/upload-url", async (req, res) => {
   const region = process.env.AWS_REGION || process.env.AWS_DEFAULT_REGION || "us-east-1";
 
   // Dynamic import so the app still builds if AWS SDK isn’t installed
+    // Dynamic ESM import (works in Node 20+ even if project is ESM)
   let S3Client: any, PutObjectCommand: any, getSignedUrl: any;
   try {
-    ({ S3Client, PutObjectCommand } = require("@aws-sdk/client-s3"));
-    ({ getSignedUrl } = require("@aws-sdk/s3-request-presigner"));
-  } catch {
+    const s3mod = await import("@aws-sdk/client-s3");
+    const pres  = await import("@aws-sdk/s3-request-presigner");
+    S3Client = s3mod.S3Client;
+    PutObjectCommand = s3mod.PutObjectCommand;
+    getSignedUrl = pres.getSignedUrl;
+  } catch (e) {
+    console.error("[documents:upload-url] import error", e);
     return res.status(501).json({
-      error: "upload signing not configured (missing @aws-sdk/* packages)",
+      error: "upload signing not configured (missing @aws-sdk packages)",
       needs: ["@aws-sdk/client-s3", "@aws-sdk/s3-request-presigner"],
     });
   }
