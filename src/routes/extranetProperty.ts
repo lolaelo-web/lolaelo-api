@@ -41,6 +41,13 @@ function docsBucket() {
   );
 }
 
+// --- Upload constraints ---
+const DOCS_MAX_BYTES = Number(process.env.DOCS_MAX_BYTES || 10 * 1024 * 1024); // 10 MB default
+const DOCS_ALLOWED_CT = String(process.env.DOCS_ALLOWED_CT || "application/pdf,image/png,image/jpeg,text/plain")
+  .split(",")
+  .map(s => s.trim().toLowerCase())
+  .filter(Boolean);
+
 /** Helper: returns null for empty strings (trimmed); passthrough for non-strings */
 function nz(v: unknown) {
   if (v == null) return null;
@@ -620,8 +627,16 @@ r.post("/documents/upload-url", async (req, res) => {
   const { fileName, contentType, size } = (req.body ?? {}) as {
     fileName?: string; contentType?: string; size?: number;
   };
-  if (!fileName || !contentType) {
-    return res.status(400).json({ error: "fileName and contentType are required" });
+  if (!fileName || !contentType || (size == null)) {
+    return res.status(400).json({ error: "fileName, contentType, size are required" });
+  }
+  const sz = Number(size);
+  if (!Number.isFinite(sz) || sz <= 0 || sz > DOCS_MAX_BYTES) {
+    return res.status(413).json({ error: "File too large", maxBytes: DOCS_MAX_BYTES });
+  }
+  const ct = String(contentType).toLowerCase();
+  if (!DOCS_ALLOWED_CT.includes(ct)) {
+    return res.status(415).json({ error: "Unsupported content type", allowed: DOCS_ALLOWED_CT });
   }
 
   // Key: <DOCS_PREFIX>/<partnerId>/<uuid>-<sanitizedName>
