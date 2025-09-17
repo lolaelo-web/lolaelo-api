@@ -33,9 +33,28 @@
   .muted{ color:var(--muted); font-size:12px; }
 
     .input{
-    border:1px solid var(--line); border-radius:10px; padding:10px 12px;
-    background:#0e1830; color:var(--fg);
-  }
+        border:1px solid var(--line); border-radius:10px; padding:10px 12px;
+        background:#0e1830; color:var(--fg);
+    }
+  /* Fix: keep the native "Choose File" button from touching the bottom border */
+    input[type="file"].input{
+    height:44px;          /* make the whole control taller */
+    padding:0 12px;       /* vertical space is controlled by the button's margins */
+    line-height:44px;     /* vertically centers the filename text */
+    }
+
+    /* Style & center the inner button with equal top/bottom margin */
+    input[type="file"].input::file-selector-button,
+    input[type="file"].input::-webkit-file-upload-button{ /* Safari/WebKit fallback */
+    margin:4px 8px 4px 0; /* 4px top/bottom → symmetric spacing */
+    padding:6px 12px;
+    line-height:normal;
+    border-radius:999px;
+    border:1px solid var(--brand-blue);
+    background:transparent;
+    color:#d7e5ff;        /* matches your blue-outline "Save/Back" buttons */
+    }
+
   .input:focus{ outline:none; border-color:var(--brand-blue); box-shadow:0 0 0 3px rgba(46,123,255,.20); }
 
 /* Make the native "Choose File" button match our blue-outline Save button */
