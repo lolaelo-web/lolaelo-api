@@ -494,10 +494,27 @@
 
     const invUrl=`/extranet/property/rooms/${currentRoomTypeId}/inventory?start=${currentRangeStart}&end=${currentRangeEnd}`;
     const prcUrl=`/extranet/property/rooms/${currentRoomTypeId}/prices?start=${currentRangeStart}&end=${currentRangeEnd}`;
+    // DEBUG: log exact request targets
+    console.debug("Calendar fetch URLs", {
+      roomId: currentRoomTypeId, invUrl, prcUrl,
+      start: currentRangeStart, end: currentRangeEnd
+    });
     disableWhileBusy(true);
     const [invRes,prcRes]=await Promise.all([authFetch(invUrl),authFetch(prcUrl)]);
     disableWhileBusy(false);
-    if (!invRes.ok || !prcRes.ok){ setStatus("Failed loading data ("+invRes.status+"/"+prcRes.status+")","error"); return; }
+    if (!invRes.ok || !prcRes.ok){
+      let invTxt = "", prcTxt = "";
+      try { if (!invRes.ok) invTxt = await invRes.text(); } catch(_) {}
+      try { if (!prcRes.ok) prcTxt = await prcRes.text(); } catch(_) {}
+      setStatus(`Failed loading data (${invRes.status}/${prcRes.status})`, "error");
+      console.error("Calendar fetch failed", {
+        roomId: currentRoomTypeId,
+        inv: { url: invUrl, status: invRes.status, body: invTxt?.slice(0,500) },
+        prc: { url: prcUrl, status: prcRes.status, body: prcTxt?.slice(0,500) },
+        start: currentRangeStart, end: currentRangeEnd
+      });
+      return;
+    }
     const invRows=await invRes.json(); const prcRows=await prcRes.json();
     const invByDate=new Map(invRows.map(r=>[String(r.date).slice(0,10),r]));
     const prcByDate=new Map(prcRows.map(r=>[String(r.date).slice(0,10),r]));
