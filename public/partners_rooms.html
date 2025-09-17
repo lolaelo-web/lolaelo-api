@@ -309,7 +309,27 @@
       return r;
     });
   }
-
+  // ANCHOR: FETCH_RETRY_HELPER (insert below authFetch)
+  async function fetchWithRetry(url, opts = {}, attempts = 2, delayMs = 800){
+    let lastResp;
+    for (let i = 0; i < attempts; i++){
+      try{
+        const resp = await authFetch(url, opts);
+        // Retry only on 5xx. Anything else returns immediately.
+        if (resp.status >= 500 && resp.status < 600){
+          lastResp = resp;
+          console.warn('Retryable status', resp.status, url);
+        } else {
+          return resp;
+        }
+      } catch (err){
+        // Network error — retry once
+        console.warn('Network error, retrying', url, err);
+      }
+      if (i < attempts - 1) await new Promise(r => setTimeout(r, delayMs));
+    }
+    return lastResp; // may be undefined if only network errors; failure handled by caller
+  }
   function setStatus(msg, cls=""){ status.className="note "+cls; status.textContent=msg; }
   function disableWhileBusy(flag){
     busy=!!flag;
@@ -500,7 +520,10 @@
       start: currentRangeStart, end: currentRangeEnd
     });
     disableWhileBusy(true);
-    const [invRes,prcRes]=await Promise.all([authFetch(invUrl),authFetch(prcUrl)]);
+    const [invRes, prcRes] = await Promise.all([
+      fetchWithRetry(invUrl, {}, 2, 800),
+      fetchWithRetry(prcUrl, {}, 2, 800)
+    ]);
     disableWhileBusy(false);
     if (!invRes.ok || !prcRes.ok){
       let invTxt = "", prcTxt = "";
