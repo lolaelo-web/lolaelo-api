@@ -36,33 +36,47 @@
 
   /* Buttons (match hub + Photos) */
   .btn{
-    cursor:pointer; border-radius:999px; padding:9px 14px; font-weight:700;
-    border:1px solid var(--brand-orange); background:var(--brand-orange); color:#fff;
-    transition:transform .12s ease;
+    cursor:pointer;
+    border-radius:999px;
+    padding:9px 14px;
+    font-weight:700;
+    border:1px solid var(--brand-orange);
+    background:var(--brand-orange);
+    color:#fff; /* primary = orange + white text */
+    transition: transform .12s ease, box-shadow .12s ease, opacity .12s ease;
   }
-  .btn:hover{ transform:translateY(-1px); }
+  .btn:hover{ transform: translateY(-1px); }
   .btn:disabled{ opacity:.6; cursor:not-allowed; }
 
-  .btn-danger{ background:transparent; border-color:#b91c1c; color:#fff; }
-  .btn-secondary-outline{ background:transparent; color:#d7e5ff; border-color:var(--brand-blue); }
+  .btn-danger{
+    background:transparent;
+    border-color:#b91c1c;
+    color:#fff; /* red outline, white text */
+  }
+  .btn-secondary-outline{
+    background:transparent;
+    color:#d7e5ff;
+    border-color:var(--brand-blue);
+  }
   .btn-secondary-outline:hover{ box-shadow:0 0 0 3px rgba(46,123,255,.20) inset; }
 
   /* Inputs */
   .input,.select{
-    border:1px solid var(--line); border-radius:10px; padding:10px 12px;
+    border:1px solid var(--line); border-radius:10px;
+    padding:8px 10px; /* slimmer height to look tidy next to buttons */
     background:#0e1830; color:var(--fg);
   }
   .input:focus,.select:focus{ outline:none; border-color:var(--brand-blue); box-shadow:0 0 0 3px rgba(46,123,255,.20); }
 
-  /* Slimmer "Choose file" to match Photos look */
-  #file.input{ padding:8px 12px; line-height:1.15; }
-
-  .select{
-    appearance:none; -webkit-appearance:none; -moz-appearance:none;
-    padding-right:36px;
-    background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='18' height='18' viewBox='0 0 24 24' fill='none' stroke='%23ff6a3d' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='6 9 12 15 18 9'%3E%3C/polyline%3E%3C/svg%3E");
-    background-repeat:no-repeat; background-position:right 10px center;
+  /* Custom file picker (match Photos "Choose file" as a blue-outline button) */
+  .file-input--visually-hidden{
+    position:absolute !important;
+    width:1px; height:1px;
+    padding:0; margin:-1px;
+    overflow:hidden; clip:rect(0 0 0 0);
+    white-space:nowrap; border:0;
   }
+  .file-name{ color:var(--muted); font-size:12px; }
 
   /* Table */
   .table{ width:100%; border-collapse:collapse; table-layout:fixed; }
@@ -112,12 +126,17 @@
         Upload W-9, insurance, vendor agreements, etc.<br/>
         <strong>Note:</strong> You can upload multiple files per <em>Type</em>. New uploads create additional rows; nothing is overwritten.
       </div>
+
       <div class="spacer"></div>
 
       <!-- Upload row -->
       <div class="row">
-        <input id="file" type="file" accept=".pdf,image/*" class="input" />
-        <select id="docType" class="select"></select>
+        <!-- Hidden native input + styled label to match Photos -->
+        <input id="file" type="file" accept=".pdf,image/*" class="file-input--visually-hidden" />
+        <label for="file" id="pickBtn" class="btn btn-secondary-outline">Choose file</label>
+        <span id="fileName" class="file-name">No file chosen</span>
+
+        <select id="docType" class="select" aria-label="Document Type"></select>
         <button id="uploadBtn" class="btn">Upload</button>
         <span class="muted">Your current session is used for auth.</span>
       </div>
@@ -149,6 +168,7 @@
 <script>
 const BASE = 'https://lolaelo-api.onrender.com';
 
+/* --- Token / headers --- */
 function token(){ return localStorage.getItem('lolaelo_session') || ''; }
 function headers(json = true){
   const t = token();
@@ -157,6 +177,13 @@ function headers(json = true){
   return h;
 }
 
+/* --- Helpers --- */
+function prettyLabel(s){
+  return (s||'')
+    .replace(/_/g, ' ')
+    .toLowerCase()
+    .replace(/\b\w/g, c => c.toUpperCase());
+}
 function badge(status){
   const s = (status || '').toUpperCase();
   const span = document.createElement('span');
@@ -165,7 +192,7 @@ function badge(status){
   return span;
 }
 
-/* --- Load Type dropdown; show labels without underscores --- */
+/* --- Load Type dropdown (pretty labels, original values) --- */
 async function loadDocTypes(){
   const sel = document.getElementById('docType');
   sel.innerHTML = '<option disabled>Loading…</option>';
@@ -180,8 +207,8 @@ async function loadDocTypes(){
     sel.innerHTML = '';
     for (const v of items) {
       const opt = document.createElement('option');
-      opt.value = v;
-      opt.textContent = (v || '').replace(/_/g, ' ');
+      opt.value = v;                 // keep canonical value
+      opt.textContent = prettyLabel(v); // show friendly label
       sel.appendChild(opt);
     }
     if (items.includes('BUSINESS_REG')) sel.value = 'BUSINESS_REG';
@@ -191,7 +218,7 @@ async function loadDocTypes(){
     for (const v of fallback) {
       const opt = document.createElement('option');
       opt.value = v;
-      opt.textContent = v.replace(/_/g, ' ');
+      opt.textContent = prettyLabel(v);
       sel.appendChild(opt);
     }
     sel.value = 'BUSINESS_REG';
@@ -223,7 +250,7 @@ async function listDocs(){
     const tr = document.createElement('tr');
 
     const tdType = document.createElement('td');
-    tdType.textContent = (row.type || '').replace(/_/g, ' ');
+    tdType.textContent = prettyLabel(row.type);
     tr.appendChild(tdType);
 
     const tdFile = document.createElement('td');
@@ -302,7 +329,8 @@ async function listDocs(){
 
 /* --- Upload flow --- */
 async function upload(){
-  const f = document.getElementById('file').files[0];
+  const fileEl = document.getElementById('file');
+  const f = fileEl.files[0];
   if(!f) return alert('Pick a file first.');
   const type = document.getElementById('docType').value;
   const contentType = f.type || 'application/octet-stream';
@@ -334,6 +362,14 @@ window.addEventListener('pageshow', () => { if (typeof listDocs === 'function') 
 document.getElementById('uploadBtn').addEventListener('click', upload);
 document.getElementById('backBtn').addEventListener('click', () => { window.location.href = '/partners_app.html'; });
 
+/* File picker filename display (match Photos behavior) */
+const fileInput = document.getElementById('file');
+const fileName  = document.getElementById('fileName');
+fileInput.addEventListener('change', () => {
+  fileName.textContent = (fileInput.files && fileInput.files[0]) ? fileInput.files[0].name : 'No file chosen';
+});
+
+/* Load types + table */
 loadDocTypes().then(listDocs);
 </script>
 </body>
