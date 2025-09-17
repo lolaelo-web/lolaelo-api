@@ -8,11 +8,12 @@
 
   <title>Documents</title>
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <!-- Inline favicon to stop /favicon.ico 404 -->
+  <!-- Inline favicon -->
   <link rel="icon" href='data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64"><circle cx="32" cy="32" r="28" fill="%23ff6a3d"/></svg>'>
-  
-  <!-- Match partners_app look/feel -->
+
+  <!-- Fonts -->
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
+
   <style>
   :root{
     --bg:#0b1320; --card:#111a2b; --fg:#e8eefc; --muted:#9bb0d3; --line:rgba(255,255,255,.08);
@@ -33,17 +34,29 @@
   .spacer{ height:16px; }
   .muted{ color:var(--muted); font-size:12px; }
 
-  .btn{ cursor:pointer; border-radius:999px; padding:9px 14px; font-weight:700; border:1px solid var(--brand-orange); background:var(--brand-orange); color:#111; }
+  /* Buttons (match hub + Photos) */
+  .btn{
+    cursor:pointer; border-radius:999px; padding:9px 14px; font-weight:700;
+    border:1px solid var(--brand-orange); background:var(--brand-orange); color:#fff;
+    transition:transform .12s ease;
+  }
+  .btn:hover{ transform:translateY(-1px); }
   .btn:disabled{ opacity:.6; cursor:not-allowed; }
-  .btn-danger{ background:transparent; border-color:#b91c1c; color:#ffcfcf; }
+
+  .btn-danger{ background:transparent; border-color:#b91c1c; color:#fff; }
   .btn-secondary-outline{ background:transparent; color:#d7e5ff; border-color:var(--brand-blue); }
   .btn-secondary-outline:hover{ box-shadow:0 0 0 3px rgba(46,123,255,.20) inset; }
 
+  /* Inputs */
   .input,.select{
     border:1px solid var(--line); border-radius:10px; padding:10px 12px;
     background:#0e1830; color:var(--fg);
   }
   .input:focus,.select:focus{ outline:none; border-color:var(--brand-blue); box-shadow:0 0 0 3px rgba(46,123,255,.20); }
+
+  /* Slimmer "Choose file" to match Photos look */
+  #file.input{ padding:8px 12px; line-height:1.15; }
+
   .select{
     appearance:none; -webkit-appearance:none; -moz-appearance:none;
     padding-right:36px;
@@ -68,7 +81,10 @@
   textarea.notes{ width:100%; min-height:40px; resize:vertical; }
   .actions{ display:flex; gap:8px; flex-wrap:wrap; }
 
-  /* Responsive: turn rows into a simple grid on small screens */
+  /* Uploaded column: show Date and Time on separate lines */
+  td.uploadedAt > div{ line-height:1.2; }
+
+  /* Responsive */
   @media (max-width: 720px){
     .table thead{ display:none; }
     .table tr{
@@ -100,7 +116,7 @@
 
       <!-- Upload row -->
       <div class="row">
-        <input id="file" type="file" class="input" />
+        <input id="file" type="file" accept=".pdf,image/*" class="input" />
         <select id="docType" class="select"></select>
         <button id="uploadBtn" class="btn">Upload</button>
         <span class="muted">Your current session is used for auth.</span>
@@ -133,28 +149,29 @@
 <script>
 const BASE = 'https://lolaelo-api.onrender.com';
 
-// Token from partners hub
-function token() { return localStorage.getItem('lolaelo_session') || ''; }
-function headers(json = true) {
+function token(){ return localStorage.getItem('lolaelo_session') || ''; }
+function headers(json = true){
   const t = token();
   const h = { 'Authorization': 'Bearer ' + t, 'x-partner-token': t };
   if (json) h['Content-Type'] = 'application/json';
   return h;
 }
-function fmtDate(iso){ if(!iso) return ''; return new Date(iso).toLocaleString(); }
+
 function badge(status){
   const s = (status || '').toUpperCase();
   const span = document.createElement('span');
-  span.className = 'badge ' + s; span.textContent = s || '-'; return span;
+  span.className = 'badge ' + s;
+  span.textContent = s || '-';
+  return span;
 }
 
+/* --- Load Type dropdown; show labels without underscores --- */
 async function loadDocTypes(){
   const sel = document.getElementById('docType');
   sel.innerHTML = '<option disabled>Loading…</option>';
   try {
     const r = await fetch(BASE + '/extranet/property/documents/types?cb=' + Date.now(), {
-      headers: headers(false),
-      cache: 'no-store'
+      headers: headers(false), cache: 'no-store'
     });
     if (!r.ok) throw new Error(String(r.status));
     const raw = await r.json();
@@ -163,55 +180,93 @@ async function loadDocTypes(){
     sel.innerHTML = '';
     for (const v of items) {
       const opt = document.createElement('option');
-      opt.value = v; opt.textContent = v;
+      opt.value = v;
+      opt.textContent = (v || '').replace(/_/g, ' ');
       sel.appendChild(opt);
     }
     if (items.includes('BUSINESS_REG')) sel.value = 'BUSINESS_REG';
-  } catch (e) {
-    // Fallback list if the API call fails
+  } catch {
     const fallback = ['GOVT_ID','BUSINESS_REG','TAX_ID','BANK_PROOF','PROOF_OF_ADDRESS','INSURANCE_LIABILITY','PROPERTY_OWNERSHIP','LOCAL_LICENSE'];
     sel.innerHTML = '';
     for (const v of fallback) {
       const opt = document.createElement('option');
-      opt.value = v; opt.textContent = v;
+      opt.value = v;
+      opt.textContent = v.replace(/_/g, ' ');
       sel.appendChild(opt);
     }
     sel.value = 'BUSINESS_REG';
   }
 }
 
+/* --- List documents --- */
 async function listDocs(){
   const tbody = document.querySelector('#tbl tbody');
   tbody.innerHTML = '<tr><td colspan="6" class="muted">Loading…</td></tr>';
-  const url = BASE + '/extranet/property/documents?cb=' + Date.now();
-  const r = await fetch(url, { headers: headers(false), cache: 'no-store' });
-  if (!r.ok){ tbody.innerHTML = `<tr><td colspan="6">Failed to load (${r.status}). Check your session.</td></tr>`; return; }
-  const raw = await r.json(); const rows = Array.isArray(raw.value) ? raw.value : raw;
+
+  const r = await fetch(BASE + '/extranet/property/documents?cb=' + Date.now(), {
+    headers: headers(false), cache:'no-store'
+  });
+  if (!r.ok){
+    tbody.innerHTML = `<tr><td colspan="6">Failed to load (${r.status}). Check your session.</td></tr>`;
+    return;
+  }
+  const raw = await r.json();
+  const rows = Array.isArray(raw.value) ? raw.value : raw;
 
   tbody.innerHTML = '';
-  if (!rows.length){ tbody.innerHTML = '<tr><td colspan="6" class="muted">No documents yet.</td></tr>'; return; }
+  if (!rows.length){
+    tbody.innerHTML = '<tr><td colspan="6" class="muted">No documents yet.</td></tr>';
+    return;
+  }
 
   for (const row of rows){
     const tr = document.createElement('tr');
 
-    const tdType = document.createElement('td'); tdType.textContent = row.type; tr.appendChild(tdType);
+    const tdType = document.createElement('td');
+    tdType.textContent = (row.type || '').replace(/_/g, ' ');
+    tr.appendChild(tdType);
 
     const tdFile = document.createElement('td');
-    const a = document.createElement('a'); a.href=row.url; a.target='_blank'; a.rel='noopener'; a.textContent=row.fileName||row.key;
-    tdFile.appendChild(a); tr.appendChild(tdFile);
+    const a = document.createElement('a');
+    a.href = row.url; a.target = '_blank'; a.rel = 'noopener';
+    a.textContent = row.fileName || row.key;
+    tdFile.appendChild(a);
+    tr.appendChild(tdFile);
 
-    const tdStatus = document.createElement('td'); tdStatus.appendChild(badge(row.status)); tr.appendChild(tdStatus);
+    const tdStatus = document.createElement('td');
+    tdStatus.appendChild(badge(row.status));
+    tr.appendChild(tdStatus);
 
-    const tdUp = document.createElement('td'); tdUp.className='nowrap'; tdUp.textContent = fmtDate(row.uploadedAt); tr.appendChild(tdUp);
+    // Uploaded date/time on two lines
+    const tdUp = document.createElement('td');
+    tdUp.className = 'uploadedAt';
+    if (row.uploadedAt){
+      const dt = new Date(row.uploadedAt);
+      const d  = dt.toLocaleDateString();
+      const t  = dt.toLocaleTimeString();
+      tdUp.innerHTML = `<div>${d}</div><div>${t}</div>`;
+    } else {
+      tdUp.textContent = '-';
+    }
+    tr.appendChild(tdUp);
 
-    const tdNotes = document.createElement('td'); tdNotes.className='td-notes';
-    const ta = document.createElement('textarea'); ta.className='notes input'; ta.value=row.notes||''; ta.placeholder='Add a comment…';
-    tdNotes.appendChild(ta); tr.appendChild(tdNotes);
+    // Notes
+    const tdNotes = document.createElement('td');
+    tdNotes.className = 'td-notes';
+    const ta = document.createElement('textarea');
+    ta.className = 'notes input';
+    ta.value = row.notes || '';
+    ta.placeholder = 'Add a comment…';
+    tdNotes.appendChild(ta);
+    tr.appendChild(tdNotes);
 
-    const tdActions = document.createElement('td'); tdActions.className='actions td-actions';
+    // Actions
+    const tdActions = document.createElement('td');
+    tdActions.className = 'actions td-actions';
 
     const saveBtn = document.createElement('button');
-    saveBtn.className='btn btn-secondary-outline'; saveBtn.textContent='Save';
+    saveBtn.className = 'btn btn-secondary-outline';
+    saveBtn.textContent = 'Save';
     saveBtn.onclick = async () => {
       saveBtn.disabled = true;
       try{
@@ -223,12 +278,15 @@ async function listDocs(){
     };
 
     const delBtn = document.createElement('button');
-    delBtn.className='btn btn-danger'; delBtn.textContent='Delete';
+    delBtn.className = 'btn btn-danger';
+    delBtn.textContent = 'Delete';
     delBtn.onclick = async () => {
       if (!confirm('Delete this document?')) return;
       delBtn.disabled = true;
       try{
-        const rr = await fetch(BASE + '/extranet/property/documents/' + row.id, { method:'DELETE', headers: headers(false) });
+        const rr = await fetch(BASE + '/extranet/property/documents/' + row.id, {
+          method:'DELETE', headers: headers(false)
+        });
         if(!rr.ok && rr.status !== 204){ const err = await rr.text(); alert('Delete failed: ' + rr.status + '\n' + err); }
         else { await listDocs(); }
       } finally { delBtn.disabled = false; }
@@ -242,42 +300,41 @@ async function listDocs(){
   }
 }
 
+/* --- Upload flow --- */
 async function upload(){
   const f = document.getElementById('file').files[0];
   if(!f) return alert('Pick a file first.');
   const type = document.getElementById('docType').value;
   const contentType = f.type || 'application/octet-stream';
 
+  // 1) presign
   const r1 = await fetch(BASE + '/extranet/property/documents/upload-url', {
     method:'POST', headers: headers(), body: JSON.stringify({ fileName: f.name, contentType, size: f.size })
   });
-  if(!r1.ok) return alert('upload-url failed: ' + r1.status);
+  if(!r1.ok){ const e = await r1.text(); return alert('upload-url failed: ' + r1.status + '\n' + e); }
   const up = await r1.json();
-  console.log('[upload-url] response', up);
 
+  // 2) upload to S3
   const r2 = await fetch(up.uploadUrl, { method:'PUT', headers: up.headers, body: f });
   if(!r2.ok) return alert('S3 PUT failed: ' + r2.status);
-  console.log('[S3 PUT]', r2.status, up.uploadUrl);
 
+  // 3) create DB row
   const r3 = await fetch(BASE + '/extranet/property/documents', {
     method:'POST', headers: headers(),
     body: JSON.stringify({ type, key: up.key, url: up.url, fileName: f.name, contentType })
   });
   if(!r3.ok){ const err = await r3.text(); return alert('Create failed: ' + r3.status + '\n' + err); }
 
-  await listDocs(); alert('Uploaded.');
+  await listDocs();
+  alert('Uploaded.');
 }
 
-// Ensure refresh on bfcache restore or after login redirects
-window.addEventListener('pageshow', () => {
-  if (typeof listDocs === 'function') listDocs();
-});
-
+/* Init */
+window.addEventListener('pageshow', () => { if (typeof listDocs === 'function') listDocs(); });
 document.getElementById('uploadBtn').addEventListener('click', upload);
 document.getElementById('backBtn').addEventListener('click', () => { window.location.href = '/partners_app.html'; });
 
 loadDocTypes().then(listDocs);
-
 </script>
 </body>
 </html>
