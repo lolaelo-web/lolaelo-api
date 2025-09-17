@@ -227,7 +227,25 @@
   const todayISO = ()=>iso(new Date());
   // API base fallback: if this page is ever loaded from lolaelo.com, force calls to Render API.
   const API_BASE = (location.origin.includes('lolaelo-api.onrender.com') ? '' : 'https://lolaelo-api.onrender.com');
-
+  // ANCHOR: CTX_HELPERS (insert below)
+  const LS_CTX = 'rooms_ctx_v1';
+  function saveCtx(){
+    try{
+      localStorage.setItem(LS_CTX, JSON.stringify({
+        roomId: currentRoomTypeId,
+        start: currentRangeStart,
+        end:   currentRangeEnd
+      }));
+    }catch(_){}
+  }
+  function loadCtx(){
+    try{
+      const raw = localStorage.getItem(LS_CTX);
+      if (!raw) return null;
+      const j = JSON.parse(raw);
+      return (j && typeof j === 'object') ? j : null;
+    }catch(_){ return null; }
+  }
   function startOfWeek(dt, weekStart=WEEK_START){
     const d=new Date(dt.getFullYear(),dt.getMonth(),dt.getDate());
     const diff=(d.getDay()-weekStart+7)%7; d.setDate(d.getDate()-diff); d.setHours(0,0,0,0); return d;
@@ -257,6 +275,7 @@
     if (rs&&re){ rs.value=s; re.value=e; }
     currentAnchor=new Date(s+"T00:00:00Z");
     currentRangeStart=s; currentRangeEnd=e;
+    saveCtx();
     if (rerender) void renderCalendar();
   }
 
@@ -399,6 +418,7 @@
 
         if (act === "open"){
           currentRoomTypeId = id;
+          saveCtx();
           if (dirty.clear) dirty.clear();
           await renderCalendar();
           await loadRooms();
@@ -669,12 +689,30 @@
       disableWhileBusy(false);
     }
   });
-
   (async function init(){
-    const start=iso(startOfWeek(new Date())); currentAnchor=new Date(start+"T00:00:00Z");
-    setMonthLabel(); applyMonthWindowToRange({rerender:false});
-    await loadRooms();
-    const first = document.querySelector(".room"); if (first) { first.click(); void renderCalendar(); }
+    const ctx = loadCtx();
+if (ctx?.start && ctx?.end){
+  currentRangeStart = ctx.start;
+  currentRangeEnd   = ctx.end;
+  const rs = el("range-start"), re = el("range-end");
+  if (rs && re){ rs.value = ctx.start; re.value = ctx.end; }
+  currentAnchor = new Date(ctx.start + "T00:00:00Z");
+  setMonthLabel();
+} else {
+  const startISO = iso(startOfWeek(new Date()));
+  currentAnchor = new Date(startISO + "T00:00:00Z");
+  setMonthLabel();
+  applyMonthWindowToRange({ rerender:false });
+}
+if (ctx?.roomId) currentRoomTypeId = ctx.roomId;
+
+await loadRooms();
+if (currentRoomTypeId){
+  await renderCalendar();
+} else {
+  const first = document.querySelector(".room");
+  if (first){ first.click(); void renderCalendar(); }
+}
   })();
 })();
 </script>
