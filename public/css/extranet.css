@@ -15,9 +15,7 @@ html, body {
   color: var(--fg);
   line-height: 1.45;
 }
-input, textarea, select, button {
-  font: inherit;            /* ensure all controls match body font */
-}
+input, textarea, select, button { font: inherit; }
 
 /* Cards / common surfaces */
 .card{
@@ -36,7 +34,8 @@ input, textarea, select, button {
 
 /* Inputs */
 input[type="text"], input[type="email"], input[type="tel"],
-input[type="number"], textarea, select, .input, .select, .textarea{
+input[type="number"], input[type="date"], textarea, select,
+.input, .select, .textarea{
   width:100%;
   padding:10px 12px;
   border-radius:10px;
@@ -56,8 +55,8 @@ textarea{ min-height:110px; resize:vertical; }
   appearance:none;
   border:1px solid var(--accent);
   background: var(--accent);
-  color:#fff;                 /* white text everywhere for primary */
-  padding:10px 16px;          /* match Company Profile size */
+  color:#fff;                 /* white text for primary */
+  padding:10px 16px;
   border-radius:9999px;
   font-weight:700;
   font-size:14px;
@@ -66,38 +65,48 @@ textarea{ min-height:110px; resize:vertical; }
   transition: transform .12s ease, box-shadow .12s ease, opacity .12s ease;
 }
 .btn:hover{ transform: translateY(-1px); }
+.btn:focus-visible{ outline:none; box-shadow:0 0 0 3px rgba(255,106,61,.20); }
 .btn:disabled{ opacity:.6; cursor:not-allowed; }
 
-/* Force any “small” usage to the same standard size to keep it consistent */
-.btn.small{
-  padding:10px 16px !important;
-  font-size:14px !important;
-  border-radius:9999px !important;
+/* Aliases for clarity/back-compat */
+.btn-primary, .btn-accent{ /* same as default .btn */
+  border-color: var(--accent);
+  background: var(--accent);
+  color:#fff;
 }
 
-/* Secondary outline (blue) — used for “Back to menu”, etc. */
-.btn.secondary{
+/* Secondary (blue outline, transparent fill) */
+.btn.secondary,
+.btn-secondary,
+.btn-secondary-outline{
   background:transparent;
   border-color: var(--blue);
   color:#d7e5ff;
 }
-.btn.secondary:hover{ box-shadow:0 0 0 3px rgba(46,123,255,.20) inset; }
+.btn.secondary:hover,
+.btn-secondary:hover,
+.btn-secondary-outline:hover{
+  box-shadow:0 0 0 3px rgba(46,123,255,.20) inset;
+}
 
 /* Ghost (neutral outline) */
-.btn.ghost{
+.btn.ghost, .btn-ghost{
   background:transparent;
   border-color: var(--line);
   color:#cfe0ff;
 }
 
-/* Danger (delete) — red ring, **white** text */
-.btn.danger{
+/* Danger (red outline, white text) */
+.btn.danger, .btn-danger{
   background:transparent;
   border-color:#b91c1c;
   color:#fff;
 }
+.btn.danger:hover, .btn-danger:hover{
+  box-shadow:0 0 0 3px rgba(185,28,28,.20) inset;
+}
 
-/* Photos grid (shared look if missing on a page) */
+/* Photos grid (shared look if a page needs it) */
 .photos{ display:grid; grid-template-columns:repeat(auto-fill,minmax(140px,1fr)); gap:10px; margin-top:10px }
 .photos .ph{ background:#0e1830; border:1px solid var(--line); border-radius:10px; padding:8px; }
 .photos img{ width:100%; height:100px; object-fit:cover; border-radius:6px; display:block; }
