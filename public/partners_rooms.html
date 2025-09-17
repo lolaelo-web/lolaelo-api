@@ -5,6 +5,8 @@
   <title>Partners · Rooms & Availability</title>
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'><rect width='16' height='16' fill='%234f8cff'/></svg>" type="image/svg+xml">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="/css/extranet.css">
   <!-- FP: MN8-no-overlap -->
   <!-- FP: MN9-dist-source -->
 
@@ -115,15 +117,15 @@
     <div class="header-actions">
       <span id="status" class="note">Ready.</span>
       <span id="dirty-count" class="note">No changes</span>
-      <button id="save" disabled>Save changes</button>
-      <button id="back" class="secondary" onclick="location.href='/partners_app.html'">Back to menu</button>
+      <button id="save" class="btn" disabled>Save changes</button>
+      <button id="back" class="secondary btn btn-secondary-outline" onclick="location.href='/partners_app.html'">Back to menu</button>
     </div>
   </header>
 
   <div class="wrap">
     <aside class="left">
       <div class="toolbar">
-        <button id="add-room" class="btn-accent">+ Add room type</button>
+        <button id="add-room" class="btn btn-accent">+ Add room type</button>
       </div>
       <div class="list" id="rooms-list"></div>
     </aside>
@@ -139,20 +141,20 @@
       <div class="controls">
         <div class="group">
           <label>Range</label>
-          <input type="date" id="range-start" />
-          <input type="date" id="range-end" />
+          <input type="date" id="range-start" class="input" />
+          <input type="date" id="range-end" class="input" />
         </div>
         <div class="group">
           <label>Inventory</label>
-          <input type="number" id="inv-open" min="0" placeholder="roomsOpen" />
-          <input type="number" id="inv-minstay" min="1" placeholder="minStay" />
+          <input type="number" id="inv-open" class="input" min="0" placeholder="roomsOpen" />
+          <input type="number" id="inv-minstay" class="input" min="1" placeholder="minStay" />
           <span class="flag"><input type="checkbox" id="inv-closed" /> Closed</span>
-          <button id="apply-inv" class="secondary">Apply Inventory</button>
+          <button id="apply-inv" class="secondary btn btn-secondary-outline">Apply Inventory</button>
         </div>
         <div class="group">
           <label>Price</label>
-          <input id="price" placeholder="149.00" />
-          <button id="apply-price" class="secondary">Apply Price</button>
+          <input id="price" class="input" placeholder="149.00" />
+          <button id="apply-price" class="secondary btn btn-secondary-outline">Apply Price</button>
         </div>
       </div>
 
@@ -172,21 +174,21 @@
       <div class="body">
         <div class="row">
           <label for="edit-name" class="muted">Name</label>
-          <input id="edit-name" autocomplete="off" />
+          <input id="edit-name" class="input" autocomplete="off" />
         </div>
         <div class="row">
           <label for="edit-base" class="muted">Base price (USD)</label>
-          <input id="edit-base" inputmode="decimal" autocomplete="off" />
+          <input id="edit-base" class="input" inputmode="decimal" autocomplete="off" />
         </div>
         <div class="row">
           <label for="edit-max" class="muted">Max capacity</label>
-          <input id="edit-max" type="number" min="1" step="1" />
+          <input id="edit-max" class="input" type="number" min="1" step="1" />
         </div>
         <div class="warn-msg" id="edit-warn" style="display:none;"></div>
       </div>
       <footer>
-        <button id="edit-cancel" class="secondary" type="button">Cancel</button>
-        <button id="edit-save" class="btn-accent" type="button">Save</button>
+        <button id="edit-cancel" class="secondary btn btn-secondary-outline" type="button">Cancel</button>
+        <button id="edit-save" class="btn" type="button">Save</button>
       </footer>
     </div>
   </div>
@@ -223,6 +225,8 @@
   const fmtUSD = (v) => { const n = toNumber(v); if (!Number.isFinite(n)) return ""; return "$" + n.toFixed(2); };
   const iso = (d)=>d.toISOString().slice(0,10);
   const todayISO = ()=>iso(new Date());
+  // API base fallback: if this page is ever loaded from lolaelo.com, force calls to Render API.
+  const API_BASE = (location.origin.includes('lolaelo-api.onrender.com') ? '' : 'https://lolaelo-api.onrender.com');
   function startOfWeek(dt, weekStart=WEEK_START){
     const d=new Date(dt.getFullYear(),dt.getMonth(),dt.getDate());
     const diff=(d.getDay()-weekStart+7)%7; d.setDate(d.getDate()-diff); d.setHours(0,0,0,0); return d;
@@ -267,13 +271,13 @@
     ? { ...baseHeaders, "Authorization": "Bearer " + token, "x-partner-token": token }
     : baseHeaders;
 
-  function authFetch(url, opts = {}) {
+    function authFetch(url, opts = {}) {
+    const finalUrl = (typeof url === 'string' && url.startsWith('/')) ? (API_BASE + url) : url;
     const merged = { ...opts, headers: { ...(opts.headers||{}), ...authHeaders } };
-    return fetch(url, merged).then(async (r) => {
+    return fetch(finalUrl, merged).then(async (r) => {
       if (r.status === 401) {
         const hasToken = !!localStorage.getItem('partnerToken');
         setStatus(hasToken ? "Auth failed. Check token or permissions." : "Not signed in.", "warn");
-        // Keep user on this page; show a login link instead of redirecting away.
         const s = document.getElementById('status');
         if (s) {
           s.innerHTML = (hasToken
@@ -284,6 +288,7 @@
       return r;
     });
   }
+
 
   function setStatus(msg, cls=""){ status.className="note "+cls; status.textContent=msg; }
   function disableWhileBusy(flag){
