@@ -77,6 +77,36 @@ box-shadow: 0 0 0 3px rgba(46,123,255,.20) inset;
 transform: translateY(-1px);
 }
 
+  /* File input: slightly shorter than the Upload button and with comfy vertical padding */
+  input[type="file"].input{
+    padding: 6px 10px;        /* less tall than .btn (which is 9px top/bottom) */
+    height: 34px;             /* explicit for consistent cross-browser look */
+    line-height: 1.1;
+  }
+
+  /* Style the inner "Choose file" button to match our secondary/outline buttons */
+  input[type="file"].input::file-selector-button{
+    padding: 6px 12px;
+    border-radius: 999px;
+    border: 1px solid var(--brand-blue);
+    background: transparent;
+    color: #d7e5ff;
+    font-weight: 700;
+    margin-right: 10px;
+    cursor: pointer;
+  }
+  /* Safari/old Chromium variant */
+  input[type="file"].input::-webkit-file-upload-button{
+    padding: 6px 12px;
+    border-radius: 999px;
+    border: 1px solid var(--brand-blue);
+    background: transparent;
+    color: #d7e5ff;
+    font-weight: 700;
+    margin-right: 10px;
+    cursor: pointer;
+  }
+
   /* Grid */
   .grid{ display:grid; grid-template-columns: repeat(3, 1fr); gap:14px; }
   @media (max-width: 960px){ .grid{ grid-template-columns: repeat(2, 1fr);} }
