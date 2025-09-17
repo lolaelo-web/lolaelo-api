@@ -537,7 +537,7 @@
     updateDirtyUI();
     if (!status.className.includes("ok")) setStatus("Calendar ready.","");
   }
-
+  window.renderCalendar = renderCalendar;
   function shiftWeeks(deltaWeeks){
     const rsInput=el("range-start");
     const seed=(rsInput && rsInput.value) ? rsInput.value
