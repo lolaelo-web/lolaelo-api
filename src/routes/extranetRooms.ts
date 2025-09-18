@@ -36,7 +36,7 @@ r.get("/", async (_req, res) => {
   try {
     res.set("Cache-Control", "no-store");
     const { rows } = await pool.query(`
-      SELECT "id","name","code","description","occupancy","maxGuests","basePrice"
+      SELECT "id","name","code","description","occupancy","maxGuests","basePrice","active"
       FROM ${T.rooms}
       ORDER BY "id" ASC
     `);
@@ -51,7 +51,7 @@ r.get("/", async (_req, res) => {
 r.post("/", async (req, res) => {
   const client = await pool.connect();
   try {
-    const { name, code, description, occupancy } = req.body ?? {};
+    const { name, code, description, occupancy, active } = req.body ?? {};
     if (!name || typeof name !== "string") {
       return res.status(400).json({ error: "name is required" });
     }
@@ -80,12 +80,18 @@ r.post("/", async (req, res) => {
       occupancy == null || occupancy === "" ? null : Number(occupancy);
     const maxGuests = Number.isFinite(occ as number) ? (occ as number) : 2; // satisfies NOT NULL
     const basePrice = 0.0; // satisfies NOT NULL
+    const activeVal =
+      active === true ||
+      active === "true" ||
+      active === 1 ||
+      active === "1" ||
+      false;
 
     const { rows } = await client.query(
       `INSERT INTO ${T.rooms}
-         ("partnerId","name","code","description","occupancy","maxGuests","basePrice","createdAt","updatedAt")
-       VALUES ($1,$2,$3,$4,$5,$6,$7, NOW(), NOW())
-       RETURNING "id","name","code","description","occupancy","maxGuests","basePrice"`,
+         ("partnerId","name","code","description","occupancy","maxGuests","basePrice","active","createdAt","updatedAt")
+       VALUES ($1,$2,$3,$4,$5,$6,$7,$8, NOW(), NOW())
+       RETURNING "id","name","code","description","occupancy","maxGuests","basePrice","active"`,
       [
         partnerId,
         name.trim(),
@@ -94,6 +100,7 @@ r.post("/", async (req, res) => {
         occ,
         maxGuests,
         basePrice,
+        activeVal,
       ]
     );
 
@@ -108,7 +115,7 @@ r.post("/", async (req, res) => {
   }
 });
 
-/** PUT /extranet/property/rooms/:id  (update name/basePrice/capacity) */
+/** PUT /extranet/property/rooms/:id  (update name/basePrice/capacity/active) */
 r.put("/:id", async (req, res) => {
   const client = await pool.connect();
   try {
@@ -117,8 +124,8 @@ r.put("/:id", async (req, res) => {
       return res.status(400).json({ error: "invalid id" });
     }
 
-    // Accept any subset: name, description, basePrice, maxGuests/occupancy
-    const { name, description, basePrice, maxGuests, occupancy } = req.body ?? {};
+    // Accept any subset: name, description, basePrice, maxGuests/occupancy, active
+    const { name, description, basePrice, maxGuests, occupancy, active } = req.body ?? {};
     const sets: string[] = [];
     const vals: any[] = [id];
     let i = 2;
@@ -144,6 +151,11 @@ r.put("/:id", async (req, res) => {
       }
       sets.push(`"maxGuests"=$${i++}`); vals.push(cg);
       sets.push(`"occupancy"=$${i++}`); vals.push(cg);
+    }
+    if (active !== undefined) {
+      const av =
+        active === true || active === "true" || active === 1 || active === "1";
+      sets.push(`"active"=$${i++}`); vals.push(av);
     }
 
     if (sets.length === 0) {
@@ -173,7 +185,7 @@ r.put("/:id", async (req, res) => {
       `UPDATE ${T.rooms}
          SET ${sets.join(", ")}
        WHERE "id"=$1
-       RETURNING "id","name","code","description","occupancy","maxGuests","basePrice"`,
+       RETURNING "id","name","code","description","occupancy","maxGuests","basePrice","active"`,
       vals
     );
 
@@ -188,7 +200,7 @@ r.put("/:id", async (req, res) => {
   }
 });
 
-/** PATCH /extranet/property/rooms/:id  (partial update) */
+/** PATCH /extranet/property/rooms/:id  (partial update, incl. active) */
 r.patch("/:id", async (req, res) => {
   const client = await pool.connect();
   try {
@@ -224,7 +236,10 @@ r.patch("/:id", async (req, res) => {
       }
       sets.push(`"basePrice"=$${i++}`); vals.push(bp.toFixed(2));
     }
-    if (Object.prototype.hasOwnProperty.call(b, "maxGuests") || Object.prototype.hasOwnProperty.call(b, "occupancy")) {
+    if (
+      Object.prototype.hasOwnProperty.call(b, "maxGuests") ||
+      Object.prototype.hasOwnProperty.call(b, "occupancy")
+    ) {
       const cap = (b.maxGuests ?? b.occupancy);
       const cg = Number(cap);
       if (!Number.isFinite(cg) || cg < 1) {
@@ -232,6 +247,11 @@ r.patch("/:id", async (req, res) => {
       }
       sets.push(`"maxGuests"=$${i++}`); vals.push(cg);
       sets.push(`"occupancy"=$${i++}`); vals.push(cg);
+    }
+    if (Object.prototype.hasOwnProperty.call(b, "active")) {
+      const av =
+        b.active === true || b.active === "true" || b.active === 1 || b.active === "1";
+      sets.push(`"active"=$${i++}`); vals.push(av);
     }
 
     if (sets.length === 0) {
@@ -261,7 +281,7 @@ r.patch("/:id", async (req, res) => {
       `UPDATE ${T.rooms}
          SET ${sets.join(", ")}
        WHERE "id"=$1
-       RETURNING "id","name","code","description","occupancy","maxGuests","basePrice"`,
+       RETURNING "id","name","code","description","occupancy","maxGuests","basePrice","active"`,
       vals
     );
 
