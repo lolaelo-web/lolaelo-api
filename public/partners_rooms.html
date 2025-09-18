@@ -453,41 +453,39 @@
           <button type="button" class="secondary btn btn-secondary-outline" data-act="del"  data-id="${rt.id}">Delete</button>
         </div>`;
 
-      div.addEventListener("click", async (e)=>{
-      const btn = e.target.closest("button");
-      const act = btn ? btn.getAttribute("data-act") : "open";
-      const id  = btn ? Number(btn.getAttribute("data-id")) : rt.id;
+      // Open room on card click (ignore clicks on its buttons)
+    div.addEventListener("click", async (e)=>{
+      if (e.target.closest("button")) return;
+      currentRoomTypeId = rt.id;
+      saveCtx();
+      if (dirty.clear) dirty.clear();
+      await renderCalendar();
+      await loadRooms();
+    });
 
-      if (btn) { e.preventDefault(); e.stopPropagation(); } // ensure button clicks don't bubble
+    // Explicit button handlers (more reliable than delegation)
+    const editBtn = div.querySelector('button[data-act="edit"]');
+    const delBtn  = div.querySelector('button[data-act="del"]');
 
-      if (act === "open"){
-        currentRoomTypeId = id;
-        saveCtx();
-        if (dirty.clear) dirty.clear();
-        await renderCalendar();
+    if (editBtn) editBtn.addEventListener("click", (e)=>{
+      e.preventDefault(); e.stopPropagation();
+      openEditModal(rt);
+    });
+
+    if (delBtn) delBtn.addEventListener("click", async (e)=>{
+      e.preventDefault(); e.stopPropagation();
+      if (!confirm("Delete this room type?")) return;
+      const r = await authFetch(`/extranet/property/rooms/${rt.id}`, { method:"DELETE" });
+      if (r.status === 204){
+        if (currentRoomTypeId === rt.id) currentRoomTypeId = null;
+        setStatus("Room deleted","ok");
         await loadRooms();
-        return;
-      }
-      if (act === "del"){
-        if (!confirm("Delete this room type?")) return;
-        const r = await authFetch(`/extranet/property/rooms/${id}`, { method:"DELETE" });
-        if (r.status === 204){
-          if (currentRoomTypeId === id) currentRoomTypeId = null;
-          setStatus("Room deleted","ok");
-          await loadRooms();
-          calGrid.innerHTML = "";
-        } else {
-          setStatus("Delete failed ("+r.status+")","error");
-        }
-        return;
-      }
-      if (act === "edit"){
-        openEditModal(rt);
-        return;
+        calGrid.innerHTML = "";
+      } else {
+        setStatus("Delete failed ("+r.status+")","error");
       }
     });
-      roomsList.appendChild(div);
-    });
+
   }
 
   // Add Room (unchanged workflow — just style via .btn classes)
