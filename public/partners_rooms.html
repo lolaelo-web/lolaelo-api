@@ -993,6 +993,18 @@
     currentRatePlanId = Number(ctx.ratePlanId ?? 1) || 1;
     const plans = await fetchRatePlansSafe();
     populateRatePlanDropdown(plans);
+
+    // If API returned none (or failed), we fallback to a single option.
+    // Make that clear to the user.
+    if (!plans || plans.length <= 1) {
+      const sel = document.getElementById('ratePlanSelect');
+      if (sel) sel.title = 'Rate plan list unavailable; using Standard (1).';
+      setStatus('Rate plan list unavailable — defaulting to Standard (1).', 'warn');
+      if (localStorage.getItem('rooms_debug') === '1') {
+        console.debug('[rateplans] Fallback in effect. plans=', plans);
+      }
+    }
+
     wireRatePlanSelector({ ratePlanId: currentRatePlanId });
 
     await loadRooms();
