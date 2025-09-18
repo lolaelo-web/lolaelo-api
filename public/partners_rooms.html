@@ -138,6 +138,7 @@
         <button id="month-prev" class="nav-btn" type="button" aria-label="Previous month">◀</button>
         <span id="month-label" class="month-label" title="Month">Sep 2025</span>
         <select id="month-select" class="month-select" aria-label="Select month"></select>
+        <button id="month-today" class="nav-btn" type="button" aria-label="Jump to today">Today</button>
         <button id="month-next" class="nav-btn" type="button" aria-label="Next month">▶</button>
       </div>
 
@@ -214,6 +215,12 @@
   let currentRoomTypeId = null;
   let currentRangeStart = null, currentRangeEnd = null;
   let busy = false;
+  window.addEventListener('beforeunload', function(e){
+    if (pendingRoomUpdates.size > 0 || dirty.size > 0){
+      e.preventDefault();
+      e.returnValue = '';
+    }
+  });
   const pendingRoomUpdates = new Map(); // roomId -> payload
   const readOnlyRoomField = new Map();  // roomId -> true
 
@@ -798,17 +805,18 @@ if (currentRoomTypeId){
     window.currentRangeStart=sISO; window.currentRangeEnd=eISO; window.currentAnchor=new Date(sISO+'T00:00:00Z');
     setLabel(sISO); if (doRender && typeof window.renderCalendar==='function') window.renderCalendar();
   };
-  const prev=document.getElementById('month-prev'), next=document.getElementById('month-next'); if (!prev||!next){ console.warn('[MN-HARDFIX-LOCK] nav buttons missing'); return; }
-  prev.onclick=null; next.onclick=null;
-  const install=(el,dir)=>{ el.addEventListener('click',(ev)=>{ ev.stopImmediatePropagation(); ev.preventDefault();
-    const rs=document.getElementById('range-start')?.value || window.currentRangeStart;
-    const re=document.getElementById('range-end')?.value   || window.currentRangeEnd || rs;
-    const nextStart=(dir==='next') ? addDaysISO(re,+1) : addDaysISO(rs,-21);
-    setWindow(nextStart,true);
-  },{capture:true}); };
-  install(prev,'prev'); install(next,'next');
-  const initial = document.getElementById('range-start')?.value || window.currentRangeStart || iso(new Date());
-  setWindow(initial,false);
+  const prev=document.getElementById('month-prev'), next=document.getElementById('month-next'), todayBtn=document.getElementById('month-today'); if (!prev||!next){ console.warn('[MN-HARDFIX-LOCK] nav buttons missing'); return; }
+    prev.onclick=null; next.onclick=null; if (todayBtn) todayBtn.onclick=null;
+    const install=(el,dir)=>{ el.addEventListener('click',(ev)=>{ ev.stopImmediatePropagation(); ev.preventDefault();
+      const rs=document.getElementById('range-start')?.value || window.currentRangeStart;
+      const re=document.getElementById('range-end')?.value   || window.currentRangeEnd || rs;
+      const nextStart=(dir==='next') ? addDaysISO(re,+1) : addDaysISO(rs,-21);
+      setWindow(nextStart,true);
+    },{capture:true}); };
+    install(prev,'prev'); install(next,'next');
+    if (todayBtn){ todayBtn.addEventListener('click',(ev)=>{ ev.stopImmediatePropagation(); ev.preventDefault(); const t=iso(new Date()); setWindow(t,true); },{capture:true}); }
+    const initial=document.getElementById('range-start')?.value || window.currentRangeStart || iso(new Date());
+    setWindow(initial,false);
 })();
 </script>
 </body>
