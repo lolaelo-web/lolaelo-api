@@ -233,9 +233,9 @@
   const fmtUSD = (v) => { const n = toNumber(v); if (!Number.isFinite(n)) return ""; return "$" + n.toFixed(2); };
   const iso = (d)=>d.toISOString().slice(0,10);
   const todayISO = ()=>iso(new Date());
-  // API base fallback: if this page is ever loaded from lolaelo.com, force calls to Render API.
   const API_BASE = (location.origin.includes('lolaelo-api.onrender.com') ? '' : 'https://lolaelo-api.onrender.com');
-  // ANCHOR: CTX_HELPERS (insert below)
+
+  /* ANCHOR: CTX_HELPERS */
   const LS_CTX = 'rooms_ctx_v1';
   function saveCtx(){
     try{
@@ -317,13 +317,13 @@
       return r;
     });
   }
-  // ANCHOR: FETCH_RETRY_HELPER (insert below authFetch)
+
+  /* ANCHOR: FETCH_RETRY_HELPER */
   async function fetchWithRetry(url, opts = {}, attempts = 2, delayMs = 800){
     let lastResp;
     for (let i = 0; i < attempts; i++){
       try{
         const resp = await authFetch(url, opts);
-        // Retry only on 5xx. Anything else returns immediately.
         if (resp.status >= 500 && resp.status < 600){
           lastResp = resp;
           console.warn('Retryable status', resp.status, url);
@@ -331,13 +331,13 @@
           return resp;
         }
       } catch (err){
-        // Network error — retry once
         console.warn('Network error, retrying', url, err);
       }
       if (i < attempts - 1) await new Promise(r => setTimeout(r, delayMs));
     }
-    return lastResp; // may be undefined if only network errors; failure handled by caller
+    return lastResp;
   }
+
   function setStatus(msg, cls=""){ status.className="note "+cls; status.textContent=msg; }
   function disableWhileBusy(flag){
     busy=!!flag;
@@ -353,23 +353,24 @@
     const t=todayISO(); if (s<t){ setStatus("Start date must be today or later.","error"); return false; }
     return true;
   }
+
   const dirty = new Map();
-    function setDirty(date,kind,value){ if(!dirty.has(date)) dirty.set(date,{}); dirty.get(date)[kind]=value; updateDirtyUI(); }
-    function updateDirtyUI(){
-  const nGrid = dirty.size;
-  const nRooms = pendingRoomUpdates.size;
-  const invalidCount = document.querySelectorAll('.chip input.error').length;
-  const n = nGrid + nRooms;
-  const labelParts = [];
-  if (nGrid)  labelParts.push(`${nGrid} day${nGrid>1?'s':''} changed`);
-  if (nRooms) labelParts.push(`${nRooms} room edit${nRooms>1?'s':''}`);
-  if (invalidCount) labelParts.push(`${invalidCount} error${invalidCount>1?'s':''}`);
-  const saveBtn = el("save");
-  const discardBtn = el("discard");
-  if (saveBtn) saveBtn.disabled = (n===0) || busy || (invalidCount>0);
-  if (discardBtn) discardBtn.disabled = (n===0) || busy;
-  el("dirty-count").textContent = (n || invalidCount) ? labelParts.join(" + ") : "No changes";
-}
+  function setDirty(date,kind,value){ if(!dirty.has(date)) dirty.set(date,{}); dirty.get(date)[kind]=value; updateDirtyUI(); }
+  function updateDirtyUI(){
+    const nGrid = dirty.size;
+    const nRooms = pendingRoomUpdates.size;
+    const invalidCount = document.querySelectorAll('.chip input.error').length;
+    const n = nGrid + nRooms;
+    const labelParts = [];
+    if (nGrid)  labelParts.push(`${nGrid} day${nGrid>1?'s':''} changed`);
+    if (nRooms) labelParts.push(`${nRooms} room edit${nRooms>1?'s':''}`);
+    if (invalidCount) labelParts.push(`${invalidCount} error${invalidCount>1?'s':''}`);
+    const saveBtn = el("save");
+    const discardBtn = el("discard");
+    if (saveBtn) saveBtn.disabled = (n===0) || busy || (invalidCount>0);
+    if (discardBtn) discardBtn.disabled = (n===0) || busy;
+    el("dirty-count").textContent = (n || invalidCount) ? labelParts.join(" + ") : "No changes";
+  }
 
   /* ===== Rooms list & edit modal ===== */
   function openEditModal(rt){
@@ -378,16 +379,14 @@
     el('edit-name').value = rt.name ?? '';
     const basePlain = String(rt.basePrice ?? '').replace(/[^0-9.]/g,'');
     el('edit-base').value = basePlain;
-    el('edit-max').value = (rt.occupancy ?? rt.maxGuests ?? 2);
-    el('edit-warn').style.display = 'none';
     const chk = el('edit-active'); if (chk) chk.checked = !!rt.active;
+    el('edit-warn').style.display = 'none';
     m.classList.add('open');
 
     const onSave = async () => {
-      const nameVal = el('edit-name').value.trim();
-      const baseVal = el('edit-base').value.trim();
-      const maxVal  = el('edit-max').value.trim();
-      const activeVal = !!el('edit-active').checked;
+      const nameVal   = el('edit-name').value.trim();
+      const baseVal   = el('edit-base').value.trim();
+      const activeVal = !!el('edit-active')?.checked;
 
       const payload = {};
       if (nameVal && nameVal !== rt.name) payload.name = nameVal;
@@ -396,16 +395,6 @@
         const n = Number(baseVal);
         if (!Number.isFinite(n) || n < 0) { setStatus("Base price must be a non-negative number.","error"); return; }
         if (Number(rt.basePrice) !== n) payload.basePrice = n.toFixed(2);
-      }
-
-      if (maxVal !== "") {
-        const g = parseInt(maxVal, 10);
-        if (!Number.isFinite(g) || g < 1) { setStatus("Max capacity must be ≥ 1.","error"); return; }
-        const prevG = Number(rt.occupancy ?? rt.maxGuests);
-        if (!Number.isFinite(prevG) || prevG !== g) {
-          payload.occupancy = g;
-          payload.maxGuests = g;
-        }
       }
 
       if (activeVal !== !!rt.active) payload.active = activeVal;
@@ -453,42 +442,43 @@
           <button type="button" class="secondary btn btn-secondary-outline" data-act="del"  data-id="${rt.id}">Delete</button>
         </div>`;
 
-      // Open room on card click (ignore clicks on its buttons)
-    div.addEventListener("click", async (e)=>{
-      if (e.target.closest("button")) return;
-      currentRoomTypeId = rt.id;
-      saveCtx();
-      if (dirty.clear) dirty.clear();
-      await renderCalendar();
-      await loadRooms();
-    });
-
-    // Explicit button handlers (more reliable than delegation)
-    const editBtn = div.querySelector('button[data-act="edit"]');
-    const delBtn  = div.querySelector('button[data-act="del"]');
-
-    if (editBtn) editBtn.addEventListener("click", (e)=>{
-      e.preventDefault(); e.stopPropagation();
-      openEditModal(rt);
-    });
-
-    if (delBtn) delBtn.addEventListener("click", async (e)=>{
-      e.preventDefault(); e.stopPropagation();
-      if (!confirm("Delete this room type?")) return;
-      const r = await authFetch(`/extranet/property/rooms/${rt.id}`, { method:"DELETE" });
-      if (r.status === 204){
-        if (currentRoomTypeId === rt.id) currentRoomTypeId = null;
-        setStatus("Room deleted","ok");
+      // Open room on card click, ignore button clicks
+      div.addEventListener("click", async (e)=>{
+        if (e.target.closest("button")) return;
+        currentRoomTypeId = rt.id;
+        saveCtx();
+        if (dirty.clear) dirty.clear();
+        await renderCalendar();
         await loadRooms();
-        calGrid.innerHTML = "";
-      } else {
-        setStatus("Delete failed ("+r.status+")","error");
-      }
-    });
+      });
 
+      const editBtn = div.querySelector('button[data-act="edit"]');
+      const delBtn  = div.querySelector('button[data-act="del"]');
+
+      if (editBtn) editBtn.addEventListener("click", (e)=>{
+        e.preventDefault(); e.stopPropagation();
+        openEditModal(rt);
+      });
+
+      if (delBtn) delBtn.addEventListener("click", async (e)=>{
+        e.preventDefault(); e.stopPropagation();
+        if (!confirm("Delete this room type?")) return;
+        const r = await authFetch(`/extranet/property/rooms/${rt.id}`, { method:"DELETE" });
+        if (r.status === 204){
+          if (currentRoomTypeId === rt.id) currentRoomTypeId = null;
+          setStatus("Room deleted","ok");
+          await loadRooms();
+          calGrid.innerHTML = "";
+        } else {
+          setStatus("Delete failed ("+r.status+")","error");
+        }
+      });
+
+      roomsList.appendChild(div);
+    });
   }
 
-  // Add Room (unchanged workflow — just style via .btn classes)
+  // Add Room
   el("add-room").addEventListener("click", async ()=>{
     const name=(prompt("Room type name (e.g., Deluxe Queen):")||"").trim();
     if (!name){ setStatus("Name is required.","warn"); return; }
@@ -500,7 +490,7 @@
     disableWhileBusy(true);
     const res = await authFetch("/extranet/property/rooms", {
       method:"POST",
-    body: JSON.stringify({ name, basePrice: basePrice.toFixed(2), maxGuests: 2, description: "", active: true })
+      body: JSON.stringify({ name, basePrice: basePrice.toFixed(2), maxGuests: 2, description: "", active: true })
     });
     disableWhileBusy(false);
     if (!res.ok){ setStatus("Create failed ("+res.status+")","error"); return; }
@@ -534,68 +524,62 @@
     prepareRangeDefaults();
     if (!validateRangeOrWarn()) return;
 
-    const invUrl=`/extranet/property/rooms/${currentRoomTypeId}/inventory?start=${currentRangeStart}&end=${currentRangeEnd}`;
-    const prcUrl=`/extranet/property/rooms/${currentRoomTypeId}/prices?start=${currentRangeStart}&end=${currentRangeEnd}`;
-    // DEBUG: log exact request targets (gated)
-    if (window.localStorage.getItem('rooms_debug') === '1') {
+    const invUrl = `/extranet/property/rooms/${currentRoomTypeId}/inventory?start=${currentRangeStart}&end=${currentRangeEnd}`;
+    const prcUrl = `/extranet/property/rooms/${currentRoomTypeId}/prices?start=${currentRangeStart}&end=${currentRangeEnd}`;
+
+    if (localStorage.getItem('rooms_debug') === '1'){
       console.debug("Calendar fetch URLs", {
         roomId: currentRoomTypeId, invUrl, prcUrl,
         start: currentRangeStart, end: currentRangeEnd
       });
     }
+
     disableWhileBusy(true);
     const [invRes, prcRes] = await Promise.all([
       fetchWithRetry(invUrl, {}, 2, 800),
       fetchWithRetry(prcUrl, {}, 2, 800)
     ]);
     disableWhileBusy(false);
-    let invRows = [];
-    let prcRows = [];
 
-    if (invRes && invRes.ok) {
-      try { invRows = await invRes.json(); } catch(_) { invRows = []; }
-    } else {
-      try {
-        const body = invRes ? await invRes.text() : "";
-        console.warn("Inventory load failed", { url: invUrl, status: invRes?.status, body: body?.slice(0,500) });
-      } catch(_) {}
-    }
+    let invRows = []; let prcRows = [];
+    if (invRes && invRes.ok){ try{ invRows = await invRes.json(); } catch(_){} }
+    else { try{ const b = invRes ? await invRes.text() : ""; console.warn("Inventory load failed", { url: invUrl, status: invRes?.status, body: b.slice(0,500) }); } catch(_){} }
 
-    if (prcRes && prcRes.ok) {
-      try { prcRows = await prcRes.json(); } catch(_) { prcRows = []; }
-    } else {
-      try {
-        const body = prcRes ? await prcRes.text() : "";
-        console.warn("Prices load failed", { url: prcUrl, status: prcRes?.status, body: body?.slice(0,500) });
-      } catch(_) {}
-    }
+    if (prcRes && prcRes.ok){ try{ prcRows = await prcRes.json(); } catch(_){} }
+    else { try{ const b = prcRes ? await prcRes.text() : ""; console.warn("Prices load failed", { url: prcUrl, status: prcRes?.status, body: b.slice(0,500) }); } catch(_){} }
 
-    if (!(invRes?.ok) || !(prcRes?.ok)) {
+    if (!(invRes?.ok) || !(prcRes?.ok)){
       setStatus(`Loaded with partial data (${invRes?.status ?? "ERR"}/${prcRes?.status ?? "ERR"})`, "warn");
     }
-    const invByDate=new Map(invRows.map(r=>[String(r.date).slice(0,10),r]));
-    const prcByDate=new Map(prcRows.map(r=>[String(r.date).slice(0,10),r]));
 
-    const ONE_DAY=86400000;
-    const daysBetween=(startISO,endISO)=>{ const s=new Date(startISO+"T00:00:00Z"); const theEnd=new Date(endISO+"T00:00:00Z"); const arr=[];
-      for (let d=new Date(s); d<=theEnd; d=new Date(d.getTime()+ONE_DAY)) arr.push(iso(d)); return arr; };
-    const days=daysBetween(currentRangeStart,currentRangeEnd);
+    const invByDate = new Map(invRows.map(r => [String(r.date).slice(0,10), r]));
+    const prcByDate = new Map(prcRows.map(r => [String(r.date).slice(0,10), r]));
 
-    days.forEach(d=>{
-      const inv=invByDate.get(d), prc=prcByDate.get(d);
-      const invOpen = inv ? clamp(Number(inv.roomsOpen)||0, 0, 9999) : 0;
+    const ONE_DAY = 86400000;
+    const daysBetween = (startISO,endISO) => {
+      const s = new Date(startISO+"T00:00:00Z"); const e = new Date(endISO+"T00:00:00Z");
+      const arr = []; for (let d = new Date(s); d <= e; d = new Date(d.getTime()+ONE_DAY)) arr.push(iso(d));
+      return arr;
+    };
+    const days = daysBetween(currentRangeStart, currentRangeEnd);
+
+    days.forEach(d => {
+      const inv = invByDate.get(d);
+      const prc = prcByDate.get(d);
+      const invOpen    = inv ? clamp(Number(inv.roomsOpen)||0, 0, 9999) : 0;
       const invMinStay = inv && inv.minStay ? clamp(Number(inv.minStay)||1, 1, 365) : "";
+      const isClosed   = !!(inv && inv.isClosed);
 
-      const card=document.createElement("div");
-      card.className="day";
-
-      /* ANCHOR: CARD_TEMPLATE */
-      card.innerHTML=`
+      const card = document.createElement("div");
+      card.className = "day";
+      card.innerHTML = `
         <div class="date">${d}</div>
+
         <div class="chip" title="Rooms Open">
           <span class="tag">Open</span>
           <input type="number" min="0" value="${invOpen}" data-date="${d}" data-kind="open">
         </div>
+
         <div class="chip" title="Price (USD)">
           <span class="tag">Price</span>
           <div class="money">
@@ -603,91 +587,121 @@
             <input type="text" value="${prc ? Number(prc.price).toFixed(2) : ""}" data-date="${d}" data-kind="price">
           </div>
         </div>
+
         <div class="chip" title="Min Stay">
           <span class="tag">MinStay</span>
           <input type="number" min="1" value="${invMinStay}" data-date="${d}" data-kind="minstay">
         </div>
+
         <div class="chip" title="Closed">
           <span class="tag">Closed</span>
-          <input type="checkbox" ${inv && inv.isClosed ? 'checked' : ''} data-date="${d}" data-kind="closed">
-        </div>`;
+          <input type="checkbox" ${isClosed ? 'checked' : ''} data-date="${d}" data-kind="closed">
+        </div>
+      `;
 
-      /* ANCHOR: CARD_LISTENERS */
-      ['open','price','minstay','closed'].forEach(kind=>{
-        const input=card.querySelector(`input[data-kind="${kind}"]`);
+      ['open','price','minstay','closed'].forEach(kind => {
+        const input = card.querySelector(`input[data-kind="${kind}"]`);
         if (!input) return;
         const eventName = (kind === 'closed') ? 'change' : 'input';
-        input.addEventListener(eventName,()=>{
-          const date=input.getAttribute('data-date');
-          if (kind==='closed'){
+
+        input.addEventListener(eventName, () => {
+          const date = input.getAttribute('data-date');
+
+          if (kind === 'closed'){
             setDirty(date, 'isClosed', !!input.checked);
+            updateDirtyUI();
             return;
           }
-          let val=input.value;
-          if (kind==='open' || kind==='minstay'){
-            if (val===''){ input.classList.remove('error'); setDirty(date, kind==='open'?'roomsOpen':'minStay', undefined); updateDirtyUI(); return; }
-            const n=Number(val);
-            if (!Number.isFinite(n) || n<(kind==='open'?0:1)){ input.classList.add('error'); updateDirtyUI(); return; }
+
+          let val = input.value;
+
+          if (kind === 'open' || kind === 'minstay'){
+            if (val === ''){
+              input.classList.remove('error');
+              setDirty(date, kind === 'open' ? 'roomsOpen' : 'minStay', undefined);
+              updateDirtyUI();
+              return;
+            }
+            const n = Number(val);
+            if (!Number.isFinite(n) || n < (kind === 'open' ? 0 : 1)){
+              input.classList.add('error');
+              updateDirtyUI();
+              return;
+            }
             input.classList.remove('error');
-            setDirty(date, kind==='open'?'roomsOpen':'minStay', Math.floor(n));
-          } else if (kind==='price'){
-            if (val===''){ input.classList.remove('error'); setDirty(date,'price',undefined); updateDirtyUI(); return; }
-            const ok=/^(\d+)(\.\d{1,2})?$/.test(val) && parseFloat(val)>=0;
-            if (!ok){ input.classList.add('error'); updateDirtyUI(); return; }
+            setDirty(date, kind === 'open' ? 'roomsOpen' : 'minStay', Math.floor(n));
+            updateDirtyUI();
+            return;
+          }
+
+          if (kind === 'price'){
+            if (val === ''){
+              input.classList.remove('error');
+              setDirty(date, 'price', undefined);
+              updateDirtyUI();
+              return;
+            }
+            const ok = /^(\d+)(\.\d{1,2})?$/.test(val) && parseFloat(val) >= 0;
+            if (!ok){
+              input.classList.add('error');
+              updateDirtyUI();
+              return;
+            }
             input.classList.remove('error');
-            setDirty(date,'price',parseFloat(val).toFixed(2));
+            setDirty(date, 'price', parseFloat(val).toFixed(2));
+            updateDirtyUI();
           }
         });
       });
 
-      /* normalize on blur (formatting) */
-      const inputPrice = card.querySelector(`input[data-kind="price"]`);
-      if (inputPrice){
-        inputPrice.addEventListener('blur', ()=>{
-          const v = inputPrice.value.trim();
-          if (v===''){ updateDirtyUI(); return; }
+      const priceEl = card.querySelector(`input[data-kind="price"]`);
+      if (priceEl){
+        priceEl.addEventListener('blur', () => {
+          const v = priceEl.value.trim();
+          if (v === ''){ updateDirtyUI(); return; }
           const ok = /^(\d+)(\.\d{1,2})?$/.test(v) && parseFloat(v) >= 0;
           if (ok){
-            inputPrice.value = parseFloat(v).toFixed(2);
-            inputPrice.classList.remove('error');
+            priceEl.value = parseFloat(v).toFixed(2);
+            priceEl.classList.remove('error');
           } else {
-            inputPrice.classList.add('error');
+            priceEl.classList.add('error');
           }
           updateDirtyUI();
         });
       }
 
-      const inputOpen = card.querySelector(`input[data-kind="open"]`);
-      if (inputOpen){
-        inputOpen.addEventListener('blur', ()=>{
-          const v = inputOpen.value.trim();
-          if (v===''){ updateDirtyUI(); return; }
+      const openEl = card.querySelector(`input[data-kind="open"]`);
+      if (openEl){
+        openEl.addEventListener('blur', () => {
+          const v = openEl.value.trim();
+          if (v === ''){ updateDirtyUI(); return; }
           const n = Number(v);
           if (Number.isFinite(n) && n >= 0){
-            inputOpen.value = String(Math.floor(n));
-            inputOpen.classList.remove('error');
+            openEl.value = String(Math.floor(n));
+            openEl.classList.remove('error');
           } else {
-            inputOpen.classList.add('error');
+            openEl.classList.add('error');
           }
           updateDirtyUI();
         });
       }
 
-      const inputMin = card.querySelector(`input[data-kind="minstay"]`);
-      if (inputMin){
-        inputMin.addEventListener('blur', ()=>{
-          const v = inputMin.value.trim();
-          if (v===''){ updateDirtyUI(); return; }
+      const minEl = card.querySelector(`input[data-kind="minstay"]`);
+      if (minEl){
+        minEl.addEventListener('blur', () => {
+          const v = minEl.value.trim();
+          if (v === ''){ updateDirtyUI(); return; }
           const n = Number(v);
           if (Number.isFinite(n) && n >= 1){
-            inputMin.value = String(Math.floor(n));
-            inputMin.classList.remove('error');
+            minEl.value = String(Math.floor(n));
+            minEl.classList.remove('error');
           } else {
-            inputMin.classList.add('error');
+            minEl.classList.add('error');
           }
           updateDirtyUI();
         });
       }
+
       calGrid.appendChild(card);
     });
 
@@ -759,109 +773,110 @@
     await renderCalendar();
   });
 
-      // Save (grid edits)
-    el("save").addEventListener("click", async ()=>{
-      const hasRoomEdits = pendingRoomUpdates.size > 0;
-      const hasGridEdits = dirty.size > 0;
-      const invalidCount = document.querySelectorAll('.chip input.error').length;
-      if (invalidCount > 0){ setStatus(`Fix ${invalidCount} invalid field${invalidCount>1?'s':''} before saving.`,"error"); return; }
-      if (!hasRoomEdits && !hasGridEdits){ setStatus("Nothing to save.","warn"); return; }
+  // Save (grid edits)
+  el("save").addEventListener("click", async ()=>{
+    const hasRoomEdits = pendingRoomUpdates.size > 0;
+    const hasGridEdits = dirty.size > 0;
+    const invalidCount = document.querySelectorAll('.chip input.error').length;
+    if (invalidCount > 0){ setStatus(`Fix ${invalidCount} invalid field${invalidCount>1?'s':''} before saving.`,"error"); return; }
+    if (!hasRoomEdits && !hasGridEdits){ setStatus("Nothing to save.","warn"); return; }
 
-      setStatus("Saving…"); disableWhileBusy(true);
-      try{
-        // 1) Apply queued room edits (PATCH → fallback PUT)
-        if (hasRoomEdits){
-          for (const [id, payload] of pendingRoomUpdates.entries()){
-            const url = `/extranet/property/rooms/${id}`;
-            let r = await authFetch(url, { method:"PATCH", body: JSON.stringify(payload) });
-            if (!r.ok && (r.status === 405 || r.status === 404)) {
-              r = await authFetch(url, { method:"PUT", body: JSON.stringify({ ...payload, id }) });
-            }
-            if (!r.ok) throw new Error(`Room ${id} update failed (${r.status})`);
+    setStatus("Saving…"); disableWhileBusy(true);
+    try{
+      // 1) Apply queued room edits (PATCH → fallback PUT)
+      if (hasRoomEdits){
+        for (const [id, payload] of pendingRoomUpdates.entries()){
+          const url = `/extranet/property/rooms/${id}`;
+          let r = await authFetch(url, { method:"PATCH", body: JSON.stringify(payload) });
+          if (!r.ok && (r.status === 405 || r.status === 404)) {
+            r = await authFetch(url, { method:"PUT", body: JSON.stringify({ ...payload, id }) });
           }
+          if (!r.ok) throw new Error(`Room ${id} update failed (${r.status})`);
         }
-
-        // 2) Apply calendar (inventory + prices) edits if any
-        const invItems=[], prcItems=[];
-        for (const [date,obj] of dirty.entries()){
-          const inv={};
-          if (typeof obj.isClosed==='boolean') inv.isClosed = obj.isClosed;
-          if (typeof obj.roomsOpen==='number') inv.roomsOpen = obj.roomsOpen;
-          if (typeof obj.minStay==='number') inv.minStay = obj.minStay;
-          if (Object.keys(inv).length) invItems.push({ date, ...inv });
-          if (typeof obj.price==='string' && obj.price!=='') prcItems.push({ date, price: obj.price, ratePlanId: null });
-        }
-        const reqs=[];
-        if (invItems.length) reqs.push(authFetch(`/extranet/property/rooms/${currentRoomTypeId}/inventory/bulk`,{method:"POST", body:JSON.stringify({items:invItems})}));
-        if (prcItems.length) reqs.push(authFetch(`/extranet/property/rooms/${currentRoomTypeId}/prices/bulk`,{method:"POST", body:JSON.stringify({items:prcItems})}));
-        if (reqs.length){
-          const resps = await Promise.all(reqs);
-          if (resps.some(r=>!r.ok)) throw new Error(`Grid save failed (${resps.map(r=>r.status).join('/')})`);
-        }
-
-        pendingRoomUpdates.clear();
-        dirty.clear(); updateDirtyUI();
-        await loadRooms();
-        if (currentRoomTypeId) await renderCalendar();
-        setStatus("Saved.","ok");
-      } catch (e) {
-        console.error(e);
-        setStatus(String(e.message || "Save error"), "error");
-      } finally {
-        disableWhileBusy(false);
       }
-    });
 
-    // Discard (clear unsaved)
-    el("discard").addEventListener("click", async ()=>{
-      if (busy) return;
+      // 2) Apply calendar (inventory + prices) edits if any
+      const invItems=[], prcItems=[];
+      for (const [date,obj] of dirty.entries()){
+        const inv={};
+        if (typeof obj.isClosed==='boolean') inv.isClosed = obj.isClosed;
+        if (typeof obj.roomsOpen==='number') inv.roomsOpen = obj.roomsOpen;
+        if (typeof obj.minStay==='number') inv.minStay = obj.minStay;
+        if (Object.keys(inv).length) invItems.push({ date, ...inv });
+        if (typeof obj.price==='string' && obj.price!=='') prcItems.push({ date, price: obj.price, ratePlanId: null });
+      }
+      const reqs=[];
+      if (invItems.length) reqs.push(authFetch(`/extranet/property/rooms/${currentRoomTypeId}/inventory/bulk`,{method:"POST", body:JSON.stringify({items:invItems})}));
+      if (prcItems.length) reqs.push(authFetch(`/extranet/property/rooms/${currentRoomTypeId}/prices/bulk`,{method:"POST", body:JSON.stringify({items:prcItems})}));
+      if (reqs.length){
+        const resps = await Promise.all(reqs);
+        if (resps.some(r=>!r.ok)) throw new Error(`Grid save failed (${resps.map(r=>r.status).join('/')})`);
+      }
+
       pendingRoomUpdates.clear();
-      dirty.clear();
-      updateDirtyUI();
-      setStatus("Changes discarded.","warn");
+      dirty.clear(); updateDirtyUI();
       await loadRooms();
       if (currentRoomTypeId) await renderCalendar();
-    });
-    // Global hotkeys: Save (Cmd/Ctrl+S), Discard (Esc)
-    window.addEventListener('keydown', (e) => {
-      const saveBtn = el('save');
-      const discardBtn = el('discard');
-      if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 's') {
-        e.preventDefault();
-        if (saveBtn && !saveBtn.disabled && !busy) saveBtn.click();
-      }
-      if (e.key === 'Escape') {
-        if (discardBtn && !discardBtn.disabled && !busy) discardBtn.click();
-      }
-    });
+      setStatus("Saved.","ok");
+    } catch (e) {
+      console.error(e);
+      setStatus(String(e.message || "Save error"), "error");
+    } finally {
+      disableWhileBusy(false);
+    }
+  });
+
+  // Discard (clear unsaved)
+  el("discard").addEventListener("click", async ()=>{
+    if (busy) return;
+    pendingRoomUpdates.clear();
+    dirty.clear();
+    updateDirtyUI();
+    setStatus("Changes discarded.","warn");
+    await loadRooms();
+    if (currentRoomTypeId) await renderCalendar();
+  });
+
+  // Global hotkeys: Save (Cmd/Ctrl+S), Discard (Esc)
+  window.addEventListener('keydown', (e) => {
+    const saveBtn = el('save');
+    const discardBtn = el('discard');
+    if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 's') {
+      e.preventDefault();
+      if (saveBtn && !saveBtn.disabled && !busy) saveBtn.click();
+    }
+    if (e.key === 'Escape') {
+      if (discardBtn && !discardBtn.disabled && !busy) discardBtn.click();
+    }
+  });
 
   (async function init(){
     const ctx = loadCtx();
-  if (ctx?.start && ctx?.end){
-    currentRangeStart = ctx.start;
-    currentRangeEnd   = ctx.end;
-    const rs = el("range-start"), re = el("range-end");
-    if (rs && re){ rs.value = ctx.start; re.value = ctx.end; }
-    currentAnchor = new Date(ctx.start + "T00:00:00Z");
-    setMonthLabel();
-  } else {
-    const startISO = iso(startOfWeek(new Date()));
-    currentAnchor = new Date(startISO + "T00:00:00Z");
-    setMonthLabel();
-    applyMonthWindowToRange({ rerender:false });
-  }
-  if (ctx?.roomId) currentRoomTypeId = ctx.roomId;
+    if (ctx?.start && ctx?.end){
+      currentRangeStart = ctx.start;
+      currentRangeEnd   = ctx.end;
+      const rs = el("range-start"), re = el("range-end");
+      if (rs && re){ rs.value = ctx.start; re.value = ctx.end; }
+      currentAnchor = new Date(ctx.start + "T00:00:00Z");
+      setMonthLabel();
+    } else {
+      const startISO = iso(startOfWeek(new Date()));
+      currentAnchor = new Date(startISO + "T00:00:00Z");
+      setMonthLabel();
+      applyMonthWindowToRange({ rerender:false });
+    }
+    if (ctx?.roomId) currentRoomTypeId = ctx.roomId;
 
-  await loadRooms();
-  if (currentRoomTypeId){
-    await renderCalendar();
-  } else {
-    const first = document.querySelector(".room");
-    if (first){ first.click(); void renderCalendar(); }
-  }
-    })();
+    await loadRooms();
+    if (currentRoomTypeId){
+      await renderCalendar();
+    } else {
+      const first = document.querySelector(".room");
+      if (first){ first.click(); void renderCalendar(); }
+    }
   })();
-  </script>
+})(); /* end main IIFE */
+</script>
 
 <!-- FP: MN-HARDFIX-LOCK — single source of truth for month-nav; exact 3-week stepping -->
 <script>
@@ -876,17 +891,17 @@
     setLabel(sISO); if (doRender && typeof window.renderCalendar==='function') window.renderCalendar();
   };
   const prev=document.getElementById('month-prev'), next=document.getElementById('month-next'), todayBtn=document.getElementById('month-today'); if (!prev||!next){ console.warn('[MN-HARDFIX-LOCK] nav buttons missing'); return; }
-    prev.onclick=null; next.onclick=null; if (todayBtn) todayBtn.onclick=null;
-    const install=(el,dir)=>{ el.addEventListener('click',(ev)=>{ ev.stopImmediatePropagation(); ev.preventDefault();
-      const rs=document.getElementById('range-start')?.value || window.currentRangeStart;
-      const re=document.getElementById('range-end')?.value   || window.currentRangeEnd || rs;
-      const nextStart=(dir==='next') ? addDaysISO(re,+1) : addDaysISO(rs,-21);
-      setWindow(nextStart,true);
-    },{capture:true}); };
-    install(prev,'prev'); install(next,'next');
-    if (todayBtn){ todayBtn.addEventListener('click',(ev)=>{ ev.stopImmediatePropagation(); ev.preventDefault(); const t=iso(new Date()); setWindow(t,true); },{capture:true}); }
-    const initial=document.getElementById('range-start')?.value || window.currentRangeStart || iso(new Date());
-    setWindow(initial,false);
+  prev.onclick=null; next.onclick=null; if (todayBtn) todayBtn.onclick=null;
+  const install=(el,dir)=>{ el.addEventListener('click',(ev)=>{ ev.stopImmediatePropagation(); ev.preventDefault();
+    const rs=document.getElementById('range-start')?.value || window.currentRangeStart;
+    const re=document.getElementById('range-end')?.value   || window.currentRangeEnd || rs;
+    const nextStart=(dir==='next') ? addDaysISO(re,+1) : addDaysISO(rs,-21);
+    setWindow(nextStart,true);
+  },{capture:true}); };
+  install(prev,'prev'); install(next,'next');
+  if (todayBtn){ todayBtn.addEventListener('click',(ev)=>{ ev.stopImmediatePropagation(); ev.preventDefault(); const t=iso(new Date()); setWindow(t,true); },{capture:true}); }
+  const initial=document.getElementById('range-start')?.value || window.currentRangeStart || iso(new Date());
+  setWindow(initial,false);
 })();
 </script>
 </body>
