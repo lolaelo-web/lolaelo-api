@@ -616,21 +616,69 @@
           }
           let val=input.value;
           if (kind==='open' || kind==='minstay'){
-          if (val===''){ input.classList.remove('error'); setDirty(date, kind==='open'?'roomsOpen':'minStay', undefined); updateDirtyUI(); return; }
-          const n=Number(val);
-          if (!Number.isFinite(n) || n<(kind==='open'?0:1)){ input.classList.add('error'); updateDirtyUI(); return; }
-          input.classList.remove('error');
-          setDirty(date, kind==='open'?'roomsOpen':'minStay', Math.floor(n));
-        } else if (kind==='price'){
-          if (val===''){ input.classList.remove('error'); setDirty(date,'price',undefined); updateDirtyUI(); return; }
-          const ok=/^(\d+)(\.\d{1,2})?$/.test(val) && parseFloat(val)>=0;
-          if (!ok){ input.classList.add('error'); updateDirtyUI(); return; }
-          input.classList.remove('error');
-          setDirty(date,'price',parseFloat(val).toFixed(2));
-        }
+            if (val===''){ input.classList.remove('error'); setDirty(date, kind==='open'?'roomsOpen':'minStay', undefined); updateDirtyUI(); return; }
+            const n=Number(val);
+            if (!Number.isFinite(n) || n<(kind==='open'?0:1)){ input.classList.add('error'); updateDirtyUI(); return; }
+            input.classList.remove('error');
+            setDirty(date, kind==='open'?'roomsOpen':'minStay', Math.floor(n));
+          } else if (kind==='price'){
+            if (val===''){ input.classList.remove('error'); setDirty(date,'price',undefined); updateDirtyUI(); return; }
+            const ok=/^(\d+)(\.\d{1,2})?$/.test(val) && parseFloat(val)>=0;
+            if (!ok){ input.classList.add('error'); updateDirtyUI(); return; }
+            input.classList.remove('error');
+            setDirty(date,'price',parseFloat(val).toFixed(2));
+          }
         });
       });
 
+      /* normalize on blur (formatting) */
+      const inputPrice = card.querySelector(`input[data-kind="price"]`);
+      if (inputPrice){
+        inputPrice.addEventListener('blur', ()=>{
+          const v = inputPrice.value.trim();
+          if (v===''){ updateDirtyUI(); return; }
+          const ok = /^(\d+)(\.\d{1,2})?$/.test(v) && parseFloat(v) >= 0;
+          if (ok){
+            inputPrice.value = parseFloat(v).toFixed(2);
+            inputPrice.classList.remove('error');
+          } else {
+            inputPrice.classList.add('error');
+          }
+          updateDirtyUI();
+        });
+      }
+
+      const inputOpen = card.querySelector(`input[data-kind="open"]`);
+      if (inputOpen){
+        inputOpen.addEventListener('blur', ()=>{
+          const v = inputOpen.value.trim();
+          if (v===''){ updateDirtyUI(); return; }
+          const n = Number(v);
+          if (Number.isFinite(n) && n >= 0){
+            inputOpen.value = String(Math.floor(n));
+            inputOpen.classList.remove('error');
+          } else {
+            inputOpen.classList.add('error');
+          }
+          updateDirtyUI();
+        });
+      }
+
+      const inputMin = card.querySelector(`input[data-kind="minstay"]`);
+      if (inputMin){
+        inputMin.addEventListener('blur', ()=>{
+          const v = inputMin.value.trim();
+          if (v===''){ updateDirtyUI(); return; }
+          const n = Number(v);
+          if (Number.isFinite(n) && n >= 1){
+            inputMin.value = String(Math.floor(n));
+            inputMin.classList.remove('error');
+          } else {
+            inputMin.classList.add('error');
+          }
+          updateDirtyUI();
+        });
+      }
       calGrid.appendChild(card);
     });
 
