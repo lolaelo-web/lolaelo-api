@@ -362,6 +362,37 @@
     return lastResp;
   }
 
+  /* ANCHOR: RATE_PLAN_FETCH */
+  async function fetchRatePlansSafe(){
+    // Try API; fallback to Standard (1)
+    try{
+      const r = await authFetch('/extranet/property/rateplans');
+      if (r && r.ok){
+        const arr = await r.json();
+        if (Array.isArray(arr) && arr.length){
+          return arr
+            .filter(p => p && p.id != null)
+            .map(p => ({ id: Number(p.id), name: String(p.name || p.code || `Plan ${p.id}`) }));
+        }
+      }
+    }catch(_){}
+    return [{ id: 1, name: 'Standard (1)' }];
+  }
+
+  function populateRatePlanDropdown(plans){
+    const sel = document.getElementById('ratePlanSelect');
+    if (!sel) return;
+    const desired = Number(currentRatePlanId) || (plans[0]?.id ?? 1);
+    sel.innerHTML = '';
+    for (const p of plans){
+      const opt = document.createElement('option');
+      opt.value = String(p.id);
+      opt.textContent = p.name || `Plan ${p.id}`;
+      sel.appendChild(opt);
+    }
+    sel.value = String(desired);
+  }
+
   function setStatus(msg, cls=""){ status.className="note "+cls; status.textContent=msg; }
   function disableWhileBusy(flag){
     busy=!!flag;
@@ -958,8 +989,10 @@
     }
     if (ctx.roomId) currentRoomTypeId = ctx.roomId;
 
-    // init rate plan id from context, default 1
+    // ANCHOR: RATE_PLAN_INIT
     currentRatePlanId = Number(ctx.ratePlanId ?? 1) || 1;
+    const plans = await fetchRatePlansSafe();
+    populateRatePlanDropdown(plans);
     wireRatePlanSelector({ ratePlanId: currentRatePlanId });
 
     await loadRooms();
