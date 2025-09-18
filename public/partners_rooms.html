@@ -565,6 +565,20 @@
     });
   });
 
+  /* ANCHOR: RATE_PLAN_WIRE */
+  function wireRatePlanSelector() {
+    const sel = document.getElementById('ratePlanSelect');
+    if (!sel) return;
+    sel.value = String(currentRatePlanId || 1);
+    sel.addEventListener('change', async () => {
+      currentRatePlanId = Number(sel.value) || 1;
+      saveCtx();                // persists into rooms_ctx_v1 (your CTX_HELPERS already handles this)
+      if (currentRoomTypeId) {  // soft refresh to reload prices with selected plan
+        await renderCalendar();
+      }
+    });
+  }
+
   // Calendar render
   async function renderCalendar(){
     calGrid.innerHTML = "";
@@ -928,7 +942,7 @@
   }
 
   (async function init(){
-    const ctx = loadCtx() || {};
+  const ctx = loadCtx() || {};
     if (ctx.start && ctx.end){
       currentRangeStart = ctx.start;
       currentRangeEnd   = ctx.end;
