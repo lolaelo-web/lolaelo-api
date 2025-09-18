@@ -134,6 +134,7 @@ model RoomType {
   maxGuests   Int             @default(2)
   occupancy   Int             @default(2)
   basePrice   Decimal         @db.Decimal(10, 2)
+  active      Boolean         @default(true)
   createdAt   DateTime        @default(now())
   updatedAt   DateTime        @updatedAt
   rates       RatePlan[]
