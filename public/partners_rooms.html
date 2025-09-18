@@ -199,7 +199,7 @@
       </div>
       <footer>
         <button id="edit-cancel" class="secondary btn btn-secondary-outline" type="button">Cancel</button>
-        <button id="edit-save" class="btn" type="button">Save</button>
+        <button id="edit-save" class="btn" type="button">OK</button>
       </footer>
     </div>
   </div>
@@ -380,7 +380,7 @@
   }
 
   /* ===== Rooms list & edit modal ===== */
-  function openEditModal(rt){
+    function openEditModal(rt){
     const m = el('edit-modal');
     el('edit-id').textContent = `#${rt.id}`;
     el('edit-name').value = rt.name ?? '';
@@ -392,17 +392,17 @@
     if (maxEl) maxEl.value = (rt.occupancy ?? rt.maxGuests ?? 2);
 
     const activeSel = el('edit-active');
-    if (activeSel) activeSel.value = String(!!rt.active);  // "true" | "false" (UI only; not sent)
+    if (activeSel) activeSel.value = String(!!rt.active); // "true" | "false"
 
     el('edit-warn').style.display = 'none';
     m.classList.add('open');
 
     const onSave = async () => {
-      const nameVal = el('edit-name').value.trim();
-      const baseVal = el('edit-base').value.trim();
+      const nameVal   = el('edit-name').value.trim();
+      const baseVal   = el('edit-base').value.trim();
       const maxValStr = (el('edit-max')?.value ?? '').trim();
-      const maxVal = maxValStr === '' ? NaN : parseInt(maxValStr, 10);
-      const activeVal = (el('edit-active')?.value === 'true'); // UI only, not sent
+      const maxVal    = maxValStr === '' ? NaN : parseInt(maxValStr, 10);
+      const activeVal = (el('edit-active')?.value === 'true');
 
       const payload = {};
 
@@ -423,7 +423,9 @@
         }
       }
 
-      // Do NOT include "active" in payload to avoid 400s
+      // queue status (we'll retry without it if API rejects)
+      if (activeVal !== !!rt.active) payload.active = activeVal;
+
       if (!Object.keys(payload).length) { m.classList.remove('open'); return; }
 
       pendingRoomUpdates.set(rt.id, payload);
@@ -435,6 +437,7 @@
 
     el('edit-save').addEventListener('click', onSave, { once:true });
   }
+
   el('edit-cancel').addEventListener('click', ()=>el('edit-modal').classList.remove('open'));
   el('edit-modal').addEventListener('click', (e)=>{ if (e.target.id==='edit-modal') el('edit-modal').classList.remove('open'); });
 
@@ -809,11 +812,29 @@
 
     setStatus("Saving…"); disableWhileBusy(true);
     try{
-      // 1) Apply queued room edits (PATCH → fallback PUT)
+      // 1) Apply queued room edits (PATCH → safe retry without `active`)
       if (hasRoomEdits){
         for (const [id, payload] of pendingRoomUpdates.entries()){
           const url = `/extranet/property/rooms/${id}`;
           let r = await authFetch(url, { method:"PATCH", body: JSON.stringify(payload) });
+
+          // Some backends 400 on unknown/immutable fields like `active`.
+          if (!r.ok && r.status === 400 && Object.prototype.hasOwnProperty.call(payload, 'active')){
+            const { active, ...rest } = payload;
+            if (Object.keys(rest).length){
+              const r2 = await authFetch(url, { method:"PATCH", body: JSON.stringify(rest) });
+              if (r2.ok){
+                setStatus("Saved. Status change may not be supported yet—skipped.", "warn");
+                continue;
+              } else {
+                r = r2; // fall through to error handling
+              }
+            } else {
+              setStatus("Status change may not be supported yet—skipped.", "warn");
+              continue;
+            }
+          }
+
           if (!r.ok && (r.status === 405 || r.status === 404)) {
             r = await authFetch(url, { method:"PUT", body: JSON.stringify({ ...payload, id }) });
           }
