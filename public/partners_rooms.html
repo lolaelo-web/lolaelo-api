@@ -110,6 +110,10 @@
     .dialog footer{ display:flex; gap:8px; justify-content:flex-end; padding:12px 14px; border-top:1px solid var(--border); background:var(--panel); }
     .muted{ color:var(--muted); font-size:12px; }
     .warn-msg{ color:var(--warn); font-size:12px; }
+
+    /* RATE_PLAN_FILTER */
+    .header-actions .rate-plan-selector { display:flex; align-items:center; gap:.5rem; margin-right:.5rem; }
+    .header-actions #ratePlanSelect { min-width:160px; }
   </style>
 </head>
 <body>
@@ -117,6 +121,14 @@
     <h1>Rooms & Availability — Extranet</h1>
     <div class="spacer"></div>
     <div class="header-actions"><!-- ANCHOR: HEADER_ACTIONS -->
+      <!-- RATE_PLAN_FILTER START -->
+      <div class="rate-plan-selector">
+        <label for="ratePlanSelect">Rate plan</label>
+        <select id="ratePlanSelect">
+          <option value="1">Standard (1)</option>
+        </select>
+      </div>
+      <!-- RATE_PLAN_FILTER END -->
       <span id="status" class="note">Ready.</span>
       <span id="dirty-count" class="note">No changes</span>
       <button id="save" class="btn" disabled>Save changes</button>
@@ -221,6 +233,10 @@
 
   let currentRoomTypeId = null;
   let currentRangeStart = null, currentRangeEnd = null;
+
+  // NEW: current rate plan id
+  let currentRatePlanId = 1;
+
   let busy = false;
   window.addEventListener('beforeunload', function(e){
     if (pendingRoomUpdates.size > 0 || dirty.size > 0){
@@ -249,7 +265,8 @@
       localStorage.setItem(LS_CTX, JSON.stringify({
         roomId: currentRoomTypeId,
         start: currentRangeStart,
-        end:   currentRangeEnd
+        end:   currentRangeEnd,
+        ratePlanId: currentRatePlanId
       }));
     }catch(_){}
   }
@@ -380,65 +397,64 @@
   }
 
   /* ===== Rooms list & edit modal ===== */
-    function openEditModal(rt){
-  const m = el('edit-modal');
-  el('edit-id').textContent = `#${rt.id}`;
-  el('edit-name').value = rt.name ?? '';
+  function openEditModal(rt){
+    const m = el('edit-modal');
+    el('edit-id').textContent = `#${rt.id}`;
+    el('edit-name').value = rt.name ?? '';
 
-  const basePlain = String(rt.basePrice ?? '').replace(/[^0-9.]/g,'');
-  el('edit-base').value = basePlain;
+    const basePlain = String(rt.basePrice ?? '').replace(/[^0-9.]/g,'');
+    el('edit-base').value = basePlain;
 
-  const maxEl = el('edit-max');
-  if (maxEl) maxEl.value = (rt.occupancy ?? rt.maxGuests ?? 2);
+    const maxEl = el('edit-max');
+    if (maxEl) maxEl.value = (rt.occupancy ?? rt.maxGuests ?? 2);
 
-  const activeSel = el('edit-active');
-  if (activeSel) activeSel.value = String(!!rt.active); // "true" | "false"
+    const activeSel = el('edit-active');
+    if (activeSel) activeSel.value = String(!!rt.active);
 
-  el('edit-warn').style.display = 'none';
-  m.classList.add('open');
+    el('edit-warn').style.display = 'none';
+    m.classList.add('open');
 
-  const onSave = async () => {
-    const nameVal   = el('edit-name').value.trim();
-    const baseVal   = el('edit-base').value.trim();
-    const maxValStr = (el('edit-max')?.value ?? '').trim();
-    const maxVal    = maxValStr === '' ? NaN : parseInt(maxValStr, 10);
-    const activeVal = (el('edit-active')?.value === 'true'); // send if changed
+    const onSave = async () => {
+      const nameVal   = el('edit-name').value.trim();
+      const baseVal   = el('edit-base').value.trim();
+      const maxValStr = (el('edit-max')?.value ?? '').trim();
+      const maxVal    = maxValStr === '' ? NaN : parseInt(maxValStr, 10);
+      const activeVal = (el('edit-active')?.value === 'true');
 
-    const payload = {};
+      const payload = {};
 
-    if (nameVal && nameVal !== rt.name) payload.name = nameVal;
+      if (nameVal && nameVal !== rt.name) payload.name = nameVal;
 
-    if (baseVal !== "") {
-      const n = Number(baseVal);
-      if (!Number.isFinite(n) || n < 0) { setStatus("Base price must be a non-negative number.","error"); return; }
-      if (Number(rt.basePrice) !== n) payload.basePrice = n.toFixed(2);
-    }
-
-    if (!Number.isNaN(maxVal)) {
-      if (!Number.isFinite(maxVal) || maxVal < 1) { setStatus("Max capacity must be ≥ 1.","error"); return; }
-      const prevG = Number(rt.occupancy ?? rt.maxGuests);
-      if (!Number.isFinite(prevG) || prevG !== maxVal) {
-        payload.occupancy = maxVal;
-        payload.maxGuests = maxVal;
+      if (baseVal !== "") {
+        const n = Number(baseVal);
+        if (!Number.isFinite(n) || n < 0) { setStatus("Base price must be a non-negative number.","error"); return; }
+        if (Number(rt.basePrice) !== n) payload.basePrice = n.toFixed(2);
       }
-    }
 
-    // now that backend supports it, include active when changed
-    if (typeof rt.active !== 'undefined' && activeVal !== !!rt.active) {
-      payload.active = activeVal;
-    }
+      if (!Number.isNaN(maxVal)) {
+        if (!Number.isFinite(maxVal) || maxVal < 1) { setStatus("Max capacity must be ≥ 1.","error"); return; }
+        const prevG = Number(rt.occupancy ?? rt.maxGuests);
+        if (!Number.isFinite(prevG) || prevG !== maxVal) {
+          payload.occupancy = maxVal;
+          payload.maxGuests = maxVal;
+        }
+      }
 
-    if (!Object.keys(payload).length) { m.classList.remove('open'); return; }
+      if (typeof rt.active !== 'undefined' && activeVal !== !!rt.active) {
+        payload.active = activeVal;
+      }
 
-    pendingRoomUpdates.set(rt.id, payload);
-    updateDirtyUI();
-    setStatus("Room changes queued — click Save changes to apply.", "warn");
-    m.classList.remove('open');
-    el('edit-save').removeEventListener('click', onSave);
-  };
+      if (!Object.keys(payload).length) { m.classList.remove('open'); return; }
 
-  el('edit-save').addEventListener('click', onSave, { once:true });
-}
+      pendingRoomUpdates.set(rt.id, payload);
+      updateDirtyUI();
+      setStatus("Room changes queued — click Save changes to apply.", "warn");
+      m.classList.remove('open');
+      el('edit-save').removeEventListener('click', onSave);
+    };
+
+    el('edit-save').addEventListener('click', onSave, { once:true });
+  }
 
   el('edit-cancel').addEventListener('click', ()=>el('edit-modal').classList.remove('open'));
   el('edit-modal').addEventListener('click', (e)=>{ if (e.target.id==='edit-modal') el('edit-modal').classList.remove('open'); });
@@ -544,6 +560,7 @@
     el(id).addEventListener("change", async ()=>{
       if (!validateRangeOrWarn()) return;
       currentRangeStart=el("range-start").value; currentRangeEnd=el("range-end").value;
+      saveCtx();
       await renderCalendar();
     });
   });
@@ -556,12 +573,12 @@
     if (!validateRangeOrWarn()) return;
 
     const invUrl = `/extranet/property/rooms/${currentRoomTypeId}/inventory?start=${currentRangeStart}&end=${currentRangeEnd}`;
-    const prcUrl = `/extranet/property/rooms/${currentRoomTypeId}/prices?start=${currentRangeStart}&end=${currentRangeEnd}`;
+    const prcUrl = `/extranet/property/rooms/${currentRoomTypeId}/prices?start=${currentRangeStart}&end=${currentRangeEnd}&ratePlanId=${encodeURIComponent(currentRatePlanId)}`;
 
     if (localStorage.getItem('rooms_debug') === '1'){
       console.debug("Calendar fetch URLs", {
         roomId: currentRoomTypeId, invUrl, prcUrl,
-        start: currentRangeStart, end: currentRangeEnd
+        start: currentRangeStart, end: currentRangeEnd, ratePlanId: currentRatePlanId
       });
     }
 
@@ -814,25 +831,24 @@
 
     setStatus("Saving…"); disableWhileBusy(true);
     try{
-      // 1) Apply queued room edits (PATCH → safe retry without `active`)
+      // 1) Apply queued room edits
       if (hasRoomEdits){
         for (const [id, payload] of pendingRoomUpdates.entries()){
           const url = `/extranet/property/rooms/${id}`;
           let r = await authFetch(url, { method:"PATCH", body: JSON.stringify(payload) });
 
-          // Some backends 400 on unknown/immutable fields like `active`.
           if (!r.ok && r.status === 400 && Object.prototype.hasOwnProperty.call(payload, 'active')){
             const { active, ...rest } = payload;
             if (Object.keys(rest).length){
               const r2 = await authFetch(url, { method:"PATCH", body: JSON.stringify(rest) });
               if (r2.ok){
-                setStatus("Saved. Status change may not be supported yet—skipped.", "warn");
+                setStatus("Saved. Status change may not be supported yet, skipped.", "warn");
                 continue;
               } else {
-                r = r2; // fall through to error handling
+                r = r2;
               }
             } else {
-              setStatus("Status change may not be supported yet—skipped.", "warn");
+              setStatus("Status change may not be supported yet, skipped.", "warn");
               continue;
             }
           }
@@ -844,7 +860,7 @@
         }
       }
 
-      // 2) Apply calendar (inventory + prices) edits if any
+      // 2) Apply calendar edits if any
       const invItems=[], prcItems=[];
       for (const [date,obj] of dirty.entries()){
         const inv={};
@@ -899,9 +915,21 @@
     }
   });
 
+  // NEW: wire Rate plan selector
+  function wireRatePlanSelector(ctx) {
+    const ddl = document.getElementById('ratePlanSelect');
+    if (!ddl) return;
+    ddl.value = String(ctx?.ratePlanId ?? currentRatePlanId ?? 1);
+    ddl.addEventListener('change', async () => {
+      currentRatePlanId = Number(ddl.value) || 1;
+      saveCtx();
+      if (currentRoomTypeId) await renderCalendar(); // read-only refresh
+    });
+  }
+
   (async function init(){
-    const ctx = loadCtx();
-    if (ctx?.start && ctx?.end){
+    const ctx = loadCtx() || {};
+    if (ctx.start && ctx.end){
       currentRangeStart = ctx.start;
       currentRangeEnd   = ctx.end;
       const rs = el("range-start"), re = el("range-end");
@@ -914,7 +942,11 @@
       setMonthLabel();
       applyMonthWindowToRange({ rerender:false });
     }
-    if (ctx?.roomId) currentRoomTypeId = ctx.roomId;
+    if (ctx.roomId) currentRoomTypeId = ctx.roomId;
+
+    // init rate plan id from context, default 1
+    currentRatePlanId = Number(ctx.ratePlanId ?? 1) || 1;
+    wireRatePlanSelector({ ratePlanId: currentRatePlanId });
 
     await loadRooms();
     if (currentRoomTypeId){
