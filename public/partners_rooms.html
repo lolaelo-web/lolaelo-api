@@ -449,41 +449,43 @@
           </div>
         </div>
         <div class="actions">
-          <button class="secondary btn btn-secondary-outline" data-act="edit" data-id="${rt.id}">Edit</button>
-          <button class="secondary" data-act="del"  data-id="${rt.id}">Delete</button>
+          <button type="button" class="secondary btn btn-secondary-outline" data-act="edit" data-id="${rt.id}">Edit</button>
+          <button type="button" class="secondary btn btn-secondary-outline" data-act="del"  data-id="${rt.id}">Delete</button>
         </div>`;
 
       div.addEventListener("click", async (e)=>{
-        const btn = e.target.closest("button");
-        const act = btn ? btn.getAttribute("data-act") : "open";
-        const id  = btn ? Number(btn.getAttribute("data-id")) : rt.id;
+      const btn = e.target.closest("button");
+      const act = btn ? btn.getAttribute("data-act") : "open";
+      const id  = btn ? Number(btn.getAttribute("data-id")) : rt.id;
 
-        if (act === "open"){
-          currentRoomTypeId = id;
-          saveCtx();
-          if (dirty.clear) dirty.clear();
-          await renderCalendar();
+      if (btn) { e.preventDefault(); e.stopPropagation(); } // ensure button clicks don't bubble
+
+      if (act === "open"){
+        currentRoomTypeId = id;
+        saveCtx();
+        if (dirty.clear) dirty.clear();
+        await renderCalendar();
+        await loadRooms();
+        return;
+      }
+      if (act === "del"){
+        if (!confirm("Delete this room type?")) return;
+        const r = await authFetch(`/extranet/property/rooms/${id}`, { method:"DELETE" });
+        if (r.status === 204){
+          if (currentRoomTypeId === id) currentRoomTypeId = null;
+          setStatus("Room deleted","ok");
           await loadRooms();
-          return;
+          calGrid.innerHTML = "";
+        } else {
+          setStatus("Delete failed ("+r.status+")","error");
         }
-        if (act === "del"){
-          if (!confirm("Delete this room type?")) return;
-          const r = await authFetch(`/extranet/property/rooms/${id}`, { method:"DELETE" });
-          if (r.status === 204){
-            if (currentRoomTypeId === id) currentRoomTypeId = null;
-            setStatus("Room deleted","ok");
-            await loadRooms();
-            calGrid.innerHTML = "";
-          } else {
-            setStatus("Delete failed ("+r.status+")","error");
-          }
-          return;
-        }
-        if (act === "edit"){
-          openEditModal(rt);
-          return;
-        }
-      });
+        return;
+      }
+      if (act === "edit"){
+        openEditModal(rt);
+        return;
+      }
+    });
       roomsList.appendChild(div);
     });
   }
