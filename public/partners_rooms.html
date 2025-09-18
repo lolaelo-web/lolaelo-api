@@ -195,10 +195,6 @@
             <option value="false">Inactive</option>
           </select>
         </div>
-        <div class="row">
-          <label for="edit-max" class="muted">Max capacity</label>
-          <input id="edit-max" class="input" type="number" min="1" step="1" />
-        </div>
         <div class="warn-msg" id="edit-warn" style="display:none;"></div>
       </div>
       <footer>
@@ -456,10 +452,16 @@
       const base = fmtUSD(rt.basePrice);
       const maxGuests = (rt.occupancy ?? rt.maxGuests ?? 2);
       const roBadge = readOnlyRoomField.get(rt.id) ? ` <span class="warn" title="Server treated base/max as read-only">[read-only]</span>` : "";
+      const isActive = !!(rt.active ?? rt.isActive ?? (rt.status === 'ACTIVE'));
       div.innerHTML = `
         <div>
           <div class="name">${rt.name}</div>
-          <div class="meta">Base ${base || "-"} · Max ${maxGuests}${roBadge}</div>
+          <div class="meta">
+            Base ${base || "-"} · Max ${maxGuests}${roBadge}
+            ${isActive
+              ? '<span class="badge" style="margin-left:6px;">Active</span>'
+              : '<span class="badge" style="margin-left:6px; background:#3a2430; color:#ffd7d7; border-color:var(--line);">Inactive</span>'}
+          </div>
         </div>
         <div class="actions">
           <button type="button" class="secondary btn btn-secondary-outline" data-act="edit" data-id="${rt.id}">Edit</button>
