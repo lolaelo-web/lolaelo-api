@@ -165,12 +165,12 @@
           <input type="number" id="inv-open" class="input" min="0" placeholder="roomsOpen" />
           <input type="number" id="inv-minstay" class="input" min="1" placeholder="minStay" />
           <span class="flag"><input type="checkbox" id="inv-closed" /> Closed</span>
-          <button id="apply-inv" class="secondary btn btn-secondary-outline">Apply Inventory</button>
+          <button id="apply-inv" class="secondary btn btn-secondary-outline" title="Applies immediately (auto-saves)">Apply Inventory</button>
         </div>
         <div class="group">
           <label>Price</label>
           <input id="price" class="input" placeholder="149.00" />
-          <button id="apply-price" class="secondary btn btn-secondary-outline">Apply Price</button>
+          <button id="apply-price" class="secondary btn btn-secondary-outline" title="Applies immediately (auto-saves)">Apply Price</button>
         </div>
       </div>
 
@@ -795,7 +795,7 @@
     disableWhileBusy(false);
     if (!res.ok) return setStatus("Inventory apply failed ("+res.status+")","error");
     const js=await res.json();
-    setStatus(`Inventory applied to ${js.upserted ?? js.count ?? items.length} day(s).`,"ok");
+    setStatus(`Inventory applied to ${js.upserted ?? js.count ?? items.length} day(s) — saved automatically; no need to click “Save changes”.`,"ok");
     await renderCalendar();
   });
 
@@ -817,7 +817,7 @@
     disableWhileBusy(false);
     if (!res.ok) return setStatus("Price apply failed ("+res.status+")","error");
     const js=await res.json();
-    setStatus(`Prices applied to ${js.upserted ?? js.count ?? items.length} day(s).`,"ok");
+    setStatus(`Prices applied to ${js.upserted ?? js.count ?? items.length} day(s) — saved automatically; no need to click “Save changes”.`,"ok");
     await renderCalendar();
   });
 
