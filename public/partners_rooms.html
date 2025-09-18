@@ -185,8 +185,8 @@
           <input id="edit-base" class="input" inputmode="decimal" autocomplete="off" />
         </div>
         <div class="row">
-          <label for="edit-max" class="muted">Max capacity</label>
-          <input id="edit-max" class="input" type="number" min="1" step="1" />
+          <label for="edit-active" class="muted">Active</label>
+          <input id="edit-active" type="checkbox" />
         </div>
         <div class="warn-msg" id="edit-warn" style="display:none;"></div>
       </div>
@@ -380,12 +380,14 @@
     el('edit-base').value = basePlain;
     el('edit-max').value = (rt.occupancy ?? rt.maxGuests ?? 2);
     el('edit-warn').style.display = 'none';
+    const chk = el('edit-active'); if (chk) chk.checked = !!rt.active;
     m.classList.add('open');
 
     const onSave = async () => {
       const nameVal = el('edit-name').value.trim();
       const baseVal = el('edit-base').value.trim();
       const maxVal  = el('edit-max').value.trim();
+      const activeVal = !!el('edit-active').checked;
 
       const payload = {};
       if (nameVal && nameVal !== rt.name) payload.name = nameVal;
@@ -405,6 +407,8 @@
           payload.maxGuests = g;
         }
       }
+
+      if (activeVal !== !!rt.active) payload.active = activeVal;
 
       if (!Object.keys(payload).length) { m.classList.remove('open'); return; }
 
@@ -437,7 +441,12 @@
       div.innerHTML = `
         <div>
           <div class="name">${rt.name}</div>
-          <div class="meta">Base ${base || "-"} · Max ${maxGuests}${roBadge}</div>
+          <div class="meta">
+            Base ${base || "-"} · Max ${maxGuests}${roBadge}
+            ${rt.active
+              ? '<span class="badge" style="margin-left:6px;">Active</span>'
+              : '<span class="badge" style="margin-left:6px; background:#3a2430; color:#ffd7d7; border-color:var(--line);">Inactive</span>'}
+          </div>
         </div>
         <div class="actions">
           <button class="secondary btn btn-secondary-outline" data-act="edit" data-id="${rt.id}">Edit</button>
@@ -491,7 +500,7 @@
     disableWhileBusy(true);
     const res = await authFetch("/extranet/property/rooms", {
       method:"POST",
-      body: JSON.stringify({ name, basePrice: basePrice.toFixed(2), maxGuests: 2, description: "" })
+    body: JSON.stringify({ name, basePrice: basePrice.toFixed(2), maxGuests: 2, description: "", active: true })
     });
     disableWhileBusy(false);
     if (!res.ok){ setStatus("Create failed ("+res.status+")","error"); return; }
@@ -813,33 +822,46 @@
       await loadRooms();
       if (currentRoomTypeId) await renderCalendar();
     });
+    // Global hotkeys: Save (Cmd/Ctrl+S), Discard (Esc)
+    window.addEventListener('keydown', (e) => {
+      const saveBtn = el('save');
+      const discardBtn = el('discard');
+      if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 's') {
+        e.preventDefault();
+        if (saveBtn && !saveBtn.disabled && !busy) saveBtn.click();
+      }
+      if (e.key === 'Escape') {
+        if (discardBtn && !discardBtn.disabled && !busy) discardBtn.click();
+      }
+    });
+
   (async function init(){
     const ctx = loadCtx();
-if (ctx?.start && ctx?.end){
-  currentRangeStart = ctx.start;
-  currentRangeEnd   = ctx.end;
-  const rs = el("range-start"), re = el("range-end");
-  if (rs && re){ rs.value = ctx.start; re.value = ctx.end; }
-  currentAnchor = new Date(ctx.start + "T00:00:00Z");
-  setMonthLabel();
-} else {
-  const startISO = iso(startOfWeek(new Date()));
-  currentAnchor = new Date(startISO + "T00:00:00Z");
-  setMonthLabel();
-  applyMonthWindowToRange({ rerender:false });
-}
-if (ctx?.roomId) currentRoomTypeId = ctx.roomId;
+  if (ctx?.start && ctx?.end){
+    currentRangeStart = ctx.start;
+    currentRangeEnd   = ctx.end;
+    const rs = el("range-start"), re = el("range-end");
+    if (rs && re){ rs.value = ctx.start; re.value = ctx.end; }
+    currentAnchor = new Date(ctx.start + "T00:00:00Z");
+    setMonthLabel();
+  } else {
+    const startISO = iso(startOfWeek(new Date()));
+    currentAnchor = new Date(startISO + "T00:00:00Z");
+    setMonthLabel();
+    applyMonthWindowToRange({ rerender:false });
+  }
+  if (ctx?.roomId) currentRoomTypeId = ctx.roomId;
 
-await loadRooms();
-if (currentRoomTypeId){
-  await renderCalendar();
-} else {
-  const first = document.querySelector(".room");
-  if (first){ first.click(); void renderCalendar(); }
-}
+  await loadRooms();
+  if (currentRoomTypeId){
+    await renderCalendar();
+  } else {
+    const first = document.querySelector(".room");
+    if (first){ first.click(); void renderCalendar(); }
+  }
+    })();
   })();
-})();
-</script>
+  </script>
 
 <!-- FP: MN-HARDFIX-LOCK — single source of truth for month-nav; exact 3-week stepping -->
 <script>
