@@ -381,62 +381,64 @@
 
   /* ===== Rooms list & edit modal ===== */
     function openEditModal(rt){
-    const m = el('edit-modal');
-    el('edit-id').textContent = `#${rt.id}`;
-    el('edit-name').value = rt.name ?? '';
+  const m = el('edit-modal');
+  el('edit-id').textContent = `#${rt.id}`;
+  el('edit-name').value = rt.name ?? '';
 
-    const basePlain = String(rt.basePrice ?? '').replace(/[^0-9.]/g,'');
-    el('edit-base').value = basePlain;
+  const basePlain = String(rt.basePrice ?? '').replace(/[^0-9.]/g,'');
+  el('edit-base').value = basePlain;
 
-    const maxEl = el('edit-max');
-    if (maxEl) maxEl.value = (rt.occupancy ?? rt.maxGuests ?? 2);
+  const maxEl = el('edit-max');
+  if (maxEl) maxEl.value = (rt.occupancy ?? rt.maxGuests ?? 2);
 
-    const activeSel = el('edit-active');
-    if (activeSel) activeSel.value = String(!!rt.active); // "true" | "false"
+  const activeSel = el('edit-active');
+  if (activeSel) activeSel.value = String(!!rt.active); // "true" | "false"
 
-    el('edit-warn').style.display = 'none';
-    m.classList.add('open');
+  el('edit-warn').style.display = 'none';
+  m.classList.add('open');
 
-    const onSave = async () => {
-      const nameVal   = el('edit-name').value.trim();
-      const baseVal   = el('edit-base').value.trim();
-      const maxValStr = (el('edit-max')?.value ?? '').trim();
-      const maxVal    = maxValStr === '' ? NaN : parseInt(maxValStr, 10);
-      const activeVal = (el('edit-active')?.value === 'true');
+  const onSave = async () => {
+    const nameVal   = el('edit-name').value.trim();
+    const baseVal   = el('edit-base').value.trim();
+    const maxValStr = (el('edit-max')?.value ?? '').trim();
+    const maxVal    = maxValStr === '' ? NaN : parseInt(maxValStr, 10);
+    const activeVal = (el('edit-active')?.value === 'true'); // send if changed
 
-      const payload = {};
+    const payload = {};
 
-      if (nameVal && nameVal !== rt.name) payload.name = nameVal;
+    if (nameVal && nameVal !== rt.name) payload.name = nameVal;
 
-      if (baseVal !== "") {
-        const n = Number(baseVal);
-        if (!Number.isFinite(n) || n < 0) { setStatus("Base price must be a non-negative number.","error"); return; }
-        if (Number(rt.basePrice) !== n) payload.basePrice = n.toFixed(2);
+    if (baseVal !== "") {
+      const n = Number(baseVal);
+      if (!Number.isFinite(n) || n < 0) { setStatus("Base price must be a non-negative number.","error"); return; }
+      if (Number(rt.basePrice) !== n) payload.basePrice = n.toFixed(2);
+    }
+
+    if (!Number.isNaN(maxVal)) {
+      if (!Number.isFinite(maxVal) || maxVal < 1) { setStatus("Max capacity must be ≥ 1.","error"); return; }
+      const prevG = Number(rt.occupancy ?? rt.maxGuests);
+      if (!Number.isFinite(prevG) || prevG !== maxVal) {
+        payload.occupancy = maxVal;
+        payload.maxGuests = maxVal;
       }
+    }
 
-      if (!Number.isNaN(maxVal)) {
-        if (!Number.isFinite(maxVal) || maxVal < 1) { setStatus("Max capacity must be ≥ 1.","error"); return; }
-        const prevG = Number(rt.occupancy ?? rt.maxGuests);
-        if (!Number.isFinite(prevG) || prevG !== maxVal) {
-          payload.occupancy = maxVal;
-          payload.maxGuests = maxVal;
-        }
-      }
+    // now that backend supports it, include active when changed
+    if (typeof rt.active !== 'undefined' && activeVal !== !!rt.active) {
+      payload.active = activeVal;
+    }
 
-      // queue status (we'll retry without it if API rejects)
-      if (activeVal !== !!rt.active) payload.active = activeVal;
+    if (!Object.keys(payload).length) { m.classList.remove('open'); return; }
 
-      if (!Object.keys(payload).length) { m.classList.remove('open'); return; }
+    pendingRoomUpdates.set(rt.id, payload);
+    updateDirtyUI();
+    setStatus("Room changes queued — click Save changes to apply.", "warn");
+    m.classList.remove('open');
+    el('edit-save').removeEventListener('click', onSave);
+  };
 
-      pendingRoomUpdates.set(rt.id, payload);
-      updateDirtyUI();
-      setStatus("Room changes queued — click Save changes to apply.", "warn");
-      m.classList.remove('open');
-      el('edit-save').removeEventListener('click', onSave);
-    };
-
-    el('edit-save').addEventListener('click', onSave, { once:true });
-  }
+  el('edit-save').addEventListener('click', onSave, { once:true });
+}
 
   el('edit-cancel').addEventListener('click', ()=>el('edit-modal').classList.remove('open'));
   el('edit-modal').addEventListener('click', (e)=>{ if (e.target.id==='edit-modal') el('edit-modal').classList.remove('open'); });
