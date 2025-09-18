@@ -346,16 +346,18 @@
     return true;
   }
   const dirty = new Map();
-  function setDirty(date,kind,value){ if(!dirty.has(date)) dirty.set(date,{}); dirty.get(date)[kind]=value; updateDirtyUI(); }
-  function updateDirtyUI(){
+    function setDirty(date,kind,value){ if(!dirty.has(date)) dirty.set(date,{}); dirty.get(date)[kind]=value; updateDirtyUI(); }
+    function updateDirtyUI(){
     const nGrid = dirty.size;
     const nRooms = pendingRoomUpdates.size;
+    const invalidCount = document.querySelectorAll('.chip input.error').length;
     const n = nGrid + nRooms;
     const labelParts = [];
     if (nGrid)  labelParts.push(`${nGrid} day${nGrid>1?'s':''} changed`);
     if (nRooms) labelParts.push(`${nRooms} room edit${nRooms>1?'s':''}`);
-    el("save").disabled = (n===0) || busy;
-    el("dirty-count").textContent = n ? labelParts.join(" + ") : "No changes";
+    if (invalidCount) labelParts.push(`${invalidCount} error${invalidCount>1?'s':''}`);
+    el("save").disabled = (n===0) || busy || (invalidCount>0);
+    el("dirty-count").textContent = (n || invalidCount) ? labelParts.join(" + ") : "No changes";
   }
 
   /* ===== Rooms list & edit modal ===== */
@@ -514,31 +516,43 @@
 
     const invUrl=`/extranet/property/rooms/${currentRoomTypeId}/inventory?start=${currentRangeStart}&end=${currentRangeEnd}`;
     const prcUrl=`/extranet/property/rooms/${currentRoomTypeId}/prices?start=${currentRangeStart}&end=${currentRangeEnd}`;
-    // DEBUG: log exact request targets
-    console.debug("Calendar fetch URLs", {
-      roomId: currentRoomTypeId, invUrl, prcUrl,
-      start: currentRangeStart, end: currentRangeEnd
-    });
+    // DEBUG: log exact request targets (gated)
+    if (window.localStorage.getItem('rooms_debug') === '1') {
+      console.debug("Calendar fetch URLs", {
+        roomId: currentRoomTypeId, invUrl, prcUrl,
+        start: currentRangeStart, end: currentRangeEnd
+      });
+    }
     disableWhileBusy(true);
     const [invRes, prcRes] = await Promise.all([
       fetchWithRetry(invUrl, {}, 2, 800),
       fetchWithRetry(prcUrl, {}, 2, 800)
     ]);
     disableWhileBusy(false);
-    if (!invRes.ok || !prcRes.ok){
-      let invTxt = "", prcTxt = "";
-      try { if (!invRes.ok) invTxt = await invRes.text(); } catch(_) {}
-      try { if (!prcRes.ok) prcTxt = await prcRes.text(); } catch(_) {}
-      setStatus(`Failed loading data (${invRes.status}/${prcRes.status})`, "error");
-      console.error("Calendar fetch failed", {
-        roomId: currentRoomTypeId,
-        inv: { url: invUrl, status: invRes.status, body: invTxt?.slice(0,500) },
-        prc: { url: prcUrl, status: prcRes.status, body: prcTxt?.slice(0,500) },
-        start: currentRangeStart, end: currentRangeEnd
-      });
-      return;
+    let invRows = [];
+    let prcRows = [];
+
+    if (invRes && invRes.ok) {
+      try { invRows = await invRes.json(); } catch(_) { invRows = []; }
+    } else {
+      try {
+        const body = invRes ? await invRes.text() : "";
+        console.warn("Inventory load failed", { url: invUrl, status: invRes?.status, body: body?.slice(0,500) });
+      } catch(_) {}
     }
-    const invRows=await invRes.json(); const prcRows=await prcRes.json();
+
+    if (prcRes && prcRes.ok) {
+      try { prcRows = await prcRes.json(); } catch(_) { prcRows = []; }
+    } else {
+      try {
+        const body = prcRes ? await prcRes.text() : "";
+        console.warn("Prices load failed", { url: prcUrl, status: prcRes?.status, body: body?.slice(0,500) });
+      } catch(_) {}
+    }
+
+    if (!(invRes?.ok) || !(prcRes?.ok)) {
+      setStatus(`Loaded with partial data (${invRes?.status ?? "ERR"}/${prcRes?.status ?? "ERR"})`, "warn");
+    }
     const invByDate=new Map(invRows.map(r=>[String(r.date).slice(0,10),r]));
     const prcByDate=new Map(prcRows.map(r=>[String(r.date).slice(0,10),r]));
 
@@ -591,18 +605,18 @@
           }
           let val=input.value;
           if (kind==='open' || kind==='minstay'){
-            if (val===''){ input.classList.remove('error'); setDirty(date, kind==='open'?'roomsOpen':'minStay', undefined); return; }
-            const n=Number(val);
-            if (!Number.isFinite(n) || n<(kind==='open'?0:1)){ input.classList.add('error'); return; }
-            input.classList.remove('error');
-            setDirty(date, kind==='open'?'roomsOpen':'minStay', Math.floor(n));
-          } else if (kind==='price'){
-            if (val===''){ input.classList.remove('error'); setDirty(date,'price',undefined); return; }
-            const ok=/^(\d+)(\.\d{1,2})?$/.test(val) && parseFloat(val)>=0;
-            if (!ok){ input.classList.add('error'); return; }
-            input.classList.remove('error');
-            setDirty(date,'price',parseFloat(val).toFixed(2));
-          }
+          if (val===''){ input.classList.remove('error'); setDirty(date, kind==='open'?'roomsOpen':'minStay', undefined); updateDirtyUI(); return; }
+          const n=Number(val);
+          if (!Number.isFinite(n) || n<(kind==='open'?0:1)){ input.classList.add('error'); updateDirtyUI(); return; }
+          input.classList.remove('error');
+          setDirty(date, kind==='open'?'roomsOpen':'minStay', Math.floor(n));
+        } else if (kind==='price'){
+          if (val===''){ input.classList.remove('error'); setDirty(date,'price',undefined); updateDirtyUI(); return; }
+          const ok=/^(\d+)(\.\d{1,2})?$/.test(val) && parseFloat(val)>=0;
+          if (!ok){ input.classList.add('error'); updateDirtyUI(); return; }
+          input.classList.remove('error');
+          setDirty(date,'price',parseFloat(val).toFixed(2));
+        }
         });
       });
 
@@ -681,7 +695,10 @@
   el("save").addEventListener("click", async ()=>{
     const hasRoomEdits = pendingRoomUpdates.size > 0;
     const hasGridEdits = dirty.size > 0;
+    const invalidCount = document.querySelectorAll('.chip input.error').length;
+    if (invalidCount > 0){ setStatus(`Fix ${invalidCount} invalid field${invalidCount>1?'s':''} before saving.`,"error"); return; }
     if (!hasRoomEdits && !hasGridEdits){ setStatus("Nothing to save.","warn"); return; }
+
 
     setStatus("Saving…"); disableWhileBusy(true);
     try{
