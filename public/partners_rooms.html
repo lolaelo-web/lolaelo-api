@@ -185,8 +185,19 @@
           <input id="edit-base" class="input" inputmode="decimal" autocomplete="off" />
         </div>
         <div class="row">
-          <label for="edit-active" class="muted">Active</label>
-          <input id="edit-active" type="checkbox" />
+          <label for="edit-max" class="muted">Max capacity</label>
+          <input id="edit-max" class="input" type="number" min="1" step="1" />
+        </div>
+        <div class="row">
+          <label for="edit-active" class="muted">Status</label>
+          <select id="edit-active" class="input">
+            <option value="true">Active</option>
+            <option value="false">Inactive</option>
+          </select>
+        </div>
+        <div class="row">
+          <label for="edit-max" class="muted">Max capacity</label>
+          <input id="edit-max" class="input" type="number" min="1" step="1" />
         </div>
         <div class="warn-msg" id="edit-warn" style="display:none;"></div>
       </div>
@@ -377,18 +388,28 @@
     const m = el('edit-modal');
     el('edit-id').textContent = `#${rt.id}`;
     el('edit-name').value = rt.name ?? '';
+
     const basePlain = String(rt.basePrice ?? '').replace(/[^0-9.]/g,'');
     el('edit-base').value = basePlain;
-    const chk = el('edit-active'); if (chk) chk.checked = !!rt.active;
+
+    const maxEl = el('edit-max');
+    if (maxEl) maxEl.value = (rt.occupancy ?? rt.maxGuests ?? 2);
+
+    const activeSel = el('edit-active');
+    if (activeSel) activeSel.value = String(!!rt.active);  // "true" | "false" (UI only; not sent)
+
     el('edit-warn').style.display = 'none';
     m.classList.add('open');
 
     const onSave = async () => {
-      const nameVal   = el('edit-name').value.trim();
-      const baseVal   = el('edit-base').value.trim();
-      const activeVal = !!el('edit-active')?.checked;
+      const nameVal = el('edit-name').value.trim();
+      const baseVal = el('edit-base').value.trim();
+      const maxValStr = (el('edit-max')?.value ?? '').trim();
+      const maxVal = maxValStr === '' ? NaN : parseInt(maxValStr, 10);
+      const activeVal = (el('edit-active')?.value === 'true'); // UI only, not sent
 
       const payload = {};
+
       if (nameVal && nameVal !== rt.name) payload.name = nameVal;
 
       if (baseVal !== "") {
@@ -397,8 +418,16 @@
         if (Number(rt.basePrice) !== n) payload.basePrice = n.toFixed(2);
       }
 
-      if (activeVal !== !!rt.active) payload.active = activeVal;
+      if (!Number.isNaN(maxVal)) {
+        if (!Number.isFinite(maxVal) || maxVal < 1) { setStatus("Max capacity must be ≥ 1.","error"); return; }
+        const prevG = Number(rt.occupancy ?? rt.maxGuests);
+        if (!Number.isFinite(prevG) || prevG !== maxVal) {
+          payload.occupancy = maxVal;
+          payload.maxGuests = maxVal;
+        }
+      }
 
+      // Do NOT include "active" in payload to avoid 400s
       if (!Object.keys(payload).length) { m.classList.remove('open'); return; }
 
       pendingRoomUpdates.set(rt.id, payload);
@@ -430,12 +459,7 @@
       div.innerHTML = `
         <div>
           <div class="name">${rt.name}</div>
-          <div class="meta">
-            Base ${base || "-"} · Max ${maxGuests}${roBadge}
-            ${rt.active
-              ? '<span class="badge" style="margin-left:6px;">Active</span>'
-              : '<span class="badge" style="margin-left:6px; background:#3a2430; color:#ffd7d7; border-color:var(--line);">Inactive</span>'}
-          </div>
+          <div class="meta">Base ${base || "-"} · Max ${maxGuests}${roBadge}</div>
         </div>
         <div class="actions">
           <button type="button" class="secondary btn btn-secondary-outline" data-act="edit" data-id="${rt.id}">Edit</button>
@@ -490,7 +514,7 @@
     disableWhileBusy(true);
     const res = await authFetch("/extranet/property/rooms", {
       method:"POST",
-      body: JSON.stringify({ name, basePrice: basePrice.toFixed(2), maxGuests: 2, description: "", active: true })
+      body: JSON.stringify({ name, basePrice: basePrice.toFixed(2), maxGuests: 2, description: "" })
     });
     disableWhileBusy(false);
     if (!res.ok){ setStatus("Create failed ("+res.status+")","error"); return; }
