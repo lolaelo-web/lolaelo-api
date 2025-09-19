@@ -202,18 +202,20 @@
           <button id="apply-inv" class="secondary btn btn-secondary-outline" title="Applies immediately (auto-saves)">Apply Inventory</button>
         </div>
         <div class="group price-group">
-          <label>Price</label>
-          <input id="price" class="input" placeholder="149.00" inputmode="decimal" maxlength="8" />
-          <button id="apply-price" class="secondary btn btn-secondary-outline" title="Applies immediately (auto-saves)">Apply Price</button>
-        </div>
-        <div class="rate-plan-selector">
-          <label for="ratePlanSelect">Rate plan</label>
-          <select id="ratePlanSelect" class="input">
-            <option value="1">Standard (1)</option>
-          </select>
-        </div>
-        <button id="copy-link" class="secondary btn btn-secondary-outline" type="button" title="Copy the current link with room, date range, and plan">Copy Link</button>
+          <div class="price-field">
+            <label>Price</label>
+            <input id="price" class="input" placeholder="149.00" inputmode="decimal" maxlength="8" />
+          </div>
 
+          <div class="rate-plan-selector">
+            <label for="ratePlanSelect">Rate plan</label>
+            <select id="ratePlanSelect" class="input">
+              <option value="1">Standard (1)</option>
+            </select>
+          </div>
+
+          <button id="copy-link" class="secondary btn btn-secondary-outline" type="button" title="Copy the current link with room, date range, and plan">Copy link</button>
+          <button id="apply-price" class="secondary btn btn-secondary-outline" title="Applies immediately (auto-saves)">Apply Price</button>
       </div>
 
       <div class="calendar">
