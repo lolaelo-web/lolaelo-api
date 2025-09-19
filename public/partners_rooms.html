@@ -39,7 +39,7 @@
     .list{ flex:1; overflow:auto; padding:8px; }
     .room{ padding:10px; border:1px solid var(--border); border-radius:10px; background:var(--panel-2);
       margin-bottom:8px; display:flex; justify-content:space-between; align-items:center; cursor:pointer; }
-    .room.active{ outline:2px solid var(--accent); }
+    .room.active{ outline:2px solid var(--brand); } /* changed from var(--accent) to var(--brand) */
     .room .name{ font-weight:600; }
     .room .meta{ color:var(--muted); font-size:12px; }
     .room .actions{ display:flex; gap:6px; }
@@ -88,6 +88,14 @@
     code.k{ background:var(--chip); padding:2px 6px; border-radius:6px; }
     .disabled{ opacity:.6; pointer-events:none; }
 
+    /* ANCHOR: TOAST_CSS */
+    .toast-wrap{ position:fixed; right:16px; bottom:16px; display:flex; flex-direction:column; gap:8px; z-index:9999; }
+    .toast{ background:var(--panel-2); border:1px solid var(--border); color:var(--text); padding:10px 12px; border-radius:10px; box-shadow:0 8px 20px rgba(0,0,0,.35); opacity:0; transform:translateY(8px); transition:opacity .18s ease, transform .18s ease; font-size:13px; }
+    .toast.in{ opacity:1; transform:translateY(0); }
+    .toast.ok{ border-color:rgba(46,204,113,.45); }
+    .toast.warn{ border-color:rgba(243,156,18,.6); }
+    .toast.error{ border-color:rgba(231,76,60,.6); }
+
     /* Let shared .btn control background; ensure white text */
     #save{ color:#fff; }
     #save:disabled{ opacity:.6; cursor:not-allowed; }
@@ -128,7 +136,9 @@
           <option value="1">Standard (1)</option>
         </select>
       </div>
+
       <!-- RATE_PLAN_FILTER END -->
+      <button id="copy-link" class="secondary btn btn-secondary-outline" type="button" title="Copy the current link with room, date range, and plan">Copy link</button>
       <span id="status" class="note">Ready.</span>
       <span id="dirty-count" class="note">No changes</span>
       <button id="save" class="btn" disabled>Save changes</button>
@@ -326,6 +336,8 @@
     }catch(_){}
   }
 
+  window.updateURLFromState = updateURLFromState;
+
   (function ensureToken(){
     const hashToken = new URLSearchParams(location.hash.slice(1)).get('token');
     if (hashToken) localStorage.setItem('partnerToken', hashToken);
@@ -409,6 +421,53 @@
   }
 
   function setStatus(msg, cls=""){ status.className="note "+cls; status.textContent=msg; }
+  /* ANCHOR: TOAST_HELPER */
+  function toast(msg, kind='ok', ms=2500){
+    try{
+      let wrap = document.getElementById('toasts');
+      if (!wrap){
+        wrap = document.createElement('div');
+        wrap.id = 'toasts';
+        wrap.style.position='fixed';
+        wrap.style.right='16px';
+        wrap.style.bottom='16px';
+        wrap.style.display='flex';
+        wrap.style.flexDirection='column';
+        wrap.style.gap='8px';
+        wrap.style.zIndex='9999';
+        document.body.appendChild(wrap);
+      }
+      const css = getComputedStyle(document.documentElement);
+      const panel2 = css.getPropertyValue('--panel-2').trim() || '#161b28';
+      const border = css.getPropertyValue('--border').trim() || '#222a3a';
+      const text   = css.getPropertyValue('--text').trim()   || '#e7ecf3';
+
+      const n = document.createElement('div');
+      n.textContent = String(msg);
+      n.setAttribute('role','status');
+      n.style.background = panel2;
+      n.style.border = '1px solid ' + border;
+      n.style.color = text;
+      n.style.padding = '10px 12px';
+      n.style.borderRadius = '10px';
+      n.style.boxShadow = '0 8px 20px rgba(0,0,0,.35)';
+      n.style.fontSize = '13px';
+      n.style.opacity = '0';
+      n.style.transform = 'translateY(8px)';
+      n.style.transition = 'opacity .18s ease, transform .18s ease';
+
+      if (kind==='error') n.style.borderColor = 'rgba(231,76,60,.6)';
+      else if (kind==='warn') n.style.borderColor = 'rgba(243,156,18,.6)';
+      else if (kind==='ok') n.style.borderColor = 'rgba(46,204,113,.45)';
+
+      wrap.appendChild(n);
+      requestAnimationFrame(()=>{ n.style.opacity='1'; n.style.transform='translateY(0)'; });
+      setTimeout(()=>{
+        n.style.opacity='0'; n.style.transform='translateY(8px)';
+        setTimeout(()=> n.remove(), 200);
+      }, ms);
+    }catch(_){}
+  }
   function disableWhileBusy(flag){
     busy=!!flag;
     document.querySelectorAll("button, input").forEach(x=>{
@@ -660,6 +719,7 @@
 
     if (!(invRes?.ok) || !(prcRes?.ok)){
       setStatus(`Loaded with partial data (${invRes?.status ?? "ERR"}/${prcRes?.status ?? "ERR"})`, "warn");
+      toast('Loaded with partial data', 'warn');
     }
 
     const invByDate = new Map(invRows.map(r => [String(r.date).slice(0,10), r]));
@@ -855,9 +915,10 @@
     disableWhileBusy(true);
     const res=await authFetch(`/extranet/property/rooms/${currentRoomTypeId}/inventory/bulk`,{ method:"POST", body:JSON.stringify({items}) });
     disableWhileBusy(false);
-    if (!res.ok) return setStatus("Inventory apply failed ("+res.status+")","error");
+    if (!res.ok){ setStatus("Inventory apply failed ("+res.status+")","error"); toast('Inventory apply failed', 'error'); return; }
     const js=await res.json();
     setStatus(`Inventory applied to ${js.upserted ?? js.count ?? items.length} day(s) — saved automatically; no need to click “Save changes”.`,"ok");
+    toast('Inventory applied (auto-saved)', 'ok');
     await renderCalendar();
   });
 
@@ -877,9 +938,10 @@
     disableWhileBusy(true);
     const res=await authFetch(`/extranet/property/rooms/${currentRoomTypeId}/prices/bulk`,{ method:"POST", body:JSON.stringify({items}) });
     disableWhileBusy(false);
-    if (!res.ok) return setStatus("Price apply failed ("+res.status+")","error");
+    if (!res.ok){ setStatus("Price apply failed ("+res.status+")","error"); toast('Price apply failed', 'error'); return; }
     const js=await res.json();
     setStatus(`Prices applied to ${js.upserted ?? js.count ?? items.length} day(s) — saved automatically; no need to click “Save changes”.`,"ok");
+    toast('Prices applied (auto-saved)', 'ok');
     await renderCalendar();
   });
 
@@ -945,9 +1007,11 @@
       await loadRooms();
       if (currentRoomTypeId) await renderCalendar();
       setStatus("Saved.","ok");
+      toast('All changes saved', 'ok');
     } catch (e) {
       console.error(e);
       setStatus(String(e.message || "Save error"), "error");
+      toast('Save failed', 'error');
     } finally {
       disableWhileBusy(false);
     }
@@ -974,6 +1038,21 @@
     }
     if (e.key === 'Escape') {
       if (discardBtn && !discardBtn.disabled && !busy) discardBtn.click();
+    }
+  });
+
+  // ANCHOR: COPY_LINK_BTN
+  el('copy-link')?.addEventListener('click', async () => {
+    const url = location.href;
+    try {
+      await navigator.clipboard.writeText(url);
+      toast('Link copied to clipboard', 'ok');
+    } catch(_) {
+      // Fallback for older browsers
+      const ta = document.createElement('textarea');
+      ta.value = url; document.body.appendChild(ta);
+      ta.select(); document.execCommand('copy'); ta.remove();
+      toast('Link copied to clipboard', 'ok');
     }
   });
 
@@ -1007,8 +1086,8 @@
     }
     if (qStart && qEnd) {
       // trust valid yyyy-mm-dd only
-      const dOk = /^\d{4}-\d{2}-\d{2}$/.test(qStart) && /^\d{4}-\d{2}-\d{2}$/.test(qEnd);
-      if (dOk) { ctx.start = qStart; ctx.end = qEnd; }
+      const dOk = /^\d{4}-\d{2}-\d{2}$/.test(qStart) && /^\d{4}-\d{2}-\d2$/.test(qEnd) ? true : /^\d{4}-\d{2}-\d{2}$/.test(qEnd);
+      if (/^\d{4}-\d{2}-\d{2}$/.test(qStart) && /^\d{4}-\d{2}-\d{2}$/.test(qEnd)) { ctx.start = qStart; ctx.end = qEnd; }
     }
     if (qPlan) {
       const pn = Number(qPlan);
@@ -1067,10 +1146,12 @@
   const addDaysISO=(isoStr,n)=>{ const d=new Date(isoStr+"T00:00:00Z"); d.setDate(d.getDate()+n); return iso(d); };
   const setLabel=(sISO)=>{ const lbl=document.getElementById('month-label'); if(lbl) lbl.textContent=new Date(sISO+'T00:00:00Z').toLocaleString(undefined,{month:'short',year:'numeric'}); };
   const setWindow=(sISO,doRender=true)=>{
-    const eISO=addDaysISO(sISO,21-1), rs=document.getElementById('range-start'), re=document.getElementById('range-end');
+  const eISO=addDaysISO(sISO,21-1), rs=document.getElementById('range-start'), re=document.getElementById('range-end');
     if (rs&&re){ rs.value=sISO; re.value=eISO; }
     window.currentRangeStart=sISO; window.currentRangeEnd=eISO; window.currentAnchor=new Date(sISO+'T00:00:00Z');
-    setLabel(sISO); if (doRender && typeof window.renderCalendar==='function') window.renderCalendar();
+    setLabel(sISO);
+    if (typeof window.updateURLFromState==='function') window.updateURLFromState();
+    if (doRender && typeof window.renderCalendar==='function') window.renderCalendar();
   };
   const prev=document.getElementById('month-prev'), next=document.getElementById('month-next'), todayBtn=document.getElementById('month-today'); if (!prev||!next){ console.warn('[MN-HARDFIX-LOCK] nav buttons missing'); return; }
   prev.onclick=null; next.onclick=null; if (todayBtn) todayBtn.onclick=null;
