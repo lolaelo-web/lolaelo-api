@@ -128,8 +128,31 @@
   .header-actions{ flex-wrap:wrap; }
   .header-actions .btn{ height:32px; padding:6px 10px; line-height:18px; }
 
-  /* Price row: keep items on one line when wide, wrap when narrow */
-  .controls .group.price-group{ display:flex; gap:10px; align-items:flex-start; flex-wrap:wrap; }
+  /* Price row: two aligned columns (Price | Rate plan) + actions */
+  .controls .group.price-group{
+    display:grid;
+    grid-template-columns: auto auto 1fr;
+    grid-template-areas:
+      "label  label   label"
+      "price  plan    copy"
+      "apply  .       .";
+    column-gap:12px;
+    row-gap:10px;
+    align-items:end;
+  }
+  .controls .group.price-group > label{ grid-area:label; }
+
+  /* Price field: shorter width, 8-char visual */
+  #price{ grid-area:price; width:12ch; }
+
+  /* Rate plan column matches label style and lines up with Price */
+  .rate-plan-selector{ grid-area:plan; display:grid; grid-template-columns:1fr; gap:4px; align-self:end; }
+  .rate-plan-selector label{ color:var(--muted); font-size:12px; line-height:1; margin-left:2px; }
+  #ratePlanSelect{ min-width:220px; }
+
+  /* Actions placement */
+  #apply-price{ grid-area:apply; }
+  #copy-link{ grid-area:copy; justify-self:start; }
 
   </style>
 </head>
@@ -180,7 +203,7 @@
         </div>
         <div class="group price-group">
           <label>Price</label>
-          <input id="price" class="input" placeholder="149.00" />
+          <input id="price" class="input" placeholder="149.00" inputmode="decimal" maxlength="8" />
           <button id="apply-price" class="secondary btn btn-secondary-outline" title="Applies immediately (auto-saves)">Apply Price</button>
         </div>
         <div class="rate-plan-selector">
