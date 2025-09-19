@@ -21,7 +21,7 @@
       font:14px/1.4 system-ui,-apple-system,Segoe UI,Roboto,"Helvetica Neue",Arial; overflow:hidden; }
     header{ display:flex; gap:12px; align-items:center; padding:14px 18px; height:var(--header-h);
       border-bottom:1px solid var(--border); background:var(--panel); position:sticky; top:0; z-index:5; }
-    header h1{ font-size:16px; margin:0; letter-spacing:.2px; }
+    header h1{ font-size:16px; margin:0; letter-spacing:.2px; white-space:nowrap; }
     .spacer{ flex:1; }
     .header-actions{ display:flex; gap:8px; align-items:center; }
     .header-actions .note{ white-space:nowrap; }
@@ -119,26 +119,26 @@
     .muted{ color:var(--muted); font-size:12px; }
     .warn-msg{ color:var(--warn); font-size:12px; }
 
-    /* RATE_PLAN_FILTER */
-    .header-actions .rate-plan-selector { display:flex; align-items:center; gap:.5rem; margin-right:.5rem; }
-    .header-actions #ratePlanSelect { min-width:160px; }
+    /* RATE_PLAN_FILTER (moved under Price group) */
+    .rate-plan-selector{ display:flex; align-items:center; gap:.5rem; }
+    #ratePlanSelect{ min-width:160px; }
+
   </style>
+  /* Header actions: allow wrapping and reduce button height */
+  .header-actions{ flex-wrap:wrap; }
+  .header-actions .btn{ height:32px; padding:6px 10px; line-height:18px; }
+
+  /* Price row: keep items on one line when wide, wrap when narrow */
+  .controls .group.price-group{ display:flex; gap:6px; align-items:center; flex-wrap:wrap; }
+
 </head>
 <body>
   <header>
-    <h1>Rooms & Availability — Extranet</h1>
+    <h1>Rooms & Availability</h1>
     <div class="spacer"></div>
     <div class="header-actions"><!-- ANCHOR: HEADER_ACTIONS -->
-      <!-- RATE_PLAN_FILTER START -->
-      <div class="rate-plan-selector">
-        <label for="ratePlanSelect">Rate plan</label>
-        <select id="ratePlanSelect">
-          <option value="1">Standard (1)</option>
-        </select>
-      </div>
 
       <!-- RATE_PLAN_FILTER END -->
-      <button id="copy-link" class="secondary btn btn-secondary-outline" type="button" title="Copy the current link with room, date range, and plan">Copy link</button>
       <span id="status" class="note">Ready.</span>
       <span id="dirty-count" class="note">No changes</span>
       <button id="save" class="btn" disabled>Save changes</button>
@@ -177,11 +177,19 @@
           <span class="flag"><input type="checkbox" id="inv-closed" /> Closed</span>
           <button id="apply-inv" class="secondary btn btn-secondary-outline" title="Applies immediately (auto-saves)">Apply Inventory</button>
         </div>
-        <div class="group">
+        <div class="group price-group">
           <label>Price</label>
           <input id="price" class="input" placeholder="149.00" />
           <button id="apply-price" class="secondary btn btn-secondary-outline" title="Applies immediately (auto-saves)">Apply Price</button>
         </div>
+        <div class="rate-plan-selector">
+          <label for="ratePlanSelect">Rate plan</label>
+          <select id="ratePlanSelect" class="input">
+            <option value="1">Standard (1)</option>
+          </select>
+        </div>
+        <button id="copy-link" class="secondary btn btn-secondary-outline" type="button" title="Copy the current link with room, date range, and plan">Copy link</button>
+
       </div>
 
       <div class="calendar">
