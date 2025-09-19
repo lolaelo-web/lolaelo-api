@@ -308,7 +308,22 @@
     currentAnchor=new Date(s+"T00:00:00Z");
     currentRangeStart=s; currentRangeEnd=e;
     saveCtx();
-    if (rerender) void renderCalendar();
+      if (typeof updateURLFromState==='function') updateURLFromState();
+      if (rerender) void renderCalendar();
+  }
+
+  /* ANCHOR: DEEPLINK_HELPERS */
+  function updateURLFromState(mode='replace'){
+    try{
+      const qs = new URLSearchParams(location.search);
+      if (currentRoomTypeId != null) qs.set('room', String(currentRoomTypeId));
+      if (currentRangeStart) qs.set('start', currentRangeStart);
+      if (currentRangeEnd)   qs.set('end',   currentRangeEnd);
+      if (currentRatePlanId != null) qs.set('plan', String(currentRatePlanId));
+      const next = location.pathname + '?' + qs.toString() + location.hash;
+      if (mode === 'push') history.pushState(null, '', next);
+      else history.replaceState(null, '', next);
+    }catch(_){}
   }
 
   (function ensureToken(){
@@ -525,6 +540,7 @@
         if (e.target.closest("button")) return;
         currentRoomTypeId = rt.id;
         saveCtx();
+        updateURLFromState('push');
         if (dirty.clear) dirty.clear();
         await renderCalendar();
         await loadRooms();
@@ -592,6 +608,7 @@
       if (!validateRangeOrWarn()) return;
       currentRangeStart=el("range-start").value; currentRangeEnd=el("range-end").value;
       saveCtx();
+      updateURLFromState();
       await renderCalendar();
     });
   });
@@ -968,12 +985,36 @@
     ddl.addEventListener('change', async () => {
       currentRatePlanId = Number(ddl.value) || 1;
       saveCtx();
+      updateURLFromState();
       if (currentRoomTypeId) await renderCalendar(); // read-only refresh
     });
   }
 
   (async function init(){
   const ctx = loadCtx() || {};
+    // ANCHOR: DEEPLINK_QUERY_IN
+  try {
+    const qs = new URLSearchParams(location.search);
+    const qRoom  = qs.get('room');
+    const qStart = qs.get('start');
+    const qEnd   = qs.get('end');
+    const qPlan  = qs.get('plan');
+
+    if (qRoom) {
+      // numeric or string ids supported
+      const n = Number(qRoom);
+      ctx.roomId = Number.isFinite(n) ? n : qRoom;
+    }
+    if (qStart && qEnd) {
+      // trust valid yyyy-mm-dd only
+      const dOk = /^\d{4}-\d{2}-\d{2}$/.test(qStart) && /^\d{4}-\d{2}-\d{2}$/.test(qEnd);
+      if (dOk) { ctx.start = qStart; ctx.end = qEnd; }
+    }
+    if (qPlan) {
+      const pn = Number(qPlan);
+      ctx.ratePlanId = Number.isFinite(pn) ? pn : 1;
+    }
+  } catch(_){}
     if (ctx.start && ctx.end){
       currentRangeStart = ctx.start;
       currentRangeEnd   = ctx.end;
@@ -1014,6 +1055,7 @@
       const first = document.querySelector(".room");
       if (first){ first.click(); void renderCalendar(); }
     }
+    try { updateURLFromState(); } catch(_){}
   })();
 })(); /* end main IIFE */
 </script>
