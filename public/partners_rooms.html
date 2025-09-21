@@ -58,6 +58,9 @@
     .day{ background:var(--panel); border:1px solid var(--border); border-radius:10px; padding:8px; min-height:120px; display:flex; flex-direction:column; gap:6px; }
     .day .date{ font-weight:600; font-size:12px; color:var(--muted); }
 
+    /* Make horizontal scroll feel intentional in the calendar area */
+    .calendar{ overscroll-behavior: contain; }
+
     /* ANCHOR: CAL_LOADING_CSS */
     @keyframes spin { to { transform: rotate(360deg); } }
 
@@ -754,46 +757,95 @@
     });
   }
 
-  // Add Room
-  el("add-room").addEventListener("click", async ()=>{
-    const name=(prompt("Room type name (e.g., Deluxe Queen):")||"").trim();
-    if (!name){ setStatus("Name is required.","warn"); return; }
-    let p = prompt("Base price in USD (e.g., 129.00):") || "";
-    p = p.replace(/[^0-9.]/g,"");
-    const basePrice = Number(p);
-    if (!Number.isFinite(basePrice) || basePrice < 0){ setStatus("Enter a valid non-negative price.","error"); return; }
+    // Add Room
+    el("add-room").addEventListener("click", async ()=>{
+      const name=(prompt("Room type name (e.g., Deluxe Queen):")||"").trim();
+      if (!name){ setStatus("Name is required.","warn"); return; }
+      let p = prompt("Base price in USD (e.g., 129.00):") || "";
+      p = p.replace(/[^0-9.]/g,"");
+      const basePrice = Number(p);
+      if (!Number.isFinite(basePrice) || basePrice < 0){ setStatus("Enter a valid non-negative price.","error"); return; }
 
-    disableWhileBusy(true);
-    const res = await authFetch("/extranet/property/rooms", {
-      method:"POST",
-      body: JSON.stringify({ name, basePrice: basePrice.toFixed(2), maxGuests: 2, description: "" })
-    });
-    disableWhileBusy(false);
-    if (!res.ok){ setStatus("Create failed ("+res.status+")","error"); return; }
-    const created = await res.json();
-    currentRoomTypeId = created.id;
-    setStatus("Room created","ok");
-    await loadRooms();
-    await renderCalendar();
-  });
-
-  // Range defaults + listeners
-  function prepareRangeDefaults(){
-    const start=new Date(); const end=new Date(start); end.setMonth(end.getMonth()+6);
-    const s=iso(start), e=iso(end);
-    if (!el("range-start").value) el("range-start").value=s;
-    if (!el("range-end").value)   el("range-end").value=e;
-    currentRangeStart=el("range-start").value; currentRangeEnd=el("range-end").value;
-  }
-  ["range-start","range-end"].forEach(id=>{
-    el(id).addEventListener("change", async ()=>{
-      if (!validateRangeOrWarn()) return;
-      currentRangeStart=el("range-start").value; currentRangeEnd=el("range-end").value;
-      saveCtx();
-      updateURLFromState();
+      disableWhileBusy(true);
+      const res = await authFetch("/extranet/property/rooms", {
+        method:"POST",
+        body: JSON.stringify({ name, basePrice: basePrice.toFixed(2), maxGuests: 2, description: "" })
+      });
+      disableWhileBusy(false);
+      if (!res.ok){ setStatus("Create failed ("+res.status+")","error"); return; }
+      const created = await res.json();
+      currentRoomTypeId = created.id;
+      setStatus("Room created","ok");
+      await loadRooms();
       await renderCalendar();
     });
-  });
+
+    // Range defaults + listeners
+    function prepareRangeDefaults(){
+      const start=new Date(); const end=new Date(start); end.setMonth(end.getMonth()+6);
+      const s=iso(start), e=iso(end);
+      if (!el("range-start").value) el("range-start").value=s;
+      if (!el("range-end").value)   el("range-end").value=e;
+      currentRangeStart=el("range-start").value; currentRangeEnd=el("range-end").value;
+    }
+    ["range-start","range-end"].forEach(id=>{
+      el(id).addEventListener("change", async ()=>{
+        if (!validateRangeOrWarn()) return;
+        currentRangeStart=el("range-start").value; currentRangeEnd=el("range-end").value;
+        saveCtx();
+        updateURLFromState();
+        await renderCalendar();
+      });
+    });
+
+    // ANCHOR: RANGE_GUARD_CONSTRAINTS
+    (function guardRangePickers(){
+      const rs = el("range-start");
+      const re = el("range-end");
+      if (!rs || !re) return;
+
+      const ONE_DAY = 86400000;
+      const iso = (d)=>d.toISOString().slice(0,10);
+      const todayISO = ()=> iso(new Date());
+
+      // Set initial constraints
+      rs.min = todayISO();
+      // keep end's min in sync with start
+      const syncEndMin = ()=> { re.min = rs.value || todayISO(); };
+
+      function ensureWindow(){
+        // Keep ~3-week window if user collapses range
+        if (!rs.value) rs.value = todayISO();
+        if (!re.value || re.value < rs.value){
+          const s = new Date(rs.value+"T00:00:00Z");
+          const e = new Date(s.getTime() + (21-1)*ONE_DAY);
+          re.value = iso(e);
+        }
+      }
+
+      // On load/init
+      syncEndMin();
+      ensureWindow();
+
+      // When start changes: push end if needed, sync min
+      rs.addEventListener("change", ()=>{
+        syncEndMin();
+        if (!re.value || re.value < rs.value){
+          const s = new Date(rs.value+"T00:00:00Z");
+          const e = new Date(s.getTime() + (21-1)*ONE_DAY);
+          re.value = iso(e);
+        }
+      });
+
+      // When end changes: if end < start, snap back to ~3 weeks
+      re.addEventListener("change", ()=>{
+        if (re.value && rs.value && re.value < rs.value){
+          const s = new Date(rs.value+"T00:00:00Z");
+          const e = new Date(s.getTime() + (21-1)*ONE_DAY);
+          re.value = iso(e);
+        }
+      });
+    })();
 
     // ANCHOR: BULK_PRICE_VALIDATE
     (function wireBulkPriceValidation(){
@@ -969,20 +1021,7 @@
       });
     })();
 
-  /* ANCHOR: RATE_PLAN_WIRE */
-  function wireRatePlanSelector() {
-    const sel = document.getElementById('ratePlanSelect');
-    if (!sel) return;
-    sel.value = String(currentRatePlanId || 1);
-    sel.addEventListener('change', async () => {
-      currentRatePlanId = Number(sel.value) || 1;
-      saveCtx();                // persists into rooms_ctx_v1 (your CTX_HELPERS already handles this)
-      if (currentRoomTypeId) {  // soft refresh to reload prices with selected plan
-        await renderCalendar();
-      }
-    });
-  }
-  // ANCHOR: SCROLL_TO_DATE
+    // ANCHOR: SCROLL_TO_DATE
   function scrollToDate(isoDate){
     try{
       const card = document.getElementById(`day-${isoDate}`);
@@ -1016,6 +1055,30 @@
       });
     }catch(_){}
   }
+
+  // ANCHOR: CAL_WHEEL_HORIZONTAL
+  (function enableHorizontalWheel(){
+    const wrap = document.querySelector('.calendar');
+    if (!wrap) return;
+
+    wrap.addEventListener('wheel', (e) => {
+      // If the user holds Shift, let the browser do its default horizontal scroll.
+      if (e.shiftKey) return;
+
+      // Convert vertical wheel movement to horizontal scrolling.
+      // Only if there actually is horizontal overflow.
+      const canScrollX = wrap.scrollWidth > wrap.clientWidth;
+      if (!canScrollX) return;
+
+      // If vertical overflow exists and user is actively scrolling vertically inside the calendar,
+      // don't hijack it (rare for this layout, but safe).
+      const canScrollY = wrap.scrollHeight > wrap.clientHeight;
+      if (canScrollY && Math.abs(e.deltaY) < Math.abs(e.deltaX)) return;
+
+      e.preventDefault(); // we’re handling it
+      wrap.scrollLeft += (e.deltaY || e.deltaX);
+    }, { passive: false });
+  })();
 
   // Calendar render
   async function renderCalendar(){
@@ -1259,6 +1322,7 @@
     setStatus(`Inventory applied to ${js.upserted ?? js.count ?? items.length} day(s) — saved automatically; no need to click “Save changes”.`,"ok");
     toast('Inventory applied (auto-saved)', 'ok');
     await renderCalendar();
+    
     // Highlight affected dates
     flashDates(dates);
   });
@@ -1304,6 +1368,8 @@
     setStatus(`Prices applied to ${js.upserted ?? js.count ?? items.length} day(s) — saved automatically; no need to click “Save changes”.`,"ok");
     toast('Prices applied (auto-saved)', 'ok');
     await renderCalendar();
+    // Highlight affected dates
+    flashDates(dates);
   });
 
   // Save (grid edits)
@@ -1401,6 +1467,58 @@
       if (discardBtn && !discardBtn.disabled && !busy) discardBtn.click();
     }
   });
+
+  // ANCHOR: HOTKEYS_ALT_NAV
+  (function wireAltHotkeys(){
+    const prevBtn = document.getElementById('month-prev');
+    const nextBtn = document.getElementById('month-next');
+    const todayBtn = document.getElementById('month-today');
+    const priceEl = document.getElementById('price');
+    const invOpenEl = document.getElementById('inv-open');
+
+    window.addEventListener('keydown', (e)=>{
+      // Ignore when user is typing in a text input except our combos
+      const tag = (e.target && e.target.tagName) ? e.target.tagName.toLowerCase() : '';
+      const isTyping = (tag === 'input' || tag === 'textarea');
+
+      if (e.altKey && !e.ctrlKey && !e.metaKey) {
+        // Alt + ArrowLeft / ArrowRight — navigate weeks
+        if (e.key === 'ArrowLeft') {
+          e.preventDefault();
+          prevBtn?.click();
+          return;
+        }
+        if (e.key === 'ArrowRight') {
+          e.preventDefault();
+          nextBtn?.click();
+          return;
+        }
+        // Alt + T — Today
+        if (e.key.toLowerCase() === 't') {
+          e.preventDefault();
+          todayBtn?.click();
+          return;
+        }
+        // Alt + P — focus Price
+        if (e.key.toLowerCase() === 'p') {
+          e.preventDefault();
+          priceEl?.focus();
+          priceEl?.select?.();
+          return;
+        }
+        // Alt + I — focus Inventory roomsOpen
+        if (e.key.toLowerCase() === 'i') {
+          e.preventDefault();
+          invOpenEl?.focus();
+          invOpenEl?.select?.();
+          return;
+        }
+      }
+
+      // Prevent our nav combos from interfering when typing freely in inputs
+      if (isTyping) return;
+    });
+  })();
 
   // ANCHOR: BACK_GUARD_UNSAVED
   (function guardBackWhenDirty(){
