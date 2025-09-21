@@ -538,6 +538,16 @@
     el("dirty-count").textContent = (n || invalidCount) ? labelParts.join(" + ") : "No changes";
   }
 
+  // ANCHOR: DEBOUNCE_DIRTY_UI
+  // Debounce updateDirtyUI to avoid thrashing during rapid input
+  {
+    const _updateDirtyUI = updateDirtyUI;  // keep original
+    let t = null;
+    function debounced(){ clearTimeout(t); t = setTimeout(_updateDirtyUI, 50); }
+    // Replace the global reference so all existing calls are debounced
+    updateDirtyUI = debounced;
+  }
+
   /* ===== Rooms list & edit modal ===== */
   function openEditModal(rt){
     const m = el('edit-modal');
@@ -1122,10 +1132,13 @@
       ctx.roomId = Number.isFinite(n) ? n : qRoom;
     }
     if (qStart && qEnd) {
-      // trust valid yyyy-mm-dd only
-      const dOk = /^\d{4}-\d{2}-\d{2}$/.test(qStart) && /^\d{4}-\d{2}-\d2$/.test(qEnd) ? true : /^\d{4}-\d{2}-\d{2}$/.test(qEnd);
-      if (/^\d{4}-\d{2}-\d{2}$/.test(qStart) && /^\d{4}-\d{2}-\d{2}$/.test(qEnd)) { ctx.start = qStart; ctx.end = qEnd; }
+    // strict yyyy-mm-dd (zero-padded) validation
+    const isoRx = /^\d{4}-(0[1-9]|1[0-2])-(0[1-9]|[12]\d|3[01])$/;
+    if (isoRx.test(qStart) && isoRx.test(qEnd)) {
+      ctx.start = qStart;
+      ctx.end   = qEnd;
     }
+  }
     if (qPlan) {
       const pn = Number(qPlan);
       ctx.ratePlanId = Number.isFinite(pn) ? pn : 1;
