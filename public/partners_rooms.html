@@ -128,31 +128,34 @@
   .header-actions{ flex-wrap:wrap; }
   .header-actions .btn{ height:32px; padding:6px 10px; line-height:18px; }
 
-  /* Price row: two aligned columns (Price | Rate plan) + actions */
-  .controls .group.price-group{
-    display:grid;
-    grid-template-columns: auto auto 1fr;
-    grid-template-areas:
-      "label  label   label"
-      "price  plan    copy"
-      "apply  .       .";
-    column-gap:12px;
-    row-gap:10px;
-    align-items:end;
-  }
-  .controls .group.price-group > label{ grid-area:label; }
+  /* Price row: single row (Price | Rate plan | Copy), Apply under Price — always below Range/Inventory */
+.controls .group.price-group{
+  /* force this group to start on a new line under the first row */
+  flex: 1 0 100%;
+  width: 100%;
 
-  /* Price field: shorter width, 8-char visual */
-  #price{ grid-area:price; width:12ch; }
+  display:grid;
+  grid-template-columns: auto auto 1fr;
+  grid-template-areas:
+    "price  plan  copy"
+    "apply  .     .";
+  column-gap:12px;
+  row-gap:10px;
+  align-items:end;
+}
 
-  /* Rate plan column matches label style and lines up with Price */
-  .rate-plan-selector{ grid-area:plan; display:grid; grid-template-columns:1fr; gap:4px; align-self:end; }
-  .rate-plan-selector label{ color:var(--muted); font-size:12px; line-height:1; margin-left:2px; }
-  #ratePlanSelect{ min-width:220px; }
+/* Price block (label + input stacked), 8-char visual width */
+.price-field{ grid-area:price; display:grid; grid-template-rows:auto auto; gap:6px; }
+#price{ width:12ch; }
 
-  /* Actions placement */
-  #apply-price{ grid-area:apply; }
-  #copy-link{ grid-area:copy; justify-self:start; }
+/* Rate plan block (label + select stacked) */
+.rate-plan-selector{ grid-area:plan; display:grid; grid-template-rows:auto auto; gap:6px; align-self:end; min-width:220px; }
+.rate-plan-selector label{ color:var(--muted); font-size:12px; line-height:1; margin-left:2px; }
+#ratePlanSelect{ min-width:220px; }
+
+/* Actions placement */
+#copy-link{ grid-area:copy; justify-self:start; align-self:end; }
+#apply-price{ grid-area:apply; justify-self:start; }
 
   </style>
 </head>
@@ -215,12 +218,14 @@
           </div>
 
           <button id="copy-link" class="secondary btn btn-secondary-outline" type="button" title="Copy the current link with room, date range, and plan">Copy link</button>
-          <button id="apply-price" class="secondary btn btn-secondary-outline" title="Applies immediately (auto-saves)">Apply Price</button>
-      </div>
+            <button id="apply-price" class="secondary btn btn-secondary-outline" title="Applies immediately (auto-saves)">Apply Price</button>
+          </div>
+          </div> <!-- CLOSES .controls -->
 
-      <div class="calendar">
-        <div id="cal-grid" class="cal-grid"></div>
-      </div>
+          <div class="calendar">
+            <div id="cal-grid" class="cal-grid"></div>
+          </div>
+
     </section>
   </div>
 
