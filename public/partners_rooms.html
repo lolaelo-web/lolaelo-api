@@ -245,6 +245,9 @@
           <label>Range</label>
           <input type="date" id="range-start" class="input" />
           <input type="date" id="range-end" class="input" />
+          <button type="button" id="range-7"  class="secondary btn btn-secondary-outline">7d</button>
+          <button type="button" id="range-14" class="secondary btn btn-secondary-outline">14d</button>
+          <button type="button" id="range-21" class="secondary btn btn-secondary-outline">21d</button>
         </div>
         <div class="group">
           <label>Inventory</label>
@@ -716,7 +719,14 @@
     try { m.removeEventListener('keydown', onKey); } catch(_){}
     document.body.style.overflow = '';
   });
-  el('edit-modal').addEventListener('click', (e)=>{ if (e.target.id==='edit-modal') el('edit-modal').classList.remove('open'); });
+    el('edit-modal').addEventListener('click', (e)=>{
+    if (e.target.id==='edit-modal'){
+      const m = el('edit-modal');
+      m.classList.remove('open');
+      try { m.removeEventListener('keydown', onKey); } catch(_){}
+      document.body.style.overflow = '';
+    }
+  });
 
   async function loadRooms(){
     roomsList.innerHTML = "";
@@ -817,12 +827,13 @@
       currentRangeStart=el("range-start").value; currentRangeEnd=el("range-end").value;
     }
     ["range-start","range-end"].forEach(id=>{
-      el(id).addEventListener("change", async ()=>{
+      el(id).addEventListener("change", ()=>{
         if (!validateRangeOrWarn()) return;
-        currentRangeStart=el("range-start").value; currentRangeEnd=el("range-end").value;
+        currentRangeStart = el("range-start").value;
+        currentRangeEnd   = el("range-end").value;
         saveCtx();
         updateURLFromState();
-        await renderCalendar();
+        scheduleRender(220);
       });
     });
 
@@ -873,6 +884,43 @@
           re.value = iso(e);
         }
       });
+    })();
+
+    // ANCHOR: RANGE_QUICK_SELECTS
+    (function wireQuickRange(){
+      const rs = el("range-start");
+      const re = el("range-end");
+      const b7  = document.getElementById("range-7");
+      const b14 = document.getElementById("range-14");
+      const b21 = document.getElementById("range-21");
+      if (!rs || !re) return;
+
+      const ONE_DAY = 86400000;
+      const iso = (d)=>d.toISOString().slice(0,10);
+
+      function setRangeDays(days){
+        // start: current rs (or today if empty / past-guard bumps it)
+        if (!rs.value){
+          const t = new Date();
+          rs.value = iso(new Date(t.getFullYear(), t.getMonth(), t.getDate()));
+        }
+        // end: start + (days-1)
+        const s = new Date(rs.value + "T00:00:00Z");
+        const e = new Date(s.getTime() + (days-1)*ONE_DAY);
+        re.value = iso(e);
+
+        // sync state + URL + render (debounced if available)
+        currentRangeStart = rs.value;
+        currentRangeEnd   = re.value;
+        saveCtx();
+        updateURLFromState();
+        if (typeof scheduleRender === 'function') scheduleRender(120);
+        else if (typeof renderCalendar === 'function') renderCalendar();
+      }
+
+      b7?.addEventListener('click',  ()=> setRangeDays(7));
+      b14?.addEventListener('click', ()=> setRangeDays(14));
+      b21?.addEventListener('click', ()=> setRangeDays(21));
     })();
 
     // ANCHOR: BULK_PRICE_VALIDATE
@@ -1106,6 +1154,37 @@
       e.preventDefault(); // we’re handling it
       wrap.scrollLeft += (e.deltaY || e.deltaX);
     }, { passive: false });
+  })();
+
+  // ANCHOR: RENDER_DEBOUNCE
+  let _renderT = null;
+  function scheduleRender(delayMs = 220){
+    if (_renderT) clearTimeout(_renderT);
+    _renderT = setTimeout(async ()=>{
+      _renderT = null;
+      try { await renderCalendar(); } catch(_){}
+    }, delayMs);
+  }
+
+  // ANCHOR: BLOCK_WHEEL_ON_NUMBER
+  (function blockWheelOnNumberInputs(){
+    function stopWheel(e){
+      // Only block when the event target is the input itself
+      // or inside a .chip to avoid interfering elsewhere.
+      const t = e.target;
+      if (!(t instanceof HTMLElement)) return;
+      const isNum = t.matches('input[type="number"]');
+      const inChip = t.closest('.chip');
+      const isBulkInv = t.id === 'inv-open' || t.id === 'inv-minstay';
+      if (isNum && (inChip || isBulkInv)){
+        e.preventDefault();
+      }
+    }
+    // Delegate on the calendar + controls areas
+    const cal = document.querySelector('.calendar');
+    const ctrls = document.querySelector('.controls');
+    if (cal)   cal.addEventListener('wheel', stopWheel, { passive:false });
+    if (ctrls) ctrls.addEventListener('wheel', stopWheel, { passive:false });
   })();
 
   // Calendar render
@@ -1593,11 +1672,11 @@
     const ddl = document.getElementById('ratePlanSelect');
     if (!ddl) return;
     ddl.value = String(ctx?.ratePlanId ?? currentRatePlanId ?? 1);
-    ddl.addEventListener('change', async () => {
+    ddl.addEventListener('change', () => {
       currentRatePlanId = Number(ddl.value) || 1;
       saveCtx();
       updateURLFromState();
-      if (currentRoomTypeId) await renderCalendar(); // read-only refresh
+      if (currentRoomTypeId) scheduleRender(180);
     });
   }
 
