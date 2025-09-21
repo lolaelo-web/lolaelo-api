@@ -68,6 +68,9 @@
     .chip input[data-kind="minstay"]{ padding-right: 3.5ch; }
     .chip input.error{ outline:1px solid var(--err); }
 
+    /* Bulk Price input error state */
+    #price.error{ outline:1px solid var(--err); }
+
     .chip .money{ display:flex; justify-content:flex-end; align-items:center; gap:6px; }
     .chip .money .prefix{ color:var(--muted); font-weight:600; user-select:none; }
     .chip .money input{ flex:1 1 auto; width:auto; min-width:0; }
@@ -734,6 +737,39 @@
     });
   });
 
+    // ANCHOR: BULK_PRICE_VALIDATE
+    (function wireBulkPriceValidation(){
+      const priceEl = el("price");
+      if (!priceEl) return;
+
+      const moneyRx = /^(\d+)(\.\d{1,2})?$/;
+      function isValidMoney(v){
+        if (v === "") return true; // empty is neutral
+        if (!moneyRx.test(v)) return false;
+        const n = parseFloat(v);
+        return Number.isFinite(n) && n >= 0;
+      }
+      function formatMoney2(v){
+        const n = parseFloat(v);
+        return Number.isFinite(n) ? n.toFixed(2) : v;
+      }
+
+      priceEl.addEventListener("input", () => {
+        const v = priceEl.value.trim();
+        if (v === "") { priceEl.classList.remove("error"); return; }
+        priceEl.classList.toggle("error", !isValidMoney(v));
+      });
+
+      // On blur (Tab / click away), normalize to two decimals if valid
+      priceEl.addEventListener("blur", () => {
+        const v = priceEl.value.trim();
+        if (v !== "" && isValidMoney(v)){
+          priceEl.value = formatMoney2(v);
+          priceEl.classList.remove("error");
+        }
+      });
+    })();
+
   /* ANCHOR: RATE_PLAN_WIRE */
   function wireRatePlanSelector() {
     const sel = document.getElementById('ratePlanSelect');
@@ -984,23 +1020,43 @@
     await renderCalendar();
   });
 
-  // Bulk prices
+  // Bulk prices (validates & auto-formats)
   el("apply-price").addEventListener("click", async ()=>{
     if (!currentRoomTypeId) return setStatus("Select a room type.","error");
     if (!validateRangeOrWarn()) return;
-    const start=el("range-start").value, end=el("range-end").value;
-    const priceN=toNumber(el("price").value);
-    if (!Number.isFinite(priceN) || priceN<0) return setStatus("Enter a valid non-negative price","error");
 
+    const priceEl = el("price");
+    const raw = (priceEl?.value ?? "").trim();
+    const moneyRx = /^(\d+)(\.\d{1,2})?$/;
+
+    if (!raw || !moneyRx.test(raw) || parseFloat(raw) < 0){
+      if (priceEl) priceEl.classList.add("error");
+      return setStatus("Enter a valid non-negative price","error");
+    }
+
+    // Normalize to two decimals for both UI and payload
+    const priceFixed = parseFloat(raw).toFixed(2);
+    if (priceEl){ priceEl.value = priceFixed; priceEl.classList.remove("error"); }
+
+    const start=el("range-start").value, end=el("range-end").value;
     const ONE_DAY=86400000;
     const dates=[]; { const s=new Date(start+"T00:00:00Z"); const e=new Date(end+"T00:00:00Z");
       for(let d=new Date(s); d<=e; d=new Date(d.getTime()+ONE_DAY)) dates.push(iso(d)); }
-    const items=dates.map(d=>({date:d,price:priceN.toFixed(2),ratePlanId: currentRatePlanId}));
+    const items=dates.map(d=>({ date:d, price:priceFixed, ratePlanId: currentRatePlanId }));
 
     disableWhileBusy(true);
-    const res=await authFetch(`/extranet/property/rooms/${currentRoomTypeId}/prices/bulk`,{ method:"POST", body:JSON.stringify({items}) });
+    const res=await authFetch(`/extranet/property/rooms/${currentRoomTypeId}/prices/bulk`,{
+      method:"POST",
+      body:JSON.stringify({items})
+    });
     disableWhileBusy(false);
-    if (!res.ok){ setStatus("Price apply failed ("+res.status+")","error"); toast('Price apply failed', 'error'); return; }
+
+    if (!res.ok){
+      setStatus("Price apply failed ("+res.status+")","error");
+      toast('Price apply failed', 'error');
+      return;
+    }
+
     const js=await res.json();
     setStatus(`Prices applied to ${js.upserted ?? js.count ?? items.length} day(s) — saved automatically; no need to click “Save changes”.`,"ok");
     toast('Prices applied (auto-saved)', 'ok');
