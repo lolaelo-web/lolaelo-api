@@ -128,34 +128,32 @@
   .header-actions{ flex-wrap:wrap; }
   .header-actions .btn{ height:32px; padding:6px 10px; line-height:18px; }
 
-  /* Price row: single row (Price | Rate plan | Copy), Apply under Price — always below Range/Inventory */
-.controls .group.price-group{
-  /* force this group to start on a new line under the first row */
-  flex: 1 0 100%;
-  width: 100%;
+  /* Price row: Price | Apply | Rate plan | Copy — always below Range/Inventory */
+  .controls .group.price-group{
+    /* force its own line below Range/Inventory */
+    flex: 1 0 100%;
+    width: 100%;
 
-  display:grid;
-  grid-template-columns: auto auto 1fr;
-  grid-template-areas:
-    "price  plan  copy"
-    "apply  .     .";
-  column-gap:12px;
-  row-gap:10px;
-  align-items:end;
-}
+    display:grid;
+    grid-template-columns: auto auto auto 1fr;
+    grid-template-areas: "price apply plan copy";
+    column-gap:12px;
+    row-gap:10px;
+    align-items:end;
+  }
 
-/* Price block (label + input stacked), 8-char visual width */
-.price-field{ grid-area:price; display:grid; grid-template-rows:auto auto; gap:6px; }
-#price{ width:12ch; }
+  /* Price block (label + input stacked), 8-char visual width */
+  .price-field{ grid-area:price; display:grid; grid-template-rows:auto auto; gap:6px; }
+  #price{ width:12ch; }
 
-/* Rate plan block (label + select stacked) */
-.rate-plan-selector{ grid-area:plan; display:grid; grid-template-rows:auto auto; gap:6px; align-self:end; min-width:220px; }
-.rate-plan-selector label{ color:var(--muted); font-size:12px; line-height:1; margin-left:2px; }
-#ratePlanSelect{ min-width:220px; }
+  /* Rate plan block (label + select stacked) */
+  .rate-plan-selector{ grid-area:plan; display:grid; grid-template-rows:auto auto; gap:6px; align-self:end; min-width:220px; }
+  .rate-plan-selector label{ color:var(--muted); font-size:12px; line-height:1; margin-left:2px; }
+  #ratePlanSelect{ min-width:220px; }
 
-/* Actions placement */
-#copy-link{ grid-area:copy; justify-self:start; align-self:end; }
-#apply-price{ grid-area:apply; justify-self:start; }
+  /* Actions placement */
+  #apply-price{ grid-area:apply; justify-self:start; align-self:end; }
+  #copy-link{ grid-area:copy;  justify-self:start; align-self:end; }
 
   </style>
 </head>
