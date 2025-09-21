@@ -645,6 +645,27 @@
     el('edit-warn').style.display = 'none';
     m.classList.add('open');
 
+    // Autofocus first field and prevent background scroll
+    try { el('edit-name')?.focus(); el('edit-name')?.select?.(); } catch(_){}
+    const prevOverflow = document.body.style.overflow;
+    document.body.style.overflow = 'hidden';
+
+    // Key handlers: Enter => OK, Esc => Cancel
+    const onKey = (ev) => {
+      if (ev.key === 'Escape') {
+        ev.preventDefault();
+        el('edit-cancel').click();
+      } else if (ev.key === 'Enter') {
+        // Save on Enter unless focused element is a button/select
+        const tag = (ev.target?.tagName || '').toLowerCase();
+        if (tag === 'input' || tag === 'textarea') {
+          ev.preventDefault();
+          el('edit-save').click();
+        }
+      }
+    };
+    m.addEventListener('keydown', onKey);
+
     const onSave = async () => {
       const nameVal   = el('edit-name').value.trim();
       const baseVal   = el('edit-base').value.trim();
@@ -682,12 +703,19 @@
       setStatus("Room changes queued — click Save changes to apply.", "warn");
       m.classList.remove('open');
       el('edit-save').removeEventListener('click', onSave);
+      m.removeEventListener('keydown', onKey);
+      document.body.style.overflow = prevOverflow;
     };
 
     el('edit-save').addEventListener('click', onSave, { once:true });
   }
 
-  el('edit-cancel').addEventListener('click', ()=>el('edit-modal').classList.remove('open'));
+  el('edit-cancel').addEventListener('click', ()=>{
+    const m = el('edit-modal');
+    m.classList.remove('open');
+    try { m.removeEventListener('keydown', onKey); } catch(_){}
+    document.body.style.overflow = '';
+  });
   el('edit-modal').addEventListener('click', (e)=>{ if (e.target.id==='edit-modal') el('edit-modal').classList.remove('open'); });
 
   async function loadRooms(){
