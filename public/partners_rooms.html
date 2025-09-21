@@ -1248,16 +1248,42 @@
       e.preventDefault();
       e.stopImmediatePropagation();
 
-      if (k === 'ArrowLeft' || (k === 'Enter' && e.shiftKey)){
+      if (k === 'ArrowLeft'){
         commitCurrent();
         const prev = nextDate(dateISO, -1);
         focusCell(prev, kind);
         return;
       }
-      if (k === 'ArrowRight' || k === 'Enter'){
+      if (k === 'ArrowRight'){
         commitCurrent();
         const next = nextDate(dateISO, +1);
         focusCell(next, kind);
+        return;
+      }
+      // Enter = move DOWN within same day; Shift+Enter = move UP
+      if (k === 'Enter' && e.shiftKey){
+        // Move UP within the day (no toggle on closed)
+        if (kind !== 'closed') commitCurrent();
+        const idx = KIND_ORDER.indexOf(kind);
+        const upKind = KIND_ORDER[Math.max(0, idx - 1)];
+        if (upKind !== kind) focusCell(dateISO, upKind);
+        return;
+      }
+
+      if (k === 'Enter'){
+        if (kind === 'closed'){
+          // Toggle checkbox and STAY on the same cell (Space also toggles natively)
+          if (chipInput.type === 'checkbox') {
+            chipInput.checked = !chipInput.checked;
+            chipInput.dispatchEvent(new Event('change', { bubbles: false }));
+          }
+          return;
+        }
+        // Commit then move DOWN within the same day
+        commitCurrent();
+        const idx = KIND_ORDER.indexOf(kind);
+        const downKind = KIND_ORDER[Math.min(KIND_ORDER.length - 1, idx + 1)];
+        if (downKind !== kind) focusCell(dateISO, downKind);
         return;
       }
       if (k === 'ArrowUp'){
