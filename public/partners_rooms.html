@@ -104,14 +104,14 @@
     .chip .tag{ color:var(--muted); font-size:11px; }
     .chip input{ width:100%; text-align:right; background:transparent; border:0; color:var(--text);
       padding:4px 0; outline:none; font-variant-numeric:tabular-nums; overflow:hidden; text-overflow:clip; white-space:nowrap; min-width:0; }
-    .chip input[data-kind="open"]{    padding-right: 2.5ch; }
+    .chip input[data-kind="open"]{    padding-right: 0.25ch; }
     .chip input[data-kind="price"]{   padding-right: 0; }
-    .chip input[data-kind="minstay"]{ padding-right: 3.5ch; }
+    .chip input[data-kind="minstay"]{ padding-right: 0.25ch; }
     /* ANCHOR: INV_CELL_WIDTH_5CH */
     .chip input[data-kind="open"],
     .chip input[data-kind="minstay"]{
-      width: 5ch;            /* cap visual width to ~5 digits */
-      padding-right: 0.5ch;  /* override earlier padding so 5ch stays usable */
+      width: 5.5ch;          /* ~5 digits visible with small breathing room */
+      padding-left: 0.25ch;  /* keep symmetric tiny padding */
     }
 
     /* bulk controls (top row) */
@@ -208,6 +208,14 @@
     .controls .group.inventory-group{
       flex: 1 0 100%;
       width: 100%;
+    }
+    /* ANCHOR: INV_BULK_WIDTH_5CH */
+    #inv-open,
+    #inv-minstay{
+      box-sizing: border-box;      /* explicit; global * is already border-box */
+      padding-left: 4px !important;
+      padding-right: 4px !important;  /* override theme padding if needed */
+      width: calc(5ch + 8px);      /* ≈ 5ch content + 4px L/R padding */
     }
 
   /* Price block (label + input stacked), 8-char visual width */
