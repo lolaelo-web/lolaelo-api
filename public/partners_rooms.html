@@ -103,6 +103,9 @@
     #save{ color:#fff; }
     #save:disabled{ opacity:.6; cursor:not-allowed; }
 
+    #apply-price:disabled,
+    #apply-inv:disabled{ opacity:.6; cursor:not-allowed; }
+
     .month-nav{ display:flex; align-items:center; gap:8px; padding:10px; border-bottom:1px solid var(--border); background:var(--panel); }
     .month-nav .nav-btn{ border:1px solid var(--border); background:var(--chip); padding:.25rem .5rem; border-radius:.5rem; line-height:1.2; cursor:pointer; color:var(--text); }
     .month-nav .nav-btn:hover{ filter:brightness(1.05); }
@@ -768,6 +771,67 @@
           priceEl.classList.remove("error");
         }
       });
+    })();
+
+    // ANCHOR: APPLY_BTNS_STATE
+    (function wireApplyButtonsState(){
+      const priceEl = el("price");
+      const invOpenEl = el("inv-open");
+      const minStayEl = el("inv-minstay");
+      const closedEl = el("inv-closed");
+      const applyPriceBtn = el("apply-price");
+      const applyInvBtn = el("apply-inv");
+
+      const moneyRx = /^(\d+)(\.\d{1,2})?$/;
+
+      function validPrice(){
+        const v = (priceEl?.value ?? "").trim();
+        if (v === "") return false;
+        if (!moneyRx.test(v)) return false;
+        const n = parseFloat(v);
+        return Number.isFinite(n) && n >= 0;
+      }
+      function validInventory(){
+        const ro = (invOpenEl?.value ?? "").trim();
+        const ms = (minStayEl?.value ?? "").trim();
+        // roomsOpen: required, integer >=0
+        if (ro === "") return false;
+        const roN = Number(ro);
+        if (!Number.isFinite(roN) || roN < 0) return false;
+        // minStay: optional, but if present must be integer >=1
+        if (ms !== ""){
+          const msN = Number(ms);
+          if (!Number.isFinite(msN) || msN < 1) return false;
+        }
+        // closed checkbox is always okay
+        return true;
+      }
+      function rangeIsValid(){
+        const s = el("range-start")?.value, e = el("range-end")?.value;
+        return !!(s && e && e >= s);
+      }
+
+      function refresh(){
+        if (applyPriceBtn) applyPriceBtn.disabled = !(currentRoomTypeId && rangeIsValid() && validPrice());
+        if (applyInvBtn)   applyInvBtn.disabled   = !(currentRoomTypeId && rangeIsValid() && validInventory());
+      }
+
+      // Hook inputs that affect validity
+      ["range-start","range-end","price","inv-open","inv-minstay","inv-closed"].forEach(id=>{
+        const n = el(id);
+        if (n) ["input","change","blur"].forEach(ev=> n.addEventListener(ev, refresh));
+      });
+
+      // Also refresh after room selection and calendar renders
+      const _renderCalendar = window.renderCalendar;
+      window.renderCalendar = async function(){
+        const r = await _renderCalendar();
+        refresh();
+        return r;
+      };
+
+      // initial
+      refresh();
     })();
 
   /* ANCHOR: RATE_PLAN_WIRE */
