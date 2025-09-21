@@ -7,7 +7,7 @@
     },
     "scripts": {
         "migrate:deploy": "prisma migrate deploy",
-        "postinstall": "prisma generate && prisma migrate deploy",
+        "postinstall": "prisma generate",
         "prestart": "prisma generate",
         "dev": "tsx watch src/server.ts",
         "build": "prisma generate && tsc",
