@@ -58,6 +58,44 @@
     .day{ background:var(--panel); border:1px solid var(--border); border-radius:10px; padding:8px; min-height:120px; display:flex; flex-direction:column; gap:6px; }
     .day .date{ font-weight:600; font-size:12px; color:var(--muted); }
 
+    /* ANCHOR: CAL_LOADING_CSS */
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    .calendar.loading {
+      position: relative;
+    }
+
+    .calendar.loading::after {
+      content:"";
+      position:absolute;
+      inset:0;
+      background:rgba(0,0,0,.18);
+      border-radius:10px;
+    }
+
+    .calendar.loading::before {
+      content:"";
+      position:absolute;
+      top:50%; left:50%;
+      width:28px; height:28px;
+      margin:-14px 0 0 -14px;
+      border:3px solid rgba(255,255,255,.25);
+      border-top-color: var(--brand);
+      border-radius:50%;
+      animation: spin .8s linear infinite;
+      z-index:1;
+    }
+
+    /* ANCHOR: DAY_FLASH */
+    @keyframes dayFlash {
+      0%   { box-shadow: 0 0 0 0 rgba(79,140,255,.0); }
+      30%  { box-shadow: 0 0 0 4px rgba(79,140,255,.25); }
+      100% { box-shadow: 0 0 0 0 rgba(79,140,255,.0); }
+    }
+    .day.flash {
+      animation: dayFlash 1.2s ease-out 1;
+    }
+
     .chip{ background:var(--chip); border:1px solid var(--border); padding:6px 8px; border-radius:10px; font-size:12px;
       display:grid; grid-template-columns: 1fr minmax(64px, 90px); align-items:center; gap:8px; min-width:0; }
     .chip .tag{ color:var(--muted); font-size:11px; }
@@ -70,6 +108,10 @@
 
     /* Bulk Price input error state */
     #price.error{ outline:1px solid var(--err); }
+
+    /* Bulk Inventory input error state */
+    #inv-open.error,
+    #inv-minstay.error{ outline:1px solid var(--err); }
 
     .chip .money{ display:flex; justify-content:flex-end; align-items:center; gap:6px; }
     .chip .money .prefix{ color:var(--muted); font-weight:600; user-select:none; }
@@ -547,16 +589,29 @@
     const nGrid = dirty.size;
     const nRooms = pendingRoomUpdates.size;
     const invalidCount = document.querySelectorAll('.chip input.error').length;
-    const n = nGrid + nRooms;
-    const labelParts = [];
-    if (nGrid)  labelParts.push(`${nGrid} day${nGrid>1?'s':''} changed`);
-    if (nRooms) labelParts.push(`${nRooms} room edit${nRooms>1?'s':''}`);
-    if (invalidCount) labelParts.push(`${invalidCount} error${invalidCount>1?'s':''}`);
+    const totalChanges = nGrid + nRooms;
+
+    // Build counts string
+    const parts = [];
+    if (nGrid)  parts.push(`${nGrid} day${nGrid>1?'s':''} changed`);
+    if (nRooms) parts.push(`${nRooms} room edit${nRooms>1?'s':''}`);
+    if (invalidCount) parts.push(`${invalidCount} error${invalidCount>1?'s':''}`);
+
+    // Buttons
     const saveBtn = el("save");
     const discardBtn = el("discard");
-    if (saveBtn) saveBtn.disabled = (n===0) || busy || (invalidCount>0);
-    if (discardBtn) discardBtn.disabled = (n===0) || busy;
-    el("dirty-count").textContent = (n || invalidCount) ? labelParts.join(" + ") : "No changes";
+    if (saveBtn)   saveBtn.disabled   = (totalChanges===0) || busy || (invalidCount>0);
+    if (discardBtn) discardBtn.disabled = (totalChanges===0) || busy;
+
+    // Friendlier message with CTA, while keeping counts
+    let msg = "No changes";
+    if (invalidCount > 0){
+      msg = `Fix ${invalidCount} error${invalidCount>1?'s':''} to enable Save` + (totalChanges ? ` — ${parts.join(" + ")}` : "");
+    } else if (totalChanges > 0){
+      msg = `Unsaved: ${parts.join(" + ")} — click Save or Discard`;
+    }
+
+    el("dirty-count").textContent = msg;
   }
 
   // ANCHOR: DEBOUNCE_DIRTY_UI
@@ -773,6 +828,52 @@
       });
     })();
 
+    // ANCHOR: BULK_INVENTORY_VALIDATE
+    (function wireBulkInventoryValidation(){
+      const invOpenEl = document.getElementById("inv-open");
+      const minStayEl = document.getElementById("inv-minstay");
+
+      function validateRoomsOpen(){
+        if (!invOpenEl) return;
+        const v = invOpenEl.value.trim();
+        if (v === "") { invOpenEl.classList.add("error"); return false; } // required
+        const n = Number(v);
+        const ok = Number.isFinite(n) && n >= 0;
+        invOpenEl.classList.toggle("error", !ok);
+        return ok;
+      }
+
+      function validateMinStay(){
+        if (!minStayEl) return true;
+        const v = minStayEl.value.trim();
+        if (v === "") { minStayEl.classList.remove("error"); return true; } // optional
+        const n = Number(v);
+        const ok = Number.isFinite(n) && n >= 1;
+        minStayEl.classList.toggle("error", !ok);
+        return ok;
+      }
+
+      // Live validate while typing
+      if (invOpenEl) invOpenEl.addEventListener("input", validateRoomsOpen);
+      if (minStayEl) minStayEl.addEventListener("input", validateMinStay);
+
+      // Normalize on blur to integers
+      if (invOpenEl) invOpenEl.addEventListener("blur", ()=>{
+        if (!validateRoomsOpen()) return;
+        const n = Math.floor(Number(invOpenEl.value.trim()));
+        invOpenEl.value = String(n);
+        invOpenEl.classList.remove("error");
+      });
+      if (minStayEl) minStayEl.addEventListener("blur", ()=>{
+        if (!validateMinStay()) return;
+        const v = minStayEl.value.trim();
+        if (v === "") return; // optional
+        const n = Math.floor(Number(v));
+        minStayEl.value = String(n);
+        minStayEl.classList.remove("error");
+      });
+    })();
+
     // ANCHOR: APPLY_BTNS_STATE
     (function wireApplyButtonsState(){
       const priceEl = el("price");
@@ -834,6 +935,40 @@
       refresh();
     })();
 
+    // ANCHOR: APPLY_ON_ENTER
+    (function wireApplyOnEnter(){
+      const priceEl = document.getElementById("price");
+      const invOpenEl = document.getElementById("inv-open");
+      const invMinStayEl = document.getElementById("inv-minstay");
+      const applyPriceBtn = document.getElementById("apply-price");
+      const applyInvBtn = document.getElementById("apply-inv");
+
+      function maybeClick(btn){
+        if (btn && !btn.disabled) btn.click();
+      }
+
+      // Enter in Price -> Apply Price
+      if (priceEl){
+        priceEl.addEventListener("keydown", (e)=>{
+          if (e.key === "Enter"){
+            e.preventDefault();
+            maybeClick(applyPriceBtn);
+          }
+        });
+      }
+
+      // Enter in Inventory -> Apply Inventory
+      [invOpenEl, invMinStayEl].forEach(el=>{
+        if (!el) return;
+        el.addEventListener("keydown", (e)=>{
+          if (e.key === "Enter"){
+            e.preventDefault();
+            maybeClick(applyInvBtn);
+          }
+        });
+      });
+    })();
+
   /* ANCHOR: RATE_PLAN_WIRE */
   function wireRatePlanSelector() {
     const sel = document.getElementById('ratePlanSelect');
@@ -846,6 +981,40 @@
         await renderCalendar();
       }
     });
+  }
+  // ANCHOR: SCROLL_TO_DATE
+  function scrollToDate(isoDate){
+    try{
+      const card = document.getElementById(`day-${isoDate}`);
+      const wrap = document.querySelector('.calendar');
+      if (card && wrap){
+        card.scrollIntoView({ block: 'nearest', inline: 'start' });
+      }
+    }catch(_){}
+  }
+
+  // ANCHOR: CAL_LOADING_HELPERS
+  function setCalLoading(on){
+    try{
+      const wrap = document.querySelector('.calendar');
+      if (!wrap) return;
+      wrap.classList.toggle('loading', !!on);
+    }catch(_){}
+  }
+
+  // ANCHOR: FLASH_DATES_HELPER
+  function flashDates(dates){
+    try{
+      dates.forEach(d=>{
+        const el = document.getElementById(`day-${d}`);
+        if (!el) return;
+        el.classList.remove('flash'); // restart animation if already present
+        // force reflow to allow re-adding the class
+        void el.offsetWidth;
+        el.classList.add('flash');
+        setTimeout(()=> el.classList.remove('flash'), 1400);
+      });
+    }catch(_){}
   }
 
   // Calendar render
@@ -866,10 +1035,13 @@
     }
 
     disableWhileBusy(true);
+    setStatus("Loading calendar…", "");
+    setCalLoading(true);
     const [invRes, prcRes] = await Promise.all([
       fetchWithRetry(invUrl, {}, 2, 800),
       fetchWithRetry(prcUrl, {}, 2, 800)
     ]);
+    setCalLoading(false);
     disableWhileBusy(false);
 
     let invRows = []; let prcRows = [];
@@ -904,6 +1076,8 @@
 
       const card = document.createElement("div");
       card.className = "day";
+      card.id = `day-${d}`;            // allow scrolling to this date
+      card.setAttribute('data-date', d);
       card.innerHTML = `
         <div class="date">${d}</div>
 
@@ -1037,6 +1211,9 @@
       calGrid.appendChild(card);
     });
 
+    // Scroll to the first day in the current window (range start)
+    if (currentRangeStart) scrollToDate(currentRangeStart);
+
     updateDirtyUI();
     if (!status.className.includes("ok")) setStatus("Calendar ready.","");
   }
@@ -1082,6 +1259,8 @@
     setStatus(`Inventory applied to ${js.upserted ?? js.count ?? items.length} day(s) — saved automatically; no need to click “Save changes”.`,"ok");
     toast('Inventory applied (auto-saved)', 'ok');
     await renderCalendar();
+    // Highlight affected dates
+    flashDates(dates);
   });
 
   // Bulk prices (validates & auto-formats)
@@ -1222,6 +1401,31 @@
       if (discardBtn && !discardBtn.disabled && !busy) discardBtn.click();
     }
   });
+
+  // ANCHOR: BACK_GUARD_UNSAVED
+  (function guardBackWhenDirty(){
+    const backBtn = document.getElementById('back');
+    if (!backBtn) return;
+
+    backBtn.addEventListener('click', (e)=>{
+      const hasRoomEdits = pendingRoomUpdates.size > 0;
+      const hasGridEdits = dirty.size > 0;
+      const invalidCount = document.querySelectorAll('.chip input.error').length;
+
+      if (hasRoomEdits || hasGridEdits || invalidCount > 0){
+        e.preventDefault();
+        const msg = invalidCount > 0
+          ? `You have ${invalidCount} invalid field${invalidCount>1?'s':''}. Leave without fixing/saving?`
+          : `You have unsaved changes. Leave without saving?`;
+        if (confirm(msg)){
+          // proceed to menu
+          location.href = '/partners_app.html';
+        }
+        // else stay on page
+      }
+      // if nothing dirty, normal navigation continues via button's onclick
+    }, { capture:true });
+  })();
 
   // ANCHOR: COPY_LINK_BTN
   el('copy-link')?.addEventListener('click', async () => {
