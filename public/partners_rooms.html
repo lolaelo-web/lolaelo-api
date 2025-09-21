@@ -281,8 +281,8 @@
   let currentRoomTypeId = null;
   let currentRangeStart = null, currentRangeEnd = null;
 
-  // NEW: current rate plan id
-  let currentRatePlanId = 1;
+  // Reason/note for rate plan load outcome (used for UI messaging)
+  let lastRatePlanLoadNote = '';
 
   let busy = false;
   window.addEventListener('beforeunload', function(e){
@@ -428,19 +428,34 @@
 
   /* ANCHOR: RATE_PLAN_FETCH */
   async function fetchRatePlansSafe(){
-    // Try API; fallback to Standard (1)
+    lastRatePlanLoadNote = '';
     try{
       const r = await authFetch('/extranet/property/rateplans');
-      if (r && r.ok){
-        const arr = await r.json();
-        if (Array.isArray(arr) && arr.length){
-          return arr
-            .filter(p => p && p.id != null)
-            .map(p => ({ id: Number(p.id), name: String(p.name || p.code || `Plan ${p.id}`) }));
-        }
+      if (!r) {
+        lastRatePlanLoadNote = 'Network error loading rate plans — using Standard (1).';
+        return [{ id: 1, name: 'Standard (1)' }];
       }
-    }catch(_){}
-    return [{ id: 1, name: 'Standard (1)' }];
+      if (r.status === 401 || r.status === 403){
+        lastRatePlanLoadNote = 'Auth error loading rate plans — please sign in. Using Standard (1).';
+        return [{ id: 1, name: 'Standard (1)' }];
+      }
+      if (!r.ok){
+        lastRatePlanLoadNote = `Server error ${r.status} loading rate plans — using Standard (1).`;
+        return [{ id: 1, name: 'Standard (1)' }];
+      }
+      const arr = await r.json();
+      if (Array.isArray(arr) && arr.length){
+        return arr
+          .filter(p => p && p.id != null)
+          .map(p => ({ id: Number(p.id), name: String(p.name || p.code || `Plan ${p.id}`) }));
+      } else {
+        lastRatePlanLoadNote = 'No rate plans found — using Standard (1).';
+        return [{ id: 1, name: 'Standard (1)' }];
+      }
+    }catch(_){
+      lastRatePlanLoadNote = 'Unexpected error loading rate plans — using Standard (1).';
+      return [{ id: 1, name: 'Standard (1)' }];
+    }
   }
 
   function populateRatePlanDropdown(plans){
@@ -1164,15 +1179,11 @@
     const plans = await fetchRatePlansSafe();
     populateRatePlanDropdown(plans);
 
-    // If API returned none (or failed), we fallback to a single option.
-    // Make that clear to the user.
-    if (!plans || plans.length <= 1) {
+    // If fetch fell back or had issues, expose the reason
+    if (lastRatePlanLoadNote) {
       const sel = document.getElementById('ratePlanSelect');
-      if (sel) sel.title = 'Rate plan list unavailable; using Standard (1).';
-      setStatus('Rate plan list unavailable — defaulting to Standard (1).', 'warn');
-      if (localStorage.getItem('rooms_debug') === '1') {
-        console.debug('[rateplans] Fallback in effect. plans=', plans);
-      }
+      if (sel) sel.title = lastRatePlanLoadNote;
+      setStatus(lastRatePlanLoadNote, lastRatePlanLoadNote.includes('error') ? 'error' : 'warn');
     }
 
     wireRatePlanSelector({ ratePlanId: currentRatePlanId });
