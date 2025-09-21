@@ -481,8 +481,15 @@
   }
 
   /* ANCHOR: RATE_PLAN_FETCH */
+  const RATEPLANS_FETCH_ENABLED = false;  // set to true when /extranet/property/rateplans is live
   async function fetchRatePlansSafe(){
     lastRatePlanLoadNote = '';
+    // Hard short-circuit: avoid any network call (prevents 404 log noise)
+    if (!RATEPLANS_FETCH_ENABLED){
+      lastRatePlanLoadNote = 'Rate plans endpoint disabled — using Standard (1).';
+      return [{ id: 1, name: 'Standard (1)' }];
+    }
+
     try{
       const r = await authFetch('/extranet/property/rateplans');
       if (!r) {
@@ -1185,6 +1192,85 @@
     const ctrls = document.querySelector('.controls');
     if (cal)   cal.addEventListener('wheel', stopWheel, { passive:false });
     if (ctrls) ctrls.addEventListener('wheel', stopWheel, { passive:false });
+  })();
+
+  // ANCHOR: CAL_GRID_KB_NAV
+  (function wireCalendarKeyboardNav(){
+    const cal = document.getElementById('cal-grid');
+    if (!cal) return;
+
+    const KIND_ORDER = ['open','price','minstay','closed'];
+    const ONE_DAY_MS = 86400000;
+
+    function parseISO(s){ return new Date(s + 'T00:00:00Z'); }
+    function iso(d){ return d.toISOString().slice(0,10); }
+
+    function nextDate(isoStr, delta){
+      const d = parseISO(isoStr);
+      return iso(new Date(d.getTime() + delta*ONE_DAY_MS));
+    }
+
+    function focusCell(dateISO, kind){
+      const container = document.getElementById(`day-${dateISO}`);
+      if (!container) return false;
+      const sel = kind === 'price'
+        ? container.querySelector('.money input[data-kind="price"]')
+        : container.querySelector(`input[data-kind="${kind}"]`);
+      if (!sel) return false;
+      sel.focus();
+      sel.select?.();
+      return true;
+    }
+
+    cal.addEventListener('keydown', (e) => {
+      const t = e.target;
+      if (!(t instanceof HTMLElement)) return;
+      const chipInput = t.closest('.chip')?.querySelector('input,textarea');
+      if (!chipInput) return;
+
+      const kind = chipInput.getAttribute('data-kind'); // 'open' | 'price' | 'minstay' | 'closed'
+      const dateISO = chipInput.getAttribute('data-date');
+      if (!kind || !dateISO) return;
+
+      // Only act on arrow keys / Enter
+      const k = e.key;
+      if (!['ArrowLeft','ArrowRight','ArrowUp','ArrowDown','Enter'].includes(k)) return;
+
+      // Commit current field (trigger blur normalization) before moving
+      function commitCurrent(){
+        chipInput.dispatchEvent(new Event('blur', { bubbles:false }));
+      }
+
+      // Movement logic
+      if (k === 'ArrowLeft' || (k === 'Enter' && e.shiftKey)){
+        e.preventDefault();
+        commitCurrent();
+        const prev = nextDate(dateISO, -1);
+        focusCell(prev, kind);
+        return;
+      }
+      if (k === 'ArrowRight' || k === 'Enter'){
+        e.preventDefault();
+        commitCurrent();
+        const next = nextDate(dateISO, +1);
+        focusCell(next, kind);
+        return;
+      }
+      if (k === 'ArrowUp'){
+        e.preventDefault();
+        const idx = KIND_ORDER.indexOf(kind);
+        const upKind = KIND_ORDER[Math.max(0, idx - 1)];
+        if (upKind !== kind) focusCell(dateISO, upKind);
+        return;
+      }
+      if (k === 'ArrowDown'){
+        e.preventDefault();
+        const idx = KIND_ORDER.indexOf(kind);
+        const downKind = KIND_ORDER[Math.min(KIND_ORDER.length - 1, idx + 1)];
+        if (downKind !== kind) focusCell(dateISO, downKind);
+        return;
+      }
+    });
   })();
 
   // Calendar render
