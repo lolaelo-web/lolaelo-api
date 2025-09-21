@@ -184,7 +184,7 @@
     /* force its own line below Range/Inventory */
     flex: 1 0 100%;
     width: 100%;
-
+    
     display:grid;
     grid-template-columns: auto auto auto 1fr;
     grid-template-areas: "price apply plan copy";
@@ -192,6 +192,11 @@
     row-gap:10px;
     align-items:end;
   }
+    /* Inventory row: its own line below Range, above Price */
+    .controls .group.inventory-group{
+      flex: 1 0 100%;
+      width: 100%;
+    }
 
   /* Price block (label + input stacked), 8-char visual width */
   .price-field{ grid-area:price; display:grid; grid-template-rows:auto auto; gap:6px; }
@@ -249,7 +254,7 @@
           <button type="button" id="range-14" class="secondary btn btn-secondary-outline">14d</button>
           <button type="button" id="range-21" class="secondary btn btn-secondary-outline">21d</button>
         </div>
-        <div class="group">
+        <div class="group inventory-group">
           <label>Inventory</label>
           <input type="number" id="inv-open" class="input" min="0" placeholder="roomsOpen" />
           <input type="number" id="inv-minstay" class="input" min="1" placeholder="minStay" />
@@ -1211,14 +1216,13 @@
     }
 
     function focusCell(dateISO, kind){
-      const container = document.getElementById(`day-${dateISO}`);
+      const container = document.getElementById('day-' + dateISO);
       if (!container) return false;
-      const sel = kind === 'price'
+      const sel = (kind === 'price')
         ? container.querySelector('.money input[data-kind="price"]')
         : container.querySelector(`input[data-kind="${kind}"]`);
       if (!sel) return false;
-      sel.focus();
-      sel.select?.();
+      sel.focus(); sel.select?.();
       return true;
     }
 
@@ -1228,49 +1232,47 @@
       const chipInput = t.closest('.chip')?.querySelector('input,textarea');
       if (!chipInput) return;
 
-      const kind = chipInput.getAttribute('data-kind'); // 'open' | 'price' | 'minstay' | 'closed'
+      const kind = chipInput.getAttribute('data-kind');     // 'open' | 'price' | 'minstay' | 'closed'
       const dateISO = chipInput.getAttribute('data-date');
       if (!kind || !dateISO) return;
 
-      // Only act on arrow keys / Enter
       const k = e.key;
       if (!['ArrowLeft','ArrowRight','ArrowUp','ArrowDown','Enter'].includes(k)) return;
 
-      // Commit current field (trigger blur normalization) before moving
+      // Always commit current field before moving (ensures 2-decimals / int normalization)
       function commitCurrent(){
         chipInput.dispatchEvent(new Event('blur', { bubbles:false }));
       }
 
-      // Movement logic
+      // Prevent default page scroll / form submit and stop other handlers from double-processing
+      e.preventDefault();
+      e.stopImmediatePropagation();
+
       if (k === 'ArrowLeft' || (k === 'Enter' && e.shiftKey)){
-        e.preventDefault();
         commitCurrent();
         const prev = nextDate(dateISO, -1);
         focusCell(prev, kind);
         return;
       }
       if (k === 'ArrowRight' || k === 'Enter'){
-        e.preventDefault();
         commitCurrent();
         const next = nextDate(dateISO, +1);
         focusCell(next, kind);
         return;
       }
       if (k === 'ArrowUp'){
-        e.preventDefault();
         const idx = KIND_ORDER.indexOf(kind);
         const upKind = KIND_ORDER[Math.max(0, idx - 1)];
         if (upKind !== kind) focusCell(dateISO, upKind);
         return;
       }
       if (k === 'ArrowDown'){
-        e.preventDefault();
         const idx = KIND_ORDER.indexOf(kind);
         const downKind = KIND_ORDER[Math.min(KIND_ORDER.length - 1, idx + 1)];
         if (downKind !== kind) focusCell(dateISO, downKind);
         return;
       }
-    });
+    }, { capture:true });
   })();
 
   // Calendar render
