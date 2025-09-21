@@ -57,6 +57,19 @@
     .cal-grid{ display:grid; grid-auto-flow:column; grid-auto-columns:140px; gap:10px; }
     .day{ background:var(--panel); border:1px solid var(--border); border-radius:10px; padding:8px; min-height:120px; display:flex; flex-direction:column; gap:6px; }
     .day .date{ font-weight:600; font-size:12px; color:var(--muted); }
+    /* ANCHOR: WEEKEND_BADGE_CSS */
+    .day .date .we-badge{
+      display:inline-block;
+      background: var(--accent);
+      color: #fff;             /* per request */
+      font-weight:700;
+      font-size:10px;
+      line-height:14px;
+      padding:0 6px;
+      border-radius:6px;
+      margin-right:6px;
+      vertical-align:baseline;
+    }
 
     /* Make horizontal scroll feel intentional in the calendar area */
     .calendar{ overscroll-behavior: contain; }
@@ -287,6 +300,8 @@
             <input id="price" class="input" placeholder="149.00" inputmode="decimal" maxlength="8" />
           </div>
 
+          <button id="apply-price" class="secondary btn btn-secondary-outline" title="Applies immediately (auto-saves)">Apply Price</button>
+
           <div class="rate-plan-selector">
             <label for="ratePlanSelect">Rate plan</label>
             <select id="ratePlanSelect" class="input">
@@ -295,8 +310,7 @@
           </div>
 
           <button id="copy-link" class="secondary btn btn-secondary-outline" type="button" title="Copy the current link with room, date range, and plan">Copy link</button>
-            <button id="apply-price" class="secondary btn btn-secondary-outline" title="Applies immediately (auto-saves)">Apply Price</button>
-          </div>
+        </div>
           </div> <!-- CLOSES .controls -->
 
           <div class="calendar">
@@ -1380,10 +1394,13 @@
 
       const card = document.createElement("div");
       card.className = "day";
-      card.id = `day-${d}`;            // allow scrolling to this date
+      card.id = `day-${d}`;         
       card.setAttribute('data-date', d);
+      /* INSERT — ANCHOR: WEEKEND_FLAG */
+      const _dow = new Date(d + "T00:00:00Z").getDay();
+      const isWE = (_dow === 0 || _dow === 6);
       card.innerHTML = `
-        <div class="date">${d}</div>
+        <div class="date">${isWE ? '<span class="we-badge" aria-label="Weekend">WE</span>' : ''} ${d}</div>
 
         <div class="chip" title="Rooms Open">
           <span class="tag">Open</span>
@@ -1512,6 +1529,19 @@
         });
       }
 
+      /* ANCHOR: CARD_FOCUS_TRACK */
+      (function wireCardFocusTrack(){
+        ['open','price','minstay','closed'].forEach(kind=>{
+          const input = card.querySelector(`input[data-kind="${kind}"]`);
+          if (!input) return;
+          input.addEventListener('focus', ()=>{
+            const dateISO = input.getAttribute('data-date');
+            if (!dateISO) return;
+            window.__lastCellFocus = { dateISO, kind };
+          });
+        });
+      })();
+
       calGrid.appendChild(card);
     });
 
@@ -1521,6 +1551,16 @@
     updateDirtyUI();
     if (!status.className.includes("ok")) setStatus("Calendar ready.","");
   }
+
+  /* ANCHOR: RESTORE_LAST_FOCUS */
+  (function refocusAfterRender(){
+    const last = window.__lastCellFocus;
+    if (!last) return;
+    const sel = (last.kind === 'price')
+      ? document.querySelector(`#day-${last.dateISO} .money input[data-kind="price"]`)
+      : document.querySelector(`#day-${last.dateISO} input[data-kind="${last.kind}"]`);
+    if (sel) { try { sel.focus(); sel.select?.(); } catch(_){} }
+  })();
 
   // expose for MN hardfix nav
   window.renderCalendar = renderCalendar;
