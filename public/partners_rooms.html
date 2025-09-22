@@ -76,6 +76,17 @@
       vertical-align:baseline;
     }
 
+    /* ANCHOR: DIRTY_BADGE_CSS */
+    .day.is-dirty .date::after{
+      content:"";
+      display:inline-block;
+      width:6px; height:6px;
+      margin-left:6px;
+      border-radius:50%;
+      background: var(--accent); /* subtle orange */
+      vertical-align:middle;
+    }
+
     /* Make horizontal scroll feel intentional in the calendar area */
     .calendar{ overscroll-behavior: contain; }
 
@@ -139,18 +150,15 @@
 
     #cal-grid .chip input[data-kind="open"]{
       text-align: center;
-
     }
 
     #cal-grid .chip .money input[data-kind="price"]{
       text-align: center;
       width: 8ch;                        /* keep a stable field width for centering */
-      transform: translateX(-2ch);       /* move ~2 characters left */
     }
 
     #cal-grid .chip input[data-kind="minstay"]{
       text-align: center;
-      transform: translateX(-7ch);      /* move ~7 characters left */
     }
 
     /* bulk controls (top row) */
@@ -653,6 +661,19 @@
       }, ms);
     }catch(_){}
   }
+
+    /* ANCHOR: DIRTY_BADGE_HELPER */
+    function updateDayDirtyBadge(dateISO){
+      const card = document.getElementById('day-' + dateISO);
+      if (!card) return;
+      const o = dirty.get(dateISO);
+      // “effective change” if any field is a number, boolean, or non-empty string
+      const hasAny = !!o && Object.values(o).some(v =>
+        typeof v === 'number' || typeof v === 'boolean' || (typeof v === 'string' && v !== '')
+      );
+      card.classList.toggle('is-dirty', hasAny);
+    }
+
   function disableWhileBusy(flag){
     busy=!!flag;
     document.querySelectorAll("button, input").forEach(x=>{
@@ -667,9 +688,21 @@
     const t=todayISO(); if (s<t){ setStatus("Start date must be today or later.","error"); return false; }
     return true;
   }
-
   const dirty = new Map();
-  function setDirty(date,kind,value){ if(!dirty.has(date)) dirty.set(date,{}); dirty.get(date)[kind]=value; updateDirtyUI(); }
+  function setDirty(date, kind, value){
+    if (!dirty.has(date)) dirty.set(date, {});
+    const o = dirty.get(date);
+    o[kind] = value;
+
+    // prune if no effective changes remain
+    const hasAny = Object.values(o).some(v =>
+      typeof v === 'number' || typeof v === 'boolean' || (typeof v === 'string' && v !== '')
+    );
+    if (!hasAny) dirty.delete(date);
+
+    updateDayDirtyBadge(date);
+    updateDirtyUI();
+  }
   function updateDirtyUI(){
     const nGrid = dirty.size;
     const nRooms = pendingRoomUpdates.size;
@@ -1471,6 +1504,9 @@
           <input type="checkbox" ${isClosed ? 'checked' : ''} data-date="${d}" data-kind="closed">
         </div>
       `;
+
+      // ANCHOR: DIRTY_BADGE_ON_RENDER
+      if (dirty.has(d)) card.classList.add('is-dirty');
 
       ['open','price','minstay','closed'].forEach(kind => {
         const input = card.querySelector(`input[data-kind="${kind}"]`);
