@@ -75,6 +75,8 @@ await tryMount("./routes/extranetRooms.js", "/extranet/property/rooms");
 await tryMount("./routes/extranetPms.js", "/extranet/pms");
 await tryMount("./routes/extranetUisMock.js", "/extranet/pms");
 await tryMount("./routes/extranetProperty.js", "/extranet/property"); 
+await tryMount("./routes/catalog.js", "/catalog");
+
 /* ANCHOR: MOCK_UIS_SEARCH (Siargao) */
 app.get("/mock/uis/search", async (req: Request, res: Response) => {
   try {
@@ -364,12 +366,32 @@ if (process.env.NODE_ENV !== "test") {
 }
 
 // ANCHOR: UIS_MOCK_SEARCH
-import * as HotelsData from "../data/siargao_hotels.js"; // path is from /routes -> /data
-const HOTELS =
-  HotelsData.HOTELS ??
-  (HotelsData as any).default?.HOTELS ??
-  (HotelsData as any).hotels ??
-  [];
+import * as HotelsData from "../data/siargao_hotels.js"; // path is: src -> data
+
+// Public mock search (extranet-only for now)
+app.get("/catalog/search", (req: Request, res: Response) => {
+  const start  = String(req.query.start || new Date().toISOString().slice(0, 10));
+  const end    = String(req.query.end   || start);
+  const guests = Math.max(1, parseInt(String(req.query.guests ?? "2"), 10));
+
+  const payload = HotelsData.searchAvailability({
+    start, end,
+    currency: HotelsData.CURRENCY,
+    ratePlanId: 1,
+  });
+
+  // Filter by guests using the single mock room per hotel
+  const filtered = {
+    ...payload,
+    properties: payload.properties.filter((p: any) => {
+      const h = HotelsData.HOTELS.find((x: any) => x.id === p.propertyId);
+      const max = h?.rooms?.[0]?.maxGuests ?? 1;
+      return max >= guests;
+    }),
+  };
+
+  res.json(filtered);
+});
 
 // ANCHOR:: CATALOG_SEARCH
 // Returns property-level cards (name, city, images, fromPrice, availability summary)

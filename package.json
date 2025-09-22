@@ -12,10 +12,11 @@
         "dev": "tsx watch src/server.ts",
         "build": "prisma generate && tsc",
         "start": "node dist/server.js",
+        "start:prod": "prisma migrate deploy && node dist/server.js",
         "db:push": "prisma db push",
         "db:studio": "prisma studio",
         "test": "jest --runInBand",
-        "start:prod": "prisma migrate deploy && node dist/server.js"
+        "dev:once": "npm run build && npm start"
     },
     "dependencies": {
         "@aws-sdk/client-s3": "^3.888.0",

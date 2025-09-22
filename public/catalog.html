@@ -1,0 +1,176 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <title>Search · Siargao Stays</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <style>
+    :root{
+      --bg:#0b0d12; --panel:#121621; --panel-2:#161b28; --text:#e7ecf3; --muted:#98a3b3;
+      --brand:#4f8cff; --accent:#ffb86b; --ok:#2ecc71; --warn:#f39c12; --err:#e74c3c;
+      --border:#222a3a; --chip:#1e2536; --header-h:56px;
+    }
+    *{ box-sizing: border-box; }
+    body{ margin:0; background:var(--bg); color:var(--text);
+      font:14px/1.4 system-ui,-apple-system,Segoe UI,Roboto,"Helvetica Neue",Arial; }
+
+    header{ display:flex; align-items:center; gap:12px; padding:14px 18px; height:var(--header-h);
+      border-bottom:1px solid var(--border); background:var(--panel); position:sticky; top:0; z-index:5; }
+    header h1{ font-size:16px; margin:0; letter-spacing:.2px; }
+    .spacer{ flex:1; }
+    .note{ color:var(--muted); font-size:12px; }
+
+    .controls{ display:flex; flex-wrap:wrap; gap:8px; padding:10px;
+      border-bottom:1px solid var(--border); background:var(--panel); align-items:center; }
+    .group{ display:flex; gap:6px; align-items:center; }
+    label{ color:var(--muted); font-size:12px; }
+    input, select, button{
+      background:var(--chip); border:1px solid var(--border); color:var(--text);
+      padding:8px 10px; border-radius:8px;
+    }
+    button{ background:var(--brand); cursor:pointer; }
+    button.secondary{ background:transparent; }
+
+    main{ padding:14px; background:var(--panel-2); min-height:calc(100vh - var(--header-h) - 72px); }
+    .grid{
+      display:grid;
+      grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+      gap:12px;
+    }
+    .card{
+      background:var(--panel); border:1px solid var(--border); border-radius:12px;
+      overflow:hidden; display:flex; flex-direction:column;
+    }
+    .card img{ width:100%; height:160px; object-fit:cover; display:block; }
+    .card .body{ padding:10px; display:grid; gap:6px; }
+    .title{ font-weight:600; }
+    .meta{ color:var(--muted); font-size:12px; }
+    .price{ font-weight:700; }
+    .badge{ display:inline-block; padding:2px 6px; border-radius:8px; font-size:11px; border:1px solid var(--border); background:var(--chip); color:var(--muted); }
+    .row{ display:flex; align-items:center; gap:8px; justify-content:space-between; }
+    .empty{ color:var(--muted); padding:24px; text-align:center; border:1px dashed var(--border); border-radius:12px; }
+  </style>
+</head>
+<body>
+  <header>
+    <h1>Siargao stays</h1>
+    <div class="spacer"></div>
+    <span id="status" class="note">Ready.</span>
+  </header>
+
+  <div class="controls">
+    <div class="group">
+      <label>Destination</label>
+      <input id="dest" value="Siargao" disabled title="Mock data is fixed to Siargao for now" />
+    </div>
+    <div class="group">
+      <label>Check-in</label>
+      <input type="date" id="start" />
+    </div>
+    <div class="group">
+      <label>Check-out</label>
+      <input type="date" id="end" />
+    </div>
+    <div class="group">
+      <label>Guests</label>
+      <input type="number" id="guests" min="1" value="2" />
+    </div>
+    <div class="group">
+      <button id="search" type="button">Search</button>
+    </div>
+  </div>
+
+  <main>
+    <div id="results" class="grid" aria-live="polite"></div>
+  </main>
+
+<script>
+(function(){
+  const status = document.getElementById('status');
+  const start = document.getElementById('start');
+  const end   = document.getElementById('end');
+  const guests= document.getElementById('guests');
+  const results = document.getElementById('results');
+
+  const todayISO = () => new Date().toISOString().slice(0,10);
+  const addDays = (iso, n) => {
+    const d = new Date(iso+"T00:00:00Z");
+    d.setUTCDate(d.getUTCDate()+n);
+    return d.toISOString().slice(0,10);
+  };
+
+  // Defaults: 3 nights
+  const s0 = todayISO();
+  start.value = start.value || s0;
+  end.value   = end.value   || addDays(s0, 3);
+
+  function setStatus(msg, cls){
+    status.textContent = msg;
+  }
+
+  function card(p){
+    const img = Array.isArray(p.images) && p.images[0] ? p.images[0] : "https://picsum.photos/seed/siargao/1280/720";
+    const price = p.fromPriceStr || "";
+    const avail = `${p.availableNights}/${p.nightsTotal} nights`;
+    const stars = "★".repeat(p.starRating || 0);
+    const am = (p.amenities||[]).slice(0,3).join(" · ");
+    return `
+      <article class="card">
+        <img src="${img}" alt="${p.name} photo">
+        <div class="body">
+          <div class="row">
+            <div class="title">${p.name}</div>
+            <span class="badge">${stars || "· · ·"}</span>
+          </div>
+          <div class="meta">${p.city}, ${p.country}</div>
+          <div class="meta">${am}</div>
+          <div class="row">
+            <div class="meta">${avail}</div>
+            <div class="price">${price}</div>
+          </div>
+          <div class="row">
+            <button class="secondary" disabled>View details (mock)</button>
+            <span class="meta">#${p.propertyId}</span>
+          </div>
+        </div>
+      </article>
+    `;
+  }
+
+  async function run(){
+    const s = start.value;
+    const e = end.value;
+    const g = Math.max(1, parseInt(guests.value||"2",10));
+
+    if (!s || !e || e <= s){
+      setStatus("Enter a valid date window"); return;
+    }
+    setStatus("Searching…");
+
+    try{
+      const r = await fetch(`/catalog/search?start=${encodeURIComponent(s)}&end=${encodeURIComponent(e)}&guests=${g}`);
+      if (!r.ok){ setStatus(`Search failed (${r.status})`); return; }
+      const x = await r.json();
+      // Show available first
+      const props = (x.properties||[]);
+      const avail = props.filter(p => (p.availableNights||0) > 0);
+      const rest  = props.filter(p => (p.availableNights||0) === 0);
+      const ordered = [...avail, ...rest];
+
+      results.innerHTML = ordered.length
+        ? ordered.map(card).join("")
+        : `<div class="empty">No properties for these dates.</div>`;
+
+      setStatus(`Found ${props.length} propert${props.length===1?'y':'ies'} — ${avail.length} with availability.`);
+    }catch(e){
+      console.error(e);
+      setStatus("Search error");
+    }
+  }
+
+  document.getElementById('search').addEventListener('click', run);
+  run(); // auto-run on load
+})();
+</script>
+</body>
+</html>

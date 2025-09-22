@@ -214,4 +214,5 @@ HOTELS.forEach(h => {
   }
 });
 
-module.exports = { CURRENCY, HOTELS, getAvailability, searchAvailability };
+export { CURRENCY, HOTELS, getAvailability, searchAvailability };
+export default { CURRENCY, HOTELS, getAvailability, searchAvailability };
