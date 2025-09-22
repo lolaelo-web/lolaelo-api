@@ -204,5 +204,14 @@ function searchAvailability({ start, end, ratePlanId=1, currency=CURRENCY }) {
     meta: { generatedAt: new Date().toISOString(), cacheTtlSec: 600 }
   };
 }
+// Normalize image fields so UIs can always rely on `photos[]` and `thumbnail`
+HOTELS.forEach(h => {
+  if (!Array.isArray(h.photos) || h.photos.length === 0) {
+    h.photos = Array.isArray(h.images) ? h.images.slice() : [];
+  }
+  if (!h.thumbnail && h.photos.length) {
+    h.thumbnail = h.photos[0];
+  }
+});
 
 module.exports = { CURRENCY, HOTELS, getAvailability, searchAvailability };

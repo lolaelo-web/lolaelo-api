@@ -363,5 +363,114 @@ if (process.env.NODE_ENV !== "test") {
   });
 }
 
+// ANCHOR: UIS_MOCK_SEARCH
+import * as HotelsData from "../data/siargao_hotels.js"; // path is from /routes -> /data
+const HOTELS =
+  HotelsData.HOTELS ??
+  (HotelsData as any).default?.HOTELS ??
+  (HotelsData as any).hotels ??
+  [];
+
+// ANCHOR:: CATALOG_SEARCH
+// Returns property-level cards (name, city, images, fromPrice, availability summary)
+app.get("/catalog/search", (req, res) => {
+  try {
+    const today = new Date().toISOString().slice(0, 10);
+    const start = String(req.query.start || today);
+    const end   = String(req.query.end   || start);
+    // guests reserved for later filtering; passthrough for now
+    const guests = Math.max(1, parseInt(String(req.query.guests || "2"), 10));
+
+    const data = (HotelsData as any).searchAvailability
+      ? (HotelsData as any).searchAvailability({
+          start,
+          end,
+          ratePlanId: 1,
+          currency: (HotelsData as any).CURRENCY || "USD",
+        })
+      : null;
+
+    const properties = Array.isArray(data?.properties)
+      ? data.properties.map((p: any) => ({
+          id: p.propertyId ?? p.id,
+          name: p.name,
+          city: p.city,
+          country: p.country,
+          starRating: p.starRating,
+          images: p.images || [],
+          fromPrice: p.fromPrice ?? null,
+          fromPriceStr: p.fromPriceStr ?? null,
+          availableNights: p.availableNights ?? 0,
+          nightsTotal: p.nightsTotal ?? 0,
+        }))
+      : [];
+
+    res.json({ ok: true, start, end, guests, count: properties.length, properties });
+  } catch (e: any) {
+    res.status(500).json({ ok: false, error: String(e?.message || e) });
+  }
+});
+
+/**
+ * GET /extranet/pms/uis/search?start=YYYY-MM-DD&end=YYYY-MM-DD&guests=2
+ * Returns { extranet:[], pms:[] } so the UI can merge both.
+ */
+app.get("/extranet/pms/uis/search", async (req: Request, res: Response) => {
+  // ---- parse inputs (typed) ----
+  const start: string  = String(req.query.start || new Date().toISOString().slice(0, 10));
+  const end: string    = String(req.query.end   || start);
+  const guests: number = Math.max(1, parseInt(String(req.query.guests ?? "2"), 10));
+
+  // ---- build inclusive date list ----
+  const ONE_DAY = 86_400_000;
+  const dates: string[] = [];
+  for (
+    let d = new Date(start + "T00:00:00Z"), e = new Date(end + "T00:00:00Z");
+    d <= e;
+    d = new Date(d.getTime() + ONE_DAY)
+  ) {
+    dates.push(d.toISOString().slice(0, 10));
+  }
+
+  // ---- load mock data/functions (JS module, no types) ----
+  // @ts-ignore - JS module without TS typings
+  const mod: any = await import("../data/siargao_hotels.js");
+  const searchAvailability = mod.searchAvailability as (args: { start: string; end: string }) => any;
+  const getAvailability    = mod.getAvailability    as (args: { propertyId: number; start: string; end: string }) => any;
+
+  // ---- build rows (PMS mirrors extranet for now) ----
+  const extranet: Array<Record<string, any>> = [];
+  const pms: Array<Record<string, any>> = [];
+
+  const list = searchAvailability({ start, end });
+  const props: any[] = Array.isArray(list?.properties) ? list.properties : [];
+
+  for (const prop of props) {
+    const detail = getAvailability({ propertyId: Number(prop.propertyId), start, end });
+    const room   = detail?.rooms?.[0];
+    if (!room) continue;
+    if (guests > (room.maxGuests ?? 2)) continue;
+
+    for (const day of (room.daily as any[])) {
+      if (day.closed || day.open <= 0 || typeof day.price !== "number") continue;
+
+      const row = {
+        date: day.date,
+        source: "extranet",
+        name: prop.name,
+        maxGuests: room.maxGuests ?? 2,
+        price: day.price,
+        ratePlanId: detail?.ratePlanId ?? 1,
+      };
+      extranet.push(row);
+      pms.push({ ...row, source: "pms" });
+    }
+  }
+
+  res.json({ extranet, pms });
+});
+
+// /ANCHOR: UIS_MOCK_SEARCH
+
 export default app;
 
