@@ -432,6 +432,71 @@ app.get("/catalog/search", (req, res) => {
     res.status(500).json({ ok: false, error: String(e?.message || e) });
   }
 });
+  // Details for a single property (drives the “View details (mock)” button)
+  app.get("/catalog/details", (req, res) => {
+    const propertyId = Number(req.query.propertyId);
+    const start = String(req.query.start || new Date().toISOString().slice(0, 10));
+    const end   = String(req.query.end   || start);
+    const ratePlanId = Number(req.query.ratePlanId || 1);
+
+    if (!Number.isFinite(propertyId)) {
+      res.status(400).json({ ok: false, error: "propertyId is required" });
+      return;
+    }
+
+    try {
+      const payload =
+        (HotelsData as any).getAvailability?.({
+          propertyId,
+          start,
+          end,
+          ratePlanId,
+          currency: (HotelsData as any).CURRENCY || "USD",
+        }) ?? null;
+
+      if (!payload) {
+        res.status(404).json({ ok: false, error: "Not found" });
+        return;
+      }
+      res.json(payload);
+    } catch (e: any) {
+      res.status(500).json({ ok: false, error: String(e?.message || e) });
+    }
+  });
+  // GET /catalog/property/:id?start=YYYY-MM-DD&end=YYYY-MM-DD&guests=2
+  app.get("/catalog/property/:id", (req, res) => {
+    try {
+      const id = Number(req.params.id);
+      if (!Number.isFinite(id)) return res.status(400).json({ ok:false, error:"Invalid id" });
+
+      const today = new Date().toISOString().slice(0, 10);
+      const start = String(req.query.start || today);
+      const end   = String(req.query.end   || start);
+      const guests = Math.max(1, parseInt(String(req.query.guests ?? "2"), 10));
+
+      // use the same HotelsData module already imported at top
+      const getAvailability =
+        (HotelsData as any).getAvailability || (HotelsData as any)?.default?.getAvailability;
+
+      if (typeof getAvailability !== "function") {
+        return res.status(500).json({ ok:false, error:"getAvailability not available" });
+      }
+
+      const payload = getAvailability({
+        propertyId: id,
+        start,
+        end,
+        ratePlanId: 1,
+        currency: "USD",
+        guests
+      });
+
+      if (!payload) return res.status(404).json({ ok:false, error:"Not found" });
+      res.json(payload);
+    } catch (e:any) {
+      res.status(500).json({ ok:false, error:String(e?.message || e) });
+    }
+  });
 
 /**
  * GET /extranet/pms/uis/search?start=YYYY-MM-DD&end=YYYY-MM-DD&guests=2
