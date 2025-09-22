@@ -29,6 +29,12 @@
     .wrap{ display:grid; grid-template-columns:300px 1fr; height:calc(100vh - var(--header-h)); overflow:hidden; }
     .left{ border-right:1px solid var(--border); background:var(--panel); display:flex; flex-direction:column; min-width:0; }
     .right{ background:var(--panel-2); display:flex; flex-direction:column; min-width:0; }
+    
+    /* ANCHOR: RIGHT_ACTIVE_CSS */
+    .right.active-room{
+      outline: 2px solid var(--brand);
+      outline-offset: -2px; /* sit flush with edge */
+    }
 
     .toolbar{ display:flex; gap:8px; padding:10px; border-bottom:1px solid var(--border); background:var(--panel); }
     .toolbar input,.toolbar select{ background:var(--chip); border:1px solid var(--border); color:var(--text); padding:8px 10px; border-radius:8px; }
@@ -61,7 +67,7 @@
     .day .date .we-badge{
       display:inline-block;
       background: var(--accent);
-      color: #fff;             /* per request */
+      color: #000;            /* black text */
       font-weight:700;
       font-size:10px;
       line-height:14px;
@@ -573,6 +579,13 @@
   }
 
   function setStatus(msg, cls=""){ status.className="note "+cls; status.textContent=msg; }
+
+  /* ANCHOR: RIGHT_ACTIVE_TOGGLE */
+  function setRightActive(flag){
+    const r = document.querySelector('section.right');
+    if (r) r.classList.toggle('active-room', !!flag);
+  }
+
   /* ANCHOR: TOAST_HELPER */
   function toast(msg, kind='ok', ms=2500){
     try{
@@ -811,6 +824,10 @@
         saveCtx();
         updateURLFromState('push');
         if (dirty.clear) dirty.clear();
+
+        // highlight right pane
+        setRightActive(true);
+
         await renderCalendar();
         await loadRooms();
       });
@@ -828,7 +845,10 @@
         if (!confirm("Delete this room type?")) return;
         const r = await authFetch(`/extranet/property/rooms/${rt.id}`, { method:"DELETE" });
         if (r.status === 204){
-          if (currentRoomTypeId === rt.id) currentRoomTypeId = null;
+          if (currentRoomTypeId === rt.id) {
+            currentRoomTypeId = null;
+            setRightActive(false); // remove highlight
+          }
           setStatus("Room deleted","ok");
           await loadRooms();
           calGrid.innerHTML = "";
@@ -1252,6 +1272,11 @@
     function focusCell(dateISO, kind){
       const container = document.getElementById('day-' + dateISO);
       if (!container) return false;
+      // Ensure target day is visible in the horizontal scroller
+      try {
+        if (typeof scrollToDate === 'function') scrollToDate(dateISO);
+        else container.scrollIntoView({ block: 'nearest', inline: 'nearest' });
+      } catch(_) {}
       const sel = (kind === 'price')
         ? container.querySelector('.money input[data-kind="price"]')
         : container.querySelector(`input[data-kind="${kind}"]`);
@@ -1259,6 +1284,7 @@
       sel.focus(); sel.select?.();
       return true;
     }
+
 
     cal.addEventListener('keydown', (e) => {
       const t = e.target;
@@ -1556,9 +1582,16 @@
   (function refocusAfterRender(){
     const last = window.__lastCellFocus;
     if (!last) return;
+
+    // Ensure the target day is visible before refocusing
+    try {
+      if (typeof scrollToDate === 'function') scrollToDate(last.dateISO);
+    } catch(_) {}
+
     const sel = (last.kind === 'price')
       ? document.querySelector(`#day-${last.dateISO} .money input[data-kind="price"]`)
       : document.querySelector(`#day-${last.dateISO} input[data-kind="${last.kind}"]`);
+
     if (sel) { try { sel.focus(); sel.select?.(); } catch(_){} }
   })();
 
@@ -1896,6 +1929,7 @@
       applyMonthWindowToRange({ rerender:false });
     }
     if (ctx.roomId) currentRoomTypeId = ctx.roomId;
+    setRightActive(!!currentRoomTypeId);
 
     // ANCHOR: RATE_PLAN_INIT
     currentRatePlanId = Number(ctx.ratePlanId ?? 1) || 1;
