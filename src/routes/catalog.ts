@@ -30,4 +30,33 @@ router.get("/search", (req: Request, res: Response) => {
   return res.json(out);
 });
 
+// GET /catalog/details?propertyId=101&start=YYYY-MM-DD&end=YYYY-MM-DD[&plan=1]
+router.get("/details", (req: Request, res: Response) => {
+  const propertyId = Number(req.query.propertyId || req.query.id);
+  const start      = String(req.query.start || "").slice(0, 10);
+  const end        = String(req.query.end   || "").slice(0, 10);
+  const ratePlanId = Number(req.query.plan || req.query.ratePlanId || 1);
+
+  if (!propertyId || !start || !end) {
+    res.status(400).json({ ok: false, error: "Missing propertyId/start/end" });
+    return;
+  }
+
+  const getAvailability =
+    (HotelsData as any).getAvailability ??
+    (HotelsData as any).default?.getAvailability;
+
+  if (typeof getAvailability !== "function") {
+    res.status(500).json({ ok: false, error: "getAvailability not available" });
+    return;
+  }
+
+  const payload = getAvailability({ propertyId, start, end, ratePlanId });
+  if (!payload) {
+    res.status(404).json({ ok: false, error: "Property not found" });
+    return;
+  }
+  res.json(payload);
+});
+
 export default router;
