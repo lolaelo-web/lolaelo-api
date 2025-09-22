@@ -1,0 +1,235 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <title>Siargao stays · Details</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'><rect width='16' height='16' fill='%234f8cff'/></svg>" type="image/svg+xml">
+
+  <style>
+    :root{
+      --bg:#0b0d12; --panel:#121621; --panel-2:#161b28; --text:#e7ecf3; --muted:#98a3b3;
+      --brand:#4f8cff; --accent:#ffb86b; --ok:#2ecc71; --warn:#f39c12; --err:#e74c3c;
+      --border:#222a3a; --chip:#1e2536; --header-h:56px;
+    }
+    *{ box-sizing:border-box; }
+    body{ margin:0; background:var(--bg); color:var(--text);
+      font:14px/1.4 system-ui,-apple-system,Segoe UI,Roboto,"Helvetica Neue",Arial; }
+
+    header{ display:flex; align-items:center; gap:10px; padding:14px 18px; height:var(--header-h);
+      border-bottom:1px solid var(--border); background:var(--panel); position:sticky; top:0; z-index:5; }
+    header .back{ background:transparent; border:1px solid var(--border); color:var(--text); border-radius:8px; padding:6px 10px; cursor:pointer; }
+    header h1{ margin:0; font-size:16px; letter-spacing:.2px; }
+    header .spacer{ flex:1; }
+    header .note{ color:var(--muted); font-size:12px; white-space:nowrap; }
+
+    .wrap{ display:grid; grid-template-columns: 1.4fr 1fr; gap:14px; padding:14px; }
+    @media (max-width: 980px){ .wrap{ grid-template-columns:1fr; } }
+
+    .card{ background:var(--panel-2); border:1px solid var(--border); border-radius:12px; padding:12px; }
+
+    /* gallery */
+    .gallery{ display:grid; gap:10px; }
+    .hero{ width:100%; aspect-ratio:16/9; border-radius:10px; object-fit:cover; border:1px solid var(--border); }
+    .thumbs{ display:grid; grid-template-columns: repeat(6, 1fr); gap:8px; }
+    .thumbs img{ width:100%; aspect-ratio:16/9; object-fit:cover; border-radius:8px; border:1px solid var(--border); cursor:pointer; opacity:.9; }
+    .thumbs img.active{ outline:2px solid var(--brand); opacity:1; }
+
+    /* meta */
+    .title{ display:flex; align-items:center; gap:10px; margin:0 0 6px 0; }
+    .stars{ font-size:12px; color:var(--muted); }
+    .addr{ color:var(--muted); font-size:12px; }
+    .amen{ margin-top:10px; display:flex; flex-wrap:wrap; gap:6px; }
+    .chip{ background:var(--chip); border:1px solid var(--border); padding:6px 8px; border-radius:10px; font-size:12px; color:var(--muted); }
+
+    /* booking summary */
+    .summary{ display:grid; gap:10px; position:sticky; top:calc(var(--header-h) + 12px); }
+    .summary .price{ font-size:22px; font-weight:700; }
+    .summary .muted{ color:var(--muted); font-size:12px; }
+    .btn{ background:var(--brand); color:#fff; border:0; border-radius:10px; padding:10px 12px; cursor:pointer; }
+    .btn.secondary{ background:transparent; border:1px solid var(--border); color:var(--text); }
+    .btn:disabled{ opacity:.6; cursor:not-allowed; }
+
+    /* availability table */
+    table{ width:100%; border-collapse:separate; border-spacing:0; }
+    thead th{ text-align:left; font-size:12px; color:var(--muted); padding:8px 8px; border-bottom:1px solid var(--border); }
+    tbody td{ padding:8px; border-bottom:1px solid var(--border); font-variant-numeric:tabular-nums; }
+    .badge{ display:inline-block; padding:2px 6px; border-radius:8px; font-size:11px; border:1px solid var(--border); background:var(--chip); color:var(--muted); }
+    .badge.ok{ color:#84d6a2; }
+    .badge.warn{ color:#ffd27a; }
+    .badge.err{ color:#ff9b9b; }
+
+    .note{ color:var(--muted); font-size:12px; }
+    .status.ok{ color:var(--ok); } .status.warn{ color:var(--warn); } .status.err{ color:var(--err); }
+  </style>
+</head>
+<body>
+  <header>
+    <button class="back" id="back">← Back</button>
+    <h1 id="prop-name">Property</h1>
+    <div class="spacer"></div>
+    <span class="note" id="status">Loading…</span>
+  </header>
+
+  <div class="wrap">
+    <!-- Left: gallery + info + availability -->
+    <section class="card">
+      <div class="title">
+        <div class="stars" id="stars">★★★</div>
+      </div>
+      <div class="addr" id="addr"></div>
+
+      <div class="gallery" style="margin-top:10px;">
+        <img id="hero" class="hero" alt="Photo" src="" />
+        <div id="thumbs" class="thumbs"></div>
+      </div>
+
+      <div class="amen" id="amen"></div>
+
+      <div style="margin-top:16px;">
+        <h3 style="margin:0 0 8px 0; font-size:14px;">Availability & prices</h3>
+        <table aria-label="Availability for selected dates">
+          <thead>
+            <tr>
+              <th style="width:120px;">Date</th>
+              <th style="width:90px;">Open</th>
+              <th style="width:110px;">Price</th>
+              <th style="width:90px;">MinStay</th>
+              <th style="width:100px;">Closed</th>
+            </tr>
+          </thead>
+          <tbody id="rows"></tbody>
+        </table>
+      </div>
+    </section>
+
+    <!-- Right: booking summary (mock) -->
+    <aside class="card summary">
+      <div>
+        <div class="muted">Stay</div>
+        <div id="range">—</div>
+      </div>
+      <div>
+        <div class="muted">From</div>
+        <div class="price" id="fromPrice">$—</div>
+      </div>
+      <div class="note" id="avail-note">—</div>
+      <button class="btn" disabled>Book now (mock)</button>
+      <button class="btn secondary" id="copy">Copy link</button>
+    </aside>
+  </div>
+
+<script>
+(function(){
+  const qs = new URLSearchParams(location.search);
+  const propId = qs.get('propertyId') || qs.get('id') || '';
+  const startQ = qs.get('start');
+  const endQ   = qs.get('end');
+
+  function iso(d){ return d.toISOString().slice(0,10); }
+  function addDaysISO(isoStr, n){ const d=new Date(isoStr + 'T00:00:00Z'); d.setUTCDate(d.getUTCDate()+n); return iso(d); }
+  function todayISO(){ return iso(new Date()); }
+
+  const start = startQ || todayISO();
+  const end   = endQ   || addDaysISO(start, 3);
+
+  const status = document.getElementById('status');
+  const backBtn = document.getElementById('back');
+  backBtn.addEventListener('click', ()=>{
+    const url = '/catalog?start='+encodeURIComponent(start)+'&end='+encodeURIComponent(end);
+    location.href = url;
+  });
+
+  document.getElementById('copy').addEventListener('click', async ()=>{
+    try{
+      await navigator.clipboard.writeText(location.href);
+      status.textContent = 'Link copied';
+      status.className = 'note status ok';
+      setTimeout(()=>{ status.textContent=''; status.className='note'; }, 900);
+    }catch(_){
+      status.textContent = 'Copy failed';
+      status.className = 'note status err';
+    }
+  });
+
+  function money(n, cur='USD'){
+    const v = Number(n);
+    return Number.isFinite(v) ? (cur === 'USD' ? '$' : '') + v.toFixed(2) : '—';
+  }
+
+  function setHero(src){ const img=document.getElementById('hero'); if (src) img.src = src; }
+
+  async function load(){
+    if (!propId){
+      status.textContent = 'Missing propertyId';
+      status.className = 'note status err';
+      return;
+    }
+    status.textContent = 'Loading…';
+
+    const url = `/catalog/details?propertyId=${encodeURIComponent(propId)}&start=${encodeURIComponent(start)}&end=${encodeURIComponent(end)}`;
+    const r = await fetch(url);
+    if (!r.ok){
+      status.textContent = `Load failed (${r.status})`;
+      status.className = 'note status err';
+      return;
+    }
+    const data = await r.json();
+    status.textContent = 'Ready';
+    status.className = 'note status ok';
+
+    const prop = data.meta?.property || {};
+    const room = (data.rooms && data.rooms[0]) || {};
+    const daily = room.daily || [];
+
+    // Header + meta
+    document.getElementById('prop-name').textContent = prop.name || 'Property';
+    document.getElementById('stars').textContent = (prop.starRating ? '★'.repeat(Number(prop.starRating)) : '★★★');
+    document.getElementById('addr').textContent =
+      [prop.city, prop.country].filter(Boolean).join(', ');
+
+    // Gallery
+    const imgs = (prop.images && prop.images.length ? prop.images : room.images || []);
+    if (imgs.length) setHero(imgs[0]);
+    const thumbs = document.getElementById('thumbs');
+    thumbs.innerHTML = imgs.map((src, i)=>`<img src="${src}" data-i="${i}" class="${i===0?'active':''}" alt="Photo ${i+1}">`).join('');
+    thumbs.querySelectorAll('img').forEach(img=>{
+      img.addEventListener('click', ()=>{
+        thumbs.querySelectorAll('img').forEach(x=>x.classList.remove('active'));
+        img.classList.add('active');
+        setHero(img.src);
+      });
+    });
+
+    // Amenities
+    const amenWrap = document.getElementById('amen');
+    amenWrap.innerHTML = (prop.amenities || []).slice(0, 10).map(a=>`<span class="chip">${a}</span>`).join('');
+
+    // Summary box
+    document.getElementById('range').textContent = `${start} → ${end}`;
+    document.getElementById('fromPrice').textContent = room.fromPrice != null ? money(room.fromPrice, data.currency) : '—';
+    const availN = room.availableNights ?? 0;
+    const totalN = room.nightsTotal ?? daily.length;
+    const note = `${availN}/${totalN} nights available`;
+    document.getElementById('avail-note').textContent = note;
+
+    // Table rows
+    const rows = document.getElementById('rows');
+    rows.innerHTML = daily.map(d=>{
+      const closed = !!d.closed;
+      const badge = closed ? '<span class="badge err">Closed</span>' : '<span class="badge ok">Open</span>';
+      return `<tr>
+        <td>${d.date}</td>
+        <td>${Number.isFinite(Number(d.open)) ? d.open : '-'}</td>
+        <td>${d.price != null ? money(d.price, data.currency) : '—'}</td>
+        <td>${Number.isFinite(Number(d.minstay || d.minStay)) ? (d.minstay || d.minStay) : '-'}</td>
+        <td>${badge}</td>
+      </tr>`;
+    }).join('');
+  }
+
+  load();
+})();
+</script>
+</body>
+</html>
