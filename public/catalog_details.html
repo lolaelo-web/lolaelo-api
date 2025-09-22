@@ -2,234 +2,196 @@
 <html lang="en">
 <head>
   <meta charset="utf-8" />
-  <title>Siargao stays · Details</title>
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'><rect width='16' height='16' fill='%234f8cff'/></svg>" type="image/svg+xml">
+  <title>Lolaelo · Stay</title>
+  <link rel="icon" href="/logo.png" />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
 
   <style>
+    /* === ANCHOR: DETAILS_LIGHT_SKIN ======================================= */
     :root{
-      --bg:#0b0d12; --panel:#121621; --panel-2:#161b28; --text:#e7ecf3; --muted:#98a3b3;
-      --brand:#4f8cff; --accent:#ffb86b; --ok:#2ecc71; --warn:#f39c12; --err:#e74c3c;
-      --border:#222a3a; --chip:#1e2536; --header-h:56px;
+      --bg:#fff; --fg:#111; --muted:#6b7280; --line:#eaeaea; --bubble:#ff6633;
+      --paper:#ffffff; --radius:16px; --shadow:0 12px 40px rgba(0,0,0,.08);
+      --maxw:1100px;
     }
     *{ box-sizing:border-box; }
-    body{ margin:0; background:var(--bg); color:var(--text);
-      font:14px/1.4 system-ui,-apple-system,Segoe UI,Roboto,"Helvetica Neue",Arial; }
+    html,body{ height:100%; margin:0; }
+    body{
+      font-family: Inter, ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial;
+      color:var(--fg);
+      background:
+        linear-gradient(to bottom, rgba(255,255,255,.10), rgba(255,255,255,.10)),
+        url("https://images.pexels.com/photos/1005417/pexels-photo-1005417.jpeg?auto=compress&cs=tinysrgb&dpr=2&h=1600&w=2400")
+        center/cover no-repeat fixed;
+      display:flex; flex-direction:column; align-items:center;
+    }
 
-    header{ display:flex; align-items:center; gap:10px; padding:14px 18px; height:var(--header-h);
-      border-bottom:1px solid var(--border); background:var(--panel); position:sticky; top:0; z-index:5; }
-    header .back{ background:transparent; border:1px solid var(--border); color:var(--text); border-radius:8px; padding:6px 10px; cursor:pointer; }
-    header h1{ margin:0; font-size:16px; letter-spacing:.2px; }
-    header .spacer{ flex:1; }
-    header .note{ color:var(--muted); font-size:12px; white-space:nowrap; }
+    .paper{ width:100%; max-width:var(--maxw); margin:18px 20px; background:var(--paper);
+      border-radius:var(--radius); box-shadow:var(--shadow); padding:16px 16px 22px; }
 
-    .wrap{ display:grid; grid-template-columns: 1.4fr 1fr; gap:14px; padding:14px; }
-    @media (max-width: 980px){ .wrap{ grid-template-columns:1fr; } }
+    header{ display:flex; align-items:center; gap:10px; margin-bottom:10px; }
+    .back{ border:1px solid var(--line); background:#fff; border-radius:10px; padding:8px 10px; cursor:pointer; }
+    h1{ font-size:clamp(20px,3.2vw,24px); margin:0 0 0 8px; font-weight:600; }
 
-    .card{ background:var(--panel-2); border:1px solid var(--border); border-radius:12px; padding:12px; }
+    .layout{ display:grid; grid-template-columns: 1.3fr .9fr; gap:16px; }
+    @media (max-width:900px){ .layout{ grid-template-columns: 1fr; } }
 
-    /* gallery */
-    .gallery{ display:grid; gap:10px; }
-    .hero{ width:100%; aspect-ratio:16/9; border-radius:10px; object-fit:cover; border:1px solid var(--border); }
-    .thumbs{ display:grid; grid-template-columns: repeat(6, 1fr); gap:8px; }
-    .thumbs img{ width:100%; aspect-ratio:16/9; object-fit:cover; border-radius:8px; border:1px solid var(--border); cursor:pointer; opacity:.9; }
-    .thumbs img.active{ outline:2px solid var(--brand); opacity:1; }
+    /* Gallery */
+    .hero{ width:100%; aspect-ratio: 16/9; background:#000; border-radius:14px; overflow:hidden; }
+    .hero img{ width:100%; height:100%; object-fit:cover; display:block; }
+    #thumbs{ display:flex; gap:10px; margin:10px 0 6px; }
+    .thumb{ width:90px; height:56px; border-radius:10px; overflow:hidden; border:1px solid var(--line);
+      cursor:pointer; position:relative; }
+    .thumb img{ width:100%; height:100%; object-fit:cover; display:block; }
+    .thumb.active{ box-shadow:0 0 0 2px var(--bubble); }
 
-    /* meta */
-    .title{ display:flex; align-items:center; gap:10px; margin:0 0 6px 0; }
-    .stars{ font-size:12px; color:var(--muted); }
-    .addr{ color:var(--muted); font-size:12px; }
-    .amen{ margin-top:10px; display:flex; flex-wrap:wrap; gap:6px; }
-    .chip{ background:var(--chip); border:1px solid var(--border); padding:6px 8px; border-radius:10px; font-size:12px; color:var(--muted); }
+    /* Right panel */
+    .panel{ border:1px solid var(--line); border-radius:14px; padding:14px; display:flex; flex-direction:column; gap:14px; }
+    .muted{ color:var(--muted); font-size:12px; }
+    .price{ font-weight:700; font-size:22px; }
+    .book{ border:1px solid var(--bubble); background:var(--bubble); color:#fff; font-weight:700;
+      border-radius:12px; padding:14px; width:100%; cursor:pointer; }
 
-    /* booking summary */
-    .summary{ display:grid; gap:10px; position:sticky; top:calc(var(--header-h) + 12px); }
-    .summary .price{ font-size:22px; font-weight:700; }
-    .summary .muted{ color:var(--muted); font-size:12px; }
-    .btn{ background:var(--brand); color:#fff; border:0; border-radius:10px; padding:10px 12px; cursor:pointer; }
-    .btn.secondary{ background:transparent; border:1px solid var(--border); color:var(--text); }
-    .btn:disabled{ opacity:.6; cursor:not-allowed; }
+    /* Chips + table */
+    .chips{ display:flex; gap:6px; flex-wrap:wrap; margin:10px 0; }
+    .chip{ font-size:11px; padding:4px 8px; border:1px solid var(--line); border-radius:999px; background:#fafafa; color:#444; }
 
-    /* availability table */
-    table{ width:100%; border-collapse:separate; border-spacing:0; }
-    thead th{ text-align:left; font-size:12px; color:var(--muted); padding:8px 8px; border-bottom:1px solid var(--border); }
-    tbody td{ padding:8px; border-bottom:1px solid var(--border); font-variant-numeric:tabular-nums; }
-    .badge{ display:inline-block; padding:2px 6px; border-radius:8px; font-size:11px; border:1px solid var(--border); background:var(--chip); color:var(--muted); }
-    .badge.ok{ color:#84d6a2; }
-    .badge.warn{ color:#ffd27a; }
-    .badge.err{ color:#ff9b9b; }
-
-    .note{ color:var(--muted); font-size:12px; }
-    .status.ok{ color:var(--ok); } .status.warn{ color:var(--warn); } .status.err{ color:var(--err); }
+    table{ width:100%; border-collapse:separate; border-spacing:0; margin-top:10px; }
+    thead th{ text-align:left; font-size:12px; color:var(--muted); padding:8px; border-bottom:1px solid var(--line); }
+    tbody td{ padding:10px 8px; border-bottom:1px solid var(--line); font-variant-numeric:tabular-nums; }
+    .tag{ padding:4px 8px; border-radius:999px; background:#ecfdf5; color:#047857; font-size:12px; border:1px solid #d1fae5; display:inline-block; }
+    .tag.off{ background:#fef2f2; color:#b91c1c; border-color:#fee2e2; }
   </style>
 </head>
 <body>
-  <header>
-    <button class="back" id="back">← Back</button>
-    <h1 id="prop-name">Property</h1>
-    <div class="spacer"></div>
-    <span class="note" id="status">Loading…</span>
-  </header>
+  <div class="paper">
+    <header>
+      <a class="back" href="/catalog">← Back</a>
+      <h1 id="prop-name">Loading…</h1>
+    </header>
 
-  <div class="wrap">
-    <!-- Left: gallery + info + availability -->
-    <section class="card">
-      <div class="title">
-        <div class="stars" id="stars">★★★</div>
-      </div>
-      <div class="addr" id="addr"></div>
+    <div class="layout">
+      <section>
+        <div id="hero" class="hero" aria-live="polite">
+          <img id="hero-img" src="" alt="">
+        </div>
+        <div id="thumbs" aria-label="Gallery thumbnails"></div>
 
-      <div class="gallery" style="margin-top:10px;">
-        <img id="hero" class="hero" alt="Photo" src="" />
-        <div id="thumbs" class="thumbs"></div>
-      </div>
+        <div class="chips" id="amenities"></div>
 
-      <div class="amen" id="amen"></div>
-
-      <div style="margin-top:16px;">
-        <h3 style="margin:0 0 8px 0; font-size:14px;">Availability & prices</h3>
-        <table aria-label="Availability for selected dates">
-          <thead>
-            <tr>
-              <th style="width:120px;">Date</th>
-              <th style="width:90px;">Open</th>
-              <th style="width:110px;">Price</th>
-              <th style="width:90px;">MinStay</th>
-              <th style="width:100px;">Closed</th>
-            </tr>
-          </thead>
+        <table aria-label="Availability and prices">
+          <thead><tr>
+            <th style="width:120px;">Date</th>
+            <th style="width:60px;">Open</th>
+            <th style="width:100px;">Price</th>
+            <th style="width:80px;">MinStay</th>
+            <th style="width:80px;">Status</th>
+          </tr></thead>
           <tbody id="rows"></tbody>
         </table>
-      </div>
-    </section>
+      </section>
 
-    <!-- Right: booking summary (mock) -->
-    <aside class="card summary">
-      <div>
-        <div class="muted">Stay</div>
-        <div id="range">—</div>
-      </div>
-      <div>
+      <aside class="panel">
+        <div class="muted" id="stay-range"></div>
         <div class="muted">From</div>
-        <div class="price" id="fromPrice">$—</div>
-      </div>
-      <div class="note" id="avail-note">—</div>
-      <button class="btn" disabled>Book now (mock)</button>
-      <button class="btn secondary" id="copy">Copy link</button>
-    </aside>
+        <div class="price" id="from"></div>
+        <div class="muted" id="nights-note"></div>
+        <button class="book" type="button" id="book">Book now (mock)</button>
+        <div class="muted" id="copyLink" style="text-align:center; cursor:pointer;">Copy link</div>
+      </aside>
+    </div>
   </div>
 
-<script>
-(function(){
-  const qs = new URLSearchParams(location.search);
-  const propId = qs.get('propertyId') || qs.get('id') || '';
-  const startQ = qs.get('start');
-  const endQ   = qs.get('end');
+  <script>
+    // === ANCHOR: DETAILS_SCRIPT ============================================
+    const qs = new URLSearchParams(location.search);
+    const propertyId = qs.get('propertyId');
+    const start = qs.get('start') || new Date().toISOString().slice(0,10);
+    const end   = qs.get('end')   || start;
 
-  function iso(d){ return d.toISOString().slice(0,10); }
-  function addDaysISO(isoStr, n){ const d=new Date(isoStr + 'T00:00:00Z'); d.setUTCDate(d.getUTCDate()+n); return iso(d); }
-  function todayISO(){ return iso(new Date()); }
-
-  const start = startQ || todayISO();
-  const end   = endQ   || addDaysISO(start, 3);
-
-  const status = document.getElementById('status');
-  const backBtn = document.getElementById('back');
-  backBtn.addEventListener('click', ()=>{
-    const url = '/catalog?start='+encodeURIComponent(start)+'&end='+encodeURIComponent(end);
-    location.href = url;
-  });
-
-  document.getElementById('copy').addEventListener('click', async ()=>{
-    try{
-      await navigator.clipboard.writeText(location.href);
-      status.textContent = 'Link copied';
-      status.className = 'note status ok';
-      setTimeout(()=>{ status.textContent=''; status.className='note'; }, 900);
-    }catch(_){
-      status.textContent = 'Copy failed';
-      status.className = 'note status err';
-    }
-  });
-
-  function money(n, cur='USD'){
-    const v = Number(n);
-    return Number.isFinite(v) ? (cur === 'USD' ? '$' : '') + v.toFixed(2) : '—';
-  }
-
-  function setHero(src){ const img=document.getElementById('hero'); if (src) img.src = src; }
-
-  async function load(){
-    if (!propId){
-      status.textContent = 'Missing propertyId';
-      status.className = 'note status err';
-      return;
-    }
-    status.textContent = 'Loading…';
-
-    const url = `/catalog/details?propertyId=${encodeURIComponent(propId)}&start=${encodeURIComponent(start)}&end=${encodeURIComponent(end)}`;
-    const r = await fetch(url);
-    if (!r.ok){
-      status.textContent = `Load failed (${r.status})`;
-      status.className = 'note status err';
-      return;
-    }
-    const data = await r.json();
-    status.textContent = 'Ready';
-    status.className = 'note status ok';
-
-    const prop = data.meta?.property || {};
-    const room = (data.rooms && data.rooms[0]) || {};
-    const daily = room.daily || [];
-
-    // Header + meta
-    document.getElementById('prop-name').textContent = prop.name || 'Property';
-    document.getElementById('stars').textContent = (prop.starRating ? '★'.repeat(Number(prop.starRating)) : '★★★');
-    document.getElementById('addr').textContent =
-      [prop.city, prop.country].filter(Boolean).join(', ');
-
-    // Gallery
-    const imgs = (prop.images && prop.images.length ? prop.images : room.images || []);
-    if (imgs.length) setHero(imgs[0]);
+    const hero = document.getElementById('hero-img');
     const thumbs = document.getElementById('thumbs');
-    thumbs.innerHTML = imgs.map((src, i)=>`<img src="${src}" data-i="${i}" class="${i===0?'active':''}" alt="Photo ${i+1}">`).join('');
-    thumbs.querySelectorAll('img').forEach(img=>{
-      img.addEventListener('click', ()=>{
-        thumbs.querySelectorAll('img').forEach(x=>x.classList.remove('active'));
-        img.classList.add('active');
-        setHero(img.src);
+    const rows = document.getElementById('rows');
+    const fromEl = document.getElementById('from');
+    const rangeEl = document.getElementById('stay-range');
+    const nameEl = document.getElementById('prop-name');
+    const amenities = document.getElementById('amenities');
+    const nightsNote = document.getElementById('nights-note');
+
+    let images = [];
+    let heroIndex = 0;
+
+    function setHero(i){
+      if (!images.length) return;
+      i = Math.max(0, Math.min(images.length-1, i));
+      heroIndex = i;
+      const src = images[i];
+      const img = new Image();
+      img.onload = ()=>{ hero.src = src; hero.alt = nameEl.textContent || 'Photo'; };
+      img.src = src;
+
+      thumbs.querySelectorAll('.thumb').forEach((t,idx)=>{
+        t.classList.toggle('active', idx===i);
+        t.setAttribute('aria-selected', idx===i ? 'true' : 'false');
       });
+    }
+
+    function thumbHTML(src, idx){
+      return `<button class="thumb" type="button" data-idx="${idx}" aria-label="Photo ${idx+1}" aria-selected="false">
+        <img src="${src}" alt="">
+      </button>`;
+    }
+
+    function money(v){ const n=Number(v); return Number.isFinite(n) ? `$${n.toFixed(2)}` : '—'; }
+
+    async function load(){
+      const r = await fetch(`/catalog/details?propertyId=${encodeURIComponent(propertyId)}&start=${encodeURIComponent(start)}&end=${encodeURIComponent(end)}`);
+      const j = await r.json();
+
+      nameEl.textContent = j?.meta?.property?.name || 'Stay';
+      rangeEl.textContent = `${start} — ${end}`;
+      fromEl.textContent = money(j?.rooms?.[0]?.fromPrice);
+      nightsNote.textContent = `${j?.rooms?.[0]?.availableNights ?? 0}/${j?.rooms?.[0]?.nightsTotal ?? 0} nights available`;
+
+      images = j?.rooms?.[0]?.images?.length ? j.rooms[0].images : (j?.meta?.property?.images || []);
+      amenities.innerHTML = (j?.meta?.property?.amenities || []).slice(0,6).map(a=>`<span class="chip">${a}</span>`).join("");
+
+      // gallery
+      thumbs.innerHTML = images.map((src, i)=>thumbHTML(src, i)).join("");
+      setHero(0);
+
+      // CLICK + HOVER to swap hero
+      thumbs.addEventListener('click', (e)=>{
+        const b = e.target.closest('.thumb'); if(!b) return;
+        setHero(Number(b.dataset.idx||'0'));
+      });
+      thumbs.addEventListener('mouseover', (e)=>{
+        const b = e.target.closest('.thumb'); if(!b) return;
+        setHero(Number(b.dataset.idx||'0'));
+      });
+
+      // table rows
+      const daily = j?.rooms?.[0]?.daily || [];
+      rows.innerHTML = daily.map(d=>{
+        const tag = d.closed ? `<span class="tag off">Closed</span>` : `<span class="tag">Open</span>`;
+        return `<tr>
+          <td>${d.date}</td>
+          <td>${d.open}</td>
+          <td>${money(d.price)}</td>
+          <td>${d.minStay ?? 1}</td>
+          <td>${tag}</td>
+        </tr>`;
+      }).join("");
+    }
+
+    document.getElementById('book').addEventListener('click', ()=>{
+      alert('Booking flows are coming soon. For now, this is a design preview using mock data.');
+    });
+    document.getElementById('copyLink').addEventListener('click', async ()=>{
+      try{ await navigator.clipboard.writeText(location.href); alert('Link copied'); }catch(_){}
     });
 
-    // Amenities
-    const amenWrap = document.getElementById('amen');
-    amenWrap.innerHTML = (prop.amenities || []).slice(0, 10).map(a=>`<span class="chip">${a}</span>`).join('');
-
-    // Summary box
-    document.getElementById('range').textContent = `${start} → ${end}`;
-    document.getElementById('fromPrice').textContent = room.fromPrice != null ? money(room.fromPrice, data.currency) : '—';
-    const availN = room.availableNights ?? 0;
-    const totalN = room.nightsTotal ?? daily.length;
-    const note = `${availN}/${totalN} nights available`;
-    document.getElementById('avail-note').textContent = note;
-
-    // Table rows
-    const rows = document.getElementById('rows');
-    rows.innerHTML = daily.map(d=>{
-      const closed = !!d.closed;
-      const badge = closed ? '<span class="badge err">Closed</span>' : '<span class="badge ok">Open</span>';
-      return `<tr>
-        <td>${d.date}</td>
-        <td>${Number.isFinite(Number(d.open)) ? d.open : '-'}</td>
-        <td>${d.price != null ? money(d.price, data.currency) : '—'}</td>
-        <td>${Number.isFinite(Number(d.minstay || d.minStay)) ? (d.minstay || d.minStay) : '-'}</td>
-        <td>${badge}</td>
-      </tr>`;
-    }).join('');
-  }
-
-  load();
-})();
-</script>
+    load().catch(err=>{ console.error(err); alert('Failed to load details'); });
+  </script>
 </body>
 </html>

@@ -2,175 +2,197 @@
 <html lang="en">
 <head>
   <meta charset="utf-8" />
-  <title>Search · Siargao Stays</title>
   <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Lolaelo · Stays in Siargao</title>
+  <link rel="icon" href="/logo.png" />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+
   <style>
+    /* === ANCHOR: CATALOG_LIGHT_SKIN (collapsed filters) =================== */
     :root{
-      --bg:#0b0d12; --panel:#121621; --panel-2:#161b28; --text:#e7ecf3; --muted:#98a3b3;
-      --brand:#4f8cff; --accent:#ffb86b; --ok:#2ecc71; --warn:#f39c12; --err:#e74c3c;
-      --border:#222a3a; --chip:#1e2536; --header-h:56px;
+      --bg:#fff; --fg:#111; --muted:#6b7280; --line:#eaeaea; --bubble:#ff6633;
+      --paper:#ffffff; --radius:16px; --shadow:0 12px 40px rgba(0,0,0,.08);
+      --maxw:1100px;
     }
-    *{ box-sizing: border-box; }
-    body{ margin:0; background:var(--bg); color:var(--text);
-      font:14px/1.4 system-ui,-apple-system,Segoe UI,Roboto,"Helvetica Neue",Arial; }
+    *{ box-sizing:border-box; }
+    html,body{ height:100%; margin:0; }
+    body{
+      font-family: Inter, ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial;
+      color:var(--fg);
+      background:
+        linear-gradient(to bottom, rgba(255,255,255,.10), rgba(255,255,255,.10)),
+        url("https://images.pexels.com/photos/1005417/pexels-photo-1005417.jpeg?auto=compress&cs=tinysrgb&dpr=2&h=1600&w=2400")
+        center/cover no-repeat fixed;
+      display:flex; flex-direction:column; align-items:center;
+    }
 
-    header{ display:flex; align-items:center; gap:12px; padding:14px 18px; height:var(--header-h);
-      border-bottom:1px solid var(--border); background:var(--panel); position:sticky; top:0; z-index:5; }
-    header h1{ font-size:16px; margin:0; letter-spacing:.2px; }
-    .spacer{ flex:1; }
-    .note{ color:var(--muted); font-size:12px; }
+    .paper{ width:100%; max-width:var(--maxw); margin:18px 20px; background:var(--paper);
+      border-radius:var(--radius); box-shadow:var(--shadow); padding:18px 18px 22px; }
 
-    .controls{ display:flex; flex-wrap:wrap; gap:8px; padding:10px;
-      border-bottom:1px solid var(--border); background:var(--panel); align-items:center; }
-    .group{ display:flex; gap:6px; align-items:center; }
-    label{ color:var(--muted); font-size:12px; }
-    input, select, button{
-      background:var(--chip); border:1px solid var(--border); color:var(--text);
-      padding:8px 10px; border-radius:8px;
-    }
-    button{ background:var(--brand); cursor:pointer; }
-    button.secondary{ background:transparent; }
+    header{ display:flex; align-items:center; gap:12px; justify-content:space-between; margin-bottom:8px; }
+    header h1{ margin:6px 0 0; font-size:clamp(22px,3.4vw,26px); font-weight:600; }
+    .logo{ display:flex; align-items:center; gap:10px; text-decoration:none; color:inherit; }
+    .logo img{ height:28px; width:auto; }
 
-    main{ padding:14px; background:var(--panel-2); min-height:calc(100vh - var(--header-h) - 72px); }
-    .grid{
-      display:grid;
-      grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
-      gap:12px;
+    /* Collapsible filters */
+    details.controls{
+      border:1px solid var(--line); border-radius:14px; padding:0; overflow:hidden; background:#fff;
     }
-    .card{
-      background:var(--panel); border:1px solid var(--border); border-radius:12px;
-      overflow:hidden; display:flex; flex-direction:column;
+    .controls summary{
+      list-style:none; cursor:pointer; padding:10px 14px; font-weight:600; display:flex; align-items:center; gap:8px;
     }
-    .card img{ width:100%; height:160px; object-fit:cover; display:block; }
-    .card .body{ padding:10px; display:grid; gap:6px; }
-    .title{ font-weight:600; }
+    .controls summary::-webkit-details-marker{ display:none; }
+    .summary-pill{
+      border:1px solid var(--line); background:#fafafa; border-radius:999px; padding:8px 12px; font-weight:600;
+    }
+    .controls[open] summary{ border-bottom:1px solid var(--line); }
+    .controls-body{ padding:10px; }
+    .controls-row{
+      display:grid; gap:8px; align-items:center;
+      grid-template-columns: 1.2fr 1fr 1fr .8fr auto;
+    }
+    .field{ display:flex; align-items:center; gap:8px; background:#fafafa; border:1px solid var(--line);
+      border-radius:12px; padding:10px 12px; }
+    .field input,.field select{ width:100%; border:none; background:transparent; outline:none; font:inherit; color:var(--fg); }
+    .search-btn{ border:1px solid var(--bubble); background:var(--bubble); color:#fff; font-weight:700;
+      border-radius:999px; padding:10px 18px; cursor:pointer; }
+    .subhead{ color:var(--muted); font-size:13px; margin:10px 2px 0; }
+
+    /* Grid */
+    .grid{ display:grid; grid-template-columns: repeat(3, 1fr); gap:14px; margin-top:14px; }
+    @media (max-width:980px){ .grid{ grid-template-columns: repeat(2, 1fr);} }
+    @media (max-width:640px){ .controls-row{ grid-template-columns: 1fr 1fr; } .grid{ grid-template-columns: 1fr; } }
+
+    .card{ background:#fff; border:1px solid var(--line); border-radius:14px; overflow:hidden; display:flex; flex-direction:column; }
+    .card .img{ position:relative; width:100%; padding-top:62%; overflow:hidden; }
+    .card img{ position:absolute; inset:0; width:100%; height:100%; object-fit:cover; transition:transform .25s ease; }
+    .card:hover img{ transform:scale(1.03); }
+    .card .body{ padding:12px; display:flex; flex-direction:column; gap:6px; }
+    .name{ display:flex; align-items:center; justify-content:space-between; gap:10px; font-weight:600; }
     .meta{ color:var(--muted); font-size:12px; }
+    .chips{ display:flex; gap:6px; flex-wrap:wrap; }
+    .chip{ font-size:11px; padding:4px 8px; border:1px solid var(--line); border-radius:999px; background:#fafafa; color:#444; }
+    .foot{ display:flex; align-items:center; justify-content:space-between; margin-top:6px; }
     .price{ font-weight:700; }
-    .badge{ display:inline-block; padding:2px 6px; border-radius:8px; font-size:11px; border:1px solid var(--border); background:var(--chip); color:var(--muted); }
-    .row{ display:flex; align-items:center; gap:8px; justify-content:space-between; }
-    .empty{ color:var(--muted); padding:24px; text-align:center; border:1px dashed var(--border); border-radius:12px; }
+    .btn{ border:1px solid var(--line); background:#fff; border-radius:10px; padding:8px 10px; font-weight:600; cursor:pointer; }
+    .btn:hover{ border-color:#d9d9d9; }
+    .stars{ font-size:12px; color:#ffa940; }
   </style>
 </head>
 <body>
-  <header>
-    <h1>Siargao stays</h1>
-    <div class="spacer"></div>
-    <span id="status" class="note">Ready.</span>
-  </header>
+  <div class="paper">
+    <header>
+      <a class="logo" href="/"><img src="/logo.png" alt="Lolaelo"></a>
+      <h1>Siargao stays</h1>
+    </header>
 
-  <div class="controls">
-    <div class="group">
-      <label>Destination</label>
-      <input id="dest" value="Siargao" disabled title="Mock data is fixed to Siargao for now" />
-    </div>
-    <div class="group">
-      <label>Check-in</label>
-      <input type="date" id="start" />
-    </div>
-    <div class="group">
-      <label>Check-out</label>
-      <input type="date" id="end" />
-    </div>
-    <div class="group">
-      <label>Guests</label>
-      <input type="number" id="guests" min="1" value="2" />
-    </div>
-    <div class="group">
-      <button id="search" type="button">Search</button>
-    </div>
+    <!-- Collapsed by default -->
+    <details class="controls">
+      <summary><span class="summary-pill">Filters</span> <span id="found" class="subhead" style="margin-left:6px;">Ready.</span></summary>
+      <div class="controls-body">
+        <div class="controls-row">
+          <label class="field" aria-label="Destination">
+            <span>📍</span>
+            <input id="dest" type="text" value="Siargao" />
+          </label>
+
+          <label class="field" aria-label="Check-in">
+            <span>📅</span>
+            <input id="start" type="date" />
+          </label>
+
+          <label class="field" aria-label="Check-out">
+            <span>📅</span>
+            <input id="end" type="date" />
+          </label>
+
+          <label class="field" aria-label="Guests">
+            <span>👤</span>
+            <select id="guests">
+              <option value="1">1 guest</option>
+              <option value="2" selected>2 guests</option>
+              <option value="3">3 guests</option>
+              <option value="4">4 guests</option>
+              <option value="5">5+ guests</option>
+            </select>
+          </label>
+
+          <button id="search" class="search-btn" type="button">Search</button>
+        </div>
+      </div>
+    </details>
+
+    <section id="grid" class="grid" aria-live="polite"></section>
   </div>
 
-  <main>
-    <div id="results" class="grid" aria-live="polite"></div>
-  </main>
+  <script>
+    // === ANCHOR: CATALOG_SCRIPT (unchanged APIs) ==========================
+    const qs   = new URLSearchParams(location.search);
+    const S    = (id)=>document.getElementById(id);
+    const startInp=S('start'), endInp=S('end'), guestsInp=S('guests'), grid=S('grid'), found=S('found');
+    const detailsEl=document.querySelector('details.controls');
 
-<script>
-(function(){
-  const status = document.getElementById('status');
-  const start = document.getElementById('start');
-  const end   = document.getElementById('end');
-  const guests= document.getElementById('guests');
-  const results = document.getElementById('results');
+    const todayISO = ()=>new Date().toISOString().slice(0,10);
+    const addDaysISO=(iso,n)=>{ const d=new Date(iso+"T00:00:00Z"); d.setUTCDate(d.getUTCDate()+n); return d.toISOString().slice(0,10); };
 
-  const todayISO = () => new Date().toISOString().slice(0,10);
-  const addDays = (iso, n) => {
-    const d = new Date(iso+"T00:00:00Z");
-    d.setUTCDate(d.getUTCDate()+n);
-    return d.toISOString().slice(0,10);
-  };
+    const s0 = qs.get('start') || todayISO();
+    const e0 = qs.get('end')   || addDaysISO(s0, 3);
+    startInp.value = s0; endInp.value = e0; guestsInp.value = qs.get('guests') || "2";
 
-  // Defaults: 3 nights
-  const s0 = todayISO();
-  start.value = start.value || s0;
-  end.value   = end.value   || addDays(s0, 3);
+    function stars(n){ return '★'.repeat(Number(n||0)); }
 
-  function setStatus(msg, cls){
-    status.textContent = msg;
-  }
+    function cardHTML(p, start, end){
+      const img = (p.images && p.images[0]) || "https://picsum.photos/seed/siargao/800/480";
+      const a = (p.amenities || []).slice(0,3).map(a=>`<span class="chip">${a}</span>`).join("");
+      const price = p.fromPriceStr ? p.fromPriceStr : '—';
+      const nights = `${p.availableNights}/${p.nightsTotal} nights`;
+      const link = `/catalog_details.html?propertyId=${encodeURIComponent(p.propertyId)}&start=${encodeURIComponent(start)}&end=${encodeURIComponent(end)}`;
 
-  function card(p){
-    const img = Array.isArray(p.images) && p.images[0] ? p.images[0] : "https://picsum.photos/seed/siargao/1280/720";
-    const price = p.fromPriceStr || "";
-    const avail = `${p.availableNights}/${p.nightsTotal} nights`;
-    const stars = "★".repeat(p.starRating || 0);
-    const am = (p.amenities||[]).slice(0,3).join(" · ");
-    return `
+      return `
       <article class="card">
-        <img src="${img}" alt="${p.name} photo">
+        <a class="img" href="${link}" aria-label="View ${p.name}">
+          <img src="${img}" alt="${p.name}">
+        </a>
         <div class="body">
-          <div class="row">
-            <div class="title">${p.name}</div>
-            <span class="badge">${stars || "· · ·"}</span>
+          <div class="name">
+            <div>${p.name}</div>
+            <div class="stars" aria-label="${p.starRating} stars">${stars(p.starRating)}</div>
           </div>
           <div class="meta">${p.city}, ${p.country}</div>
-          <div class="meta">${am}</div>
-          <div class="row">
-            <div class="meta">${avail}</div>
+          <div class="chips">${a}</div>
+          <div class="foot">
+            <div class="meta">${nights}</div>
             <div class="price">${price}</div>
           </div>
-          <div class="row">
-            <button class="secondary view-details" data-id="${p.propertyId}">View details (mock)</button>
-            <span class="meta">#${p.propertyId}</span>
+          <div class="foot">
+            <a class="btn" href="${link}">View details</a>
+            <div class="meta">#${p.propertyId}</div>
+          </div>
         </div>
-        </div>
-      </article>
-    `;
-  }
-
-  async function run(){
-    const s = start.value;
-    const e = end.value;
-    const g = Math.max(1, parseInt(guests.value||"2",10));
-
-    if (!s || !e || e <= s){
-      setStatus("Enter a valid date window"); return;
+      </article>`;
     }
-    setStatus("Searching…");
 
-    try{
-      const r = await fetch(`/catalog/search?start=${encodeURIComponent(s)}&end=${encodeURIComponent(e)}&guests=${g}`);
-      if (!r.ok){ setStatus(`Search failed (${r.status})`); return; }
-      const x = await r.json();
-      // Show available first
-      const props = (x.properties||[]);
-      const avail = props.filter(p => (p.availableNights||0) > 0);
-      const rest  = props.filter(p => (p.availableNights||0) === 0);
-      const ordered = [...avail, ...rest];
-
-      results.innerHTML = ordered.length
-        ? ordered.map(card).join("")
-        : `<div class="empty">No properties for these dates.</div>`;
-
-      setStatus(`Found ${props.length} propert${props.length===1?'y':'ies'} — ${avail.length} with availability.`);
-    }catch(e){
-      console.error(e);
-      setStatus("Search error");
+    async function run(){
+      const start = startInp.value, end = endInp.value, guests = Number(guestsInp.value || 2) || 2;
+      found.textContent = "Searching…";
+      try{
+        const r = await fetch(`/catalog/search?start=${encodeURIComponent(start)}&end=${encodeURIComponent(end)}&guests=${guests}`);
+        const j = await r.json();
+        const list = (j.properties || []);
+        found.textContent = `Found ${list.length} propert${list.length===1?"y":"ies"} — ${list.filter(p=>p.availableNights>0).length} with availability.`;
+        grid.innerHTML = list.map(p => cardHTML(p, start, end)).join("") || "<div>No results.</div>";
+      }catch(err){
+        console.error(err);
+        found.textContent = "Search failed.";
+        grid.innerHTML = "";
+      } finally {
+        // auto-collapse after a search for ultra-clean view
+        detailsEl.open = false;
+      }
     }
-  }
 
-  document.getElementById('search').addEventListener('click', run);
-  run(); // auto-run on load
-})();
-</script>
+    document.getElementById('search').addEventListener('click', run);
+    run();
+  </script>
 </body>
 </html>
