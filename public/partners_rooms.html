@@ -30,12 +30,6 @@
     .left{ border-right:1px solid var(--border); background:var(--panel); display:flex; flex-direction:column; min-width:0; }
     .right{ background:var(--panel-2); display:flex; flex-direction:column; min-width:0; }
     
-    /* ANCHOR: RIGHT_ACTIVE_CSS */
-    .right.active-room{
-      outline: 2px solid var(--brand);
-      outline-offset: -2px; /* sit flush with edge */
-    }
-
     .toolbar{ display:flex; gap:8px; padding:10px; border-bottom:1px solid var(--border); background:var(--panel); }
     .toolbar input,.toolbar select{ background:var(--chip); border:1px solid var(--border); color:var(--text); padding:8px 10px; border-radius:8px; }
     /* ANCHOR: LOCAL_CSS — scope button/input rules so .btn/.input from extranet.css win */
@@ -63,6 +57,11 @@
     .cal-grid{ display:grid; grid-auto-flow:column; grid-auto-columns:140px; gap:10px; }
     .day{ background:var(--panel); border:1px solid var(--border); border-radius:10px; padding:8px; min-height:120px; display:flex; flex-direction:column; gap:6px; }
     .day .date{ font-weight:600; font-size:12px; color:var(--muted); }
+    /* ANCHOR: DAY_FOCUS_CSS */
+    .day:focus-within{
+      box-shadow: 0 0 0 2px var(--brand);
+    }
+
     /* ANCHOR: WEEKEND_BADGE_CSS */
     .day .date .we-badge{
       display:inline-block;
