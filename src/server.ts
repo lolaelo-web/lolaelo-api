@@ -3,7 +3,7 @@ import "dotenv/config";
 import express, { type Router, type Request, type Response, type NextFunction } from "express";
 import cors, { type CorsOptions } from "cors";
 import path from "node:path";
-import { fileURLToPath } from "node:url";
+import { fileURLToPath, pathToFileURL } from "node:url";
 import { Client } from "pg";
 import { requireWriteToken } from "./middleware/requireWriteToken.js";
 
@@ -73,7 +73,86 @@ await tryMount("./routes/sessionHttp.js", "/extranet");
 // features
 await tryMount("./routes/extranetRooms.js", "/extranet/property/rooms");
 await tryMount("./routes/extranetPms.js", "/extranet/pms");
+await tryMount("./routes/extranetUisMock.js", "/extranet/pms");
 await tryMount("./routes/extranetProperty.js", "/extranet/property"); 
+/* ANCHOR: MOCK_UIS_SEARCH (Siargao) */
+app.get("/mock/uis/search", async (req: Request, res: Response) => {
+  try {
+    const { start, end, guests } = req.query as {
+      start?: string; end?: string; guests?: string;
+    };
+
+    if (!start || !end) {
+      return res.status(400).json({ error: "missing_dates" });
+    }
+    if (end <= start) {
+      return res.status(400).json({ error: "bad_range" });
+    }
+    const g = Math.max(1, Number(guests || 2));
+
+    // Load the mock data module (ESM-safe)
+    const modUrl = pathToFileURL(
+      path.join(__dirname, "..", "data", "siargao_hotels.js")
+    ).href;
+    const mod: any = await import(modUrl);
+
+    // Prefer a generator if the file exports one
+    const gen =
+      mod?.getMockResults ||
+      mod?.buildMockResults ||
+      mod?.buildMockUIS ||
+      mod?.default?.getMockResults ||
+      null;
+
+    if (typeof gen === "function") {
+      const out = await gen(String(start), String(end), g);
+      const payload = {
+        extranet: Array.isArray(out?.extranet) ? out.extranet : (Array.isArray(out) ? out : []),
+        pms: Array.isArray(out?.pms) ? out.pms : [],
+      };
+      return res.json(payload);
+    }
+
+    // Otherwise, synthesize rows from an exported hotels[] structure
+    const hotels: any[] =
+      (Array.isArray(mod?.hotels) && mod.hotels) ||
+      (Array.isArray(mod?.default) && mod.default) ||
+      (Array.isArray(mod?.default?.hotels) && mod.default.hotels) ||
+      [];
+
+    if (!hotels.length) {
+      return res.status(500).json({ error: "mock_module_missing", note: "Expected getMockResults() or hotels[] export." });
+    }
+
+    const ONE = 86400000;
+    const sT = new Date(start + "T00:00:00Z").getTime();
+    const eT = new Date(end   + "T00:00:00Z").getTime();
+
+    const rows: any[] = [];
+    for (let t = sT; t < eT; t += ONE) {
+      const dISO = new Date(t).toISOString().slice(0, 10);
+      for (const h of hotels) {
+        const rooms = Array.isArray(h.rooms) && h.rooms.length ? h.rooms : [{}];
+        for (const rm of rooms) {
+          rows.push({
+            date: dISO,
+            source: "direct",
+            name: `${h.name ?? "Hotel"} — ${rm.name ?? "Room"}`,
+            maxGuests: Number(rm.maxGuests ?? h.maxGuests ?? 2),
+            price: Number(rm.basePrice ?? h.basePrice ?? 100),
+            ratePlanId: 1,
+            propertyId: h.id ?? undefined,
+          });
+        }
+      }
+    }
+
+    res.json({ extranet: rows, pms: [] });
+  } catch (e) {
+    console.error("MOCK_UIS_SEARCH error", e);
+    res.status(500).json({ error: "mock_uis_failed" });
+  }
+});
 
 // ---- Session probe (TEMP, safe to remove later) ----
 app.get("/__session_probe_public", async (_req, res) => {

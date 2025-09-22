@@ -149,6 +149,57 @@
 
   function money(v){ const n=Number(v); return Number.isFinite(n) ? "$"+n.toFixed(2) : ""; }
 
+  // INSERT — ANCHOR: MOCK_UIS_DATA
+  function enumerateDates(startISO, endISO){
+    const out = [];
+    const ONE = 86400000;
+    const s = new Date(startISO + "T00:00:00Z");
+    const e = new Date(endISO   + "T00:00:00Z");
+    for (let d = new Date(s); d < e; d = new Date(d.getTime() + ONE)){
+      out.push(d.toISOString().slice(0,10));
+    }
+    return out;
+  }
+
+  // 6 mock hotels (Siargao, Philippines) for QA — treated as "direct/extranet" source
+  const UIS_MOCK_HOTELS = [
+    { id: 101, name: "Cloud 9 Surf House",     area: "General Luna", maxGuests: 2, base: 120 },
+    { id: 102, name: "Naked Island Bungalows", area: "Dapa",         maxGuests: 3, base:  95 },
+    { id: 103, name: "Daku Beach Resort",      area: "General Luna", maxGuests: 4, base: 150 },
+    { id: 104, name: "Sohoton Cove Lodge",     area: "Socorro",      maxGuests: 2, base: 110 },
+    { id: 105, name: "Pacifico Tides Villas",  area: "San Isidro",   maxGuests: 2, base: 175 },
+    { id: 106, name: "Magpupungko Beach Huts", area: "Pilar",        maxGuests: 2, base:  80 },
+  ];
+
+  // Generate mock UIS results for a given date window and guest count
+  function getMockResults(startISO, endISO, guests){
+    const dates = enumerateDates(startISO, endISO); // nightly results
+    const extranet = [];
+
+    for (const h of UIS_MOCK_HOTELS){
+      if (guests > (h.maxGuests || 2)) continue; // simple capacity filter
+
+      for (const d of dates){
+        const dow = new Date(d + "T00:00:00Z").getUTCDay();
+        // Weekend bumps: Fri/Sat +15%, Sun +10%
+        const weekendBump = (dow === 5 || dow === 6) ? 1.15 : (dow === 0 ? 1.10 : 1.00);
+        const price = h.base * weekendBump;
+
+        extranet.push({
+          date: d,
+          source: "direct",              // shown as "Direct" badge in table
+          hotelId: h.id,
+          name: `${h.name} · ${h.area}`, // displays in "Room" column for now
+          maxGuests: h.maxGuests,
+          price: Number(price.toFixed(2)),
+          ratePlanId: "STD"
+        });
+      }
+    }
+
+    return { extranet, pms: [] };
+  }
+
   function rowHtml(r){
     const src = (r.source||"").toLowerCase();
     const badgeCls = src === "pms" ? "badge pms" : "badge direct";
