@@ -132,6 +132,27 @@
       padding-left: 0.25ch;  /* keep symmetric tiny padding */
     }
 
+    /* ANCHOR: DAY_CELL_VALUE_OFFSETS — center-ish numeric values inside day tiles */
+    #cal-grid .chip .money{ 
+      justify-content: center;          /* center the $ + input row only inside calendar tiles */
+    }
+
+    #cal-grid .chip input[data-kind="open"]{
+      text-align: center;
+      transform: translateX(-5ch);      /* move ~5 characters left */
+    }
+
+    #cal-grid .chip .money input[data-kind="price"]{
+      text-align: center;
+      width: 8ch;                        /* keep a stable field width for centering */
+      transform: translateX(-2ch);       /* move ~2 characters left */
+    }
+
+    #cal-grid .chip input[data-kind="minstay"]{
+      text-align: center;
+      transform: translateX(-7ch);      /* move ~7 characters left */
+    }
+
     /* bulk controls (top row) */
     #inv-open,
     #inv-minstay{
