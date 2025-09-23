@@ -44,29 +44,78 @@
 
     .logo{ display:flex; align-items:center; gap:10px; text-decoration:none; color:inherit; }
     .logo img{ height:28px; width:auto; }
+    .logo img{ height:22px; width:auto; display:block; }
+    .logo .wordmark{ font-weight:700; font-size:18px; letter-spacing:.2px; }
 
-    /* Collapsible filters */
-    details.controls{
-      border:1px solid var(--line); border-radius:14px; padding:0; overflow:hidden; background:#fff;
+    /* Collapsible filters (amenities only) */
+    details.filters{
+      border:1px solid var(--line);
+      border-radius:14px;
+      padding:0;
+      overflow:hidden;
+      background:#fff;
     }
-    .controls summary{
-      list-style:none; cursor:pointer; padding:10px 14px; font-weight:600; display:flex; align-items:center; gap:8px;
+    .filters summary{
+      list-style:none;
+      cursor:pointer;
+      padding:10px 14px;
+      font-weight:600;
+      display:flex;
+      align-items:center;
+      gap:8px;
     }
-    .controls summary::-webkit-details-marker{ display:none; }
-    .summary-pill{
-      border:1px solid var(--line); background:#fafafa; border-radius:999px; padding:8px 12px; font-weight:600;
+    .filters summary::-webkit-details-marker{ display:none; }
+    .filters[open] summary{ border-bottom:1px solid var(--line); }
+    .filters-body{
+      padding:12px;
+      display:flex;
+      gap:12px;
+      flex-wrap:wrap;
     }
-    .controls[open] summary{ border-bottom:1px solid var(--line); }
-    .controls-body{ padding:10px; }
+
+    /* Always-visible search bar wrapper */
+    .searchbar{
+      border:1px solid var(--line);
+      border-radius:14px;
+      padding:10px;
+      background:#fff;
+      box-shadow:0 6px 18px rgba(0,0,0,.06);
+      margin-bottom:8px;
+    }
+
+    /* Search row + inputs (unchanged) */
     .controls-row{
-      display:grid; gap:8px; align-items:center;
+      display:grid;
+      gap:8px;
+      align-items:center;
       grid-template-columns: 1.2fr 1fr 1fr .8fr auto;
     }
-    .field{ display:flex; align-items:center; gap:8px; background:#fafafa; border:1px solid var(--line);
-      border-radius:12px; padding:10px 12px; }
-    .field input,.field select{ width:100%; border:none; background:transparent; outline:none; font:inherit; color:var(--fg); }
-    .search-btn{ border:1px solid var(--bubble); background:var(--bubble); color:#fff; font-weight:700;
-      border-radius:999px; padding:10px 18px; cursor:pointer; }
+    .field{
+      display:flex;
+      align-items:center;
+      gap:8px;
+      background:#fafafa;
+      border:1px solid var(--line);
+      border-radius:12px;
+      padding:10px 12px;
+    }
+    .field input,.field select{
+      width:100%;
+      border:none;
+      background:transparent;
+      outline:none;
+      font:inherit;
+      color:var(--fg);
+    }
+    .search-btn{
+      border:1px solid var(--bubble);
+      background:var(--bubble);
+      color:#fff;
+      font-weight:700;
+      border-radius:999px;
+      padding:10px 18px;
+      cursor:pointer;
+    }
     .subhead{ color:var(--muted); font-size:13px; margin:10px 2px 0; }
 
     /* Grid */
@@ -92,48 +141,69 @@
 </head>
 <body>
   <div class="paper">
+    <!-- header -->
     <header>
-      <a class="logo" href="/"><img src="/logo.png" alt="Lolaelo"></a>
+      <a class="logo" href="/">
+        <img src="/logo.png"
+            alt="Lolaelo"
+            height="22"
+            onerror="this.remove(); this.insertAdjacentHTML('afterend','<span class=&quot;wordmark&quot;>Lolaelo</span>')">
+      </a>
       <h1>Siargao stays</h1>
-            <!-- ANCHOR: CATALOG_FILTERS_BUTTON -->
-    <button id="filtersBtn" class="filters-btn" type="button">Filters</button>
+      <button id="filtersBtn" class="filters-btn" type="button">Filters</button>
     </header>
-    
 
-    <!-- Collapsed by default -->
-    <!-- ANCHOR: CATALOG_FILTERS_PANEL -->
-    <details id="filtersPanel" class="controls">
-      <summary><span class="summary-pill">Filters</span> <span id="found" class="subhead" style="margin-left:6px;">Ready.</span></summary>
-      <div class="controls-body">
-        <div class="controls-row">
-          <label class="field" aria-label="Destination">
-            <span>📍</span>
-            <input id="dest" type="text" value="Siargao" />
-          </label>
+    <!-- ANCHOR: SEARCHBAR -->
+    <div class="searchbar">
+      <div class="controls-row">
+        <label class="field" aria-label="Destination">
+          <span>📍</span>
+          <input id="dest" type="text" value="Siargao" />
+        </label>
 
-          <label class="field" aria-label="Check-in">
-            <span>📅</span>
-            <input id="start" type="date" />
-          </label>
+        <label class="field" aria-label="Check-in">
+          <span>📅</span>
+          <input id="start" type="date" />
+        </label>
 
-          <label class="field" aria-label="Check-out">
-            <span>📅</span>
-            <input id="end" type="date" />
-          </label>
+        <label class="field" aria-label="Check-out">
+          <span>📅</span>
+          <input id="end" type="date" />
+        </label>
 
-          <label class="field" aria-label="Guests">
-            <span>👤</span>
-            <select id="guests">
-              <option value="1">1 guest</option>
-              <option value="2" selected>2 guests</option>
-              <option value="3">3 guests</option>
-              <option value="4">4 guests</option>
-              <option value="5">5+ guests</option>
-            </select>
-          </label>
+        <label class="field" aria-label="Guests">
+          <span>👤</span>
+          <select id="guests">
+            <option value="1">1 guest</option>
+            <option value="2" selected>2 guests</option>
+            <option value="3">3 guests</option>
+            <option value="4">4 guests</option>
+            <option value="5">5+ guests</option>
+          </select>
+        </label>
 
-          <button id="search" class="search-btn" type="button">Search</button>
-        </div>
+        <button id="search" class="search-btn" type="button">Search</button>
+      </div>
+
+      <!-- keep the dynamic “found” counter visible next to the search bar -->
+      <div class="subhead" id="found" style="margin-top:8px;">Ready.</div>
+    </div>
+
+    <!-- ANCHOR: FILTERS_DETAILS (amenities only) -->
+    <details id="amenities" class="filters">
+      <summary>
+        <span class="summary-pill">Filters</span>
+        <span class="subhead" id="filters-summary">Amenity filters (optional)</span>
+      </summary>
+      <div class="filters-body">
+        <label><input type="checkbox" value="beachfront"> Beachfront</label>
+        <label><input type="checkbox" value="pool"> Pool</label>
+        <label><input type="checkbox" value="wifi"> Wi-Fi</label>
+        <label><input type="checkbox" value="aircon"> Aircon</label>
+        <label><input type="checkbox" value="restaurant"> Restaurant</label>
+        <label><input type="checkbox" value="harbor-view"> Harbor view</label>
+        <label><input type="checkbox" value="eco"> Eco</label>
+        <label><input type="checkbox" value="bar"> Bar</label>
       </div>
     </details>
 
@@ -222,7 +292,23 @@
       btn.setAttribute('aria-expanded', panel.open ? 'true' : 'false');
     });
   })();
-  </script>
+  /* ANCHOR: FILTERS_TOGGLE_JS */
+  (() => {
+    const btn   = document.getElementById('filtersBtn');
+    const panel = document.getElementById('amenities'); // the <details> we added
 
+    if (!btn || !panel) return;
+
+    btn.addEventListener('click', () => {
+      // toggle the <details> open state
+      const willOpen = !panel.open;
+      panel.open = willOpen;
+      if (willOpen) {
+        // make it visible nicely
+        panel.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      }
+    });
+  })();
+  </script>
 </body>
 </html>
