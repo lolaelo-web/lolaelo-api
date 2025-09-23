@@ -88,7 +88,19 @@
       gap:12px;
       flex-wrap:wrap;
     }
-
+    /* ANCHOR: FILTERS_BAR_CSS (INSERT) */
+    /* Make the Filters summary look like a full-width bar under the search box */
+    .filters { margin-top: 8px; width: 100%; }
+    .filters summary { padding: 0; }
+    .filters .summary-pill{
+      display: block;
+      width: 100%;
+      background: #fafafa;
+      border: 1px solid var(--line);
+      border-radius: 12px;
+      padding: 10px 12px;
+      font-weight: 600;
+    }
     /* Always-visible search bar wrapper */
     .searchbar{
       border:1px solid var(--line);
@@ -159,9 +171,15 @@
   <div class="paper">
     <!-- ANCHOR: CATALOG_HEADER_HTML -->
     <header>
-      <a class="logo" href="https://lolaelo.com/">
-        <img src="https://www.lolaelo.com/logo.png?cb=logo-host-fix"
-           alt="Lolaelo" width="28" height="28" decoding="async" loading="eager">
+      <a class="logo" href="https://www.lolaelo.com/">
+        <img
+          src="https://www.lolaelo.com/logo.png?cb=logo-5x"
+          alt="Lolaelo"
+          decoding="async"
+          loading="eager"
+          style="display:block;height:140px;width:auto;"
+        >
+      </a>
       <h1>Siargao stays</h1>
       <!-- keep grid's 3rd column so title stays centered -->
       <span aria-hidden="true"></span>
