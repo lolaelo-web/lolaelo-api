@@ -228,7 +228,7 @@
     const qs   = new URLSearchParams(location.search);
     const S    = (id)=>document.getElementById(id);
     const startInp=S('start'), endInp=S('end'), guestsInp=S('guests'), grid=S('grid'), found=S('found');
-    const detailsEl=document.querySelector('details.controls');
+    const detailsEl = document.getElementById('amenities');
 
     const todayISO = ()=>new Date().toISOString().slice(0,10);
     const addDaysISO=(iso,n)=>{ const d=new Date(iso+"T00:00:00Z"); d.setUTCDate(d.getUTCDate()+n); return d.toISOString().slice(0,10); };
@@ -280,8 +280,8 @@
 
       // helper: current amenity selections
       const selectedAmenities = () =>
-        Array.from(document.querySelectorAll('#filtersPanel input[name="amenity"]:checked'))
-          .map(cb => String(cb.value).toLowerCase());
+      Array.from(document.querySelectorAll('#amenities input[type="checkbox"]:checked'))
+        .map(cb => String(cb.value).toLowerCase());
 
       try{
         const r = await fetch(`/catalog/search?start=${encodeURIComponent(start)}&end=${encodeURIComponent(end)}&guests=${guests}`);
@@ -320,8 +320,8 @@
       const start = startInp.value || new Date().toISOString().slice(0,10);
       const end   = endInp.value   || start;
 
-      const sel = Array.from(document.querySelectorAll('#filtersPanel input[name="amenity"]:checked'))
-        .map(cb => String(cb.value).toLowerCase());
+      const sel = Array.from(document.querySelectorAll('#amenities input[type="checkbox"]:checked'))
+      .map(cb => String(cb.value).toLowerCase());
 
       const all = window.__catalogProps;
       const list = sel.length
@@ -336,8 +336,10 @@
     }
 
     // Live auto-filter on amenity toggle
-    document.querySelectorAll('#filtersPanel input[name="amenity"]').forEach(cb => {
-      cb.addEventListener('change', filterAndRenderByAmenities);
+    document.querySelectorAll('#amenities input[type="checkbox"]').forEach(cb => {
+      cb.addEventListener('change', () => {
+        if (!window.__catalogProps) { run(); } else { filterAndRenderByAmenities(); }
+      });
     });
 
     run();
