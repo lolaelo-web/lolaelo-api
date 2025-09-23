@@ -27,28 +27,65 @@
         center/cover no-repeat fixed;
       display:flex; flex-direction:column; align-items:center;
     }   
+    /* ANCHOR: DETAILS_TYPE_SCALE */
+    html { font-size: 16px; }                   /* baseline */
+    body { font-size: 15px; line-height: 1.5; } /* normal text size across customer UIs */
+
+    h1 {
+    font-size: clamp(30px, 4.8vw, 44px);      /* match travel homepage */
+    line-height: 1.15;
+    margin: 6px 0 10px;
+    font-weight: 600;
+    }
+
+    h2 {
+    font-size: clamp(18px, 2.4vw, 22px);
+    line-height: 1.2;
+    margin: 10px 0 8px;
+    font-weight: 600;
+    }
+
+    p, li, .meta, .tag, .desc, .smalltext {
+    font-size: 15px;                          /* unify body text size */
+    }
+
+    .small { font-size: 13px; color: var(--muted); }
+
     /* ANCHOR: TYPO_REGULAR_ELEMS */
     p, li, td, th, input, select, button, .meta, .note { font-size: var(--body); }
     .paper{ width:100%; max-width:var(--maxw); margin:18px 20px; background:var(--paper);
       border-radius:var(--radius); box-shadow:var(--shadow); padding:16px 16px 22px; }
-
-    header{ display:flex; align-items:center; gap:10px; margin-bottom:10px; }
-    .back{ border:1px solid var(--line); background:#fff; border-radius:10px; padding:8px 10px; cursor:pointer; }
-    h1{ font-size:clamp(20px,3.2vw,24px); margin:0 0 0 8px; font-weight:600; }
+    
+    /* ANCHOR: DETAILS_TOPBAR_CSS */
+    .topbar{
+        display:grid;
+        grid-template-columns: 1fr auto; /* back (left) | title (right) */
+        align-items:center;
+        gap:12px;
+        margin:8px 0 14px;
+    }
+    .topbar .back{
+        justify-self:start;
+        font-size:14px;
+        padding:6px 10px;
+        border:1px solid var(--line);
+        border-radius:10px;
+        background:#fff;
+        color:var(--fg);
+        text-decoration:none;
+    }
+    .topbar .back:hover{ filter:brightness(.98); }
+    .topbar .title{
+        margin:0;
+        font-size:22px;
+        font-weight:600;
+        justify-self:end;   /* pushes the name to the right edge */
+    }
 
     .layout{ display:grid; grid-template-columns: 1.3fr .9fr; gap:16px; }
     @media (max-width:900px){ .layout{ grid-template-columns: 1fr; } }
 
-    /* Gallery */
-    .hero{ width:100%; aspect-ratio: 16/9; background:#000; border-radius:14px; overflow:hidden; }
-    .hero img{ width:100%; height:100%; object-fit:cover; display:block; }
-    #thumbs{ display:flex; gap:10px; margin:10px 0 6px; }
-    .thumb{ width:90px; height:56px; border-radius:10px; overflow:hidden; border:1px solid var(--line);
-      cursor:pointer; position:relative; }
-    .thumb img{ width:100%; height:100%; object-fit:cover; display:block; }
-    .thumb.active{ box-shadow:0 0 0 2px var(--bubble); }
-
-    /* Right panel */
+        /* Right panel */
     .panel{ border:1px solid var(--line); border-radius:14px; padding:14px; display:flex; flex-direction:column; gap:14px; }
     .muted{ color:var(--muted); font-size:12px; }
     .price{ font-weight:700; font-size:22px; }
@@ -65,17 +102,86 @@
     .tag{ padding:4px 8px; border-radius:999px; background:#ecfdf5; color:#047857; font-size:12px; border:1px solid #d1fae5; display:inline-block; }
     .tag.off{ background:#fef2f2; color:#b91c1c; border-color:#fee2e2; }
 
-    /* ANCHOR: BACK_TOP_RIGHT */
-    header { display:flex; align-items:center; gap:12px; }
-    header .back { margin-left:auto; }   /* pushes the Back link to the right */
+    /* ANCHOR: DETAILS_GALLERY_CSS */
+    /* Hero image sizing */
+    .hero{
+      position: relative;
+      border-radius: var(--radius);
+      overflow: hidden;
+      background:#000;
+      min-height: 260px;
+      box-shadow: var(--shadow);
+    }
+    .hero img{
+      width:100%;
+      height:100%;
+      object-fit:cover;
+      display:block;
+      opacity: 1;
+      transition: opacity .25s ease;
+    }
+    .hero img.is-fading{ opacity: 0; }
+    
+    /* Thumbnail strip — horizontal scroller */
+    .thumbs{
+      display: grid;
+      grid-auto-flow: column;
+      grid-auto-columns: max-content;
+      gap: 10px;
+      margin: 12px 0 10px;
+      padding: 4px 2px;
+      overflow-x: auto;
+      scrollbar-gutter: stable;
+    }
+
+    /* Each thumbnail is a button with an <img> inside */
+    .thumbs button{
+      appearance: none;
+      border: 1px solid var(--line);
+      border-radius: 12px;
+      background: #fff;
+      padding: 0;
+      margin: 0;
+      line-height: 0;
+      cursor: pointer;
+      box-shadow: 0 6px 16px rgba(0,0,0,.10);
+      transition: transform .12s ease, box-shadow .12s ease, border-color .12s ease;
+    }
+
+    .thumbs img{
+      display: block;
+      width: 110px;      /* minimal, clean */
+      height: 72px;      /* ~16:10 */
+      object-fit: cover;
+      border-radius: 12px;
+    }
+
+    .thumbs button:hover{
+      transform: translateY(-1px);
+      box-shadow: 0 10px 22px rgba(0,0,0,.12);
+    }
+
+    .thumbs button:focus-visible{
+      outline: 2px solid var(--bubble);
+      outline-offset: 2px;
+    }
+
+    .thumbs button[aria-current="true"]{
+      border-color: var(--bubble);
+      box-shadow: 0 0 0 2px rgba(255,102,51,.25) inset;
+    }
 
   </style>
 </head>
 <body>
   <div class="paper">
     <header>
-      <a class="back" href="/catalog">← Back</a>
-      <h1 id="prop-name">Loading…</h1>
+    <!-- ANCHOR: DETAILS_TOPBAR -->
+    <div class="topbar">
+        <a class="back" href="/catalog">← Back</a>
+        <h1 id="prop-name" class="title">Loading…</h1>
+    </div>
+    <!-- /ANCHOR: DETAILS_TOPBAR -->
     </header>
 
     <div class="layout">
@@ -83,7 +189,8 @@
         <div id="hero" class="hero" aria-live="polite">
           <img id="hero-img" src="" alt="">
         </div>
-        <div id="thumbs" aria-label="Gallery thumbnails"></div>
+        <!-- ANCHOR: DETAILS_THUMBS -->
+        <div id="thumbs" class="thumbs" aria-label="More photos"></div>
 
         <div class="chips" id="amenities"></div>
 
@@ -116,6 +223,14 @@
     const propertyId = qs.get('propertyId');
     const start = qs.get('start') || new Date().toISOString().slice(0,10);
     const end   = qs.get('end')   || start;
+    
+    /* ANCHOR: DETAILS_SET_BACK */
+    const backLink = document.querySelector('a.back');
+    if (backLink){
+      const guests = qs.get('guests') || '2';
+      backLink.href =
+        `/catalog?start=${encodeURIComponent(start)}&end=${encodeURIComponent(end)}&guests=${encodeURIComponent(guests)}`;
+    }
 
     const hero = document.getElementById('hero-img');
     const thumbs = document.getElementById('thumbs');
@@ -131,21 +246,35 @@
 
     function setHero(i){
       if (!images.length) return;
-      i = Math.max(0, Math.min(images.length-1, i));
+      i = Math.max(0, Math.min(images.length - 1, i));
       heroIndex = i;
       const src = images[i];
+
+      // start fade-out
+      hero.classList.add('is-fading');
+
       const img = new Image();
-      img.onload = ()=>{ hero.src = src; hero.alt = nameEl.textContent || 'Photo'; };
+      img.onload = () => {
+        // swap
+        hero.src = src;
+        hero.alt = nameEl.textContent || 'Photo';
+
+        // allow the browser to paint the new src, then fade-in
+        requestAnimationFrame(() => {
+          hero.classList.remove('is-fading');
+        });
+      };
       img.src = src;
 
-      thumbs.querySelectorAll('.thumb').forEach((t,idx)=>{
-        t.classList.toggle('active', idx===i);
-        t.setAttribute('aria-selected', idx===i ? 'true' : 'false');
+      // reflect current thumb
+      thumbs.querySelectorAll('button.thumb').forEach((btn, idx) => {
+        btn.setAttribute('aria-current', idx === i ? 'true' : 'false');
       });
     }
 
     function thumbHTML(src, idx){
-      return `<button class="thumb" type="button" data-idx="${idx}" aria-label="Photo ${idx+1}" aria-selected="false">
+      const current = idx === 0 ? 'true' : 'false';
+      return `<button class="thumb" type="button" data-idx="${idx}" aria-label="Photo ${idx+1}" aria-current="${current}">
         <img src="${src}" alt="">
       </button>`;
     }
@@ -201,26 +330,6 @@
 
     load().catch(err=>{ console.error(err); alert('Failed to load details'); });
   </script>
-  <!-- ANCHOR: THUMBS_HOVER_SWAP -->
-    <script>
-    (function setupThumbHover(){
-    // pick the first big image on the page as the "hero"
-    const scope = document.querySelector('main') || document;
-    const imgs  = Array.from(scope.querySelectorAll('img'));
-    if (imgs.length < 2) return;
-
-    const hero   = imgs[0];                 // main/large image
-    const thumbs = imgs.slice(1);           // the smaller thumbs below it
-
-    thumbs.forEach(t => {
-        t.style.cursor = 'pointer';
-        t.addEventListener('mouseenter', () => { hero.src = t.dataset.large || t.src; });
-        t.addEventListener('focus',      () => { hero.src = t.dataset.large || t.src; });
-        // keep keyboard accessible
-        t.setAttribute('tabindex', '0');
-        t.setAttribute('aria-label', 'Preview image');
-    });
-    })();
-    </script>
+  
 </body>
 </html>
