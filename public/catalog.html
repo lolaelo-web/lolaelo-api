@@ -228,6 +228,10 @@
     const qs   = new URLSearchParams(location.search);
     const S    = (id)=>document.getElementById(id);
     const startInp=S('start'), endInp=S('end'), guestsInp=S('guests'), grid=S('grid'), found=S('found');
+    // Bind destination input and hydrate from ?q=
+    const destInp = S('dest');
+    const qParam  = (qs.get('q') || '').trim();
+    if (qParam && destInp) destInp.value = qParam;
     const detailsEl = document.getElementById('amenities');
 
     const todayISO = ()=>new Date().toISOString().slice(0,10);
@@ -272,45 +276,55 @@
 
     /* ANCHOR: CATALOG_RUN (REPLACE ENTIRE FUNCTION) */
     async function run(){
-      const start  = startInp.value || new Date().toISOString().slice(0,10);
-      const end    = endInp.value   || start;
-      const guests = Number(guestsInp.value || 2) || 2;
+    const start  = startInp.value || new Date().toISOString().slice(0,10);
+    const end    = endInp.value   || start;
+    const guests = Number(guestsInp.value || 2) || 2;
 
-      found.textContent = "Searching…";
+    found.textContent = "Searching…";
 
-      // helper: current amenity selections
-      const selectedAmenities = () =>
+    // helpers
+    const selectedAmenities = () =>
       Array.from(document.querySelectorAll('#amenities input[type="checkbox"]:checked'))
         .map(cb => String(cb.value).toLowerCase());
 
-      try{
-        const r = await fetch(`/catalog/search?start=${encodeURIComponent(start)}&end=${encodeURIComponent(end)}&guests=${guests}`);
-        const j = await r.json();
-        const all = Array.isArray(j.properties) ? j.properties : [];
+    const qLower = (destInp && destInp.value ? destInp.value : (qs.get('q') || '')).trim().toLowerCase();
 
-        // keep unfiltered set for live filtering later
-        window.__catalogProps = all;
+    try{
+      const r = await fetch(`/catalog/search?start=${encodeURIComponent(start)}&end=${encodeURIComponent(end)}&guests=${guests}`);
+      const j = await r.json();
+      const all = Array.isArray(j.properties) ? j.properties : [];
 
-        // apply amenity filter (if any) immediately
-        const sel = selectedAmenities();
-        const list = sel.length
-          ? all.filter(p => {
-              const am = (p.amenities || []).map(a => String(a).toLowerCase());
-              return sel.every(a => am.includes(a));
-            })
-          : all;
+      // keep unfiltered set for live amenity filtering
+      window.__catalogProps = all;
 
-        found.textContent = `Found ${list.length} propert${list.length===1?"y":"ies"} — ${list.filter(p=>p.availableNights>0).length} with availability.`;
-        grid.innerHTML = list.map(p => cardHTML(p, start, end)).join("") || "<div>No results.</div>";
-      }catch(err){
-        console.error(err);
-        found.textContent = "Search failed.";
-        grid.innerHTML = "";
-      } finally {
-        // auto-collapse after a search for ultra-clean view
-        if (typeof detailsEl !== 'undefined' && detailsEl) detailsEl.open = false;
+      // 1) amenity filter first
+      const sel = selectedAmenities();
+      let list = sel.length
+        ? all.filter(p => {
+            const am = (p.amenities || []).map(a => String(a).toLowerCase());
+            return sel.every(a => am.includes(a));
+          })
+        : all;
+
+      // 2) optional destination/text filter (q) — name/city/country contains
+      if (qLower) {
+        list = list.filter(p => {
+          const hay = `${p.name || ''} ${p.city || ''} ${p.country || ''}`.toLowerCase();
+          return hay.includes(qLower);
+        });
       }
+
+      found.textContent = `Found ${list.length} propert${list.length===1?"y":"ies"} — ${list.filter(p=>p.availableNights>0).length} with availability.`;
+      grid.innerHTML = list.map(p => cardHTML(p, start, end)).join("") || "<div>No results.</div>";
+    }catch(err){
+      console.error(err);
+      found.textContent = "Search failed.";
+      grid.innerHTML = "";
+    } finally {
+      // auto-collapse after a search for ultra-clean view
+      if (typeof detailsEl !== 'undefined' && detailsEl) detailsEl.open = false;
     }
+  }
     document.getElementById('search').addEventListener('click', run);
 
     /* ANCHOR: AMENITY_AUTO_FILTER — INSERTED BETWEEN click-handler AND run() */
