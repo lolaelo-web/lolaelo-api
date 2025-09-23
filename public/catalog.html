@@ -159,7 +159,9 @@
   <div class="paper">
     <!-- ANCHOR: CATALOG_HEADER_HTML -->
     <header>
-      <a class="logo" href="/"><img src="/logo.png" alt="Lolaelo" width="28" height="28"></a>
+      <a class="logo" href="https://lolaelo.com/">
+        <img src="https://lolaelo.com/logo.png" alt="Lolaelo" width="28" height="28" decoding="async" loading="eager">
+        </a>
       <h1>Siargao stays</h1>
       <!-- keep grid's 3rd column so title stays centered -->
       <span aria-hidden="true"></span>
@@ -204,7 +206,7 @@
     <!-- ANCHOR: FILTERS_DETAILS (amenities only) -->
     <details id="amenities" class="filters">
       <summary>
-        <span class="summary-pill">Filters</span>
+        <span class="summary-pill">Filters ></span>
       </summary>
       <div class="filters-body">
         <label><input type="checkbox" value="beachfront"> Beachfront</label>
@@ -268,13 +270,36 @@
       </article>`;
     }
 
+    /* ANCHOR: CATALOG_RUN (REPLACE ENTIRE FUNCTION) */
     async function run(){
-      const start = startInp.value, end = endInp.value, guests = Number(guestsInp.value || 2) || 2;
+      const start  = startInp.value || new Date().toISOString().slice(0,10);
+      const end    = endInp.value   || start;
+      const guests = Number(guestsInp.value || 2) || 2;
+
       found.textContent = "Searching…";
+
+      // helper: current amenity selections
+      const selectedAmenities = () =>
+        Array.from(document.querySelectorAll('#filtersPanel input[name="amenity"]:checked'))
+          .map(cb => String(cb.value).toLowerCase());
+
       try{
         const r = await fetch(`/catalog/search?start=${encodeURIComponent(start)}&end=${encodeURIComponent(end)}&guests=${guests}`);
         const j = await r.json();
-        const list = (j.properties || []);
+        const all = Array.isArray(j.properties) ? j.properties : [];
+
+        // keep unfiltered set for live filtering later
+        window.__catalogProps = all;
+
+        // apply amenity filter (if any) immediately
+        const sel = selectedAmenities();
+        const list = sel.length
+          ? all.filter(p => {
+              const am = (p.amenities || []).map(a => String(a).toLowerCase());
+              return sel.every(a => am.includes(a));
+            })
+          : all;
+
         found.textContent = `Found ${list.length} propert${list.length===1?"y":"ies"} — ${list.filter(p=>p.availableNights>0).length} with availability.`;
         grid.innerHTML = list.map(p => cardHTML(p, start, end)).join("") || "<div>No results.</div>";
       }catch(err){
@@ -283,11 +308,38 @@
         grid.innerHTML = "";
       } finally {
         // auto-collapse after a search for ultra-clean view
-        detailsEl.open = false;
+        if (typeof detailsEl !== 'undefined' && detailsEl) detailsEl.open = false;
       }
     }
-
     document.getElementById('search').addEventListener('click', run);
+
+    /* ANCHOR: AMENITY_AUTO_FILTER — INSERTED BETWEEN click-handler AND run() */
+    function filterAndRenderByAmenities(){
+      if (!window.__catalogProps) return; // populated by run()
+
+      const start = startInp.value || new Date().toISOString().slice(0,10);
+      const end   = endInp.value   || start;
+
+      const sel = Array.from(document.querySelectorAll('#filtersPanel input[name="amenity"]:checked'))
+        .map(cb => String(cb.value).toLowerCase());
+
+      const all = window.__catalogProps;
+      const list = sel.length
+        ? all.filter(p => {
+            const am = (p.amenities || []).map(a => String(a).toLowerCase());
+            return sel.every(a => am.includes(a));
+          })
+        : all;
+
+      found.textContent = `Found ${list.length} propert${list.length===1?'y':'ies'} — ${list.filter(p=>p.availableNights>0).length} with availability.`;
+      grid.innerHTML = list.map(p => cardHTML(p, start, end)).join("") || "<div>No results.</div>";
+    }
+
+    // Live auto-filter on amenity toggle
+    document.querySelectorAll('#filtersPanel input[name="amenity"]').forEach(cb => {
+      cb.addEventListener('change', filterAndRenderByAmenities);
+    });
+
     run();
   </script>
   <!-- ANCHOR: CATALOG_FILTERS_TOGGLE -->
