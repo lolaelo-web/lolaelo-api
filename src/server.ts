@@ -74,7 +74,7 @@ await tryMount("./routes/sessionHttp.js", "/extranet");
 await tryMount("./routes/extranetRooms.js", "/extranet/property/rooms");
 await tryMount("./routes/extranetPms.js", "/extranet/pms");
 await tryMount("./routes/extranetUisMock.js", "/extranet/pms");
-await tryMount("./routes/extranetProperty.js", "/extranet/property"); 
+await tryMount("./routes/extranetProperty.js", "/extranet/property");
 await tryMount("./routes/catalog.js", "/catalog");
 
 /* ANCHOR: MOCK_UIS_SEARCH (Siargao) */
@@ -367,9 +367,14 @@ if (process.env.NODE_ENV !== "test") {
 
 // ANCHOR: UIS_MOCK_SEARCH
 import * as HotelsData from "../data/siargao_hotels.js"; // path is: src -> data
+// Adapter (mock for now; DB later)
+import { getSearchList, getDetails as getDetailsFromAdapter, getCurrency } from "./adapters/catalogSource.js";
+import type { Currency } from "./readmodels/catalog.js";
+// Read-model projector for Catalog
+import { projectCatalogProperty } from "./readmodels/catalog.js";
 
-// Public mock search (extranet-only for now)
-app.get("/catalog/search", (req: Request, res: Response) => {
+// Public mock search (extranet-only for now) — moved off the live path
+app.get("/mock/catalog/search", (req: Request, res: Response) => {
   const start  = String(req.query.start || new Date().toISOString().slice(0, 10));
   const end    = String(req.query.end   || start);
   const guests = Math.max(1, parseInt(String(req.query.guests ?? "2"), 10));
@@ -395,108 +400,139 @@ app.get("/catalog/search", (req: Request, res: Response) => {
 
 // ANCHOR:: CATALOG_SEARCH
 // Returns property-level cards (name, city, images, fromPrice, availability summary)
-app.get("/catalog/search", (req, res) => {
+app.get("/catalog/search", async (req: Request, res: Response) => {
   try {
     const today = new Date().toISOString().slice(0, 10);
     const start = String(req.query.start || today);
     const end   = String(req.query.end   || start);
-    // guests reserved for later filtering; passthrough for now
     const guests = Math.max(1, parseInt(String(req.query.guests || "2"), 10));
 
-    const data = (HotelsData as any).searchAvailability
-      ? (HotelsData as any).searchAvailability({
-          start,
-          end,
-          ratePlanId: 1,
-          currency: (HotelsData as any).CURRENCY || "USD",
-        })
-      : null;
+    // nights in range
+    const startMs = new Date(start + "T00:00:00Z").getTime();
+    const endMs   = new Date(end   + "T00:00:00Z").getTime();
+    const nightsTotal = Math.max(0, Math.round((endMs - startMs) / 86400000));
 
-    const properties = Array.isArray(data?.properties)
-      ? data.properties.map((p: any) => ({
-          id: p.propertyId ?? p.id,
-          name: p.name,
-          city: p.city,
-          country: p.country,
-          starRating: p.starRating,
-          images: p.images || [],
-          fromPrice: p.fromPrice ?? null,
-          fromPriceStr: p.fromPriceStr ?? null,
-          availableNights: p.availableNights ?? 0,
-          nightsTotal: p.nightsTotal ?? 0,
-        }))
-      : [];
+    // Base list (via adapter wrapping mock for now)
+    const data = await getSearchList({ start, end, ratePlanId: 1 });
+    const list: any[] = Array.isArray((data as any)?.properties) ? (data as any).properties : [];
+
+    // Currency (typed to the readmodel literal type)
+    const currency: Currency = await getCurrency();
+
+    // Project each property using the read-model helper (async-safe loop)
+    const properties: any[] = [];
+    for (const p of list) {
+      // guest filter (using primary room capacity when available)
+      const h = (HotelsData as any).HOTELS?.find?.((x: any) => x.id === (p.propertyId ?? p.id));
+      const maxGuests = h?.rooms?.[0]?.maxGuests ?? 2;
+      if (maxGuests < guests) continue;
+
+      // per-property detail via adapter to obtain room daily arrays
+      const detail = await getDetailsFromAdapter({
+        propertyId: Number(p.propertyId ?? p.id),
+        start,
+        end,
+        ratePlanId: 1,
+      });
+
+      // Build roomsDaily: one array per room type, aligned by date
+      const roomsDaily =
+        Array.isArray(detail?.rooms)
+          ? detail.rooms.map((r: any) =>
+              Array.isArray(r.daily)
+                ? r.daily.map((d: any) => ({
+                    date: String(d.date),
+                    price: typeof d.price === "number" ? d.price : null,
+                    open: !d.closed && (d.open > 0 || d.open === true),
+                    minStay: typeof d.minStay === "number" ? d.minStay : undefined,
+                  }))
+                : []
+            )
+          : [];
+
+      // Project into the stable CatalogProperty shape
+      properties.push(
+        projectCatalogProperty({
+          propertyId: String(p.propertyId ?? p.id),
+          name: String(p.name || ""),
+          city: String(p.city || ""),
+          country: String(p.country || ""),
+          images: Array.isArray(p.images) ? p.images : [],
+          amenities: Array.isArray(p.amenities) ? p.amenities : [],
+          roomsDaily,
+          nightsTotal,
+          starRating: typeof p.starRating === "number" ? p.starRating : undefined,
+          currency, // <- typed literal "USD"
+          updatedAtISO: new Date().toISOString(),
+        })
+      );
+    }
 
     res.json({ ok: true, start, end, guests, count: properties.length, properties });
   } catch (e: any) {
     res.status(500).json({ ok: false, error: String(e?.message || e) });
   }
 });
-  // Details for a single property (drives the “View details (mock)” button)
-  app.get("/catalog/details", (req, res) => {
-    const propertyId = Number(req.query.propertyId);
-    const start = String(req.query.start || new Date().toISOString().slice(0, 10));
-    const end   = String(req.query.end   || start);
-    const ratePlanId = Number(req.query.ratePlanId || 1);
 
-    if (!Number.isFinite(propertyId)) {
-      res.status(400).json({ ok: false, error: "propertyId is required" });
+// Details for a single property (projects into CatalogDetails shape)
+app.get("/catalog/details", async (req: Request, res: Response) => {
+  const propertyId = Number(req.query.propertyId);
+  const start = String(req.query.start || new Date().toISOString().slice(0, 10));
+  const end   = String(req.query.end   || start);
+  const ratePlanId = Number(req.query.ratePlanId || 1);
+
+  if (!Number.isFinite(propertyId)) {
+    res.status(400).json({ ok: false, error: "propertyId is required" });
+    return;
+  }
+
+  try {
+    const payload = await getDetailsFromAdapter({ propertyId, start, end, ratePlanId }) ?? null;
+
+    if (!payload) {
+      res.status(404).json({ ok: false, error: "Not found" });
       return;
     }
+    res.json(payload);
+  } catch (e: any) {
+    res.status(500).json({ ok: false, error: String(e?.message || e) });
+  }
+});
 
-    try {
-      const payload =
-        (HotelsData as any).getAvailability?.({
-          propertyId,
-          start,
-          end,
-          ratePlanId,
-          currency: (HotelsData as any).CURRENCY || "USD",
-        }) ?? null;
+// GET /catalog/property/:id?start=YYYY-MM-DD&end=YYYY-MM-DD&guests=2
+app.get("/catalog/property/:id", (req, res) => {
+  try {
+    const id = Number(req.params.id);
+    if (!Number.isFinite(id)) return res.status(400).json({ ok:false, error:"Invalid id" });
 
-      if (!payload) {
-        res.status(404).json({ ok: false, error: "Not found" });
-        return;
-      }
-      res.json(payload);
-    } catch (e: any) {
-      res.status(500).json({ ok: false, error: String(e?.message || e) });
+    const today = new Date().toISOString().slice(0, 10);
+    const start = String(req.query.start || today);
+    const end   = String(req.query.end   || start);
+    const guests = Math.max(1, parseInt(String(req.query.guests ?? "2"), 10));
+
+    // use the same HotelsData module already imported at top
+    const getAvailability =
+      (HotelsData as any).getAvailability || (HotelsData as any)?.default?.getAvailability;
+
+    if (typeof getAvailability !== "function") {
+      return res.status(500).json({ ok:false, error:"getAvailability not available" });
     }
-  });
-  // GET /catalog/property/:id?start=YYYY-MM-DD&end=YYYY-MM-DD&guests=2
-  app.get("/catalog/property/:id", (req, res) => {
-    try {
-      const id = Number(req.params.id);
-      if (!Number.isFinite(id)) return res.status(400).json({ ok:false, error:"Invalid id" });
 
-      const today = new Date().toISOString().slice(0, 10);
-      const start = String(req.query.start || today);
-      const end   = String(req.query.end   || start);
-      const guests = Math.max(1, parseInt(String(req.query.guests ?? "2"), 10));
+    const payload = getAvailability({
+      propertyId: id,
+      start,
+      end,
+      ratePlanId: 1,
+      currency: "USD",
+      guests
+    });
 
-      // use the same HotelsData module already imported at top
-      const getAvailability =
-        (HotelsData as any).getAvailability || (HotelsData as any)?.default?.getAvailability;
-
-      if (typeof getAvailability !== "function") {
-        return res.status(500).json({ ok:false, error:"getAvailability not available" });
-      }
-
-      const payload = getAvailability({
-        propertyId: id,
-        start,
-        end,
-        ratePlanId: 1,
-        currency: "USD",
-        guests
-      });
-
-      if (!payload) return res.status(404).json({ ok:false, error:"Not found" });
-      res.json(payload);
-    } catch (e:any) {
-      res.status(500).json({ ok:false, error:String(e?.message || e) });
-    }
-  });
+    if (!payload) return res.status(404).json({ ok:false, error:"Not found" });
+    res.json(payload);
+  } catch (e:any) {
+    res.status(500).json({ ok:false, error:String(e?.message || e) });
+  }
+});
 
 /**
  * GET /extranet/pms/uis/search?start=YYYY-MM-DD&end=YYYY-MM-DD&guests=2
@@ -560,4 +596,3 @@ app.get("/extranet/pms/uis/search", async (req: Request, res: Response) => {
 // /ANCHOR: UIS_MOCK_SEARCH
 
 export default app;
-
