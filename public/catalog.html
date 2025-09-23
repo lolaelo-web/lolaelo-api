@@ -31,6 +31,17 @@
 
     header{ display:flex; align-items:center; gap:12px; justify-content:space-between; margin-bottom:8px; }
     header h1{ margin:6px 0 0; font-size:clamp(22px,3.4vw,26px); font-weight:600; }
+    /* ANCHOR: CATALOG_FILTERS_BUTTON_CSS */
+    .filters-btn{
+      border:1px solid var(--line);
+      background:#fff;
+      border-radius:999px;
+      padding:8px 12px;
+      font-weight:600;
+      cursor:pointer;
+    }
+    .filters-btn:hover{ border-color:#d9d9d9; }
+
     .logo{ display:flex; align-items:center; gap:10px; text-decoration:none; color:inherit; }
     .logo img{ height:28px; width:auto; }
 
@@ -84,10 +95,14 @@
     <header>
       <a class="logo" href="/"><img src="/logo.png" alt="Lolaelo"></a>
       <h1>Siargao stays</h1>
+            <!-- ANCHOR: CATALOG_FILTERS_BUTTON -->
+    <button id="filtersBtn" class="filters-btn" type="button">Filters</button>
     </header>
+    
 
     <!-- Collapsed by default -->
-    <details class="controls">
+    <!-- ANCHOR: CATALOG_FILTERS_PANEL -->
+    <details id="filtersPanel" class="controls">
       <summary><span class="summary-pill">Filters</span> <span id="found" class="subhead" style="margin-left:6px;">Ready.</span></summary>
       <div class="controls-body">
         <div class="controls-row">
@@ -194,5 +209,20 @@
     document.getElementById('search').addEventListener('click', run);
     run();
   </script>
+  <!-- ANCHOR: CATALOG_FILTERS_TOGGLE -->
+  <script>
+  (() => {
+    const btn = document.getElementById('filtersBtn');
+    const panel = document.getElementById('filtersPanel');
+    if (!btn || !panel) return;
+    btn.setAttribute('aria-controls', 'filtersPanel');
+    btn.setAttribute('aria-expanded', panel.open ? 'true' : 'false');
+    btn.addEventListener('click', () => {
+      panel.open = !panel.open;
+      btn.setAttribute('aria-expanded', panel.open ? 'true' : 'false');
+    });
+  })();
+  </script>
+
 </body>
 </html>
