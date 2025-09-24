@@ -89,7 +89,6 @@
       flex-wrap:wrap;
     }
     /* ANCHOR: FILTERS_BAR_CSS (INSERT) */
-    /* Make the Filters summary look like a full-width bar under the search box */
     .filters { margin-top: 8px; width: 100%; }
     .filters summary { padding: 0; }
     .filters .summary-pill{
@@ -181,7 +180,6 @@
         >
       </a>
       <h1>Siargao stays</h1>
-      <!-- keep grid's 3rd column so title stays centered -->
       <span aria-hidden="true"></span>
     </header>
 
@@ -190,7 +188,8 @@
       <div class="controls-row">
         <label class="field" aria-label="Destination">
           <span>📍</span>
-          <input id="dest" type="text" value="Siargao" />
+          <!-- CHANGED: default 'Siargao' is now a placeholder, not a value -->
+          <input id="dest" type="text" placeholder="Siargao" />
         </label>
 
         <label class="field" aria-label="Check-in">
@@ -217,7 +216,6 @@
         <button id="search" class="search-btn" type="button">Search</button>
       </div>
 
-      <!-- keep the dynamic “found” counter visible next to the search bar -->
       <div class="subhead" id="found" style="margin-top:8px;">Ready.</div>
     </div>
 
@@ -242,14 +240,19 @@
   </div>
 
   <script>
-    // === ANCHOR: CATALOG_SCRIPT (unchanged APIs) ==========================
+    // === ANCHOR: CATALOG_SCRIPT ============================================
     const qs   = new URLSearchParams(location.search);
     const S    = (id)=>document.getElementById(id);
     const startInp=S('start'), endInp=S('end'), guestsInp=S('guests'), grid=S('grid'), found=S('found');
+
     // Bind destination input and hydrate from ?q=
     const destInp = S('dest');
     const qParam  = (qs.get('q') || '').trim();
-    if (qParam && destInp) destInp.value = qParam;
+    // If q is in URL, show it; otherwise ensure input has no value (placeholder only)
+    if (destInp) {
+      if (qParam) destInp.value = qParam;
+      else destInp.value = '';
+    }
     const detailsEl = document.getElementById('amenities');
 
     const todayISO = ()=>new Date().toISOString().slice(0,10);
@@ -292,68 +295,68 @@
       </article>`;
     }
 
-    /* ANCHOR: CATALOG_RUN (REPLACE ENTIRE FUNCTION) */
+    /* ANCHOR: CATALOG_RUN (REPLACED) */
     async function run(){
-    const start  = startInp.value || new Date().toISOString().slice(0,10);
-    const end    = endInp.value   || start;
-    const guests = Number(guestsInp.value || 2) || 2;
+      const start  = startInp.value || new Date().toISOString().slice(0,10);
+      const end    = endInp.value   || start;
+      const guests = Number(guestsInp.value || 2) || 2;
 
-    found.textContent = "Searching…";
+      found.textContent = "Searching…";
 
-    // helpers
-    const selectedAmenities = () =>
-      Array.from(document.querySelectorAll('#amenities input[type="checkbox"]:checked'))
-        .map(cb => String(cb.value).toLowerCase());
+      // helpers
+      const selectedAmenities = () =>
+        Array.from(document.querySelectorAll('#amenities input[type="checkbox"]:checked'))
+          .map(cb => String(cb.value).toLowerCase());
 
-    const qLower = (destInp && destInp.value ? destInp.value : (qs.get('q') || '')).trim().toLowerCase();
+      // Only apply text filter if q is present in the URL OR the user typed something
+      const typed = (destInp?.value || '').trim();
+      const qLower = (qs.has('q') ? qParam : typed).toLowerCase();
 
-    try{
-      const r = await fetch(`/catalog/search?start=${encodeURIComponent(start)}&end=${encodeURIComponent(end)}&guests=${guests}`);
-      const j = await r.json();
-      const all = Array.isArray(j.properties) ? j.properties : [];
+      try{
+        const r = await fetch(`/catalog/search?start=${encodeURIComponent(start)}&end=${encodeURIComponent(end)}&guests=${guests}`);
+        const j = await r.json();
+        const all = Array.isArray(j.properties) ? j.properties : [];
 
-      // keep unfiltered set for live amenity filtering
-      window.__catalogProps = all;
+        window.__catalogProps = all;
 
-      // 1) amenity filter first
-      const sel = selectedAmenities();
-      let list = sel.length
-        ? all.filter(p => {
-            const am = (p.amenities || []).map(a => String(a).toLowerCase());
-            return sel.every(a => am.includes(a));
-          })
-        : all;
+        // 1) amenity filter first
+        const sel = selectedAmenities();
+        let list = sel.length
+          ? all.filter(p => {
+              const am = (p.amenities || []).map(a => String(a).toLowerCase());
+              return sel.every(a => am.includes(a));
+            })
+          : all;
 
-      // 2) optional destination/text filter (q) — name/city/country contains
-      if (qLower) {
-        list = list.filter(p => {
-          const hay = `${p.name || ''} ${p.city || ''} ${p.country || ''}`.toLowerCase();
-          return hay.includes(qLower);
-        });
+        // 2) optional destination/text filter (name/city/country)
+        if (qLower) {
+          list = list.filter(p => {
+            const hay = `${p.name || ''} ${p.city || ''} ${p.country || ''}`.toLowerCase();
+            return hay.includes(qLower);
+          });
+        }
+
+        found.textContent = `Found ${list.length} propert${list.length===1?"y":"ies"} — ${list.filter(p=>p.availableNights>0).length} with availability.`;
+        grid.innerHTML = list.map(p => cardHTML(p, start, end)).join("") || "<div>No results.</div>";
+      }catch(err){
+        console.error(err);
+        found.textContent = "Search failed.";
+        grid.innerHTML = "";
+      } finally {
+        if (typeof detailsEl !== 'undefined' && detailsEl) detailsEl.open = false;
       }
-
-      found.textContent = `Found ${list.length} propert${list.length===1?"y":"ies"} — ${list.filter(p=>p.availableNights>0).length} with availability.`;
-      grid.innerHTML = list.map(p => cardHTML(p, start, end)).join("") || "<div>No results.</div>";
-    }catch(err){
-      console.error(err);
-      found.textContent = "Search failed.";
-      grid.innerHTML = "";
-    } finally {
-      // auto-collapse after a search for ultra-clean view
-      if (typeof detailsEl !== 'undefined' && detailsEl) detailsEl.open = false;
     }
-  }
     document.getElementById('search').addEventListener('click', run);
 
-    /* ANCHOR: AMENITY_AUTO_FILTER — INSERTED BETWEEN click-handler AND run() */
+    /* ANCHOR: AMENITY_AUTO_FILTER */
     function filterAndRenderByAmenities(){
-      if (!window.__catalogProps) return; // populated by run()
+      if (!window.__catalogProps) return;
 
       const start = startInp.value || new Date().toISOString().slice(0,10);
       const end   = endInp.value   || start;
 
       const sel = Array.from(document.querySelectorAll('#amenities input[type="checkbox"]:checked'))
-      .map(cb => String(cb.value).toLowerCase());
+        .map(cb => String(cb.value).toLowerCase());
 
       const all = window.__catalogProps;
       const list = sel.length
@@ -367,7 +370,6 @@
       grid.innerHTML = list.map(p => cardHTML(p, start, end)).join("") || "<div>No results.</div>";
     }
 
-    // Live auto-filter on amenity toggle
     document.querySelectorAll('#amenities input[type="checkbox"]').forEach(cb => {
       cb.addEventListener('change', () => {
         if (!window.__catalogProps) { run(); } else { filterAndRenderByAmenities(); }
@@ -392,16 +394,12 @@
   /* ANCHOR: FILTERS_TOGGLE_JS */
   (() => {
     const btn   = document.getElementById('filtersBtn');
-    const panel = document.getElementById('amenities'); // the <details> we added
-
+    const panel = document.getElementById('amenities');
     if (!btn || !panel) return;
-
     btn.addEventListener('click', () => {
-      // toggle the <details> open state
       const willOpen = !panel.open;
       panel.open = willOpen;
       if (willOpen) {
-        // make it visible nicely
         panel.scrollIntoView({ behavior: 'smooth', block: 'start' });
       }
     });
