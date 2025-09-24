@@ -18,7 +18,8 @@ export interface DetailsArgs extends SearchArgs {
 
 export async function getSearchList(args: SearchArgs): Promise<any> {
   try {
-    const mod: any = await import("../data/siargao_hotels.js");
+    const url = new URL("../data/siargao_hotels.js", import.meta.url);
+    const mod: any = await import(url.href);
     const fn = mod?.searchAvailability ?? mod?.default?.searchAvailability;
     if (typeof fn !== "function") return { properties: [] };
     return fn({
@@ -27,15 +28,16 @@ export async function getSearchList(args: SearchArgs): Promise<any> {
       ratePlanId: args.ratePlanId ?? 1,
       currency: mod?.CURRENCY || "USD",
     });
-  } catch {
-    // Soft-fail: keep endpoint alive
+  } catch (err) {
+    console.warn("getSearchList mock import failed:", err);
     return { properties: [] };
   }
 }
 
 export async function getDetails(args: DetailsArgs): Promise<any | null> {
   try {
-    const mod: any = await import("../data/siargao_hotels.js");
+    const url = new URL("../data/siargao_hotels.js", import.meta.url);
+    const mod: any = await import(url.href);
     const fn = mod?.getAvailability ?? mod?.default?.getAvailability;
     if (typeof fn !== "function") return null;
     return fn({
@@ -45,21 +47,22 @@ export async function getDetails(args: DetailsArgs): Promise<any | null> {
       ratePlanId: args.ratePlanId ?? 1,
       currency: mod?.CURRENCY || "USD",
     });
-  } catch {
-    // Soft-fail
+  } catch (err) {
+    console.warn("getDetails mock import failed:", err);
     return null;
   }
 }
 
 export async function getCurrency(): Promise<Currency> {
   try {
-    const mod: any = await import("../data/siargao_hotels.js");
-    return (mod?.CURRENCY ?? "USD") as Currency; // <- literal type
-  } catch {
+    const url = new URL("../data/siargao_hotels.js", import.meta.url);
+    const mod: any = await import(url.href);
+    return (mod?.CURRENCY ?? "USD") as Currency;
+  } catch (err) {
+    console.warn("getCurrency mock import failed:", err);
     return "USD" as Currency;
   }
 }
-
 
 // ANCHOR: DB_IMPORT_PRISMA
 import { prisma } from "../prisma.js";
