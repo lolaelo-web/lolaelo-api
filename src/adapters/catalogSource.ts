@@ -16,6 +16,24 @@ export interface DetailsArgs extends SearchArgs {
   propertyId: number;
 }
 
+// ANCHOR: LOAD_HOTELS_MOCK
+async function loadHotelsMock(): Promise<any> {
+  const attempts = [
+    "../data/siargao_hotels.js",        // when data/ is under src/
+    "../../data/siargao_hotels.js",     // when copied to dist/data
+    "../../../data/siargao_hotels.js",  // when data/ is at project root
+  ];
+  let lastErr: any;
+  for (const rel of attempts) {
+    try {
+      return await import(rel);
+    } catch (e) {
+      lastErr = e;
+    }
+  }
+  throw lastErr ?? new Error("siargao_hotels.js not found");
+}
+
 export async function getSearchList(args: SearchArgs): Promise<any> {
   // Lazy import so we can swap implementations later without touching route code
   const mod: any = await import("../data/siargao_hotels.js");
