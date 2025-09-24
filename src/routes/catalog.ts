@@ -20,6 +20,9 @@ const router = Router();
  */
 router.get("/search", async (req: Request, res: Response) => {
   try {
+    // ANCHOR: NO_STORE_HEADER (exact insertion point you asked about)
+    res.set("Cache-Control", "no-store");
+
     // ---- Extract params (strict) ------------------------------------------
     const start = String(req.query.start || "").trim();
     const end = String(req.query.end || "").trim();
@@ -36,10 +39,20 @@ router.get("/search", async (req: Request, res: Response) => {
     const props = Array.isArray(list?.properties) ? list.properties : [];
     if (props.length === 0) return res.json({ properties: [] });
 
+    // ANCHOR: NORMALIZE_ID_START
+    // Normalize IDs so the frontend's initial render path sees `id`
+    for (const p of props) {
+      if (p && p.id == null && p.propertyId != null) {
+        p.id = p.propertyId;
+      }
+    }
+    // ANCHOR: NORMALIZE_ID_END
+
     // ---- 2) Enrich: profiles/photos from DB -------------------------------
     const ids: number[] = [];
     for (const p of props) {
-      const idNum = Number(p?.id);
+      // ANCHOR: PROFILE_IDS_EXTRACTION (uses normalized id or propertyId)
+      const idNum = Number(p?.id ?? p?.propertyId);
       if (Number.isFinite(idNum)) ids.push(idNum);
     }
     if (ids.length > 0) {
@@ -47,7 +60,7 @@ router.get("/search", async (req: Request, res: Response) => {
       try {
         const profMap = await getProfilesFromDb(ids);
         for (const p of props) {
-          const pid = Number(p?.id);
+          const pid = Number(p?.id ?? p?.propertyId);
           const prof = profMap[pid];
           if (!prof) continue;
 
@@ -64,14 +77,12 @@ router.get("/search", async (req: Request, res: Response) => {
         // continue with mock-only profiles if DB blows up
       }
       // ANCHOR: MERGE_DB_PROFILES_END
-
-      // ANCHOR: MERGE_DB_PROFILES_END
     }
 
     // ---- 3) Rooms/Inventory/Prices from DB (fallback to mock if empty) ----
     // ANCHOR: ROOMS_DB_WIRE_START
     for (const p of props) {
-      const pid = Number(p?.id);
+      const pid = Number(p?.id ?? p?.propertyId);
       if (!Number.isFinite(pid)) continue;
 
       try {
@@ -106,7 +117,6 @@ router.get("/search", async (req: Request, res: Response) => {
       }
     } catch (err) {
       req.app?.get("logger")?.warn?.({ err }, "currency-backfill failed");
-      // continue without currency if adapter import fails
     }
     // ANCHOR: CURRENCY_BACKFILL_END
 
@@ -159,12 +169,16 @@ router.get("/details", async (req: Request, res: Response) => {
     }
 
     // Currency backfill
-    const cur = await getCurrency();
-    if (base?.rooms && Array.isArray(base.rooms)) {
-      for (const r of base.rooms) {
-        if (!Array.isArray(r?.daily)) continue;
-        for (const d of r.daily) if (!d.currency) d.currency = cur;
+    try {
+      const cur = await getCurrency();
+      if (base?.rooms && Array.isArray(base.rooms)) {
+        for (const r of base.rooms) {
+          if (!Array.isArray(r?.daily)) continue;
+          for (const d of r.daily) if (!d.currency) d.currency = cur;
+        }
       }
+    } catch (err) {
+      req.app?.get("logger")?.warn?.({ err }, "details.currency-backfill failed");
     }
 
     return res.json(base ?? {});
