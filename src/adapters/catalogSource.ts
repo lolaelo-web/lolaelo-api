@@ -47,49 +47,47 @@ export async function getCurrency(): Promise<Currency> {
   return (mod?.CURRENCY ?? "USD") as Currency; // <- literal type
 }
 
-// === DB: property profiles + primary photo (minimal) ======================
-import { Client } from "pg";
 // ANCHOR: DB_IMPORT_PRISMA
 import { prisma } from "../prisma.js";
 
-/** Returns a map keyed by propertyId with {name, city, country, images[]} */
-export async function getProfilesFromDb(propertyIds: number[]): Promise<Record<number, {
-  name: string; city: string; country: string; images: string[];
-}>> {
+/** Returns a map keyed by propertyId (Partner.id) with {name, city, country, images[]} */
+export async function getProfilesFromDb(
+  propertyIds: number[]
+): Promise<Record<number, { name: string; city: string; country: string; images: string[] }>> {
   if (!propertyIds.length) return {};
 
-  const cs = process.env.DATABASE_URL || "";
-  const wantsSSL = /\bsslmode=require\b/i.test(cs) || /render\.com/i.test(cs);
-  const client = new Client({ connectionString: cs, ssl: wantsSSL ? { rejectUnauthorized: false } : undefined });
-  await client.connect();
+  // 1) Partner + Profile (name/city/country)
+  const partners = await prisma.partner.findMany({
+    where: { id: { in: propertyIds } },
+    select: {
+      id: true,
+      profile: { select: { name: true, city: true, country: true } },
+    },
+    orderBy: { id: "asc" },
+  });
 
-  // 1) basic profile
-  const prof = await client.query(
-    `select id as "propertyId", name, city, country
-       from extranet.property
-      where id = any($1::int[])`,
-    [propertyIds]
-  );
-
-  // 2) photos (grab first by sort or created_at)
-  const photos = await client.query(
-    `select property_id as "propertyId", url
-       from extranet.property_photos
-      where property_id = any($1::int[])
-      order by property_id, sort_order nulls last, created_at`,
-    [propertyIds]
-  );
-
-  await client.end();
+  // 2) Photos (ordered by sortOrder then id)
+  const photos = await prisma.propertyPhoto.findMany({
+    where: { partnerId: { in: propertyIds } },
+    select: { partnerId: true, url: true, sortOrder: true, id: true },
+    orderBy: [{ partnerId: "asc" }, { sortOrder: "asc" }, { id: "asc" }],
+  });
 
   const out: Record<number, { name: string; city: string; country: string; images: string[] }> = {};
-  for (const r of prof.rows) {
-    out[r.propertyId] = { name: r.name ?? "", city: r.city ?? "", country: r.country ?? "", images: [] };
+  for (const p of partners) {
+    out[p.id] = {
+      name: p.profile?.name ?? "",
+      city: p.profile?.city ?? "",
+      country: p.profile?.country ?? "",
+      images: [],
+    };
   }
-  for (const p of photos.rows) {
-    if (!out[p.propertyId]) continue;
-    if (p.url) out[p.propertyId].images.push(String(p.url));
+
+  for (const ph of photos) {
+    if (!out[ph.partnerId]) continue;
+    if (ph.url) out[ph.partnerId].images.push(String(ph.url));
   }
+
   return out;
 }
 
