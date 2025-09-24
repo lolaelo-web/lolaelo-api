@@ -468,10 +468,13 @@ app.get("/catalog/search", async (req: Request, res: Response) => {
       properties.push(
         projectCatalogProperty({
           propertyId: String(p.propertyId ?? p.id),
-          name: String(p.name || ""),
-          city: String(p.city || ""),
-          country: String(p.country || ""),
-          images: Array.isArray(p.images) ? p.images : [],
+          // prefer DB profile/photos if present
+          name: String((dbProfiles[Number(p.propertyId ?? p.id)]?.name) ?? p.name ?? ""),
+          city: String((dbProfiles[Number(p.propertyId ?? p.id)]?.city) ?? p.city ?? ""),
+          country: String((dbProfiles[Number(p.propertyId ?? p.id)]?.country) ?? p.country ?? ""),
+          images: (dbProfiles[Number(p.propertyId ?? p.id)]?.images?.length
+                    ? dbProfiles[Number(p.propertyId ?? p.id)].images
+                    : (Array.isArray(p.images) ? p.images : [])),
           amenities: Array.isArray(p.amenities) ? p.amenities : [],
           roomsDaily,
           nightsTotal,
