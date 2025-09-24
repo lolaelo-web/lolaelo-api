@@ -1,8 +1,11 @@
 // src/adapters/catalogSource.ts
 // Thin adapter layer used by /catalog/search and /catalog/details.
-// For now this wraps the mock module; later we'll swap to Partner Hub DB.
+// Mock stays the base; DB enrichments overlay on top.
 
 import type { Currency } from "../readmodels/catalog.js";
+
+// --- Mock data (STATIC import so it works in dev & Render build) -----------
+import * as HotelsData from "../data/siargao_hotels.js";
 
 export type ISODate = string;
 
@@ -16,60 +19,46 @@ export interface DetailsArgs extends SearchArgs {
   propertyId: number;
 }
 
+// ---------- Mock adapters (stable) -----------------------------------------
 export async function getSearchList(args: SearchArgs): Promise<any> {
-  try {
-    const url = new URL("../data/siargao_hotels.js", import.meta.url);
-    const mod: any = await import(url.href);
-    const fn = mod?.searchAvailability ?? mod?.default?.searchAvailability;
-    if (typeof fn !== "function") return { properties: [] };
-    return fn({
-      start: args.start,
-      end: args.end,
-      ratePlanId: args.ratePlanId ?? 1,
-      currency: mod?.CURRENCY || "USD",
-    });
-  } catch (err) {
-    console.warn("getSearchList mock import failed:", err);
-    return { properties: [] };
-  }
+  const mod: any = HotelsData as any;
+  const fn = mod?.searchAvailability ?? mod?.default?.searchAvailability;
+  if (typeof fn !== "function") return { properties: [] };
+  return fn({
+    start: args.start,
+    end: args.end,
+    ratePlanId: args.ratePlanId ?? 1,
+    currency: mod?.CURRENCY || "USD",
+  });
 }
 
 export async function getDetails(args: DetailsArgs): Promise<any | null> {
-  try {
-    const url = new URL("../data/siargao_hotels.js", import.meta.url);
-    const mod: any = await import(url.href);
-    const fn = mod?.getAvailability ?? mod?.default?.getAvailability;
-    if (typeof fn !== "function") return null;
-    return fn({
-      propertyId: args.propertyId,
-      start: args.start,
-      end: args.end,
-      ratePlanId: args.ratePlanId ?? 1,
-      currency: mod?.CURRENCY || "USD",
-    });
-  } catch (err) {
-    console.warn("getDetails mock import failed:", err);
-    return null;
-  }
+  const mod: any = HotelsData as any;
+  const fn = mod?.getAvailability ?? mod?.default?.getAvailability;
+  if (typeof fn !== "function") return null;
+  return fn({
+    propertyId: args.propertyId,
+    start: args.start,
+    end: args.end,
+    ratePlanId: args.ratePlanId ?? 1,
+    currency: mod?.CURRENCY || "USD",
+  });
 }
 
 export async function getCurrency(): Promise<Currency> {
-  try {
-    const url = new URL("../data/siargao_hotels.js", import.meta.url);
-    const mod: any = await import(url.href);
-    return (mod?.CURRENCY ?? "USD") as Currency;
-  } catch (err) {
-    console.warn("getCurrency mock import failed:", err);
-    return "USD" as Currency;
-  }
+  const mod: any = HotelsData as any;
+  return (mod?.CURRENCY ?? "USD") as Currency; // literal type
 }
 
-// ANCHOR: DB_IMPORT_PRISMA
+// === DB: Prisma imports =====================================================
+/* ANCHOR: DB_IMPORT_PRISMA */
 import { prisma } from "../prisma.js";
 
-export async function getProfilesFromDb(propertyIds: number[]): Promise<Record<number, {
-  name: string; city: string; country: string; images: string[];
-}>> {
+// === DB: property profiles + primary photo (minimal) =======================
+/** Returns a map keyed by propertyId (Partner.id) with {name, city, country, images[]} */
+export async function getProfilesFromDb(
+  propertyIds: number[]
+): Promise<Record<number, { name: string; city: string; country: string; images: string[] }>> {
   if (!propertyIds.length) return {};
   try {
     // 1) Partner + Profile (name/city/country)
@@ -82,7 +71,7 @@ export async function getProfilesFromDb(propertyIds: number[]): Promise<Record<n
       orderBy: { id: "asc" },
     });
 
-    // 2) Photos (ordered by sortOrder then id)
+    // 2) Photos ordered by sortOrder then id
     const photos = await prisma.propertyPhoto.findMany({
       where: { partnerId: { in: propertyIds } },
       select: { partnerId: true, url: true, sortOrder: true, id: true },
@@ -98,16 +87,13 @@ export async function getProfilesFromDb(propertyIds: number[]): Promise<Record<n
         images: [],
       };
     }
-
     for (const ph of photos) {
       if (!out[ph.partnerId]) continue;
       if (ph.url) out[ph.partnerId].images.push(String(ph.url));
     }
-
     return out;
-  } catch (err) {
-    // Soft-fail to keep endpoint alive; caller will keep mock data
-    // (Logger lives on the server; adapters don't have req.app)
+  } catch {
+    // Soft-fail; route will keep mock-only profiles
     return {};
   }
 }
@@ -126,7 +112,7 @@ export interface RoomsDailyRow {
  * @param propertyId  Partner.id (acts as "property" in catalog)
  * @param startISO    "YYYY-MM-DD"
  * @param endISO      "YYYY-MM-DD" (exclusive)
- * @param ratePlanId  optional preferred RatePlan.id; if omitted, picks first exposeToUis by lowest uisPriority; falls back to null rate and then RoomType.basePrice
+ * @param ratePlanId  optional preferred RatePlan.id; if omitted, picks first exposeToUis by lowest uisPriority; falls back to null rate then RoomType.basePrice
  */
 export async function getRoomsDailyFromDb(
   propertyId: number,
@@ -158,7 +144,6 @@ export async function getRoomsDailyFromDb(
   // 2) Determine preferred rate plan per roomType if none provided
   const preferredPlanByRoom: Record<number, number | null> = {};
   if (typeof ratePlanId === "number") {
-    // Caller specified a plan; use it for all roomTypes (only rows that exist will match)
     for (const rt of roomTypes) preferredPlanByRoom[rt.id] = ratePlanId;
   } else {
     const plans = await prisma.ratePlan.findMany({
@@ -189,29 +174,23 @@ export async function getRoomsDailyFromDb(
     invIdx.set(`${r.roomTypeId}|${d}`, qty);
   }
 
-  // 4) Pull price rows in range. We’ll fetch:
-  //    a) rows for preferred plan (if any), and
-  //    b) rows with null ratePlanId, as a fallback.
-  const planIds = Array.from(
-    new Set(Object.values(preferredPlanByRoom).filter((v): v is number => typeof v === "number"))
-  );
+  // 4) Pull price rows in range (preferred plan + null plan)
+  const planIds = Array.from(new Set(Object.values(preferredPlanByRoom).filter((v): v is number => typeof v === "number")));
   const priceRows = await prisma.roomPrice.findMany({
     where: {
       roomTypeId: { in: roomTypeIds },
       date: { gte: new Date(startISO + "T00:00:00Z"), lt: new Date(endISO + "T00:00:00Z") },
-      OR: planIds.length
-        ? [{ ratePlanId: { in: planIds } }, { ratePlanId: null }]
-        : [{ ratePlanId: null }],
+      OR: planIds.length ? [{ ratePlanId: { in: planIds } }, { ratePlanId: null }] : [{ ratePlanId: null }],
     },
     select: { roomTypeId: true, ratePlanId: true, date: true, price: true },
   });
 
   // Index: prefer explicit selected plan, else null plan
-  const priceByPlan = new Map<string, number>(); // key: `${roomTypeId}|${date}|plan|<id>` -> price
-  const priceNull   = new Map<string, number>(); // key: `${roomTypeId}|${date}|null`       -> price
+  const priceByPlan = new Map<string, number>(); // key: `${roomTypeId}|${date}|plan|<id>`
+  const priceNull   = new Map<string, number>(); // key: `${roomTypeId}|${date}|null`
   for (const r of priceRows) {
     const d = r.date.toISOString().slice(0, 10);
-    const major = Number(r.price); // Decimal -> number
+    const major = Number(r.price);
     if (r.ratePlanId == null) {
       const k = `${r.roomTypeId}|${d}|null`;
       if (!priceNull.has(k)) priceNull.set(k, major);
@@ -221,7 +200,7 @@ export async function getRoomsDailyFromDb(
     }
   }
 
-  // 5) Build output, covering all dates; price preference: specified plan → preferred exposeToUis plan → null plan → basePrice
+  // 5) Build output with full date coverage
   const out: RoomsDailyRow[] = [];
   for (const rt of roomTypes) {
     const prefPlanId = preferredPlanByRoom[rt.id] ?? null;
@@ -231,23 +210,16 @@ export async function getRoomsDailyFromDb(
 
       let price: number | null = null;
       if (prefPlanId) {
-        // try exact preferred plan
         price = priceByPlan.get(`${rt.id}|${d}|plan|${prefPlanId}`) ?? null;
       }
       if (price == null) {
-        // if no preferred or not found: try any plan for that date (first match)
+        // try any plan for this date (first found)
         for (const [k, v] of priceByPlan) {
           if (k.startsWith(`${rt.id}|${d}|plan|`)) { price = v; break; }
         }
       }
-      if (price == null) {
-        // null-plan price
-        price = priceNull.get(`${rt.id}|${d}|null`) ?? null;
-      }
-      if (price == null) {
-        // base price
-        price = Number(rt.basePrice);
-      }
+      if (price == null) price = priceNull.get(`${rt.id}|${d}|null`) ?? null;
+      if (price == null) price = Number(rt.basePrice);
 
       return { date: d, inventory: inv, price, currency: null };
     });
@@ -255,7 +227,6 @@ export async function getRoomsDailyFromDb(
     out.push({ roomId: rt.id, roomName: rt.name, daily });
   }
 
-  // If zero signal across the board, let caller decide to fall back to mock
   const hasSignal = out.some(r => r.daily.some(d => d.inventory > 0 || d.price != null));
   return hasSignal ? out : [];
 }
