@@ -52,6 +52,7 @@ router.get("/search", async (req: Request, res: Response) => {
       const idNum = Number(p?.id ?? p?.propertyId);
       if (Number.isFinite(idNum)) ids.push(idNum);
     }
+
     if (ids.length > 0) {
       // ANCHOR: MERGE_DB_PROFILES_START
       try {
@@ -92,6 +93,11 @@ router.get("/search", async (req: Request, res: Response) => {
           } else {
             p.detail = { rooms: dbRooms };
           }
+
+          // ANCHOR: ROOMS_DB_SOURCE_FLAG
+          try {
+            (p.detail as any)._roomsSource = "db"; // dev-only marker
+          } catch {}
 
           // ANCHOR: ROOMS_DB_ROLLUP_FROM_DB  (typed + in-scope)
           try {
