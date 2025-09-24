@@ -50,45 +50,49 @@ export async function getCurrency(): Promise<Currency> {
 // ANCHOR: DB_IMPORT_PRISMA
 import { prisma } from "../prisma.js";
 
-/** Returns a map keyed by propertyId (Partner.id) with {name, city, country, images[]} */
-export async function getProfilesFromDb(
-  propertyIds: number[]
-): Promise<Record<number, { name: string; city: string; country: string; images: string[] }>> {
+export async function getProfilesFromDb(propertyIds: number[]): Promise<Record<number, {
+  name: string; city: string; country: string; images: string[];
+}>> {
   if (!propertyIds.length) return {};
+  try {
+    // 1) Partner + Profile (name/city/country)
+    const partners = await prisma.partner.findMany({
+      where: { id: { in: propertyIds } },
+      select: {
+        id: true,
+        profile: { select: { name: true, city: true, country: true } },
+      },
+      orderBy: { id: "asc" },
+    });
 
-  // 1) Partner + Profile (name/city/country)
-  const partners = await prisma.partner.findMany({
-    where: { id: { in: propertyIds } },
-    select: {
-      id: true,
-      profile: { select: { name: true, city: true, country: true } },
-    },
-    orderBy: { id: "asc" },
-  });
+    // 2) Photos (ordered by sortOrder then id)
+    const photos = await prisma.propertyPhoto.findMany({
+      where: { partnerId: { in: propertyIds } },
+      select: { partnerId: true, url: true, sortOrder: true, id: true },
+      orderBy: [{ partnerId: "asc" }, { sortOrder: "asc" }, { id: "asc" }],
+    });
 
-  // 2) Photos (ordered by sortOrder then id)
-  const photos = await prisma.propertyPhoto.findMany({
-    where: { partnerId: { in: propertyIds } },
-    select: { partnerId: true, url: true, sortOrder: true, id: true },
-    orderBy: [{ partnerId: "asc" }, { sortOrder: "asc" }, { id: "asc" }],
-  });
+    const out: Record<number, { name: string; city: string; country: string; images: string[] }> = {};
+    for (const p of partners) {
+      out[p.id] = {
+        name: p.profile?.name ?? "",
+        city: p.profile?.city ?? "",
+        country: p.profile?.country ?? "",
+        images: [],
+      };
+    }
 
-  const out: Record<number, { name: string; city: string; country: string; images: string[] }> = {};
-  for (const p of partners) {
-    out[p.id] = {
-      name: p.profile?.name ?? "",
-      city: p.profile?.city ?? "",
-      country: p.profile?.country ?? "",
-      images: [],
-    };
+    for (const ph of photos) {
+      if (!out[ph.partnerId]) continue;
+      if (ph.url) out[ph.partnerId].images.push(String(ph.url));
+    }
+
+    return out;
+  } catch (err) {
+    // Soft-fail to keep endpoint alive; caller will keep mock data
+    // (Logger lives on the server; adapters don't have req.app)
+    return {};
   }
-
-  for (const ph of photos) {
-    if (!out[ph.partnerId]) continue;
-    if (ph.url) out[ph.partnerId].images.push(String(ph.url));
-  }
-
-  return out;
 }
 
 // === DB: rooms inventory + prices (daily) ===================================

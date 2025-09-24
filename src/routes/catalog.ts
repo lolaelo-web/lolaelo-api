@@ -44,20 +44,27 @@ router.get("/search", async (req: Request, res: Response) => {
     }
     if (ids.length > 0) {
       // ANCHOR: MERGE_DB_PROFILES_START
-      const profMap = await getProfilesFromDb(ids);
-      for (const p of props) {
-        const pid = Number(p?.id);
-        const prof = profMap[pid];
-        if (!prof) continue;
+      try {
+        const profMap = await getProfilesFromDb(ids);
+        for (const p of props) {
+          const pid = Number(p?.id);
+          const prof = profMap[pid];
+          if (!prof) continue;
 
-        p.name = prof.name || p.name || "";
-        p.city = prof.city || p.city || "";
-        p.country = prof.country || p.country || "";
-        if (Array.isArray(prof.images) && prof.images.length) {
-          if (!p.images || !Array.isArray(p.images)) p.images = [];
-          p.images = [...prof.images, ...p.images];
+          p.name = prof.name || p.name || "";
+          p.city = prof.city || p.city || "";
+          p.country = prof.country || p.country || "";
+          if (Array.isArray(prof.images) && prof.images.length) {
+            if (!p.images || !Array.isArray(p.images)) p.images = [];
+            p.images = [...prof.images, ...p.images];
+          }
         }
+      } catch (err) {
+        req.app?.get("logger")?.warn?.({ err }, "profiles-db-wire failed");
+        // continue with mock-only profiles if DB blows up
       }
+      // ANCHOR: MERGE_DB_PROFILES_END
+
       // ANCHOR: MERGE_DB_PROFILES_END
     }
 
