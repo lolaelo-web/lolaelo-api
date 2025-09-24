@@ -34,35 +34,68 @@ async function loadHotelsMock(): Promise<any> {
   throw lastErr ?? new Error("siargao_hotels.js not found");
 }
 
+// ANCHOR: LOAD_HOTELS_MOCK
+async function loadHotelsMock(): Promise<any> {
+  const attempts = [
+    "../data/siargao_hotels.js",        // when data/ is under dist/
+    "../../data/siargao_hotels.js",     // when data/ is under repo root (/src/data)
+    "../../../data/siargao_hotels.js",  // when data/ is one level above /src
+  ];
+  let lastErr: any;
+  for (const rel of attempts) {
+    try {
+      return await import(rel);
+    } catch (e) {
+      lastErr = e;
+    }
+  }
+  throw lastErr ?? new Error("siargao_hotels.js not found");
+}
+
+// ANCHOR: GET_SEARCH_LIST
 export async function getSearchList(args: SearchArgs): Promise<any> {
-  // Lazy import so we can swap implementations later without touching route code
-  const mod: any = await import("../data/siargao_hotels.js");
-  const fn = mod?.searchAvailability ?? mod?.default?.searchAvailability;
-  if (typeof fn !== "function") return { properties: [] };
-  return fn({
-    start: args.start,
-    end: args.end,
-    ratePlanId: args.ratePlanId ?? 1,
-    currency: mod?.CURRENCY || "USD",
-  });
+  try {
+    const mod: any = await loadHotelsMock();
+    const fn = mod?.searchAvailability ?? mod?.default?.searchAvailability;
+    if (typeof fn !== "function") return { properties: [] };
+    return fn({
+      start: args.start,
+      end: args.end,
+      ratePlanId: args.ratePlanId ?? 1,
+      currency: mod?.CURRENCY || "USD",
+    });
+  } catch {
+    // if mock fails to load, degrade to empty list (prevents 500)
+    return { properties: [] };
+  }
 }
-
+// ANCHOR: GET_DETAILS
 export async function getDetails(args: DetailsArgs): Promise<any | null> {
-  const mod: any = await import("../data/siargao_hotels.js");
-  const fn = mod?.getAvailability ?? mod?.default?.getAvailability;
-  if (typeof fn !== "function") return null;
-  return fn({
-    propertyId: args.propertyId,
-    start: args.start,
-    end: args.end,
-    ratePlanId: args.ratePlanId ?? 1,
-    currency: mod?.CURRENCY || "USD",
-  });
+  try {
+    const mod: any = await loadHotelsMock();
+    const fn = mod?.getAvailability ?? mod?.default?.getAvailability;
+    if (typeof fn !== "function") return null;
+    return fn({
+      propertyId: args.propertyId,
+      start: args.start,
+      end: args.end,
+      ratePlanId: args.ratePlanId ?? 1,
+      currency: mod?.CURRENCY || "USD",
+    });
+  } catch {
+    // degrade gracefully if mock fails to load
+    return null;
+  }
 }
-
+// ANCHOR: GET_CURRENCY
 export async function getCurrency(): Promise<Currency> {
-  const mod: any = await import("../data/siargao_hotels.js");
-  return (mod?.CURRENCY ?? "USD") as Currency; // <- literal type
+  try {
+    const mod: any = await loadHotelsMock();
+    return (mod?.CURRENCY ?? "USD") as Currency;
+  } catch {
+    // fallback if mock cannot be loaded
+    return "USD" as Currency;
+  }
 }
 
 // === DB: property profiles + primary photo (minimal) ======================
