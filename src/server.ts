@@ -378,6 +378,7 @@ app.get("/mock/catalog/search", (req: Request, res: Response) => {
   const start  = String(req.query.start || new Date().toISOString().slice(0, 10));
   const end    = String(req.query.end   || start);
   const guests = Math.max(1, parseInt(String(req.query.guests ?? "2"), 10));
+  const q = String(req.query.q ?? "").trim().toLowerCase();
 
   const payload = HotelsData.searchAvailability({
     start, end,
@@ -406,6 +407,7 @@ app.get("/catalog/search", async (req: Request, res: Response) => {
     const start = String(req.query.start || today);
     const end   = String(req.query.end   || start);
     const guests = Math.max(1, parseInt(String(req.query.guests || "2"), 10));
+    const q = String(req.query.q ?? "").trim().toLowerCase(); // optional text filter
 
     // nights in range
     const startMs = new Date(start + "T00:00:00Z").getTime();
@@ -416,12 +418,20 @@ app.get("/catalog/search", async (req: Request, res: Response) => {
     const data = await getSearchList({ start, end, ratePlanId: 1 });
     const list: any[] = Array.isArray((data as any)?.properties) ? (data as any).properties : [];
 
+    // Optional text filter by name/city/country from ?q=
+    const prefiltered: any[] = q
+      ? list.filter((p: any) => {
+          const hay = `${p?.name || ""} ${p?.city || ""} ${p?.country || ""}`.toLowerCase();
+          return hay.includes(q);
+        })
+      : list;
+
     // Currency (typed to the readmodel literal type)
     const currency: Currency = await getCurrency();
 
     // Project each property using the read-model helper (async-safe loop)
     const properties: any[] = [];
-    for (const p of list) {
+    for (const p of prefiltered) {
       // guest filter (using primary room capacity when available)
       const h = (HotelsData as any).HOTELS?.find?.((x: any) => x.id === (p.propertyId ?? p.id));
       const maxGuests = h?.rooms?.[0]?.maxGuests ?? 2;
@@ -462,13 +472,13 @@ app.get("/catalog/search", async (req: Request, res: Response) => {
           roomsDaily,
           nightsTotal,
           starRating: typeof p.starRating === "number" ? p.starRating : undefined,
-          currency, // <- typed literal "USD"
+          currency, // literal "USD" type from adapter
           updatedAtISO: new Date().toISOString(),
         })
       );
     }
 
-    res.json({ ok: true, start, end, guests, count: properties.length, properties });
+    res.json({ ok: true, start, end, guests, q: q || undefined, count: properties.length, properties });
   } catch (e: any) {
     res.status(500).json({ ok: false, error: String(e?.message || e) });
   }
@@ -500,32 +510,31 @@ app.get("/catalog/details", async (req: Request, res: Response) => {
 });
 
 // GET /catalog/property/:id?start=YYYY-MM-DD&end=YYYY-MM-DD&guests=2
-app.get("/catalog/property/:id", (req, res) => {
+app.get("/catalog/property/:id", async (req: Request, res: Response) => {
   try {
     const id = Number(req.params.id);
     if (!Number.isFinite(id)) return res.status(400).json({ ok:false, error:"Invalid id" });
 
-    const today = new Date().toISOString().slice(0, 10);
-    const start = String(req.query.start || today);
-    const end   = String(req.query.end   || start);
+    const today  = new Date().toISOString().slice(0, 10);
+    const start  = String(req.query.start || today);
+    const end    = String(req.query.end   || start);
     const guests = Math.max(1, parseInt(String(req.query.guests ?? "2"), 10));
 
-    // use the same HotelsData module already imported at top
-    const getAvailability =
-      (HotelsData as any).getAvailability || (HotelsData as any)?.default?.getAvailability;
-
-    if (typeof getAvailability !== "function") {
-      return res.status(500).json({ ok:false, error:"getAvailability not available" });
-    }
-
-    const payload = getAvailability({
+    const payload = await getDetailsFromAdapter({
       propertyId: id,
       start,
       end,
       ratePlanId: 1,
-      currency: "USD",
-      guests
     });
+
+    if (!payload) return res.status(404).json({ ok:false, error:"Not found" });
+
+    // Preserve current shape; we’re not changing the consumer here.
+    res.json(payload);
+  } catch (e:any) {
+    res.status(500).json({ ok:false, error:String(e?.message || e) });
+  }
+});
 
     if (!payload) return res.status(404).json({ ok:false, error:"Not found" });
     res.json(payload);
