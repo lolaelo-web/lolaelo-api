@@ -513,7 +513,10 @@ app.get("/catalog/details", async (req: Request, res: Response) => {
 app.get("/catalog/property/:id", async (req: Request, res: Response) => {
   try {
     const id = Number(req.params.id);
-    if (!Number.isFinite(id)) return res.status(400).json({ ok:false, error:"Invalid id" });
+    if (!Number.isFinite(id)) {
+      res.status(400).json({ ok: false, error: "Invalid id" });
+      return;
+    }
 
     const today  = new Date().toISOString().slice(0, 10);
     const start  = String(req.query.start || today);
@@ -527,19 +530,14 @@ app.get("/catalog/property/:id", async (req: Request, res: Response) => {
       ratePlanId: 1,
     });
 
-    if (!payload) return res.status(404).json({ ok:false, error:"Not found" });
+    if (!payload) {
+      res.status(404).json({ ok: false, error: "Not found" });
+      return;
+    }
 
-    // Preserve current shape; we’re not changing the consumer here.
     res.json(payload);
-  } catch (e:any) {
-    res.status(500).json({ ok:false, error:String(e?.message || e) });
-  }
-});
-
-    if (!payload) return res.status(404).json({ ok:false, error:"Not found" });
-    res.json(payload);
-  } catch (e:any) {
-    res.status(500).json({ ok:false, error:String(e?.message || e) });
+  } catch (e: any) {
+    res.status(500).json({ ok: false, error: String(e?.message || e) });
   }
 });
 
