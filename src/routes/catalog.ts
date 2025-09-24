@@ -1,62 +1,165 @@
 import { Router, type Request, type Response } from "express";
-// TS sees this thanks to your src/types/siargao_hotels.d.ts
-import * as HotelsData from "../../data/siargao_hotels.js";
+
+// ANCHOR: CATALOG_IMPORTS
+import {
+  getSearchList,
+  getDetails,
+  getCurrency,
+  getProfilesFromDb,
+  getRoomsDailyFromDb,
+} from "../adapters/catalogSource.js";
 
 const router = Router();
 
 /**
- * GET /catalog/search?start=YYYY-MM-DD&end=YYYY-MM-DD&guests=2
- * Returns mock multi-property availability from siargao_hotels.js
+ * GET /catalog/search
+ * Query params:
+ *  - start: YYYY-MM-DD
+ *  - end:   YYYY-MM-DD (exclusive)
+ *  - ratePlanId?: number
  */
-router.get("/search", (req: Request, res: Response) => {
-  const start = String(req.query.start || new Date().toISOString().slice(0, 10));
-  const end   = String(req.query.end   || start);
-  // guests not used by generator yet, but we accept it for future filtering
-  const _guests = Number.parseInt(String(req.query.guests ?? "2"), 10) || 2;
+router.get("/search", async (req: Request, res: Response) => {
+  try {
+    // ---- Extract params (strict) ------------------------------------------
+    const start = String(req.query.start || "").trim();
+    const end = String(req.query.end || "").trim();
+    const ratePlanId = req.query.ratePlanId ? Number(req.query.ratePlanId) : undefined;
 
-  const searchAvailability =
-    (HotelsData as any).searchAvailability ??
-    (HotelsData as any).default?.searchAvailability;
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(start) || !/^\d{4}-\d{2}-\d{2}$/.test(end)) {
+      return res.status(400).json({ error: "start/end must be YYYY-MM-DD" });
+    }
 
-  const currency =
-    (HotelsData as any).CURRENCY ??
-    (HotelsData as any).default?.CURRENCY ?? "USD";
+    const params = { start, end, ratePlanId };
 
-  if (typeof searchAvailability !== "function") {
-    return res.status(500).json({ ok: false, error: "Mock catalog not available" });
+    // ---- 1) Base list from mock adapter (stable layout, cards, etc.) ------
+    const list = await getSearchList(params); // { properties: [...] }
+    const props = Array.isArray(list?.properties) ? list.properties : [];
+    if (props.length === 0) return res.json({ properties: [] });
+
+    // ---- 2) Enrich: profiles/photos from DB -------------------------------
+    const ids: number[] = [];
+    for (const p of props) {
+      const idNum = Number(p?.id);
+      if (Number.isFinite(idNum)) ids.push(idNum);
+    }
+    if (ids.length > 0) {
+      // ANCHOR: MERGE_DB_PROFILES_START
+      const profMap = await getProfilesFromDb(ids);
+      for (const p of props) {
+        const pid = Number(p?.id);
+        const prof = profMap[pid];
+        if (!prof) continue;
+
+        p.name = prof.name || p.name || "";
+        p.city = prof.city || p.city || "";
+        p.country = prof.country || p.country || "";
+        if (Array.isArray(prof.images) && prof.images.length) {
+          if (!p.images || !Array.isArray(p.images)) p.images = [];
+          p.images = [...prof.images, ...p.images];
+        }
+      }
+      // ANCHOR: MERGE_DB_PROFILES_END
+    }
+
+    // ---- 3) Rooms/Inventory/Prices from DB (fallback to mock if empty) ----
+    // ANCHOR: ROOMS_DB_WIRE_START
+    for (const p of props) {
+      const pid = Number(p?.id);
+      if (!Number.isFinite(pid)) continue;
+
+      try {
+        const dbRooms = await getRoomsDailyFromDb(pid, params.start, params.end, params.ratePlanId);
+        if (Array.isArray(dbRooms) && dbRooms.length > 0) {
+          if (p.detail && Array.isArray(p.detail.rooms)) {
+            p.detail.rooms = dbRooms;
+          } else if (p.detail) {
+            p.detail.rooms = dbRooms;
+          } else {
+            p.detail = { rooms: dbRooms };
+          }
+        }
+      } catch (err) {
+        req.app?.get("logger")?.warn?.({ err, propertyId: pid }, "rooms-db-wire failed");
+      }
+    }
+    // ANCHOR: ROOMS_DB_WIRE_END
+
+    // ---- 4) Currency backfill (ensure each daily row has currency) --------
+    // ANCHOR: CURRENCY_BACKFILL_START
+    const cur = await getCurrency();
+    for (const p of props) {
+      const rooms = p?.detail?.rooms;
+      if (!Array.isArray(rooms)) continue;
+      for (const r of rooms) {
+        const daily = r?.daily;
+        if (!Array.isArray(daily)) continue;
+        for (const d of daily) if (!d.currency) d.currency = cur;
+      }
+    }
+    // ANCHOR: CURRENCY_BACKFILL_END
+
+    return res.json({ properties: props });
+  } catch (err: any) {
+    req.app?.get("logger")?.error?.({ err }, "catalog.search failed");
+    return res.status(500).json({ error: "Internal error" });
   }
-
-  const out = searchAvailability({ start, end, currency });
-  return res.json(out);
 });
 
-// GET /catalog/details?propertyId=101&start=YYYY-MM-DD&end=YYYY-MM-DD[&plan=1]
-router.get("/details", (req: Request, res: Response) => {
-  const propertyId = Number(req.query.propertyId || req.query.id);
-  const start      = String(req.query.start || "").slice(0, 10);
-  const end        = String(req.query.end   || "").slice(0, 10);
-  const ratePlanId = Number(req.query.plan || req.query.ratePlanId || 1);
+/**
+ * GET /catalog/details
+ * Query params:
+ *  - propertyId: number (maps to Partner.id)
+ *  - start: YYYY-MM-DD
+ *  - end:   YYYY-MM-DD (exclusive)
+ *  - ratePlanId?: number
+ */
+router.get("/details", async (req: Request, res: Response) => {
+  try {
+    const propertyId = Number(req.query.propertyId ?? req.query.id);
+    const start = String(req.query.start || "").trim();
+    const end = String(req.query.end || "").trim();
+    const ratePlanId = req.query.ratePlanId
+      ? Number(req.query.ratePlanId)
+      : (req.query.plan ? Number(req.query.plan) : undefined);
 
-  if (!propertyId || !start || !end) {
-    res.status(400).json({ ok: false, error: "Missing propertyId/start/end" });
-    return;
+    if (!Number.isFinite(propertyId)) {
+      return res.status(400).json({ error: "propertyId must be a number" });
+    }
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(start) || !/^\d{4}-\d{2}-\d{2}$/.test(end)) {
+      return res.status(400).json({ error: "start/end must be YYYY-MM-DD" });
+    }
+
+    // Base (mock) details
+    const base = await getDetails({ propertyId, start, end, ratePlanId });
+
+    // Optional: enrich rooms with DB daily (fallback to mock already present)
+    try {
+      const dbRooms = await getRoomsDailyFromDb(propertyId, start, end, ratePlanId);
+      if (Array.isArray(dbRooms) && dbRooms.length > 0) {
+        if (base?.rooms && Array.isArray(base.rooms)) {
+          base.rooms = dbRooms;
+        } else if (base) {
+          base.rooms = dbRooms;
+        }
+      }
+    } catch (err) {
+      req.app?.get("logger")?.warn?.({ err, propertyId }, "details.rooms-db-wire failed");
+    }
+
+    // Currency backfill
+    const cur = await getCurrency();
+    if (base?.rooms && Array.isArray(base.rooms)) {
+      for (const r of base.rooms) {
+        if (!Array.isArray(r?.daily)) continue;
+        for (const d of r.daily) if (!d.currency) d.currency = cur;
+      }
+    }
+
+    return res.json(base ?? {});
+  } catch (err: any) {
+    req.app?.get("logger")?.error?.({ err }, "catalog.details failed");
+    return res.status(500).json({ error: "Internal error" });
   }
-
-  const getAvailability =
-    (HotelsData as any).getAvailability ??
-    (HotelsData as any).default?.getAvailability;
-
-  if (typeof getAvailability !== "function") {
-    res.status(500).json({ ok: false, error: "getAvailability not available" });
-    return;
-  }
-
-  const payload = getAvailability({ propertyId, start, end, ratePlanId });
-  if (!payload) {
-    res.status(404).json({ ok: false, error: "Property not found" });
-    return;
-  }
-  res.json(payload);
 });
 
 export default router;
