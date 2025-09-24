@@ -17,35 +17,49 @@ export interface DetailsArgs extends SearchArgs {
 }
 
 export async function getSearchList(args: SearchArgs): Promise<any> {
-  // Lazy import so we can swap implementations later without touching route code
-  const mod: any = await import("../data/siargao_hotels.js");
-  const fn = mod?.searchAvailability ?? mod?.default?.searchAvailability;
-  if (typeof fn !== "function") return { properties: [] };
-  return fn({
-    start: args.start,
-    end: args.end,
-    ratePlanId: args.ratePlanId ?? 1,
-    currency: mod?.CURRENCY || "USD",
-  });
+  try {
+    const mod: any = await import("../data/siargao_hotels.js");
+    const fn = mod?.searchAvailability ?? mod?.default?.searchAvailability;
+    if (typeof fn !== "function") return { properties: [] };
+    return fn({
+      start: args.start,
+      end: args.end,
+      ratePlanId: args.ratePlanId ?? 1,
+      currency: mod?.CURRENCY || "USD",
+    });
+  } catch {
+    // Soft-fail: keep endpoint alive
+    return { properties: [] };
+  }
 }
 
 export async function getDetails(args: DetailsArgs): Promise<any | null> {
-  const mod: any = await import("../data/siargao_hotels.js");
-  const fn = mod?.getAvailability ?? mod?.default?.getAvailability;
-  if (typeof fn !== "function") return null;
-  return fn({
-    propertyId: args.propertyId,
-    start: args.start,
-    end: args.end,
-    ratePlanId: args.ratePlanId ?? 1,
-    currency: mod?.CURRENCY || "USD",
-  });
+  try {
+    const mod: any = await import("../data/siargao_hotels.js");
+    const fn = mod?.getAvailability ?? mod?.default?.getAvailability;
+    if (typeof fn !== "function") return null;
+    return fn({
+      propertyId: args.propertyId,
+      start: args.start,
+      end: args.end,
+      ratePlanId: args.ratePlanId ?? 1,
+      currency: mod?.CURRENCY || "USD",
+    });
+  } catch {
+    // Soft-fail
+    return null;
+  }
 }
 
 export async function getCurrency(): Promise<Currency> {
-  const mod: any = await import("../data/siargao_hotels.js");
-  return (mod?.CURRENCY ?? "USD") as Currency; // <- literal type
+  try {
+    const mod: any = await import("../data/siargao_hotels.js");
+    return (mod?.CURRENCY ?? "USD") as Currency; // <- literal type
+  } catch {
+    return "USD" as Currency;
+  }
 }
+
 
 // ANCHOR: DB_IMPORT_PRISMA
 import { prisma } from "../prisma.js";

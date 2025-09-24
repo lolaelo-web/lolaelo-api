@@ -93,15 +93,20 @@ router.get("/search", async (req: Request, res: Response) => {
 
     // ---- 4) Currency backfill (ensure each daily row has currency) --------
     // ANCHOR: CURRENCY_BACKFILL_START
-    const cur = await getCurrency();
-    for (const p of props) {
-      const rooms = p?.detail?.rooms;
-      if (!Array.isArray(rooms)) continue;
-      for (const r of rooms) {
-        const daily = r?.daily;
-        if (!Array.isArray(daily)) continue;
-        for (const d of daily) if (!d.currency) d.currency = cur;
+    try {
+      const cur = await getCurrency();
+      for (const p of props) {
+        const rooms = p?.detail?.rooms;
+        if (!Array.isArray(rooms)) continue;
+        for (const r of rooms) {
+          const daily = r?.daily;
+          if (!Array.isArray(daily)) continue;
+          for (const d of daily) if (!d.currency) d.currency = cur;
+        }
       }
+    } catch (err) {
+      req.app?.get("logger")?.warn?.({ err }, "currency-backfill failed");
+      // continue without currency if adapter import fails
     }
     // ANCHOR: CURRENCY_BACKFILL_END
 
