@@ -152,11 +152,12 @@ router.get("/search", async (req: Request, res: Response) => {
     }
     // ANCHOR: CURRENCY_BACKFILL_END
 
-    return res.json({ properties: props });
-  } catch (err: any) {
-    req.app?.get("logger")?.error?.({ err }, "catalog.search failed");
-    return res.status(500).json({ error: "Internal error" });
-  }
+    } catch (err: any) {
+      const msg = err?.message || String(err);
+      const stack = err?.stack || null;
+      req.app?.get("logger")?.error?.({ err }, "catalog.search failed");
+      return res.status(500).json({ error: "Internal error", _where: "catalog.search", _debug: msg, _stack: stack });
+    }
 });
 
 /**
