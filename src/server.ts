@@ -418,6 +418,10 @@ app.get("/catalog/search", async (req: Request, res: Response) => {
     const data = await getSearchList({ start, end, ratePlanId: 1 });
     const list: any[] = Array.isArray((data as any)?.properties) ? (data as any).properties : [];
 
+    // Pull Partner Hub profiles/photos and merge (availability still from mock)
+    const ids = list.map((p: any) => Number(p.propertyId ?? p.id)).filter((n: any) => Number.isFinite(n));
+    const dbProfiles = await (await import("./adapters/catalogSource.js")).getProfilesFromDb(ids);
+
     // Optional text filter by name/city/country from ?q=
     const prefiltered: any[] = q
       ? list.filter((p: any) => {
