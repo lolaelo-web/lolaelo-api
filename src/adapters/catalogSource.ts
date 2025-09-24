@@ -3,9 +3,9 @@
 // Mock stays the base; DB enrichments overlay on top.
 
 import type { Currency } from "../readmodels/catalog.js";
-
-// --- Mock data (STATIC import so it works in dev & Render build) -----------
-import * as HotelsData from "../data/siargao_hotels.js";
+import { prisma } from "../prisma.js";
+import { resolve as pathResolve } from "node:path";
+import { pathToFileURL } from "node:url";
 
 export type ISODate = string;
 
@@ -14,14 +14,25 @@ export interface SearchArgs {
   end: ISODate;
   ratePlanId?: number;
 }
-
 export interface DetailsArgs extends SearchArgs {
   propertyId: number;
 }
 
+// ---- Helper: load mock from project root (…/data/siargao_hotels.js) -------
+const MOCK_FILE = pathResolve(process.cwd(), "data", "siargao_hotels.js");
+async function loadMock(): Promise<any | null> {
+  try {
+    const mod = await import(pathToFileURL(MOCK_FILE).href);
+    return mod;
+  } catch (err) {
+    console.warn("[catalog] mock import failed:", err);
+    return null;
+  }
+}
+
 // ---------- Mock adapters (stable) -----------------------------------------
 export async function getSearchList(args: SearchArgs): Promise<any> {
-  const mod: any = HotelsData as any;
+  const mod: any = await loadMock();
   const fn = mod?.searchAvailability ?? mod?.default?.searchAvailability;
   if (typeof fn !== "function") return { properties: [] };
   return fn({
@@ -33,7 +44,7 @@ export async function getSearchList(args: SearchArgs): Promise<any> {
 }
 
 export async function getDetails(args: DetailsArgs): Promise<any | null> {
-  const mod: any = HotelsData as any;
+  const mod: any = await loadMock();
   const fn = mod?.getAvailability ?? mod?.default?.getAvailability;
   if (typeof fn !== "function") return null;
   return fn({
@@ -46,13 +57,9 @@ export async function getDetails(args: DetailsArgs): Promise<any | null> {
 }
 
 export async function getCurrency(): Promise<Currency> {
-  const mod: any = HotelsData as any;
-  return (mod?.CURRENCY ?? "USD") as Currency; // literal type
+  const mod: any = await loadMock();
+  return (mod?.CURRENCY ?? "USD") as Currency;
 }
-
-// === DB: Prisma imports =====================================================
-/* ANCHOR: DB_IMPORT_PRISMA */
-import { prisma } from "../prisma.js";
 
 // === DB: property profiles + primary photo (minimal) =======================
 /** Returns a map keyed by propertyId (Partner.id) with {name, city, country, images[]} */
@@ -61,7 +68,6 @@ export async function getProfilesFromDb(
 ): Promise<Record<number, { name: string; city: string; country: string; images: string[] }>> {
   if (!propertyIds.length) return {};
   try {
-    // 1) Partner + Profile (name/city/country)
     const partners = await prisma.partner.findMany({
       where: { id: { in: propertyIds } },
       select: {
@@ -71,7 +77,6 @@ export async function getProfilesFromDb(
       orderBy: { id: "asc" },
     });
 
-    // 2) Photos ordered by sortOrder then id
     const photos = await prisma.propertyPhoto.findMany({
       where: { partnerId: { in: propertyIds } },
       select: { partnerId: true, url: true, sortOrder: true, id: true },
@@ -93,7 +98,6 @@ export async function getProfilesFromDb(
     }
     return out;
   } catch {
-    // Soft-fail; route will keep mock-only profiles
     return {};
   }
 }
@@ -213,7 +217,6 @@ export async function getRoomsDailyFromDb(
         price = priceByPlan.get(`${rt.id}|${d}|plan|${prefPlanId}`) ?? null;
       }
       if (price == null) {
-        // try any plan for this date (first found)
         for (const [k, v] of priceByPlan) {
           if (k.startsWith(`${rt.id}|${d}|plan|`)) { price = v; break; }
         }
