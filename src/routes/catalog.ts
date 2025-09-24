@@ -8,6 +8,7 @@ import {
   getProfilesFromDb,
   getRoomsDailyFromDb,
 } from "../adapters/catalogSource.js";
+import type { RoomsDailyRow } from "../adapters/catalogSource.js";
 
 const router = Router();
 
@@ -20,7 +21,7 @@ const router = Router();
  */
 router.get("/search", async (req: Request, res: Response) => {
   try {
-    // ANCHOR: NO_STORE_HEADER (exact insertion point you asked about)
+    // ANCHOR: NO_STORE_HEADER
     res.set("Cache-Control", "no-store");
 
     // ---- Extract params (strict) ------------------------------------------
@@ -36,22 +37,18 @@ router.get("/search", async (req: Request, res: Response) => {
 
     // ---- 1) Base list from mock adapter (stable layout, cards, etc.) ------
     const list = await getSearchList(params); // { properties: [...] }
-    const props = Array.isArray(list?.properties) ? list.properties : [];
+    const props: any[] = Array.isArray(list?.properties) ? list.properties : [];
     if (props.length === 0) return res.json({ properties: [] });
 
     // ANCHOR: NORMALIZE_ID_START
-    // Normalize IDs so the frontend's initial render path sees `id`
     for (const p of props) {
-      if (p && p.id == null && p.propertyId != null) {
-        p.id = p.propertyId;
-      }
+      if (p && p.id == null && p.propertyId != null) p.id = p.propertyId;
     }
     // ANCHOR: NORMALIZE_ID_END
 
     // ---- 2) Enrich: profiles/photos from DB -------------------------------
     const ids: number[] = [];
     for (const p of props) {
-      // ANCHOR: PROFILE_IDS_EXTRACTION (uses normalized id or propertyId)
       const idNum = Number(p?.id ?? p?.propertyId);
       if (Number.isFinite(idNum)) ids.push(idNum);
     }
@@ -74,7 +71,6 @@ router.get("/search", async (req: Request, res: Response) => {
         }
       } catch (err) {
         req.app?.get("logger")?.warn?.({ err }, "profiles-db-wire failed");
-        // continue with mock-only profiles if DB blows up
       }
       // ANCHOR: MERGE_DB_PROFILES_END
     }
@@ -88,12 +84,42 @@ router.get("/search", async (req: Request, res: Response) => {
       try {
         const dbRooms = await getRoomsDailyFromDb(pid, params.start, params.end, params.ratePlanId);
         if (Array.isArray(dbRooms) && dbRooms.length > 0) {
+          // overlay rooms
           if (p.detail && Array.isArray(p.detail.rooms)) {
             p.detail.rooms = dbRooms;
           } else if (p.detail) {
             p.detail.rooms = dbRooms;
           } else {
             p.detail = { rooms: dbRooms };
+          }
+
+          // ANCHOR: ROOMS_DB_ROLLUP_FROM_DB  (typed + in-scope)
+          try {
+            type Daily = RoomsDailyRow["daily"][number];
+            const allDaily: Daily[] = (dbRooms as RoomsDailyRow[]).flatMap(
+              (r: RoomsDailyRow) => (r.daily as Daily[]) || []
+            );
+            const availNights = allDaily.filter((d: Daily) => (d.inventory ?? 0) > 0).length;
+            const priced: Daily[] = allDaily.filter((d: Daily) => typeof d.price === "number");
+            const minPrice = priced.length ? Math.min(...priced.map((d: Daily) => (d.price as number))) : null;
+            const curCode = (priced[0]?.currency as string) || "USD";
+
+            (p as any).availableNights = availNights;
+            (p as any).nightsTotal = allDaily.length;
+
+            if (minPrice != null && Number.isFinite(minPrice)) {
+              (p as any).fromPrice = minPrice;
+              try {
+                (p as any).fromPriceStr = new Intl.NumberFormat("en-US", {
+                  style: "currency",
+                  currency: curCode,
+                }).format(minPrice);
+              } catch {
+                (p as any).fromPriceStr = `$${(minPrice as number).toFixed(2)}`;
+              }
+            }
+          } catch (e) {
+            req.app?.get("logger")?.warn?.({ e, propertyId: pid }, "rooms-db-rollup failed");
           }
         }
       } catch (err) {
@@ -109,8 +135,8 @@ router.get("/search", async (req: Request, res: Response) => {
       for (const p of props) {
         const rooms = p?.detail?.rooms;
         if (!Array.isArray(rooms)) continue;
-        for (const r of rooms) {
-          const daily = r?.daily;
+        for (const r of rooms as RoomsDailyRow[]) {
+          const daily = r?.daily as RoomsDailyRow["daily"];
           if (!Array.isArray(daily)) continue;
           for (const d of daily) if (!d.currency) d.currency = cur;
         }
@@ -152,7 +178,7 @@ router.get("/details", async (req: Request, res: Response) => {
     }
 
     // Base (mock) details
-    const base = await getDetails({ propertyId, start, end, ratePlanId });
+    const base: any = await getDetails({ propertyId, start, end, ratePlanId });
 
     // Optional: enrich rooms with DB daily (fallback to mock already present)
     try {
@@ -163,6 +189,7 @@ router.get("/details", async (req: Request, res: Response) => {
         } else if (base) {
           base.rooms = dbRooms;
         }
+        (base as any)._roomsSource = "db"; // optional debug flag
       }
     } catch (err) {
       req.app?.get("logger")?.warn?.({ err, propertyId }, "details.rooms-db-wire failed");
@@ -172,9 +199,10 @@ router.get("/details", async (req: Request, res: Response) => {
     try {
       const cur = await getCurrency();
       if (base?.rooms && Array.isArray(base.rooms)) {
-        for (const r of base.rooms) {
-          if (!Array.isArray(r?.daily)) continue;
-          for (const d of r.daily) if (!d.currency) d.currency = cur;
+        for (const r of base.rooms as RoomsDailyRow[]) {
+          const daily = r?.daily as RoomsDailyRow["daily"];
+          if (!Array.isArray(daily)) continue;
+          for (const d of daily) if (!d.currency) d.currency = cur;
         }
       }
     } catch (err) {

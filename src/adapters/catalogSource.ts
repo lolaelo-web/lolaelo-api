@@ -1,11 +1,8 @@
 // src/adapters/catalogSource.ts
 // Thin adapter layer used by /catalog/search and /catalog/details.
-// Mock stays the base; DB enrichments overlay on top.
+// For now this wraps the mock module; later we'll swap to Partner Hub DB.
 
 import type { Currency } from "../readmodels/catalog.js";
-import { prisma } from "../prisma.js";
-import { resolve as pathResolve } from "node:path";
-import { pathToFileURL } from "node:url";
 
 export type ISODate = string;
 
@@ -14,25 +11,14 @@ export interface SearchArgs {
   end: ISODate;
   ratePlanId?: number;
 }
+
 export interface DetailsArgs extends SearchArgs {
   propertyId: number;
 }
 
-// ---- Helper: load mock from project root (…/data/siargao_hotels.js) -------
-const MOCK_FILE = pathResolve(process.cwd(), "data", "siargao_hotels.js");
-async function loadMock(): Promise<any | null> {
-  try {
-    const mod = await import(pathToFileURL(MOCK_FILE).href);
-    return mod;
-  } catch (err) {
-    console.warn("[catalog] mock import failed:", err);
-    return null;
-  }
-}
-
-// ---------- Mock adapters (stable) -----------------------------------------
 export async function getSearchList(args: SearchArgs): Promise<any> {
-  const mod: any = await loadMock();
+  // Lazy import so we can swap implementations later without touching route code
+  const mod: any = await import("../data/siargao_hotels.js");
   const fn = mod?.searchAvailability ?? mod?.default?.searchAvailability;
   if (typeof fn !== "function") return { properties: [] };
   return fn({
@@ -44,7 +30,7 @@ export async function getSearchList(args: SearchArgs): Promise<any> {
 }
 
 export async function getDetails(args: DetailsArgs): Promise<any | null> {
-  const mod: any = await loadMock();
+  const mod: any = await import("../data/siargao_hotels.js");
   const fn = mod?.getAvailability ?? mod?.default?.getAvailability;
   if (typeof fn !== "function") return null;
   return fn({
@@ -57,58 +43,67 @@ export async function getDetails(args: DetailsArgs): Promise<any | null> {
 }
 
 export async function getCurrency(): Promise<Currency> {
-  const mod: any = await loadMock();
-  return (mod?.CURRENCY ?? "USD") as Currency;
+  const mod: any = await import("../data/siargao_hotels.js");
+  return (mod?.CURRENCY ?? "USD") as Currency; // <- literal type
 }
 
-// === DB: property profiles + primary photo (minimal) =======================
-/** Returns a map keyed by propertyId (Partner.id) with {name, city, country, images[]} */
-export async function getProfilesFromDb(
-  propertyIds: number[]
-): Promise<Record<number, { name: string; city: string; country: string; images: string[] }>> {
+// === DB: property profiles + primary photo (minimal) ======================
+// ANCHOR: DB_IMPORT_POOL
+import { pool } from "../db/pool.js";
+// ANCHOR: DB_IMPORT_PRISMA
+import { prisma } from "../prisma.js";
+
+/** Returns a map keyed by propertyId with {name, city, country, images[]} */
+export async function getProfilesFromDb(propertyIds: number[]): Promise<Record<number, {
+  name: string; city: string; country: string; images: string[];
+}>> {
   if (!propertyIds.length) return {};
-  try {
-    const partners = await prisma.partner.findMany({
-      where: { id: { in: propertyIds } },
-      select: {
-        id: true,
-        profile: { select: { name: true, city: true, country: true } },
-      },
-      orderBy: { id: "asc" },
-    });
 
-    const photos = await prisma.propertyPhoto.findMany({
-      where: { partnerId: { in: propertyIds } },
-      select: { partnerId: true, url: true, sortOrder: true, id: true },
-      orderBy: [{ partnerId: "asc" }, { sortOrder: "asc" }, { id: "asc" }],
-    });
+  // 1) basic profile
+  const prof = await pool.query(
+    `select id as "propertyId", name, city, country
+       from extranet.property
+      where id = any($1::int[])`,
+    [propertyIds]
+  );
 
-    const out: Record<number, { name: string; city: string; country: string; images: string[] }> = {};
-    for (const p of partners) {
-      out[p.id] = {
-        name: p.profile?.name ?? "",
-        city: p.profile?.city ?? "",
-        country: p.profile?.country ?? "",
-        images: [],
-      };
-    }
-    for (const ph of photos) {
-      if (!out[ph.partnerId]) continue;
-      if (ph.url) out[ph.partnerId].images.push(String(ph.url));
-    }
-    return out;
-  } catch {
-    return {};
+  // 2) photos (grab first by sort or created_at)
+  const photos = await pool.query(
+    `select property_id as "propertyId", url
+       from extranet.property_photos
+      where property_id = any($1::int[])
+      order by property_id, sort_order nulls last, created_at`,
+    [propertyIds]
+  );
+
+  const out: Record<number, { name: string; city: string; country: string; images: string[] }> = {};
+  for (const r of prof.rows) {
+    out[r.propertyId] = { name: r.name ?? "", city: r.city ?? "", country: r.country ?? "", images: [] };
   }
+  for (const p of photos.rows) {
+    if (!out[p.propertyId]) continue;
+    if (p.url) out[p.propertyId].images.push(String(p.url));
+  }
+  return out;
 }
 
 // === DB: rooms inventory + prices (daily) ===================================
 // Returns the same shape your mock 'roomsDaily' uses.
 // Assumes 'propertyId' maps to Partner.id (your schema has no Property model).
+// ANCHOR: ROOMS_DAILY_TYPE
 export interface RoomsDailyRow {
   roomId: number;
   roomName: string;
-  daily: Array<{ date: string; inventory: number; price: number | null; currency: string | null }>;
+  // Enriched daily shape for UI table compatibility
+  daily: Array<{
+    date: string;
+    inventory: number;
+    price: number | null;
+    currency: string | null;
+    open?: number;          // same as inventory
+    closed?: boolean;       // derived from isClosed || open<=0
+    minStay?: number | null;
+  }>;
 }
 
 /**
@@ -116,7 +111,7 @@ export interface RoomsDailyRow {
  * @param propertyId  Partner.id (acts as "property" in catalog)
  * @param startISO    "YYYY-MM-DD"
  * @param endISO      "YYYY-MM-DD" (exclusive)
- * @param ratePlanId  optional preferred RatePlan.id; if omitted, picks first exposeToUis by lowest uisPriority; falls back to null rate then RoomType.basePrice
+ * @param ratePlanId  optional preferred RatePlan.id; if omitted, picks first exposeToUis by lowest uisPriority; falls back to null rate and then RoomType.basePrice
  */
 export async function getRoomsDailyFromDb(
   propertyId: number,
@@ -161,40 +156,53 @@ export async function getRoomsDailyFromDb(
     }
   }
 
-  // 3) Pull inventory rows in range
+  // 3) Pull inventory rows in range (include minStay)
   const invRows = await prisma.roomInventory.findMany({
     where: {
       roomTypeId: { in: roomTypeIds },
       date: { gte: new Date(startISO + "T00:00:00Z"), lt: new Date(endISO + "T00:00:00Z") },
     },
-    select: { roomTypeId: true, date: true, roomsOpen: true, isClosed: true },
+    // ANCHOR: INV_SELECT_FIELDS
+    select: { roomTypeId: true, date: true, roomsOpen: true, isClosed: true, minStay: true },
   });
 
-  // Index: `${roomTypeId}|YYYY-MM-DD` -> inventory number (0 if closed or missing)
-  const invIdx = new Map<string, number>();
+  // ANCHOR: INV_INDEX_STRUCT
+  type InvRec = { open: number; closed: boolean; minStay: number | null };
+  // Index: `${roomTypeId}|YYYY-MM-DD` -> {open, closed, minStay}
+  const invIdx = new Map<string, InvRec>();
   for (const r of invRows) {
     const d = r.date.toISOString().slice(0, 10);
-    const qty = r.isClosed ? 0 : Math.max(0, r.roomsOpen ?? 0);
-    invIdx.set(`${r.roomTypeId}|${d}`, qty);
+    const open = Math.max(0, r.isClosed ? 0 : (r.roomsOpen ?? 0));
+    invIdx.set(`${r.roomTypeId}|${d}`, {
+      open,
+      closed: !!r.isClosed || open <= 0,
+      minStay: r.minStay ?? null,
+    });
   }
 
-  // 4) Pull price rows in range (preferred plan + null plan)
-  const planIds = Array.from(new Set(Object.values(preferredPlanByRoom).filter((v): v is number => typeof v === "number")));
+  // 4) Pull price rows in range. We’ll fetch:
+  //    a) rows for preferred plan (if any), and
+  //    b) rows with null ratePlanId, as a fallback.
+  const planIds = Array.from(
+    new Set(Object.values(preferredPlanByRoom).filter((v): v is number => typeof v === "number"))
+  );
   const priceRows = await prisma.roomPrice.findMany({
     where: {
       roomTypeId: { in: roomTypeIds },
       date: { gte: new Date(startISO + "T00:00:00Z"), lt: new Date(endISO + "T00:00:00Z") },
-      OR: planIds.length ? [{ ratePlanId: { in: planIds } }, { ratePlanId: null }] : [{ ratePlanId: null }],
+      OR: planIds.length
+        ? [{ ratePlanId: { in: planIds } }, { ratePlanId: null }]
+        : [{ ratePlanId: null }],
     },
     select: { roomTypeId: true, ratePlanId: true, date: true, price: true },
   });
 
-  // Index: prefer explicit selected plan, else null plan
-  const priceByPlan = new Map<string, number>(); // key: `${roomTypeId}|${date}|plan|<id>`
-  const priceNull   = new Map<string, number>(); // key: `${roomTypeId}|${date}|null`
+  // Index: keep exact plan prices separate from null-plan prices
+  const priceByPlan = new Map<string, number>(); // key: `${roomTypeId}|${date}|plan|<id>` -> price
+  const priceNull   = new Map<string, number>(); // key: `${roomTypeId}|${date}|null`       -> price
   for (const r of priceRows) {
     const d = r.date.toISOString().slice(0, 10);
-    const major = Number(r.price);
+    const major = Number(r.price); // Decimal -> number
     if (r.ratePlanId == null) {
       const k = `${r.roomTypeId}|${d}|null`;
       if (!priceNull.has(k)) priceNull.set(k, major);
@@ -204,19 +212,19 @@ export async function getRoomsDailyFromDb(
     }
   }
 
-  // 5) Build output with full date coverage
+  // 5) Build output, covering all dates; price preference: specified plan → preferred exposeToUis plan → null plan → basePrice
   const out: RoomsDailyRow[] = [];
   for (const rt of roomTypes) {
     const prefPlanId = preferredPlanByRoom[rt.id] ?? null;
 
     const daily = dates.map((d) => {
-      const inv = invIdx.get(`${rt.id}|${d}`) ?? 0;
-
+      // price lookup
       let price: number | null = null;
-      if (prefPlanId) {
+      if (prefPlanId != null) {
         price = priceByPlan.get(`${rt.id}|${d}|plan|${prefPlanId}`) ?? null;
       }
       if (price == null) {
+        // try any plan price for that date
         for (const [k, v] of priceByPlan) {
           if (k.startsWith(`${rt.id}|${d}|plan|`)) { price = v; break; }
         }
@@ -224,12 +232,24 @@ export async function getRoomsDailyFromDb(
       if (price == null) price = priceNull.get(`${rt.id}|${d}|null`) ?? null;
       if (price == null) price = Number(rt.basePrice);
 
-      return { date: d, inventory: inv, price, currency: null };
+      // inventory+flags
+      // ANCHOR: DAILY_SHAPE_ENRICHED
+      const rec = invIdx.get(`${rt.id}|${d}`) ?? { open: 0, closed: true, minStay: null };
+      return {
+        date: d,
+        inventory: rec.open,
+        price,
+        currency: null,
+        open: rec.open,
+        closed: rec.closed,
+        minStay: rec.minStay,
+      };
     });
 
     out.push({ roomId: rt.id, roomName: rt.name, daily });
   }
 
+  // If zero signal across the board, let caller decide to fall back to mock
   const hasSignal = out.some(r => r.daily.some(d => d.inventory > 0 || d.price != null));
   return hasSignal ? out : [];
 }

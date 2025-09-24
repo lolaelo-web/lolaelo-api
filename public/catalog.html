@@ -248,6 +248,10 @@
     // Bind destination input and hydrate from ?q=
     const destInp = S('dest');
     const qParam  = (qs.get('q') || '').trim();
+    // ANCHOR: PLAN_PARAM_DEF
+    const planParam = (qs.get('ratePlanId') || qs.get('plan') || '').trim();
+    const planQS = planParam ? `&ratePlanId=${encodeURIComponent(planParam)}` : '';
+
     // If q is in URL, show it; otherwise ensure input has no value (placeholder only)
     if (destInp) {
       if (qParam) destInp.value = qParam;
@@ -269,7 +273,10 @@
       const a = (p.amenities || []).slice(0,3).map(a=>`<span class="chip">${a}</span>`).join("");
       const price = p.fromPriceStr ? p.fromPriceStr : '—';
       const nights = `${p.availableNights}/${p.nightsTotal} nights`;
-      const link = `/catalog_details.html?propertyId=${encodeURIComponent(p.propertyId)}&start=${encodeURIComponent(start)}&end=${encodeURIComponent(end)}`;
+      // ANCHOR: PLAN_IN_DETAILS_LINK
+      const planPart = planParam ? `&ratePlanId=${encodeURIComponent(planParam)}` : '';
+      const link = `/catalog_details.html?propertyId=${encodeURIComponent(p.propertyId)}&start=${encodeURIComponent(start)}&end=${encodeURIComponent(end)}${planPart}`;
+      const srcBadge = (p.detail && p.detail._roomsSource === 'db') ? '<span class="chip">db</span>' : '';
 
       return `
       <article class="card">
@@ -313,7 +320,8 @@
       const qLower = (qs.has('q') ? qParam : typed).toLowerCase();
 
       try{
-        const r = await fetch(`/catalog/search?start=${encodeURIComponent(start)}&end=${encodeURIComponent(end)}&guests=${guests}`);
+        // ANCHOR: PLAN_IN_SEARCH_FETCH
+        const r = await fetch(`/catalog/search?start=${encodeURIComponent(start)}&end=${encodeURIComponent(end)}&guests=${guests}${planQS}`);
         const j = await r.json();
         const all = Array.isArray(j.properties) ? j.properties : [];
 

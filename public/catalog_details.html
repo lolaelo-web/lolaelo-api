@@ -31,24 +31,10 @@
     html { font-size: 16px; }                   /* baseline */
     body { font-size: 15px; line-height: 1.5; } /* normal text size across customer UIs */
 
-    h1 {
-    font-size: clamp(30px, 4.8vw, 44px);      /* match travel homepage */
-    line-height: 1.15;
-    margin: 6px 0 10px;
-    font-weight: 600;
-    }
+    h1 { font-size: clamp(30px, 4.8vw, 44px); line-height: 1.15; margin: 6px 0 10px; font-weight: 600; }
+    h2 { font-size: clamp(18px, 2.4vw, 22px); line-height: 1.2; margin: 10px 0 8px; font-weight: 600; }
 
-    h2 {
-    font-size: clamp(18px, 2.4vw, 22px);
-    line-height: 1.2;
-    margin: 10px 0 8px;
-    font-weight: 600;
-    }
-
-    p, li, .meta, .tag, .desc, .smalltext {
-    font-size: 15px;                          /* unify body text size */
-    }
-
+    p, li, .meta, .tag, .desc, .smalltext { font-size: 15px; }
     .small { font-size: 13px; color: var(--muted); }
 
     /* ANCHOR: TYPO_REGULAR_ELEMS */
@@ -85,7 +71,7 @@
     .layout{ display:grid; grid-template-columns: 1.3fr .9fr; gap:16px; }
     @media (max-width:900px){ .layout{ grid-template-columns: 1fr; } }
 
-        /* Right panel */
+    /* Right panel */
     .panel{ border:1px solid var(--line); border-radius:14px; padding:14px; display:flex; flex-direction:column; gap:14px; }
     .muted{ color:var(--muted); font-size:12px; }
     .price{ font-weight:700; font-size:22px; }
@@ -103,7 +89,6 @@
     .tag.off{ background:#fef2f2; color:#b91c1c; border-color:#fee2e2; }
 
     /* ANCHOR: DETAILS_GALLERY_CSS */
-    /* Hero image sizing */
     .hero{
       position: relative;
       border-radius: var(--radius);
@@ -112,17 +97,9 @@
       min-height: 260px;
       box-shadow: var(--shadow);
     }
-    .hero img{
-      width:100%;
-      height:100%;
-      object-fit:cover;
-      display:block;
-      opacity: 1;
-      transition: opacity .25s ease;
-    }
+    .hero img{ width:100%; height:100%; object-fit:cover; display:block; opacity: 1; transition: opacity .25s ease; }
     .hero img.is-fading{ opacity: 0; }
     
-    /* Thumbnail strip — horizontal scroller */
     .thumbs{
       display: grid;
       grid-auto-flow: column;
@@ -134,7 +111,6 @@
       scrollbar-gutter: stable;
     }
 
-    /* Each thumbnail is a button with an <img> inside */
     .thumbs button{
       appearance: none;
       border: 1px solid var(--line);
@@ -147,41 +123,21 @@
       box-shadow: 0 6px 16px rgba(0,0,0,.10);
       transition: transform .12s ease, box-shadow .12s ease, border-color .12s ease;
     }
-
-    .thumbs img{
-      display: block;
-      width: 110px;      /* minimal, clean */
-      height: 72px;      /* ~16:10 */
-      object-fit: cover;
-      border-radius: 12px;
-    }
-
-    .thumbs button:hover{
-      transform: translateY(-1px);
-      box-shadow: 0 10px 22px rgba(0,0,0,.12);
-    }
-
-    .thumbs button:focus-visible{
-      outline: 2px solid var(--bubble);
-      outline-offset: 2px;
-    }
-
-    .thumbs button[aria-current="true"]{
-      border-color: var(--bubble);
-      box-shadow: 0 0 0 2px rgba(255,102,51,.25) inset;
-    }
-
+    .thumbs img{ display: block; width: 110px; height: 72px; object-fit: cover; border-radius: 12px; }
+    .thumbs button:hover{ transform: translateY(-1px); box-shadow: 0 10px 22px rgba(0,0,0,.12); }
+    .thumbs button:focus-visible{ outline: 2px solid var(--bubble); outline-offset: 2px; }
+    .thumbs button[aria-current="true"]{ border-color: var(--bubble); box-shadow: 0 0 0 2px rgba(255,102,51,.25) inset; }
   </style>
 </head>
 <body>
   <div class="paper">
     <header>
-    <!-- ANCHOR: DETAILS_TOPBAR -->
-    <div class="topbar">
+      <!-- ANCHOR: DETAILS_TOPBAR -->
+      <div class="topbar">
         <a class="back" href="/catalog">← Back</a>
         <h1 id="prop-name" class="title">Loading…</h1>
-    </div>
-    <!-- /ANCHOR: DETAILS_TOPBAR -->
+      </div>
+      <!-- /ANCHOR: DETAILS_TOPBAR -->
     </header>
 
     <div class="layout">
@@ -223,13 +179,18 @@
     const propertyId = qs.get('propertyId');
     const start = qs.get('start') || new Date().toISOString().slice(0,10);
     const end   = qs.get('end')   || start;
-    
+
+    // ANCHOR: DETAILS_PLAN_PARAM_DEF
+    const planParam = (qs.get('ratePlanId') || qs.get('plan') || '').trim();
+    const planQS = planParam ? `&ratePlanId=${encodeURIComponent(planParam)}` : '';
+
     /* ANCHOR: DETAILS_SET_BACK */
     const backLink = document.querySelector('a.back');
     if (backLink){
       const guests = qs.get('guests') || '2';
+      // ANCHOR: DETAILS_BACK_WITH_PLAN
       backLink.href =
-        `/catalog?start=${encodeURIComponent(start)}&end=${encodeURIComponent(end)}&guests=${encodeURIComponent(guests)}`;
+        `/catalog?start=${encodeURIComponent(start)}&end=${encodeURIComponent(end)}&guests=${encodeURIComponent(guests)}${planQS}`;
     }
 
     const hero = document.getElementById('hero-img');
@@ -250,23 +211,15 @@
       heroIndex = i;
       const src = images[i];
 
-      // start fade-out
       hero.classList.add('is-fading');
-
       const img = new Image();
       img.onload = () => {
-        // swap
         hero.src = src;
         hero.alt = nameEl.textContent || 'Photo';
-
-        // allow the browser to paint the new src, then fade-in
-        requestAnimationFrame(() => {
-          hero.classList.remove('is-fading');
-        });
+        requestAnimationFrame(() => { hero.classList.remove('is-fading'); });
       };
       img.src = src;
 
-      // reflect current thumb
       thumbs.querySelectorAll('button.thumb').forEach((btn, idx) => {
         btn.setAttribute('aria-current', idx === i ? 'true' : 'false');
       });
@@ -282,7 +235,8 @@
     function money(v){ const n=Number(v); return Number.isFinite(n) ? `$${n.toFixed(2)}` : '—'; }
 
     async function load(){
-      const r = await fetch(`/catalog/details?propertyId=${encodeURIComponent(propertyId)}&start=${encodeURIComponent(start)}&end=${encodeURIComponent(end)}`);
+      // ANCHOR: DETAILS_FETCH_WITH_PLAN
+      const r = await fetch(`/catalog/details?propertyId=${encodeURIComponent(propertyId)}&start=${encodeURIComponent(start)}&end=${encodeURIComponent(end)}${planQS}`);
       const j = await r.json();
 
       nameEl.textContent = j?.meta?.property?.name || 'Stay';
@@ -293,11 +247,9 @@
       images = j?.rooms?.[0]?.images?.length ? j.rooms[0].images : (j?.meta?.property?.images || []);
       amenities.innerHTML = (j?.meta?.property?.amenities || []).slice(0,6).map(a=>`<span class="chip">${a}</span>`).join("");
 
-      // gallery
       thumbs.innerHTML = images.map((src, i)=>thumbHTML(src, i)).join("");
       setHero(0);
 
-      // CLICK + HOVER to swap hero
       thumbs.addEventListener('click', (e)=>{
         const b = e.target.closest('.thumb'); if(!b) return;
         setHero(Number(b.dataset.idx||'0'));
@@ -307,7 +259,6 @@
         setHero(Number(b.dataset.idx||'0'));
       });
 
-      // table rows
       const daily = j?.rooms?.[0]?.daily || [];
       rows.innerHTML = daily.map(d=>{
         const tag = d.closed ? `<span class="tag off">Closed</span>` : `<span class="tag">Open</span>`;
