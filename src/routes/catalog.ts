@@ -122,16 +122,20 @@ router.get("/search", async (req: Request, res: Response) => {
 
       try {
         // cap each property’s DB fetch to ~500ms
-        const dbRooms = await timebox(getRoomsDailyFromDb(pid, params.start, params.end, params.ratePlanId), 500);
+        const rooms: RoomsDailyRow[] = (await timebox<RoomsDailyRow[]>(
+          getRoomsDailyFromDb(pid, params.start, params.end, params.ratePlanId),
+          500
+        )) ?? [];
 
-        if (Array.isArray(dbRooms) && dbRooms.length > 0) {
+        if (rooms.length > 0) {
+
           // overlay rooms
           if (p.detail && Array.isArray(p.detail.rooms)) {
-            p.detail.rooms = dbRooms;
+            p.detail.rooms = rooms;
           } else if (p.detail) {
-            p.detail.rooms = dbRooms;
+            p.detail.rooms = rooms;
           } else {
-            p.detail = { rooms: dbRooms };
+            p.detail = { rooms };
           }
 
           // ANCHOR: ROOMS_DB_SOURCE_FLAG
@@ -140,7 +144,7 @@ router.get("/search", async (req: Request, res: Response) => {
           // ANCHOR: ROOMS_DB_ROLLUP_FROM_DB (unchanged logic, typed)
           try {
             type Daily = RoomsDailyRow["daily"][number];
-            const allDaily: Daily[] = (dbRooms as RoomsDailyRow[]).flatMap(
+            const allDaily: Daily[] = rooms.flatMap(
               (r: RoomsDailyRow) => (r.daily as Daily[]) || []
             );
             const availNights = allDaily.filter((d: Daily) => (d.inventory ?? 0) > 0).length;
