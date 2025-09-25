@@ -315,9 +315,9 @@
         Array.from(document.querySelectorAll('#amenities input[type="checkbox"]:checked'))
           .map(cb => String(cb.value).toLowerCase());
 
-      // Only apply text filter if q is present in the URL OR the user typed something
-      const typed = (destInp?.value || '').trim();
-      const qLower = (qs.has('q') ? qParam : typed).toLowerCase();
+      // Only filter by text when ?q= is present in the URL
+      const qLower = (qs.get('q') || '').trim().toLowerCase();
+
 
       try{
         // ANCHOR: PLAN_IN_SEARCH_FETCH
