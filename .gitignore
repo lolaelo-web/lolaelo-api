@@ -177,3 +177,5 @@ rotate_db_pw.mjs
 
 # Ignore local mock files
 /public/LLCFormation.pdf
+
+scripts/seed-*.sql
