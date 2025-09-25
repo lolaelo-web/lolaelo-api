@@ -45,6 +45,7 @@ router.get("/search", async (req: Request, res: Response) => {
       if (p && p.id == null && p.propertyId != null) p.id = p.propertyId;
     }
     // ANCHOR: NORMALIZE_ID_END
+    return res.json({ properties: props });
 
     // ---- 2) Enrich: profiles/photos from DB -------------------------------
     const ids: number[] = [];
@@ -119,7 +120,7 @@ router.get("/search", async (req: Request, res: Response) => {
                 (p as any).fromPriceStr = new Intl.NumberFormat("en-US", {
                   style: "currency",
                   currency: curCode,
-                }).format(minPrice);
+                }).format(Number(minPrice));
               } catch {
                 (p as any).fromPriceStr = `$${(minPrice as number).toFixed(2)}`;
               }
