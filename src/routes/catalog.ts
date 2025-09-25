@@ -112,12 +112,18 @@ router.get("/search", async (req: Request, res: Response) => {
 
     // ---- 3) Rooms/Inventory/Prices from DB (fallback to mock if empty) ----
     // ANCHOR: ROOMS_DB_WIRE_START
+    // timebox helper so foreground DB enrichment can’t hang the request
+    const timebox = <T>(promise: Promise<T>, ms: number): Promise<T | null> =>
+      Promise.race([promise, new Promise<T | null>(resolve => setTimeout(() => resolve(null), ms))]);
+
     for (const p of props) {
       const pid = Number(p?.id ?? p?.propertyId);
       if (!Number.isFinite(pid)) continue;
 
       try {
-        const dbRooms = await getRoomsDailyFromDb(pid, params.start, params.end, params.ratePlanId);
+        // cap each property’s DB fetch to ~500ms
+        const dbRooms = await timebox(getRoomsDailyFromDb(pid, params.start, params.end, params.ratePlanId), 500);
+
         if (Array.isArray(dbRooms) && dbRooms.length > 0) {
           // overlay rooms
           if (p.detail && Array.isArray(p.detail.rooms)) {
@@ -129,11 +135,9 @@ router.get("/search", async (req: Request, res: Response) => {
           }
 
           // ANCHOR: ROOMS_DB_SOURCE_FLAG
-          try {
-            (p.detail as any)._roomsSource = "db"; // dev-only marker
-          } catch {}
+          try { (p.detail as any)._roomsSource = "db"; } catch {}
 
-          // ANCHOR: ROOMS_DB_ROLLUP_FROM_DB  (typed + in-scope)
+          // ANCHOR: ROOMS_DB_ROLLUP_FROM_DB (unchanged logic, typed)
           try {
             type Daily = RoomsDailyRow["daily"][number];
             const allDaily: Daily[] = (dbRooms as RoomsDailyRow[]).flatMap(
