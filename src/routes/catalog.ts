@@ -76,7 +76,8 @@ router.get("/search", async (req: Request, res: Response) => {
       return res.set("Cache-Control", "no-store").json({ properties: props });
     }
     // else: wantsDb === true → skip early return and continue to the DB enrichment
-   
+    let _roomsApplied = 0; // debug: count properties where DB rooms were applied
+
     // ---- 2) Enrich: profiles/photos from DB -------------------------------
     const ids: number[] = [];
     for (const p of props) {
@@ -134,6 +135,7 @@ router.get("/search", async (req: Request, res: Response) => {
           } else {
             p.detail = { rooms };
           }
+          _roomsApplied++; // <— increment here (after rooms are applied)
 
           // ANCHOR: ROOMS_DB_SOURCE_FLAG
           try { (p.detail as any)._roomsSource = "db"; } catch {}
@@ -191,7 +193,9 @@ router.get("/search", async (req: Request, res: Response) => {
     }
     // ANCHOR: CURRENCY_BACKFILL_END
     // ---- Final: respond with enriched list ----------------------------
-    return res.set("Cache-Control", "no-store").json({ properties: props });
+    return res
+      .set("Cache-Control", "no-store")
+      .json({ properties: props, _dbg: { wantsDb, roomsApplied: _roomsApplied } });
 
     } catch (err: any) {
       const msg = err?.message || String(err);
