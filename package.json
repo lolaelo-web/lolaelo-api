@@ -11,6 +11,7 @@
         "prestart": "prisma generate",
         "dev": "tsx watch src/server.ts",
         "build": "prisma generate && tsc",
+        "postbuild": "node scripts/copy-data.mjs",
         "start": "node dist/server.js",
         "start:prod": "prisma migrate deploy && node dist/server.js",
         "db:push": "prisma db push",
