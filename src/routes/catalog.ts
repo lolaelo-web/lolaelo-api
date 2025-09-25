@@ -45,6 +45,7 @@ router.get("/search", async (req: Request, res: Response) => {
       if (p && p.id == null && p.propertyId != null) p.id = p.propertyId;
     }
     // ANCHOR: NORMALIZE_ID_END
+    return res.set("Cache-Control", "no-store").json({ properties: props });
    
     // ---- 2) Enrich: profiles/photos from DB -------------------------------
     const ids: number[] = [];
