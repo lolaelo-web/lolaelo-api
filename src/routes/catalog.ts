@@ -76,9 +76,6 @@ router.get("/search", async (req: Request, res: Response) => {
       return res.set("Cache-Control", "no-store").json({ properties: props });
     }
     // else: wantsDb === true → skip early return and continue to the DB enrichment
-
-    // respond immediately to keep UI snappy
-    return res.set("Cache-Control", "no-store").json({ properties: props });
    
     // ---- 2) Enrich: profiles/photos from DB -------------------------------
     const ids: number[] = [];
