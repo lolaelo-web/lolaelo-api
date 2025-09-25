@@ -44,7 +44,35 @@ router.get("/search", async (req: Request, res: Response) => {
     for (const p of props) {
       if (p && p.id == null && p.propertyId != null) p.id = p.propertyId;
     }
-    // ANCHOR: NORMALIZE_ID_END
+    // ANCHOR: NONBLOCK_ENRICH
+    setTimeout(() => {
+      (async () => {
+        try {
+          // gather ids safely
+          const idsBg: number[] = [];
+          for (const p of props) {
+            const idNum = Number(p?.id ?? p?.propertyId);
+            if (Number.isFinite(idNum)) idsBg.push(idNum);
+          }
+
+          // simple timebox helper
+          const timebox = <T>(promise: Promise<T>, ms: number): Promise<T | null> =>
+            Promise.race([promise, new Promise<T | null>(resolve => setTimeout(() => resolve(null), ms))]);
+
+          // background fetches (do not affect the response)
+          await timebox(getProfilesFromDb(idsBg), 800);
+
+          const startISO = params.start, endISO = params.end, planId = params.ratePlanId;
+          for (const pid of idsBg) {
+            await timebox(getRoomsDailyFromDb(pid, startISO, endISO, planId), 250);
+          }
+        } catch (e) {
+          req.app?.get("logger")?.warn?.({ e }, "bg.enrich failed");
+        }
+      })().catch(() => {});
+    }, 0);
+
+    // respond immediately to keep UI snappy
     return res.set("Cache-Control", "no-store").json({ properties: props });
    
     // ---- 2) Enrich: profiles/photos from DB -------------------------------
