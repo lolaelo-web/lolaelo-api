@@ -19,27 +19,9 @@ export interface DetailsArgs extends SearchArgs {
 // ANCHOR: LOAD_HOTELS_MOCK
 async function loadHotelsMock(): Promise<any> {
   const attempts = [
-    "../data/siargao_hotels.js",        // when data/ is under src/
+    "../data/siargao_hotels.js",        // when data/ is under dist/
     "../../data/siargao_hotels.js",     // when copied to dist/data
     "../../../data/siargao_hotels.js",  // when data/ is at project root
-  ];
-  let lastErr: any;
-  for (const rel of attempts) {
-    try {
-      return await import(rel);
-    } catch (e) {
-      lastErr = e;
-    }
-  }
-  throw lastErr ?? new Error("siargao_hotels.js not found");
-}
-
-// ANCHOR: LOAD_HOTELS_MOCK
-async function loadHotelsMock(): Promise<any> {
-  const attempts = [
-    "../data/siargao_hotels.js",        // when data/ is under dist/
-    "../../data/siargao_hotels.js",     // when data/ is under repo root (/src/data)
-    "../../../data/siargao_hotels.js",  // when data/ is one level above /src
   ];
   let lastErr: any;
   for (const rel of attempts) {
