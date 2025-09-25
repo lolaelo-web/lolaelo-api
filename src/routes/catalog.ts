@@ -190,6 +190,8 @@ router.get("/search", async (req: Request, res: Response) => {
       req.app?.get("logger")?.warn?.({ err }, "currency-backfill failed");
     }
     // ANCHOR: CURRENCY_BACKFILL_END
+    // ---- Final: respond with enriched list ----------------------------
+    return res.set("Cache-Control", "no-store").json({ properties: props });
 
     } catch (err: any) {
       const msg = err?.message || String(err);
