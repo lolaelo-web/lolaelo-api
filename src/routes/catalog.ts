@@ -119,10 +119,10 @@ router.get("/search", async (req: Request, res: Response) => {
       if (!Number.isFinite(pid)) continue;
 
       try {
-        // cap each property’s DB fetch to ~2000ms (cold start safety on Render)
+        // cap each property’s DB fetch to ~2500ms (cold-start safe)
         const rooms: RoomsDailyRow[] = (await timebox<RoomsDailyRow[]>(
           getRoomsDailyFromDb(pid, params.start, params.end, params.ratePlanId),
-          2000
+          2500
         )) ?? [];
 
         if (rooms.length > 0) {
