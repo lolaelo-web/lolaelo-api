@@ -236,6 +236,23 @@ router.get("/details", async (req: Request, res: Response) => {
     // Base (mock) details
     const base: any = await getDetails({ propertyId, start, end, ratePlanId });
 
+    // ANCHOR: DETAILS_DB_PROFILE_ENRICH
+    try {
+      const profMap = await getProfilesFromDb([propertyId]);
+      const prof = profMap[propertyId];
+      if (prof) {
+        if (prof.name)    base.name    = prof.name;
+        if (prof.city)    base.city    = prof.city;
+        if (prof.country) base.country = prof.country;
+        if (Array.isArray(prof.images) && prof.images.length) {
+          base.images = Array.isArray(base.images) ? [...prof.images, ...base.images] : [...prof.images];
+        }
+      }
+    } catch (err) {
+      req.app?.get("logger")?.warn?.({ err, propertyId }, "details.profile-db-wire failed");
+    }
+    // ANCHOR: DETAILS_DB_PROFILE_ENRICH
+
     // Optional: enrich rooms with DB daily (fallback to mock already present)
     try {
       const dbRooms = await getRoomsDailyFromDb(propertyId, start, end, ratePlanId);
