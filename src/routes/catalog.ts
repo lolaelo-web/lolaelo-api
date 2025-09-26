@@ -20,6 +20,9 @@ const router = Router();
  *  - ratePlanId?: number
  */
 router.get("/search", async (req: Request, res: Response) => {
+    req.app?.get("logger")?.info?.({ q: req.query }, "catalog.search invoked");
+    console.log("[catalog] search invoked", req.query);
+
   try {
     // ANCHOR: NO_STORE_HEADER
     res.set("Cache-Control", "no-store");
