@@ -471,7 +471,7 @@ app.get("/catalog/search", async (req: Request, res: Response) => {
         ratePlanId: 1,
       });
 
-      // Build roomsDaily: one array per room type, aligned by date
+            // Build roomsDaily (normalized daily rows for UI)
       const roomsDaily =
         Array.isArray(detail?.rooms)
           ? detail.rooms.map((r: any) =>
@@ -486,17 +486,29 @@ app.get("/catalog/search", async (req: Request, res: Response) => {
             )
           : [];
 
-      // Project into the stable CatalogProperty shape
+      // Prefer DB profile/photos if present; fall back to mock
+      const pidNum = Number(p.propertyId ?? p.id);
+      const prof   = dbProfiles[pidNum];
+      const mergedImages: string[] =
+        (prof?.images?.length ? prof.images : (Array.isArray(p.images) ? p.images : []));
+
+      // Debug: log which image wins for this property
+      console.log(
+        "[catalog.search] pid=%s img0=%s (db0=%s mock0=%s)",
+        pidNum,
+        mergedImages?.[0] ?? null,
+        prof?.images?.[0] ?? null,
+        Array.isArray(p.images) ? p.images[0] : null
+      );
+
+            // Project into the stable CatalogProperty shape
       properties.push(
         projectCatalogProperty({
           propertyId: String(p.propertyId ?? p.id),
-          // prefer DB profile/photos if present
-          name: String((dbProfiles[Number(p.propertyId ?? p.id)]?.name) ?? p.name ?? ""),
-          city: String((dbProfiles[Number(p.propertyId ?? p.id)]?.city) ?? p.city ?? ""),
-          country: String((dbProfiles[Number(p.propertyId ?? p.id)]?.country) ?? p.country ?? ""),
-          images: (dbProfiles[Number(p.propertyId ?? p.id)]?.images?.length
-                    ? dbProfiles[Number(p.propertyId ?? p.id)].images
-                    : (Array.isArray(p.images) ? p.images : [])),
+          name: String((prof?.name) ?? p.name ?? ""),
+          city: String((prof?.city) ?? p.city ?? ""),
+          country: String((prof?.country) ?? p.country ?? ""),
+          images: mergedImages,
           amenities: Array.isArray(p.amenities) ? p.amenities : [],
           roomsDaily,
           nightsTotal,
@@ -507,11 +519,21 @@ app.get("/catalog/search", async (req: Request, res: Response) => {
       );
     }
 
-    res.json({ ok: true, start, end, guests, q: q || undefined, count: properties.length, properties });
+    // respond
+    res.json({
+      ok: true,
+      start,
+      end,
+      guests,
+      q: q || undefined,
+      count: properties.length,
+      properties
+    });
   } catch (e: any) {
     res.status(500).json({ ok: false, error: String(e?.message || e) });
   }
-});
+}); // <-- end /catalog/search
+
 
 // Details for a single property (projects into CatalogDetails shape)
 app.get("/catalog/details", async (req: Request, res: Response) => {
