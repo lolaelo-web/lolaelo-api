@@ -82,41 +82,46 @@ export async function getCurrency(): Promise<Currency> {
 
 // === DB: property profiles + primary photo (minimal) ======================
 // ANCHOR: DB_IMPORT_POOL
-import { pool } from "../db/pool.js";
+import { pool } from "../db/pool.js"; // (kept; may be used elsewhere)
 // ANCHOR: DB_IMPORT_PRISMA
 import { prisma } from "../prisma.js";
 
 /** Returns a map keyed by propertyId with {name, city, country, images[]} */
 export async function getProfilesFromDb(propertyIds: number[]): Promise<Record<number, {
-  name: string; city: string; country: string; images: string[];
+  name?: string; city?: string; country?: string; images: string[];
 }>> {
-  if (!propertyIds.length) return {};
+  if (!Array.isArray(propertyIds) || propertyIds.length === 0) return {};
 
-  // 1) basic profile
-  const prof = await pool.query(
-    `select id as "propertyId", name, city, country
-       from extranet.property
-      where id = any($1::int[])`,
-    [propertyIds]
-  );
+  const out: Record<number, { name?: string; city?: string; country?: string; images: string[] }> = {};
 
-  // 2) photos (grab first by sort or created_at)
-  const photos = await pool.query(
-    `select property_id as "propertyId", url
-       from extranet.property_photos
-      where property_id = any($1::int[])
-      order by property_id, sort_order nulls last, created_at`,
-    [propertyIds]
-  );
+  // 1) Profiles from public.PropertyProfile (keyed by partnerId)
+  const profiles = await prisma.propertyProfile.findMany({
+    where: { partnerId: { in: propertyIds } },
+    select: { partnerId: true, name: true, city: true, country: true },
+  });
 
-  const out: Record<number, { name: string; city: string; country: string; images: string[] }> = {};
-  for (const r of prof.rows) {
-    out[r.propertyId] = { name: r.name ?? "", city: r.city ?? "", country: r.country ?? "", images: [] };
+  for (const p of profiles) {
+    out[p.partnerId] = {
+      name: p.name ?? undefined,
+      city: p.city ?? undefined,
+      country: p.country ?? undefined,
+      images: [],
+    };
   }
-  for (const p of photos.rows) {
-    if (!out[p.propertyId]) continue;
-    if (p.url) out[p.propertyId].images.push(String(p.url));
+
+  // 2) Photos from public.PropertyPhoto (cover first, then sortOrder, then id)
+  const photos = await prisma.propertyPhoto.findMany({
+    where: { partnerId: { in: propertyIds } },
+    select: { partnerId: true, url: true, isCover: true, sortOrder: true, id: true },
+    orderBy: [{ isCover: "desc" }, { sortOrder: "asc" }, { id: "asc" }],
+  });
+
+  for (const ph of photos) {
+    if (!out[ph.partnerId]) out[ph.partnerId] = { images: [] } as any;
+    if (!out[ph.partnerId].images) out[ph.partnerId].images = [];
+    if (ph.url) out[ph.partnerId].images.push(ph.url);
   }
+
   return out;
 }
 
