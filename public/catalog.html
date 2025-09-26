@@ -249,8 +249,12 @@
     const destInp = S('dest');
     const qParam  = (qs.get('q') || '').trim();
     // ANCHOR: PLAN_PARAM_DEF
-    const planParam = (qs.get('ratePlanId') || qs.get('plan') || '').trim();
-    const planQS = planParam ? `&ratePlanId=${encodeURIComponent(planParam)}` : '';
+    const planRaw = (qs.get('ratePlanId') || qs.get('plan') || '').trim();
+    const plan = planRaw === '' ? null : Number(planRaw);
+    const planQS = Number.isFinite(plan) && plan > 0 ? `&ratePlanId=${plan}` : '';
+    window.ratePlanId = Number.isFinite(plan) && plan > 0 ? plan : null;
+    // ANCHOR: PLAN_PARAM_DEF END
+
 
     // If q is in URL, show it; otherwise ensure input has no value (placeholder only)
     if (destInp) {
@@ -273,9 +277,7 @@
       const a = (p.amenities || []).slice(0,3).map(a=>`<span class="chip">${a}</span>`).join("");
       const price = p.fromPriceStr ? p.fromPriceStr : '—';
       const nights = `${p.availableNights}/${p.nightsTotal} nights`;
-      // ANCHOR: PLAN_IN_DETAILS_LINK
-      const planPart = planParam ? `&ratePlanId=${encodeURIComponent(planParam)}` : '';
-      const link = `/catalog_details.html?propertyId=${encodeURIComponent(p.propertyId)}&start=${encodeURIComponent(start)}&end=${encodeURIComponent(end)}${plan ? `&ratePlanId=${encodeURIComponent(plan)}` : ''}`;
+      const link = `/catalog_details.html?propertyId=${encodeURIComponent(p.propertyId)}&start=${encodeURIComponent(start)}&end=${encodeURIComponent(end)}${window.ratePlanId ? `&ratePlanId=${encodeURIComponent(window.ratePlanId)}` : ''}`;
       const srcBadge = (p.detail && p.detail._roomsSource === 'db')
         ? '<span class="chip" title="Prices from database">db</span>' : '';
 
