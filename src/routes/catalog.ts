@@ -48,7 +48,7 @@ router.get("/search", async (req: Request, res: Response) => {
       if (p && p.id == null && p.propertyId != null) p.id = p.propertyId;
     }
     // ANCHOR: NONBLOCK_ENRICH
-    const wantsDb = String(req.query.db || "") === "1";
+    const wantsDb = (req.query.db ?? "1") !== "0";
 
     if (!wantsDb) {
       // run enrichment in the background and return immediately
