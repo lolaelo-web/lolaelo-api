@@ -99,6 +99,7 @@ export async function getProfilesFromDb(propertyIds: number[]): Promise<Record<n
     where: { partnerId: { in: propertyIds } },
     select: { partnerId: true, name: true, city: true, country: true },
   });
+  console.log("[getProfilesFromDb] profiles", { ids: propertyIds, found: profiles.length });
 
   for (const p of profiles) {
     out[p.partnerId] = {
@@ -115,6 +116,7 @@ export async function getProfilesFromDb(propertyIds: number[]): Promise<Record<n
     select: { partnerId: true, url: true, isCover: true, sortOrder: true, id: true },
     orderBy: [{ isCover: "desc" }, { sortOrder: "asc" }, { id: "asc" }],
   });
+  console.log("[getProfilesFromDb] photos", { ids: propertyIds, found: photos.length, sample: photos[0]?.partnerId });
 
   for (const ph of photos) {
     if (!out[ph.partnerId]) out[ph.partnerId] = { images: [] } as any;
