@@ -276,7 +276,9 @@
       // ANCHOR: PLAN_IN_DETAILS_LINK
       const planPart = planParam ? `&ratePlanId=${encodeURIComponent(planParam)}` : '';
       const link = `/catalog_details.html?propertyId=${encodeURIComponent(p.propertyId)}&start=${encodeURIComponent(start)}&end=${encodeURIComponent(end)}${plan ? `&ratePlanId=${encodeURIComponent(plan)}` : ''}`;
-      const srcBadge = (p.detail && p.detail._roomsSource === 'db') ? '<span class="chip">db</span>' : '';
+      const srcBadge = (p.detail && p.detail._roomsSource === 'db')
+        ? '<span class="chip" title="Prices from database">db</span>' : '';
+
 
       return `
       <article class="card">
@@ -289,10 +291,10 @@
             <div class="stars" aria-label="${p.starRating} stars">${stars(p.starRating)}</div>
           </div>
           <div class="meta">${p.city}, ${p.country}</div>
-          <div class="chips">${a}</div>
+          <div class="chips">${a}${srcBadge}</div>
           <div class="foot">
             <div class="meta">${nights}</div>
-            <div class="price">${price}</div>
+            <div class="price">${price} ${srcBadge}</div>
           </div>
           <div class="foot">
             <a class="btn" href="${link}">View details</a>
@@ -319,6 +321,7 @@
       const qLower = (qs.get('q') || '').trim().toLowerCase();
 
       try{
+        // ANCHOR: PLAN_IN_SEARCH_FETCH
         // ANCHOR: PLAN_IN_SEARCH_FETCH
         const r = await fetch(`/catalog/search?start=${encodeURIComponent(start)}&end=${encodeURIComponent(end)}&guests=${guests}${planQS}&db=1`);
         const j = await r.json();
