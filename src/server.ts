@@ -1,4 +1,4 @@
-// src/server.ts
+﻿// src/server.ts
 import "dotenv/config";
 import express, { type Router, type Request, type Response, type NextFunction } from "express";
 import cors, { type CorsOptions } from "cors";
@@ -42,8 +42,30 @@ app.use(express.static(pubPath, { extensions: ["html"], maxAge: "1h", etag: true
 
 // ---- Health ----
 app.get("/health", (_req, res) => {
-  res.type("text/plain").send("OK v-ROUTES-31");
+  res.type("text/plain").send("OK v-ROUTES-30");
 });
+
+// ANCHOR: HEALTHZ_ROUTE
+app.get("/healthz", async (_req, res) => {
+  try {
+    const cs = process.env.DATABASE_URL || "";
+    if (!cs) return res.status(200).json({ ok: true, db: "skipped (no DATABASE_URL)" });
+
+    const wantsSSL = /\bsslmode=require\b/i.test(cs) || /render\.com/i.test(cs);
+    const client = new Client({
+      connectionString: cs,
+      ssl: wantsSSL ? { rejectUnauthorized: false } : undefined,
+    });
+    await client.connect();
+    await client.query("select 1");
+    await client.end();
+
+    res.status(200).json({ ok: true });
+  } catch (err: any) {
+    res.status(503).json({ ok: false, error: String(err?.message || err).slice(0, 200) });
+  }
+});
+// ANCHOR: HEALTHZ_ROUTE END
 
 // Track mounts so we can enumerate routes later
 const mountedRouters: Array<{ base: string; router: Router; source: string }> = [];
