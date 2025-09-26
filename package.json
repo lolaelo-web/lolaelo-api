@@ -19,6 +19,9 @@
         "test": "jest --runInBand",
         "dev:once": "npm run build && npm start"
     },
+        "prisma": {
+        "seed": "tsx prisma/seed.ts"
+    },
     "dependencies": {
         "@aws-sdk/client-s3": "^3.888.0",
         "@aws-sdk/s3-request-presigner": "^3.888.0",

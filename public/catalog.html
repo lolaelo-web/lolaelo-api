@@ -273,7 +273,16 @@
     function stars(n){ return '★'.repeat(Number(n||0)); }
 
     function cardHTML(p, start, end){
-      const img = (p.images && p.images[0]) || "https://picsum.photos/seed/siargao/800/480";
+      // ANCHOR: CARDIMAGE_COVER_PICKER (REPLACE)
+      const imgArr = Array.isArray(p.images) ? p.images : [];
+      const coverObj = imgArr.find(it => typeof it === "object" && it?.isCover === true);
+      const firstObj = imgArr.find(it => typeof it === "object" && it?.url);
+      const firstAny = imgArr[0];
+      const img = coverObj?.url
+        || firstObj?.url
+        || (typeof firstAny === "string" ? firstAny : null)
+        || "https://picsum.photos/seed/siargao/800/480";
+      // ANCHOR: CARDIMAGE_COVER_PICKER (REPLACE)
       const a = (p.amenities || []).slice(0,3).map(a=>`<span class="chip">${a}</span>`).join("");
       const price = p.fromPriceStr ? p.fromPriceStr : '—';
       const nights = `${p.availableNights}/${p.nightsTotal} nights`;
