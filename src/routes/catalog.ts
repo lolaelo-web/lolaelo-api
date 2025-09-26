@@ -110,6 +110,7 @@ router.get("/search", async (req: Request, res: Response) => {
 
     // ---- 3) Rooms/Inventory/Prices from DB (fallback to mock if empty) ----
     // ANCHOR: ROOMS_DB_WIRE_START
+const TIMEBOX_MS = Math.max(500, Number(process.env.CATALOG_ROOMS_TIMEBOX_MS ?? 2500));
     // timebox helper so foreground DB enrichment can’t hang the request
     const timebox = <T>(promise: Promise<T>, ms: number): Promise<T | null> =>
       Promise.race([promise, new Promise<T | null>(resolve => setTimeout(() => resolve(null), ms))]);
@@ -269,3 +270,4 @@ router.get("/details", async (req: Request, res: Response) => {
 });
 
 export default router;
+
