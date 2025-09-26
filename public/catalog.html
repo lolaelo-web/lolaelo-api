@@ -334,7 +334,7 @@
       try{
         // ANCHOR: PLAN_IN_SEARCH_FETCH
         // ANCHOR: PLAN_IN_SEARCH_FETCH
-        const r = await fetch(`/catalog/search?start=${encodeURIComponent(start)}&end=${encodeURIComponent(end)}&guests=${guests}${planQS}&db=1`);
+        const r = await fetch(`/catalog/search?start=${encodeURIComponent(start)}&end=${encodeURIComponent(end)}&guests=${guests}${planQS}`);
         const j = await r.json();
         const all = Array.isArray(j.properties) ? j.properties : [];
 
