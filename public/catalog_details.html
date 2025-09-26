@@ -179,6 +179,7 @@
     const propertyId = qs.get('propertyId');
     const start = qs.get('start') || new Date().toISOString().slice(0,10);
     const end   = qs.get('end')   || start;
+    const plan  = qs.get('ratePlanId') || qs.get('plan');
 
     // ANCHOR: DETAILS_PLAN_PARAM_DEF
     const planParam = (qs.get('ratePlanId') || qs.get('plan') || '').trim();
@@ -188,9 +189,10 @@
     const backLink = document.querySelector('a.back');
     if (backLink){
       const guests = qs.get('guests') || '2';
-      // ANCHOR: DETAILS_BACK_WITH_PLAN
+      const plan   = qs.get('ratePlanId') || qs.get('plan') || '';
+      const planPart = plan ? `&ratePlanId=${encodeURIComponent(plan)}` : '';
       backLink.href =
-        `/catalog?start=${encodeURIComponent(start)}&end=${encodeURIComponent(end)}&guests=${encodeURIComponent(guests)}${planQS}`;
+        `/catalog?start=${encodeURIComponent(start)}&end=${encodeURIComponent(end)}&guests=${encodeURIComponent(guests)}${planPart}`;
     }
 
     const hero = document.getElementById('hero-img');
@@ -236,8 +238,11 @@
 
     async function load(){
       // ANCHOR: DETAILS_FETCH_WITH_PLAN
-      const r = await fetch(`/catalog/details?propertyId=${encodeURIComponent(propertyId)}&start=${encodeURIComponent(start)}&end=${encodeURIComponent(end)}${planQS}`);
-      const j = await r.json();
+      const plan    = qs.get('ratePlanId') || qs.get('plan') || '';
+      const planQS  = plan ? `&ratePlanId=${encodeURIComponent(plan)}` : '';
+      const url     = `/catalog/details?propertyId=${encodeURIComponent(propertyId)}&start=${encodeURIComponent(start)}&end=${encodeURIComponent(end)}${planQS}`;
+      const r       = await fetch(url, { cache: 'no-store' });
+      const j       = await r.json();
 
       nameEl.textContent = j?.meta?.property?.name || 'Stay';
       rangeEl.textContent = `${start} — ${end}`;
