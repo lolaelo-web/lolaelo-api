@@ -163,12 +163,13 @@ export async function getRoomsDailyFromDb(
   }
   if (dates.length === 0) return [];
 
-  // 1) Room masters for this partner (active only)
+  // 1) Room masters for this partner (do not filter by `active` to avoid schema drift)
   const roomTypes = await prisma.roomType.findMany({
-    where: { partnerId: propertyId, active: true },
+    where: { partnerId: propertyId }, // REMOVED: active: true
     select: { id: true, name: true, basePrice: true },
     orderBy: { id: "asc" },
   });
+
   if (roomTypes.length === 0) return [];
 
   const roomTypeIds = roomTypes.map(r => r.id);
