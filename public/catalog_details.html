@@ -135,7 +135,10 @@
       <!-- ANCHOR: DETAILS_TOPBAR -->
       <div class="topbar">
         <a class="back" href="/catalog">← Back</a>
-        <h1 id="prop-name" class="title">Loading…</h1>
+        <h1 class="title">
+          <span id="prop-name">Loading…</span>
+          <span id="src-badge" class="chip" style="display:none; margin-left:8px;">db</span>
+        </h1>
       </div>
       <!-- /ANCHOR: DETAILS_TOPBAR -->
     </header>
@@ -245,9 +248,21 @@
       const j       = await r.json();
 
       nameEl.textContent = j?.meta?.property?.name || 'Stay';
+      const srcBadgeEl = document.getElementById('src-badge');
+      if (srcBadgeEl) srcBadgeEl.style.display = (j?._roomsSource === 'db') ? 'inline-block' : 'none';
       rangeEl.textContent = `${start} — ${end}`;
-      fromEl.textContent = money(j?.rooms?.[0]?.fromPrice);
-      nightsNote.textContent = `${j?.rooms?.[0]?.availableNights ?? 0}/${j?.rooms?.[0]?.nightsTotal ?? 0} nights available`;
+      // Compute fromPrice + availability from daily rows (works for DB-backed data)
+      const daily0 = (j?.rooms?.[0]?.daily || []);
+      const priced = daily0.filter(d => typeof d.price === 'number');
+      const minPrice = priced.length ? Math.min(...priced.map(d => Number(d.price))) : null;
+      fromEl.textContent = (minPrice != null) ? money(minPrice) : '—';
+      // Nights available note (deduped, DB-safe)
+      {
+        // uses daily0 computed above
+        const available = daily0.filter(d => !d.closed && Number(d.inventory ?? d.open ?? 0) > 0).length;
+        const total = daily0.length;
+        nightsNote.textContent = `${available}/${total} nights available`;
+      }
 
       images = j?.rooms?.[0]?.images?.length ? j.rooms[0].images : (j?.meta?.property?.images || []);
       amenities.innerHTML = (j?.meta?.property?.amenities || []).slice(0,6).map(a=>`<span class="chip">${a}</span>`).join("");
@@ -264,12 +279,15 @@
         setHero(Number(b.dataset.idx||'0'));
       });
 
+      // table rows (DB-safe: inventory || open)
       const daily = j?.rooms?.[0]?.daily || [];
-      rows.innerHTML = daily.map(d=>{
-        const tag = d.closed ? `<span class="tag off">Closed</span>` : `<span class="tag">Open</span>`;
+      rows.innerHTML = daily.map(d => {
+        const openCount = Number(d.inventory ?? d.open ?? 0);
+        const isClosed = Boolean(d.closed) || openCount <= 0;
+        const tag = isClosed ? `<span class="tag off">Closed</span>` : `<span class="tag">Open</span>`;
         return `<tr>
           <td>${d.date}</td>
-          <td>${d.open}</td>
+          <td>${openCount}</td>
           <td>${money(d.price)}</td>
           <td>${d.minStay ?? 1}</td>
           <td>${tag}</td>
