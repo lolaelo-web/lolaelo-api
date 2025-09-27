@@ -286,6 +286,7 @@
       const a = (p.amenities || []).slice(0,3).map(a=>`<span class="chip">${a}</span>`).join("");
       const price = p.fromPriceStr ? `From ${p.fromPriceStr}` : ''; // show only when present
       const hasRollup = Number.isFinite(p?.availableNights) && Number.isFinite(p?.nightsTotal);
+      const nights = hasRollup ? `${p.availableNights}/${p.nightsTotal} nights` : '';
       const availBadge = hasRollup
       ? (Number(p.availableNights) > 0 ? '' : '<span class="chip" title="No rooms available in selected window">sold out</span>')
       : '';
