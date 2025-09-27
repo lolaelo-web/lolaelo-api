@@ -94,12 +94,23 @@
       border-radius: var(--radius);
       overflow: hidden;
       background:#000;
+      /* lock hero to a consistent 16:9 frame */
+      aspect-ratio: 16 / 9;
+      width: 100%;
+      /* keep a reasonable minimum so it doesn’t collapse during load */
       min-height: 260px;
       box-shadow: var(--shadow);
     }
-    .hero img{ width:100%; height:100%; object-fit:cover; display:block; opacity: 1; transition: opacity .25s ease; }
+    .hero img{
+      width:100%;
+      height:100%;
+      object-fit:cover;
+      display:block;
+      opacity: 1;
+      transition: opacity .25s ease;
+    }
     .hero img.is-fading{ opacity: 0; }
-    
+
     .thumbs{
       display: grid;
       grid-auto-flow: column;
@@ -123,10 +134,27 @@
       box-shadow: 0 6px 16px rgba(0,0,0,.10);
       transition: transform .12s ease, box-shadow .12s ease, border-color .12s ease;
     }
-    .thumbs img{ display: block; width: 110px; height: 72px; object-fit: cover; border-radius: 12px; }
-    .thumbs button:hover{ transform: translateY(-1px); box-shadow: 0 10px 22px rgba(0,0,0,.12); }
-    .thumbs button:focus-visible{ outline: 2px solid var(--bubble); outline-offset: 2px; }
-    .thumbs button[aria-current="true"]{ border-color: var(--bubble); box-shadow: 0 0 0 2px rgba(255,102,51,.25) inset; }
+    .thumbs img{
+      display: block;
+      width: 110px;
+      height: 72px;
+      object-fit: cover;
+      border-radius: 12px;
+    }
+    .thumbs button:hover{
+      transform: translateY(-1px);
+      box-shadow: 0 10px 22px rgba(0,0,0,.12);
+    }
+    .thumbs button:focus-visible{
+      outline: 2px solid var(--bubble);
+      outline-offset: 2px;
+    }
+    .thumbs button[aria-current="true"]{
+      border-color: var(--bubble);
+      box-shadow: 0 0 0 2px rgba(255,102,51,.25) inset;
+    }
+    /* ANCHOR: DETAILS_GALLERY_CSS */
+
   </style>
 </head>
 <body>
