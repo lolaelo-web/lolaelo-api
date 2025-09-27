@@ -68,13 +68,34 @@
         justify-self:end;   /* pushes the name to the right edge */
     }
 
-    .layout{ display:grid; grid-template-columns: 1.3fr .9fr; gap:16px; }
-    @media (max-width:900px){ .layout{ grid-template-columns: 1fr; } }
+    /* ANCHOR: DETAILS_LAYOUT_COLS */
+    .layout{ display:grid; grid-template-columns: 1.1fr 1fr; gap:16px; }
+    @media (min-width:1200px){
+      .layout{ grid-template-columns: 1fr 0.95fr; }
+    }
+    @media (max-width:900px){
+      .layout{ grid-template-columns: 1fr; }
+    }
 
     /* Right panel */
-    .panel{ border:1px solid var(--line); border-radius:14px; padding:14px; display:flex; flex-direction:column; gap:14px; }
+    /* ANCHOR: DETAILS_PANEL_BOX */
+    .panel{
+      border:1px solid var(--line);
+      border-radius:14px;
+      padding:14px;
+      display:flex;
+      flex-direction:column;
+      gap:14px;
+      min-width: 320px;      /* ensures buttons/price breathe */
+      max-width: 420px;      /* prevents overgrowth on ultra-wide */
+      margin-left:auto;      /* tucks to the right edge cleanly */
+    }
     .muted{ color:var(--muted); font-size:12px; }
-    .price{ font-weight:700; font-size:22px; }
+    /* ANCHOR: DETAILS_PRICE_SIZE */
+    .price{ font-weight:700; font-size:26px; letter-spacing:.2px; }
+    @media (min-width:1200px){
+      .price{ font-size:28px; }
+    }
     .book{ border:1px solid var(--bubble); background:var(--bubble); color:#fff; font-weight:700;
       border-radius:12px; padding:14px; width:100%; cursor:pointer; }
 
