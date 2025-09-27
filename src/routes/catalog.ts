@@ -3,6 +3,7 @@ import { Router, type Request, type Response } from "express";
 // ANCHOR: CATALOG_IMPORTS
 import {
   getSearchList,
+  getSearchListFromDb,
   getDetails,
   getCurrency,
   getProfilesFromDb,
@@ -39,7 +40,18 @@ router.get("/search", async (req: Request, res: Response) => {
     const params = { start, end, ratePlanId };
 
     // ---- 1) Base list from mock adapter (stable layout, cards, etc.) ------
-    const list = await getSearchList(params); // { properties: [...] }
+    let list;
+      if (wantsDb) {
+        try {
+          list = await getSearchListFromDb(params); // DB-first
+        } catch {
+          list = await getSearchList(params);       // fallback to mock
+        }
+      } else {
+        list = await getSearchList(params);         // mock when db=0
+      }
+      // { properties: [...] }
+
     const props: any[] = Array.isArray(list?.properties) ? list.properties : [];
     if (props.length === 0) return res.json({ properties: [] });
 

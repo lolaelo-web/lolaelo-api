@@ -295,3 +295,41 @@ export async function getRoomsDailyFromDb(
   return hasSignal ? out : [];
 }
 // === END DB: rooms inventory + prices ======================================
+// ANCHOR: SEARCH_LIST_DB_START
+// Return a base properties array from DB (profile + photos only).
+// Rooms/inventory/prices are added later by the route enrichment.
+export async function getSearchListFromDb(_params: {
+  start: string; end: string; ratePlanId?: number | undefined;
+}): Promise<{ properties: Array<any> }> {
+  // Partners with optional profile + photos
+  const partners = await prisma.partner.findMany({
+    // you can add where: { active: true } if you add such a flag later
+    include: {
+      profile: true,
+      photos: { orderBy: { sortOrder: "asc" } },
+    },
+    orderBy: { id: "asc" },
+  });
+
+  const properties = partners.map((p) => {
+    const images = (p.photos ?? []).map((ph) => ({
+      url: ph.url,
+      isCover: !!ph.isCover,
+      sortOrder: ph.sortOrder ?? 0,
+      width: ph.width ?? undefined,
+      height: ph.height ?? undefined,
+    }));
+
+    return {
+      propertyId: p.id,
+      name: p.profile?.name ?? "",
+      city: p.profile?.city ?? "",
+      country: p.profile?.country ?? "",
+      images,
+      detail: {}, // rooms will be merged by the route
+    };
+  });
+
+  return { properties };
+}
+// ANCHOR: SEARCH_LIST_DB_END
