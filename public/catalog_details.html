@@ -93,22 +93,24 @@
       position: relative;
       border-radius: var(--radius);
       overflow: hidden;
-      background:#000;
-      /* lock hero to a consistent 16:9 frame */
+      background:#fff;
       aspect-ratio: 16 / 9;
       width: 100%;
-      /* keep a reasonable minimum so it doesn’t collapse during load */
       min-height: 260px;
       box-shadow: var(--shadow);
     }
+
     .hero img{
       width:100%;
       height:100%;
-      object-fit:cover;
+      object-fit:contain;
+      object-position:center;
       display:block;
       opacity: 1;
       transition: opacity .25s ease;
+      background:#fff; /* keeps letterbox bars white, not black */
     }
+
     .hero img.is-fading{ opacity: 0; }
 
     .thumbs{
@@ -134,13 +136,7 @@
       box-shadow: 0 6px 16px rgba(0,0,0,.10);
       transition: transform .12s ease, box-shadow .12s ease, border-color .12s ease;
     }
-    .thumbs img{
-      display: block;
-      width: 110px;
-      height: 72px;
-      object-fit: cover;
-      border-radius: 12px;
-    }
+    .thumbs img{ display: block; width: 110px; height: 72px; object-fit: contain; background:#fff; border-radius: 12px; }
     .thumbs button:hover{
       transform: translateY(-1px);
       box-shadow: 0 10px 22px rgba(0,0,0,.12);
