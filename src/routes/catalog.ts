@@ -219,6 +219,7 @@ const TIMEBOX_MS = Math.max(500, Number(process.env.CATALOG_ROOMS_TIMEBOX_MS ?? 
  */
 router.get("/details", async (req: Request, res: Response) => {
   try {
+    res.set("Cache-Control", "no-store");
     const propertyId = Number(req.query.propertyId ?? req.query.id);
     const start = String(req.query.start || "").trim();
     const end = String(req.query.end || "").trim();
