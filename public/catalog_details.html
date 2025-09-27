@@ -247,7 +247,7 @@
       const r       = await fetch(url, { cache: 'no-store' });
       const j       = await r.json();
 
-      nameEl.textContent = j?.meta?.property?.name || 'Stay';
+      nameEl.textContent = j?.name || j?.meta?.property?.name || 'Stay';
       const srcBadgeEl = document.getElementById('src-badge');
       if (srcBadgeEl) srcBadgeEl.style.display = (j?._roomsSource === 'db') ? 'inline-block' : 'none';
       rangeEl.textContent = `${start} — ${end}`;
@@ -264,9 +264,32 @@
         nightsNote.textContent = `${available}/${total} nights available`;
       }
 
-      images = j?.rooms?.[0]?.images?.length ? j.rooms[0].images : (j?.meta?.property?.images || []);
-      amenities.innerHTML = (j?.meta?.property?.amenities || []).slice(0,6).map(a=>`<span class="chip">${a}</span>`).join("");
+      // Prefer details.images (DB-backed) with cover support; fallback to first room images
+      const rawImages =
+        Array.isArray(j?.images) ? j.images
+        : (Array.isArray(j?.rooms?.[0]?.images) ? j.rooms[0].images : []);
 
+      // Extract a cover url if present (object with { url, isCover: true })
+      const coverUrl =
+        (Array.isArray(j?.images)
+          ? j.images.find(it => typeof it === 'object' && it?.isCover === true)?.url
+          : null) ||
+        null;
+
+      // Normalize to an array of URL strings
+      images = rawImages
+        .map(it => (typeof it === 'string' ? it : it?.url))
+        .filter(Boolean);
+
+      // If we found a cover, move it to the front
+      if (coverUrl) {
+        const idx = images.indexOf(coverUrl);
+        if (idx > 0) {
+          images.splice(0, 0, ...images.splice(idx, 1));
+        }
+      }
+
+      // Thumbs + hero
       thumbs.innerHTML = images.map((src, i)=>thumbHTML(src, i)).join("");
       setHero(0);
 
