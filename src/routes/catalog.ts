@@ -254,6 +254,9 @@ router.get("/details", async (req: Request, res: Response) => {
 
     // Base (mock) details
     const base: any = await getDetails({ propertyId, start, end, ratePlanId });
+    // ANCHOR: DETAILS_DBG_PROFILES_BEFORE
+    console.log("[details] start", { propertyId, start, end, ratePlanId });
+
 
     // ANCHOR: DETAILS_DB_PROFILES
     try {
@@ -266,6 +269,7 @@ router.get("/details", async (req: Request, res: Response) => {
         if (Array.isArray(prof.images) && prof.images.length) {
           const imgs = Array.isArray(base.images) ? base.images : [];
           base.images = [...prof.images, ...imgs];
+          console.log("[details] profiles", { propertyId, name: base?.name ?? null, city: base?.city ?? null, images: Array.isArray(base?.images) ? base.images.length : 0 });
         }
       }
     } catch (err) {
@@ -293,6 +297,8 @@ router.get("/details", async (req: Request, res: Response) => {
     // Optional: enrich rooms with DB daily (fallback to mock already present)
     try {
       const dbRooms = await getRoomsDailyFromDb(propertyId, start, end, ratePlanId);
+      console.log("[details] rooms-db", { propertyId, count: Array.isArray(dbRooms) ? dbRooms.length : 0 });
+
       if (Array.isArray(dbRooms) && dbRooms.length > 0) {
         if (base?.rooms && Array.isArray(base.rooms)) {
           base.rooms = dbRooms;
@@ -351,6 +357,7 @@ router.get("/details", async (req: Request, res: Response) => {
     }
     // ANCHOR: DETAILS_ROLLUP_FROM_DB
 
+    console.log("[details] final", { propertyId, hasImages: Array.isArray(base?.images) && base.images.length > 0, roomsCount: Array.isArray(base?.rooms) ? base.rooms.length : 0, availableNights: base?.availableNights ?? null, nightsTotal: base?.nightsTotal ?? null, fromPriceStr: base?.fromPriceStr ?? null, roomsSource: (base as any)?._roomsSource ?? null });
     return res.json(base ?? {});
   } catch (err: any) {
     req.app?.get("logger")?.error?.({ err }, "catalog.details failed");
