@@ -253,14 +253,16 @@ router.get("/details", async (req: Request, res: Response) => {
     }
 
     // Base (mock) details
-    const base: any = await getDetails({ propertyId, start, end, ratePlanId });
+    let base: any = await getDetails({ propertyId, start, end, ratePlanId });
+    // ANCHOR: DETAILS_BASE_GUARD
+    if (!base || typeof base !== "object") { base = {}; }
     // ANCHOR: DETAILS_DBG_PROFILES_BEFORE
     console.log("[details] start", { propertyId, start, end, ratePlanId });
-
 
     // ANCHOR: DETAILS_DB_PROFILES
     try {
       const profMap = await getProfilesFromDb([propertyId]);
+      console.log("[details] profiles-keys", { propertyId, keys: Object.keys(profMap || {}) });
       const prof = profMap?.[propertyId];
       if (prof) {
         base.name    = prof.name    || base.name    || "";
