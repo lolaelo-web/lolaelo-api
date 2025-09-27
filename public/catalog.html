@@ -284,12 +284,12 @@
         || "https://picsum.photos/seed/siargao/800/480";
       // ANCHOR: CARDIMAGE_COVER_PICKER (REPLACE)
       const a = (p.amenities || []).slice(0,3).map(a=>`<span class="chip">${a}</span>`).join("");
-      const price = p.fromPriceStr ? p.fromPriceStr : '—';
-      const nights = `${p.availableNights}/${p.nightsTotal} nights`;
+      const price = p.fromPriceStr ? `From ${p.fromPriceStr}` : ''; // show only when present
+      const hasRollup = Number.isFinite(p?.availableNights) && Number.isFinite(p?.nightsTotal);
+      const nights = hasRollup ? `${p.availableNights}/${p.nightsTotal} nights` : '';
       const link = `/catalog_details.html?propertyId=${encodeURIComponent(p.propertyId)}&start=${encodeURIComponent(start)}&end=${encodeURIComponent(end)}${window.ratePlanId ? `&ratePlanId=${encodeURIComponent(window.ratePlanId)}` : ''}`;
       const srcBadge = (p.detail && p.detail._roomsSource === 'db')
         ? '<span class="chip" title="Prices from database">db</span>' : '';
-
 
       return `
       <article class="card">
