@@ -102,7 +102,7 @@ router.get("/search", async (req: Request, res: Response) => {
           p.country = prof.country || p.country || "";
           if (Array.isArray(prof.images) && prof.images.length) {
             if (!p.images || !Array.isArray(p.images)) p.images = [];
-            p.images = [...prof.images, ...p.images];
+            p.images = prof.images; // prefer DB images only
           }
         }
       } catch (err) {
