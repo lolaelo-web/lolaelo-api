@@ -255,6 +255,24 @@ router.get("/details", async (req: Request, res: Response) => {
     // Base (mock) details
     const base: any = await getDetails({ propertyId, start, end, ratePlanId });
 
+    // ANCHOR: DETAILS_DB_PROFILES
+    try {
+      const profMap = await getProfilesFromDb([propertyId]);
+      const prof = profMap?.[propertyId];
+      if (prof) {
+        base.name    = prof.name    || base.name    || "";
+        base.city    = prof.city    || base.city    || "";
+        base.country = prof.country || base.country || "";
+        if (Array.isArray(prof.images) && prof.images.length) {
+          const imgs = Array.isArray(base.images) ? base.images : [];
+          base.images = [...prof.images, ...imgs];
+        }
+      }
+    } catch (err) {
+      req.app?.get("logger")?.warn?.({ err, propertyId }, "details.profiles-db-wire failed");
+    }
+    // ANCHOR: DETAILS_DB_PROFILES_END
+
     // ANCHOR: DETAILS_DB_PROFILE_ENRICH
     try {
       const profMap = await getProfilesFromDb([propertyId]);
