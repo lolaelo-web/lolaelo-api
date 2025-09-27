@@ -326,6 +326,38 @@ router.get("/details", async (req: Request, res: Response) => {
     } catch (err) {
       req.app?.get("logger")?.warn?.({ err }, "details.currency-backfill failed");
     }
+        // ANCHOR: DETAILS_PROFILE_ENRICH_START
+        try {
+          // Reuse the same DB profile/photos source used by /catalog/search
+          const profMap = await getProfilesFromDb([propertyId]);
+          const prof = profMap?.[propertyId];
+
+          if (prof) {
+            // Ensure meta shape exists
+            (base as any).meta ||= {};
+            (base as any).meta.property ||= {};
+
+            // Fill name/city/country for the header
+            (base as any).meta.property.name    = prof.name    || (base as any).meta.property.name || (base as any).name || "";
+            (base as any).meta.property.city    = prof.city    || (base as any).meta.property.city || (base as any).city || "";
+            (base as any).meta.property.country = prof.country || (base as any).meta.property.country || (base as any).country || "";
+
+            // Provide images for the gallery; also mirror to rooms[0].images if empty
+            if (Array.isArray(prof.images) && prof.images.length) {
+              (base as any).meta.property.images = prof.images;
+              if (Array.isArray((base as any).rooms) && (base as any).rooms[0]) {
+                const r0 = (base as any).rooms[0];
+                if (!Array.isArray(r0.images) || r0.images.length === 0) {
+                  r0.images = prof.images;
+                }
+              }
+            }
+          }
+        } catch (err) {
+          req.app?.get("logger")?.warn?.({ err, propertyId }, "details.profile-db-wire failed");
+        }
+        // ANCHOR: DETAILS_PROFILE_ENRICH_END
+
     // ANCHOR: DETAILS_ROLLUP_FROM_DB
     try {
       if (base?.rooms && Array.isArray(base.rooms)) {
