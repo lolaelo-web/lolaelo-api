@@ -223,6 +223,7 @@
     }
 
     const hero = document.getElementById('hero-img');
+      hero.decoding = 'async';
     const thumbs = document.getElementById('thumbs');
     const rows = document.getElementById('rows');
     const fromEl = document.getElementById('from');
@@ -244,7 +245,7 @@
       const img = new Image();
       img.onload = () => {
         hero.src = src;
-        hero.alt = nameEl.textContent || 'Photo';
+        hero.alt = `${nameEl.textContent || 'Property'} — hero image`;
         requestAnimationFrame(() => { hero.classList.remove('is-fading'); });
       };
       img.src = src;
@@ -256,8 +257,10 @@
 
     function thumbHTML(src, idx){
       const current = idx === 0 ? 'true' : 'false';
-      return `<button class="thumb" type="button" data-idx="${idx}" aria-label="Photo ${idx+1}" aria-current="${current}">
-        <img src="${src}" alt="">
+      const total = images.length || 0;
+      const name = (nameEl && nameEl.textContent) ? nameEl.textContent : 'Property';
+      return `<button class="thumb" type="button" data-idx="${idx}" aria-label="${name} photo ${idx+1} of ${total}" aria-current="${current}">
+        <img src="${src}" alt="${name} — photo ${idx+1} of ${total}" loading="lazy" decoding="async">
       </button>`;
     }
 
