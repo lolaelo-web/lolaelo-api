@@ -39,8 +39,11 @@
 
     /* ANCHOR: TYPO_REGULAR_ELEMS */
     p, li, td, th, input, select, button, .meta, .note { font-size: var(--body); }
+    /* ANCHOR: DETAILS_PAPER_CLIP */
     .paper{ width:100%; max-width:var(--maxw); margin:18px 20px; background:var(--paper);
-      border-radius:var(--radius); box-shadow:var(--shadow); padding:16px 16px 22px; }
+      border-radius:var(--radius); box-shadow:var(--shadow); padding:16px 16px 22px;
+      overflow: hidden; /* clip panel to rounded frame */
+    }
     
     /* ANCHOR: DETAILS_TOPBAR_CSS */
     .topbar{
