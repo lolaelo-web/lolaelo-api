@@ -40,19 +40,24 @@ router.get("/search", async (req: Request, res: Response) => {
     const params = { start, end, ratePlanId };
 
     // ---- 1) Base list from mock adapter (stable layout, cards, etc.) ------
-    let list;
-      if (wantsDb) {
-        try {
-          list = await getSearchListFromDb(params); // DB-first
-        } catch {
-          list = await getSearchList(params);       // fallback to mock
-        }
-      } else {
-        list = await getSearchList(params);         // mock when db=0
+    const wantsDb = (req.query.db ?? "1") !== "0"; // ANCHOR: NONBLOCK_ENRICH
+    let list; let _baseSource: "db" | "mock" = "mock";
+    if (wantsDb) {
+      try {
+        list = await getSearchListFromDb(params); // DB-first
+        _baseSource = "db";
+      } catch {
+        list = await getSearchList(params);       // fallback to mock
+        _baseSource = "mock";
       }
-      // { properties: [...] }
+    } else {
+      list = await getSearchList(params);         // mock when db=0
+      _baseSource = "mock";
+    }
+    // { properties: [...] }
 
     const props: any[] = Array.isArray(list?.properties) ? list.properties : [];
+    for (const p of props) { try { (p as any)._baseSource = _baseSource; } catch {} }
     if (props.length === 0) return res.json({ properties: [] });
 
     // ANCHOR: NORMALIZE_ID_START
@@ -61,8 +66,6 @@ router.get("/search", async (req: Request, res: Response) => {
     }
     // ANCHOR: STRIP_LEGACY_ID
     for (const p of props) { try { delete (p as any).id; } catch {} }
-    // ANCHOR: NONBLOCK_ENRICH
-    const wantsDb = (req.query.db ?? "1") !== "0";
 
     if (!wantsDb) {
       // run enrichment in the background and return immediately
