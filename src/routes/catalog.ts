@@ -47,6 +47,8 @@ router.get("/search", async (req: Request, res: Response) => {
     for (const p of props) {
       if (p && p.id == null && p.propertyId != null) p.id = p.propertyId;
     }
+    // ANCHOR: STRIP_LEGACY_ID
+    for (const p of props) { try { delete (p as any).id; } catch {} }
     // ANCHOR: NONBLOCK_ENRICH
     const wantsDb = (req.query.db ?? "1") !== "0";
 
