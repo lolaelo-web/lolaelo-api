@@ -286,7 +286,9 @@
       const a = (p.amenities || []).slice(0,3).map(a=>`<span class="chip">${a}</span>`).join("");
       const price = p.fromPriceStr ? `From ${p.fromPriceStr}` : ''; // show only when present
       const hasRollup = Number.isFinite(p?.availableNights) && Number.isFinite(p?.nightsTotal);
-      const nights = hasRollup ? `${p.availableNights}/${p.nightsTotal} nights` : '';
+      const availBadge = hasRollup
+      ? (Number(p.availableNights) > 0 ? '' : '<span class="chip" title="No rooms available in selected window">sold out</span>')
+      : '';
       const link = `/catalog_details.html?propertyId=${encodeURIComponent(p.propertyId)}&start=${encodeURIComponent(start)}&end=${encodeURIComponent(end)}${window.ratePlanId ? `&ratePlanId=${encodeURIComponent(window.ratePlanId)}` : ''}`;
       const srcBadge = (p.detail && p.detail._roomsSource === 'db')
         ? '<span class="chip" title="Prices from database">db</span>' : '';
@@ -302,7 +304,7 @@
             <div class="stars" aria-label="${p.starRating} stars">${stars(p.starRating)}</div>
           </div>
           <div class="meta">${p.city}, ${p.country}</div>
-          <div class="chips">${a}${srcBadge}</div>
+          <div class="chips">${a}${srcBadge}${availBadge}</div>
           <div class="foot">
             <div class="meta">${nights}</div>
             <div class="price">${price} ${srcBadge}</div>
