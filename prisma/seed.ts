@@ -11,6 +11,7 @@ async function main() {
     { partnerId: 104, name: "Daku Island Retreat",   city: "General Luna",    country: "PH" },
     { partnerId: 105, name: "Magpupungko Tide Inn",  city: "Pilar",           country: "PH" },
     { partnerId: 106, name: "Naked Island Cabins",   city: "General Luna",    country: "PH" },
+    { partnerId: 2,   name: "Siargao Bay Suites",    city: "General Luna",    country: "PH" },
   ];
 
   // Photos: use unique keys (required by your schema), include sortOrder & isCover
@@ -36,6 +37,8 @@ async function main() {
 
     { partnerId: 106, key: "p106-cover", url: "https://picsum.photos/id/1061/1200/800", alt: "Naked Island Cabins",  isCover: true,  sortOrder: 1 },
     { partnerId: 106, key: "p106-g1",    url: "https://picsum.photos/id/1062/1200/800", alt: "Naked Island Cabins",                 sortOrder: 2 },
+    { partnerId: 2,   key: "p2-cover",  url: "https://picsum.photos/id/1021/1200/800", alt: "Siargao Bay Suites",  isCover: true,  sortOrder: 0 },
+    { partnerId: 2,   key: "p2-g1",     url: "https://picsum.photos/id/1022/1200/800", alt: "Siargao Bay Suites",                   sortOrder: 1 },
   ];
 
   // PropertyProfile: partnerId is @unique in your schema — safe for upsert

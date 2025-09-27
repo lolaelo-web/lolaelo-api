@@ -312,6 +312,42 @@ router.get("/details", async (req: Request, res: Response) => {
     } catch (err) {
       req.app?.get("logger")?.warn?.({ err, propertyId }, "details.rooms-db-wire failed");
     }
+    // ANCHOR: DETAILS_PROFILE_ENRICH_START
+    try {
+      const profMap = await getProfilesFromDb([propertyId]);
+      const prof = profMap?.[propertyId];
+      if (prof) {
+        // ensure meta/property exists
+        if (!base.meta)              (base as any).meta = {};
+        if (!base.meta.property)     (base as any).meta.property = {};
+
+        // copy identity/location from DB profile
+        (base as any).meta.property.name    = prof.name    ?? base.meta.property.name    ?? "";
+        (base as any).meta.property.city    = prof.city    ?? base.meta.property.city    ?? "";
+        (base as any).meta.property.country = prof.country ?? base.meta.property.country ?? "";
+
+        // images from DB photos → prefer rooms[0].images, also mirror under meta.property.images
+        const imgs: string[] = Array.isArray(prof.images)
+          ? prof.images
+              .map((v: any) => typeof v === "string" ? v : v?.url)
+              .filter(Boolean)
+          : [];
+
+        if (imgs.length) {
+          if (Array.isArray((base as any).rooms?.[0]?.images)) {
+            (base as any).rooms[0].images = [...imgs, ...((base as any).rooms[0].images as string[])];
+          } else if (Array.isArray((base as any).rooms)) {
+            (base as any).rooms[0] = { ...(base as any).rooms[0], images: imgs };
+          } else {
+            (base as any).rooms = [{ images: imgs, daily: [] }];
+          }
+          (base as any).meta.property.images = imgs;
+        }
+      }
+    } catch (e) {
+      req.app?.get("logger")?.warn?.({ e, propertyId }, "details.profile-enrich failed");
+    }
+    // ANCHOR: DETAILS_PROFILE_ENRICH_END
 
     // Currency backfill
     try {
