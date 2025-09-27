@@ -245,7 +245,7 @@ router.get("/details", async (req: Request, res: Response) => {
         if (prof.city)    base.city    = prof.city;
         if (prof.country) base.country = prof.country;
         if (Array.isArray(prof.images) && prof.images.length) {
-          base.images = Array.isArray(base.images) ? [...prof.images, ...base.images] : [...prof.images];
+          base.images = [...prof.images]; // prefer DB images only
         }
       }
     } catch (err) {
