@@ -302,8 +302,8 @@ export async function getSearchListFromDb(_params: {
   start: string; end: string; ratePlanId?: number | undefined;
 }): Promise<{ properties: Array<any> }> {
   // Partners with optional profile + photos
-  const partners = await prisma.partner.findMany({
-    // you can add where: { active: true } if you add such a flag later
+   const partners = await prisma.partner.findMany({
+    where: { id: { in: [2] } }, // keep only propertyId=2
     include: {
       profile: true,
       photos: { orderBy: { sortOrder: "asc" } },
