@@ -97,9 +97,10 @@ router.get("/search", async (req: Request, res: Response) => {
           const prof = profMap[pid];
           if (!prof) continue;
 
-          p.name = prof.name || p.name || "";
-          p.city = prof.city || p.city || "";
-          p.country = prof.country || p.country || "";
+          p.name = prof.name ?? "";
+          p.city = prof.city ?? "";
+          p.country = prof.country ?? "";
+
           if (Array.isArray(prof.images) && prof.images.length) {
             if (!p.images || !Array.isArray(p.images)) p.images = [];
             p.images = prof.images; // prefer DB images only
