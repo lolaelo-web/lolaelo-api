@@ -330,19 +330,28 @@
       });
 
       // table rows (DB-safe: inventory || open)
+      // ANCHOR: DETAILS_ROWS_RENDER
       const daily = j?.rooms?.[0]?.daily || [];
-      rows.innerHTML = daily.map(d => {
-        const openCount = Number(d.inventory ?? d.open ?? 0);
-        const isClosed = Boolean(d.closed) || openCount <= 0;
-        const tag = isClosed ? `<span class="tag off">Closed</span>` : `<span class="tag">Open</span>`;
-        return `<tr>
-          <td>${d.date}</td>
-          <td>${openCount}</td>
-          <td>${money(d.price)}</td>
-          <td>${d.minStay ?? 1}</td>
-          <td>${tag}</td>
+      if (!daily.length) {
+        rows.innerHTML = `<tr>
+          <td colspan="5" class="small" style="color:var(--muted); padding:14px 8px;">
+            No availability or pricing for the selected dates. Try widening the range in Catalog.
+          </td>
         </tr>`;
-      }).join("");
+      } else {
+        rows.innerHTML = daily.map(d => {
+          const openCount = Number(d.inventory ?? d.open ?? 0);
+          const isClosed = Boolean(d.closed) || openCount <= 0;
+          const tag = isClosed ? `<span class="tag off">Closed</span>` : `<span class="tag">Open</span>`;
+          return `<tr>
+            <td>${d.date}</td>
+            <td>${openCount}</td>
+            <td>${money(d.price)}</td>
+            <td>${d.minStay ?? 1}</td>
+            <td>${tag}</td>
+          </tr>`;
+        }).join("");
+      }
     }
 
     document.getElementById('book').addEventListener('click', ()=>{
