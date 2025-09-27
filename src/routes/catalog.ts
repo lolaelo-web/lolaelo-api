@@ -282,6 +282,38 @@ router.get("/details", async (req: Request, res: Response) => {
     } catch (err) {
       req.app?.get("logger")?.warn?.({ err }, "details.currency-backfill failed");
     }
+    // ANCHOR: DETAILS_ROLLUP_FROM_DB
+    try {
+      if (base?.rooms && Array.isArray(base.rooms)) {
+        type Daily = RoomsDailyRow["daily"][number];
+        const allDaily: Daily[] = (base.rooms as RoomsDailyRow[]).flatMap(
+          (r: RoomsDailyRow) => (r.daily as Daily[]) || []
+        );
+
+        const availNights = allDaily.filter((d: Daily) => (d?.inventory ?? 0) > 0).length;
+        const priced: Daily[] = allDaily.filter((d: Daily) => typeof d?.price === "number");
+        const minPrice = priced.length ? Math.min(...priced.map((d: Daily) => Number(d!.price))) : null;
+        const curCode = (priced[0]?.currency as string) || "USD";
+
+        (base as any).availableNights = availNights;
+        (base as any).nightsTotal = allDaily.length;
+
+        if (minPrice != null && Number.isFinite(minPrice)) {
+          (base as any).fromPrice = minPrice;
+          try {
+            (base as any).fromPriceStr = new Intl.NumberFormat("en-US", {
+              style: "currency",
+              currency: curCode,
+            }).format(Number(minPrice));
+          } catch {
+            (base as any).fromPriceStr = `$${Number(minPrice).toFixed(2)}`;
+          }
+        }
+      }
+    } catch (e) {
+      req.app?.get("logger")?.warn?.({ e, propertyId }, "details.rollup failed");
+    }
+    // ANCHOR: DETAILS_ROLLUP_FROM_DB
 
     return res.json(base ?? {});
   } catch (err: any) {
