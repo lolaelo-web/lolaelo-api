@@ -131,6 +131,24 @@
       transition: opacity .25s ease;
       background:#fff; /* keeps letterbox bars white, not black */
     }
+    /* ANCHOR: HERO_NAV_CSS */
+    .hero-nav {
+      position: absolute;
+      top: 50%;
+      transform: translateY(-50%);
+      background: rgba(255,255,255,0.8);
+      border: none;
+      border-radius: 50%;
+      width: 36px;
+      height: 36px;
+      font-size: 20px;
+      font-weight: bold;
+      cursor: pointer;
+      box-shadow: 0 2px 6px rgba(0,0,0,0.2);
+    }
+    #hero-prev { left: 10px; }
+    #hero-next { right: 10px; }
+    .hero-nav:hover { background: rgba(255,255,255,0.95); }
 
     .hero img.is-fading{ opacity: 0; }
 
@@ -191,6 +209,8 @@
 <section class="hero-block">
   <div id="hero" class="hero" aria-live="polite">
     <img id="hero-img" src="" alt="">
+    <button id="hero-prev" class="hero-nav" aria-label="Previous photo">‹</button>
+    <button id="hero-next" class="hero-nav" aria-label="Next photo">›</button>
   </div>
   <div id="thumbs" class="thumbs" aria-label="More photos"></div>
 </section>
@@ -276,6 +296,13 @@
         btn.setAttribute('aria-current', idx === i ? 'true' : 'false');
       });
     }
+    // ANCHOR: HERO_NAV_LOGIC
+    document.getElementById('hero-prev').addEventListener('click', ()=>{
+      setHero(heroIndex - 1);
+    });
+    document.getElementById('hero-next').addEventListener('click', ()=>{
+      setHero(heroIndex + 1);
+    });
 
     function thumbHTML(src, idx){
       const current = idx === 0 ? 'true' : 'false';
