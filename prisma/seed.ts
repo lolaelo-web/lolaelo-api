@@ -1,17 +1,24 @@
 // prisma/seed.ts
 import { PrismaClient } from "@prisma/client";
 
+// ANCHOR: SEED_DBURL_OVERRIDE
+// If SEED_DATABASE_URL is provided, use it only for this seed run.
+// This avoids changing .env or Render env vars.
+if (process.env.SEED_DATABASE_URL && process.env.SEED_DATABASE_URL.trim()) {
+  process.env.DATABASE_URL = process.env.SEED_DATABASE_URL.trim();
+}
+
 const prisma = new PrismaClient();
 
 async function main() {
   // Partner IDs 102–106 per your seed plan
   const profiles = [
-    { partnerId: 102, name: "Siargao Bay Suites", city: "General Luna", country: "PH" },
-    { partnerId: 103, name: "Pacifico Breeze Villas", city: "San Isidro",     country: "PH" },
-    { partnerId: 104, name: "Daku Island Retreat",   city: "General Luna",    country: "PH" },
-    { partnerId: 105, name: "Magpupungko Tide Inn",  city: "Pilar",           country: "PH" },
-    { partnerId: 106, name: "Naked Island Cabins",   city: "General Luna",    country: "PH" },
-    { partnerId: 2,   name: "Siargao Bay Suites",    city: "General Luna",    country: "PH" },
+    { partnerId: 102, name: "Siargao Bay Suites",  city: "General Luna", country: "PH" },
+    { partnerId: 103, name: "Pacifico Breeze Villas", city: "San Isidro",  country: "PH" },
+    { partnerId: 104, name: "Daku Island Retreat", city: "General Luna",   country: "PH" },
+    { partnerId: 105, name: "Magpupungko Tide Inn", city: "Pilar",         country: "PH" },
+    { partnerId: 106, name: "Naked Island Cabins",  city: "General Luna",   country: "PH" },
+    { partnerId: 2,   name: "Siargao Bay Suites",   city: "General Luna",   country: "PH" },
   ];
 
   // Photos: use unique keys (required by your schema), include sortOrder & isCover
@@ -19,7 +26,7 @@ async function main() {
     partnerId: number;
     key: string;           // unique
     url: string;
-    alt?: string;
+    alt?: string | null;
     isCover?: boolean;
     sortOrder?: number;
   }> = [
@@ -37,11 +44,12 @@ async function main() {
 
     { partnerId: 106, key: "p106-cover", url: "https://picsum.photos/id/1061/1200/800", alt: "Naked Island Cabins",  isCover: true,  sortOrder: 1 },
     { partnerId: 106, key: "p106-g1",    url: "https://picsum.photos/id/1062/1200/800", alt: "Naked Island Cabins",                 sortOrder: 2 },
-    { partnerId: 2,   key: "p2-cover",  url: "https://picsum.photos/id/1021/1200/800", alt: "Siargao Bay Suites",  isCover: true,  sortOrder: 0 },
-    { partnerId: 2,   key: "p2-g1",     url: "https://picsum.photos/id/1022/1200/800", alt: "Siargao Bay Suites",                   sortOrder: 1 },
+
+    { partnerId: 2,   key: "p2-cover",   url: "https://picsum.photos/id/1021/1200/800", alt: "Siargao Bay Suites",  isCover: true,  sortOrder: 0 },
+    { partnerId: 2,   key: "p2-g1",      url: "https://picsum.photos/id/1022/1200/800", alt: "Siargao Bay Suites",                  sortOrder: 1 },
   ];
 
-  // PropertyProfile: partnerId is @unique in your schema — safe for upsert
+  // PropertyProfile: partnerId is @unique — safe for upsert
   for (const p of profiles) {
     await prisma.propertyProfile.upsert({
       where:  { partnerId: p.partnerId },
@@ -70,87 +78,13 @@ async function main() {
       },
     });
   }
-}
+
   // ANCHOR: SEED_OPEN_AVAIL_2
-  // Ensure RoomType + RatePlan exist for partnerId=2, then open inventory and set prices for next 7 days.
+  // Ensure RoomType + RatePlan exist for partnerId=2, then open inventory and set prices for the next 7 days.
   {
-     // ANCHOR: SEED_OPEN_AVAIL_2
-      // Ensure RoomType + RatePlan exist for partnerId=2, then open inventory and set prices for the next 7 days.
-      {
-        const partnerId = 2;
-        const today = new Date("2025-09-28"); // pin to a test date so UI matches
-        const days = 7;
-
-        // 1) RoomType (create minimal if missing)
-        let rt = await prisma.roomType.findFirst({ where: { partnerId } });
-        if (!rt) {
-          rt = await prisma.roomType.create({
-            data: {
-              partnerId,
-              name: "Standard Room",
-              description: "Auto-seeded",
-              maxGuests: 2,
-              occupancy: 2,
-              basePrice: 115.00 as any,
-            },
-          });
-        }
-
-        // 2) RatePlan (create minimal if missing)
-        let rp = await prisma.ratePlan.findFirst({ where: { partnerId, roomTypeId: rt.id } });
-        if (!rp) {
-          rp = await prisma.ratePlan.create({
-            data: {
-              partnerId,
-              roomTypeId: rt.id,
-              name: "Flexible",
-              exposeToUis: true,
-              uisPriority: 100,
-              policy: "Free cancellation (seed)",
-              priceDelta: 0 as any,
-            },
-          });
-        }
-
-        // 3) Upsert inventory + price for the next N days (starting 2025-09-28)
-        for (let i = 0; i < days; i++) {
-          const d = new Date(Date.UTC(today.getUTCFullYear(), today.getUTCMonth(), today.getUTCDate() + i));
-          const iso = d.toISOString();
-
-          await prisma.roomInventory.upsert({
-            where: { roomTypeId_date: { roomTypeId: rt.id, date: iso } },
-            create: {
-              partnerId,
-              roomTypeId: rt.id,
-              date: iso,
-              roomsOpen: 3,
-              isClosed: false,
-              minStay: 1,
-            },
-            update: {
-              roomsOpen: 3,
-              isClosed: false,
-              minStay: 1,
-            },
-          });
-
-          await prisma.roomPrice.upsert({
-            where: { roomTypeId_ratePlanId_date: { roomTypeId: rt.id, ratePlanId: rp.id, date: iso } },
-            create: {
-              partnerId,
-              roomTypeId: rt.id,
-              ratePlanId: rp.id!,
-              date: iso,
-              price: 115.00 as any,
-            },
-            update: {
-              price: 115.00 as any,
-            },
-          });
-        }
-      }
-      // ANCHOR: SEED_OPEN_AVAIL_2_END
-
+    const partnerId = 2;
+    const today = new Date("2025-09-28"); // pin to a test date so UI matches local URL tests
+    const days = 7;
 
     // 1) RoomType (create minimal if missing)
     let rt = await prisma.roomType.findFirst({ where: { partnerId } });
@@ -183,7 +117,7 @@ async function main() {
       });
     }
 
-    // 3) Upsert inventory + price for the next N days
+    // 3) Upsert inventory + price for the next N days (starting 2025-09-28)
     for (let i = 0; i < days; i++) {
       const d = new Date(Date.UTC(today.getUTCFullYear(), today.getUTCMonth(), today.getUTCDate() + i));
       const iso = d.toISOString(); // Prisma DateTime
@@ -223,6 +157,7 @@ async function main() {
     }
   }
   // ANCHOR: SEED_OPEN_AVAIL_2_END
+}
 
 main()
   .catch((e) => {

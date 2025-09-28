@@ -5,6 +5,7 @@ generator client {
 datasource db {
   provider = "postgresql"
   url      = env("DATABASE_URL")
+  schemas  = ["extranet", "public"]
 }
 
 model Waitlist {
@@ -12,6 +13,8 @@ model Waitlist {
   email     String
   phone     String?
   createdAt DateTime @default(now())
+
+  @@schema("public")
 }
 
 model PartnerApplication {
@@ -23,6 +26,8 @@ model PartnerApplication {
   location    String?
   notes       String?
   createdAt   DateTime @default(now())
+
+  @@schema("public")
 }
 
 model ContentBlock {
@@ -31,16 +36,19 @@ model ContentBlock {
   value     String
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
+
+  @@schema("public")
 }
 
 model Partner {
-  id            Int                 @id @default(autoincrement())
-  email         String              @unique
+  id            Int                    @id @default(autoincrement())
+  email         String                 @unique
   name          String?
-  createdAt     DateTime            @default(now())
-  updatedAt     DateTime            @updatedAt
+  createdAt     DateTime               @default(now())
+  updatedAt     DateTime               @updatedAt
   codes         ExtranetLoginCode[]
   sessions      ExtranetSession[]
+  PmsConnection public_PmsConnection[]
   documents     PropertyDocument[]
   photos        PropertyPhoto[]
   profile       PropertyProfile?
@@ -48,6 +56,8 @@ model Partner {
   roomInventory RoomInventory[]
   roomPrices    RoomPrice[]
   roomTypes     RoomType[]
+
+  @@schema("public")
 }
 
 model ExtranetLoginCode {
@@ -61,6 +71,7 @@ model ExtranetLoginCode {
 
   @@index([partnerId])
   @@index([expiresAt])
+  @@schema("public")
 }
 
 model ExtranetSession {
@@ -74,6 +85,7 @@ model ExtranetSession {
 
   @@index([partnerId])
   @@index([expiresAt])
+  @@schema("public")
 }
 
 model PropertyProfile {
@@ -89,6 +101,8 @@ model PropertyProfile {
   createdAt    DateTime @default(now())
   updatedAt    DateTime @updatedAt
   partner      Partner  @relation(fields: [partnerId], references: [id], onDelete: Cascade)
+
+  @@schema("public")
 }
 
 model PropertyPhoto {
@@ -105,6 +119,7 @@ model PropertyPhoto {
   partner   Partner  @relation(fields: [partnerId], references: [id], onDelete: Cascade)
 
   @@index([partnerId, sortOrder])
+  @@schema("public")
 }
 
 model PropertyDocument {
@@ -122,8 +137,8 @@ model PropertyDocument {
   notes       String?
   partner     Partner        @relation(fields: [partnerId], references: [id], onDelete: Cascade)
 
-  @@unique([partnerId, type])
   @@index([partnerId, status])
+  @@schema("public")
 }
 
 model RoomType {
@@ -134,7 +149,6 @@ model RoomType {
   maxGuests   Int             @default(2)
   occupancy   Int             @default(2)
   basePrice   Decimal         @db.Decimal(10, 2)
-  active      Boolean         @default(true)
   createdAt   DateTime        @default(now())
   updatedAt   DateTime        @updatedAt
   rates       RatePlan[]
@@ -144,6 +158,7 @@ model RoomType {
 
   @@unique([partnerId, name])
   @@index([partnerId])
+  @@schema("public")
 }
 
 model RatePlan {
@@ -165,6 +180,7 @@ model RatePlan {
   @@index([partnerId])
   @@index([partnerId, uisPriority])
   @@index([partnerId, uisPriority], map: "RatePlan_partner_uisPriority_idx")
+  @@schema("public")
 }
 
 model RoomInventory {
@@ -182,6 +198,7 @@ model RoomInventory {
 
   @@unique([roomTypeId, date])
   @@index([partnerId, date])
+  @@schema("public")
 }
 
 model RoomPrice {
@@ -199,8 +216,371 @@ model RoomPrice {
 
   @@unique([roomTypeId, ratePlanId, date])
   @@index([partnerId, date])
+  @@schema("public")
 }
 
+model extranet_ContentBlock {
+  id        Int      @id @default(autoincrement())
+  key       String   @unique
+  value     String
+  createdAt DateTime @default(now())
+  updatedAt DateTime
+
+  @@map("ContentBlock")
+  @@schema("extranet")
+}
+
+model extranet_ExtranetLoginCode {
+  id        Int              @id @default(autoincrement())
+  partnerId Int
+  codeHash  String
+  expiresAt DateTime
+  createdAt DateTime         @default(now())
+  usedAt    DateTime?
+  Partner   extranet_Partner @relation(fields: [partnerId], references: [id], onDelete: Cascade)
+
+  @@index([expiresAt])
+  @@index([partnerId])
+  @@map("ExtranetLoginCode")
+  @@schema("extranet")
+}
+
+model ExtranetSession_bak_20250915 {
+  id        Int              @id(map: "ExtranetSession_pkey") @default(autoincrement())
+  partnerId Int
+  token     String           @unique(map: "ExtranetSession_token_key")
+  expiresAt DateTime
+  createdAt DateTime         @default(now())
+  revokedAt DateTime?
+  Partner   extranet_Partner @relation(fields: [partnerId], references: [id], onDelete: Cascade, map: "ExtranetSession_partnerId_fkey")
+
+  @@index([expiresAt], map: "ExtranetSession_expiresAt_idx")
+  @@index([partnerId], map: "ExtranetSession_partnerId_idx")
+  @@schema("extranet")
+}
+
+model extranet_Partner {
+  id                           Int                            @id @default(autoincrement())
+  email                        String                         @unique
+  name                         String?
+  createdAt                    DateTime                       @default(now())
+  updatedAt                    DateTime
+  ExtranetLoginCode            extranet_ExtranetLoginCode[]
+  ExtranetSession_bak_20250915 ExtranetSession_bak_20250915[]
+  PmsConnection                extranet_PmsConnection[]
+  PropertyDocument             extranet_PropertyDocument[]
+  PropertyPhoto                extranet_PropertyPhoto[]
+  PropertyProfile              extranet_PropertyProfile?
+  RatePlan                     extranet_RatePlan[]
+  RoomInventory                extranet_RoomInventory[]
+  RoomPrice                    extranet_RoomPrice[]
+  RoomType                     extranet_RoomType[]
+
+  @@map("Partner")
+  @@schema("extranet")
+}
+
+model extranet_PartnerApplication {
+  id          Int      @id @default(autoincrement())
+  companyName String
+  contactName String
+  email       String
+  phone       String?
+  location    String?
+  notes       String?
+  createdAt   DateTime @default(now())
+
+  @@map("PartnerApplication")
+  @@schema("extranet")
+}
+
+model extranet_PmsConnection {
+  id             Int                   @id @default(autoincrement())
+  partnerId      Int
+  provider       String
+  mode           String                @default("mock")
+  status         String                @default("TESTING")
+  scope          String?
+  accessToken    String?
+  refreshToken   String?
+  tokenExpiresAt DateTime?             @db.Timestamptz(6)
+  lastSyncAt     DateTime?             @db.Timestamptz(6)
+  createdAt      DateTime              @default(now()) @db.Timestamptz(6)
+  updatedAt      DateTime              @default(now()) @db.Timestamptz(6)
+  Partner        extranet_Partner      @relation(fields: [partnerId], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  PmsMapping     extranet_PmsMapping[]
+  SyncLog        extranet_SyncLog[]
+
+  @@unique([partnerId, provider], map: "PmsConnection_partner_provider_unique")
+  @@index([partnerId], map: "PmsConnection_partner_idx")
+  @@map("PmsConnection")
+  @@schema("extranet")
+}
+
+model extranet_PmsMapping {
+  id               Int                    @id @default(autoincrement())
+  pmsConnectionId  Int
+  remoteRoomId     String
+  remoteRatePlanId String?
+  localRoomTypeId  Int?
+  localRatePlanId  Int?
+  currency         String?
+  active           Boolean                @default(true)
+  createdAt        DateTime               @default(now()) @db.Timestamptz(6)
+  updatedAt        DateTime               @default(now()) @db.Timestamptz(6)
+  RatePlan         extranet_RatePlan?     @relation(fields: [localRatePlanId], references: [id], onUpdate: NoAction)
+  RoomType         extranet_RoomType?     @relation(fields: [localRoomTypeId], references: [id], onUpdate: NoAction)
+  PmsConnection    extranet_PmsConnection @relation(fields: [pmsConnectionId], references: [id], onDelete: Cascade, onUpdate: NoAction)
+
+  @@index([pmsConnectionId], map: "PmsMapping_conn_idx")
+  @@index([remoteRoomId, remoteRatePlanId], map: "PmsMapping_remote_idx")
+  @@map("PmsMapping")
+  @@schema("extranet")
+}
+
+model extranet_PropertyDocument {
+  id          Int                     @id @default(autoincrement())
+  partnerId   Int
+  type        extranet_DocumentType
+  key         String                  @unique
+  url         String
+  fileName    String?
+  contentType String?
+  status      extranet_DocumentStatus @default(SUBMITTED)
+  notes       String?
+  expiresAt   DateTime?
+  uploadedAt  DateTime                @default(now())
+  verifiedAt  DateTime?
+  Partner     extranet_Partner        @relation(fields: [partnerId], references: [id], onDelete: Cascade)
+
+  @@unique([partnerId, type])
+  @@index([partnerId, status])
+  @@map("PropertyDocument")
+  @@schema("extranet")
+}
+
+model extranet_PropertyPhoto {
+  id        Int              @id @default(autoincrement())
+  partnerId Int
+  key       String           @unique
+  url       String
+  alt       String?
+  sortOrder Int              @default(0)
+  isCover   Boolean          @default(false)
+  width     Int?
+  height    Int?
+  createdAt DateTime         @default(now())
+  Partner   extranet_Partner @relation(fields: [partnerId], references: [id], onDelete: Cascade)
+
+  @@index([partnerId, sortOrder])
+  @@map("PropertyPhoto")
+  @@schema("extranet")
+}
+
+model extranet_PropertyProfile {
+  id           Int              @id @default(autoincrement())
+  partnerId    Int              @unique
+  name         String
+  addressLine  String?
+  city         String?
+  country      String?
+  contactEmail String?
+  phone        String?
+  description  String?
+  createdAt    DateTime         @default(now())
+  updatedAt    DateTime
+  Partner      extranet_Partner @relation(fields: [partnerId], references: [id], onDelete: Cascade)
+
+  @@map("PropertyProfile")
+  @@schema("extranet")
+}
+
+model PropertyProfileAudit {
+  id        BigInt   @id @default(autoincrement())
+  partnerid Int
+  action    String
+  oldvalue  Json?
+  newvalue  Json?
+  ip        String?
+  useremail String?
+  createdat DateTime @default(now()) @db.Timestamptz(6)
+
+  @@schema("extranet")
+}
+
+model extranet_RatePlan {
+  id         Int                   @id @default(autoincrement())
+  partnerId  Int
+  roomTypeId Int
+  name       String
+  policy     String?
+  priceDelta Decimal?              @db.Decimal(10, 2)
+  createdAt  DateTime              @default(now())
+  updatedAt  DateTime
+  PmsMapping extranet_PmsMapping[]
+  Partner    extranet_Partner      @relation(fields: [partnerId], references: [id], onDelete: Cascade)
+  RoomType   extranet_RoomType     @relation(fields: [roomTypeId], references: [id], onDelete: Cascade)
+  RoomPrice  extranet_RoomPrice[]
+  PublicPmsMapping public_PmsMapping[]
+
+  @@unique([roomTypeId, name])
+  @@index([partnerId])
+  @@map("RatePlan")
+  @@schema("extranet")
+}
+
+/// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
+model extranet_RoomInventory {
+  id         Int               @id @default(autoincrement())
+  partnerId  Int
+  roomTypeId Int
+  date       DateTime
+  roomsOpen  Int               @default(0)
+  isClosed   Boolean           @default(false)
+  minStay    Int?
+  createdAt  DateTime          @default(now())
+  updatedAt  DateTime          @default(now())
+  Partner    extranet_Partner  @relation(fields: [partnerId], references: [id], onDelete: Cascade)
+  RoomType   extranet_RoomType @relation(fields: [roomTypeId], references: [id], onDelete: Cascade)
+
+  @@unique([roomTypeId, date])
+  @@index([partnerId, date])
+  @@map("RoomInventory")
+  @@schema("extranet")
+}
+
+/// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
+model extranet_RoomPrice {
+  id         Int               @id @default(autoincrement())
+  partnerId  Int
+  roomTypeId Int
+  ratePlanId Int
+  date       DateTime
+  price      Decimal           @db.Decimal(10, 2)
+  createdAt  DateTime          @default(now())
+  updatedAt  DateTime          @default(now())
+  Partner    extranet_Partner  @relation(fields: [partnerId], references: [id], onDelete: Cascade)
+  RatePlan   extranet_RatePlan @relation(fields: [ratePlanId], references: [id], onDelete: Cascade)
+  RoomType   extranet_RoomType @relation(fields: [roomTypeId], references: [id], onDelete: Cascade)
+
+  @@unique([roomTypeId, date, ratePlanId])
+  @@index([partnerId, date])
+  @@map("RoomPrice")
+  @@schema("extranet")
+}
+
+model extranet_RoomType {
+  id            Int                      @id @default(autoincrement())
+  partnerId     Int
+  name          String
+  description   String?
+  maxGuests     Int                      @default(2)
+  basePrice     Decimal                  @db.Decimal(10, 2)
+  createdAt     DateTime                 @default(now())
+  updatedAt     DateTime
+  occupancy     Int?
+  code          String?
+  active        Boolean                  @default(false)
+  PmsMapping    extranet_PmsMapping[]
+  RatePlan      extranet_RatePlan[]
+  RoomInventory extranet_RoomInventory[]
+  RoomPrice     extranet_RoomPrice[]
+  Partner       extranet_Partner         @relation(fields: [partnerId], references: [id], onDelete: Cascade)
+  PublicPmsMapping public_PmsMapping[]
+
+  @@unique([partnerId, name])
+  @@index([partnerId])
+  @@map("RoomType")
+  @@schema("extranet")
+}
+
+model extranet_SyncLog {
+  id              Int                    @id @default(autoincrement())
+  pmsConnectionId Int
+  type            String
+  status          String
+  message         String?
+  startedAt       DateTime               @default(now()) @db.Timestamptz(6)
+  finishedAt      DateTime?              @db.Timestamptz(6)
+  durationMs      Int?                   @default(0)
+  createdAt       DateTime               @default(now()) @db.Timestamptz(6)
+  updatedAt       DateTime               @default(now()) @db.Timestamptz(6)
+  PmsConnection   extranet_PmsConnection @relation(fields: [pmsConnectionId], references: [id], onDelete: Cascade, onUpdate: NoAction)
+
+  @@index([pmsConnectionId, startedAt(sort: Desc)], map: "SyncLog_conn_started_idx")
+  @@map("SyncLog")
+  @@schema("extranet")
+}
+
+model extranet_Waitlist {
+  id        Int      @id @default(autoincrement())
+  email     String
+  phone     String?
+  createdAt DateTime @default(now())
+
+  @@map("Waitlist")
+  @@schema("extranet")
+}
+
+model public_PmsConnection {
+  id             Int                 @id @default(autoincrement())
+  partnerId      Int
+  provider       String
+  mode           String              @default("mock")
+  status         String              @default("TESTING")
+  scope          String?
+  accessToken    String?
+  refreshToken   String?
+  tokenExpiresAt DateTime?           @db.Timestamptz(6)
+  lastSyncAt     DateTime?           @db.Timestamptz(6)
+  createdAt      DateTime            @default(now()) @db.Timestamptz(6)
+  updatedAt      DateTime            @default(now()) @db.Timestamptz(6)
+  Partner        Partner             @relation(fields: [partnerId], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  PmsMapping     public_PmsMapping[]
+  SyncLog        public_SyncLog[]
+
+  @@unique([partnerId, provider], map: "PmsConnection_partner_provider_unique")
+  @@map("PmsConnection")
+  @@schema("public")
+}
+
+model public_PmsMapping {
+  id               Int                  @id @default(autoincrement())
+  pmsConnectionId  Int
+  remoteRoomId     String
+  remoteRatePlanId String?
+  localRoomTypeId  Int?
+  localRatePlanId  Int?
+  currency         String?
+  active           Boolean              @default(true)
+  createdAt        DateTime             @default(now()) @db.Timestamptz(6)
+  updatedAt        DateTime             @default(now()) @db.Timestamptz(6)
+  RatePlan         extranet_RatePlan?   @relation(fields: [localRatePlanId], references: [id], onUpdate: NoAction, map: "PmsMapping_localRatePlanId_extranet_fkey")
+  RoomType         extranet_RoomType?   @relation(fields: [localRoomTypeId], references: [id], onUpdate: NoAction, map: "PmsMapping_localRoomTypeId_extranet_fkey")
+  PmsConnection    public_PmsConnection @relation(fields: [pmsConnectionId], references: [id], onDelete: Cascade, onUpdate: NoAction)
+
+  @@map("PmsMapping")
+  @@schema("public")
+}
+
+model public_SyncLog {
+  id              Int                  @id @default(autoincrement())
+  pmsConnectionId Int
+  type            String
+  status          String
+  message         String?
+  startedAt       DateTime?            @db.Timestamptz(6)
+  finishedAt      DateTime?            @db.Timestamptz(6)
+  durationMs      Int?
+  createdAt       DateTime             @default(now()) @db.Timestamptz(6)
+  updatedAt       DateTime             @default(now()) @db.Timestamptz(6)
+  PmsConnection   public_PmsConnection @relation(fields: [pmsConnectionId], references: [id], onDelete: Cascade, onUpdate: NoAction)
+
+  @@map("SyncLog")
+  @@schema("public")
+}
+
+/// ========= PUBLIC ENUMS =========
 enum DocumentType {
   GOVT_ID
   BUSINESS_REG
@@ -210,6 +590,8 @@ enum DocumentType {
   INSURANCE_LIABILITY
   PROPERTY_OWNERSHIP
   LOCAL_LICENSE
+
+  @@schema("public")
 }
 
 enum DocumentStatus {
@@ -217,4 +599,30 @@ enum DocumentStatus {
   SUBMITTED
   APPROVED
   REJECTED
+
+  @@schema("public")
+}
+
+enum extranet_DocumentStatus {
+  REQUIRED
+  SUBMITTED
+  APPROVED
+  REJECTED
+
+  @@map("DocumentStatus")
+  @@schema("extranet")
+}
+
+enum extranet_DocumentType {
+  GOVT_ID
+  BUSINESS_REG
+  TAX_ID
+  BANK_PROOF
+  PROOF_OF_ADDRESS
+  INSURANCE_LIABILITY
+  PROPERTY_OWNERSHIP
+  LOCAL_LICENSE
+
+  @@map("DocumentType")
+  @@schema("extranet")
 }
