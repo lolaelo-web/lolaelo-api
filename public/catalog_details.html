@@ -4,7 +4,7 @@
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>Lolaelo · Stay</title>
-  <link rel="icon" href="/logo.png" />
+  <link rel="icon" href="https://www.lolaelo.com/logo.png?cb=fav-v1" />
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
 
   <style>
@@ -85,7 +85,28 @@
       opacity: 0.95;
       transform: translateX(-50%) translateY(-2px);
     }
-    
+    /* ANCHOR: SCROLLTOP_CSS */
+    .scrolltop-btn {
+      position: fixed;
+      bottom: 24px;
+      right: 24px;
+      background: var(--bubble);
+      color: #fff;
+      border: none;
+      border-radius: 50%;
+      width: 44px;
+      height: 44px;
+      display: none;
+      align-items: center;
+      justify-content: center;
+      font-size: 20px;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.2);
+      cursor: pointer;
+      z-index: 1100;
+    }
+    .scrolltop-btn.show {
+      display: flex;
+    }
     /* ANCHOR: DETAILS_TOPBAR_CSS */
     .topbar{
         display:grid;
@@ -104,10 +125,27 @@
 
 
     /* ANCHOR: DETAILS_LAYOUT_COLS */
-    .layout{ display:grid; grid-template-columns: 3fr 1fr; gap:16px; }
-    @media (max-width:900px){
+    .layout{
+      display:grid;
+      /* 75/25, but keep the right column at least 320px so it won’t drop below */
+      grid-template-columns: minmax(0,3fr) minmax(320px,1fr);
+      gap:16px;
+      align-items:start;
+    }
+    /* Keep two columns on typical laptop widths; collapse only below ~840px */
+    @media (max-width:840px){
       .layout{ grid-template-columns: 1fr; }
     }
+
+    /* ANCHOR: AVAIL_COL_WIDTHS */
+    #availability{ table-layout: fixed; }
+    #availability th, #availability td{ white-space: nowrap; }
+    /* Narrower, consistent column widths */
+    #availability th:nth-child(1), #availability td:nth-child(1){ width:100px !important; } /* Date */
+    #availability th:nth-child(2), #availability td:nth-child(2){ width:60px  !important; text-align:right; } /* Open */
+    #availability th:nth-child(3), #availability td:nth-child(3){ width:90px  !important; } /* Price */
+    #availability th:nth-child(4), #availability td:nth-child(4){ width:70px  !important; text-align:right; } /* MinStay */
+    #availability th:nth-child(5), #availability td:nth-child(5){ width:80px  !important; } /* Status */
 
     /* Right panel */
     /* ANCHOR: DETAILS_PANEL_BOX */
@@ -882,6 +920,63 @@
     }
   });
   </script>
-  
+  <!-- ANCHOR: SCROLLTOP_HTML -->
+    <button id="scrollTopBtn" class="scrolltop-btn" aria-label="Scroll to top" title="Back to top">
+      <!-- simple chevron up -->
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+        <path d="M6 14l6-6 6 6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+      </svg>
+    </button>
+    <script>
+      // ANCHOR: SCROLLTOP_JS
+      (function () {
+        const btn = document.getElementById('scrollTopBtn');
+        if (!btn) return;
+
+        // Respect reduced motion
+        const prefersReduced =
+          window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+        // Threshold: bottom of hero or 400px fallback
+        const hero = document.querySelector('.hero, #hero, .gallery-hero');
+        const baselinePx = 400;
+        const threshold = () => {
+          if (!hero) return baselinePx;
+          const rect = hero.getBoundingClientRect();
+          const pageY = window.scrollY + rect.top + rect.height; // bottom of hero in page coords
+          // clamp so it doesn't require an excessively long scroll
+          return Math.max(pageY * 0.02, Math.min(pageY, 800));
+        };
+
+        let ticking = false;
+        const onScroll = () => {
+          if (ticking) return;
+          ticking = true;
+          requestAnimationFrame(() => {
+            const show = window.scrollY > threshold();
+            btn.classList.toggle('show', show);
+            ticking = false;
+          });
+        };
+
+        window.addEventListener('scroll', onScroll, { passive: true });
+        window.addEventListener('resize', onScroll);
+
+        btn.addEventListener('click', (e) => {
+          e.preventDefault();
+          try {
+            window.scrollTo({ top: 0, behavior: prefersReduced ? 'auto' : 'smooth' });
+          } catch {
+            // Fallback
+            document.documentElement.scrollTop = 0;
+            document.body.scrollTop = 0;
+          }
+        });
+
+        // Prime initial state
+        onScroll();
+      })();
+    </script>
+
 </body>
 </html>
