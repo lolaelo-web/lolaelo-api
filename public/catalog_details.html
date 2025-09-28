@@ -54,9 +54,26 @@
     /* ANCHOR: TYPO_REGULAR_ELEMS */
     p, li, td, th, input, select, button, .meta, .note { font-size: var(--body); }
     /* ANCHOR: DETAILS_PAPER_CLIP */
-    .paper{ width:100%; max-width:var(--maxw); margin:18px 20px; background:var(--paper);
-      border-radius:var(--radius); box-shadow:var(--shadow); padding:16px 16px 22px;
-      overflow: hidden; /* clip panel to rounded frame */
+    /* ANCHOR: TOAST_CSS */
+    .toast{
+      position: fixed;
+      left: 50%;
+      bottom: 18px;
+      transform: translateX(-50%);
+      background: #111;
+      color: #fff;
+      font-size: 12px;
+      padding: 10px 14px;
+      border-radius: 999px;
+      box-shadow: 0 10px 24px rgba(0,0,0,.18);
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity .15s ease, transform .15s ease;
+      z-index: 1000;
+    }
+    .toast.show{
+      opacity: 0.95;
+      transform: translateX(-50%) translateY(-2px);
     }
     
     /* ANCHOR: DETAILS_TOPBAR_CSS */
@@ -129,7 +146,32 @@
       border-bottom: 1px solid var(--line);
       background: var(--paper);            /* solid backdrop so text stays readable */
     }
+    /* ANCHOR: DETAILS_TABLE_STICKY_SHADOW */
+    #availability.is-stuck thead th{
+      box-shadow: 0 4px 10px rgba(0,0,0,.06);
+    }
     tbody td{ padding:10px 8px; border-bottom:1px solid var(--line); font-variant-numeric:tabular-nums; }
+    /* ANCHOR: SKELETON_CSS */
+    @keyframes shimmer {
+      0% { background-position: -400px 0; }
+      100% { background-position: 400px 0; }
+    }
+    .skeleton-bar{
+      height: 12px;
+      border-radius: 8px;
+      background: #f3f4f6;
+      background-image: linear-gradient(90deg, #f3f4f6 0px, #e5e7eb 40px, #f3f4f6 80px);
+      background-size: 400px 100%;
+      animation: shimmer 1.1s infinite linear;
+    }
+    .hero.is-loading::after{
+      content: "";
+      position: absolute; inset: 0;
+      background-image: linear-gradient(90deg, rgba(0,0,0,0.02) 0%, rgba(0,0,0,0.06) 20%, rgba(0,0,0,0.02) 40%);
+      background-size: 400px 100%;
+      animation: shimmer 1.1s infinite linear;
+    }
+
     /* ANCHOR: DETAILS_TAGS */
     .tag{
       padding:4px 8px;
@@ -164,6 +206,22 @@
       opacity: 1;
       transition: opacity .25s ease;
       background:#fff; /* keeps letterbox bars white, not black */
+    }
+    /* ANCHOR: GALLERY_NODRAG_CSS */
+    .hero img,
+    .thumbs img{
+      user-select: none;
+      -webkit-user-drag: none;
+    }
+
+    /* ANCHOR: REDUCED_MOTION_CSS */
+    @media (prefers-reduced-motion: reduce){
+      .hero img{
+        transition: none !important; /* disable fade cross-dissolve */
+      }
+      .hero-nav{
+        transition: none !important;
+      }
     }
     /* ANCHOR: HERO_NAV_CSS */
     .hero-nav {
@@ -232,6 +290,9 @@
       border-color: var(--bubble);
       box-shadow: 0 0 0 2px rgba(255,102,51,.25) inset;
     }
+    /* ANCHOR: THUMB_BAD_CSS */
+    .thumbs button.is-bad{ opacity:.45; filter:grayscale(1); cursor:default; }
+
     /* ANCHOR: DETAILS_GALLERY_CSS */
 
   </style>
@@ -270,8 +331,13 @@
 
     <div class="layout">
       <section>
-        <div class="chips" id="amenities"></div>
-          <table aria-label="Availability and prices">
+        <div class="table-controls" style="margin:6px 0 2px;">
+          <label style="font-size:12px; color:var(--muted); user-select:none; cursor:pointer;">
+            <input id="openOnly" type="checkbox" style="vertical-align:middle; margin-right:6px;">
+            Show open nights only
+          </label>
+        </div>
+          <table id="availability" aria-label="Availability and prices">
           <caption class="visually-hidden">Nightly availability and pricing for this property</caption>
           <thead><tr>
             <th scope="col" style="width:120px;">Date</th>
@@ -287,7 +353,7 @@
       <aside class="panel">
         <div class="muted" id="stay-range"></div>
         <div class="muted">From</div>
-        <div class="price" id="from"></div>
+        <a id="jumpAvail" class="muted" href="#availability" style="text-decoration:underline; font-weight:600;">View availability ↓</a>
         <div class="muted" id="nights-note"></div>
         <button class="book" type="button" id="book">Book now (mock)</button>
         <div class="muted" id="copyLink" style="text-align:center; cursor:pointer;">Copy link</div>
@@ -318,7 +384,9 @@
     }
 
     const hero = document.getElementById('hero-img');
-      hero.decoding = 'async';
+    hero.decoding = 'async';
+    hero.draggable = false;
+    const heroWrap = document.getElementById('hero'); // container div for hero
     const thumbs = document.getElementById('thumbs');
     const rows = document.getElementById('rows');
     const fromEl = document.getElementById('from');
@@ -329,6 +397,19 @@
 
     let images = [];
     let heroIndex = 0;
+
+    /* ANCHOR: IMAGE_PLACEHOLDER_HELPER */
+    function getPlaceholderSVG(label = 'Photo not available'){
+      return 'data:image/svg+xml;utf8,' + encodeURIComponent(
+        `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 450">
+          <rect width="800" height="450" fill="white"/>
+          <rect x="20" y="20" width="760" height="410" fill="#f3f4f6" stroke="#e5e7eb"/>
+          <text x="50%" y="50%" dominant-baseline="middle" text-anchor="middle"
+                font-family="Inter, Arial, sans-serif" font-size="20" fill="#9ca3af">${label}</text>
+        </svg>`
+      );
+    }
+
     /* ANCHOR: HERO_SRCSET_HELPER */
     function buildHeroSrcSet(url){
       // Support picsum path pattern: /id/<id>/<w>/<h>
@@ -344,6 +425,16 @@
         return `${oneX} 1x, ${twoX} 2x`;
       }catch{ return null; }
     }
+    /* ANCHOR: HERO_PRELOAD_HELPER */
+    const __heroPreloaded = new Set();
+    function preloadImage(url){
+      if (!url || __heroPreloaded.has(url)) return;
+      const img = new Image();
+      img.loading = 'eager';
+      img.decoding = 'async';
+      img.src = url;
+      __heroPreloaded.add(url);
+    }
 
     function setHero(i){
       if (!images.length) return;
@@ -354,32 +445,48 @@
       hero.classList.add('is-fading');
       const img = new Image();
       img.onload = () => {
-      // Base src
-      hero.src = src;
+        hero.src = src;
 
-      // Hi-DPI hints when possible (picsum only), safe no-op elsewhere
-      const ss = buildHeroSrcSet(src);
-      if (ss) {
-        hero.setAttribute('srcset', ss);
-        hero.setAttribute('sizes', '(min-width: 900px) 70vw, 100vw');
-      } else {
+        const ss = buildHeroSrcSet(src);
+        if (ss) {
+          hero.setAttribute('srcset', ss);
+          hero.setAttribute('sizes', '(min-width: 900px) 70vw, 100vw');
+        } else {
+          hero.removeAttribute('srcset');
+          hero.removeAttribute('sizes');
+        }
+
+        hero.alt = `${nameEl.textContent || 'Property'} — hero image`;
+        hero.loading = 'eager';
+        hero.fetchPriority = 'high';
+
+        requestAnimationFrame(() => {
+          hero.classList.remove('is-fading');
+          if (heroWrap) heroWrap.classList.remove('is-loading');
+        });
+      };
+      img.onerror = () => {
+        const ph = getPlaceholderSVG('Photo not available');
+        hero.src = ph;
         hero.removeAttribute('srcset');
         hero.removeAttribute('sizes');
-      }
-
-      // A11y + perf
-      hero.alt = `${nameEl.textContent || 'Property'} — hero image`;
-      hero.loading = 'eager';
-      hero.fetchPriority = 'high';
-
-      requestAnimationFrame(() => { hero.classList.remove('is-fading'); });
-    };
-
+        hero.alt = `${nameEl.textContent || 'Property'} — photo not available`;
+        requestAnimationFrame(() => {
+          hero.classList.remove('is-fading');
+          if (heroWrap) heroWrap.classList.remove('is-loading');
+        });
+      };
       img.src = src;
 
       thumbs.querySelectorAll('button.thumb').forEach((btn, idx) => {
         btn.setAttribute('aria-current', idx === i ? 'true' : 'false');
       });
+      // Preload previous/next images for snappier navigation
+      const prevIdx = i - 1;
+      const nextIdx = i + 1;
+      if (prevIdx >= 0) preloadImage(images[prevIdx]);
+      if (nextIdx < images.length) preloadImage(images[nextIdx]);
+
       // Toggle arrows visibility / disabled state
       const prevBtn = document.getElementById('hero-prev');
       const nextBtn = document.getElementById('hero-next');
@@ -409,6 +516,47 @@
     document.getElementById('hero-next').addEventListener('click', ()=>{
       setHero(heroIndex + 1);
     });
+    /* ANCHOR: HERO_TOUCH_SWIPE */
+    (() => {
+      const heroWrap = document.getElementById('hero');   // container with buttons + img
+      if (!heroWrap) return;
+
+      let startX = 0, startY = 0, active = false;
+
+      heroWrap.addEventListener('touchstart', (e) => {
+        if (!e.touches || e.touches.length !== 1) return;
+        const t = e.touches[0];
+        startX = t.clientX;
+        startY = t.clientY;
+        active = true;
+      }, { passive: true });
+
+      heroWrap.addEventListener('touchmove', (e) => {
+        // If user scrolls vertically a lot, cancel swipe intent
+        if (!active || !e.touches || e.touches.length !== 1) return;
+        const dy = Math.abs(e.touches[0].clientY - startY);
+        if (dy > 20) active = false; // treat as vertical scroll, abort swipe
+      }, { passive: true });
+
+      heroWrap.addEventListener('touchend', (e) => {
+        if (!active) return;
+        active = false;
+        const t = e.changedTouches && e.changedTouches[0];
+        if (!t) return;
+        const dx = t.clientX - startX;
+        const threshold = 40; // pixels to qualify as a swipe
+        if (Math.abs(dx) < threshold) return;
+
+        if (dx < 0) {
+          // swipe left → next
+          setHero(heroIndex + 1);
+        } else {
+          // swipe right → prev
+          setHero(heroIndex - 1);
+        }
+      }, { passive: true });
+    })();
+
     /* ANCHOR: GALLERY_KB_NAV */
     document.addEventListener('keydown', (e) => {
       if (e.altKey || e.ctrlKey || e.metaKey) return;
@@ -416,29 +564,21 @@
       if (e.key === 'ArrowRight') { setHero(heroIndex + 1); e.preventDefault(); }
     });
 
-    // Arrow to move focus across thumbs; Enter/Space to activate
-    thumbs.addEventListener('keydown', (e) => {
-      const btn = e.target.closest('button.thumb');
-      if (!btn) return;
-      const idx = Number(btn.dataset.idx || '0');
+    /* ANCHOR: TABLE_STICKY_SHADOW_JS */
+    (function(){
+      const tbl = document.getElementById('availability');
+      if (!tbl) return;
+      const head = tbl.querySelector('thead');
+      if (!head) return;
 
-      if (e.key === 'Enter' || e.key === ' ') {
-        setHero(idx);
-        e.preventDefault();
-        return;
+      function tick(){
+        const stuck = head.getBoundingClientRect().top <= 0;
+        tbl.classList.toggle('is-stuck', stuck);
       }
-      if (e.key === 'ArrowRight') {
-        const next = thumbs.querySelector(`button.thumb[data-idx="${idx + 1}"]`);
-        if (next) next.focus();
-        e.preventDefault();
-        return;
-      }
-      if (e.key === 'ArrowLeft') {
-        const prev = thumbs.querySelector(`button.thumb[data-idx="${idx - 1}"]`);
-        if (prev) prev.focus();
-        e.preventDefault();
-      }
-    });
+      window.addEventListener('scroll', tick, { passive: true });
+      window.addEventListener('resize', tick);
+      tick();
+    })();
     /* ANCHOR: THUMB_SRC_HELPER */
     function buildThumbSrcAndSet(url){
       try{
@@ -461,9 +601,10 @@
       const { src: s, srcset } = buildThumbSrcAndSet(src);
       const srcsetAttr = srcset ? ` srcset="${srcset}" sizes="110px"` : '';
       return `<button class="thumb" type="button" data-idx="${idx}" aria-label="${name} photo ${idx+1} of ${total}" aria-current="${current}">
-        <img src="${s}"${srcsetAttr} alt="${name} — photo ${idx+1} of ${total}" loading="lazy" decoding="async" width="${w}" height="${h}">
+        <img src="${s}"${srcsetAttr} alt="${name} — photo ${idx+1} of ${total}" loading="lazy" decoding="async" width="${w}" height="${h}" draggable="false">
       </button>`;
     }
+
     function money(v){ const n=Number(v); return Number.isFinite(n) ? `$${n.toFixed(2)}` : '—'; }
 
     async function load(){
@@ -471,6 +612,19 @@
       const plan    = qs.get('ratePlanId') || qs.get('plan') || '';
       const planQS  = plan ? `&ratePlanId=${encodeURIComponent(plan)}` : '';
       const url     = `/catalog/details?propertyId=${encodeURIComponent(propertyId)}&start=${encodeURIComponent(start)}&end=${encodeURIComponent(end)}${planQS}`;
+      // ANCHOR: SKELETON_START
+      if (heroWrap) heroWrap.classList.add('is-loading');
+      // 5-row table skeleton
+      rows.innerHTML = Array.from({length:5}).map(() => `
+        <tr>
+          <td><div class="skeleton-bar" style="width:110px;"></div></td>
+          <td><div class="skeleton-bar" style="width:40px;"></div></td>
+          <td><div class="skeleton-bar" style="width:70px;"></div></td>
+          <td><div class="skeleton-bar" style="width:50px;"></div></td>
+          <td><div class="skeleton-bar" style="width:80px;"></div></td>
+        </tr>
+      `).join("");
+
       const r       = await fetch(url, { cache: 'no-store' });
       const j       = await r.json();
 
@@ -483,12 +637,20 @@
       const priced = daily0.filter(d => typeof d.price === 'number');
       const minPrice = priced.length ? Math.min(...priced.map(d => Number(d.price))) : null;
       fromEl.textContent = (minPrice != null) ? money(minPrice) : '—';
-      // Nights available note (deduped, DB-safe)
+      /* ANCHOR: DETAILS_AMENITIES_RENDER */
       {
-        // uses daily0 computed above
-        const available = daily0.filter(d => !d.closed && Number(d.inventory ?? d.open ?? 0) > 0).length;
-        const total = daily0.length;
-        nightsNote.textContent = `${available}/${total} nights available`;
+        // Prefer top-level amenities; fallback to meta.property.amenities if present
+        const raw = Array.isArray(j?.amenities)
+          ? j.amenities
+          : (Array.isArray(j?.meta?.property?.amenities) ? j.meta.property.amenities : []);
+        const chips = [...new Set(raw.map(a => String(a).trim()).filter(Boolean))].slice(0, 8);
+        if (chips.length) {
+          amenities.style.display = 'flex';
+          amenities.innerHTML = chips.map(a => `<span class="chip">${a}</span>`).join("");
+        } else {
+          amenities.style.display = 'none';
+          amenities.innerHTML = "";
+        }
       }
 
       // Prefer details.images (DB-backed) with cover support; fallback to first room images
@@ -516,9 +678,30 @@
         }
       }
 
-      // Thumbs + hero
-      thumbs.innerHTML = images.map((src, i)=>thumbHTML(src, i)).join("");
-      setHero(0);
+      // Thumbs + hero (with graceful fallback)
+      const placeholder = 'data:image/svg+xml;utf8,' +
+        encodeURIComponent(
+          `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 450">
+             <rect width="800" height="450" fill="white"/>
+             <rect x="20" y="20" width="760" height="410" fill="#f3f4f6" stroke="#e5e7eb"/>
+             <text x="50%" y="50%" dominant-baseline="middle" text-anchor="middle"
+                   font-family="Inter, Arial, sans-serif" font-size="20" fill="#9ca3af">
+               Photo not available
+             </text>
+           </svg>`
+        );
+
+      if (!images.length) {
+        // Hide thumbs and show a neutral placeholder in the hero
+        thumbs.innerHTML = '';
+        hero.src = placeholder;
+        hero.removeAttribute('srcset');
+        hero.removeAttribute('sizes');
+        hero.alt = `${nameEl.textContent || 'Property'} — photo not available`;
+      } else {
+        thumbs.innerHTML = images.map((src, i)=>thumbHTML(src, i)).join("");
+        setHero(0);
+      }
 
       thumbs.addEventListener('click', (e)=>{
         const b = e.target.closest('.thumb'); if(!b) return;
@@ -532,14 +715,36 @@
       // table rows (DB-safe: inventory || open)
       // ANCHOR: DETAILS_ROWS_RENDER
       const daily = j?.rooms?.[0]?.daily || [];
-      if (!daily.length) {
-        rows.innerHTML = `<tr>
-          <td colspan="5" class="small" style="color:var(--muted); padding:14px 8px;">
-            No availability or pricing for the selected dates. Try widening the range in Catalog.
-          </td>
-        </tr>`;
-      } else {
-        rows.innerHTML = daily.map(d => {
+      const openOnlyEl = document.getElementById('openOnly');
+
+      function renderRows(list){
+        if (!Array.isArray(list) || !list.length) {
+          rows.innerHTML = `<tr>
+            <td colspan="5" class="small" style="color:var(--muted); padding:14px 8px;">
+              No availability or pricing for the selected dates. Try widening the range in Catalog.
+            </td>
+          </tr>`;
+          return;
+        }
+        const showOpenOnly = !!(openOnlyEl && openOnlyEl.checked);
+        const filtered = showOpenOnly
+          ? list.filter(d => {
+              const openCount = Number(d.inventory ?? d.open ?? 0);
+              const isClosed = Boolean(d.closed) || openCount <= 0;
+              return !isClosed;
+            })
+          : list;
+
+        if (!filtered.length) {
+          rows.innerHTML = `<tr>
+            <td colspan="5" class="small" style="color:var(--muted); padding:14px 8px;">
+              No open nights in this range.
+            </td>
+          </tr>`;
+          return;
+        }
+
+        rows.innerHTML = filtered.map(d => {
           const openCount = Number(d.inventory ?? d.open ?? 0);
           const isClosed = Boolean(d.closed) || openCount <= 0;
           const tag = isClosed ? `<span class="tag off">Closed</span>` : `<span class="tag">Open</span>`;
@@ -552,16 +757,76 @@
           </tr>`;
         }).join("");
       }
+
+      // initial render + wire checkbox
+      renderRows(daily);
+      if (openOnlyEl && !openOnlyEl._wired) {
+        openOnlyEl.addEventListener('change', ()=> renderRows(daily));
+        openOnlyEl._wired = true;
+      }
     }
+    /* ANCHOR: JUMP_TO_AVAIL */
+    document.getElementById('jumpAvail').addEventListener('click', (e)=>{
+      e.preventDefault();
+      const tbl = document.getElementById('availability');
+      if (!tbl) return;
+
+      const prefersReduced = window.matchMedia &&
+        window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+      tbl.scrollIntoView({ behavior: prefersReduced ? 'auto' : 'smooth', block: 'start' });
+    });
 
     document.getElementById('book').addEventListener('click', ()=>{
-      alert('Booking flows are coming soon. For now, this is a design preview using mock data.');
-    });
-    document.getElementById('copyLink').addEventListener('click', async ()=>{
-      try{ await navigator.clipboard.writeText(location.href); alert('Link copied'); }catch(_){}
+      showToast('Booking flow coming soon');
     });
 
-    load().catch(err=>{ console.error(err); alert('Failed to load details'); });
+    /* ANCHOR: TOAST_JS_HELPER */
+    function showToast(msg, ms=1600){
+      let t = document.querySelector('.toast');
+      if (!t){
+        t = document.createElement('div');
+        t.className = 'toast';
+        document.body.appendChild(t);
+      }
+      t.textContent = msg;
+      // force reflow to restart transition
+      void t.offsetWidth;
+      t.classList.add('show');
+      clearTimeout(t._hideTimer);
+      t._hideTimer = setTimeout(()=>{ t.classList.remove('show'); }, ms);
+    }
+
+    document.getElementById('copyLink').addEventListener('click', async ()=>{
+      try{
+        await navigator.clipboard.writeText(location.href);
+        showToast('Link copied');
+      }catch(_){
+        // Fallback: select-and-copy prompt if clipboard API fails
+        const ta = document.createElement('textarea');
+        ta.value = location.href;
+        document.body.appendChild(ta);
+        ta.select(); ta.setSelectionRange(0, ta.value.length);
+        try{ document.execCommand('copy'); showToast('Link copied'); }
+        catch(_e){ showToast('Copy failed'); }
+        finally{ document.body.removeChild(ta); }
+      }
+    });
+
+    load().catch(err=>{
+      console.error(err);
+      showToast('Failed to load details');
+      // Also show a friendly inline message in the table area
+      const rows = document.getElementById('rows');
+      if (rows) {
+        rows.innerHTML = `<tr>
+          <td colspan="5" class="small" style="color:var(--muted); padding:14px 8px;">
+            Failed to load details. Please refresh or try again later.
+          </td>
+        </tr>`;
+      }
+    });
+
   </script>
   
 </body>
