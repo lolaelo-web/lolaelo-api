@@ -72,10 +72,7 @@
     }
 
     /* ANCHOR: DETAILS_LAYOUT_COLS */
-    .layout{ display:grid; grid-template-columns: 1.1fr 1fr; gap:16px; }
-    @media (min-width:1200px){
-      .layout{ grid-template-columns: 1fr 0.95fr; }
-    }
+    .layout{ display:grid; grid-template-columns: 3fr 1fr; gap:16px; }
     @media (max-width:900px){
       .layout{ grid-template-columns: 1fr; }
     }
@@ -190,15 +187,16 @@
       </div>
       <!-- /ANCHOR: DETAILS_TOPBAR -->
     </header>
+<!-- ANCHOR: DETAILS_HERO_BLOCK -->
+<section class="hero-block">
+  <div id="hero" class="hero" aria-live="polite">
+    <img id="hero-img" src="" alt="">
+  </div>
+  <div id="thumbs" class="thumbs" aria-label="More photos"></div>
+</section>
 
     <div class="layout">
       <section>
-        <div id="hero" class="hero" aria-live="polite">
-          <img id="hero-img" src="" alt="">
-        </div>
-        <!-- ANCHOR: DETAILS_THUMBS -->
-        <div id="thumbs" class="thumbs" aria-label="More photos"></div>
-
         <div class="chips" id="amenities"></div>
 
         <table aria-label="Availability and prices">
