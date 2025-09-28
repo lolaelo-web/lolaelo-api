@@ -38,6 +38,19 @@
     p, li, .meta, .tag, .desc, .smalltext { font-size: 15px; }
     .small { font-size: 13px; color: var(--muted); }
 
+    /* ANCHOR: A11Y_VISUALLY_HIDDEN */
+    .visually-hidden{
+      position:absolute !important;
+      width:1px !important;
+      height:1px !important;
+      padding:0 !important;
+      margin:-1px !important;
+      overflow:hidden !important;
+      clip:rect(0,0,0,0) !important;
+      white-space:nowrap !important;
+      border:0 !important;
+    }
+
     /* ANCHOR: TYPO_REGULAR_ELEMS */
     p, li, td, th, input, select, button, .meta, .note { font-size: var(--body); }
     /* ANCHOR: DETAILS_PAPER_CLIP */
@@ -82,6 +95,14 @@
       max-width: 420px;      /* prevents overgrowth on ultra-wide */
       margin-left:auto;      /* tucks to the right edge cleanly */
     }
+    @media (min-width:900px){
+      .panel{
+        position: sticky;
+        top: 12px;           /* distance from top while sticking */
+        align-self: start;   /* ensures the grid column starts at top */
+      }
+    }
+
     .muted{ color:var(--muted); font-size:12px; }
     /* ANCHOR: DETAILS_PRICE_SIZE */
     .price{ font-weight:700; font-size:26px; letter-spacing:.2px; }
@@ -96,10 +117,30 @@
     .chip{ font-size:11px; padding:4px 8px; border:1px solid var(--line); border-radius:999px; background:#fafafa; color:#444; }
 
     table{ width:100%; border-collapse:separate; border-spacing:0; margin-top:10px; }
-    thead th{ text-align:left; font-size:12px; color:var(--muted); padding:8px; border-bottom:1px solid var(--line); }
+    /* ANCHOR: DETAILS_TABLE_STICKY_HEAD */
+    thead th{
+      position: sticky;
+      top: 0;                              /* sticks to top of viewport while scrolling */
+      z-index: 1;
+      text-align: left;
+      font-size: 12px;
+      color: var(--muted);
+      padding: 8px;
+      border-bottom: 1px solid var(--line);
+      background: var(--paper);            /* solid backdrop so text stays readable */
+    }
     tbody td{ padding:10px 8px; border-bottom:1px solid var(--line); font-variant-numeric:tabular-nums; }
-    .tag{ padding:4px 8px; border-radius:999px; background:#ecfdf5; color:#047857; font-size:12px; border:1px solid #d1fae5; display:inline-block; }
-    .tag.off{ background:#fef2f2; color:#b91c1c; border-color:#fee2e2; }
+    /* ANCHOR: DETAILS_TAGS */
+    .tag{
+      padding:4px 8px;
+      border-radius:999px;
+      font-size:12px;
+      display:inline-block;
+      border:1px solid transparent;
+      font-weight:600;
+    }
+    .tag{ background:#dcfce7; color:#166534; border-color:#86efac; }   /* open: deeper green */
+    .tag.off{ background:#fee2e2; color:#991b1b; border-color:#fca5a5; } /* closed: stronger red */
 
     /* ANCHOR: DETAILS_GALLERY_CSS */
     .hero{
@@ -142,6 +183,16 @@
     #hero-prev { left: 10px; }
     #hero-next { right: 10px; }
     .hero-nav:hover { background: rgba(255,255,255,0.95); }
+
+    /* disabled & hidden states */
+    .hero-nav[disabled]{
+      opacity: .45;
+      cursor: default;
+      box-shadow: none;
+    }
+    .hero-nav.is-hidden{
+      display: none;
+    }
 
     .hero img.is-fading{ opacity: 0; }
 
@@ -220,16 +271,16 @@
     <div class="layout">
       <section>
         <div class="chips" id="amenities"></div>
-
-        <table aria-label="Availability and prices">
+          <table aria-label="Availability and prices">
+          <caption class="visually-hidden">Nightly availability and pricing for this property</caption>
           <thead><tr>
-            <th style="width:120px;">Date</th>
-            <th style="width:60px;">Open</th>
-            <th style="width:100px;">Price</th>
-            <th style="width:80px;">MinStay</th>
-            <th style="width:80px;">Status</th>
+            <th scope="col" style="width:120px;">Date</th>
+            <th scope="col" style="width:60px;">Open</th>
+            <th scope="col" style="width:100px;">Price</th>
+            <th scope="col" style="width:80px;">MinStay</th>
+            <th scope="col" style="width:80px;">Status</th>
           </tr></thead>
-          <tbody id="rows"></tbody>
+          <tbody id="rows" aria-live="polite"></tbody>
         </table>
       </section>
 
@@ -278,6 +329,21 @@
 
     let images = [];
     let heroIndex = 0;
+    /* ANCHOR: HERO_SRCSET_HELPER */
+    function buildHeroSrcSet(url){
+      // Support picsum path pattern: /id/<id>/<w>/<h>
+      try{
+        const u = new URL(url, location.origin);
+        if (!/picsum\.photos$/.test(u.hostname)) return null;
+        const m = u.pathname.match(/\/id\/(\d+)\/(\d+)\/(\d+)/);
+        if (!m) return null;
+        const id = m[1], w = Number(m[2]), h = Number(m[3]);
+        if (!Number.isFinite(w) || !Number.isFinite(h)) return null;
+        const oneX  = `https://picsum.photos/id/${id}/${w}/${h}`;
+        const twoX  = `https://picsum.photos/id/${id}/${w*2}/${h*2}`;
+        return `${oneX} 1x, ${twoX} 2x`;
+      }catch{ return null; }
+    }
 
     function setHero(i){
       if (!images.length) return;
@@ -288,15 +354,53 @@
       hero.classList.add('is-fading');
       const img = new Image();
       img.onload = () => {
-        hero.src = src;
-        hero.alt = `${nameEl.textContent || 'Property'} — hero image`;
-        requestAnimationFrame(() => { hero.classList.remove('is-fading'); });
-      };
+      // Base src
+      hero.src = src;
+
+      // Hi-DPI hints when possible (picsum only), safe no-op elsewhere
+      const ss = buildHeroSrcSet(src);
+      if (ss) {
+        hero.setAttribute('srcset', ss);
+        hero.setAttribute('sizes', '(min-width: 900px) 70vw, 100vw');
+      } else {
+        hero.removeAttribute('srcset');
+        hero.removeAttribute('sizes');
+      }
+
+      // A11y + perf
+      hero.alt = `${nameEl.textContent || 'Property'} — hero image`;
+      hero.loading = 'eager';
+      hero.fetchPriority = 'high';
+
+      requestAnimationFrame(() => { hero.classList.remove('is-fading'); });
+    };
+
       img.src = src;
 
       thumbs.querySelectorAll('button.thumb').forEach((btn, idx) => {
         btn.setAttribute('aria-current', idx === i ? 'true' : 'false');
       });
+      // Toggle arrows visibility / disabled state
+      const prevBtn = document.getElementById('hero-prev');
+      const nextBtn = document.getElementById('hero-next');
+      const n = images.length;
+
+      if (n <= 1) {
+        prevBtn.classList.add('is-hidden');
+        nextBtn.classList.add('is-hidden');
+      } else {
+        prevBtn.classList.remove('is-hidden');
+        nextBtn.classList.remove('is-hidden');
+
+        const atStart = i <= 0;
+        const atEnd   = i >= n - 1;
+
+        prevBtn.disabled = atStart;
+        nextBtn.disabled = atEnd;
+
+        prevBtn.setAttribute('aria-disabled', atStart ? 'true' : 'false');
+        nextBtn.setAttribute('aria-disabled', atEnd   ? 'true' : 'false');
+      }
     }
     // ANCHOR: HERO_NAV_LOGIC
     document.getElementById('hero-prev').addEventListener('click', ()=>{
@@ -305,16 +409,61 @@
     document.getElementById('hero-next').addEventListener('click', ()=>{
       setHero(heroIndex + 1);
     });
+    /* ANCHOR: GALLERY_KB_NAV */
+    document.addEventListener('keydown', (e) => {
+      if (e.altKey || e.ctrlKey || e.metaKey) return;
+      if (e.key === 'ArrowLeft') { setHero(heroIndex - 1); e.preventDefault(); }
+      if (e.key === 'ArrowRight') { setHero(heroIndex + 1); e.preventDefault(); }
+    });
 
+    // Arrow to move focus across thumbs; Enter/Space to activate
+    thumbs.addEventListener('keydown', (e) => {
+      const btn = e.target.closest('button.thumb');
+      if (!btn) return;
+      const idx = Number(btn.dataset.idx || '0');
+
+      if (e.key === 'Enter' || e.key === ' ') {
+        setHero(idx);
+        e.preventDefault();
+        return;
+      }
+      if (e.key === 'ArrowRight') {
+        const next = thumbs.querySelector(`button.thumb[data-idx="${idx + 1}"]`);
+        if (next) next.focus();
+        e.preventDefault();
+        return;
+      }
+      if (e.key === 'ArrowLeft') {
+        const prev = thumbs.querySelector(`button.thumb[data-idx="${idx - 1}"]`);
+        if (prev) prev.focus();
+        e.preventDefault();
+      }
+    });
+    /* ANCHOR: THUMB_SRC_HELPER */
+    function buildThumbSrcAndSet(url){
+      try{
+        const u = new URL(url, location.origin);
+        if (!/picsum\.photos$/.test(u.hostname)) return { src: url, srcset: null };
+        // Expect path like /id/<id>/<w>/<h>; we normalize to our 110x72 size
+        const m = u.pathname.match(/\/id\/(\d+)\/(\d+)\/(\d+)/);
+        if (!m) return { src: url, srcset: null };
+        const id = m[1], w = 110, h = 72;
+        const oneX = `https://picsum.photos/id/${id}/${w}/${h}`;
+        const twoX = `https://picsum.photos/id/${id}/${w*2}/${h*2}`;
+        return { src: oneX, srcset: `${oneX} 1x, ${twoX} 2x` };
+      }catch{ return { src: url, srcset: null }; }
+    }
     function thumbHTML(src, idx){
       const current = idx === 0 ? 'true' : 'false';
       const total = images.length || 0;
       const name = (nameEl && nameEl.textContent) ? nameEl.textContent : 'Property';
+      const w = 110, h = 72; // match CSS .thumbs img
+      const { src: s, srcset } = buildThumbSrcAndSet(src);
+      const srcsetAttr = srcset ? ` srcset="${srcset}" sizes="110px"` : '';
       return `<button class="thumb" type="button" data-idx="${idx}" aria-label="${name} photo ${idx+1} of ${total}" aria-current="${current}">
-        <img src="${src}" alt="${name} — photo ${idx+1} of ${total}" loading="lazy" decoding="async">
+        <img src="${s}"${srcsetAttr} alt="${name} — photo ${idx+1} of ${total}" loading="lazy" decoding="async" width="${w}" height="${h}">
       </button>`;
     }
-
     function money(v){ const n=Number(v); return Number.isFinite(n) ? `$${n.toFixed(2)}` : '—'; }
 
     async function load(){
