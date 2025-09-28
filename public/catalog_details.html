@@ -363,6 +363,7 @@
       <<aside class="panel">
         <div class="muted" id="stay-range"></div>
         <div class="muted">From</div>
+        <div class="price" id="from">—</div>
         <div class="price" id="from" aria-live="polite"></div>
         <a id="jumpAvail" class="muted" href="#availability" style="text-decoration:underline; font-weight:600;">View availability ↓</a>
         <div class="muted" id="nights-note"></div>
@@ -619,50 +620,79 @@
     function money(v){ const n=Number(v); return Number.isFinite(n) ? `$${n.toFixed(2)}` : '—'; }
 
     async function load(){
-      // ANCHOR: DETAILS_FETCH_WITH_PLAN
-      const plan    = qs.get('ratePlanId') || qs.get('plan') || '';
-      const planQS  = plan ? `&ratePlanId=${encodeURIComponent(plan)}` : '';
-      const url     = `/catalog/details?propertyId=${encodeURIComponent(propertyId)}&start=${encodeURIComponent(start)}&end=${encodeURIComponent(end)}${planQS}`;
-      // ANCHOR: SKELETON_START
-      if (heroWrap) heroWrap.classList.add('is-loading');
-      // 5-row table skeleton
-      rows.innerHTML = Array.from({length:5}).map(() => `
-        <tr>
-          <td><div class="skeleton-bar" style="width:110px;"></div></td>
-          <td><div class="skeleton-bar" style="width:40px;"></div></td>
-          <td><div class="skeleton-bar" style="width:70px;"></div></td>
-          <td><div class="skeleton-bar" style="width:50px;"></div></td>
-          <td><div class="skeleton-bar" style="width:80px;"></div></td>
-        </tr>
-      `).join("");
+    // ANCHOR: DETAILS_FETCH_WITH_PLAN
+    console.log("[details] fetching catalog details with:", {
+      propertyId, start, end, plan, urlPreview:
+      `/catalog/details?propertyId=${encodeURIComponent(propertyId)}&start=${encodeURIComponent(start)}&end=${encodeURIComponent(end)}${plan ? "&ratePlanId="+encodeURIComponent(plan) : ""}`
+    });
 
-      const r       = await fetch(url, { cache: 'no-store' });
-      const j       = await r.json();
+    const planQS   = plan ? `&ratePlanId=${encodeURIComponent(plan)}` : '';
+    const url      = `/catalog/details?propertyId=${encodeURIComponent(propertyId)}&start=${encodeURIComponent(start)}&end=${encodeURIComponent(end)}${planQS}`;
+    const urlAlt   = `/api/catalog/details?propertyId=${encodeURIComponent(propertyId)}&start=${encodeURIComponent(start)}&end=${encodeURIComponent(end)}${planQS}`;
 
-      nameEl.textContent = j?.name || j?.meta?.property?.name || 'Stay';
-      const srcBadgeEl = document.getElementById('src-badge');
-      if (srcBadgeEl) srcBadgeEl.style.display = (j?._roomsSource === 'db') ? 'inline-block' : 'none';
-      rangeEl.textContent = `${start} — ${end}`;
-      // Compute fromPrice + availability from daily rows (works for DB-backed data)
-      const daily0 = (j?.rooms?.[0]?.daily || []);
-      const priced = daily0.filter(d => typeof d.price === 'number');
-      const minPrice = priced.length ? Math.min(...priced.map(d => Number(d.price))) : null;
-      if (fromEl) fromEl.textContent = (minPrice != null) ? money(minPrice) : '—';
-      /* ANCHOR: DETAILS_AMENITIES_RENDER */
-      {
-        // Prefer top-level amenities; fallback to meta.property.amenities if present
-        const raw = Array.isArray(j?.amenities)
-          ? j.amenities
-          : (Array.isArray(j?.meta?.property?.amenities) ? j.meta.property.amenities : []);
-        const chips = [...new Set(raw.map(a => String(a).trim()).filter(Boolean))].slice(0, 8);
-        if (chips.length) {
-          amenities.style.display = 'flex';
-          amenities.innerHTML = chips.map(a => `<span class="chip">${a}</span>`).join("");
-        } else {
-          amenities.style.display = 'none';
-          amenities.innerHTML = "";
+    // ANCHOR: SKELETON_START
+    if (heroWrap) heroWrap.classList.add('is-loading');
+    // 5-row table skeleton
+    rows.innerHTML = Array.from({length:5}).map(() => `
+      <tr>
+        <td><div class="skeleton-bar" style="width:110px;"></div></td>
+        <td><div class="skeleton-bar" style="width:40px;"></div></td>
+        <td><div class="skeleton-bar" style="width:70px;"></div></td>
+        <td><div class="skeleton-bar" style="width:50px;"></div></td>
+        <td><div class="skeleton-bar" style="width:80px;"></div></td>
+      </tr>
+    `).join("");
+
+    // Robust fetch with fallback if the primary route is 404
+    let j;
+    try {
+      console.log('[details] GET', url);
+      let r = await fetch(url, { cache: 'no-store' });
+      if (!r.ok) {
+        console.warn('[details] primary failed', r.status, r.statusText);
+        if (r.status === 404) {
+          console.log('[details] retrying fallback', urlAlt);
+          r = await fetch(urlAlt, { cache: 'no-store' });
         }
       }
+      if (!r.ok) throw new Error(`HTTP ${r.status} ${r.statusText}`);
+      j = await r.json();
+    } catch (e) {
+      console.error('[details] fetch error', e);
+      throw e; // let the outer catch show the friendly UI message
+    }
+
+    // Safe DOM writes
+    if (nameEl) nameEl.textContent = j?.name || j?.meta?.property?.name || 'Stay';
+    {
+      const srcBadgeEl = document.getElementById('src-badge');
+      if (srcBadgeEl) srcBadgeEl.style.display = (j?._roomsSource === 'db') ? 'inline-block' : 'none';
+    }
+    if (rangeEl) rangeEl.textContent = `${start} — ${end}`;
+
+    // Compute fromPrice + availability from daily rows (works for DB-backed data)
+    const daily0  = (j?.rooms?.[0]?.daily || []);
+    const priced  = daily0.filter(d => typeof d.price === 'number');
+    const minPrice = priced.length ? Math.min(...priced.map(d => Number(d.price))) : null;
+    if (fromEl) fromEl.textContent = (minPrice != null) ? money(minPrice) : '—';
+
+    /* ANCHOR: DETAILS_AMENITIES_RENDER */
+    {
+      // Prefer top-level amenities; fallback to meta.property.amenities if present
+      const raw = Array.isArray(j?.amenities)
+        ? j.amenities
+        : (Array.isArray(j?.meta?.property?.amenities) ? j.meta.property.amenities : []);
+      const chips = [...new Set(raw.map(a => String(a).trim()).filter(Boolean))].slice(0, 8);
+      if (chips.length) {
+        if (amenities) {
+          amenities.style.display = 'flex';
+          amenities.innerHTML = chips.map(a => `<span class="chip">${a}</span>`).join("");
+        }
+      } else if (amenities) {
+        amenities.style.display = 'none';
+        amenities.innerHTML = "";
+      }
+    }
 
       // Prefer details.images (DB-backed) with cover support; fallback to first room images
       const rawImages =
