@@ -12,7 +12,7 @@
     :root{
       --bg:#fff; --fg:#111; --muted:#6b7280; --line:#eaeaea; --bubble:#ff6633;
       --paper:#ffffff; --radius:16px; --shadow:0 12px 40px rgba(0,0,0,.08);
-      --maxw:880px;                 /* ~80% of 1100px */
+      --maxw:840px;                 /* tighten card width a bit */
       /* ANCHOR: TYPO_BASE_VAR */ --body:11px;   /* ~80% of 15px */
     }
 
@@ -54,6 +54,16 @@
     /* ANCHOR: TYPO_REGULAR_ELEMS */
     p, li, td, th, input, select, button, .meta, .note { font-size: var(--body); }
     /* ANCHOR: DETAILS_PAPER_CLIP */
+    .paper{
+      width:100%;
+      max-width:var(--maxw);
+      margin:18px 20px;
+      background:var(--paper);
+      border-radius:var(--radius);
+      box-shadow:var(--shadow);
+      padding:16px 16px 22px;
+      overflow:hidden; /* keeps hero/table inside the rounded frame */
+    }
     /* ANCHOR: TOAST_CSS */
     .toast{
       position: fixed;
@@ -188,7 +198,7 @@
     .hero{
       position: relative;
       border-radius: var(--radius);
-      overflow: hidden;
+      overflow: visible;
       background:#fff;
       aspect-ratio: 16 / 9;
       width: 100%;
@@ -350,9 +360,10 @@
         </table>
       </section>
 
-      <aside class="panel">
+      <<aside class="panel">
         <div class="muted" id="stay-range"></div>
         <div class="muted">From</div>
+        <div class="price" id="from" aria-live="polite"></div>
         <a id="jumpAvail" class="muted" href="#availability" style="text-decoration:underline; font-weight:600;">View availability ↓</a>
         <div class="muted" id="nights-note"></div>
         <button class="book" type="button" id="book">Book now (mock)</button>
@@ -636,7 +647,7 @@
       const daily0 = (j?.rooms?.[0]?.daily || []);
       const priced = daily0.filter(d => typeof d.price === 'number');
       const minPrice = priced.length ? Math.min(...priced.map(d => Number(d.price))) : null;
-      fromEl.textContent = (minPrice != null) ? money(minPrice) : '—';
+      if (fromEl) fromEl.textContent = (minPrice != null) ? money(minPrice) : '—';
       /* ANCHOR: DETAILS_AMENITIES_RENDER */
       {
         // Prefer top-level amenities; fallback to meta.property.amenities if present
@@ -814,19 +825,32 @@
     });
 
     load().catch(err=>{
-      console.error(err);
-      showToast('Failed to load details');
-      // Also show a friendly inline message in the table area
-      const rows = document.getElementById('rows');
-      if (rows) {
-        rows.innerHTML = `<tr>
-          <td colspan="5" class="small" style="color:var(--muted); padding:14px 8px;">
-            Failed to load details. Please refresh or try again later.
-          </td>
-        </tr>`;
-      }
-    });
+    console.error(err);
+    showToast('Failed to load details');
 
+    // Stop the hero shimmer and show a neutral placeholder
+    if (heroWrap) {
+      heroWrap.classList.remove('is-loading');
+    }
+    const heroEl = document.getElementById('hero-img');
+    if (heroEl) {
+      const ph = getPlaceholderSVG('Photo failed to load');
+      heroEl.src = ph;
+      heroEl.removeAttribute('srcset');
+      heroEl.removeAttribute('sizes');
+      heroEl.alt = 'Photo failed to load';
+    }
+
+    // Also show a friendly inline message in the table area
+    const rows = document.getElementById('rows');
+    if (rows) {
+      rows.innerHTML = `<tr>
+        <td colspan="5" class="small" style="color:var(--muted); padding:14px 8px;">
+          Failed to load details. Please refresh or try again later.
+        </td>
+      </tr>`;
+    }
+  });
   </script>
   
 </body>
