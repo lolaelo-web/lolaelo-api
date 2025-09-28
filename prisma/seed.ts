@@ -71,6 +71,158 @@ async function main() {
     });
   }
 }
+  // ANCHOR: SEED_OPEN_AVAIL_2
+  // Ensure RoomType + RatePlan exist for partnerId=2, then open inventory and set prices for next 7 days.
+  {
+     // ANCHOR: SEED_OPEN_AVAIL_2
+      // Ensure RoomType + RatePlan exist for partnerId=2, then open inventory and set prices for the next 7 days.
+      {
+        const partnerId = 2;
+        const today = new Date("2025-09-28"); // pin to a test date so UI matches
+        const days = 7;
+
+        // 1) RoomType (create minimal if missing)
+        let rt = await prisma.roomType.findFirst({ where: { partnerId } });
+        if (!rt) {
+          rt = await prisma.roomType.create({
+            data: {
+              partnerId,
+              name: "Standard Room",
+              description: "Auto-seeded",
+              maxGuests: 2,
+              occupancy: 2,
+              basePrice: 115.00 as any,
+            },
+          });
+        }
+
+        // 2) RatePlan (create minimal if missing)
+        let rp = await prisma.ratePlan.findFirst({ where: { partnerId, roomTypeId: rt.id } });
+        if (!rp) {
+          rp = await prisma.ratePlan.create({
+            data: {
+              partnerId,
+              roomTypeId: rt.id,
+              name: "Flexible",
+              exposeToUis: true,
+              uisPriority: 100,
+              policy: "Free cancellation (seed)",
+              priceDelta: 0 as any,
+            },
+          });
+        }
+
+        // 3) Upsert inventory + price for the next N days (starting 2025-09-28)
+        for (let i = 0; i < days; i++) {
+          const d = new Date(Date.UTC(today.getUTCFullYear(), today.getUTCMonth(), today.getUTCDate() + i));
+          const iso = d.toISOString();
+
+          await prisma.roomInventory.upsert({
+            where: { roomTypeId_date: { roomTypeId: rt.id, date: iso } },
+            create: {
+              partnerId,
+              roomTypeId: rt.id,
+              date: iso,
+              roomsOpen: 3,
+              isClosed: false,
+              minStay: 1,
+            },
+            update: {
+              roomsOpen: 3,
+              isClosed: false,
+              minStay: 1,
+            },
+          });
+
+          await prisma.roomPrice.upsert({
+            where: { roomTypeId_ratePlanId_date: { roomTypeId: rt.id, ratePlanId: rp.id, date: iso } },
+            create: {
+              partnerId,
+              roomTypeId: rt.id,
+              ratePlanId: rp.id!,
+              date: iso,
+              price: 115.00 as any,
+            },
+            update: {
+              price: 115.00 as any,
+            },
+          });
+        }
+      }
+      // ANCHOR: SEED_OPEN_AVAIL_2_END
+
+
+    // 1) RoomType (create minimal if missing)
+    let rt = await prisma.roomType.findFirst({ where: { partnerId } });
+    if (!rt) {
+      rt = await prisma.roomType.create({
+        data: {
+          partnerId,
+          name: "Standard Room",
+          description: "Auto-seeded",
+          maxGuests: 2,
+          occupancy: 2,
+          basePrice: 115.00 as any, // Decimal
+        },
+      });
+    }
+
+    // 2) RatePlan (create minimal if missing)
+    let rp = await prisma.ratePlan.findFirst({ where: { partnerId, roomTypeId: rt.id } });
+    if (!rp) {
+      rp = await prisma.ratePlan.create({
+        data: {
+          partnerId,
+          roomTypeId: rt.id,
+          name: "Flexible",
+          exposeToUis: true,
+          uisPriority: 100,
+          policy: "Free cancellation (seed)",
+          priceDelta: 0 as any,
+        },
+      });
+    }
+
+    // 3) Upsert inventory + price for the next N days
+    for (let i = 0; i < days; i++) {
+      const d = new Date(Date.UTC(today.getUTCFullYear(), today.getUTCMonth(), today.getUTCDate() + i));
+      const iso = d.toISOString(); // Prisma DateTime
+
+      // Rooms open (set 3 open, not closed)
+      await prisma.roomInventory.upsert({
+        where: { roomTypeId_date: { roomTypeId: rt.id, date: iso } },
+        create: {
+          partnerId,
+          roomTypeId: rt.id,
+          date: iso,
+          roomsOpen: 3,
+          isClosed: false,
+          minStay: 1,
+        },
+        update: {
+          roomsOpen: 3,
+          isClosed: false,
+          minStay: 1,
+        },
+      });
+
+      // Price (115)
+      await prisma.roomPrice.upsert({
+        where: { roomTypeId_ratePlanId_date: { roomTypeId: rt.id, ratePlanId: rp.id, date: iso } },
+        create: {
+          partnerId,
+          roomTypeId: rt.id,
+          ratePlanId: rp.id!,
+          date: iso,
+          price: 115.00 as any,
+        },
+        update: {
+          price: 115.00 as any,
+        },
+      });
+    }
+  }
+  // ANCHOR: SEED_OPEN_AVAIL_2_END
 
 main()
   .catch((e) => {
