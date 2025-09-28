@@ -9,13 +9,32 @@
   --line:rgba(255,255,255,.08);
 }
 
-/* Typography & base */
+/* -----------------------------------------------------------------------
+   Global font stack — unify across all public pages
+   (catalog_details.html and partner/extranet pages)
+----------------------------------------------------------------------- */
+/* ANCHOR: FONT_STACK_UNIFY (global across public pages) */
+html, body,
+h1, h2, h3, h4, h5, h6,
+p, li, a, span, strong, em,
+table, thead, tbody, tfoot, tr, th, td, caption,
+input, button, select, textarea, label, small, code, pre {
+  font-family: Inter, ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+/* Normalize form controls to inherit size/line-height */
+input, textarea, select, button { font: inherit; }
+
+/* -----------------------------------------------------------------------
+   Extranet base (dark) — keeps current partner UI look
+   NOTE: Page-local CSS (like catalog_details.html) will override as needed.
+----------------------------------------------------------------------- */
 html, body {
-  font-family: Inter, system-ui, Segoe UI, Roboto, Helvetica, Arial, sans-serif;
   color: var(--fg);
   line-height: 1.45;
 }
-input, textarea, select, button { font: inherit; }
 
 /* Cards / common surfaces */
 .card{
@@ -69,7 +88,7 @@ textarea{ min-height:110px; resize:vertical; }
 .btn:disabled{ opacity:.6; cursor:not-allowed; }
 
 /* Aliases for clarity/back-compat */
-.btn-primary, .btn-accent{ /* same as default .btn */
+.btn-primary, .btn-accent{
   border-color: var(--accent);
   background: var(--accent);
   color:#fff;
