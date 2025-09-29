@@ -214,7 +214,15 @@
           </div>
           <div>
             <label for="pp_city">City</label>
-            <input id="pp_city" type="text" placeholder="Miami, FL" />
+            <select id="pp_city">
+              <option value="">— Select city —</option>
+              <option value="SIARGAO">Siargao</option>
+              <option value="BORACAY">Boracay</option>
+              <option value="ELNIDO">El Nido</option>
+              <option value="CEBU">Cebu</option>
+              <option value="MANILA">Manila</option>
+            </select>
+            <small class="muted">This controls where your property appears in the public catalog.</small>
           </div>
         </div>
 
@@ -321,7 +329,15 @@
       ? 'https://lolaelo-api.onrender.com'
       : location.origin;
     const LOGIN_PAGE = "partners_login.html";
-    const DEBUG = true;
+    // City codes ↔ labels used by both hub and public catalog
+    const CITY_LABELS = {
+      SIARGAO: 'Siargao',
+      BORACAY: 'Boracay',
+      ELNIDO:  'El Nido',
+      CEBU:    'Cebu',
+      MANILA:  'Manila'
+    };
+    const normalizeCityCode = (s) => String(s || '').trim().toUpperCase();
 
     // --- Token helpers --------------------------------------------------------
     function getToken() {
@@ -420,7 +436,9 @@
         $('pp_phone').value        = p.phone ?? '';
         $('pp_country').value      = p.country ?? '';
         $('pp_address').value      = p.addressLine ?? '';
-        $('pp_city').value         = p.city ?? '';
+        // Prefer explicit cityCode; fall back by normalizing any existing city text
+        const loadedCode = normalizeCityCode(p.cityCode || p.city);
+        $('pp_city').value = CITY_LABELS[loadedCode] ? loadedCode : '';
         $('pp_desc').value         = p.description ?? '';
         $('profileStatus').textContent = p.name ? 'Complete' : 'Missing info';
         $('profileStatus').className   = p.name ? 'ok' : 'todo';
@@ -436,14 +454,20 @@
     }
 
     async function saveProfile() {
+      const cityCode  = normalizeCityCode($('pp_city').value);
+      const cityLabel = CITY_LABELS[cityCode] || null;
+
       const body = JSON.stringify({
-        name: nz($('pp_name').value),
+        name:         nz($('pp_name').value),
         contactEmail: nz($('pp_contactEmail').value),
-        phone: nz($('pp_phone').value),
-        addressLine: nz($('pp_address').value),
-        city: nz($('pp_city').value),
-        country: nz($('pp_country').value),
-        description: nz($('pp_desc').value),
+        phone:        nz($('pp_phone').value),
+        addressLine:  nz($('pp_address').value),
+        country:      nz($('pp_country').value),
+        description:  nz($('pp_desc').value),
+
+        // Persist code (for catalog filtering) and a friendly label
+        cityCode:     cityCode || null,
+        city:         cityLabel
       });
 
       const btn = $('btnSave'); btn.disabled = true;
@@ -465,7 +489,12 @@
         btn.disabled = false;
       }
     }
-    $('btnSave').onclick = (e) => { e.preventDefault(); if (!($('pp_name').value || '').trim()) { toast('Company name is required.'); return; } saveProfile(); };
+
+    $('btnSave').onclick = (e) => {
+      e.preventDefault();
+      if (!($('pp_name').value || '').trim()) { toast('Company name is required.'); return; }
+      saveProfile();
+    };
 
     // --- PMS Connections / Mappings ------------------------------------------
     const connTbody = $('connTbody');
