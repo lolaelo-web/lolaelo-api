@@ -629,6 +629,7 @@
     };
     $('btnRefreshMaps').onclick = () => refreshMappings(false);
 
+    
     // --- Init with tolerant session probe (no instant logout) -----------------
     async function probeSessionWithRetry() {
       const t = getToken();
@@ -641,7 +642,7 @@
         r = await fetch(`${API_BASE}/extranet/session?__ts=${Date.now()}`, { headers, cache:'no-store' });
       }
       const body = await r.text().catch(()=> '');
-      if (DEBUG) console.log('[session probe]', r.status, body);
+      if (window.DEBUG) console.log('[session probe]', r.status, body);
       try { return { ok: r.ok, status:r.status, body: JSON.parse(body) }; }
       catch { return { ok: r.ok, status:r.status, body }; }
     }
@@ -649,7 +650,7 @@
     async function init() {
       const probe = await probeSessionWithRetry();
       if (!probe.ok) {
-        if (DEBUG) console.warn('[init] no session → sending to login');
+        if (window.DEBUG) console.warn('[init] no session → sending to login');
         toast('Please sign in again.');
         setTimeout(() => location.replace(LOGIN_PAGE), 600);
         return;
@@ -660,11 +661,15 @@
     }
 
     // Kick things off after DOM is ready
-    (document.readyState === 'loading')
-      ? document.addEventListener('DOMContentLoaded', init)
-      : init();
+    if (document.readyState === 'loading') {
+      document.addEventListener('DOMContentLoaded', init);
+    } else {
+      init();
+    }
 
-    window.addEventListener('pageshow', (e) => { if (e.persisted) loadPropertyIntoForm(); });
+    window.addEventListener('pageshow', (e) => {
+      if (e.persisted) loadPropertyIntoForm();
+    });
   </script>
 
   <script>
