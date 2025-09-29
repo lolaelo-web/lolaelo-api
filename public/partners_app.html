@@ -324,14 +324,16 @@
 
   <script>
     // --- Config ---------------------------------------------------------------
-    // Use Render API in prod site; fall back to same-origin for the API-hosted UI
     const API_BASE = (location.hostname.endsWith('lolaelo.com'))
       ? 'https://lolaelo-api.onrender.com'
       : location.origin;
     const LOGIN_PAGE = "partners_login.html";
-    window.DEBUG = true;   // ensure global DEBUG before any use
-    var DEBUG = !!window.DEBUG;   // declare identifier so `if (DEBUG)` never throws
-    // City codes ↔ labels used by both hub and public catalog
+
+    // Debug flag available both as window.DEBUG and local DEBUG
+    window.DEBUG = true;
+    var DEBUG = !!window.DEBUG;
+
+    // City codes ↔ labels shared with public catalog
     const CITY_LABELS = {
       SIARGAO: 'Siargao',
       BORACAY: 'Boracay',
@@ -351,7 +353,10 @@
       return localStorage.getItem("partnerToken") || localStorage.getItem("lolaelo_session") || "";
     }
     function setToken(t) {
-      try { localStorage.setItem('partnerToken', t); localStorage.setItem('lolaelo_session', t); } catch {}
+      try {
+        localStorage.setItem('partnerToken', t);
+        localStorage.setItem('lolaelo_session', t);
+      } catch {}
     }
 
     // --- Toast/DOM helpers ----------------------------------------------------
@@ -362,12 +367,13 @@
       toastBox.style.borderColor = ok ? '#2bbb6f' : 'rgba(255,255,255,.07)';
       toastBox.style.color = ok ? '#bff7d2' : '#e8eefc';
       toastBox.classList.remove('hidden');
-      clearTimeout(window.__t); window.__t = setTimeout(()=>toastBox.classList.add('hidden'), 4000);
+      clearTimeout(window.__t);
+      window.__t = setTimeout(()=>toastBox.classList.add('hidden'), 4000);
     }
-    function show(id){ $(id).classList.remove('hidden') }
-    function hide(id){ $(id).classList.add('hidden') }
+    function show(id){ $(id).classList.remove('hidden'); }
+    function hide(id){ $(id).classList.add('hidden'); }
 
-    // --- Authed fetch (DO NOT auto-redirect on 401 here) ----------------------
+    // --- Authed fetch (no auto-redirect on 401) -------------------------------
     async function authed(path, options = {}){
       const t = getToken();
       const isGet = !options.method || options.method.toUpperCase() === 'GET';
@@ -383,7 +389,7 @@
           'Authorization': `Bearer ${t || ''}`
         }
       });
-      return r; // let caller decide on 401
+      return r;
     }
     async function getJSON(path){
       const r = await authed(path, { method:'GET' });
@@ -400,7 +406,10 @@
         const t = getToken();
         await fetch(`${API_BASE}/extranet/logout`, { method: 'POST', headers: { Authorization: `Bearer ${t}` } });
       } catch {}
-      try { localStorage.removeItem("partnerToken"); localStorage.removeItem("lolaelo_session"); } catch {}
+      try {
+        localStorage.removeItem("partnerToken");
+        localStorage.removeItem("lolaelo_session");
+      } catch {}
       location.replace(LOGIN_PAGE);
     };
 
@@ -408,7 +417,7 @@
     const backToHub = () => { hide('profile'); hide('pmsConnectionsPanel'); hide('pmsMappingsPanel'); show('hub'); };
     $('tileProfile').addEventListener('click', (e) => { e.preventDefault(); hide('hub'); show('profile'); });
     $('btnBack').onclick = backToHub;
-    
+
     document.getElementById('tileRooms').addEventListener('click', (e) => {
       e.preventDefault();
       const t = getToken();
@@ -417,9 +426,14 @@
       location.href = url;
     });
 
-    $('tilePmsConnections').addEventListener('click', async (e) => { e.preventDefault(); hide('hub'); show('pmsConnectionsPanel'); await refreshConnections(); });
+    $('tilePmsConnections').addEventListener('click', async (e) => {
+      e.preventDefault(); hide('hub'); show('pmsConnectionsPanel'); await refreshConnections();
+    });
     $('connBackBtn').onclick = backToHub;
-    $('tilePmsMappings').addEventListener('click', async (e) => { e.preventDefault(); hide('hub'); show('pmsMappingsPanel'); await refreshMappings(true); });
+
+    $('tilePmsMappings').addEventListener('click', async (e) => {
+      e.preventDefault(); hide('hub'); show('pmsMappingsPanel'); await refreshMappings(true);
+    });
     $('mapBackBtn').onclick = backToHub;
 
     // --- Profile load/save ----------------------------------------------------
@@ -438,9 +452,8 @@
         $('pp_phone').value        = p.phone ?? '';
         $('pp_country').value      = p.country ?? '';
         $('pp_address').value      = p.addressLine ?? '';
-        // Prefer explicit cityCode; fall back by normalizing any existing city text
         const loadedCode = normalizeCityCode(p.cityCode || p.city);
-        $('pp_city').value = CITY_LABELS[loadedCode] ? loadedCode : '';
+        $('pp_city').value         = CITY_LABELS[loadedCode] ? loadedCode : '';
         $('pp_desc').value         = p.description ?? '';
         $('profileStatus').textContent = p.name ? 'Complete' : 'Missing info';
         $('profileStatus').className   = p.name ? 'ok' : 'todo';
@@ -470,7 +483,6 @@
         cityCode:     cityCode || null,
         city:         cityLabel || null
       };
-      // Remove null/empty so PATCH won’t clear existing values server-side
       Object.keys(payload).forEach(k => (payload[k] == null) && delete payload[k]);
       const body = JSON.stringify(payload);
 
@@ -498,9 +510,9 @@
           throw new Error(msg || `Save failed: ${r.status}`);
         }
 
-        // Re-fetch to verify what’s in the DB and reflect it in the form
+        // Re-fetch to verify DB contents and reflect it in the form
         const saved = await getJSON('/extranet/property').catch(() => null);
-        console.log('[hub] saved record echo:', saved);
+        if (DEBUG) console.log('[hub] saved record echo:', saved);
 
         await loadPropertyIntoForm();
         toast(
@@ -515,6 +527,7 @@
       } finally {
         btn.disabled = false;
       }
+    }
 
     $('btnSave').onclick = (e) => {
       e.preventDefault();
@@ -528,8 +541,12 @@
     const connMsg   = $('connMsg');
     async function listConnections(){ return getJSON('/extranet/pms/connections').catch(()=>[]); }
     async function listLogs(limit=10){ return getJSON(`/extranet/pms/logs?limit=${limit}`).catch(()=>[]); }
+
     function renderConnections(rows){
-      if (!Array.isArray(rows) || !rows.length) { connTbody.innerHTML = '<tr><td class="muted" colspan="7">No connections yet.</td></tr>'; return; }
+      if (!Array.isArray(rows) || !rows.length) {
+        connTbody.innerHTML = '<tr><td class="muted" colspan="7">No connections yet.</td></tr>';
+        return;
+      }
       connTbody.innerHTML = rows.map(c => `
         <tr>
           <td>${c.id}</td>
@@ -543,6 +560,7 @@
             <button class="btn small ghost" data-act="del" data-id="${c.id}">Delete</button>
           </td>
         </tr>`).join('');
+
       connTbody.querySelectorAll('button[data-id]').forEach(btn => {
         btn.onclick = async () => {
           const id  = Number(btn.dataset.id);
@@ -559,56 +577,92 @@
               if (!r.ok) throw new Error(`Delete failed: ${r.status}`);
               await refreshConnections(); toast('Connection deleted.', true);
             }
-          } catch (e) { console.error(e); toast(e.message || 'Action failed'); connMsg.textContent=''; }
+          } catch (e) {
+            console.error(e);
+            toast(e.message || 'Action failed');
+            connMsg.textContent='';
+          }
         };
       });
     }
+
     function renderLogs(rows){
-      if (!Array.isArray(rows) || !rows.length) { connLogs.innerHTML = '<li class="muted">No logs.</li>'; return; }
-      connLogs.innerHTML = rows.map(l => `<li><strong>${l.type}</strong> · <em>${l.status}</em> — ${l.message} <span class="muted">(${new Date(l.startedAt).toLocaleString()})</span></li>`).join('');
+      if (!Array.isArray(rows) || !rows.length) {
+        connLogs.innerHTML = '<li class="muted">No logs.</li>';
+        return;
+      }
+      connLogs.innerHTML = rows.map(l =>
+        `<li><strong>${l.type}</strong> · <em>${l.status}</em> — ${l.message} <span class="muted">(${new Date(l.startedAt).toLocaleString()})</span></li>`
+      ).join('');
     }
+
     async function refreshConnections(){
       connMsg.textContent = 'Loading…';
       const [c,l] = await Promise.all([listConnections(), listLogs(10)]);
-      renderConnections(c); renderLogs(l); connMsg.textContent = '';
+      renderConnections(c);
+      renderLogs(l);
+      connMsg.textContent = '';
       if (!$('pmsMappingsPanel').classList.contains('hidden')) await populateConnectionSelect(c);
     }
 
-    const mapTbody = $('mapTbody'); const mapMsg = $('mapMsg'); const mapConn = $('map_conn');
-    const mapRoom = $('map_room'); const mapRate = $('map_rate'); const mapCurr = $('map_currency'); const mapAct = $('map_active');
+    const mapTbody = $('mapTbody');
+    const mapMsg   = $('mapMsg');
+    const mapConn  = $('map_conn');
+    const mapRoom  = $('map_room');
+    const mapRate  = $('map_rate');
+    const mapCurr  = $('map_currency');
+    const mapAct   = $('map_active');
+
     async function listMappings(){ return getJSON('/extranet/pms/mappings').catch(()=>[]); }
+
     function renderMappings(rows){
-      if (!Array.isArray(rows) || !rows.length) { mapTbody.innerHTML = '<tr><td class="muted" colspan="7">No mappings yet.</td></tr>'; return; }
+      if (!Array.isArray(rows) || !rows.length) {
+        mapTbody.innerHTML = '<tr><td class="muted" colspan="7">No mappings yet.</td></tr>';
+        return;
+      }
       mapTbody.innerHTML = rows.map(m => `
         <tr>
           <td>${m.id}</td><td>${m.pmsConnectionId}</td><td>${m.remoteRoomId}</td>
           <td>${m.remoteRatePlanId || '-'}</td><td>${m.currency || '-'}</td><td>${m.active ? 'true' : 'false'}</td>
           <td><button class="btn small ghost" data-act="del" data-id="${m.id}">Delete</button></td>
         </tr>`).join('');
+
       mapTbody.querySelectorAll('button[data-id]').forEach(btn => {
         btn.onclick = async () => {
-          const id = Number(btn.dataset.id); const act = btn.dataset.act;
+          const id = Number(btn.dataset.id);
+          const act = btn.dataset.act;
           if (act === 'del') {
             if (!confirm('Delete mapping?')) return;
             try {
               const r = await authed(`/extranet/pms/mappings/${id}`, { method:'DELETE' });
               if (!r.ok) throw new Error(`Delete failed: ${r.status}`);
-              await refreshMappings(false); toast('Mapping deleted.', true);
-            } catch (e) { console.error(e); toast(e.message || 'Delete failed'); }
+              await refreshMappings(false);
+              toast('Mapping deleted.', true);
+            } catch (e) {
+              console.error(e);
+              toast(e.message || 'Delete failed');
+            }
           }
         };
       });
     }
+
     async function populateConnectionSelect(connections){
       const conns = Array.isArray(connections) ? connections : await listConnections();
-      const options = conns.map(c => `<option value="${c.id}">#${c.id} · ${c.provider} (${c.mode}) · ${c.status}</option>`).join('');
+      const options = conns.map(c =>
+        `<option value="${c.id}">#${c.id} · ${c.provider} (${c.mode}) · ${c.status}</option>`
+      ).join('');
       mapConn.innerHTML = options || '<option value="">No connections</option>';
     }
+
     async function refreshMappings(refreshConnSelect){
       mapMsg.textContent = 'Loading…';
       if (refreshConnSelect) await populateConnectionSelect();
-      const rows = await listMappings(); renderMappings(rows); mapMsg.textContent = '';
+      const rows = await listMappings();
+      renderMappings(rows);
+      mapMsg.textContent = '';
     }
+
     $('btnCreateMapping').onclick = async () => {
       const cid = Number(mapConn.value);
       const room = (mapRoom.value || '').trim();
@@ -623,13 +677,18 @@
           body: JSON.stringify({ pmsConnectionId: cid, remoteRoomId: room, remoteRatePlanId: rate, currency: curr, active })
         });
         if (!r.ok) throw new Error(`Create failed: ${r.status}`);
-        await refreshMappings(false); toast('Mapping created.', true);
-      } catch (e) { console.error(e); toast(e.message || 'Create failed'); }
-      finally { mapMsg.textContent = ''; }
+        await refreshMappings(false);
+        toast('Mapping created.', true);
+      } catch (e) {
+        console.error(e);
+        toast(e.message || 'Create failed');
+      } finally {
+        mapMsg.textContent = '';
+      }
     };
+
     $('btnRefreshMaps').onclick = () => refreshMappings(false);
 
-    
     // --- Init with tolerant session probe (no instant logout) -----------------
     async function probeSessionWithRetry() {
       const t = getToken();
@@ -637,12 +696,11 @@
       const headers = { Authorization: `Bearer ${t}` };
       let r = await fetch(`${API_BASE}/extranet/session?__ts=${Date.now()}`, { headers, cache:'no-store' });
       if (r.status === 401) {
-        // small wait then retry once (handles tiny race conditions)
         await new Promise(res => setTimeout(res, 250));
         r = await fetch(`${API_BASE}/extranet/session?__ts=${Date.now()}`, { headers, cache:'no-store' });
       }
       const body = await r.text().catch(()=> '');
-      if (window.DEBUG) console.log('[session probe]', r.status, body);
+      if (DEBUG) console.log('[session probe]', r.status, body);
       try { return { ok: r.ok, status:r.status, body: JSON.parse(body) }; }
       catch { return { ok: r.ok, status:r.status, body }; }
     }
@@ -650,12 +708,11 @@
     async function init() {
       const probe = await probeSessionWithRetry();
       if (!probe.ok) {
-        if (window.DEBUG) console.warn('[init] no session → sending to login');
+        if (DEBUG) console.warn('[init] no session → sending to login');
         toast('Please sign in again.');
         setTimeout(() => location.replace(LOGIN_PAGE), 600);
         return;
       }
-      // session OK → populate UI
       try { await loadPropertyIntoForm(); }
       catch (e) { console.error(e); toast('Could not load your profile.'); }
     }
@@ -667,6 +724,7 @@
       init();
     }
 
+    // If the page was restored from BFCache, re-hydrate the form
     window.addEventListener('pageshow', (e) => {
       if (e.persisted) loadPropertyIntoForm();
     });
