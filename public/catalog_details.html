@@ -145,20 +145,61 @@
       gap:16px;
       align-items:start;
     }
+    /* ANCHOR: ROOMCAT_LIST_CSS */
+    .roomcats { display: grid; gap: 10px; margin: 12px 0; }
+    .roomcat {
+      border: 1px solid var(--line);
+      border-radius: 12px;
+      padding: 10px;
+      display: grid;
+      grid-template-columns: 84px 1fr auto; /* thumb | text | action */
+      gap: 10px;
+      align-items: center;
+      background: #fff;
+    }
+    .roomcat h3 {
+      margin: 0 0 4px 0;
+      font-size: 15px;
+      font-weight: 600;
+    }
+    .roomcat .meta { font-size: 12px; color: var(--muted); }
+    .roomcat img {
+      width: 84px; height: 56px; object-fit: cover; border-radius: 8px;
+      background: #f5f5f5; display: block;
+    }
+    .roomcat .btn-select {
+      border: 1px solid var(--bubble); background: var(--bubble); color: #fff;
+      padding: 8px 12px; border-radius: 10px; font-weight: 700; cursor: pointer;
+    }
+    @media (max-width: 840px){
+      .roomcat{ grid-template-columns: 72px 1fr; }
+      .roomcat .btn-select{ grid-column: 1 / -1; justify-self: start; }
+    }
+
     /* Keep two columns on typical laptop widths; collapse only below ~840px */
     @media (max-width:840px){
       .layout{ grid-template-columns: 1fr; }
     }
 
     /* ANCHOR: AVAIL_COL_WIDTHS */
-    #availability{ table-layout: fixed; }
+    #availability{ table-layout: auto; }                 /* allow natural shrink-to-fit */
     #availability th, #availability td{ white-space: nowrap; }
-    /* Narrower, consistent column widths */
-    #availability th:nth-child(1), #availability td:nth-child(1){ width:100px !important; } /* Date */
-    #availability th:nth-child(2), #availability td:nth-child(2){ width:60px  !important; text-align:right; } /* Open */
-    #availability th:nth-child(3), #availability td:nth-child(3){ width:90px  !important; } /* Price */
-    #availability th:nth-child(4), #availability td:nth-child(4){ width:70px  !important; text-align:right; } /* MinStay */
-    #availability th:nth-child(5), #availability td:nth-child(5){ width:80px  !important; } /* Status */
+
+    /* Date: compact but readable */
+    #availability th:nth-child(1), #availability td:nth-child(1){ width: 9ch; } /* e.g., 10-04-2025 */
+
+    /* Center numeric/status columns to save width */
+    #availability th:nth-child(2), #availability td:nth-child(2),
+    #availability th:nth-child(3), #availability td:nth-child(3),
+    #availability th:nth-child(4), #availability td:nth-child(4),
+    #availability th:nth-child(5), #availability td:nth-child(5){
+      text-align: center;
+    }
+
+    /* Ensure price doesn't expand; keep to content */
+    #availability th:nth-child(3), #availability td:nth-child(3){
+      width: max-content;
+    }
 
     /* Right panel */
     /* ANCHOR: DETAILS_PANEL_BOX */
@@ -404,13 +445,7 @@
 
     <div class="layout">
       <section>
-        <div class="table-controls" style="margin:6px 0 2px;">
-          <label style="font-size:12px; color:var(--muted); user-select:none; cursor:pointer;">
-            <input id="openOnly" type="checkbox" style="vertical-align:middle; margin-right:6px;">
-            Show open nights only
-          </label>
-        </div>
-          <table id="availability" aria-label="Availability and prices">
+        <table id="availability" aria-label="Availability and prices">
           <caption class="visually-hidden">Nightly availability and pricing for this property</caption>
           <thead><tr>
             <th scope="col" style="width:120px;">Date</th>
@@ -814,11 +849,75 @@
         const b = e.target.closest('.thumb'); if(!b) return;
         setHero(Number(b.dataset.idx||'0'));
       });
+      /* ANCHOR: ROOMCAT_LIST_JS */
+      // Build a list of room categories that have open inventory in the selected range
+      (function(){
+        const listEl = document.getElementById('roomCats');
+        if (!listEl) return;
+
+        // j.rooms: expect [{ id, name, images?, daily: [{date, price, open/inventory, closed, minStay}], amenities?, areaM2?, areaFt2? }, ...]
+        const rooms = Array.isArray(j?.rooms) ? j.rooms : [];
+        // Determine which rooms have at least one open night
+        const openRooms = rooms
+          .map(r => {
+            const daily = Array.isArray(r.daily) ? r.daily : [];
+            const openNights = daily.filter(d => !d.closed && Number(d.inventory ?? d.open ?? 0) > 0);
+            const minPrice = openNights.length ? Math.min(...openNights.map(d => Number(d.price ?? Infinity))) : null;
+            return { room: r, openNights, minPrice };
+          })
+          .filter(x => x.openNights.length > 0);
+
+        // Render
+        if (!openRooms.length){
+          listEl.innerHTML = `
+            <div class="small" style="color:var(--muted); padding:4px 0;">
+              No room categories with open inventory for these dates.
+            </div>`;
+          return;
+        }
+
+        const ph = (label='Room') => 'data:image/svg+xml;utf8,' + encodeURIComponent(
+          `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 400 270">
+            <rect width="400" height="270" fill="#f3f4f6"/>
+            <text x="50%" y="50%" dominant-baseline="middle" text-anchor="middle"
+              font-family="Inter, Arial, sans-serif" font-size="16" fill="#9ca3af">${label}</text>
+          </svg>`);
+
+        listEl.innerHTML = openRooms.map(({ room, minPrice }) => {
+          const rid = room.id ?? room.roomId ?? room.code ?? '';
+          const name = String(room.name ?? 'Room').trim() || 'Room';
+          const thumb = (Array.isArray(room.images) && room.images.length) ? (room.images[0]?.url || room.images[0]) : ph(name);
+          const m2 = room.areaM2 ?? room.areaSqm ?? null;
+          const ft2 = room.areaFt2 ?? (m2 ? Math.round(m2 * 10.7639) : null);
+          const m2txt = m2 ? `${m2} m²` : '';
+          const ft2txt = ft2 ? `${ft2} ft²` : '';
+          const area = (m2txt || ft2txt) ? ` · ${[m2txt, ft2txt].filter(Boolean).join(' / ')}` : '';
+          const price = (minPrice != null && isFinite(minPrice)) ? `$${minPrice.toFixed(2)}` : '—';
+
+          const target = `/room_details.html?propertyId=${encodeURIComponent(propertyId)}&roomId=${encodeURIComponent(rid)}&start=${encodeURIComponent(start)}&end=${encodeURIComponent(end)}`;
+
+          return `
+            <div class="roomcat">
+              <img src="${thumb}" alt="${name} thumbnail" loading="lazy" decoding="async">
+              <div>
+                <h3>${name}</h3>
+                <div class="meta">From ${price}${area}</div>
+              </div>
+              <a class="btn-select" href="${target}" aria-label="Select ${name}">Select</a>
+            </div>`;
+        }).join('');
+      })();
 
       // table rows (DB-safe: inventory || open)
       // ANCHOR: DETAILS_ROWS_RENDER
       const daily = j?.rooms?.[0]?.daily || [];
-      const openOnlyEl = document.getElementById('openOnly');
+
+      /* Format YYYY-MM-DD -> MM-DD-YYYY */
+      function fmtMDY(s){
+        if (typeof s !== 'string') return s;
+        const [y,m,d] = s.split('-');
+        return (y && m && d) ? `${m}-${d}-${y}` : s;
+      }
 
       function renderRows(list){
         if (!Array.isArray(list) || !list.length) {
@@ -829,14 +928,13 @@
           </tr>`;
           return;
         }
-        const showOpenOnly = !!(openOnlyEl && openOnlyEl.checked);
-        const filtered = showOpenOnly
-          ? list.filter(d => {
-              const openCount = Number(d.inventory ?? d.open ?? 0);
-              const isClosed = Boolean(d.closed) || openCount <= 0;
-              return !isClosed;
-            })
-          : list;
+
+        // Always show only open nights
+        const filtered = list.filter(d => {
+          const openCount = Number(d.inventory ?? d.open ?? 0);
+          const isClosed = Boolean(d.closed) || openCount <= 0;
+          return !isClosed;
+        });
 
         if (!filtered.length) {
           rows.innerHTML = `<tr>
@@ -849,10 +947,9 @@
 
         rows.innerHTML = filtered.map(d => {
           const openCount = Number(d.inventory ?? d.open ?? 0);
-          const isClosed = Boolean(d.closed) || openCount <= 0;
-          const tag = isClosed ? `<span class="tag off">Closed</span>` : `<span class="tag">Open</span>`;
+          const tag = `<span class="tag">Open</span>`;
           return `<tr>
-            <td>${d.date}</td>
+            <td>${fmtMDY(d.date)}</td>
             <td>${openCount}</td>
             <td>${money(d.price)}</td>
             <td>${d.minStay ?? 1}</td>
@@ -861,7 +958,7 @@
         }).join("");
       }
 
-      // initial render + wire checkbox
+      // initial render (open-only)
       renderRows(daily);
       if (openOnlyEl && !openOnlyEl._wired) {
         openOnlyEl.addEventListener('change', ()=> renderRows(daily));
