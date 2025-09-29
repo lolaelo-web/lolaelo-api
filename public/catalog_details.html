@@ -5,6 +5,9 @@
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>Lolaelo · Stay</title>
   <link rel="icon" href="https://www.lolaelo.com/logo.png?cb=fav-v1" />
+  <!-- ANCHOR: FONTS_PRECONNECT -->
+  <link rel="preconnect" href="https://fonts.googleapis.com" crossorigin>
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="/css/extranet.css?cb=font-unify-v1" />
 
@@ -221,7 +224,6 @@
     .chip {
       font-variant-numeric: tabular-nums lining-nums;
     }
-
     /* ANCHOR: SKELETON_CSS */
     @keyframes shimmer {
       0% { background-position: -400px 0; }
@@ -393,7 +395,7 @@
 <!-- ANCHOR: DETAILS_HERO_BLOCK -->
 <section class="hero-block">
   <div id="hero" class="hero" aria-live="polite">
-    <img id="hero-img" src="" alt="">
+    <img id="hero-img" src="" alt="" width="1600" height="900">
     <button id="hero-prev" class="hero-nav" aria-label="Previous photo">‹</button>
     <button id="hero-next" class="hero-nav" aria-label="Next photo">›</button>
   </div>
@@ -424,8 +426,7 @@
       <aside class="panel">
         <div class="muted" id="stay-range"></div>
         <div class="muted">From</div>
-        <div class="price" id="from">—</div>
-        <div class="price" id="from" aria-live="polite"></div>
+        <div class="price" id="from" aria-live="polite">—</div>
         <a id="jumpAvail" class="muted" href="#availability" style="text-decoration:underline; font-weight:600;">View availability ↓</a>
         <div class="muted" id="nights-note"></div>
         <button class="book" type="button" id="book">Book now (mock)</button>
@@ -889,6 +890,8 @@
       if (!t){
         t = document.createElement('div');
         t.className = 'toast';
+        t.setAttribute('role', 'status');
+        t.setAttribute('aria-live', 'polite');
         document.body.appendChild(t);
       }
       t.textContent = msg;
