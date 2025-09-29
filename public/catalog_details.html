@@ -6,6 +6,7 @@
   <title>Lolaelo · Stay</title>
   <link rel="icon" href="https://www.lolaelo.com/logo.png?cb=fav-v1" />
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="/css/extranet.css?cb=font-unify-v1" />
 
   <style>
     /* === ANCHOR: DETAILS_LIGHT_SKIN ======================================= */
@@ -207,7 +208,20 @@
     #availability.is-stuck thead th{
       box-shadow: 0 4px 10px rgba(0,0,0,.06);
     }
-    tbody td{ padding:10px 8px; border-bottom:1px solid var(--line); font-variant-numeric:tabular-nums; }
+    tbody td{
+      padding:10px 8px;
+      border-bottom:1px solid var(--line);
+      font-variant-numeric: tabular-nums lining-nums;
+    }
+    /* ANCHOR: NUMERIC_UNIFY */
+    .price,
+    #from,
+    #availability th,
+    .meta,
+    .chip {
+      font-variant-numeric: tabular-nums lining-nums;
+    }
+
     /* ANCHOR: SKELETON_CSS */
     @keyframes shimmer {
       0% { background-position: -400px 0; }
