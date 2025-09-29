@@ -447,27 +447,14 @@
       <section>
         <!-- ANCHOR: ROOMCAT_LIST_HTML -->
         <div id="roomCats" class="roomcats" aria-label="Available room categories (open only)"></div>
-        <table id="availability" aria-label="Availability and prices">
-          <caption class="visually-hidden">Nightly availability and pricing for this property</caption>
-          <thead><tr>
-            <th scope="col" style="width:120px;">Date</th>
-            <th scope="col" style="width:60px;">Open</th>
-            <th scope="col" style="width:100px;">Price</th>
-            <th scope="col" style="width:80px;">MinStay</th>
-            <th scope="col" style="width:80px;">Status</th>
-          </tr></thead>
-          <tbody id="rows" aria-live="polite"></tbody>
-        </table>
       </section>
 
       <aside class="panel">
         <div class="muted" id="stay-range"></div>
         <div class="muted">From</div>
         <div class="price" id="from" aria-live="polite">—</div>
-        <a id="jumpAvail" class="muted" href="#availability" style="text-decoration:underline; font-weight:600;">View availability ↓</a>
         <div class="muted" id="nights-note"></div>
         <button class="book" type="button" id="book">Book now (mock)</button>
-        <div class="muted" id="copyLink" style="text-align:center; cursor:pointer;">Copy link</div>
       </aside>
     </div>
   </div>
@@ -962,10 +949,6 @@
 
       // initial render (open-only)
       renderRows(daily);
-      if (openOnlyEl && !openOnlyEl._wired) {
-        openOnlyEl.addEventListener('change', ()=> renderRows(daily));
-        openOnlyEl._wired = true;
-      }
     }
     /* ANCHOR: JUMP_TO_AVAIL */
     document.getElementById('jumpAvail').addEventListener('click', (e)=>{
