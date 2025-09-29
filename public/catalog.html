@@ -4,7 +4,7 @@
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>Lolaelo · Stays in Siargao</title>
-  <link rel="icon" href="/logo.png" />
+  <link rel="icon" href="https://www.lolaelo.com/logo.png?cb=fav-v1" />
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
 
   <style>
@@ -188,9 +188,14 @@
       <div class="controls-row">
         <label class="field" aria-label="Destination">
           <span>📍</span>
-          <!-- CHANGED: default 'Siargao' is now a placeholder, not a value -->
-          <input id="dest" type="text" placeholder="Siargao" />
+          <select id="dest">
+            <option value="">All destinations</option>
+            <option value="SIARGAO" selected>Siargao</option>
+            <option value="BORACAY">Boracay</option>
+            <option value="ELNIDO">El Nido</option>
+          </select>
         </label>
+
 
         <label class="field" aria-label="Check-in">
           <span>📅</span>
@@ -247,20 +252,20 @@
 
     // Bind destination input and hydrate from ?q=
     const destInp = S('dest');
-    const qParam  = (qs.get('q') || '').trim();
     // ANCHOR: PLAN_PARAM_DEF
     const planRaw = (qs.get('ratePlanId') || qs.get('plan') || '').trim();
     const plan = planRaw === '' ? null : Number(planRaw);
     const planQS = Number.isFinite(plan) && plan > 0 ? `&ratePlanId=${plan}` : '';
     window.ratePlanId = Number.isFinite(plan) && plan > 0 ? plan : null;
     // ANCHOR: PLAN_PARAM_DEF END
-
+    // ANCHOR: CITY_PARAM_DEF
+    function selectedCityCode(){
+      const v = (S('dest')?.value || '').trim().toUpperCase();
+      return v; // '' means all destinations
+    }
+    // ANCHOR: CITY_PARAM_DEF END
 
     // If q is in URL, show it; otherwise ensure input has no value (placeholder only)
-    if (destInp) {
-      if (qParam) destInp.value = qParam;
-      else destInp.value = '';
-    }
     const detailsEl = document.getElementById('amenities');
 
     const todayISO = ()=>new Date().toISOString().slice(0,10);
@@ -331,34 +336,53 @@
         Array.from(document.querySelectorAll('#amenities input[type="checkbox"]:checked'))
           .map(cb => String(cb.value).toLowerCase());
 
-      // Only filter by text when ?q= is present in the URL
-      const qLower = (qs.get('q') || '').trim().toLowerCase();
-
       try{
         // ANCHOR: PLAN_IN_SEARCH_FETCH
-        // ANCHOR: PLAN_IN_SEARCH_FETCH
-        const r = await fetch(`/catalog/search?start=${encodeURIComponent(start)}&end=${encodeURIComponent(end)}&guests=${guests}${planQS}`);
+        const city = selectedCityCode();
+        const cityQS = city ? `&city=${encodeURIComponent(city)}` : '';
+        const r = await fetch(`/catalog/search?start=${encodeURIComponent(start)}&end=${encodeURIComponent(end)}&guests=${guests}${planQS}${cityQS}`);
         const j = await r.json();
         const all = Array.isArray(j.properties) ? j.properties : [];
+        // ANCHOR: CITY_CLIENT_FILTER
+        const citySel = selectedCityCode();
+        const byCity = (list, code) => {
+          if (!code) return list;
+          const norm = s => String(s || '').trim().toUpperCase();
+          return list.filter(p =>
+            norm(p.cityCode) === code ||        // preferred: exact code match
+            norm(p.city) === code               // fallback: city label matches the code text
+          );
+        };
+        let list = byCity(all, citySel);
+        // ANCHOR: CITY_CLIENT_FILTER END
+        // ANCHOR: CITY_CLIENT_FILTER_DIAG
+        console.log('[catalog] totals:', {
+          all: all.length,
+          afterCity: list.length,
+          citySel
+        });
+        console.table(
+          list.map(p => ({
+            id: p.propertyId,
+            name: p.name,
+            city: p.city,
+            cityCode: p.cityCode,
+            availableNights: p.availableNights,
+            fromPriceStr: p.fromPriceStr
+          }))
+        );
+        // ANCHOR: CITY_CLIENT_FILTER_DIAG END
 
-        window.__catalogProps = all;
+        window.__catalogProps = list;
 
         // 1) amenity filter first
         const sel = selectedAmenities();
-        let list = sel.length
-          ? all.filter(p => {
+        list = sel.length
+          ? list.filter(p => {
               const am = (p.amenities || []).map(a => String(a).toLowerCase());
               return sel.every(a => am.includes(a));
             })
           : all;
-
-        // 2) optional destination/text filter (name/city/country)
-        if (qLower) {
-          list = list.filter(p => {
-            const hay = `${p.name || ''} ${p.city || ''} ${p.country || ''}`.toLowerCase();
-            return hay.includes(qLower);
-          });
-        }
 
         found.textContent = `Found ${list.length} propert${list.length===1?"y":"ies"} — ${list.filter(p=>p.availableNights>0).length} with availability.`;
         grid.innerHTML = list.map(p => cardHTML(p, start, end)).join("") || "<div>No results.</div>";
@@ -371,6 +395,7 @@
       }
     }
     document.getElementById('search').addEventListener('click', run);
+    S('dest')?.addEventListener('change', run);
 
     /* ANCHOR: AMENITY_AUTO_FILTER */
     function filterAndRenderByAmenities(){
