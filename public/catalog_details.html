@@ -16,7 +16,7 @@
     :root{
       --bg:#fff; --fg:#111; --muted:#6b7280; --line:#eaeaea; --bubble:#ff6633;
       --paper:#ffffff; --radius:16px; --shadow:0 12px 40px rgba(0,0,0,.08);
-      --maxw:840px;                 /* tighten card width a bit */
+      --maxw:840px;
       /* ANCHOR: TYPO_BASE_VAR */ --body:11px;   /* ~80% of 15px */
     }
 
@@ -40,10 +40,10 @@
         url("https://images.pexels.com/photos/1005417/pexels-photo-1005417.jpeg?auto=compress&cs=tinysrgb&dpr=2&h=1600&w=2400")
         center/cover no-repeat fixed;
       display:flex; flex-direction:column; align-items:center;
-    }   
+    }
     /* ANCHOR: DETAILS_TYPE_SCALE */
-    html { font-size: 16px; }                   /* baseline */
-    body { font-size: 15px; line-height: 1.5; } /* normal text size across customer UIs */
+    html { font-size: 16px; }  /* baseline */
+    body { font-size: 15px; line-height: 1.5; }
 
     h1 { font-size: clamp(30px, 4.8vw, 44px); line-height: 1.15; margin: 6px 0 10px; font-weight: 600; }
     h2 { font-size: clamp(18px, 2.4vw, 22px); line-height: 1.2; margin: 10px 0 8px; font-weight: 600; }
@@ -66,6 +66,7 @@
 
     /* ANCHOR: TYPO_REGULAR_ELEMS */
     p, li, td, th, input, select, button, .meta, .note { font-size: var(--body); }
+
     /* ANCHOR: DETAILS_PAPER_CLIP */
     .paper{
       width:100%;
@@ -75,8 +76,9 @@
       border-radius:var(--radius);
       box-shadow:var(--shadow);
       padding:16px 16px 22px;
-      overflow:hidden; /* keeps hero/table inside the rounded frame */
+      overflow:hidden;
     }
+
     /* ANCHOR: TOAST_CSS */
     .toast{
       position: fixed;
@@ -98,6 +100,7 @@
       opacity: 0.95;
       transform: translateX(-50%) translateY(-2px);
     }
+
     /* ANCHOR: SCROLLTOP_CSS */
     .scrolltop-btn {
       position: fixed;
@@ -117,34 +120,36 @@
       cursor: pointer;
       z-index: 1100;
     }
-    .scrolltop-btn.show {
-      display: flex;
-    }
+    .scrolltop-btn.show { display: flex; }
+
     /* ANCHOR: DETAILS_TOPBAR_CSS */
     .topbar{
-        display:grid;
-        grid-template-columns: auto 1fr; /* logo | title */
-        align-items:center;
-        gap:12px;
-        margin:8px 0 14px;
+      display:grid;
+      grid-template-columns: auto 1fr; /* logo | title */
+      align-items:center;
+      gap:12px;
+      margin:8px 0 14px;
     }
     .topbar .title{
-        margin:0;
-        font-size:22px;
-        font-weight:600;
-        justify-self:end;
-        text-align:right;
+      margin:0;
+      font-size:22px;
+      font-weight:600;
+      justify-self:end;
+      text-align:right;
     }
-
 
     /* ANCHOR: DETAILS_LAYOUT_COLS */
     .layout{
       display:grid;
-      /* 75/25, but keep the right column at least 320px so it won’t drop below */
-      grid-template-columns: minmax(0,3fr) minmax(320px,1fr);
+      grid-template-columns: minmax(0,3fr) minmax(320px,1fr); /* 75/25 */
       gap:16px;
       align-items:start;
     }
+    /* Keep two columns; collapse only below ~840px */
+    @media (max-width:840px){
+      .layout{ grid-template-columns: 1fr; }
+    }
+
     /* ANCHOR: ROOMCAT_LIST_CSS */
     .roomcats { display: grid; gap: 10px; margin: 12px 0; }
     .roomcat {
@@ -170,38 +175,13 @@
     .roomcat .btn-select {
       border: 1px solid var(--bubble); background: var(--bubble); color: #fff;
       padding: 8px 12px; border-radius: 10px; font-weight: 700; cursor: pointer;
+      text-decoration: none; display: inline-block;
     }
     @media (max-width: 840px){
       .roomcat{ grid-template-columns: 72px 1fr; }
       .roomcat .btn-select{ grid-column: 1 / -1; justify-self: start; }
     }
 
-    /* Keep two columns on typical laptop widths; collapse only below ~840px */
-    @media (max-width:840px){
-      .layout{ grid-template-columns: 1fr; }
-    }
-
-    /* ANCHOR: AVAIL_COL_WIDTHS */
-    #availability{ table-layout: auto; }                 /* allow natural shrink-to-fit */
-    #availability th, #availability td{ white-space: nowrap; }
-
-    /* Date: compact but readable */
-    #availability th:nth-child(1), #availability td:nth-child(1){ width: 9ch; } /* e.g., 10-04-2025 */
-
-    /* Center numeric/status columns to save width */
-    #availability th:nth-child(2), #availability td:nth-child(2),
-    #availability th:nth-child(3), #availability td:nth-child(3),
-    #availability th:nth-child(4), #availability td:nth-child(4),
-    #availability th:nth-child(5), #availability td:nth-child(5){
-      text-align: center;
-    }
-
-    /* Ensure price doesn't expand; keep to content */
-    #availability th:nth-child(3), #availability td:nth-child(3){
-      width: max-content;
-    }
-
-    /* Right panel */
     /* ANCHOR: DETAILS_PANEL_BOX */
     .panel{
       border:1px solid var(--line);
@@ -210,15 +190,15 @@
       display:flex;
       flex-direction:column;
       gap:14px;
-      min-width: 320px;      /* ensures buttons/price breathe */
-      max-width: 420px;      /* prevents overgrowth on ultra-wide */
-      margin-left:auto;      /* tucks to the right edge cleanly */
+      min-width: 320px;
+      max-width: 420px;
+      margin-left:auto;
     }
     @media (min-width:900px){
       .panel{
         position: sticky;
-        top: 12px;           /* distance from top while sticking */
-        align-self: start;   /* ensures the grid column starts at top */
+        top: 12px;
+        align-self: start;
       }
     }
 
@@ -231,40 +211,107 @@
     .book{ border:1px solid var(--bubble); background:var(--bubble); color:#fff; font-weight:700;
       border-radius:12px; padding:14px; width:100%; cursor:pointer; }
 
-    /* Chips + table */
+    /* Chips (optional, if amenities chips are shown elsewhere) */
     .chips{ display:flex; gap:6px; flex-wrap:wrap; margin:10px 0; }
     .chip{ font-size:11px; padding:4px 8px; border:1px solid var(--line); border-radius:999px; background:#fafafa; color:#444; }
 
-    table{ width:100%; border-collapse:separate; border-spacing:0; margin-top:10px; }
-    /* ANCHOR: DETAILS_TABLE_STICKY_HEAD */
-    thead th{
-      position: sticky;
-      top: 0;                              /* sticks to top of viewport while scrolling */
-      z-index: 1;
-      text-align: left;
-      font-size: 12px;
-      color: var(--muted);
-      padding: 8px;
-      border-bottom: 1px solid var(--line);
-      background: var(--paper);            /* solid backdrop so text stays readable */
+    /* ANCHOR: DETAILS_TAGS */
+    .tag{
+      padding:4px 8px;
+      border-radius:999px;
+      font-size:12px;
+      display:inline-block;
+      border:1px solid transparent;
+      font-weight:600;
     }
-    /* ANCHOR: DETAILS_TABLE_STICKY_SHADOW */
-    #availability.is-stuck thead th{
-      box-shadow: 0 4px 10px rgba(0,0,0,.06);
-    }
-    tbody td{
-      padding:10px 8px;
-      border-bottom:1px solid var(--line);
-      font-variant-numeric: tabular-nums lining-nums;
-    }
+    .tag{ background:#dcfce7; color:#166534; border-color:#86efac; }
+    .tag.off{ background:#fee2e2; color:#991b1b; border-color:#fca5a5; }
+
     /* ANCHOR: NUMERIC_UNIFY */
     .price,
     #from,
-    #availability th,
     .meta,
     .chip {
       font-variant-numeric: tabular-nums lining-nums;
     }
+
+    /* ANCHOR: DETAILS_GALLERY_CSS */
+    .hero{
+      position: relative;
+      border-radius: var(--radius);
+      overflow: visible;
+      background:#fff;
+      aspect-ratio: 16 / 9;
+      width: 100%;
+      min-height: 260px;
+      max-height: 70vh;
+      box-shadow: var(--shadow);
+    }
+    .hero img{
+      width:100%;
+      height:100%;
+      object-fit:contain;
+      object-position:center;
+      display:block;
+      opacity: 1;
+      transition: opacity .25s ease;
+      background:#fff;
+    }
+    /* ANCHOR: GALLERY_NODRAG_CSS */
+    .hero img, .thumbs img{ user-select: none; -webkit-user-drag: none; }
+
+    /* ANCHOR: REDUCED_MOTION_CSS */
+    @media (prefers-reduced-motion: reduce){
+      .hero img{ transition: none !important; }
+      .hero-nav{ transition: none !important; }
+    }
+
+    /* ANCHOR: HERO_NAV_CSS */
+    .hero-nav {
+      position: absolute;
+      top: 50%;
+      transform: translateY(-50%);
+      background: rgba(255,255,255,0.8);
+      border: none;
+      border-radius: 50%;
+      width: 36px;
+      height: 36px;
+      font-size: 20px;
+      font-weight: bold;
+      cursor: pointer;
+      box-shadow: 0 2px 6px rgba(0,0,0,0.2);
+    }
+    #hero-prev { left: 10px; }
+    #hero-next { right: 10px; }
+    .hero-nav:hover { background: rgba(255,255,255,0.95); }
+    .hero-nav[disabled]{ opacity: .45; cursor: default; box-shadow: none; }
+    .hero-nav.is-hidden{ display: none; }
+    .hero img.is-fading{ opacity: 0; }
+
+    .thumbs{
+      display: grid;
+      grid-auto-flow: column;
+      grid-auto-columns: max-content;
+      gap: 10px;
+      margin: 12px 0 10px;
+      padding: 4px 2px;
+      overflow-x: auto;
+      scrollbar-gutter: stable;
+    }
+    .thumbs button{
+      appearance: none;
+      border: 1px solid var(--line);
+      border-radius: 12px;
+      background: #fff;
+      padding: 0; margin: 0; line-height: 0; cursor: pointer;
+      box-shadow: 0 6px 16px rgba(0,0,0,.10);
+      transition: transform .12s ease, box-shadow .12s ease, border-color .12s ease;
+    }
+    .thumbs img{ display: block; width: 110px; height: 72px; object-fit: contain; background:#fff; border-radius: 12px; }
+    .thumbs button:hover{ transform: translateY(-1px); box-shadow: 0 10px 22px rgba(0,0,0,.12); }
+    .thumbs button:focus-visible{ outline: 2px solid var(--bubble); outline-offset: 2px; }
+    .thumbs button[aria-current="true"]{ border-color: var(--bubble); box-shadow: 0 0 0 2px rgba(255,102,51,.25) inset; }
+
     /* ANCHOR: SKELETON_CSS */
     @keyframes shimmer {
       0% { background-position: -400px 0; }
@@ -285,130 +332,6 @@
       background-size: 400px 100%;
       animation: shimmer 1.1s infinite linear;
     }
-
-    /* ANCHOR: DETAILS_TAGS */
-    .tag{
-      padding:4px 8px;
-      border-radius:999px;
-      font-size:12px;
-      display:inline-block;
-      border:1px solid transparent;
-      font-weight:600;
-    }
-    .tag{ background:#dcfce7; color:#166534; border-color:#86efac; }   /* open: deeper green */
-    .tag.off{ background:#fee2e2; color:#991b1b; border-color:#fca5a5; } /* closed: stronger red */
-
-    /* ANCHOR: DETAILS_GALLERY_CSS */
-    .hero{
-      position: relative;
-      border-radius: var(--radius);
-      overflow: visible;
-      background:#fff;
-      aspect-ratio: 16 / 9;
-      width: 100%;
-      min-height: 260px;
-      max-height: 70vh; /* limit hero height to keep page scrollable */
-      box-shadow: var(--shadow);
-    }
-
-    .hero img{
-      width:100%;
-      height:100%;
-      object-fit:contain;
-      object-position:center;
-      display:block;
-      opacity: 1;
-      transition: opacity .25s ease;
-      background:#fff; /* keeps letterbox bars white, not black */
-    }
-    /* ANCHOR: GALLERY_NODRAG_CSS */
-    .hero img,
-    .thumbs img{
-      user-select: none;
-      -webkit-user-drag: none;
-    }
-
-    /* ANCHOR: REDUCED_MOTION_CSS */
-    @media (prefers-reduced-motion: reduce){
-      .hero img{
-        transition: none !important; /* disable fade cross-dissolve */
-      }
-      .hero-nav{
-        transition: none !important;
-      }
-    }
-    /* ANCHOR: HERO_NAV_CSS */
-    .hero-nav {
-      position: absolute;
-      top: 50%;
-      transform: translateY(-50%);
-      background: rgba(255,255,255,0.8);
-      border: none;
-      border-radius: 50%;
-      width: 36px;
-      height: 36px;
-      font-size: 20px;
-      font-weight: bold;
-      cursor: pointer;
-      box-shadow: 0 2px 6px rgba(0,0,0,0.2);
-    }
-    #hero-prev { left: 10px; }
-    #hero-next { right: 10px; }
-    .hero-nav:hover { background: rgba(255,255,255,0.95); }
-
-    /* disabled & hidden states */
-    .hero-nav[disabled]{
-      opacity: .45;
-      cursor: default;
-      box-shadow: none;
-    }
-    .hero-nav.is-hidden{
-      display: none;
-    }
-
-    .hero img.is-fading{ opacity: 0; }
-
-    .thumbs{
-      display: grid;
-      grid-auto-flow: column;
-      grid-auto-columns: max-content;
-      gap: 10px;
-      margin: 12px 0 10px;
-      padding: 4px 2px;
-      overflow-x: auto;
-      scrollbar-gutter: stable;
-    }
-
-    .thumbs button{
-      appearance: none;
-      border: 1px solid var(--line);
-      border-radius: 12px;
-      background: #fff;
-      padding: 0;
-      margin: 0;
-      line-height: 0;
-      cursor: pointer;
-      box-shadow: 0 6px 16px rgba(0,0,0,.10);
-      transition: transform .12s ease, box-shadow .12s ease, border-color .12s ease;
-    }
-    .thumbs img{ display: block; width: 110px; height: 72px; object-fit: contain; background:#fff; border-radius: 12px; }
-    .thumbs button:hover{
-      transform: translateY(-1px);
-      box-shadow: 0 10px 22px rgba(0,0,0,.12);
-    }
-    .thumbs button:focus-visible{
-      outline: 2px solid var(--bubble);
-      outline-offset: 2px;
-    }
-    .thumbs button[aria-current="true"]{
-      border-color: var(--bubble);
-      box-shadow: 0 0 0 2px rgba(255,102,51,.25) inset;
-    }
-    /* ANCHOR: THUMB_BAD_CSS */
-    .thumbs button.is-bad{ opacity:.45; filter:grayscale(1); cursor:default; }
-
-    /* ANCHOR: DETAILS_GALLERY_CSS */
-
   </style>
 </head>
 <body>
@@ -431,17 +354,17 @@
         </h1>
       </div>
       <!-- /ANCHOR: DETAILS_TOPBAR -->
-
     </header>
-<!-- ANCHOR: DETAILS_HERO_BLOCK -->
-<section class="hero-block">
-  <div id="hero" class="hero" aria-live="polite">
-    <img id="hero-img" src="" alt="" width="1600" height="900">
-    <button id="hero-prev" class="hero-nav" aria-label="Previous photo">‹</button>
-    <button id="hero-next" class="hero-nav" aria-label="Next photo">›</button>
-  </div>
-  <div id="thumbs" class="thumbs" aria-label="More photos"></div>
-</section>
+
+    <!-- ANCHOR: DETAILS_HERO_BLOCK -->
+    <section class="hero-block">
+      <div id="hero" class="hero" aria-live="polite">
+        <img id="hero-img" src="" alt="" width="1600" height="900">
+        <button id="hero-prev" class="hero-nav" aria-label="Previous photo">‹</button>
+        <button id="hero-next" class="hero-nav" aria-label="Next photo">›</button>
+      </div>
+      <div id="thumbs" class="thumbs" aria-label="More photos"></div>
+    </section>
 
     <div class="layout">
       <section>
@@ -453,7 +376,6 @@
         <div class="muted" id="stay-range"></div>
         <div class="muted">From</div>
         <div class="price" id="from" aria-live="polite">—</div>
-        <div class="muted" id="nights-note"></div>
         <button class="book" type="button" id="book">Book now (mock)</button>
       </aside>
     </div>
@@ -486,12 +408,11 @@
     hero.draggable = false;
     const heroWrap = document.getElementById('hero'); // container div for hero
     const thumbs = document.getElementById('thumbs');
-    const rows = document.getElementById('rows');
     const fromEl = document.getElementById('from');
     const rangeEl = document.getElementById('stay-range');
     const nameEl = document.getElementById('prop-name');
-    const amenities = document.getElementById('amenities');
-    const nightsNote = document.getElementById('nights-note');
+    const amenities = document.getElementById('amenities'); // may not exist on this page
+    const nightsNote = document.getElementById('nights-note'); // may not exist
 
     let images = [];
     let heroIndex = 0;
@@ -510,7 +431,6 @@
 
     /* ANCHOR: HERO_SRCSET_HELPER */
     function buildHeroSrcSet(url){
-      // Support picsum path pattern: /id/<id>/<w>/<h>
       try{
         const u = new URL(url, location.origin);
         if (!/picsum\.photos$/.test(u.hostname)) return null;
@@ -523,6 +443,7 @@
         return `${oneX} 1x, ${twoX} 2x`;
       }catch{ return null; }
     }
+
     /* ANCHOR: HERO_PRELOAD_HELPER */
     const __heroPreloaded = new Set();
     function preloadImage(url){
@@ -579,13 +500,14 @@
       thumbs.querySelectorAll('button.thumb').forEach((btn, idx) => {
         btn.setAttribute('aria-current', idx === i ? 'true' : 'false');
       });
-      // Preload previous/next images for snappier navigation
+
+      // Preload previous/next images
       const prevIdx = i - 1;
       const nextIdx = i + 1;
       if (prevIdx >= 0) preloadImage(images[prevIdx]);
       if (nextIdx < images.length) preloadImage(images[nextIdx]);
 
-      // Toggle arrows visibility / disabled state
+      // Toggle arrows
       const prevBtn = document.getElementById('hero-prev');
       const nextBtn = document.getElementById('hero-next');
       const n = images.length;
@@ -607,16 +529,18 @@
         nextBtn.setAttribute('aria-disabled', atEnd   ? 'true' : 'false');
       }
     }
+
     // ANCHOR: HERO_NAV_LOGIC
-    document.getElementById('hero-prev').addEventListener('click', ()=>{
-      setHero(heroIndex - 1);
-    });
-    document.getElementById('hero-next').addEventListener('click', ()=>{
-      setHero(heroIndex + 1);
-    });
+    (() => {
+      const prevBtn = document.getElementById('hero-prev');
+      const nextBtn = document.getElementById('hero-next');
+      if (prevBtn) prevBtn.addEventListener('click', () => setHero(heroIndex - 1));
+      if (nextBtn) nextBtn.addEventListener('click', () => setHero(heroIndex + 1));
+    })();
+
     /* ANCHOR: HERO_TOUCH_SWIPE */
     (() => {
-      const heroWrap = document.getElementById('hero');   // container with buttons + img
+      const heroWrap = document.getElementById('hero');
       if (!heroWrap) return;
 
       let startX = 0, startY = 0, active = false;
@@ -630,10 +554,9 @@
       }, { passive: true });
 
       heroWrap.addEventListener('touchmove', (e) => {
-        // If user scrolls vertically a lot, cancel swipe intent
         if (!active || !e.touches || e.touches.length !== 1) return;
         const dy = Math.abs(e.touches[0].clientY - startY);
-        if (dy > 20) active = false; // treat as vertical scroll, abort swipe
+        if (dy > 20) active = false;
       }, { passive: true });
 
       heroWrap.addEventListener('touchend', (e) => {
@@ -642,16 +565,11 @@
         const t = e.changedTouches && e.changedTouches[0];
         if (!t) return;
         const dx = t.clientX - startX;
-        const threshold = 40; // pixels to qualify as a swipe
+        const threshold = 40;
         if (Math.abs(dx) < threshold) return;
 
-        if (dx < 0) {
-          // swipe left → next
-          setHero(heroIndex + 1);
-        } else {
-          // swipe right → prev
-          setHero(heroIndex - 1);
-        }
+        if (dx < 0) setHero(heroIndex + 1);
+        else        setHero(heroIndex - 1);
       }, { passive: true });
     })();
 
@@ -662,27 +580,11 @@
       if (e.key === 'ArrowRight') { setHero(heroIndex + 1); e.preventDefault(); }
     });
 
-    /* ANCHOR: TABLE_STICKY_SHADOW_JS */
-    (function(){
-      const tbl = document.getElementById('availability');
-      if (!tbl) return;
-      const head = tbl.querySelector('thead');
-      if (!head) return;
-
-      function tick(){
-        const stuck = head.getBoundingClientRect().top <= 0;
-        tbl.classList.toggle('is-stuck', stuck);
-      }
-      window.addEventListener('scroll', tick, { passive: true });
-      window.addEventListener('resize', tick);
-      tick();
-    })();
     /* ANCHOR: THUMB_SRC_HELPER */
     function buildThumbSrcAndSet(url){
       try{
         const u = new URL(url, location.origin);
         if (!/picsum\.photos$/.test(u.hostname)) return { src: url, srcset: null };
-        // Expect path like /id/<id>/<w>/<h>; we normalize to our 110x72 size
         const m = u.pathname.match(/\/id\/(\d+)\/(\d+)\/(\d+)/);
         if (!m) return { src: url, srcset: null };
         const id = m[1], w = 110, h = 72;
@@ -695,7 +597,7 @@
       const current = idx === 0 ? 'true' : 'false';
       const total = images.length || 0;
       const name = (nameEl && nameEl.textContent) ? nameEl.textContent : 'Property';
-      const w = 110, h = 72; // match CSS .thumbs img
+      const w = 110, h = 72;
       const { src: s, srcset } = buildThumbSrcAndSet(src);
       const srcsetAttr = srcset ? ` srcset="${srcset}" sizes="110px"` : '';
       return `<button class="thumb" type="button" data-idx="${idx}" aria-label="${name} photo ${idx+1} of ${total}" aria-current="${current}">
@@ -706,106 +608,86 @@
     function money(v){ const n=Number(v); return Number.isFinite(n) ? `$${n.toFixed(2)}` : '—'; }
 
     async function load(){
-    // ANCHOR: DETAILS_FETCH_WITH_PLAN
-    console.log("[details] fetching catalog details with:", {
-      propertyId, start, end, plan, urlPreview:
-      `/catalog/details?propertyId=${encodeURIComponent(propertyId)}&start=${encodeURIComponent(start)}&end=${encodeURIComponent(end)}${plan ? "&ratePlanId="+encodeURIComponent(plan) : ""}`
-    });
+      // ANCHOR: DETAILS_FETCH_WITH_PLAN
+      console.log("[details] fetching catalog details with:", {
+        propertyId, start, end, plan, urlPreview:
+        `/catalog/details?propertyId=${encodeURIComponent(propertyId)}&start=${encodeURIComponent(start)}&end=${encodeURIComponent(end)}${plan ? "&ratePlanId="+encodeURIComponent(plan) : ""}`
+      });
 
-    const planQS   = plan ? `&ratePlanId=${encodeURIComponent(plan)}` : '';
-    const url      = `/catalog/details?propertyId=${encodeURIComponent(propertyId)}&start=${encodeURIComponent(start)}&end=${encodeURIComponent(end)}${planQS}`;
-    const urlAlt   = `/api/catalog/details?propertyId=${encodeURIComponent(propertyId)}&start=${encodeURIComponent(start)}&end=${encodeURIComponent(end)}${planQS}`;
+      const planQS   = plan ? `&ratePlanId=${encodeURIComponent(plan)}` : '';
+      const url      = `/catalog/details?propertyId=${encodeURIComponent(propertyId)}&start=${encodeURIComponent(start)}&end=${encodeURIComponent(end)}${planQS}`;
+      const urlAlt   = `/api/catalog/details?propertyId=${encodeURIComponent(propertyId)}&start=${encodeURIComponent(start)}&end=${encodeURIComponent(end)}${planQS}`;
 
-    // ANCHOR: SKELETON_START
-    if (heroWrap) heroWrap.classList.add('is-loading');
-    // 5-row table skeleton
-    rows.innerHTML = Array.from({length:5}).map(() => `
-      <tr>
-        <td><div class="skeleton-bar" style="width:110px;"></div></td>
-        <td><div class="skeleton-bar" style="width:40px;"></div></td>
-        <td><div class="skeleton-bar" style="width:70px;"></div></td>
-        <td><div class="skeleton-bar" style="width:50px;"></div></td>
-        <td><div class="skeleton-bar" style="width:80px;"></div></td>
-      </tr>
-    `).join("");
+      // ANCHOR: SKELETON_START
+      if (heroWrap) heroWrap.classList.add('is-loading');
 
-    // Robust fetch with fallback if the primary route is 404
-    let j;
-    try {
-      console.log('[details] GET', url);
-      let r = await fetch(url, { cache: 'no-store' });
-      if (!r.ok) {
-        console.warn('[details] primary failed', r.status, r.statusText);
-        if (r.status === 404) {
-          console.log('[details] retrying fallback', urlAlt);
-          r = await fetch(urlAlt, { cache: 'no-store' });
+      // Robust fetch with fallback
+      let j;
+      try {
+        console.log('[details] GET', url);
+        let r = await fetch(url, { cache: 'no-store' });
+        if (!r.ok) {
+          console.warn('[details] primary failed', r.status, r.statusText);
+          if (r.status === 404) {
+            console.log('[details] retrying fallback', urlAlt);
+            r = await fetch(urlAlt, { cache: 'no-store' });
+          }
+        }
+        if (!r.ok) throw new Error(`HTTP ${r.status} ${r.statusText}`);
+        j = await r.json();
+      } catch (e) {
+        console.error('[details] fetch error', e);
+        throw e;
+      }
+
+      // Safe DOM writes
+      if (nameEl) nameEl.textContent = j?.name || j?.meta?.property?.name || 'Stay';
+      {
+        const srcBadgeEl = document.getElementById('src-badge');
+        if (srcBadgeEl) srcBadgeEl.style.display = (j?._roomsSource === 'db') ? 'inline-block' : 'none';
+      }
+      if (rangeEl) rangeEl.textContent = `${start} — ${end}`;
+
+      // Compute fromPrice from daily rows (first room) if available
+      const daily0  = (j?.rooms?.[0]?.daily || []);
+      const priced  = daily0.filter(d => typeof d.price === 'number');
+      const minPrice = priced.length ? Math.min(...priced.map(d => Number(d.price))) : null;
+      if (fromEl) fromEl.textContent = (minPrice != null) ? money(minPrice) : '—';
+
+      /* ANCHOR: DETAILS_AMENITIES_RENDER (optional chips if present elsewhere) */
+      {
+        const raw = Array.isArray(j?.amenities)
+          ? j.amenities
+          : (Array.isArray(j?.meta?.property?.amenities) ? j.meta.property.amenities : []);
+        const chips = [...new Set(raw.map(a => String(a).trim()).filter(Boolean))].slice(0, 8);
+        if (chips.length) {
+          const amenities = document.getElementById('amenities');
+          if (amenities) {
+            amenities.style.display = 'flex';
+            amenities.innerHTML = chips.map(a => `<span class="chip">${a}</span>`).join("");
+          }
         }
       }
-      if (!r.ok) throw new Error(`HTTP ${r.status} ${r.statusText}`);
-      j = await r.json();
-    } catch (e) {
-      console.error('[details] fetch error', e);
-      throw e; // let the outer catch show the friendly UI message
-    }
-
-    // Safe DOM writes
-    if (nameEl) nameEl.textContent = j?.name || j?.meta?.property?.name || 'Stay';
-    {
-      const srcBadgeEl = document.getElementById('src-badge');
-      if (srcBadgeEl) srcBadgeEl.style.display = (j?._roomsSource === 'db') ? 'inline-block' : 'none';
-    }
-    if (rangeEl) rangeEl.textContent = `${start} — ${end}`;
-
-    // Compute fromPrice + availability from daily rows (works for DB-backed data)
-    const daily0  = (j?.rooms?.[0]?.daily || []);
-    const priced  = daily0.filter(d => typeof d.price === 'number');
-    const minPrice = priced.length ? Math.min(...priced.map(d => Number(d.price))) : null;
-    if (fromEl) fromEl.textContent = (minPrice != null) ? money(minPrice) : '—';
-
-    /* ANCHOR: DETAILS_AMENITIES_RENDER */
-    {
-      // Prefer top-level amenities; fallback to meta.property.amenities if present
-      const raw = Array.isArray(j?.amenities)
-        ? j.amenities
-        : (Array.isArray(j?.meta?.property?.amenities) ? j.meta.property.amenities : []);
-      const chips = [...new Set(raw.map(a => String(a).trim()).filter(Boolean))].slice(0, 8);
-      if (chips.length) {
-        if (amenities) {
-          amenities.style.display = 'flex';
-          amenities.innerHTML = chips.map(a => `<span class="chip">${a}</span>`).join("");
-        }
-      } else if (amenities) {
-        amenities.style.display = 'none';
-        amenities.innerHTML = "";
-      }
-    }
 
       // Prefer details.images (DB-backed) with cover support; fallback to first room images
       const rawImages =
         Array.isArray(j?.images) ? j.images
         : (Array.isArray(j?.rooms?.[0]?.images) ? j.rooms[0].images : []);
 
-      // Extract a cover url if present (object with { url, isCover: true })
       const coverUrl =
         (Array.isArray(j?.images)
           ? j.images.find(it => typeof it === 'object' && it?.isCover === true)?.url
-          : null) ||
-        null;
+          : null) || null;
 
-      // Normalize to an array of URL strings
       images = rawImages
         .map(it => (typeof it === 'string' ? it : it?.url))
         .filter(Boolean);
 
-      // If we found a cover, move it to the front
       if (coverUrl) {
         const idx = images.indexOf(coverUrl);
-        if (idx > 0) {
-          images.splice(0, 0, ...images.splice(idx, 1));
-        }
+        if (idx > 0) images.splice(0, 0, ...images.splice(idx, 1));
       }
 
-      // Thumbs + hero (with graceful fallback)
       const placeholder = 'data:image/svg+xml;utf8,' +
         encodeURIComponent(
           `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 450">
@@ -819,7 +701,6 @@
         );
 
       if (!images.length) {
-        // Hide thumbs and show a neutral placeholder in the hero
         thumbs.innerHTML = '';
         hero.src = placeholder;
         hero.removeAttribute('srcset');
@@ -830,23 +711,23 @@
         setHero(0);
       }
 
-      thumbs.addEventListener('click', (e)=>{
-        const b = e.target.closest('.thumb'); if(!b) return;
-        setHero(Number(b.dataset.idx||'0'));
-      });
-      thumbs.addEventListener('mouseover', (e)=>{
-        const b = e.target.closest('.thumb'); if(!b) return;
-        setHero(Number(b.dataset.idx||'0'));
-      });
+      if (thumbs) {
+        thumbs.addEventListener('click', (e) => {
+          const b = e.target.closest('.thumb'); if (!b) return;
+          setHero(Number(b.dataset.idx || '0'));
+        });
+        thumbs.addEventListener('mouseover', (e) => {
+          const b = e.target.closest('.thumb'); if (!b) return;
+          setHero(Number(b.dataset.idx || '0'));
+        });
+      }
+
       /* ANCHOR: ROOMCAT_LIST_JS */
-      // Build a list of room categories that have open inventory in the selected range
       (function(){
         const listEl = document.getElementById('roomCats');
         if (!listEl) return;
 
-        // j.rooms: expect [{ id, name, images?, daily: [{date, price, open/inventory, closed, minStay}], amenities?, areaM2?, areaFt2? }, ...]
         const rooms = Array.isArray(j?.rooms) ? j.rooms : [];
-        // Determine which rooms have at least one open night
         const openRooms = rooms
           .map(r => {
             const daily = Array.isArray(r.daily) ? r.daily : [];
@@ -856,7 +737,6 @@
           })
           .filter(x => x.openNights.length > 0);
 
-        // Render
         if (!openRooms.length){
           listEl.innerHTML = `
             <div class="small" style="color:var(--muted); padding:4px 0;">
@@ -896,75 +776,13 @@
             </div>`;
         }).join('');
       })();
-
-      // table rows (DB-safe: inventory || open)
-      // ANCHOR: DETAILS_ROWS_RENDER
-      const daily = j?.rooms?.[0]?.daily || [];
-
-      /* Format YYYY-MM-DD -> MM-DD-YYYY */
-      function fmtMDY(s){
-        if (typeof s !== 'string') return s;
-        const [y,m,d] = s.split('-');
-        return (y && m && d) ? `${m}-${d}-${y}` : s;
-      }
-
-      function renderRows(list){
-        if (!Array.isArray(list) || !list.length) {
-          rows.innerHTML = `<tr>
-            <td colspan="5" class="small" style="color:var(--muted); padding:14px 8px;">
-              No availability or pricing for the selected dates. Try widening the range in Catalog.
-            </td>
-          </tr>`;
-          return;
-        }
-
-        // Always show only open nights
-        const filtered = list.filter(d => {
-          const openCount = Number(d.inventory ?? d.open ?? 0);
-          const isClosed = Boolean(d.closed) || openCount <= 0;
-          return !isClosed;
-        });
-
-        if (!filtered.length) {
-          rows.innerHTML = `<tr>
-            <td colspan="5" class="small" style="color:var(--muted); padding:14px 8px;">
-              No open nights in this range.
-            </td>
-          </tr>`;
-          return;
-        }
-
-        rows.innerHTML = filtered.map(d => {
-          const openCount = Number(d.inventory ?? d.open ?? 0);
-          const tag = `<span class="tag">Open</span>`;
-          return `<tr>
-            <td>${fmtMDY(d.date)}</td>
-            <td>${openCount}</td>
-            <td>${money(d.price)}</td>
-            <td>${d.minStay ?? 1}</td>
-            <td>${tag}</td>
-          </tr>`;
-        }).join("");
-      }
-
-      // initial render (open-only)
-      renderRows(daily);
     }
-    /* ANCHOR: JUMP_TO_AVAIL */
-    document.getElementById('jumpAvail').addEventListener('click', (e)=>{
-      e.preventDefault();
-      const tbl = document.getElementById('availability');
-      if (!tbl) return;
 
-      const prefersReduced = window.matchMedia &&
-        window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    (() => {
+      const bookBtn = document.getElementById('book');
+      if (bookBtn) bookBtn.addEventListener('click', () => showToast('Booking flow coming soon'));
+    })();
 
-      tbl.scrollIntoView({ behavior: prefersReduced ? 'auto' : 'smooth', block: 'start' });
-    });
-
-    document.getElementById('book').addEventListener('click', ()=>{
-      showToast('Booking flow coming soon');
-    });
 
     /* ANCHOR: TOAST_JS_HELPER */
     function showToast(msg, ms=1600){
@@ -977,114 +795,79 @@
         document.body.appendChild(t);
       }
       t.textContent = msg;
-      // force reflow to restart transition
-      void t.offsetWidth;
+      void t.offsetWidth; // restart transition
       t.classList.add('show');
       clearTimeout(t._hideTimer);
       t._hideTimer = setTimeout(()=>{ t.classList.remove('show'); }, ms);
     }
 
-    document.getElementById('copyLink').addEventListener('click', async ()=>{
-      try{
-        await navigator.clipboard.writeText(location.href);
-        showToast('Link copied');
-      }catch(_){
-        // Fallback: select-and-copy prompt if clipboard API fails
-        const ta = document.createElement('textarea');
-        ta.value = location.href;
-        document.body.appendChild(ta);
-        ta.select(); ta.setSelectionRange(0, ta.value.length);
-        try{ document.execCommand('copy'); showToast('Link copied'); }
-        catch(_e){ showToast('Copy failed'); }
-        finally{ document.body.removeChild(ta); }
+    load().catch(err=>{
+      console.error(err);
+      showToast('Failed to load details');
+
+      // Stop the hero shimmer and show a neutral placeholder
+      if (heroWrap) heroWrap.classList.remove('is-loading');
+      const heroEl = document.getElementById('hero-img');
+      if (heroEl) {
+        const ph = getPlaceholderSVG('Photo failed to load');
+        heroEl.src = ph;
+        heroEl.removeAttribute('srcset');
+        heroEl.removeAttribute('sizes');
+        heroEl.alt = 'Photo failed to load';
       }
     });
-
-    load().catch(err=>{
-    console.error(err);
-    showToast('Failed to load details');
-
-    // Stop the hero shimmer and show a neutral placeholder
-    if (heroWrap) {
-      heroWrap.classList.remove('is-loading');
-    }
-    const heroEl = document.getElementById('hero-img');
-    if (heroEl) {
-      const ph = getPlaceholderSVG('Photo failed to load');
-      heroEl.src = ph;
-      heroEl.removeAttribute('srcset');
-      heroEl.removeAttribute('sizes');
-      heroEl.alt = 'Photo failed to load';
-    }
-
-    // Also show a friendly inline message in the table area
-    const rows = document.getElementById('rows');
-    if (rows) {
-      rows.innerHTML = `<tr>
-        <td colspan="5" class="small" style="color:var(--muted); padding:14px 8px;">
-          Failed to load details. Please refresh or try again later.
-        </td>
-      </tr>`;
-    }
-  });
   </script>
+
   <!-- ANCHOR: SCROLLTOP_HTML -->
-    <button id="scrollTopBtn" class="scrolltop-btn" aria-label="Scroll to top" title="Back to top">
-      <!-- simple chevron up -->
-      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" aria-hidden="true">
-        <path d="M6 14l6-6 6 6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-      </svg>
-    </button>
-    <script>
-      // ANCHOR: SCROLLTOP_JS
-      (function () {
-        const btn = document.getElementById('scrollTopBtn');
-        if (!btn) return;
+  <button id="scrollTopBtn" class="scrolltop-btn" aria-label="Scroll to top" title="Back to top">
+    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+      <path d="M6 14l6-6 6 6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+    </svg>
+  </button>
+  <script>
+    // ANCHOR: SCROLLTOP_JS
+    (function () {
+      const btn = document.getElementById('scrollTopBtn');
+      if (!btn) return;
 
-        // Respect reduced motion
-        const prefersReduced =
-          window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+      const prefersReduced =
+        window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
 
-        // Threshold: bottom of hero or 400px fallback
-        const hero = document.querySelector('.hero, #hero, .gallery-hero');
-        const baselinePx = 400;
-        const threshold = () => {
-          if (!hero) return baselinePx;
-          const rect = hero.getBoundingClientRect();
-          const pageY = window.scrollY + rect.top + rect.height; // bottom of hero in page coords
-          // clamp so it doesn't require an excessively long scroll
-          return Math.max(pageY * 0.02, Math.min(pageY, 800));
-        };
+      const hero = document.querySelector('.hero, #hero, .gallery-hero');
+      const baselinePx = 400;
+      const threshold = () => {
+        if (!hero) return baselinePx;
+        const rect = hero.getBoundingClientRect();
+        const pageY = window.scrollY + rect.top + rect.height; // bottom of hero
+        return Math.max(pageY * 0.02, Math.min(pageY, 800));
+      };
 
-        let ticking = false;
-        const onScroll = () => {
-          if (ticking) return;
-          ticking = true;
-          requestAnimationFrame(() => {
-            const show = window.scrollY > threshold();
-            btn.classList.toggle('show', show);
-            ticking = false;
-          });
-        };
-
-        window.addEventListener('scroll', onScroll, { passive: true });
-        window.addEventListener('resize', onScroll);
-
-        btn.addEventListener('click', (e) => {
-          e.preventDefault();
-          try {
-            window.scrollTo({ top: 0, behavior: prefersReduced ? 'auto' : 'smooth' });
-          } catch {
-            // Fallback
-            document.documentElement.scrollTop = 0;
-            document.body.scrollTop = 0;
-          }
+      let ticking = false;
+      const onScroll = () => {
+        if (ticking) return;
+        ticking = true;
+        requestAnimationFrame(() => {
+          const show = window.scrollY > threshold();
+          btn.classList.toggle('show', show);
+          ticking = false;
         });
+      };
 
-        // Prime initial state
-        onScroll();
-      })();
-    </script>
+      window.addEventListener('scroll', onScroll, { passive: true });
+      window.addEventListener('resize', onScroll);
 
+      btn.addEventListener('click', (e) => {
+        e.preventDefault();
+        try {
+          window.scrollTo({ top: 0, behavior: prefersReduced ? 'auto' : 'smooth' });
+        } catch {
+          document.documentElement.scrollTop = 0;
+          document.body.scrollTop = 0;
+        }
+      });
+
+      onScroll();
+    })();
+  </script>
 </body>
 </html>
