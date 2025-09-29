@@ -329,6 +329,8 @@
       ? 'https://lolaelo-api.onrender.com'
       : location.origin;
     const LOGIN_PAGE = "partners_login.html";
+    window.DEBUG = true;   // ensure global DEBUG before any use
+    var DEBUG = !!window.DEBUG;   // declare identifier so `if (DEBUG)` never throws
     // City codes ↔ labels used by both hub and public catalog
     const CITY_LABELS = {
       SIARGAO: 'Siargao',
@@ -457,38 +459,62 @@
       const cityCode  = normalizeCityCode($('pp_city').value);
       const cityLabel = CITY_LABELS[cityCode] || null;
 
-      const body = JSON.stringify({
+      // Build payload and drop empty fields so we don't overwrite with nulls
+      const payload = {
         name:         nz($('pp_name').value),
         contactEmail: nz($('pp_contactEmail').value),
         phone:        nz($('pp_phone').value),
         addressLine:  nz($('pp_address').value),
         country:      nz($('pp_country').value),
         description:  nz($('pp_desc').value),
-
-        // Persist code (for catalog filtering) and a friendly label
         cityCode:     cityCode || null,
-        city:         cityLabel
-      });
+        city:         cityLabel || null
+      };
+      // Remove null/empty so PATCH won’t clear existing values server-side
+      Object.keys(payload).forEach(k => (payload[k] == null) && delete payload[k]);
+      const body = JSON.stringify(payload);
 
       const btn = $('btnSave'); btn.disabled = true;
       try {
-        let r = await authed('/extranet/property', { method:'PUT', headers:{ 'Content-Type':'application/json' }, body });
-        if (r.status === 400) {
-          r = await authed('/extranet/property', { method:'PATCH', headers:{ 'Content-Type':'application/json' }, body });
+        // Prefer PATCH so we only touch provided fields
+        let r = await authed('/extranet/property', {
+          method: 'PATCH',
+          headers: { 'Content-Type': 'application/json' },
+          body
+        });
+
+        // Fallback to PUT if PATCH isn't supported
+        if (r.status === 404 || r.status === 405) {
+          r = await authed('/extranet/property', {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json' },
+            body
+          });
         }
+
         if (!r.ok) {
-          let msg = ''; try { msg = (await r.json()).error || (await r.text()) || ''; } catch {}
+          let msg = '';
+          try { msg = (await r.json()).error || (await r.text()) || ''; } catch {}
           throw new Error(msg || `Save failed: ${r.status}`);
         }
+
+        // Re-fetch to verify what’s in the DB and reflect it in the form
+        const saved = await getJSON('/extranet/property').catch(() => null);
+        console.log('[hub] saved record echo:', saved);
+
         await loadPropertyIntoForm();
-        toast('Saved.', true);
+        toast(
+          saved && (saved.name || saved.city || saved.cityCode)
+            ? `Saved “${saved?.name || '—'}” · ${saved?.city || saved?.cityCode || '—'}`
+            : 'Saved.',
+          true
+        );
       } catch (e) {
         console.error(e);
         toast(e.message || 'Network error.');
       } finally {
         btn.disabled = false;
       }
-    }
 
     $('btnSave').onclick = (e) => {
       e.preventDefault();
