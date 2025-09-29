@@ -190,13 +190,13 @@
           <span>📍</span>
           <select id="dest">
             <option value="">All destinations</option>
-            <option value="SIARGAO" selected>Siargao</option>
+            <option value="SIARGAO">Siargao</option>
             <option value="BORACAY">Boracay</option>
             <option value="ELNIDO">El Nido</option>
+            <option value="CEBU">Cebu</option>
+            <option value="MANILA">Manila</option>
           </select>
         </label>
-
-
         <label class="field" aria-label="Check-in">
           <span>📅</span>
           <input id="start" type="date" />
@@ -264,7 +264,10 @@
       return v; // '' means all destinations
     }
     // ANCHOR: CITY_PARAM_DEF END
-
+    // ANCHOR: CITY_PARAM_HYDRATE
+    const __cityParam = (qs.get('city') || '').trim().toUpperCase();
+    if (S('dest')) S('dest').value = __cityParam;
+    // ANCHOR: CITY_PARAM_HYDRATE END
     // If q is in URL, show it; otherwise ensure input has no value (placeholder only)
     const detailsEl = document.getElementById('amenities');
 
@@ -274,6 +277,13 @@
     const s0 = qs.get('start') || todayISO();
     const e0 = qs.get('end')   || addDaysISO(s0, 3);
     startInp.value = s0; endInp.value = e0; guestsInp.value = qs.get('guests') || "2";
+    // INIT CITY SELECT FROM ?city= (fallback to SIARGAO)
+    (function initCity(){
+      const sel = document.getElementById('dest');
+      if (!sel) return;
+      const qCity = (qs.get('city') || '').trim().toUpperCase();
+      sel.value = qCity || 'SIARGAO';
+    })();
 
     function stars(n){ return '★'.repeat(Number(n||0)); }
 
@@ -339,22 +349,37 @@
       try{
         // ANCHOR: PLAN_IN_SEARCH_FETCH
         const city = selectedCityCode();
-        const cityQS = city ? `&city=${encodeURIComponent(city)}` : '';
-        const r = await fetch(`/catalog/search?start=${encodeURIComponent(start)}&end=${encodeURIComponent(end)}&guests=${guests}${planQS}${cityQS}`);
+        // send BOTH params so backend can match either text or code
+        const cityQS =
+          city
+            ? `&city=${encodeURIComponent(city)}&cityCode=${encodeURIComponent(city)}`
+            : '';
+        const r = await fetch(
+          `/catalog/search?start=${encodeURIComponent(start)}&end=${encodeURIComponent(end)}&guests=${guests}${planQS}${cityQS}`
+        );
         const j = await r.json();
         const all = Array.isArray(j.properties) ? j.properties : [];
         // ANCHOR: CITY_CLIENT_FILTER
         const citySel = selectedCityCode();
         const byCity = (list, code) => {
           if (!code) return list;
-          const norm = s => String(s || '').trim().toUpperCase();
-          return list.filter(p =>
-            norm(p.cityCode) === code ||        // preferred: exact code match
-            norm(p.city) === code               // fallback: city label matches the code text
-          );
+          const norm  = s => String(s || '').trim().toUpperCase();
+          const strip = s => norm(s).replace(/[^A-Z0-9]/g, ''); // remove spaces/punct for tolerant compares
+          return list.filter(p => {
+            const sel   = norm(code);           // e.g., "SIARGAO"
+            const cCode = norm(p.cityCode);     // exact code
+            const cLab  = norm(p.city);         // label e.g., "GENERAL LUNA, SIARGAO"
+
+            if (cCode === sel) return true;                 // exact code match
+            if (cLab === sel) return true;                  // exact label equals selection
+            if (cLab.includes(sel)) return true;            // label contains selection (… SIARGAO)
+            if (strip(cLab) === strip(sel)) return true;    // EL NIDO vs ELNIDO
+            return false;
+          });
         };
         let list = byCity(all, citySel);
         // ANCHOR: CITY_CLIENT_FILTER END
+
         // ANCHOR: CITY_CLIENT_FILTER_DIAG
         console.log('[catalog] totals:', {
           all: all.length,
@@ -372,6 +397,49 @@
           }))
         );
         // ANCHOR: CITY_CLIENT_FILTER_DIAG END
+
+        // ANCHOR: CITY_CLIENT_FILTER_DIAG
+        console.log('[catalog] totals:', {
+          all: all.length,
+          afterCity: list.length,
+          citySel
+        });
+        console.table(
+          list.map(p => ({
+            id: p.propertyId,
+            name: p.name,
+            city: p.city,
+            cityCode: p.cityCode,
+            availableNights: p.availableNights,
+            fromPriceStr: p.fromPriceStr
+          }))
+        );
+        // ANCHOR: CITY_CLIENT_FILTER_DIAG END
+
+        // ANCHOR: TARGET_PROP_DIAG (mike check 1)
+        (() => {
+          const TARGET = 'mike check 1';
+          const norm = s => String(s||'').trim().toLowerCase();
+          const inAll  = (all  || []).find(p => norm(p.name) === norm(TARGET));
+          const inCity = (list || []).find(p => norm(p.name) === norm(TARGET));
+
+          console.log('[catalog][target]', TARGET, {
+            presentInAll: !!inAll,
+            presentAfterCityFilter: !!inCity,
+            selectedCity: citySel,
+            all_city: inAll && { city: inAll.city, cityCode: inAll.cityCode },
+            all_availableNights: inAll && inAll.availableNights,
+            all_fromPriceStr: inAll && inAll.fromPriceStr
+          });
+
+          if (inAll && !inCity) {
+            console.warn('[catalog][target] City mismatch likely. Compare:', {
+              selectedCity: citySel,
+              propCity: inAll.city,
+              propCityCode: inAll.cityCode
+            });
+          }
+        })();
 
         window.__catalogProps = list;
 
@@ -394,7 +462,24 @@
         if (typeof detailsEl !== 'undefined' && detailsEl) detailsEl.open = false;
       }
     }
-    document.getElementById('search').addEventListener('click', run);
+    // Update URL with city/start/end/guests (+ optional plan), then run
+      document.getElementById('search').addEventListener('click', () => {
+        const city   = selectedCityCode();
+        const start  = startInp.value || todayISO();
+        const end    = endInp.value   || start;
+        const guests = Number(guestsInp.value || 2) || 2;
+
+        const params = new URLSearchParams();
+        params.set('start', start);
+        params.set('end', end);
+        params.set('guests', String(guests));
+        if (city) params.set('city', city);
+        if (window.ratePlanId) params.set('ratePlanId', String(window.ratePlanId));
+
+        history.replaceState(null, '', location.pathname + '?' + params.toString());
+        run();
+      });
+
     S('dest')?.addEventListener('change', run);
 
     /* ANCHOR: AMENITY_AUTO_FILTER */
