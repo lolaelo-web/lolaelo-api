@@ -12,6 +12,21 @@ const __dirname = path.dirname(__filename);
 
 const app = express();
 app.disable("x-powered-by");
+// ---- TEMP DEBUG: log incoming /catalog/details requests
+app.use((req, res, next) => {
+  if (req.path.startsWith("/catalog/details")) {
+    const started = Date.now();
+    console.log("CATALOG_DETAILS_REQ", { path: req.path, q: req.query });
+    res.on("finish", () => {
+      console.log("CATALOG_DETAILS_RES", {
+        status: res.statusCode,
+        ms: Date.now() - started,
+        q: req.query,
+      });
+    });
+  }
+  next();
+});
 
 // ---- CORS ----
 const CORS_ALLOWED_ORIGINS = [
