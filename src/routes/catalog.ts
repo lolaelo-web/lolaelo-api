@@ -226,7 +226,7 @@ router.get("/search", async (req: Request, res: Response) => {
               JOIN price p ON p.pid = i.pid
             )
             SELECT
-              COALESCE(pp.id, p.id)                AS "propertyId",
+              p.id                                 AS "propertyId",
               COALESCE(pp.name, p.name, '')        AS name,
               COALESCE(pp.city, '')                AS city,
               ''                                   AS country
