@@ -16,29 +16,23 @@ const router = Router();
 /**
  * GET /catalog/search
  * Query params:
- *  - start: YYYY-MM-DD  (required)
- *  - end:   YYYY-MM-DD  (required, exclusive)
+ *  - start: YYYY-MM-DD
+ *  - end:   YYYY-MM-DD (exclusive)
  *  - ratePlanId?: number
- *  - guests?: number     (default 2)  ← used for availability ≥ guests
- *  - city?: string       (cityCode preferred; falls back to city text)
- *  - db?: "0" | "1"      ("0" = mock only; "1" = try DB then mock)
+ *  - city?: string (e.g., SIARGAO). Fallback-matched against cityCode OR city.
  */
 router.get("/search", async (req: Request, res: Response) => {
   req.app?.get("logger")?.info?.({ q: req.query }, "catalog.search invoked");
   console.log("[catalog] search invoked", req.query);
 
   try {
-    // ---- Response caching ----
+    // ANCHOR: NO_STORE_HEADER
     res.set("Cache-Control", "no-store");
 
     // ---- Extract params (strict) ------------------------------------------
     const start = String(req.query.start || "").trim();
     const end = String(req.query.end || "").trim();
     const ratePlanId = req.query.ratePlanId ? Number(req.query.ratePlanId) : undefined;
-    const guests = Math.max(1, Number(req.query.guests ?? 2));
-    const citySelRaw = String(req.query.city ?? "").trim();
-    const citySel = citySelRaw ? citySelRaw.toUpperCase() : ""; // compare against cityCode or city↑
-    const wantsDb = (req.query.db ?? "1") !== "0"; // ANCHOR: NONBLOCK_ENRICH
 
     if (!/^\d{4}-\d{2}-\d{2}$/.test(start) || !/^\d{4}-\d{2}-\d{2}$/.test(end)) {
       return res.status(400).json({ error: "start/end must be YYYY-MM-DD" });
@@ -46,20 +40,22 @@ router.get("/search", async (req: Request, res: Response) => {
 
     const params = { start, end, ratePlanId };
 
-    // ---- 1) Base list (DB-first, fallback to mock) ------------------------
+    // ---- 1) Base list from adapter (DB-first, mock fallback) --------------
+    const wantsDb = (req.query.db ?? "1") !== "0"; // ANCHOR: NONBLOCK_ENRICH
     let list: any; let _baseSource: "db" | "mock" = "mock";
     if (wantsDb) {
       try {
-        list = await getSearchListFromDb(params);
+        list = await getSearchListFromDb(params); // DB-first
         _baseSource = "db";
       } catch {
-        list = await getSearchList(params);
+        list = await getSearchList(params);       // fallback to mock
         _baseSource = "mock";
       }
     } else {
-      list = await getSearchList(params);
+      list = await getSearchList(params);         // mock when db=0
       _baseSource = "mock";
     }
+    // { properties: [...] }
 
     const props: any[] = Array.isArray(list?.properties) ? list.properties : [];
     for (const p of props) { try { (p as any)._baseSource = _baseSource; } catch {} }
@@ -72,14 +68,24 @@ router.get("/search", async (req: Request, res: Response) => {
     // ANCHOR: STRIP_LEGACY_ID
     for (const p of props) { try { delete (p as any).id; } catch {} }
 
-    // ---- Early return path when db=0 (but kick off async enrichment) ------
+    // --- SERVER-SIDE CITY FILTER FALLBACK (handles schemas without cityCode) ---
+    const cityParam = String(req.query.city || "").trim().toUpperCase();
+    if (cityParam) {
+      for (let i = props.length - 1; i >= 0; i--) {
+        const cc = String((props[i] as any)?.cityCode || "").toUpperCase();
+        const c  = String((props[i] as any)?.city     || "").toUpperCase();
+        if (cc !== cityParam && c !== cityParam) props.splice(i, 1);
+      }
+    }
+
     if (!wantsDb) {
+      // run enrichment in the background and return immediately
       setTimeout(() => {
         (async () => {
           try {
             const idsBg: number[] = [];
             for (const p of props) {
-              const idNum = Number(p?.propertyId);
+              const idNum = Number((p as any)?.propertyId);
               if (Number.isFinite(idNum)) idsBg.push(idNum);
             }
 
@@ -98,14 +104,15 @@ router.get("/search", async (req: Request, res: Response) => {
         })().catch(() => {});
       }, 0);
 
-      // Client may apply city/guests filters; return base props now
-      return res.json({ properties: props });
+      return res.set("Cache-Control", "no-store").json({ properties: props });
     }
+
+    let _roomsApplied = 0; // debug: count properties where DB rooms were applied
 
     // ---- 2) Enrich: profiles/photos from DB -------------------------------
     const ids: number[] = [];
     for (const p of props) {
-      const idNum = Number(p?.propertyId);
+      const idNum = Number((p as any)?.propertyId);
       if (Number.isFinite(idNum)) ids.push(idNum);
     }
 
@@ -114,24 +121,23 @@ router.get("/search", async (req: Request, res: Response) => {
       try {
         const profMap = await getProfilesFromDb(ids);
         for (const p of props) {
-          const pid = Number(p?.propertyId);
+          const pid = Number((p as any)?.propertyId);
           const prof = profMap[pid];
           if (!prof) continue;
 
-          // Identity/location (prefer DB)
-          p.name = prof.name ?? p.name ?? "";
-          p.city = prof.city ?? p.city ?? "";
-          p.country = prof.country ?? p.country ?? "";
+          // prefer DB identity/location labels
+          (p as any).name    = prof.name ?? (p as any).name ?? "";
+          (p as any).city    = prof.city ?? (p as any).city ?? "";
+          (p as any).country = prof.country ?? (p as any).country ?? "";
 
-          // cityCode normalization if provided by DB (typed via any to avoid TS mismatch)
-          const profCityCode = (prof as any)?.cityCode;
-          if (typeof profCityCode === "string" && profCityCode.trim()) {
-            (p as any).cityCode = profCityCode.toUpperCase();
+          // optional: normalize cityCode if present in profile
+          if (typeof prof.cityCode === "string" && prof.cityCode.length) {
+            (p as any).cityCode = prof.cityCode.toUpperCase();
           }
 
-          // Images: prefer DB when available
           if (Array.isArray(prof.images) && prof.images.length) {
-            p.images = prof.images;
+            if (!(p as any).images || !Array.isArray((p as any).images)) (p as any).images = [];
+            (p as any).images = prof.images; // prefer DB images only
           }
         }
       } catch (err) {
@@ -140,16 +146,14 @@ router.get("/search", async (req: Request, res: Response) => {
       // ANCHOR: MERGE_DB_PROFILES_END
     }
 
-    // ---- 3) Rooms/Inventory/Prices from DB (with timebox) -----------------
-    // Count only nights with inventory >= guests AND not closed
+    // ---- 3) Rooms/Inventory/Prices from DB (fallback to mock if empty) ----
+    // ANCHOR: ROOMS_DB_WIRE_START
     const TIMEBOX_MS = Math.max(500, Number(process.env.CATALOG_ROOMS_TIMEBOX_MS ?? 2500));
     const timebox = <T>(promise: Promise<T>, ms: number): Promise<T | null> =>
       Promise.race([promise, new Promise<T | null>(resolve => setTimeout(() => resolve(null), ms))]);
 
-    let roomsApplied = 0;
-
     for (const p of props) {
-      const pid = Number(p?.propertyId);
+      const pid = Number((p as any)?.propertyId);
       if (!Number.isFinite(pid)) continue;
 
       try {
@@ -159,52 +163,60 @@ router.get("/search", async (req: Request, res: Response) => {
         )) ?? [];
 
         if (rooms.length > 0) {
-          // attach rooms to detail
-          if (p.detail && Array.isArray(p.detail.rooms)) {
-            p.detail.rooms = rooms;
-          } else if (p.detail) {
-            p.detail.rooms = rooms;
+          // overlay rooms
+          if ((p as any).detail && Array.isArray((p as any).detail.rooms)) {
+            (p as any).detail.rooms = rooms;
+          } else if ((p as any).detail) {
+            (p as any).detail.rooms = rooms;
           } else {
-            p.detail = { rooms };
+            (p as any).detail = { rooms };
           }
-          roomsApplied++;
-          try { (p.detail as any)._roomsSource = "db"; } catch {}
+          _roomsApplied++; // <— increment after rooms are applied
 
-          // Rollup (availability & fromPrice) with guests threshold
-          type Daily = RoomsDailyRow["daily"][number];
-          const allDaily: Daily[] = rooms.flatMap((r) => (r.daily as Daily[]) || []);
-          const availNights = allDaily.filter((d: Daily) =>
-            !d.closed && Number(d?.inventory ?? d?.open ?? 0) >= guests
-          ).length;
-          const priced: Daily[] = allDaily.filter((d: Daily) => typeof d?.price === "number");
-          const minPrice = priced.length ? Math.min(...priced.map((d: Daily) => Number(d!.price))) : null;
-          const curCode = (priced[0]?.currency as string) || "USD";
+          // ANCHOR: ROOMS_DB_SOURCE_FLAG
+          try { ((p as any).detail as any)._roomsSource = "db"; } catch {}
 
-          (p as any).availableNights = availNights;
-          (p as any).nightsTotal = allDaily.length;
+          // ANCHOR: ROOMS_DB_ROLLUP_FROM_DB (typed)
+          try {
+            type Daily = RoomsDailyRow["daily"][number];
+            const allDaily: Daily[] = rooms.flatMap(
+              (r: RoomsDailyRow) => (r.daily as Daily[]) || []
+            );
+            const availNights = allDaily.filter((d: Daily) => (d.inventory ?? 0) > 0).length;
+            const priced: Daily[] = allDaily.filter((d: Daily) => typeof d.price === "number");
+            const minPrice = priced.length ? Math.min(...priced.map((d: Daily) => (d.price as number))) : null;
+            const curCode = (priced[0]?.currency as string) || "USD";
 
-          if (minPrice != null && Number.isFinite(minPrice)) {
-            (p as any).fromPrice = minPrice;
-            try {
-              (p as any).fromPriceStr = new Intl.NumberFormat("en-US", {
-                style: "currency",
-                currency: curCode,
-              }).format(Number(minPrice));
-            } catch {
-              (p as any).fromPriceStr = `$${Number(minPrice).toFixed(2)}`;
+            (p as any).availableNights = availNights;
+            (p as any).nightsTotal = allDaily.length;
+
+            if (minPrice != null && Number.isFinite(minPrice)) {
+              (p as any).fromPrice = minPrice;
+              try {
+                (p as any).fromPriceStr = new Intl.NumberFormat("en-US", {
+                  style: "currency",
+                  currency: curCode,
+                }).format(Number(minPrice));
+              } catch {
+                (p as any).fromPriceStr = `$${(minPrice as number).toFixed(2)}`;
+              }
             }
+          } catch (e) {
+            req.app?.get("logger")?.warn?.({ e, propertyId: pid }, "rooms-db-rollup failed");
           }
         }
       } catch (err) {
         req.app?.get("logger")?.warn?.({ err, propertyId: pid }, "rooms-db-wire failed");
       }
     }
+    // ANCHOR: ROOMS_DB_WIRE_END
 
     // ---- 4) Currency backfill (ensure each daily row has currency) --------
+    // ANCHOR: CURRENCY_BACKFILL_START
     try {
       const cur = await getCurrency();
       for (const p of props) {
-        const rooms = p?.detail?.rooms;
+        const rooms = (p as any)?.detail?.rooms;
         if (!Array.isArray(rooms)) continue;
         for (const r of rooms as RoomsDailyRow[]) {
           const daily = r?.daily as RoomsDailyRow["daily"];
@@ -215,37 +227,12 @@ router.get("/search", async (req: Request, res: Response) => {
     } catch (err) {
       req.app?.get("logger")?.warn?.({ err }, "currency-backfill failed");
     }
+    // ANCHOR: CURRENCY_BACKFILL_END
 
-    // ---- 5) City filter (server-side) -------------------------------------
-    let out = props;
-    if (citySel) {
-      const norm = (s: string) => (s || "").trim().toUpperCase();
-
-      // Alias map: accept common city names that map to our city codes
-      const CITY_ALIASES: Record<string, string[]> = {
-        SIARGAO: ["SIARGAO", "GENERAL LUNA", "GEN LUNA"],
-        BORACAY: ["BORACAY", "MALAY"],
-        ELNIDO:  ["EL NIDO", "ELNIDO"],
-        CEBU:    ["CEBU", "LAPU-LAPU", "MACTAN"],
-        MANILA:  ["MANILA", "MAKATI", "TAGUIG", "BGC"],
-      };
-
-      const wanted = (CITY_ALIASES[citySel] ?? [citySel]).map(norm);
-
-      out = props.filter(p => {
-        const code = norm((p as any).cityCode || "");
-        const city = norm(p.city || "");
-        // pass if any alias matches cityCode OR city text
-        return wanted.includes(code) || wanted.includes(city);
-      });
-    }
-
-
-    // ---- 6) Filter out properties with 0 available nights -----------------
-    out = out.filter(p => Number(p?.availableNights ?? 0) > 0);
-
-    // ---- Final -------------------------------------------------------------
-    return res.json({ properties: out, _dbg: { wantsDb, roomsApplied, guests, citySel: citySel || undefined } });
+    // ---- Final: respond ----------------------------------------------------
+    return res
+      .set("Cache-Control", "no-store")
+      .json({ properties: props, _dbg: { wantsDb, roomsApplied: _roomsApplied, guests: req.query.guests ? Number(req.query.guests) : undefined, citySel: cityParam || undefined } });
 
   } catch (err: any) {
     const msg = err?.message || String(err);
@@ -282,71 +269,105 @@ router.get("/details", async (req: Request, res: Response) => {
 
     // Base (mock) details
     let base: any = await getDetails({ propertyId, start, end, ratePlanId });
+    // ANCHOR: DETAILS_BASE_GUARD
     if (!base || typeof base !== "object") { base = {}; }
+    // ANCHOR: DETAILS_DBG_PROFILES_BEFORE
     console.log("[details] start", { propertyId, start, end, ratePlanId });
 
-    // Profile/Photos (prefer DB)
+    // ANCHOR: DETAILS_DB_PROFILES
     try {
       const profMap = await getProfilesFromDb([propertyId]);
+      console.log("[details] profiles-keys", { propertyId, keys: Object.keys(profMap || {}) });
       const prof = profMap?.[propertyId];
       if (prof) {
         base.name    = prof.name    || base.name    || "";
         base.city    = prof.city    || base.city    || "";
         base.country = prof.country || base.country || "";
         if (Array.isArray(prof.images) && prof.images.length) {
-          base.images = [...prof.images, ...(Array.isArray(base.images) ? base.images : [])];
+          const imgs = Array.isArray(base.images) ? base.images : [];
+          base.images = [...prof.images, ...imgs];
+          console.log("[details] profiles", { propertyId, name: base?.name ?? null, city: base?.city ?? null, images: Array.isArray(base?.images) ? base.images.length : 0 });
         }
       }
     } catch (err) {
       req.app?.get("logger")?.warn?.({ err, propertyId }, "details.profiles-db-wire failed");
     }
+    // ANCHOR: DETAILS_DB_PROFILES_END
 
-    // Ensure meta/property carries identity + images
+    // ANCHOR: DETAILS_DB_PROFILE_ENRICH
     try {
       const profMap = await getProfilesFromDb([propertyId]);
-      const prof = profMap?.[propertyId];
+      const prof = profMap[propertyId];
       if (prof) {
-        (base as any).meta ||= {};
-        (base as any).meta.property ||= {};
-        (base as any).meta.property.name    = prof.name    ?? (base as any).meta.property.name    ?? base.name    ?? "";
-        (base as any).meta.property.city    = prof.city    ?? (base as any).meta.property.city    ?? base.city    ?? "";
-        (base as any).meta.property.country = prof.country ?? (base as any).meta.property.country ?? base.country ?? "";
-
+        if (prof.name)    base.name    = prof.name;
+        if (prof.city)    base.city    = prof.city;
+        if (prof.country) base.country = prof.country;
         if (Array.isArray(prof.images) && prof.images.length) {
-          (base as any).meta.property.images = prof.images;
-          if (Array.isArray((base as any).rooms) && (base as any).rooms[0]) {
-            const r0 = (base as any).rooms[0];
-            if (!Array.isArray(r0.images) || r0.images.length === 0) {
-              r0.images = prof.images;
-            }
-          } else {
-            (base as any).rooms = [{ images: prof.images, daily: [] }];
-          }
+          base.images = [...prof.images]; // prefer DB images only
         }
       }
     } catch (err) {
       req.app?.get("logger")?.warn?.({ err, propertyId }, "details.profile-db-wire failed");
     }
+    // ANCHOR: DETAILS_DB_PROFILE_ENRICH
 
-    // Optional: overlay DB daily rooms
+    // Optional: enrich rooms with DB daily (fallback to mock already present)
     try {
       const dbRooms = await getRoomsDailyFromDb(propertyId, start, end, ratePlanId);
+      console.log("[details] rooms-db", { propertyId, count: Array.isArray(dbRooms) ? dbRooms.length : 0 });
+
       if (Array.isArray(dbRooms) && dbRooms.length > 0) {
-        if (Array.isArray(base.rooms)) {
+        if (base?.rooms && Array.isArray(base.rooms)) {
           base.rooms = dbRooms;
-        } else {
-          (base as any).rooms = dbRooms;
+        } else if (base) {
+          base.rooms = dbRooms;
         }
-        (base as any)._roomsSource = "db";
+        (base as any)._roomsSource = "db"; // optional debug flag
       }
     } catch (err) {
       req.app?.get("logger")?.warn?.({ err, propertyId }, "details.rooms-db-wire failed");
     }
+    // ANCHOR: DETAILS_PROFILE_ENRICH_START
+    try {
+      const profMap = await getProfilesFromDb([propertyId]);
+      const prof = profMap?.[propertyId];
+      if (prof) {
+        // ensure meta/property exists
+        if (!base.meta)              (base as any).meta = {};
+        if (!base.meta.property)     (base as any).meta.property = {};
+
+        // copy identity/location from DB profile
+        (base as any).meta.property.name    = prof.name    ?? base.meta.property.name    ?? "";
+        (base as any).meta.property.city    = prof.city    ?? base.meta.property.city    ?? "";
+        (base as any).meta.property.country = prof.country ?? base.meta.property.country ?? "";
+
+        // images from DB photos → prefer rooms[0].images, also mirror under meta.property.images
+        const imgs: string[] = Array.isArray(prof.images)
+          ? prof.images
+              .map((v: any) => (typeof v === "string" ? v : v?.url))
+              .filter(Boolean)
+          : [];
+
+        if (imgs.length) {
+          if (Array.isArray((base as any).rooms?.[0]?.images)) {
+            (base as any).rooms[0].images = [...imgs, ...((base as any).rooms[0].images as string[])];
+          } else if (Array.isArray((base as any).rooms)) {
+            (base as any).rooms[0] = { ...(base as any).rooms[0], images: imgs };
+          } else {
+            (base as any).rooms = [{ images: imgs, daily: [] }];
+          }
+          (base as any).meta.property.images = imgs;
+        }
+      }
+    } catch (e) {
+      req.app?.get("logger")?.warn?.({ e, propertyId }, "details.profile-enrich failed");
+    }
+    // ANCHOR: DETAILS_PROFILE_ENRICH_END
 
     // Currency backfill
     try {
       const cur = await getCurrency();
-      if (Array.isArray(base?.rooms)) {
+      if (base?.rooms && Array.isArray(base.rooms)) {
         for (const r of base.rooms as RoomsDailyRow[]) {
           const daily = r?.daily as RoomsDailyRow["daily"];
           if (!Array.isArray(daily)) continue;
@@ -356,16 +377,43 @@ router.get("/details", async (req: Request, res: Response) => {
     } catch (err) {
       req.app?.get("logger")?.warn?.({ err }, "details.currency-backfill failed");
     }
-
-    // Rollup
+    // ANCHOR: DETAILS_PROFILE_ENRICH_START
     try {
-      if (Array.isArray(base?.rooms)) {
+      const profMap = await getProfilesFromDb([propertyId]);
+      const prof = profMap?.[propertyId];
+
+      if (prof) {
+        (base as any).meta ||= {};
+        (base as any).meta.property ||= {};
+
+        (base as any).meta.property.name    = prof.name    || (base as any).meta.property.name || (base as any).name || "";
+        (base as any).meta.property.city    = prof.city    || (base as any).meta.property.city || (base as any).city || "";
+        (base as any).meta.property.country = prof.country || (base as any).meta.property.country || (base as any).country || "";
+
+        if (Array.isArray(prof.images) && prof.images.length) {
+          (base as any).meta.property.images = prof.images;
+          if (Array.isArray((base as any).rooms) && (base as any).rooms[0]) {
+            const r0 = (base as any).rooms[0];
+            if (!Array.isArray(r0.images) || r0.images.length === 0) {
+              r0.images = prof.images;
+            }
+          }
+        }
+      }
+    } catch (err) {
+      req.app?.get("logger")?.warn?.({ err, propertyId }, "details.profile-db-wire failed");
+    }
+    // ANCHOR: DETAILS_PROFILE_ENRICH_END
+
+    // ANCHOR: DETAILS_ROLLUP_FROM_DB
+    try {
+      if (base?.rooms && Array.isArray(base.rooms)) {
         type Daily = RoomsDailyRow["daily"][number];
         const allDaily: Daily[] = (base.rooms as RoomsDailyRow[]).flatMap(
           (r: RoomsDailyRow) => (r.daily as Daily[]) || []
         );
 
-        const availNights = allDaily.filter((d: Daily) => (d?.inventory ?? 0) > 0 && !d.closed).length;
+        const availNights = allDaily.filter((d: Daily) => (d?.inventory ?? 0) > 0).length;
         const priced: Daily[] = allDaily.filter((d: Daily) => typeof d?.price === "number");
         const minPrice = priced.length ? Math.min(...priced.map((d: Daily) => Number(d!.price))) : null;
         const curCode = (priced[0]?.currency as string) || "USD";
@@ -388,6 +436,7 @@ router.get("/details", async (req: Request, res: Response) => {
     } catch (e) {
       req.app?.get("logger")?.warn?.({ e, propertyId }, "details.rollup failed");
     }
+    // ANCHOR: DETAILS_ROLLUP_FROM_DB
 
     console.log("[details] final", {
       propertyId,
