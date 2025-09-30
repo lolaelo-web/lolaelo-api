@@ -70,6 +70,62 @@ router.get("/search", async (req: Request, res: Response) => {
     // ANCHOR: STRIP_LEGACY_ID
     for (const p of props) { try { delete (p as any).id; } catch {} }
 
+    // ---- Remap PropertyProfile.id -> Partner.id for downstream adapters ----
+    // Some rows (e.g., "mike check 1") come back with propertyId = PropertyProfile.id.
+    // Our adapters expect Partner.id. For any propertyId that maps to a PropertyProfile.id,
+    // translate it to its Partner.id by probing public/extranet schemas.
+    try {
+      const { Client } = await import("pg");
+      const cs = process.env.DATABASE_URL || "";
+      if (cs) {
+        const wantsSSL = /\bsslmode=require\b/i.test(cs) || /render\.com/i.test(cs);
+        const db = new Client({ connectionString: cs, ssl: wantsSSL ? { rejectUnauthorized: false } : undefined });
+        await db.connect();
+
+        // Collect candidate profile ids from current props
+        const profileIds: number[] = [];
+        for (const p of props) {
+          const pid = Number((p as any)?.propertyId);
+          if (Number.isFinite(pid)) profileIds.push(pid);
+        }
+        // Deduplicate, cap for safety
+        const uniq = Array.from(new Set(profileIds)).slice(0, 200);
+
+        if (uniq.length) {
+          const q = `
+            WITH ids AS (SELECT unnest($1::bigint[]) AS id)
+            SELECT 'public'   AS schema, pp.id AS profile_id, pp."partnerId" AS partner_id
+            FROM public."PropertyProfile" pp JOIN ids ON ids.id = pp.id
+            UNION ALL
+            SELECT 'extranet', pp.id, pp."partnerId"
+            FROM extranet."PropertyProfile" pp JOIN ids ON ids.id = pp.id
+          `;
+          const mapRows = await db.query(q, [uniq]);
+          const profToPartner = new Map<number, number>();
+          // Prefer extranet rows over public if both exist
+          for (const r of mapRows.rows) {
+            const profId = Number(r.profile_id);
+            const partnerId = Number(r.partner_id);
+            if (!profToPartner.has(profId) || String(r.schema) === "extranet") {
+              profToPartner.set(profId, partnerId);
+            }
+          }
+          // Apply remap in-place
+          for (const p of props) {
+            const profId = Number((p as any)?.propertyId);
+            const partnerId = profToPartner.get(profId);
+            if (Number.isFinite(partnerId)) {
+              (p as any).propertyId = partnerId;      // switch to Partner.id
+              (p as any)._idRemap   = { from: profId, to: partnerId }; // debug flag
+            }
+          }
+        }
+        await db.end();
+      }
+    } catch (e) {
+      req.app?.get("logger")?.warn?.({ e }, "profile->partner remap skipped");
+    }
+
     // NOTE: DO NOT city-filter here. We wait until after DB profile enrichment,
     // because profiles populate city/cityCode.
 
