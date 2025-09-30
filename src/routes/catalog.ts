@@ -220,13 +220,26 @@ router.get("/search", async (req: Request, res: Response) => {
     let out = props;
     if (citySel) {
       const norm = (s: string) => (s || "").trim().toUpperCase();
+
+      // Alias map: accept common city names that map to our city codes
+      const CITY_ALIASES: Record<string, string[]> = {
+        SIARGAO: ["SIARGAO", "GENERAL LUNA", "GEN LUNA"],
+        BORACAY: ["BORACAY", "MALAY"],
+        ELNIDO:  ["EL NIDO", "ELNIDO"],
+        CEBU:    ["CEBU", "LAPU-LAPU", "MACTAN"],
+        MANILA:  ["MANILA", "MAKATI", "TAGUIG", "BGC"],
+      };
+
+      const wanted = (CITY_ALIASES[citySel] ?? [citySel]).map(norm);
+
       out = props.filter(p => {
         const code = norm((p as any).cityCode || "");
         const city = norm(p.city || "");
-        // prefer cityCode match, else fallback to city text
-        return (code && code === citySel) || (city && city === citySel);
+        // pass if any alias matches cityCode OR city text
+        return wanted.includes(code) || wanted.includes(city);
       });
     }
+
 
     // ---- 6) Filter out properties with 0 available nights -----------------
     out = out.filter(p => Number(p?.availableNights ?? 0) > 0);
