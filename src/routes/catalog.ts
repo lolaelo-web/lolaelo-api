@@ -411,6 +411,43 @@ router.get("/search", async (req: Request, res: Response) => {
             req.app?.get("logger")?.warn?.({ e, propertyId: pid }, "rooms-db-rollup failed");
           }
         }
+                // Fallback: if no rooms came back from direct DB daily, try adapter details
+                // (adapters may resolve partner/profile mapping internally)
+                if (rooms.length === 0) {
+                  try {
+                    const det = await timebox<any>(
+                      getDetails({
+                        propertyId: pid,
+                        start: params.start,
+                        end: params.end,
+                        ratePlanId: params.ratePlanId,
+                      }),
+                      TIMEBOX_MS
+                    );
+
+                    const maybeRooms: RoomsDailyRow[] =
+                      Array.isArray(det?.rooms)
+                        ? det.rooms
+                        : (Array.isArray(det?.detail?.rooms) ? det.detail.rooms : []);
+
+                    if (maybeRooms.length > 0) {
+                      // apply rooms to payload
+                      if ((p as any).detail && Array.isArray((p as any).detail.rooms)) {
+                        (p as any).detail.rooms = maybeRooms;
+                      } else if ((p as any).detail) {
+                        (p as any).detail.rooms = maybeRooms;
+                      } else {
+                        (p as any).detail = { rooms: maybeRooms };
+                      }
+
+                      // mark source and bump counter
+                      try { ((p as any).detail as any)._roomsSource = "db-adapter"; } catch {}
+                      _roomsApplied++;
+                    }
+                  } catch (e) {
+                    req.app?.get("logger")?.warn?.({ e, propertyId: pid }, "rooms-fallback-adapter failed");
+                  }
+                }
       } catch (err) {
         req.app?.get("logger")?.warn?.({ err, propertyId: pid }, "rooms-db-wire failed");
       }
