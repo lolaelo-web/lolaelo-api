@@ -217,7 +217,70 @@ router.get("/search", async (req: Request, res: Response) => {
         req.app?.get("logger")?.warn?.({ err }, "profiles-db-wire failed");
       }
       // ANCHOR: MERGE_DB_PROFILES_END
+      // Build a map from propertyId → partnerId (used by rooms fetch)
+      // We re-use the same ids[] we just enriched.
+      const partnerIdMap: Record<number, number> = {};
+      try {
+        const mini = await getProfilesFromDb(ids);
+        for (const pid of ids) {
+          const prof: any = mini?.[pid];
+          const partnerId = Number(prof?.partnerId);
+          if (Number.isFinite(partnerId)) partnerIdMap[pid] = partnerId;
+        }
+      } catch (e) {
+        req.app?.get("logger")?.warn?.({ e }, "partnerIdMap build failed");
       }
+      // Resolve partnerId per property (prefer profile map; fallback to SQL)
+      const partnerIdMap: Record<number, number> = {};
+      try {
+        // Re-fetch a local profile map (the earlier 'profMap' is out of scope here)
+        const profMap2 = await getProfilesFromDb(ids).catch(() => ({} as any));
+
+        // 2a) pull partnerId from profile map when present
+        for (const pid of ids) {
+          const p = (profMap2 as any)?.[pid];
+          if (p && Number.isFinite(Number(p?.partnerId))) {
+            partnerIdMap[pid] = Number(p.partnerId);
+          }
+        }
+
+        // 2b) SQL fallback for unresolved pids: map PropertyProfile.id -> Partner.id
+        const unresolved = ids.filter((pid) => partnerIdMap[pid] == null);
+        if (unresolved.length) {
+          const cs = process.env.DATABASE_URL || "";
+          const wantsSSL = /\bsslmode=require\b/i.test(cs) || /render\.com/i.test(cs);
+          const pg = new PgClient({
+            connectionString: cs,
+            ssl: wantsSSL ? { rejectUnauthorized: false } : undefined,
+          });
+          await pg.connect();
+          const q = await pg.query(
+            `
+            with ids(pid) as (select unnest($1::bigint[]))
+            select pid as profile_id, pp."partnerId" as partner_id
+            from ids
+            join extranet."PropertyProfile" pp on pp.id = pid
+            union all
+            select pid, pp."partnerId"
+            from ids
+            join public."PropertyProfile" pp on pp.id = pid
+            `,
+            [unresolved]
+          );
+          await pg.end();
+
+          for (const row of q.rows) {
+            const profileId = Number(row.profile_id);
+            const partnerId = Number(row.partner_id);
+            if (Number.isFinite(profileId) && Number.isFinite(partnerId) && partnerIdMap[profileId] == null) {
+              partnerIdMap[profileId] = partnerId;
+            }
+          }
+        }
+      } catch (e) {
+        req.app?.get("logger")?.warn?.({ e }, "partnerIdMap resolution failed");
+      }
+    }
           // ---- Remap profile id → partner id (so rooms lookup hits the right key) ----
       try {
         const idsToRemap = props
@@ -359,12 +422,16 @@ router.get("/search", async (req: Request, res: Response) => {
       Promise.race([promise, new Promise<T | null>(resolve => setTimeout(() => resolve(null), ms))]);
 
     for (const p of props) {
+      // Original profile/property id from the list
       const pid = Number((p as any)?.propertyId);
-      if (!Number.isFinite(pid)) continue;
+
+      // Prefer partnerId if we mapped it (rooms are keyed by partner in your schema)
+      const fetchId = Number.isFinite(partnerIdMap[pid]) ? Number(partnerIdMap[pid]) : pid;
+      if (!Number.isFinite(fetchId)) continue;
 
       try {
         const rooms: RoomsDailyRow[] = (await timebox<RoomsDailyRow[]>(
-          getRoomsDailyFromDb(pid, params.start, params.end, params.ratePlanId),
+          getRoomsDailyFromDb(fetchId, params.start, params.end, params.ratePlanId),
           TIMEBOX_MS
         )) ?? [];
 
@@ -377,17 +444,15 @@ router.get("/search", async (req: Request, res: Response) => {
           } else {
             (p as any).detail = { rooms };
           }
-          _roomsApplied++; // <— increment after rooms are applied
+          _roomsApplied++;
 
           // ANCHOR: ROOMS_DB_SOURCE_FLAG
           try { ((p as any).detail as any)._roomsSource = "db"; } catch {}
 
-          // ANCHOR: ROOMS_DB_ROLLUP_FROM_DB (typed)
+          // rollup
           try {
             type Daily = RoomsDailyRow["daily"][number];
-            const allDaily: Daily[] = rooms.flatMap(
-              (r: RoomsDailyRow) => (r.daily as Daily[]) || []
-            );
+            const allDaily: Daily[] = rooms.flatMap((r: RoomsDailyRow) => (r.daily as Daily[]) || []);
             const availNights = allDaily.filter((d: Daily) => (d.inventory ?? 0) > 0).length;
             const priced: Daily[] = allDaily.filter((d: Daily) => typeof d.price === "number");
             const minPrice = priced.length ? Math.min(...priced.map((d: Daily) => (d.price as number))) : null;
@@ -408,48 +473,11 @@ router.get("/search", async (req: Request, res: Response) => {
               }
             }
           } catch (e) {
-            req.app?.get("logger")?.warn?.({ e, propertyId: pid }, "rooms-db-rollup failed");
+            req.app?.get("logger")?.warn?.({ e, propertyId: fetchId }, "rooms-db-rollup failed");
           }
         }
-                // Fallback: if no rooms came back from direct DB daily, try adapter details
-                // (adapters may resolve partner/profile mapping internally)
-                if (rooms.length === 0) {
-                  try {
-                    const det = await timebox<any>(
-                      getDetails({
-                        propertyId: pid,
-                        start: params.start,
-                        end: params.end,
-                        ratePlanId: params.ratePlanId,
-                      }),
-                      TIMEBOX_MS
-                    );
-
-                    const maybeRooms: RoomsDailyRow[] =
-                      Array.isArray(det?.rooms)
-                        ? det.rooms
-                        : (Array.isArray(det?.detail?.rooms) ? det.detail.rooms : []);
-
-                    if (maybeRooms.length > 0) {
-                      // apply rooms to payload
-                      if ((p as any).detail && Array.isArray((p as any).detail.rooms)) {
-                        (p as any).detail.rooms = maybeRooms;
-                      } else if ((p as any).detail) {
-                        (p as any).detail.rooms = maybeRooms;
-                      } else {
-                        (p as any).detail = { rooms: maybeRooms };
-                      }
-
-                      // mark source and bump counter
-                      try { ((p as any).detail as any)._roomsSource = "db-adapter"; } catch {}
-                      _roomsApplied++;
-                    }
-                  } catch (e) {
-                    req.app?.get("logger")?.warn?.({ e, propertyId: pid }, "rooms-fallback-adapter failed");
-                  }
-                }
       } catch (err) {
-        req.app?.get("logger")?.warn?.({ err, propertyId: pid }, "rooms-db-wire failed");
+        req.app?.get("logger")?.warn?.({ err, propertyId: fetchId }, "rooms-db-wire failed");
       }
     }
     // ANCHOR: ROOMS_DB_WIRE_END
@@ -549,8 +577,11 @@ router.get("/details", async (req: Request, res: Response) => {
 
     // Optional: enrich rooms with DB daily (fallback to mock already present)
     try {
-      const dbRooms = await getRoomsDailyFromDb(propertyId, start, end, ratePlanId);
-      console.log("[details] rooms-db", { propertyId, count: Array.isArray(dbRooms) ? dbRooms.length : 0 });
+      // In details, the incoming propertyId is the profile/property id.
+      // If you also have a partner mapping available in this scope, prefer it; else fallback.
+      const fetchId = Number.isFinite(propertyId) ? propertyId : NaN;
+      const dbRooms = await getRoomsDailyFromDb(fetchId, start, end, ratePlanId);
+      console.log("[details] rooms-db", { propertyId, fetchId, count: Array.isArray(dbRooms) ? dbRooms.length : 0 });
 
       if (Array.isArray(dbRooms) && dbRooms.length > 0) {
         if (base?.rooms && Array.isArray(base.rooms)) {
@@ -563,7 +594,6 @@ router.get("/details", async (req: Request, res: Response) => {
     } catch (err) {
       req.app?.get("logger")?.warn?.({ err, propertyId }, "details.rooms-db-wire failed");
     }
-
     // Currency backfill
     try {
       const cur = await getCurrency();
