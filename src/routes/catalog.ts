@@ -10,6 +10,7 @@ import {
   getRoomsDailyFromDb,
 } from "../adapters/catalogSource.js";
 import type { RoomsDailyRow } from "../adapters/catalogSource.js";
+import { Client as PgClient } from "pg";
 
 const router = Router();
 
@@ -151,6 +152,77 @@ router.get("/search", async (req: Request, res: Response) => {
       }
     }
     const afterCity = props.length;
+    // If nothing left after enrichment/city filter, try a DB fallback:
+    // Find partners that actually have open inventory AND prices for the date range
+    // (and ratePlanId if provided). Then seed minimal cards for enrichment.
+    if (props.length === 0) {
+      try {
+        const cs = process.env.DATABASE_URL || "";
+        if (cs) {
+          const wantsSSL = /\bsslmode=require\b/i.test(cs) || /render\.com/i.test(cs);
+          const pg = new PgClient({
+            connectionString: cs,
+            ssl: wantsSSL ? { rejectUnauthorized: false } : undefined,
+          });
+          await pg.connect();
+
+          const q = `
+            WITH dd AS (
+              SELECT generate_series($1::date, ($2::date - INTERVAL '1 day'), INTERVAL '1 day')::date AS d
+            ),
+            inv AS (
+              SELECT DISTINCT ri."partnerId" AS pid
+              FROM extranet."RoomInventory" ri
+              JOIN dd ON dd.d = ri.date
+              WHERE COALESCE(ri."roomsOpen", 0) > 0 AND COALESCE(ri."isClosed", FALSE) = FALSE
+            ),
+            price AS (
+              SELECT DISTINCT rp."partnerId" AS pid
+              FROM extranet."RoomPrice" rp
+              JOIN dd ON dd.d = rp.date
+              WHERE ($3::int IS NULL OR rp."ratePlanId" = $3::int)
+            ),
+            cand AS (
+              SELECT DISTINCT i.pid
+              FROM inv i
+              JOIN price p ON p.pid = i.pid
+            )
+            SELECT
+              COALESCE(pp.id, p.id)                AS "propertyId",
+              COALESCE(pp.name, p.name, '')        AS name,
+              COALESCE(pp.city, '')                AS city,
+              ''                                   AS country
+            FROM cand c
+            JOIN extranet."Partner" p           ON p.id = c.pid
+            LEFT JOIN extranet."PropertyProfile" pp ON pp."partnerId" = p.id
+          `;
+
+          const { rows } = await pg.query(q, [start, end, ratePlanId ?? null]);
+          await pg.end();
+
+          // Seed minimal cards so normal enrichment (photos, roomsDaily) can run
+          for (const r of rows) {
+            // Respect ?city= if provided (match either cityCode we may add later or city label now)
+            if (cityParam) {
+              const c = String(r.city || "").toUpperCase();
+              if (c !== cityParam) continue;
+            }
+
+            props.push({
+              propertyId: Number(r.propertyId),
+              name: r.name || "",
+              city: r.city || "",
+              country: r.country || "",
+              images: [],
+              detail: { rooms: [] },
+              _baseSource: "db-fallback",
+            });
+          }
+        }
+      } catch (err) {
+        req.app?.get("logger")?.warn?.({ err }, "catalog.search db-fallback failed");
+      }
+    }
 
     // ---- 3) Rooms/Inventory/Prices from DB (fallback to mock if empty) ----
     // ANCHOR: ROOMS_DB_WIRE_START
