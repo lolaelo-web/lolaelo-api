@@ -130,9 +130,10 @@ router.get("/search", async (req: Request, res: Response) => {
           (p as any).city    = prof.city ?? (p as any).city ?? "";
           (p as any).country = prof.country ?? (p as any).country ?? "";
 
-          // optional: normalize cityCode if present in profile
-          if (typeof prof.cityCode === "string" && prof.cityCode.length) {
-            (p as any).cityCode = prof.cityCode.toUpperCase();
+          // optional: normalize cityCode if provided by DB profile
+          const _cityCode = (prof as any)?.cityCode as unknown;
+          if (typeof _cityCode === "string" && _cityCode.length) {
+            (p as any).cityCode = _cityCode.toUpperCase();
           }
 
           if (Array.isArray(prof.images) && prof.images.length) {
