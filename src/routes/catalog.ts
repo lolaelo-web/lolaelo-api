@@ -10,6 +10,7 @@ import {
   getRoomsDailyFromDb,
 } from "../adapters/catalogSource.js";
 import type { RoomsDailyRow } from "../adapters/catalogSource.js";
+import { Client as PgClient } from "pg";
 
 const router = Router();
 
@@ -19,7 +20,7 @@ const router = Router();
  *  - start: YYYY-MM-DD
  *  - end:   YYYY-MM-DD (exclusive)
  *  - ratePlanId?: number
- *  - city?: string (e.g., SIARGAO). Fallback-matched against cityCode OR city.
+ *  - city?: string (e.g., SIARGAO). Fallback-matched against city (no cityCode column in public schema).
  */
 router.get("/search", async (req: Request, res: Response) => {
   req.app?.get("logger")?.info?.({ q: req.query }, "catalog.search invoked");
@@ -33,6 +34,8 @@ router.get("/search", async (req: Request, res: Response) => {
     const start = String(req.query.start || "").trim();
     const end = String(req.query.end || "").trim();
     const ratePlanId = req.query.ratePlanId ? Number(req.query.ratePlanId) : undefined;
+    const guestsNum = Math.max(1, Number(req.query.guests ?? 1));
+    const cityParam = String(req.query.city || "").trim().toUpperCase();
 
     if (!/^\d{4}-\d{2}-\d{2}$/.test(start) || !/^\d{4}-\d{2}-\d{2}$/.test(end)) {
       return res.status(400).json({ error: "start/end must be YYYY-MM-DD" });
@@ -59,52 +62,80 @@ router.get("/search", async (req: Request, res: Response) => {
 
     const props: any[] = Array.isArray(list?.properties) ? list.properties : [];
     for (const p of props) { try { (p as any)._baseSource = _baseSource; } catch {} }
-    if (props.length === 0) return res.json({ properties: [] });
 
     // ANCHOR: NORMALIZE_ID_START
     for (const p of props) {
-      if (p && p.id == null && p.propertyId != null) p.id = p.propertyId;
+      if (p && (p as any).id == null && (p as any).propertyId != null) (p as any).id = (p as any).propertyId;
     }
     // ANCHOR: STRIP_LEGACY_ID
     for (const p of props) { try { delete (p as any).id; } catch {} }
 
-    // --- SERVER-SIDE CITY FILTER FALLBACK (handles schemas without cityCode) ---
-    const cityParam = String(req.query.city || "").trim().toUpperCase();
+    // ---- 1b) PUBLIC-SCHEMA FALLBACK if adapter returned no rows -----------
+    if (props.length === 0) {
+      const cs = process.env.DATABASE_URL || "";
+      const wantsSSL = /\bsslmode=require\b/i.test(cs) || /render\.com/i.test(cs);
+      const pg = new PgClient({ connectionString: cs, ssl: wantsSSL ? { rejectUnauthorized: false } : undefined });
+      await pg.connect();
+      try {
+        // Note: public schema has no cityCode, so match on city (uppercased)
+        let sql = `
+          SELECT
+            pp.id                   AS "propertyId",
+            pp.name                 AS name,
+            COALESCE(pp.city, '')   AS city,
+            COUNT(*) FILTER (WHERE ri."isClosed" = FALSE AND ri."roomsOpen" >= $3) AS "availableNights",
+            MIN(rp.price)           AS "fromPrice"
+          FROM public."PropertyProfile"   pp
+          JOIN public."RoomType"          rt ON rt."partnerId" = pp."partnerId"
+          JOIN public."RoomInventory"     ri ON ri."partnerId" = pp."partnerId"
+                                            AND ri."roomTypeId" = rt.id
+                                            AND ri."date" >= $1::date
+                                            AND ri."date" <  $2::date
+          LEFT JOIN public."RoomPrice"    rp ON rp."partnerId" = pp."partnerId"
+                                            AND rp."roomTypeId" = rt.id
+                                            AND rp."date"       = ri."date"
+          /* CITY_FILTER */
+          GROUP BY pp.id, pp.name, pp.city
+          HAVING COUNT(*) FILTER (WHERE ri."isClosed" = FALSE AND ri."roomsOpen" >= $3) > 0
+          ORDER BY MIN(rp.price) NULLS LAST, pp.name
+          LIMIT 200
+        `;
+        const paramsArr: any[] = [start, end, guestsNum];
+        if (cityParam) {
+          sql = sql.replace("/* CITY_FILTER */", `WHERE UPPER(pp.city) = $4`);
+          paramsArr.push(cityParam);
+        } else {
+          sql = sql.replace("/* CITY_FILTER */", ``);
+        }
+
+        const r = await pg.query(sql, paramsArr);
+        for (const row of r.rows) {
+          props.push({
+            propertyId: row.propertyId,
+            name: row.name,
+            city: row.city,
+            availableNights: Number(row.availableNights ?? 0),
+            fromPrice: row.fromPrice == null ? null : Number(row.fromPrice),
+            _baseSource: "public-fallback",
+          });
+        }
+      } finally {
+        await pg.end().catch(() => {});
+      }
+    }
+
+    // If still empty after fallback, return immediately
+    if (props.length === 0) {
+      return res.set("Cache-Control", "no-store").json({ properties: [], _dbg: { wantsDb, roomsApplied: 0, guests: guestsNum, citySel: cityParam || undefined } });
+    }
+
+    // --- SERVER-SIDE CITY FILTER (applies when adapter rows include city/cityCode) ---
     if (cityParam) {
       for (let i = props.length - 1; i >= 0; i--) {
         const cc = String((props[i] as any)?.cityCode || "").toUpperCase();
         const c  = String((props[i] as any)?.city     || "").toUpperCase();
         if (cc !== cityParam && c !== cityParam) props.splice(i, 1);
       }
-    }
-
-    if (!wantsDb) {
-      // run enrichment in the background and return immediately
-      setTimeout(() => {
-        (async () => {
-          try {
-            const idsBg: number[] = [];
-            for (const p of props) {
-              const idNum = Number((p as any)?.propertyId);
-              if (Number.isFinite(idNum)) idsBg.push(idNum);
-            }
-
-            const timebox = <T>(promise: Promise<T>, ms: number): Promise<T | null> =>
-              Promise.race([promise, new Promise<T | null>(resolve => setTimeout(() => resolve(null), ms))]);
-
-            await timebox(getProfilesFromDb(idsBg), 800);
-
-            const startISO = params.start, endISO = params.end, planId = params.ratePlanId;
-            for (const pid of idsBg) {
-              await timebox(getRoomsDailyFromDb(pid, startISO, endISO, planId), 250);
-            }
-          } catch (e) {
-            req.app?.get("logger")?.warn?.({ e }, "bg.enrich failed");
-          }
-        })().catch(() => {});
-      }, 0);
-
-      return res.set("Cache-Control", "no-store").json({ properties: props });
     }
 
     let _roomsApplied = 0; // debug: count properties where DB rooms were applied
@@ -126,18 +157,17 @@ router.get("/search", async (req: Request, res: Response) => {
           if (!prof) continue;
 
           // prefer DB identity/location labels
-          (p as any).name    = prof.name ?? (p as any).name ?? "";
-          (p as any).city    = prof.city ?? (p as any).city ?? "";
+          (p as any).name    = prof.name    ?? (p as any).name    ?? "";
+          (p as any).city    = prof.city    ?? (p as any).city    ?? "";
           (p as any).country = prof.country ?? (p as any).country ?? "";
 
-          // optional: normalize cityCode if provided by DB profile
+          // (Optional) if a cityCode exists in profile, surface it (uppercased)
           const _cityCode = (prof as any)?.cityCode as unknown;
           if (typeof _cityCode === "string" && _cityCode.length) {
             (p as any).cityCode = _cityCode.toUpperCase();
           }
 
           if (Array.isArray(prof.images) && prof.images.length) {
-            if (!(p as any).images || !Array.isArray((p as any).images)) (p as any).images = [];
             (p as any).images = prof.images; // prefer DB images only
           }
         }
@@ -233,7 +263,10 @@ router.get("/search", async (req: Request, res: Response) => {
     // ---- Final: respond ----------------------------------------------------
     return res
       .set("Cache-Control", "no-store")
-      .json({ properties: props, _dbg: { wantsDb, roomsApplied: _roomsApplied, guests: req.query.guests ? Number(req.query.guests) : undefined, citySel: cityParam || undefined } });
+      .json({
+        properties: props,
+        _dbg: { wantsDb, roomsApplied: _roomsApplied, guests: guestsNum, citySel: cityParam || undefined }
+      });
 
   } catch (err: any) {
     const msg = err?.message || String(err);
