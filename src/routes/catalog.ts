@@ -190,6 +190,8 @@ router.get("/search", async (req: Request, res: Response) => {
       // ANCHOR: MERGE_DB_PROFILES_START
       try {
         const profMap = await getProfilesFromDb(ids);
+        console.log("[catalog.search] ids for profMap:", ids);
+        console.log("[catalog.search] profMap keys:", Object.keys(profMap || {}));
         for (const p of props) {
           const pid = Number((p as any)?.propertyId);
           const prof = profMap[pid];
@@ -215,7 +217,58 @@ router.get("/search", async (req: Request, res: Response) => {
         req.app?.get("logger")?.warn?.({ err }, "profiles-db-wire failed");
       }
       // ANCHOR: MERGE_DB_PROFILES_END
-    }
+      }
+          // ---- Remap profile id → partner id (so rooms lookup hits the right key) ----
+      try {
+        const idsToRemap = props
+          .map((p) => Number((p as any).propertyId))
+          .filter((n) => Number.isFinite(n)) as number[];
+
+        if (idsToRemap.length) {
+          const cs = process.env.DATABASE_URL || "";
+          const wantsSSL = /\bsslmode=require\b/i.test(cs) || /render\.com/i.test(cs);
+          const pg = new PgClient({
+            connectionString: cs,
+            ssl: wantsSSL ? { rejectUnauthorized: false } : undefined,
+          });
+          await pg.connect();
+
+          const { rows } = await pg.query(
+            `
+            SELECT id AS profile_id, "partnerId" AS partner_id
+            FROM public."PropertyProfile"
+            WHERE id = ANY($1::int[])
+            UNION ALL
+            SELECT id AS profile_id, "partnerId" AS partner_id
+            FROM extranet."PropertyProfile"
+            WHERE id = ANY($1::int[])
+          `,
+            [idsToRemap]
+          );
+
+          const map = new Map<number, number>();
+          for (const r of rows) {
+            const from = Number(r.profile_id);
+            const to = Number(r.partner_id);
+            if (Number.isFinite(from) && Number.isFinite(to)) map.set(from, to);
+          }
+
+          const changes: Array<{ from: number; to: number }> = [];
+          for (const p of props) {
+            const from = Number((p as any).propertyId);
+            const to = map.get(from);
+            if (to && to !== from) {
+              (p as any).propertyId = to; // rewrite to Partner.id
+              changes.push({ from, to });
+            }
+          }
+
+          console.log("[catalog.search][remap] profile→partner", changes);
+          await pg.end();
+        }
+      } catch (e) {
+        req.app?.get("logger")?.warn?.({ e }, "remap profileId→partnerId failed");
+      }
 
     // ---- 2b) NOW apply server-side CITY FILTER (after enrichment) ----------
     const beforeCity = props.length;
