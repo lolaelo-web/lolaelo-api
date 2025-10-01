@@ -172,7 +172,10 @@ router.get("/search", async (req: Request, res: Response) => {
 
           if (Array.isArray(prof.images) && prof.images.length) {
             if (!(p as any).images || !Array.isArray((p as any).images)) (p as any).images = [];
-            (p as any).images = prof.images; // prefer DB images only
+            const urls = Array.isArray((prof as any).images)
+            ? (prof as any).images.map((x: any) => (typeof x === "string" ? x : String(x?.url || ""))).filter(Boolean)
+            : [];
+          (p as any).images = urls; // cover-first order preserved if provided
           }
         }
       } catch (err) {
