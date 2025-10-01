@@ -883,7 +883,7 @@
       .then(r => r.ok ? r.json() : {})
       .then(d => {
         // 1) Hero image fallback (if your page has an <img> for cover)
-        const hero = document.querySelector("#hero, .hero img, img.hero, .cover img");
+        const hero = document.getElementById("hero-img");
         const first = Array.isArray(d?.images) && d.images.length ? d.images[0] : null;
         if (hero) {
           hero.src = first || placeholder;
