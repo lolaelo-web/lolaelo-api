@@ -199,7 +199,7 @@ router.get("/search", async (req: Request, res: Response) => {
 
         const { rows: ph } = await pgp.query(
           `
-          SELECT pid, url, is_cover
+          SELECT pid, url, is_cover, "createdAt", id, src
           FROM (
             SELECT "partnerId" AS pid, url, COALESCE("isCover", FALSE) AS is_cover, "createdAt", id, 'public'   AS src
             FROM public."PropertyPhoto"
@@ -214,15 +214,33 @@ router.get("/search", async (req: Request, res: Response) => {
           [pidList]
         );
 
-        await pgp.end();
+        // ---- diagnostics
+        console.log("[catalog.search][photos] fetched rows:", Array.isArray(ph) ? ph.length : "n/a");
+        const samplePh = Array.isArray(ph) && ph.length ? ph.slice(0, 3) : [];
+        console.log("[catalog.search][photos] sample:", samplePh);
 
-        // bucket by partner id, cover-first order already preserved
+        // ---- bucket by partner (cover-first order preserved by query)
         const byPid = new Map<number, string[]>();
-        for (const r of ph) {
-          const pid = Number(r.pid);
+        for (const r of ph || []) {
+          const pid = Number(r?.pid);
+          const url = String(r?.url || "").trim();
+          if (!Number.isFinite(pid) || !url) continue;
           if (!byPid.has(pid)) byPid.set(pid, []);
-          byPid.get(pid)!.push(String(r.url || "").trim());
+          byPid.get(pid)!.push(url);
         }
+        console.log("[catalog.search][photos] byPid keys:", Array.from(byPid.keys()));
+
+        // ---- apply to props (only overwrite when we actually have URLs)
+        for (const p of props) {
+          const pid = Number((p as any)?.propertyId);
+          const urls = byPid.get(pid) || [];
+          if (urls.length) {
+            (p as any).images = urls; // cover first
+            if (pid === 2) console.log("[catalog.search][photos] applied to pid=2:", urls.slice(0, 3));
+          }
+        }
+
+        await pgp.end();
 
         // apply to props (prefer DB photos over any placeholder)
         for (const p of props) {
