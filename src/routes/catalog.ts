@@ -438,9 +438,60 @@ router.get("/details", async (req: Request, res: Response) => {
       req.app?.get("logger")?.warn?.({ err, propertyId }, "details.profiles-db-wire failed");
     }
 
-    // Rooms from DB (overlay)
+    // Rooms from DB (overlay) — add diagnostics for partner/date window before adapter call
     try {
       const fetchId = Number.isFinite(propertyId) ? propertyId : NaN;
+
+      // --- Diagnostics: verify inventory/prices exist for this partner/date window ---
+      try {
+        const cs = process.env.DATABASE_URL || "";
+        if (cs) {
+          const wantsSSL = /\bsslmode=require\b/i.test(cs) || /render\.com/i.test(cs);
+          const pg = new PgClient({
+            connectionString: cs,
+            ssl: wantsSSL ? { rejectUnauthorized: false } : undefined,
+          });
+          await pg.connect();
+
+          const diag = await pg.query(
+            `
+            WITH dd AS (
+              SELECT generate_series($2::date, ($3::date - INTERVAL '1 day'), INTERVAL '1 day')::date AS d
+            )
+            SELECT
+              (SELECT count(*) FROM extranet."RoomInventory" ri JOIN dd ON dd.d = ri.date
+                WHERE ri."partnerId" = $1)                               AS inv_all,
+              (SELECT count(*) FROM extranet."RoomPrice" rp JOIN dd ON dd.d = rp.date
+                WHERE rp."partnerId" = $1 AND ($4::int IS NULL OR rp."ratePlanId" = $4::int)) AS price_all,
+              (SELECT count(*) FROM extranet."RoomInventory" ri JOIN dd ON dd.d = ri.date
+                WHERE ri."partnerId" = $1 AND ri."roomTypeId" = 28)       AS inv_rt28,
+              (SELECT count(*) FROM extranet."RoomPrice" rp JOIN dd ON dd.d = rp.date
+                WHERE rp."partnerId" = $1 AND rp."roomTypeId" = 28 AND ($4::int IS NULL OR rp."ratePlanId" = $4::int)) AS price_rt28,
+              (SELECT active FROM extranet."RoomType" WHERE id = 28)      AS rt28_active
+          `,
+            [fetchId, start, end, ratePlanId ?? null]
+          );
+
+          const row = diag?.rows?.[0] || {};
+          console.log("[details][diag]", {
+            partnerId: fetchId,
+            start,
+            end,
+            ratePlanId,
+            inv_all: Number(row.inv_all ?? 0),
+            price_all: Number(row.price_all ?? 0),
+            inv_rt28: Number(row.inv_rt28 ?? 0),
+            price_rt28: Number(row.price_rt28 ?? 0),
+            rt28_active: row.rt28_active,
+          });
+
+          await pg.end();
+        }
+      } catch (e) {
+        console.warn("[details][diag] failed", String(e));
+      }
+
+      // --- Adapter call (unchanged) ---
       const dbRooms = await getRoomsDailyFromDb(fetchId, start, end, ratePlanId);
       console.log("[details] rooms-db", {
         propertyId,
