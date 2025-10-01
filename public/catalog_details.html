@@ -725,77 +725,8 @@
         if (idx > 0) images.splice(0, 0, ...images.splice(idx, 1));
       }
       
-      // ===== DETAILS_IMG_FALLBACKS (insert) =====
-      // 1) Try API photos endpoint if details payload had no images
-      if (!images.length) {
-        try {
-          const pr = await fetch(`/extranet/property/photos?partnerId=${encodeURIComponent(propertyId)}`, { cache: 'no-store' });
-          console.log("[details] photos fallback (/extranet/property/photos) status:", pr.status);
-
-          // If auth is required or nothing returned, try public catalog endpoints
-          let pf = null;
-          if (pr.ok) {
-            try { pf = await pr.json(); } catch { pf = null; }
-          }
-          if (!pr.ok || !Array.isArray(pf) || pf.length === 0) {
-            const pubUrls = [
-              `/catalog/property/photos?partnerId=${encodeURIComponent(propertyId)}`,
-              `/catalog/photos?partnerId=${encodeURIComponent(propertyId)}`
-            ];
-            for (const u of pubUrls) {
-              try {
-                const rr = await fetch(u, { cache: 'no-store' });
-                console.log("[details] photos fallback try:", u, "status:", rr.status);
-                if (!rr.ok) continue;
-                const jj = await rr.json();
-                if (Array.isArray(jj) && jj.length) { pf = jj; break; }
-              } catch {}
-            }
-          }
-          if (pr.ok) {
-            const pf = await pr.json();
-            // Normalize to a list and resolve relative URLs
-            const toList = (x) => {
-              if (Array.isArray(x)) return x;
-              if (Array.isArray(x?.photos)) return x.photos;
-              if (Array.isArray(x?.data)) return x.data;
-              if (Array.isArray(x?.items)) return x.items;
-              return [];
-            };
-            const abs = (u) => {
-              try { return new URL(u, location.origin).href; } catch { return u; }
-            };
-            const pickUrl = (it) => {
-              if (typeof it === 'string') return abs(it);
-              const u = it?.url || it?.photoUrl || it?.imageUrl || it?.src || it?.href || "";
-              return u ? abs(u) : "";
-            };
-            const list = toList(pf);
-            const arr = list.map(pickUrl).filter(Boolean);
-
-            if (arr.length) {
-              // Move cover (if flagged) to front
-              let cover = null;
-              if (Array.isArray(pf)) {
-                const cobj = pf.find(it =>
-                  typeof it === 'object' && (it?.isCover === true || it?.is_cover === true || it?.isPrimary === true || it?.is_primary === true)
-                );
-                cover = cobj ? pickUrl(cobj) : null;
-              }
-              images = arr;
-              if (cover) {
-                const idx = images.indexOf(cover);
-                if (idx > 0) images.splice(0, 0, ...images.splice(idx, 1));
-              }
-              console.log("[details] photos fallback loaded:", images.length);
-            }
-          }
-        } catch (e) {
-          console.warn("[details] photos fallback error", e);
-        }
-      }
-
-      // 2) Secondary: look for common alternates in the details payload
+      // ===== DETAILS_IMG_FALLBACKS (streamlined) =====
+      // 1) Try alternates in the details payload
       if (!images.length) {
         const pick = (arr) => (Array.isArray(arr) ? arr : [])
           .map(it => typeof it === 'string'
@@ -807,39 +738,34 @@
         if (!images.length) images = pick(j?.meta?.photos);
         if (!images.length) images = pick(j?.rooms?.[0]?.photos);
       }
-      // 3) Tertiary: query /catalog/search to pull photos by partnerId (same source as cards)
+
+      // 2) Primary public source (same wiring as catalog cards): /catalog/search
       if (!images.length) {
         try {
-          const q = `start=${encodeURIComponent(start)}&end=${encodeURIComponent(end)}&partnerId=${encodeURIComponent(propertyId)}&limit=1`;
+          const q  = `start=${encodeURIComponent(start)}&end=${encodeURIComponent(end)}&partnerId=${encodeURIComponent(propertyId)}&limit=1`;
           const sr = await fetch(`/catalog/search?${q}`, { cache: 'no-store' });
           console.log("[details][search] status:", sr.status);
           if (sr.ok) {
             const sj = await sr.json();
             console.log("[details][search] keys:", Object.keys(sj || {}));
 
-            const pidStr = String(propertyId);
-
-            // Prefer map-based photos if present (some builds return these)
-            const pickUrl = (it) => (typeof it === 'string')
-              ? it
-              : (it?.url || it?.photoUrl || it?.imageUrl || it?.src || it?.href || "");
+            const pidStr  = String(propertyId);
+            const pickUrl = (it) => (typeof it === 'string') ? it :
+              (it?.url || it?.photoUrl || it?.imageUrl || it?.src || it?.href || "");
             const pickList = (arr) => (Array.isArray(arr) ? arr : []).map(pickUrl).filter(Boolean);
 
+            // Prefer map-style if present; otherwise use properties[].images
             let arr = [];
             const maps = [sj?.photosByPid, sj?.photos_by_pid, sj?.byPid, sj?.photosMap, sj?.photos_map];
             for (const m of maps) {
-              if (!m || typeof m !== "object") continue;
-              if (Array.isArray(m[pidStr])) { arr = pickList(m[pidStr]); break; }
-              if (Array.isArray(m[Number(pidStr)])) { arr = pickList(m[Number(pidStr)]); break; }
+              if (m && typeof m === "object") {
+                if (Array.isArray(m[pidStr]))           { arr = pickList(m[pidStr]); break; }
+                if (Array.isArray(m[Number(pidStr)]))   { arr = pickList(m[Number(pidStr)]); break; }
+              }
             }
-
-            // Fallback for your current API: properties[].images as used by catalog.html
             if (!arr.length) {
-              const props = Array.isArray(sj?.properties) ? sj.properties
-                          : Array.isArray(sj) ? sj
-                          : [];
-              const item = props.find(it => String(it?.partnerId ?? it?.propertyId ?? it?.id) === pidStr)
-                        || props[0];
+              const props = Array.isArray(sj?.properties) ? sj.properties : (Array.isArray(sj) ? sj : []);
+              const item  = props.find(it => String(it?.partnerId ?? it?.propertyId ?? it?.id) === pidStr) || props[0];
               if (item) {
                 arr = pickList(item.images || item.photos || []);
                 if (!arr.length && item?.cover)    arr = pickList([item.cover.url || item.cover]);
@@ -847,16 +773,19 @@
                 if (!arr.length && item?.image)    arr = pickList([item.image]);
               }
             }
-
             if (arr.length) {
               images = arr;
-              console.log("[details] photos from /catalog/search (properties[].images):", images.length);
+              console.log("[details] photos from /catalog/search:", images.length);
             }
           }
         } catch (e) {
           console.warn("[details] search photos fallback error", e);
         }
       }
+
+      // NOTE: we intentionally skip /extranet/property/photos (auth) and
+      // /catalog/property/photos|/catalog/photos (non-existent) to avoid 401/404 noise.
+      // ===== DETAILS_IMG_FALLBACKS (end) =====
 
       const placeholder = 'data:image/svg+xml;utf8,' +
         encodeURIComponent(
