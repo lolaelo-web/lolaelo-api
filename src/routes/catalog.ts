@@ -317,6 +317,17 @@ router.get("/search", async (req: Request, res: Response) => {
         req.app?.get("logger")?.warn?.({ err }, "catalog.search db-fallback failed");
       }
     }
+    // Final placeholder image backfill (runs AFTER DB-fallback push)
+    try {
+      for (const p of props) {
+        const imgs = (p as any)?.images;
+        if (!Array.isArray(imgs) || imgs.length === 0) {
+          (p as any).images = ["/logo.png"]; // deterministic local placeholder
+        }
+      }
+    } catch (e) {
+      req.app?.get("logger")?.warn?.({ e }, "search.placeholder-backfill-final failed");
+    }
 
     // ---- 3) Rooms/Inventory/Prices from DB (fallback to mock if empty) ----
     // ANCHOR: ROOMS_DB_WIRE_START
