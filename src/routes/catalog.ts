@@ -249,7 +249,7 @@ router.get("/search", async (req: Request, res: Response) => {
         if (cc !== cityParam && c !== cityParam) props.splice(i, 1);
       }
     }
-    const afterCity = props.length;
+    const afterCityPre = props.length; // before DB-fallback injection
 
     // If nothing left after enrichment/city filter, try a DB fallback:
     if (props.length === 0) {
@@ -497,7 +497,7 @@ router.get("/search", async (req: Request, res: Response) => {
         roomsApplied: _roomsApplied,
         guests: req.query.guests ? Number(req.query.guests) : undefined,
         citySel: cityParam || undefined,
-        totals: { beforeCity, afterCity },
+        totals: { beforeCity, afterCityPre, afterCity: props.length },
       },
     });
   } catch (err: any) {
