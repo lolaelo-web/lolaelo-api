@@ -184,6 +184,7 @@ router.get("/search", async (req: Request, res: Response) => {
       // ANCHOR: MERGE_DB_PROFILES_END
     }
     // --- Photos: pull partner-uploaded images (cover first) ----------------------
+    console.log("[catalog.search][photos] ENTER block");
     try {
       const pidList = props
         .map((p: any) => Number(p?.propertyId))
@@ -240,6 +241,7 @@ router.get("/search", async (req: Request, res: Response) => {
             if (pid === 2) console.log("[catalog.search][photos] applied to pid=2:", urls.slice(0, 3));
           }
         }
+        console.log("[catalog.search][photos] EXIT block");
 
         await pgp.end();
 
