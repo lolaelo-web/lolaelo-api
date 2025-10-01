@@ -395,6 +395,63 @@ router.get("/search", async (req: Request, res: Response) => {
         req.app?.get("logger")?.warn?.({ err }, "catalog.search db-fallback failed");
       }
     }
+    // Re-apply photos for any newly injected DB-fallback properties (they were added after the first photo pass)
+    try {
+      const pidList2 = props
+        .filter((p: any) => !Array.isArray(p?.images) || p.images.length === 0)
+        .map((p: any) => Number(p?.propertyId))
+        .filter((n: number) => Number.isFinite(n));
+
+      if (pidList2.length) {
+        const cs = process.env.DATABASE_URL || "";
+        const wantsSSL = /\bsslmode=require\b/i.test(cs) || /render\.com/i.test(cs);
+        const pgp = new PgClient({
+          connectionString: cs,
+          ssl: wantsSSL ? { rejectUnauthorized: false } : undefined,
+        });
+        await pgp.connect();
+
+        const { rows: ph2 } = await pgp.query(
+          `
+          SELECT pid, url, is_cover
+          FROM (
+            SELECT "partnerId" AS pid, url, COALESCE("isCover", FALSE) AS is_cover, "createdAt", id
+            FROM public."PropertyPhoto"
+            WHERE "partnerId" = ANY($1::bigint[])
+            UNION ALL
+            SELECT "partnerId" AS pid, url, COALESCE("isCover", FALSE) AS is_cover, "createdAt", id
+            FROM extranet."PropertyPhoto"
+            WHERE "partnerId" = ANY($1::bigint[])
+          ) u
+          ORDER BY is_cover DESC NULLS LAST, "createdAt" DESC NULLS LAST, id DESC
+          `,
+          [pidList2]
+        );
+
+        const byPid2 = new Map<number, string[]>();
+        for (const r of ph2 || []) {
+          const pid = Number(r?.pid);
+          const url = String(r?.url || "").trim();
+          if (!Number.isFinite(pid) || !url) continue;
+          if (!byPid2.has(pid)) byPid2.set(pid, []);
+          byPid2.get(pid)!.push(url);
+        }
+
+        for (const p of props) {
+          const imgs = (p as any)?.images;
+          if (!Array.isArray(imgs) || imgs.length === 0) {
+            const pid = Number((p as any)?.propertyId);
+            const urls = byPid2.get(pid) || [];
+            if (urls.length) (p as any).images = urls; // cover-first
+          }
+        }
+
+        await pgp.end();
+      }
+    } catch (err) {
+      req.app?.get("logger")?.warn?.({ err }, "catalog.search photos-reapply-after-fallback failed");
+    }
+
     // Final placeholder image backfill (runs AFTER DB-fallback push)
     try {
       for (const p of props) {
