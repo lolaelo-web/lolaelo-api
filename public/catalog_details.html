@@ -882,19 +882,7 @@
     fetch(`/catalog/details?propertyId=${pid}&start=${encodeURIComponent(start)}&end=${encodeURIComponent(end)}`)
       .then(r => r.ok ? r.json() : {})
       .then(d => {
-        // 1) PartnerId badge (read-only)
-        let badge = document.getElementById("partnerIdBadge");
-        if (!badge) {
-          badge = document.createElement("span");
-          badge.id = "partnerIdBadge";
-          badge.style.cssText = "display:inline-block;margin-left:.5rem;padding:.15rem .5rem;border-radius:8px;background:#eef2ff;color:#3730a3;font:500 12px/1.4 system-ui,Segoe UI,Roboto,Helvetica,Arial";
-          const titleEl = document.querySelector("h1, h2, .title, .header h1") || document.body;
-          if (titleEl && titleEl.parentNode) titleEl.parentNode.insertBefore(badge, titleEl.nextSibling);
-          else document.body.prepend(badge);
-        }
-        if (Number.isFinite(d?.partnerId)) badge.textContent = `Partner #${d.partnerId} (read-only)`;
-
-        // 2) Hero image fallback (if your page has an <img> for cover)
+        // 1) Hero image fallback (if your page has an <img> for cover)
         const hero = document.querySelector("#hero, .hero img, img.hero, .cover img");
         const first = Array.isArray(d?.images) && d.images.length ? d.images[0] : null;
         if (hero) {

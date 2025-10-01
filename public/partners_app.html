@@ -187,19 +187,19 @@
         <h2>Company Profile</h2>
         <div class="row">
           <div>
-            <label for="pp_name">Company name *</label>
+            <label for="pp_name">Hotel Name *</label>
             <input id="pp_name" type="text" placeholder="Hotel Buena Vista" />
           </div>
           <div>
-            <label for="pp_contactEmail">Contact email</label>
+            <label for="pp_contactEmail">Contact E-mail</label>
             <input id="pp_contactEmail" type="email" placeholder="frontdesk@hotel.com" />
           </div>
         </div>
         <div class="row">
           <div>
-            <label for="pp_partnerId">Partner ID</label>
+            <label for="pp_partnerId">Partner ID (read only)</label>
             <input id="pp_partnerId" type="text" value="" disabled aria-readonly="true" title="System-generated (not editable)" />
-            <small class="muted">System-generated. Contact support to change.</small>
+            <small class="muted">System-generated ID. Contact support to change.</small>
           </div>
           <div></div>
         </div>
@@ -207,10 +207,6 @@
           <div>
             <label for="pp_phone">Phone</label>
             <input id="pp_phone" type="tel" placeholder="+1 (555) 555-1234" />
-          </div>
-          <div>
-            <label for="pp_country">Country</label>
-            <input id="pp_country" type="text" placeholder="United States" />
           </div>
         </div>
 
@@ -230,6 +226,10 @@
               <option value="MANILA">Manila</option>
             </select>
             <small class="muted">This controls where your property appears in the public catalog.</small>
+          </div>
+          <div>
+            <label for="pp_country">Country</label>
+            <input id="pp_country" type="text" placeholder="United States" />
           </div>
         </div>
 
