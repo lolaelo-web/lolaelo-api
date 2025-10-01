@@ -393,49 +393,60 @@ router.get("/details", async (req: Request, res: Response) => {
     if (!base || typeof base !== "object") base = {};
     console.log("[details] start", { propertyId, start, end, ratePlanId });
 
-    // Profiles (name/city/images) — resolve Partner.id (incoming) -> Profile.id first, then fetch
+    // Profiles (name/city/images) — DIRECT SQL using Partner.id for profile + cover photo
     try {
-      let effectiveProfileId: number | undefined;
+      const partnerId = Number.isFinite(propertyId) ? propertyId : NaN;
+      if (!Number.isFinite(partnerId)) throw new Error("invalid partnerId for profiles");
 
-      if (Number.isFinite(propertyId)) {
-        const cs = process.env.DATABASE_URL || "";
-        if (cs) {
-          const wantsSSL = /\bsslmode=require\b/i.test(cs) || /render\.com/i.test(cs);
-          const pg = new PgClient({
-            connectionString: cs,
-            ssl: wantsSSL ? { rejectUnauthorized: false } : undefined,
-          });
-          await pg.connect();
-          const { rows } = await pg.query(
-            `
-              SELECT id FROM extranet."PropertyProfile" WHERE "partnerId" = $1
-              UNION ALL
-              SELECT id FROM public."PropertyProfile"   WHERE "partnerId" = $1
-              LIMIT 1
-            `,
-            [propertyId]
-          );
-          await pg.end();
-          if (rows?.[0]?.id != null) {
-            effectiveProfileId = Number(rows[0].id);
-          }
-        }
-      }
+      const cs = process.env.DATABASE_URL || "";
+      if (!cs) throw new Error("DATABASE_URL missing");
 
-      const lookupId = effectiveProfileId ?? propertyId; // fallback to legacy behavior if no mapping
-      const profMap = await getProfilesFromDb([lookupId]);
-      const prof = profMap?.[lookupId];
-      if (prof) {
-        base.name = prof.name || base.name || "";
-        base.city = prof.city || base.city || "";
-        base.country = prof.country || base.country || "";
-        if (Array.isArray(prof.images) && prof.images.length) {
+      const wantsSSL = /\bsslmode=require\b/i.test(cs) || /render\.com/i.test(cs);
+      const pg = new PgClient({
+        connectionString: cs,
+        ssl: wantsSSL ? { rejectUnauthorized: false } : undefined,
+      });
+      await pg.connect();
+
+      // Prefer extranet profile; fallback to public. Also fetch one cover photo (or latest).
+      const q = `
+        WITH prof AS (
+          SELECT id, name, city, country FROM extranet."PropertyProfile" WHERE "partnerId" = $1
+          UNION ALL
+          SELECT id, name, city, country FROM public."PropertyProfile"   WHERE "partnerId" = $1
+          LIMIT 1
+        ),
+        pic AS (
+          SELECT url
+          FROM extranet."PropertyPhoto"
+          WHERE "partnerId" = $1
+          ORDER BY "isCover" DESC NULLS LAST, "createdAt" DESC NULLS LAST, id DESC
+          LIMIT 1
+        )
+        SELECT
+          (SELECT id      FROM prof)    AS profile_id,
+          (SELECT name    FROM prof)    AS name,
+          (SELECT city    FROM prof)    AS city,
+          (SELECT country FROM prof)    AS country,
+          (SELECT url     FROM pic)     AS cover_url
+      `;
+      const { rows } = await pg.query(q, [partnerId]);
+      await pg.end();
+
+      const r = rows?.[0] || {};
+      if (r) {
+        if (r.name)    base.name    = r.name;
+        if (r.city)    base.city    = r.city;
+        if (r.country) base.country = r.country;
+
+        // Attach cover image if present
+        if (r.cover_url) {
           const imgs = Array.isArray(base.images) ? base.images : [];
-          base.images = [...prof.images, ...imgs];
+          base.images = [String(r.cover_url), ...imgs];
         }
       }
     } catch (err) {
-      req.app?.get("logger")?.warn?.({ err, propertyId }, "details.profiles-db-wire failed");
+      req.app?.get("logger")?.warn?.({ err, propertyId }, "details.profiles-db-direct failed");
     }
 
     // Rooms from DB (overlay) — DIRECT SQL (bypass adapter) using Partner.id
@@ -502,13 +513,22 @@ router.get("/details", async (req: Request, res: Response) => {
       const byRoom = new Map<number, { name: string; daily: Daily[] }>();
       for (const r of rows) {
         const rid = Number(r.room_type_id);
+
+        // Coerce price to number if it comes back as text/decimal
+        let priceVal: number | null = null;
+        if (r.price !== null && r.price !== undefined) {
+          const n = Number(r.price);
+          priceVal = Number.isNaN(n) ? null : n;
+        }
+
         const rec: Daily = {
           date: r.date ? new Date(r.date).toISOString().slice(0, 10) : undefined,
-          price: typeof r.price === "number" ? Number(r.price) : null,
+          price: priceVal,
           inventory: Number(r.inventory ?? 0),
           closed: !!r.is_closed,
-          currency: undefined, // will be filled by currency backfill step
+          currency: undefined, // backfilled later
         } as any;
+
         const cur = byRoom.get(rid) ?? { name: String(r.room_name || ""), daily: [] };
         cur.daily.push(rec);
         byRoom.set(rid, cur);
