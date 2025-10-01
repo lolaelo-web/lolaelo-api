@@ -516,6 +516,13 @@ router.get("/search", async (req: Request, res: Response) => {
       }
     }
     // ANCHOR: ROOMS_DB_WIRE_END
+    // --- Final image backfill: only if no partner photos exist -------------------
+    for (const p of props) {
+      const imgs = (p as any)?.images;
+      if (!Array.isArray(imgs) || imgs.length === 0) {
+        (p as any).images = ["/logo.png"]; // fallback only when truly empty
+      }
+    }
 
     // ---- 4) Currency backfill (ensure each daily row has currency) --------
     // ANCHOR: CURRENCY_BACKFILL_START
