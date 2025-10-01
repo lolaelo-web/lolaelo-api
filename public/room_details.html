@@ -1,0 +1,236 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Lolaelo · Room</title>
+  <link rel="icon" href="https://www.lolaelo.com/logo.png?cb=fav-v1" />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <style>
+    :root{ --bg:#fff; --fg:#111; --muted:#6b7280; --line:#eaeaea; --bubble:#ff6633; --paper:#fff; --radius:16px; --shadow:0 12px 40px rgba(0,0,0,.08); --maxw:860px; }
+    *{ box-sizing:border-box; } html,body{ margin:0; min-height:100%; }
+    body{
+      font: 15px/1.5 Inter, ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial;
+      color:var(--fg);
+      background:
+        linear-gradient(to bottom, rgba(255,255,255,.10), rgba(255,255,255,.10)),
+        url("https://images.pexels.com/photos/1005417/pexels-photo-1005417.jpeg?auto=compress&cs=tinysrgb&dpr=2&h=1600&w=2400")
+        center/cover no-repeat fixed;
+      display:flex; flex-direction:column; align-items:center;
+    }
+    .paper{ width:100%; max-width:var(--maxw); margin:18px 20px; background:var(--paper); border-radius:var(--radius); box-shadow:var(--shadow); padding:16px 16px 22px; }
+    header{ display:grid; grid-template-columns:auto 1fr; align-items:center; gap:12px; }
+    header h1{ margin:0; font-size:22px; font-weight:700; text-align:right; }
+    .hero{ position:relative; border-radius:var(--radius); overflow:hidden; background:#fff; aspect-ratio:16/9; width:100%; min-height:260px; box-shadow:var(--shadow); }
+    .hero img{ width:100%; height:100%; object-fit:contain; background:#fff; display:block; transition:opacity .25s ease; }
+    .hero.is-loading::after{ content:""; position:absolute; inset:0; background-image:linear-gradient(90deg, rgba(0,0,0,.02) 0%, rgba(0,0,0,.06) 20%, rgba(0,0,0,.02) 40%); background-size:400px 100%; animation:shimmer 1.1s infinite linear; }
+    @keyframes shimmer{ 0%{background-position:-400px 0;} 100%{background-position:400px 0;} }
+    .thumbs{ display:grid; grid-auto-flow:column; grid-auto-columns:max-content; gap:10px; margin:12px 0 10px; padding:4px 2px; overflow:auto; }
+    .thumbs button{ border:1px solid var(--line); border-radius:12px; background:#fff; padding:0; line-height:0; cursor:pointer; box-shadow:0 6px 16px rgba(0,0,0,.10); }
+    .thumbs img{ width:110px; height:72px; object-fit:contain; border-radius:12px; display:block; }
+    .thumbs button[aria-current="true"]{ border-color:var(--bubble); box-shadow:0 0 0 2px rgba(255,102,51,.25) inset; }
+    .grid{ display:grid; grid-template-columns:minmax(0,3fr) minmax(320px,1fr); gap:16px; align-items:start; }
+    @media (max-width:860px){ .grid{ grid-template-columns:1fr; } }
+    .panel{ border:1px solid var(--line); border-radius:14px; padding:14px; display:flex; flex-direction:column; gap:12px; }
+    .muted{ color:var(--muted); font-size:12px; }
+    .price{ font-weight:800; font-size:26px; }
+    .cta{ border:1px solid var(--bubble); background:var(--bubble); color:#fff; font-weight:700; border-radius:12px; padding:14px; width:100%; cursor:pointer; }
+    .chips{ display:flex; gap:6px; flex-wrap:wrap; margin:6px 0; }
+    .chip{ font-size:11px; padding:4px 8px; border:1px solid var(--line); border-radius:999px; background:#fafafa; color:#444; }
+    .note{ font-size:12px; color:var(--muted); }
+    .row{ display:flex; gap:10px; align-items:center; }
+  </style>
+</head>
+<body>
+  <div class="paper">
+    <header>
+      <a class="logo" href="/catalog.html">
+        <img src="https://www.lolaelo.com/logo.png?cb=logo-5x" alt="Lolaelo" decoding="async" loading="eager" style="height:95px;width:auto;display:block;">
+      </a>
+      <h1><span id="prop-name">Loading…</span></h1>
+    </header>
+
+    <section>
+      <div id="hero" class="hero" aria-live="polite">
+        <img id="hero-img" src="" alt="">
+      </div>
+      <div id="thumbs" class="thumbs" aria-label="More photos"></div>
+    </section>
+
+    <div class="grid" style="margin-top:10px;">
+      <section>
+        <h2 id="room-name" style="margin:8px 0 6px;">Room</h2>
+        <div id="room-meta" class="note"></div>
+        <div id="amenities" class="chips"></div>
+        <div id="desc" class="note" style="margin-top:8px;"></div>
+      </section>
+
+      <aside class="panel">
+        <div id="stay-range" class="muted"></div>
+        <div class="row"><div class="muted">From</div><div id="from" class="price">—</div></div>
+        <div id="nights" class="muted"></div>
+        <button id="continue" class="cta" type="button">Continue (mock)</button>
+      </aside>
+    </div>
+  </div>
+
+  <script>
+  // --- Query params
+  const qs = new URLSearchParams(location.search);
+  const propertyId = qs.get('propertyId');
+  const roomId     = qs.get('roomId');
+  const start      = qs.get('start') || new Date().toISOString().slice(0,10);
+  const end        = qs.get('end')   || start;
+
+  // --- DOM
+  const heroWrap = document.getElementById('hero');
+  const heroImg  = document.getElementById('hero-img');
+  const thumbs   = document.getElementById('thumbs');
+  const propName = document.getElementById('prop-name');
+  const roomName = document.getElementById('room-name');
+  const roomMeta = document.getElementById('room-meta');
+  const chipsEl  = document.getElementById('amenities');
+  const descEl   = document.getElementById('desc');
+  const fromEl   = document.getElementById('from');
+  const rangeEl  = document.getElementById('stay-range');
+  const nightsEl = document.getElementById('nights');
+
+  let images = [];
+  let heroIndex = 0;
+
+  function getPlaceholderSVG(label='Photo not available'){
+    return 'data:image/svg+xml;utf8,' + encodeURIComponent(
+      `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 450">
+        <rect width="800" height="450" fill="white"/>
+        <rect x="20" y="20" width="760" height="410" fill="#f3f4f6" stroke="#e5e7eb"/>
+        <text x="50%" y="50%" dominant-baseline="middle" text-anchor="middle"
+              font-family="Inter, Arial, sans-serif" font-size="20" fill="#9ca3af">${label}</text>
+      </svg>`
+    );
+  }
+
+  function thumbHTML(src, idx, total, name){
+    return `<button class="thumb" type="button" data-idx="${idx}" aria-current="${idx===0?'true':'false'}">
+      <img src="${src}" alt="${name} — photo ${idx+1} of ${total}" loading="lazy" decoding="async" width="110" height="72" draggable="false">
+    </button>`;
+  }
+
+  function setHero(i){
+    if (!images.length) return;
+    i = Math.max(0, Math.min(images.length-1, i));
+    heroIndex = i;
+    const src = images[i];
+
+    const img = new Image();
+    heroWrap.classList.add('is-loading');
+    img.onload = () => {
+      heroImg.src = src;
+      heroImg.alt = (roomName.textContent || 'Room') + ' — hero image';
+      heroWrap.classList.remove('is-loading');
+      thumbs.querySelectorAll('button.thumb').forEach((b, k)=>b.setAttribute('aria-current', k===i?'true':'false'));
+    };
+    img.onerror = () => {
+      const ph = getPlaceholderSVG();
+      heroImg.src = ph;
+      heroImg.alt = 'Photo not available';
+      heroWrap.classList.remove('is-loading');
+    };
+    img.src = src;
+  }
+
+  function money(n){ const x=Number(n); return Number.isFinite(x) ? `$${x.toFixed(2)}` : '—'; }
+  function daysBetween(a,b){ return Math.round((new Date(b)-new Date(a))/86400000); }
+
+  async function load(){
+    rangeEl.textContent = `${start} — ${end}`;
+    heroWrap.classList.add('is-loading');
+
+    // Load property + rooms once
+    const url = `/catalog/details?propertyId=${encodeURIComponent(propertyId)}&start=${encodeURIComponent(start)}&end=${encodeURIComponent(end)}`;
+    const r   = await fetch(url, { cache:'no-store' });
+    if (!r.ok) throw new Error(`HTTP ${r.status}`);
+    const j = await r.json();
+
+    propName.textContent = j?.name || 'Stay';
+
+    const rooms = Array.isArray(j?.rooms) ? j.rooms : [];
+    // Resolve room by common ids
+    const room = rooms.find(rr =>
+      String(rr.id ?? rr.roomId ?? rr.code ?? '') === String(roomId)
+    ) || rooms[0];
+
+    roomName.textContent = room?.name || 'Room';
+
+    // Meta line (size/occupancy if available)
+    const m2  = room?.areaM2 ?? room?.areaSqm ?? null;
+    const ft2 = room?.areaFt2 ?? (m2 ? Math.round(m2 * 10.7639) : null);
+    const occ = room?.occupancy ?? room?.maxGuests ?? null;
+    const bits = [];
+    if (occ) bits.push(`${occ} guests`);
+    if (m2)  bits.push(`${m2} m²`);
+    if (ft2) bits.push(`${ft2} ft²`);
+    roomMeta.textContent = bits.join(' · ');
+
+    // Amenities & description (best effort)
+    const am = Array.isArray(room?.amenities) ? room.amenities
+             : Array.isArray(j?.amenities)    ? j.amenities
+             : [];
+    chipsEl.innerHTML = am.slice(0,8).map(a=>`<span class="chip">${String(a)}</span>`).join('');
+    descEl.textContent = String(room?.description || j?.description || '');
+
+    // Price roll-up from room.daily
+    const daily = Array.isArray(room?.daily) ? room.daily : [];
+    const open  = daily.filter(d => !d.closed && Number(d.inventory ?? d.open ?? 0) > 0);
+    const minP  = open.length ? Math.min(...open.map(d => Number(d.price ?? Infinity))) : null;
+    fromEl.textContent = minP!=null ? money(minP) : '—';
+    const nights = daysBetween(start,end);
+    nightsEl.textContent = nights>0 ? `${nights} night${nights===1?'':'s'}` : '';
+
+    // Images: prefer room.images → details.images → catalog.search(by partnerId)
+    const pick = (arr)=> (Array.isArray(arr)?arr:[])
+      .map(it=> typeof it==='string' ? it : (it?.url||it?.photoUrl||it?.imageUrl||it?.src||it?.href||""))
+      .filter(Boolean);
+
+    images = pick(room?.images);
+    if (!images.length) images = pick(j?.images);
+    if (!images.length) {
+      try{
+        const q  = `start=${encodeURIComponent(start)}&end=${encodeURIComponent(end)}&partnerId=${encodeURIComponent(j?.partnerId || propertyId)}&limit=1`;
+        const sr = await fetch(`/catalog/search?${q}`, { cache:'no-store' });
+        if (sr.ok){
+          const sj = await sr.json();
+          const props = Array.isArray(sj?.properties) ? sj.properties : (Array.isArray(sj)?sj:[]);
+          const item  = props.find(it => String(it?.partnerId ?? it?.propertyId ?? it?.id) === String(j?.partnerId || propertyId)) || props[0];
+          if (item) images = pick(item.images || item.photos || []);
+        }
+      }catch{}
+    }
+
+    // Render gallery
+    if (!images.length){
+      heroImg.src = getPlaceholderSVG(); heroImg.alt = 'Photo not available';
+      thumbs.innerHTML = '';
+    }else{
+      thumbs.innerHTML = images.map((s,i)=>thumbHTML(s,i,images.length, roomName.textContent)).join('');
+      setHero(0);
+    }
+
+    thumbs.addEventListener('click', e=>{
+      const b = e.target.closest('button.thumb'); if(!b) return;
+      setHero(Number(b.dataset.idx||0));
+    });
+  }
+
+  load().catch(e=>{
+    console.error(e);
+    heroWrap.classList.remove('is-loading');
+    heroImg.src = getPlaceholderSVG('Failed to load');
+  });
+
+  // Mock continue
+  document.getElementById('continue').addEventListener('click', ()=>{
+    alert('Checkout flow coming soon');
+  });
+  </script>
+</body>
+</html>
