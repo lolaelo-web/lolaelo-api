@@ -199,13 +199,21 @@ router.get("/search", async (req: Request, res: Response) => {
 
         const { rows: ph } = await pgp.query(
           `
-          SELECT "partnerId" AS pid, url, COALESCE("isCover", FALSE) AS is_cover
-          FROM extranet."PropertyPhoto"
-          WHERE "partnerId" = ANY($1::bigint[])
-          ORDER BY "isCover" DESC NULLS LAST, "createdAt" DESC NULLS LAST, id DESC
+          SELECT pid, url, is_cover
+          FROM (
+            SELECT "partnerId" AS pid, url, COALESCE("isCover", FALSE) AS is_cover, "createdAt", id, 'public'   AS src
+            FROM public."PropertyPhoto"
+            WHERE "partnerId" = ANY($1::bigint[])
+            UNION ALL
+            SELECT "partnerId" AS pid, url, COALESCE("isCover", FALSE) AS is_cover, "createdAt", id, 'extranet' AS src
+            FROM extranet."PropertyPhoto"
+            WHERE "partnerId" = ANY($1::bigint[])
+          ) u
+          ORDER BY is_cover DESC NULLS LAST, "createdAt" DESC NULLS LAST, id DESC
           `,
           [pidList]
         );
+
         await pgp.end();
 
         // bucket by partner id, cover-first order already preserved
