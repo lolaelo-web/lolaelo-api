@@ -492,7 +492,6 @@
       const cityCode  = normalizeCityCode($('pp_city').value);
       const cityLabel = CITY_LABELS[cityCode] || null;
 
-      // Build payload and drop empty fields so we don't overwrite with nulls
       const payload = {
         name:         nz($('pp_name').value),
         contactEmail: nz($('pp_contactEmail').value),
@@ -508,38 +507,40 @@
 
       const btn = $('btnSave'); btn.disabled = true;
       try {
-        // 1) Try PATCH (update existing)
+        // 1) PATCH first
         let r = await authed('/extranet/property', {
           method: 'PATCH',
           headers: { 'Content-Type': 'application/json' },
           body
         });
 
-        // 2) Generic fallback for NEW partners or “no row” cases → POST (create)
-        if (!r.ok) {
-          const txt = await r.text().catch(()=> '');
-          const shouldCreate =
-            r.status === 404 || r.status === 405 || r.status === 409 || r.status === 422 ||
-            /no row|not found|doesn't exist|insert required|create/i.test(txt);
-
-          if (shouldCreate) {
+        // 2) Fallbacks for broader partner coverage
+        if (!r.ok && (r.status === 500 || r.status === 404 || r.status === 405)) {
+          console.warn('[profile] PATCH failed (' + r.status + '), retrying POST…');
+          r = await authed('/extranet/property', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body
+          });
+          if (!r.ok && (r.status === 404 || r.status === 405)) {
+            console.warn('[profile] POST not supported (' + r.status + '), retrying PUT…');
             r = await authed('/extranet/property', {
-              method: 'POST',
-              headers: { 'Content-Type':'application/json' },
+              method: 'PUT',
+              headers: { 'Content-Type': 'application/json' },
               body
             });
           }
-
-          if (!r.ok) {
-            // surface server message if any, capped
-            throw new Error((txt && txt.slice(0, 400)) || `Save failed: ${r.status}`);
-          }
         }
 
-        // 3) Re-fetch to reflect DB state
-        const saved = await getJSON('/extranet/property').catch(() => null);
-        if (window.DEBUG) console.log('[hub] saved record echo:', saved);
+        if (!r.ok) {
+          let msg = '';
+          try { msg = (await r.json()).error || (await r.text()) || ''; } catch {}
+          throw new Error(msg || `Save failed: ${r.status}`);
+        }
 
+        // 3) Refresh from server echo
+        const saved = await getJSON('/extranet/property').catch(() => null);
+        if (DEBUG) console.log('[hub] saved record echo:', saved);
         await loadPropertyIntoForm();
         toast(
           saved && (saved.name || saved.city || saved.cityCode)
