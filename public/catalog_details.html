@@ -810,7 +810,7 @@
       // 3) Tertiary: query /catalog/search to pull photos by partnerId (same source as cards)
       if (!images.length) {
         try {
-          const q = `start=${encodeURIComponent(start)}&end=${encodeURIComponent(end)}&partnerId=${encodeURIComponent(propertyId)}&limit=1${planQS}`;
+          const q = `start=${encodeURIComponent(start)}&end=${encodeURIComponent(end)}&partnerId=${encodeURIComponent(propertyId)}&limit=1`;
           const sr = await fetch(`/catalog/search?${q}`, { cache: 'no-store' });
           console.log("[details][search] status:", sr.status);
           if (sr.ok) {
@@ -819,70 +819,42 @@
 
             const pidStr = String(propertyId);
 
-            const toUrl  = (it) => (typeof it === 'string') ? it :
-              (it?.url || it?.photoUrl || it?.imageUrl || it?.src || it?.href || '');
-            const toList = (arr) => (Array.isArray(arr) ? arr.map(toUrl).filter(Boolean) : []);
+            // Prefer map-based photos if present (some builds return these)
+            const pickUrl = (it) => (typeof it === 'string')
+              ? it
+              : (it?.url || it?.photoUrl || it?.imageUrl || it?.src || it?.href || "");
+            const pickList = (arr) => (Array.isArray(arr) ? arr : []).map(pickUrl).filter(Boolean);
 
             let arr = [];
-
-            // a) common map containers (flat or nested)
-            const maps = [
-              sj?.photosByPid, sj?.photos_by_pid, sj?.byPid, sj?.photosMap, sj?.photos_map,
-              sj?.photos?.byPid, sj?.photos?.photosByPid,
-              sj?.data?.photosByPid, sj?.data?.byPid
-            ];
+            const maps = [sj?.photosByPid, sj?.photos_by_pid, sj?.byPid, sj?.photosMap, sj?.photos_map];
             for (const m of maps) {
-              if (!m || typeof m !== 'object') continue;
-              if (Array.isArray(m[pidStr]))         { arr = toList(m[pidStr]); break; }
-              if (Array.isArray(m[Number(pidStr)])) { arr = toList(m[Number(pidStr)]); break; }
+              if (!m || typeof m !== "object") continue;
+              if (Array.isArray(m[pidStr])) { arr = pickList(m[pidStr]); break; }
+              if (Array.isArray(m[Number(pidStr)])) { arr = pickList(m[Number(pidStr)]); break; }
             }
 
-            // b) flat arrays (optionally scoped by pid)
+            // Fallback for your current API: properties[].images as used by catalog.html
             if (!arr.length) {
-              const flat = toList(sj?.photos || sj?.images || sj?.data?.photos);
-              if (flat.length) {
-                const scoped = (Array.isArray(sj?.photos) ? sj.photos : [])
-                  .filter(x => String(x?.pid ?? x?.propertyId) === pidStr);
-                arr = scoped.length ? toList(scoped) : flat;
-              }
-            }
-
-            // c) derive from a single result item
-            if (!arr.length) {
-              const items = Array.isArray(sj?.results) ? sj.results : (Array.isArray(sj) ? sj : []);
-              const item = items.find(it => String(it?.propertyId ?? it?.id ?? it?.partnerId) === pidStr);
+              const props = Array.isArray(sj?.properties) ? sj.properties
+                          : Array.isArray(sj) ? sj
+                          : [];
+              const item = props.find(it => String(it?.partnerId ?? it?.propertyId ?? it?.id) === pidStr)
+                        || props[0];
               if (item) {
-                arr = toList(item.images || item.photos);
-                if (!arr.length && item?.cover)    arr = toList([item.cover.url || item.cover]);
-                if (!arr.length && item?.coverUrl) arr = toList([item.coverUrl]);
-                if (!arr.length && item?.image)    arr = toList([item.image]);
+                arr = pickList(item.images || item.photos || []);
+                if (!arr.length && item?.cover)    arr = pickList([item.cover.url || item.cover]);
+                if (!arr.length && item?.coverUrl) arr = pickList([item.coverUrl]);
+                if (!arr.length && item?.image)    arr = pickList([item.image]);
               }
             }
 
-            // d) move cover first if flagged
             if (arr.length) {
-              let cover = null;
-              const maybeObjs =
-                (sj?.photos?.byPid && sj.photos.byPid[pidStr]) ||
-                (sj?.photosByPid && sj.photosByPid[pidStr]) ||
-                null;
-              if (Array.isArray(maybeObjs)) {
-                const cobj = maybeObjs.find(o =>
-                  typeof o === 'object' && (o?.is_cover || o?.isCover || o?.is_primary || o?.isPrimary)
-                );
-                if (cobj) cover = toUrl(cobj);
-              }
-
               images = arr;
-              if (cover) {
-                const idx = images.indexOf(cover);
-                if (idx > 0) images.splice(0, 0, ...images.splice(idx, 1));
-              }
-              console.log("[details][search] images:", images.length, images.slice(0, 3));
+              console.log("[details] photos from /catalog/search (properties[].images):", images.length);
             }
           }
         } catch (e) {
-          console.warn("[details][search] error", e);
+          console.warn("[details] search photos fallback error", e);
         }
       }
 
