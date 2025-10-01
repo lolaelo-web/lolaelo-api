@@ -783,7 +783,6 @@
       if (bookBtn) bookBtn.addEventListener('click', () => showToast('Booking flow coming soon'));
     })();
 
-
     /* ANCHOR: TOAST_JS_HELPER */
     function showToast(msg, ms=1600){
       let t = document.querySelector('.toast');
@@ -868,6 +867,49 @@
 
       onScroll();
     })();
+  </script>
+  <!-- PARTNER BADGE & IMAGE FALLBACK (insert above </body>) -->
+  <script>
+  (function () {
+    const qs = new URLSearchParams(location.search);
+    const pid = Number(qs.get("propertyId"));
+    const start = qs.get("start") || "";
+    const end = qs.get("end") || "";
+    if (!Number.isFinite(pid) || !start || !end) return;
+
+    const placeholder = "data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 1200 800'><defs><linearGradient id='g' x1='0' y1='0' x2='1' y2='1'><stop offset='0%' stop-color='%23e5e7eb'/><stop offset='100%' stop-color='%23c7d2fe'/></linearGradient></defs><rect width='1200' height='800' fill='url(%23g)'/><g fill='%239ca3af' font-family='system-ui,Segoe UI,Roboto,Helvetica,Arial' text-anchor='middle'><text x='600' y='420' font-size='56'>No photo</text><text x='600' y='470' font-size='28'>Partner provides images in Extranet</text></g></svg>";
+
+    fetch(`/catalog/details?propertyId=${pid}&start=${encodeURIComponent(start)}&end=${encodeURIComponent(end)}`)
+      .then(r => r.ok ? r.json() : {})
+      .then(d => {
+        // 1) PartnerId badge (read-only)
+        let badge = document.getElementById("partnerIdBadge");
+        if (!badge) {
+          badge = document.createElement("span");
+          badge.id = "partnerIdBadge";
+          badge.style.cssText = "display:inline-block;margin-left:.5rem;padding:.15rem .5rem;border-radius:8px;background:#eef2ff;color:#3730a3;font:500 12px/1.4 system-ui,Segoe UI,Roboto,Helvetica,Arial";
+          const titleEl = document.querySelector("h1, h2, .title, .header h1") || document.body;
+          if (titleEl && titleEl.parentNode) titleEl.parentNode.insertBefore(badge, titleEl.nextSibling);
+          else document.body.prepend(badge);
+        }
+        if (Number.isFinite(d?.partnerId)) badge.textContent = `Partner #${d.partnerId} (read-only)`;
+
+        // 2) Hero image fallback (if your page has an <img> for cover)
+        const hero = document.querySelector("#hero, .hero img, img.hero, .cover img");
+        const first = Array.isArray(d?.images) && d.images.length ? d.images[0] : null;
+        if (hero) {
+          hero.src = first || placeholder;
+          hero.alt = d?.name || "Property";
+        } else if (first) {
+          // If no hero container exists, inject a simple one up top
+          const img = document.createElement("img");
+          img.src = first; img.alt = d?.name || "Property";
+          img.style.cssText = "width:100%;max-height:360px;object-fit:cover;border-radius:12px;margin:8px 0";
+          document.body.insertBefore(img, document.body.firstChild);
+        }
+      })
+      .catch(()=>{});
+  })();
   </script>
 </body>
 </html>

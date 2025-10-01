@@ -195,7 +195,14 @@
             <input id="pp_contactEmail" type="email" placeholder="frontdesk@hotel.com" />
           </div>
         </div>
-
+        <div class="row">
+          <div>
+            <label for="pp_partnerId">Partner ID</label>
+            <input id="pp_partnerId" type="text" value="" disabled aria-readonly="true" title="System-generated (not editable)" />
+            <small class="muted">System-generated. Contact support to change.</small>
+          </div>
+          <div></div>
+        </div>
         <div class="row">
           <div>
             <label for="pp_phone">Phone</label>
@@ -457,12 +464,13 @@
         $('pp_desc').value         = p.description ?? '';
         $('profileStatus').textContent = p.name ? 'Complete' : 'Missing info';
         $('profileStatus').className   = p.name ? 'ok' : 'todo';
+        $('pp_partnerId').value = (p.id ?? p.partnerId ?? me.partnerId ?? '') + '';
         if (p.name) company = p.name;
       } else {
         $('profileStatus').textContent = 'Missing info';
         $('profileStatus').className   = 'todo';
         $('pp_name').value             = company ?? '';
-        $('pp_contactEmail').value     = me.email ?? '';
+        $('pp_partnerId').value        = (me.partnerId ?? '') + '';
       }
       $('brandTitle').textContent = company;
       $('welcomeH1').textContent  = `Welcome, ${company}`;

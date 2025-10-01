@@ -233,7 +233,7 @@ router.get("/search", async (req: Request, res: Response) => {
         const imgs = (p as any)?.images;
         if (!Array.isArray(imgs) || imgs.length === 0) {
           // Use a deterministic, local placeholder so UI never shows random stock
-          (p as any).images = ["/logo.png"];
+          (p as any).images = ["data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 1200 800'><defs><linearGradient id='g' x1='0' y1='0' x2='1' y2='1'><stop offset='0%' stop-color='%23e5e7eb'/><stop offset='100%' stop-color='%23c7d2fe'/></linearGradient></defs><rect width='1200' height='800' fill='url(%23g)'/><g fill='%239ca3af' font-family='system-ui,Segoe UI,Roboto,Helvetica,Arial' text-anchor='middle'><text x='600' y='420' font-size='56'>No photo</text><text x='600' y='470' font-size='28'>Partner provides images in Extranet</text></g></svg>"];
         }
       }
     } catch (e) {
@@ -731,6 +731,10 @@ router.get("/details", async (req: Request, res: Response) => {
       fromPriceStr: (base as any)?.fromPriceStr ?? null,
       roomsSource: (base as any)?._roomsSource ?? null,
     });
+    // Expose partnerId explicitly so UI can display it (read-only on the client)
+    if (Number.isFinite(propertyId)) {
+      base.partnerId = propertyId;
+    }
     return res.json(base ?? {});
   } catch (err: any) {
     req.app?.get("logger")?.error?.({ err }, "catalog.details failed");
