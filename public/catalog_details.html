@@ -807,7 +807,7 @@
         if (!images.length) images = pick(j?.meta?.photos);
         if (!images.length) images = pick(j?.rooms?.[0]?.photos);
       }
-            // 3) Tertiary: query /catalog/search to pull photos by partnerId (same source as cards)
+      // 3) Tertiary: query /catalog/search to pull photos by partnerId (same source as cards)
       if (!images.length) {
         try {
           const q = `start=${encodeURIComponent(start)}&end=${encodeURIComponent(end)}&partnerId=${encodeURIComponent(propertyId)}&limit=1`;
@@ -818,22 +818,14 @@
             const pidStr = String(propertyId);
 
             // Normalizers
-            const pickUrl = (it) => {
-              if (typeof it === 'string') return it;
-              return it?.url || it?.photoUrl || it?.imageUrl || it?.src || it?.href || "";
-            };
-            const pickList = (arr) =>
-              (Array.isArray(arr) ? arr : []).map(pickUrl).filter(Boolean);
+            const pickUrl = (it) => (typeof it === 'string')
+              ? it
+              : (it?.url || it?.photoUrl || it?.imageUrl || it?.src || it?.href || "");
+            const pickList = (arr) => (Array.isArray(arr) ? arr : []).map(pickUrl).filter(Boolean);
 
-            // 3a) Prefer map-based photos keyed by partnerId (server log shows byPid)
+            // 3a) Prefer map-based photos keyed by partnerId (server shows byPid)
             let arr = [];
-            const maps = [
-              sj?.photosByPid,
-              sj?.photos_by_pid,
-              sj?.byPid,
-              sj?.photosMap,
-              sj?.photos_map
-            ];
+            const maps = [sj?.photosByPid, sj?.photos_by_pid, sj?.byPid, sj?.photosMap, sj?.photos_map];
             for (const m of maps) {
               if (!m || typeof m !== "object") continue;
               if (Array.isArray(m[pidStr])) { arr = pickList(m[pidStr]); break; }
@@ -842,15 +834,13 @@
 
             // 3b) Fallback: derive from a result item
             if (!arr.length) {
-              const item = (Array.isArray(sj?.results) && sj.results.length)
-                ? sj.results.find(it => String(it?.partnerId ?? it?.id) === pidStr)
-                : (Array.isArray(sj) ? sj.find(it => String(it?.partnerId ?? it?.id) === pidStr) : null);
-
+              const list = Array.isArray(sj?.results) ? sj.results : (Array.isArray(sj) ? sj : []);
+              const item = list.find(it => String(it?.partnerId ?? it?.id) === pidStr);
               if (item) {
-                arr = pickList(item.images || item.photos);
-                if (!arr.length && item?.cover) arr = pickList([item.cover.url || item.cover]);
+                arr = pickList(item.images || item.photos || []);
+                if (!arr.length && item?.cover)    arr = pickList([item.cover.url || item.cover]);
                 if (!arr.length && item?.coverUrl) arr = pickList([item.coverUrl]);
-                if (!arr.length && item?.image) arr = pickList([item.image]);
+                if (!arr.length && item?.image)    arr = pickList([item.image]);
               }
             }
 
@@ -858,8 +848,11 @@
               images = arr;
               console.log("[details] photos from /catalog/search:", images.length);
             }
-
-// ===== DETAILS_IMG_FALLBACKS (insert end) =====
+          }
+        } catch (e) {
+          console.warn("[details] search photos fallback error", e);
+        }
+      }
       const placeholder = 'data:image/svg+xml;utf8,' +
         encodeURIComponent(
           `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 450">
