@@ -180,6 +180,53 @@ router.get("/search", async (req: Request, res: Response) => {
       }
       // ANCHOR: MERGE_DB_PROFILES_END
     }
+        // Cover image backfill from extranet.PropertyPhoto by Partner.id (only when images are empty)
+        try {
+          const cs = process.env.DATABASE_URL || "";
+          if (cs && ids.length > 0) {
+            const wantsSSL = /\bsslmode=require\b/i.test(cs) || /render\.com/i.test(cs);
+            const pg = new PgClient({
+              connectionString: cs,
+              ssl: wantsSSL ? { rejectUnauthorized: false } : undefined,
+            });
+            await pg.connect();
+
+            const { rows } = await pg.query(
+              `
+              SELECT DISTINCT ON (p."partnerId")
+                    p."partnerId" AS pid,
+                    p.url
+              FROM extranet."PropertyPhoto" p
+              WHERE p."partnerId" = ANY($1::bigint[])
+              ORDER BY p."partnerId", p."isCover" DESC NULLS LAST, p."createdAt" DESC NULLS LAST, p.id DESC
+              `,
+              [ids]
+            );
+
+            const cover = new Map<number, string>();
+            for (const r of rows) {
+              const pid = Number(r.pid);
+              const url = r?.url ? String(r.url) : "";
+              if (Number.isFinite(pid) && url) cover.set(pid, url);
+            }
+
+            for (const p of props) {
+              const pid = Number((p as any)?.propertyId);
+              const curImgs = (p as any)?.images;
+              if (
+                Number.isFinite(pid) &&
+                (!Array.isArray(curImgs) || curImgs.length === 0)
+              ) {
+                const url = cover.get(pid);
+                if (url) (p as any).images = [url];
+              }
+            }
+
+            await pg.end();
+          }
+        } catch (err) {
+          req.app?.get("logger")?.warn?.({ err, idsCount: ids.length }, "search.cover-backfill failed");
+        }
 
     // ---- 2b) NOW apply server-side CITY FILTER (after enrichment) ----------
     const beforeCity = props.length;
