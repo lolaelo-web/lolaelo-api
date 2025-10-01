@@ -635,6 +635,16 @@
         }
         if (!r.ok) throw new Error(`HTTP ${r.status} ${r.statusText}`);
         j = await r.json();
+        // ===== DETAILS_PAYLOAD_TAP (insert) =====
+        window.__detailsPayload = j;  // allow console inspection
+        console.log("[details] images.summary", {
+          hasImagesArray: Array.isArray(j?.images),
+          imagesLen: Array.isArray(j?.images) ? j.images.length : 0,
+          room0HasImages: Array.isArray(j?.rooms?.[0]?.images),
+          room0ImagesLen: Array.isArray(j?.rooms?.[0]?.images) ? j.rooms[0].images.length : 0
+        });
+        // ===== DETAILS_PAYLOAD_TAP (insert end) =====
+
         // ===== DETAILS_IMG_DEBUG (insert) =====
         console.log("[details] payload keys:", Object.keys(j || {}));
         console.log("[details] j.images:", j?.images);
@@ -688,20 +698,46 @@
         Array.isArray(j?.images) ? j.images
         : (Array.isArray(j?.rooms?.[0]?.images) ? j.rooms[0].images : []);
 
-      const coverUrl =
-        (Array.isArray(j?.images)
-          ? j.images.find(it => typeof it === 'object' && it?.isCover === true)?.url
-          : null) || null;
+      // Try to detect the designated cover across common key names / flags
+      const coverObj = Array.isArray(j?.images)
+        ? j.images.find(it =>
+            typeof it === 'object' &&
+            (it?.isCover === true || it?.is_cover === true || it?.isPrimary === true || it?.is_primary === true)
+          )
+        : null;
+      const coverUrl = coverObj
+        ? (coverObj.url || coverObj.photoUrl || coverObj.imageUrl || coverObj.src || coverObj.href || null)
+        : null;
 
+      // Normalize to plain URL strings across common key names
       images = rawImages
-        .map(it => (typeof it === 'string' ? it : it?.url))
+        .map(it => {
+          if (typeof it === 'string') return it;
+          return it?.url || it?.photoUrl || it?.imageUrl || it?.src || it?.href || "";
+        })
         .filter(Boolean);
 
+      // If we found a coverUrl, move it to the front
       if (coverUrl) {
         const idx = images.indexOf(coverUrl);
         if (idx > 0) images.splice(0, 0, ...images.splice(idx, 1));
       }
+      // ===== DETAILS_IMG_FALLBACKS (insert) =====
+      if (!images.length) {
+        const pick = (arr) => (Array.isArray(arr) ? arr : [])
+          .map(it => typeof it === 'string'
+            ? it
+            : (it?.url || it?.photoUrl || it?.imageUrl || it?.src || it?.href || ""))
+          .filter(Boolean);
 
+        // Common alternates seen in various shapes
+        images = pick(j?.meta?.property?.photos);
+        if (!images.length) images = pick(j?.meta?.photos);
+        if (!images.length) images = pick(j?.rooms?.[0]?.photos);
+      }
+
+      console.log("[details] images (final, after fallbacks):", images.length, images.slice(0,3));
+      // ===== DETAILS_IMG_FALLBACKS (insert end) =====
       const placeholder = 'data:image/svg+xml;utf8,' +
         encodeURIComponent(
           `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 450">
