@@ -393,10 +393,38 @@ router.get("/details", async (req: Request, res: Response) => {
     if (!base || typeof base !== "object") base = {};
     console.log("[details] start", { propertyId, start, end, ratePlanId });
 
-    // Profiles (name/city/images)
+    // Profiles (name/city/images) — resolve Partner.id (incoming) -> Profile.id first, then fetch
     try {
-      const profMap = await getProfilesFromDb([propertyId]);
-      const prof = profMap?.[propertyId];
+      let effectiveProfileId: number | undefined;
+
+      if (Number.isFinite(propertyId)) {
+        const cs = process.env.DATABASE_URL || "";
+        if (cs) {
+          const wantsSSL = /\bsslmode=require\b/i.test(cs) || /render\.com/i.test(cs);
+          const pg = new PgClient({
+            connectionString: cs,
+            ssl: wantsSSL ? { rejectUnauthorized: false } : undefined,
+          });
+          await pg.connect();
+          const { rows } = await pg.query(
+            `
+              SELECT id FROM extranet."PropertyProfile" WHERE "partnerId" = $1
+              UNION ALL
+              SELECT id FROM public."PropertyProfile"   WHERE "partnerId" = $1
+              LIMIT 1
+            `,
+            [propertyId]
+          );
+          await pg.end();
+          if (rows?.[0]?.id != null) {
+            effectiveProfileId = Number(rows[0].id);
+          }
+        }
+      }
+
+      const lookupId = effectiveProfileId ?? propertyId; // fallback to legacy behavior if no mapping
+      const profMap = await getProfilesFromDb([lookupId]);
+      const prof = profMap?.[lookupId];
       if (prof) {
         base.name = prof.name || base.name || "";
         base.city = prof.city || base.city || "";
