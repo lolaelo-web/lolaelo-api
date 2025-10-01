@@ -508,31 +508,37 @@
 
       const btn = $('btnSave'); btn.disabled = true;
       try {
-        // Prefer PATCH so we only touch provided fields
+        // 1) Try PATCH (update existing)
         let r = await authed('/extranet/property', {
           method: 'PATCH',
           headers: { 'Content-Type': 'application/json' },
           body
         });
 
-        // Fallback to PUT if PATCH isn't supported
-        if (r.status === 404 || r.status === 405) {
-          r = await authed('/extranet/property', {
-            method: 'PUT',
-            headers: { 'Content-Type': 'application/json' },
-            body
-          });
-        }
-
+        // 2) Generic fallback for NEW partners or “no row” cases → POST (create)
         if (!r.ok) {
-          let msg = '';
-          try { msg = (await r.json()).error || (await r.text()) || ''; } catch {}
-          throw new Error(msg || `Save failed: ${r.status}`);
+          const txt = await r.text().catch(()=> '');
+          const shouldCreate =
+            r.status === 404 || r.status === 405 || r.status === 409 || r.status === 422 ||
+            /no row|not found|doesn't exist|insert required|create/i.test(txt);
+
+          if (shouldCreate) {
+            r = await authed('/extranet/property', {
+              method: 'POST',
+              headers: { 'Content-Type':'application/json' },
+              body
+            });
+          }
+
+          if (!r.ok) {
+            // surface server message if any, capped
+            throw new Error((txt && txt.slice(0, 400)) || `Save failed: ${r.status}`);
+          }
         }
 
-        // Re-fetch to verify DB contents and reflect it in the form
+        // 3) Re-fetch to reflect DB state
         const saved = await getJSON('/extranet/property').catch(() => null);
-        if (DEBUG) console.log('[hub] saved record echo:', saved);
+        if (window.DEBUG) console.log('[hub] saved record echo:', saved);
 
         await loadPropertyIntoForm();
         toast(
