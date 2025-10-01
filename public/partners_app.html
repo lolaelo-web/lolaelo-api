@@ -458,41 +458,12 @@
     // --- Profile load/save ----------------------------------------------------
     function nz(v){ const s = (v ?? "").toString().trim(); return s.length ? s : null; }
 
-    async function loadPropertyIntoForm(){
-      const me = await getJSON('/extranet/session').catch(()=> ({}));
-      $('partnerEmail').textContent = me.email || '';
-      let company = me.name || 'Partner';
-
-      const p = await getJSON('/extranet/property').catch(()=> null);
-
-      if (p) {
-        $('pp_name').value         = p.name ?? company ?? '';
-        $('pp_contactEmail').value = p.contactEmail ?? me.email ?? '';
-        $('pp_phone').value        = p.phone ?? '';
-        $('pp_country').value      = p.country ?? '';
-        $('pp_address').value      = p.addressLine ?? '';
-        const loadedCode = normalizeCityCode(p.cityCode || p.city);
-        $('pp_city').value         = CITY_LABELS[loadedCode] ? loadedCode : '';
-        $('pp_desc').value         = p.description ?? '';
-        $('profileStatus').textContent = p.name ? 'Complete' : 'Missing info';
-        $('profileStatus').className   = p.name ? 'ok' : 'todo';
-        $('pp_partnerId').value = (p.id ?? p.partnerId ?? me.partnerId ?? '') + '';
-        if (p.name) company = p.name;
-      } else {
-        $('profileStatus').textContent = 'Missing info';
-        $('profileStatus').className   = 'todo';
-        $('pp_name').value             = company ?? '';
-        $('pp_partnerId').value        = (me.partnerId ?? '') + '';
-      }
-      $('brandTitle').textContent = company;
-      $('welcomeH1').textContent  = `Welcome, ${company}`;
-    }
-
     async function saveProfile() {
       const cityCode  = normalizeCityCode($('pp_city').value);
-      const cityLabel = CITY_LABELS[cityCode] || null;
+      const cityLabel = CITY_LABELS[cityCode] || '';
 
-      const payload = {
+      // For PATCH: send only provided fields (tolerant, nicer on server when supported)
+      const patchPayload = {
         name:         nz($('pp_name').value),
         contactEmail: nz($('pp_contactEmail').value),
         phone:        nz($('pp_phone').value),
@@ -502,49 +473,51 @@
         cityCode:     cityCode || null,
         city:         cityLabel || null
       };
-      Object.keys(payload).forEach(k => (payload[k] == null) && delete payload[k]);
-      const body = JSON.stringify(payload);
+      Object.keys(patchPayload).forEach(k => (patchPayload[k] == null) && delete patchPayload[k]);
+
+      // For PUT: server requires *full* object with these exact keys (no extras)
+      const putPayload = {
+        name:         ($('pp_name').value || '').trim(),
+        contactEmail: ($('pp_contactEmail').value || '').trim(),
+        phone:        ($('pp_phone').value || '').trim(),
+        country:      ($('pp_country').value || '').trim(),
+        addressLine:  ($('pp_address').value || '').trim(),
+        city:         cityLabel,              // label, not code
+        description:  ($('pp_desc').value || '').trim()
+      };
 
       const btn = $('btnSave'); btn.disabled = true;
       try {
-        // 1) PATCH first
+        // 1) Try PATCH first
         let r = await authed('/extranet/property', {
           method: 'PATCH',
           headers: { 'Content-Type': 'application/json' },
-          body
+          body: JSON.stringify(patchPayload)
         });
 
-        // 2) Fallbacks for broader partner coverage
-        if (!r.ok && (r.status === 500 || r.status === 404 || r.status === 405)) {
-          console.warn('[profile] PATCH failed (' + r.status + '), retrying POST…');
+        // 2) If PATCH fails, PUT full record (required keys only)
+        if (!r.ok) {
+          console.warn('[profile] PATCH failed (' + r.status + '), retrying PUT…');
           r = await authed('/extranet/property', {
-            method: 'POST',
+            method: 'PUT',
             headers: { 'Content-Type': 'application/json' },
-            body
+            body: JSON.stringify(putPayload)
           });
-          if (!r.ok && (r.status === 404 || r.status === 405)) {
-            console.warn('[profile] POST not supported (' + r.status + '), retrying PUT…');
-            r = await authed('/extranet/property', {
-              method: 'PUT',
-              headers: { 'Content-Type': 'application/json' },
-              body
-            });
-          }
         }
 
         if (!r.ok) {
-          let msg = '';
-          try { msg = (await r.json()).error || (await r.text()) || ''; } catch {}
-          throw new Error(msg || `Save failed: ${r.status}`);
+          const txt = await r.text().catch(()=> '');
+          throw new Error(txt || `Save failed: ${r.status}`);
         }
 
-        // 3) Refresh from server echo
+        // 3) Reflect DB state in the form
         const saved = await getJSON('/extranet/property').catch(() => null);
-        if (DEBUG) console.log('[hub] saved record echo:', saved);
+        if (window.DEBUG) console.log('[hub] saved record echo:', saved);
+
         await loadPropertyIntoForm();
         toast(
-          saved && (saved.name || saved.city || saved.cityCode)
-            ? `Saved “${saved?.name || '—'}” · ${saved?.city || saved?.cityCode || '—'}`
+          saved && (saved.name || saved.city)
+            ? `Saved “${saved?.name || '—'}” · ${saved?.city || '—'}`
             : 'Saved.',
           true
         );
