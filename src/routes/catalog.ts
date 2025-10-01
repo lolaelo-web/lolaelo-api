@@ -438,65 +438,93 @@ router.get("/details", async (req: Request, res: Response) => {
       req.app?.get("logger")?.warn?.({ err, propertyId }, "details.profiles-db-wire failed");
     }
 
-    // Rooms from DB (overlay) — add diagnostics for partner/date window before adapter call
+    // Rooms from DB (overlay) — DIRECT SQL (bypass adapter) using Partner.id
     try {
-      const fetchId = Number.isFinite(propertyId) ? propertyId : NaN;
+      const partnerId = Number.isFinite(propertyId) ? propertyId : NaN;
+      if (!Number.isFinite(partnerId)) throw new Error("invalid partnerId for details");
 
-      // --- Diagnostics: verify inventory/prices exist for this partner/date window ---
-      try {
-        const cs = process.env.DATABASE_URL || "";
-        if (cs) {
-          const wantsSSL = /\bsslmode=require\b/i.test(cs) || /render\.com/i.test(cs);
-          const pg = new PgClient({
-            connectionString: cs,
-            ssl: wantsSSL ? { rejectUnauthorized: false } : undefined,
-          });
-          await pg.connect();
+      const cs = process.env.DATABASE_URL || "";
+      if (!cs) throw new Error("DATABASE_URL missing");
 
-          const diag = await pg.query(
-            `
-            WITH dd AS (
-              SELECT generate_series($2::date, ($3::date - INTERVAL '1 day'), INTERVAL '1 day')::date AS d
+      const wantsSSL = /\bsslmode=require\b/i.test(cs) || /render\.com/i.test(cs);
+      const pg = new PgClient({
+        connectionString: cs,
+        ssl: wantsSSL ? { rejectUnauthorized: false } : undefined,
+      });
+      await pg.connect();
+
+      // Pull daily rows for all active room types that have BOTH price and inventory in the window
+      const sql = `
+        WITH dd AS (
+          SELECT generate_series($2::date, ($3::date - INTERVAL '1 day'), INTERVAL '1 day')::date AS d
+        ),
+        cand_rt AS (
+          SELECT DISTINCT rt.id
+          FROM extranet."RoomType" rt
+          WHERE COALESCE(rt.active, TRUE) = TRUE
+            AND rt.id IN (
+              SELECT DISTINCT ri."roomTypeId"
+              FROM extranet."RoomInventory" ri
+              WHERE ri."partnerId" = $1
+                AND COALESCE(ri."isClosed", FALSE) = FALSE
+                AND COALESCE(ri."roomsOpen", 0) > 0
             )
-            SELECT
-              (SELECT count(*) FROM extranet."RoomInventory" ri JOIN dd ON dd.d = ri.date
-                WHERE ri."partnerId" = $1)                               AS inv_all,
-              (SELECT count(*) FROM extranet."RoomPrice" rp JOIN dd ON dd.d = rp.date
-                WHERE rp."partnerId" = $1 AND ($4::int IS NULL OR rp."ratePlanId" = $4::int)) AS price_all,
-              (SELECT count(*) FROM extranet."RoomInventory" ri JOIN dd ON dd.d = ri.date
-                WHERE ri."partnerId" = $1 AND ri."roomTypeId" = 28)       AS inv_rt28,
-              (SELECT count(*) FROM extranet."RoomPrice" rp JOIN dd ON dd.d = rp.date
-                WHERE rp."partnerId" = $1 AND rp."roomTypeId" = 28 AND ($4::int IS NULL OR rp."ratePlanId" = $4::int)) AS price_rt28,
-              (SELECT active FROM extranet."RoomType" WHERE id = 28)      AS rt28_active
-          `,
-            [fetchId, start, end, ratePlanId ?? null]
-          );
+            AND rt.id IN (
+              SELECT DISTINCT rp."roomTypeId"
+              FROM extranet."RoomPrice" rp
+              WHERE rp."partnerId" = $1
+                AND ($4::int IS NULL OR rp."ratePlanId" = $4::int)
+            )
+        )
+        SELECT
+          rt.id                         AS room_type_id,
+          rt.name                       AS room_name,
+          dd.d                          AS date,
+          rp.price                      AS price,
+          rp."ratePlanId"               AS rate_plan_id,
+          COALESCE(ri."roomsOpen", 0)   AS inventory,
+          COALESCE(ri."isClosed", FALSE) AS is_closed
+        FROM dd
+        JOIN cand_rt crt ON 1=1
+        JOIN extranet."RoomType" rt ON rt.id = crt.id
+        LEFT JOIN extranet."RoomPrice" rp
+          ON rp."partnerId" = $1 AND rp."roomTypeId" = rt.id AND rp.date = dd.d
+          AND ($4::int IS NULL OR rp."ratePlanId" = $4::int)
+        LEFT JOIN extranet."RoomInventory" ri
+          ON ri."partnerId" = $1 AND ri."roomTypeId" = rt.id AND ri.date = dd.d
+        ORDER BY rt.id, dd.d;
+      `;
+      const { rows } = await pg.query(sql, [partnerId, start, end, ratePlanId ?? null]);
+      await pg.end();
 
-          const row = diag?.rows?.[0] || {};
-          console.log("[details][diag]", {
-            partnerId: fetchId,
-            start,
-            end,
-            ratePlanId,
-            inv_all: Number(row.inv_all ?? 0),
-            price_all: Number(row.price_all ?? 0),
-            inv_rt28: Number(row.inv_rt28 ?? 0),
-            price_rt28: Number(row.price_rt28 ?? 0),
-            rt28_active: row.rt28_active,
-          });
-
-          await pg.end();
-        }
-      } catch (e) {
-        console.warn("[details][diag] failed", String(e));
+      // Group into RoomsDailyRow[]
+      type Daily = RoomsDailyRow["daily"][number];
+      const byRoom = new Map<number, { name: string; daily: Daily[] }>();
+      for (const r of rows) {
+        const rid = Number(r.room_type_id);
+        const rec: Daily = {
+          date: r.date ? new Date(r.date).toISOString().slice(0, 10) : undefined,
+          price: typeof r.price === "number" ? Number(r.price) : null,
+          inventory: Number(r.inventory ?? 0),
+          closed: !!r.is_closed,
+          currency: undefined, // will be filled by currency backfill step
+        } as any;
+        const cur = byRoom.get(rid) ?? { name: String(r.room_name || ""), daily: [] };
+        cur.daily.push(rec);
+        byRoom.set(rid, cur);
       }
 
-      // --- Adapter call (unchanged) ---
-      const dbRooms = await getRoomsDailyFromDb(fetchId, start, end, ratePlanId);
-      console.log("[details] rooms-db", {
-        propertyId,
-        fetchId,
-        count: Array.isArray(dbRooms) ? dbRooms.length : 0,
+      const dbRooms: RoomsDailyRow[] = Array.from(byRoom.entries()).map(([roomTypeId, v]) => ({
+        roomTypeId,
+        name: v.name,
+        daily: v.daily,
+      })) as any;
+
+      console.log("[details] rooms-db-direct", {
+        partnerId,
+        count: dbRooms.length,
+        range: { start, end },
+        ratePlanId,
       });
 
       if (Array.isArray(dbRooms) && dbRooms.length > 0) {
@@ -505,10 +533,10 @@ router.get("/details", async (req: Request, res: Response) => {
         } else if (base) {
           base.rooms = dbRooms;
         }
-        (base as any)._roomsSource = "db";
+        (base as any)._roomsSource = "db-direct";
       }
     } catch (err) {
-      req.app?.get("logger")?.warn?.({ err, propertyId }, "details.rooms-db-wire failed");
+      req.app?.get("logger")?.warn?.({ err, propertyId }, "details.rooms-db-direct failed");
     }
 
     // Currency backfill
