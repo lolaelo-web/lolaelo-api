@@ -227,6 +227,18 @@ router.get("/search", async (req: Request, res: Response) => {
         } catch (err) {
           req.app?.get("logger")?.warn?.({ err, idsCount: ids.length }, "search.cover-backfill failed");
         }
+    // Placeholder image backfill for cards with no images
+    try {
+      for (const p of props) {
+        const imgs = (p as any)?.images;
+        if (!Array.isArray(imgs) || imgs.length === 0) {
+          // Use a deterministic, local placeholder so UI never shows random stock
+          (p as any).images = ["/logo.png"];
+        }
+      }
+    } catch (e) {
+      req.app?.get("logger")?.warn?.({ e }, "search.placeholder-backfill failed");
+    }
 
     // ---- 2b) NOW apply server-side CITY FILTER (after enrichment) ----------
     const beforeCity = props.length;
