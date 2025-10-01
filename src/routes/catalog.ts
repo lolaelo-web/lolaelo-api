@@ -180,6 +180,52 @@ router.get("/search", async (req: Request, res: Response) => {
       }
       // ANCHOR: MERGE_DB_PROFILES_END
     }
+    // --- Photos: pull partner-uploaded images (cover first) ----------------------
+    try {
+      const pidList = props
+        .map((p: any) => Number(p?.propertyId))
+        .filter((n: number) => Number.isFinite(n));
+      if (pidList.length) {
+        const cs = process.env.DATABASE_URL || "";
+        const wantsSSL = /\bsslmode=require\b/i.test(cs) || /render\.com/i.test(cs);
+        const pgp = new (require("pg").Client)({
+          connectionString: cs,
+          ssl: wantsSSL ? { rejectUnauthorized: false } : undefined,
+        });
+        await pgp.connect();
+
+        const { rows: ph } = await pgp.query(
+          `
+          SELECT "partnerId" AS pid, url, COALESCE("isCover", FALSE) AS is_cover
+          FROM extranet."PropertyPhoto"
+          WHERE "partnerId" = ANY($1::bigint[])
+          ORDER BY "isCover" DESC NULLS LAST, "createdAt" DESC NULLS LAST, id DESC
+          `,
+          [pidList]
+        );
+        await pgp.end();
+
+        // bucket by partner id, cover-first order already preserved
+        const byPid = new Map<number, string[]>();
+        for (const r of ph) {
+          const pid = Number(r.pid);
+          if (!byPid.has(pid)) byPid.set(pid, []);
+          byPid.get(pid)!.push(String(r.url || "").trim());
+        }
+
+        // apply to props (prefer DB photos over any placeholder)
+        for (const p of props) {
+          const pid = Number((p as any)?.propertyId);
+          const urls = byPid.get(pid) || [];
+          if (urls.length) {
+            (p as any).images = urls.filter(Boolean); // cover first
+          }
+        }
+      }
+    } catch (err) {
+      req.app?.get("logger")?.warn?.({ err }, "catalog.search photos-db-wire failed");
+    }
+
         // Cover image backfill from extranet.PropertyPhoto by Partner.id (only when images are empty)
         try {
           const cs = process.env.DATABASE_URL || "";

@@ -64,7 +64,7 @@
     background:#0e1830; color:var(--fg); outline:none;
   }
   input::placeholder, textarea::placeholder{ color:var(--muted); opacity:1; }
-  textarea{ min-height:110px; resize:vertical }
+  textarea::placeholder { font-style: normal; font-family: inherit; }
   input:focus, textarea:focus, select:focus{ border-color:#2e7bff; box-shadow:0 0 0 3px rgba(46,123,255,.20) }
   .row{ display:grid; grid-template-columns:1fr 1fr; gap:12px }
   .row3{ display:grid; grid-template-columns:1fr 1fr 1fr; gap:12px }
@@ -185,40 +185,49 @@
       <!-- COMPANY PROFILE -->
       <div id="profile" class="card section hidden" aria-label="Company Profile">
         <h2>Company Profile</h2>
+
+        <!-- Row 1: Name + Contact Email (required) -->
         <div class="row">
           <div>
             <label for="pp_name">Hotel Name *</label>
-            <input id="pp_name" type="text" placeholder="Hotel Buena Vista" />
+            <input id="pp_name" type="text" placeholder="Coco Cabana" required />
           </div>
           <div>
-            <label for="pp_contactEmail">Contact E-mail</label>
-            <input id="pp_contactEmail" type="email" placeholder="frontdesk@hotel.com" />
+            <label for="pp_contactEmail">Contact E-mail *</label>
+            <input id="pp_contactEmail" type="email" placeholder="daguhoy@hotel.com" required />
           </div>
         </div>
+
+        <!-- Row 2: Partner ID (read-only) stays where it is -->
         <div class="row">
           <div>
             <label for="pp_partnerId">Partner ID (read only)</label>
-            <input id="pp_partnerId" type="text" value="" disabled aria-readonly="true" title="System-generated (not editable)" />
+            <input id="pp_partnerId" type="text" value="" disabled aria-readonly="true"
+                  title="System-generated (not editable)" maxlength="5"
+                  style="text-align:center; max-width:120px" />
             <small class="muted">System-generated ID. Contact support to change.</small>
           </div>
           <div></div>
         </div>
+
+        <!-- Row 3: Phone + Address (Address moved to the right of Phone) -->
         <div class="row">
           <div>
-            <label for="pp_phone">Phone</label>
-            <input id="pp_phone" type="tel" placeholder="+1 (555) 555-1234" />
+            <label for="pp_phone">Phone *</label>
+            <input id="pp_phone" type="tel" placeholder="+1 (555) 555-1234" required />
+          </div>
+          <div>
+            <label for="pp_address">Address *</label>
+            <input id="pp_address" type="text" placeholder="123 Ocean Ave" required />
           </div>
         </div>
 
+        <!-- Row 4: City (moved into Address’s old spot) + Country (moved into City’s old spot) -->
         <div class="row">
           <div>
-            <label for="pp_address">Address</label>
-            <input id="pp_address" type="text" placeholder="123 Ocean Ave" />
-          </div>
-          <div>
-            <label for="pp_city">City</label>
-            <select id="pp_city">
-              <option value="">— Select city —</option>
+            <label for="pp_city">City *</label>
+            <select id="pp_city" required>
+              <option value="" disabled selected>— Select city —</option>
               <option value="SIARGAO">Siargao</option>
               <option value="BORACAY">Boracay</option>
               <option value="ELNIDO">El Nido</option>
@@ -228,19 +237,22 @@
             <small class="muted">This controls where your property appears in the public catalog.</small>
           </div>
           <div>
-            <label for="pp_country">Country</label>
-            <input id="pp_country" type="text" placeholder="United States" />
+            <label for="pp_country">Country *</label>
+            <input id="pp_country" type="text" placeholder="United States" required />
           </div>
         </div>
 
+        <!-- Description (only non-required field) -->
         <label for="pp_desc">Description</label>
-        <textarea id="pp_desc" placeholder="Short description of your company, amenities, and any partner notes."></textarea>
+        <textarea id="pp_desc"
+                  placeholder="Short description of your company, amenities, and any partner notes."></textarea>
 
         <div style="display:flex; gap:8px; margin-top:14px">
           <button id="btnSave" class="btn">Save changes</button>
           <button id="btnBack" class="btn secondary" type="button">Back to menu</button>
         </div>
       </div>
+
 
       <!-- PMS CONNECTIONS PANEL -->
       <div id="pmsConnectionsPanel" class="card section hidden" aria-label="PMS Connections">
@@ -539,7 +551,20 @@
 
     $('btnSave').onclick = (e) => {
       e.preventDefault();
-      if (!($('pp_name').value || '').trim()) { toast('Company name is required.'); return; }
+      const name = ($('pp_name').value || '').trim();
+      const email = ($('pp_contactEmail').value || '').trim();
+      const phone = ($('pp_phone').value || '').trim();
+      const addr  = ($('pp_address').value || '').trim();
+      const city  = ($('pp_city').value || '').trim();
+      const country = ($('pp_country').value || '').trim();
+
+      if (!name)     { toast('Hotel name is required.'); return; }
+      if (!email)    { toast('Contact email is required.'); return; }
+      if (!phone)    { toast('Phone is required.'); return; }
+      if (!addr)     { toast('Address is required.'); return; }
+      if (!city)     { toast('City is required.'); return; }
+      if (!country)  { toast('Country is required.'); return; }
+
       saveProfile();
     };
 
