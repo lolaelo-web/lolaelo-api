@@ -459,75 +459,79 @@
     function nz(v){ const s = (v ?? "").toString().trim(); return s.length ? s : null; }
 
     async function saveProfile() {
-      const cityCode  = normalizeCityCode($('pp_city').value);
-      const cityLabel = CITY_LABELS[cityCode] || '';
+    const cityCode  = normalizeCityCode($('pp_city').value);
+    const cityLabel = CITY_LABELS[cityCode] || '';
 
-      // For PATCH: send only provided fields (tolerant, nicer on server when supported)
-      const patchPayload = {
-        name:         nz($('pp_name').value),
-        contactEmail: nz($('pp_contactEmail').value),
-        phone:        nz($('pp_phone').value),
-        addressLine:  nz($('pp_address').value),
-        country:      nz($('pp_country').value),
-        description:  nz($('pp_desc').value),
-        cityCode:     cityCode || null,
-        city:         cityLabel || null
-      };
-      Object.keys(patchPayload).forEach(k => (patchPayload[k] == null) && delete patchPayload[k]);
+    // PATCH = send only provided fields
+    const patchPayload = {
+      name:         nz($('pp_name').value),
+      contactEmail: nz($('pp_contactEmail').value),
+      phone:        nz($('pp_phone').value),
+      addressLine:  nz($('pp_address').value),
+      country:      nz($('pp_country').value),
+      description:  nz($('pp_desc').value),
+      cityCode:     cityCode || null,
+      city:         cityLabel || null
+    };
+    Object.keys(patchPayload).forEach(k => (patchPayload[k] == null) && delete patchPayload[k]);
 
-      // For PUT: server requires *full* object with these exact keys (no extras)
-      const putPayload = {
-        name:         ($('pp_name').value || '').trim(),
-        contactEmail: ($('pp_contactEmail').value || '').trim(),
-        phone:        ($('pp_phone').value || '').trim(),
-        country:      ($('pp_country').value || '').trim(),
-        addressLine:  ($('pp_address').value || '').trim(),
-        city:         cityLabel,              // label, not code
-        description:  ($('pp_desc').value || '').trim()
-      };
+    // PUT = full object with exact keys the API accepts
+    const putPayload = {
+      name:         ($('pp_name').value || '').trim(),
+      contactEmail: ($('pp_contactEmail').value || '').trim(),
+      phone:        ($('pp_phone').value || '').trim(),
+      country:      ($('pp_country').value || '').trim(),
+      addressLine:  ($('pp_address').value || '').trim(),
+      city:         cityLabel,
+      description:  ($('pp_desc').value || '').trim()
+    };
 
-      const btn = $('btnSave'); btn.disabled = true;
-      try {
-        // 1) Try PATCH first
-        let r = await authed('/extranet/property', {
-          method: 'PATCH',
+    const btn = $('btnSave'); btn.disabled = true;
+    try {
+      // 1) Try PATCH first
+      let r = await authed('/extranet/property', {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(patchPayload)
+      });
+
+      // 2) If PATCH fails, try PUT with full payload
+      if (!r.ok) {
+        console.warn('[profile] PATCH failed (' + r.status + '), retrying PUT…');
+        r = await authed('/extranet/property', {
+          method: 'PUT',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(patchPayload)
+          body: JSON.stringify(putPayload)
         });
-
-        // 2) If PATCH fails, PUT full record (required keys only)
-        if (!r.ok) {
-          console.warn('[profile] PATCH failed (' + r.status + '), retrying PUT…');
-          r = await authed('/extranet/property', {
-            method: 'PUT',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify(putPayload)
-          });
-        }
-
-        if (!r.ok) {
-          const txt = await r.text().catch(()=> '');
-          throw new Error(txt || `Save failed: ${r.status}`);
-        }
-
-        // 3) Reflect DB state in the form
-        const saved = await getJSON('/extranet/property').catch(() => null);
-        if (window.DEBUG) console.log('[hub] saved record echo:', saved);
-
-        await loadPropertyIntoForm();
-        toast(
-          saved && (saved.name || saved.city)
-            ? `Saved “${saved?.name || '—'}” · ${saved?.city || '—'}`
-            : 'Saved.',
-          true
-        );
-      } catch (e) {
-        console.error(e);
-        toast(e.message || 'Network error.');
-      } finally {
-        btn.disabled = false;
       }
+
+      if (!r.ok) {
+        const txt = await r.text().catch(() => '');
+        // friendlier message when the Partner row doesn’t exist yet (FK failure)
+        if (/partner.*not.*present|foreign key|Partner.*fkey/i.test(txt)) {
+          throw new Error('Your partner account is not initialized on the server yet (missing Partner row).');
+        }
+        throw new Error(txt || ('Save failed: ' + r.status));
+      }
+
+      // 3) Refresh UI safely
+      const saved = await getJSON('/extranet/property').catch(() => null);
+      if (window.DEBUG) console.log('[hub] saved record echo:', saved);
+      try { (window.loadPropertyIntoForm || loadPropertyIntoForm)(); } catch {}
+
+      toast(
+        saved && (saved.name || saved.city)
+          ? `Saved “${saved?.name || '—'}” · ${saved?.city || '—'}`
+          : 'Saved.',
+        true
+      );
+    } catch (e) {
+      console.error(e);
+      toast(e.message || 'Network error.');
+    } finally {
+      btn.disabled = false;
     }
+  }
 
     $('btnSave').onclick = (e) => {
       e.preventDefault();
