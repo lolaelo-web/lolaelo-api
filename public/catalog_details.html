@@ -644,7 +644,9 @@
           room0ImagesLen: Array.isArray(j?.rooms?.[0]?.images) ? j.rooms[0].images.length : 0
         });
         // ===== DETAILS_PAYLOAD_TAP (insert end) =====
-
+        // ===== DETAILS_PAYLOAD_DUMP (insert) =====
+        console.log("[details] full payload", j);
+        // ===== DETAILS_PAYLOAD_DUMP (insert end) =====
         // ===== DETAILS_IMG_DEBUG (insert) =====
         console.log("[details] payload keys:", Object.keys(j || {}));
         console.log("[details] j.images:", j?.images);
@@ -722,7 +724,78 @@
         const idx = images.indexOf(coverUrl);
         if (idx > 0) images.splice(0, 0, ...images.splice(idx, 1));
       }
+      
       // ===== DETAILS_IMG_FALLBACKS (insert) =====
+      // 1) Try API photos endpoint if details payload had no images
+      if (!images.length) {
+        try {
+          const pr = await fetch(`/extranet/property/photos?partnerId=${encodeURIComponent(propertyId)}`, { cache: 'no-store' });
+          console.log("[details] photos fallback (/extranet/property/photos) status:", pr.status);
+
+          // If auth is required or nothing returned, try public catalog endpoints
+          let pf = null;
+          if (pr.ok) {
+            try { pf = await pr.json(); } catch { pf = null; }
+          }
+          if (!pr.ok || !Array.isArray(pf) || pf.length === 0) {
+            const pubUrls = [
+              `/catalog/property/photos?partnerId=${encodeURIComponent(propertyId)}`,
+              `/catalog/photos?partnerId=${encodeURIComponent(propertyId)}`
+            ];
+            for (const u of pubUrls) {
+              try {
+                const rr = await fetch(u, { cache: 'no-store' });
+                console.log("[details] photos fallback try:", u, "status:", rr.status);
+                if (!rr.ok) continue;
+                const jj = await rr.json();
+                if (Array.isArray(jj) && jj.length) { pf = jj; break; }
+              } catch {}
+            }
+          }
+          if (pr.ok) {
+            const pf = await pr.json();
+            // Normalize to a list and resolve relative URLs
+            const toList = (x) => {
+              if (Array.isArray(x)) return x;
+              if (Array.isArray(x?.photos)) return x.photos;
+              if (Array.isArray(x?.data)) return x.data;
+              if (Array.isArray(x?.items)) return x.items;
+              return [];
+            };
+            const abs = (u) => {
+              try { return new URL(u, location.origin).href; } catch { return u; }
+            };
+            const pickUrl = (it) => {
+              if (typeof it === 'string') return abs(it);
+              const u = it?.url || it?.photoUrl || it?.imageUrl || it?.src || it?.href || "";
+              return u ? abs(u) : "";
+            };
+            const list = toList(pf);
+            const arr = list.map(pickUrl).filter(Boolean);
+
+            if (arr.length) {
+              // Move cover (if flagged) to front
+              let cover = null;
+              if (Array.isArray(pf)) {
+                const cobj = pf.find(it =>
+                  typeof it === 'object' && (it?.isCover === true || it?.is_cover === true || it?.isPrimary === true || it?.is_primary === true)
+                );
+                cover = cobj ? pickUrl(cobj) : null;
+              }
+              images = arr;
+              if (cover) {
+                const idx = images.indexOf(cover);
+                if (idx > 0) images.splice(0, 0, ...images.splice(idx, 1));
+              }
+              console.log("[details] photos fallback loaded:", images.length);
+            }
+          }
+        } catch (e) {
+          console.warn("[details] photos fallback error", e);
+        }
+      }
+
+      // 2) Secondary: look for common alternates in the details payload
       if (!images.length) {
         const pick = (arr) => (Array.isArray(arr) ? arr : [])
           .map(it => typeof it === 'string'
@@ -730,14 +803,13 @@
             : (it?.url || it?.photoUrl || it?.imageUrl || it?.src || it?.href || ""))
           .filter(Boolean);
 
-        // Common alternates seen in various shapes
         images = pick(j?.meta?.property?.photos);
         if (!images.length) images = pick(j?.meta?.photos);
         if (!images.length) images = pick(j?.rooms?.[0]?.photos);
       }
 
       console.log("[details] images (final, after fallbacks):", images.length, images.slice(0,3));
-      // ===== DETAILS_IMG_FALLBACKS (insert end) =====
+// ===== DETAILS_IMG_FALLBACKS (insert end) =====
       const placeholder = 'data:image/svg+xml;utf8,' +
         encodeURIComponent(
           `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 450">
