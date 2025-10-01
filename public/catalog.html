@@ -289,14 +289,13 @@
 
     function cardHTML(p, start, end){
       // ANCHOR: CARDIMAGE_COVER_PICKER (REPLACE)
-      const imgArr = Array.isArray(p.images) ? p.images : [];
-      const coverObj = imgArr.find(it => typeof it === "object" && it?.isCover === true);
-      const firstObj = imgArr.find(it => typeof it === "object" && it?.url);
-      const firstAny = imgArr[0];
-      const img = coverObj?.url
-        || firstObj?.url
-        || (typeof firstAny === "string" ? firstAny : null)
-        || "https://picsum.photos/seed/siargao/800/480";
+      const imgs = Array.isArray(p.images) ? p.images : [];
+      const firstUrl =
+        typeof imgs[0] === 'string'
+          ? imgs[0]
+          : (imgs[0] && typeof imgs[0] === 'object' && imgs[0].url ? String(imgs[0].url) : '');
+      const baseImg = firstUrl || "/logo.png";
+      const img = baseImg + (baseImg.includes("?") ? "&" : "?") + "cb=" + Date.now();
       // ANCHOR: CARDIMAGE_COVER_PICKER (REPLACE)
       const a = (p.amenities || []).slice(0,3).map(a=>`<span class="chip">${a}</span>`).join("");
       const price = p.fromPriceStr ? `From ${p.fromPriceStr}` : ''; // show only when present
