@@ -191,11 +191,12 @@ router.get("/search", async (req: Request, res: Response) => {
       if (pidList.length) {
         const cs = process.env.DATABASE_URL || "";
         const wantsSSL = /\bsslmode=require\b/i.test(cs) || /render\.com/i.test(cs);
-        const pgp = new (require("pg").Client)({
+        const pgp = new PgClient({
           connectionString: cs,
           ssl: wantsSSL ? { rejectUnauthorized: false } : undefined,
         });
         await pgp.connect();
+        console.log("[catalog.search][photos] pg client connected");
 
         const { rows: ph } = await pgp.query(
           `
