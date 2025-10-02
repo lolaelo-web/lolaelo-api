@@ -7,10 +7,6 @@ import {
   deleteSession,
 } from "../session.js";
 
-// JS module without typings – allow the import for now.
-/* @ts-ignore */
-import { ensurePartner } from "../partners.js";
-
 const router = express.Router();
 
 // POST /login/request-code  -> issues OTP (DEV: returns code in response)
@@ -20,12 +16,7 @@ router.post("/login/request-code", (req, res) => {
     if (!email || !email.includes("@")) {
       return res.status(400).json({ error: "Invalid email" });
     }
-
-    // Just issue the code here (no async/await or 'result' in this handler)
     const r = issueCode(email);
-
-    // TODO: integrate real email delivery here.
-    // For now, return the code so you can test end-to-end.
     return res.json({ ok: true, email: r.email, ttlMin: r.ttlMin, devCode: r.code });
   } catch (e: any) {
     console.error("[sessionHttp] request-code error:", e?.message || e);
@@ -41,38 +32,10 @@ router.post("/login/verify", async (req, res) => {
     if (!email || !code) {
       return res.status(400).json({ error: "Missing email or code" });
     }
-
     const result = await verifyCodeIssueSession(email, code);
     if (!result) {
       return res.status(400).json({ error: "Invalid or expired code" });
     }
-
-    // Ensure a Partner row exists for this identity (idempotent).
-    // Non-blocking: if this fails we still return a session; user can retry save later.
-    try {
-      const displayName =
-        (result as any)?.session?.name || email.split("@")[0];
-
-      const ensuredId = await ensurePartner(
-        // partners.js manages its own DB access; if your implementation
-        // accepts a pool/client as first arg, pass it here instead of undefined.
-        undefined,
-        {
-          id: Number((result as any)?.session?.partnerId) || null,
-          email,
-          name: displayName,
-          provider: "magic",
-          subject: email,
-        }
-      );
-
-      if ((result as any)?.session) {
-        (result as any).session.partnerId = ensuredId;
-      }
-    } catch (e) {
-      console.warn("[sessionHttp] ensurePartner warn:", (e as any)?.message || e);
-    }
-
     return res.json({
       ok: true,
       token: result.token,
