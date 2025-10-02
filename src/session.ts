@@ -31,6 +31,19 @@ function nameFromEmail(email: string): string {
     .map(s => s[0]?.toUpperCase() + s.slice(1))
     .join(" ");
 }
+async function ensurePartnerByEmail(e: string) {
+  const email = e.trim().toLowerCase();
+  return prisma.partner.upsert({
+    where:  { email },
+    update: { updatedAt: new Date() },
+    create: {
+      email,
+      name: nameFromEmail(email),
+      createdAt: new Date(),
+      updatedAt: new Date(),
+    },
+  });
+}
 
 // ----- OTP -------------------------------------------------------------------
 export function issueCode(email: string) {
@@ -52,11 +65,7 @@ export async function verifyCodeIssueSession(email: string, code: string) {
   codes.delete(e);
 
   // Ensure Partner exists (id, email, name)
-  const partner = await prisma.partner.upsert({
-    where: { email: e },
-    update: { updatedAt: new Date() },
-    create: { email: e, name: nameFromEmail(e), createdAt: new Date(), updatedAt: new Date() },
-  });
+  const partner = await ensurePartnerByEmail(e);
 
   // Create session row
   const token   = uuid();

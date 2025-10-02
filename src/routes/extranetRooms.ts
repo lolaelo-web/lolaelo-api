@@ -1,7 +1,11 @@
 import { Router } from "express";
 import { Pool } from "pg";
+import { authPartnerFromHeader, getSession } from "../session.js";
 
 const r = Router();
+
+// Always attach req.partner { id, email, name } from the session token
+r.use(authPartnerFromHeader);
 
 // ---- Helpers ----
 function wantsSSL(cs: string): boolean {
@@ -32,14 +36,26 @@ const T = {
 };
 
 /** GET /extranet/property/rooms */
-r.get("/", async (_req, res) => {
+r.get("/", async (req, res) => {
   try {
     res.set("Cache-Control", "no-store");
-    const { rows } = await pool.query(`
+
+    // partner guard (auth middleware set this earlier)
+    const partnerId = Number((req as any)?.partner?.id);
+    if (!Number.isFinite(partnerId) || partnerId <= 0) {
+      return res.status(401).json({ error: "Unauthorized" });
+    }
+
+    const { rows } = await pool.query(
+      `
       SELECT "id","name","code","description","occupancy","maxGuests","basePrice","active"
       FROM ${T.rooms}
+      WHERE "partnerId" = $1
       ORDER BY "id" ASC
-    `);
+      `,
+      [partnerId]
+    );
+
     return res.status(200).json(rows);
   } catch (e) {
     console.error("[rooms:get] db error", e);
@@ -58,22 +74,26 @@ r.post("/", async (req, res) => {
 
     await client.query("BEGIN");
 
-    // derive partnerId: prefer auth, else reuse first existing room's partnerId
-    let partnerId: number | null =
-      (req as any).partner?.id ?? (req as any).partnerId ?? null;
+    // Derive partnerId strictly from authenticated session (no cross-tenant fallback)
+    let partnerId: number | null = authedPartnerId(req);
 
     if (!partnerId) {
-      const probe = await client.query(
-        `SELECT "partnerId" FROM ${T.rooms} ORDER BY "id" ASC LIMIT 1`
-      );
-      partnerId = probe.rows?.[0]?.partnerId ?? null;
+      // Fallback: resolve via bearer token -> session -> partnerId (no DB guessing)
+      const hdr = String(req.headers["authorization"] || "");
+      const bearer = hdr.startsWith("Bearer ")
+        ? hdr.slice(7)
+        : String(req.headers["x-partner-token"] || "");
+      try {
+        const s = await getSession(bearer);
+        partnerId = Number((s as any)?.partnerId) || null;
+      } catch {
+        partnerId = null;
+      }
     }
 
     if (!partnerId) {
       await client.query("ROLLBACK");
-      return res
-        .status(400)
-        .json({ error: "unable to determine partnerId for new room" });
+      return res.status(400).json({ error: "unable to determine partnerId for new room" });
     }
 
     const occ =
