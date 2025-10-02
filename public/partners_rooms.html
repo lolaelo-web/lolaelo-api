@@ -1972,19 +1972,39 @@
       ctx.ratePlanId = Number.isFinite(pn) ? pn : 1;
     }
   } catch(_){}
+    // clamp ctx/start/end (from URL or localStorage) to today-or-later
+{
+  const today = todayISO();
+
     if (ctx.start && ctx.end){
-      currentRangeStart = ctx.start;
-      currentRangeEnd   = ctx.end;
+      // sanitize incoming dates
+      let s = String(ctx.start);
+      let e = String(ctx.end);
+
+      // start must be today or later
+      if (s < today) s = today;
+      // end must be >= start
+      if (e < s) e = s;
+
+      currentRangeStart = s;
+      currentRangeEnd   = e;
+
       const rs = el("range-start"), re = el("range-end");
-      if (rs && re){ rs.value = ctx.start; re.value = ctx.end; }
-      currentAnchor = new Date(ctx.start + "T00:00:00Z");
+      if (rs && re){ rs.value = s; re.value = e; }
+
+      currentAnchor = new Date(s + "T00:00:00Z");
       setMonthLabel();
+      // also normalize the URL so refresh keeps good dates
+      updateURLFromState?.();
     } else {
-      const startISO = iso(startOfWeek(new Date()));
+      // fall back to a clean, clamped window starting today
+      const startISO = today; // force today
       currentAnchor = new Date(startISO + "T00:00:00Z");
       setMonthLabel();
-      applyMonthWindowToRange({ rerender:false });
+      applyMonthWindowToRange({ rerender:false }); // this will also clamp end >= start
     }
+  }
+
     if (ctx.roomId) currentRoomTypeId = ctx.roomId;
     setRightActive(!!currentRoomTypeId);
 

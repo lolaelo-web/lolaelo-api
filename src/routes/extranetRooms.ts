@@ -30,9 +30,10 @@ const pool = new Pool({
 
 // Table names
 const T = {
-  rooms: `extranet."RoomType"`,
-  inv: `extranet."RoomInventory"`,
-  prices: `extranet."RoomPrice"`,
+  rooms:      `extranet."RoomType"`,
+  inv:        `extranet."RoomInventory"`,
+  prices:     `extranet."RoomPrice"`,
+  ratePlans:  `extranet."RatePlan"`,
 };
 
 /** GET /extranet/property/rooms */
@@ -123,6 +124,22 @@ r.post("/", async (req, res) => {
         activeVal,
       ]
     );
+    // ensure a default 'Standard' rate plan exists for this new room
+    const newRoomId = Number(rows[0]?.id);
+    if (Number.isFinite(newRoomId)) {
+      const rpCheck = await client.query(
+        `SELECT 1 FROM ${T.ratePlans} WHERE "roomTypeId" = $1 LIMIT 1`,
+        [newRoomId]
+      );
+      if (rpCheck.rowCount === 0) {
+        await client.query(
+          `INSERT INTO ${T.ratePlans}
+            ("partnerId","roomTypeId","name","createdAt","updatedAt")
+          VALUES ($1,$2,$3,NOW(),NOW())`,
+          [partnerId, newRoomId, "Standard"]
+        );
+      }
+    }
 
     await client.query("COMMIT");
     return res.status(201).json(rows[0]);
