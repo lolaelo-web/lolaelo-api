@@ -6,6 +6,7 @@ import path from "node:path";
 import { fileURLToPath, pathToFileURL } from "node:url";
 import { Client } from "pg";
 import { requireWriteToken } from "./middleware/requireWriteToken.js";
+import sessionRouter from "./routes/sessionHttp.js";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -89,8 +90,8 @@ async function tryMount(routePath: string, mountAt: string) {
 
 // ---- Routers ----
 // session at / and /extranet
-await tryMount("./routes/sessionHttp.js", "/");
-await tryMount("./routes/sessionHttp.js", "/extranet");
+app.use("/", sessionRouter);
+app.use("/extranet", sessionRouter);
 
 // features
 await tryMount("./routes/extranetRooms.js", "/extranet/property/rooms");
