@@ -457,7 +457,41 @@
 
     // --- Profile load/save ----------------------------------------------------
     function nz(v){ const s = (v ?? "").toString().trim(); return s.length ? s : null; }
+    // Add this ABOVE saveProfile (line 460)
+    async function loadPropertyIntoForm(){
+      const me = await getJSON('/extranet/session').catch(()=> ({}));
+      $('partnerEmail').textContent = me.email || '';
+      let company = me.name || 'Partner';
 
+      const p = await getJSON('/extranet/property').catch(()=> null);
+
+      if (p) {
+        $('pp_name').value         = p.name ?? company ?? '';
+        $('pp_contactEmail').value = p.contactEmail ?? me.email ?? '';
+        $('pp_phone').value        = p.phone ?? '';
+        $('pp_country').value      = p.country ?? '';
+        $('pp_address').value      = p.addressLine ?? '';
+
+        const loadedCode = normalizeCityCode(p.cityCode || p.city);
+        $('pp_city').value         = CITY_LABELS[loadedCode] ? loadedCode : '';
+
+        $('pp_desc').value         = p.description ?? '';
+
+        $('profileStatus').textContent = p.name ? 'Complete' : 'Missing info';
+        $('profileStatus').className   = p.name ? 'ok' : 'todo';
+
+        $('pp_partnerId').value = (p.id ?? p.partnerId ?? me.partnerId ?? '') + '';
+        if (p.name) company = p.name;
+      } else {
+        $('profileStatus').textContent = 'Missing info';
+        $('profileStatus').className   = 'todo';
+        $('pp_name').value             = company ?? '';
+        $('pp_partnerId').value        = (me.partnerId ?? '') + '';
+      }
+
+      $('brandTitle').textContent = company;
+      $('welcomeH1').textContent  = `Welcome, ${company}`;
+    }
     async function saveProfile() {
     const cityCode  = normalizeCityCode($('pp_city').value);
     const cityLabel = CITY_LABELS[cityCode] || '';
