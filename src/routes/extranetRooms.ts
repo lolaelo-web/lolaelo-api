@@ -373,9 +373,9 @@ r.post("/:id/inventory/bulk", async (req, res) => {
   try {
     const roomId = Number(req.params.id);
     const { items } = req.body ?? {};
-    if (!roomId || !Array.isArray(items))
-      return res.status(400).json({ error: "bad payload" });
-
+    if (!roomId || !Array.isArray(items) || items.length === 0) {
+      return res.status(400).json({ error: "bad payload: items required" });
+    }
     // Resolve partnerId from the room type (authoritative)
     const roomRow = await client.query(
       `SELECT "partnerId" FROM ${T.rooms} WHERE "id"=$1`,
@@ -573,8 +573,9 @@ r.post("/:id/prices/bulk", async (req, res) => {
   try {
     const roomId = Number(req.params.id);
     const { items } = req.body ?? {};
-    if (!roomId || !Array.isArray(items))
-      return res.status(400).json({ error: "bad payload" });
+    if (!roomId || !Array.isArray(items) || items.length === 0) {
+      return res.status(400).json({ error: "bad payload: items required" });
+    }
 
     // Resolve partnerId from the room type (authoritative)
     const roomRow = await client.query(
@@ -582,17 +583,52 @@ r.post("/:id/prices/bulk", async (req, res) => {
       [roomId]
     );
     const partnerId: number | null = roomRow.rows?.[0]?.partnerId ?? null;
-    if (!partnerId)
+    if (!partnerId) {
       return res.status(400).json({ error: "invalid roomTypeId (no partner)" });
+    }
 
     await client.query("BEGIN");
+
+    // Resolve a usable rate plan:
+    // - prefer the client-sent ratePlanId if it exists for this room
+    // - else try a 'Standard' plan for this partner/room
+    // - else create a 'Standard' plan and use it
+    let requestedPlanId = Number(items?.[0]?.ratePlanId ?? 1);
+    if (!Number.isFinite(requestedPlanId) || requestedPlanId <= 0) {
+      requestedPlanId = 1;
+    }
+
+    let planIdRow = await client.query(
+      `SELECT "id"
+         FROM extranet."RatePlan"
+        WHERE "partnerId" = $1
+          AND "roomTypeId" = $2
+          AND ("id" = $3 OR LOWER("name") LIKE 'standard%')
+        ORDER BY "id" ASC
+        LIMIT 1`,
+      [partnerId, roomId, requestedPlanId]
+    );
+
+    let finalPlanId: number | null = planIdRow.rows?.[0]?.id ?? null;
+
+    if (!finalPlanId) {
+      const newPlan = await client.query(
+        `INSERT INTO extranet."RatePlan"
+           ("partnerId","roomTypeId","name","createdAt","updatedAt")
+         VALUES ($1,$2,$3,NOW(),NOW())
+         RETURNING "id"`,
+        [partnerId, roomId, "Standard"]
+      );
+      finalPlanId = Number(newPlan.rows[0].id);
+    }
 
     let upserted = 0;
     for (const it of items) {
       if (!it?.date || !parseDate(it.date)) continue;
-      const ratePlanId = Number(it.ratePlanId ?? 1);
-      const priceNum = Number(it.price);
-      const price = Number.isFinite(priceNum) ? priceNum : 0;
+
+      // price: normalize to numeric (two-decimals later in DB as NUMERIC)
+      const priceNum = Number(String(it.price).replace(/[^0-9.]/g, ""));
+      const price = Number.isFinite(priceNum) && priceNum >= 0 ? priceNum : 0;
 
       await client.query(
         `INSERT INTO ${T.prices}
@@ -601,13 +637,13 @@ r.post("/:id/prices/bulk", async (req, res) => {
          ON CONFLICT ("roomTypeId","date","ratePlanId")
            DO UPDATE SET "price" = EXCLUDED."price",
                          "updatedAt" = NOW()`,
-        [partnerId, roomId, it.date, ratePlanId, price]
+        [partnerId, roomId, it.date, finalPlanId, price]
       );
       upserted++;
     }
 
     await client.query("COMMIT");
-    return res.json({ ok: true, upserted });
+    return res.json({ ok: true, upserted, ratePlanId: finalPlanId });
   } catch (e: any) {
     await client.query("ROLLBACK");
     console.error("[prices:bulk] db error", {
@@ -619,8 +655,12 @@ r.post("/:id/prices/bulk", async (req, res) => {
       where: e?.where,
       stack: e?.stack,
     });
+    const msg =
+      e?.code === "23503"
+        ? "Prices save failed (missing RatePlan FK)"
+        : "Prices save failed";
     return res.status(500).json({
-      error: "Prices save failed",
+      error: msg,
       code: e?.code ?? null,
       detail: e?.detail ?? null,
       constraint: e?.constraint ?? null,
