@@ -1764,29 +1764,55 @@
     });
     disableWhileBusy(false);
 
-    // Capture raw body for debugging even if it's not JSON
-    let js;
-    let respRaw = "";
-    try {
-      respRaw = await res.text();
-      try { js = JSON.parse(respRaw); } catch { js = { raw: respRaw }; }
-    } catch(_) {
-      js = { parseError: true };
-    }
-    console.log("PRC status:", res.status, js);
+      // Capture raw body for debugging even if it's not JSON
+      let prcResObj;
+      let respRaw = "";
+      try {
+        respRaw = await res.text();
+        try { prcResObj = JSON.parse(respRaw); } catch { prcResObj = { raw: respRaw }; }
+      } catch(_) {
+        prcResObj = { parseError: true };
+      }
+      console.log("PRC status:", res.status, prcResObj);
 
-    // Handle non-OK early
-    if (!res.ok) {
-      setStatus("Price apply failed (" + res.status + ")", "error");
-      toast('Price apply failed', 'error');
-      return;
-    }
+      // Handle non-OK early
+      if (!res.ok) {
+        setStatus("Price apply failed (" + res.status + ")", "error");
+        toast('Price apply failed', 'error');
+        return;
+      }
 
-    setStatus(`Prices applied to ${js.upserted ?? js.count ?? items.length} day(s) — saved automatically; no need to click “Save changes”.`,"ok");
-    toast('Prices applied (auto-saved)', 'ok');
-    await renderCalendar();
-    // Highlight affected dates
-    flashDates(dates);
+      // If server returns a different ratePlanId, sync UI to it
+      if (prcResObj && Number.isFinite(Number(prcResObj.ratePlanId))) {
+        const serverPlanId = Number(prcResObj.ratePlanId);
+        if (serverPlanId !== ratePlanId) {
+          console.warn("Server wrote to different ratePlanId; syncing UI:", serverPlanId);
+          window.currentRatePlanId = serverPlanId;
+          const ddl = document.getElementById('ratePlanSelect');
+          if (ddl) ddl.value = String(serverPlanId);
+          try { updateURLFromState?.(); } catch(_) {}
+          try { saveCtx?.(); } catch(_) {}
+        }
+      }
+
+      // Success UI
+      setStatus(`Prices applied to ${prcResObj.upserted ?? prcResObj.count ?? items.length} day(s) — saved automatically; no need to click “Save changes”.`, "ok");
+      toast('Prices applied (auto-saved)', 'ok');
+
+      // Immediately verify what GET returns for this window/plan
+      try {
+        const verifyPlan = Number.isFinite(Number(window.currentRatePlanId)) ? Number(window.currentRatePlanId) : ratePlanId;
+        const verifyUrl = `/extranet/property/rooms/${currentRoomTypeId}/prices?start=${start}&end=${end}&ratePlanId=${encodeURIComponent(verifyPlan)}`;
+        const verifyRes = await authFetch(verifyUrl);
+        const verifyRows = verifyRes.ok ? await verifyRes.json() : [];
+        console.log("PRC verify GET url:", verifyUrl);
+        console.log("PRC verify GET rows:", verifyRows);
+      } catch (e) {
+        console.warn("PRC verify GET failed:", e);
+      }
+
+      await renderCalendar();
+      flashDates(dates);
   });
 
   // Save (grid edits)
