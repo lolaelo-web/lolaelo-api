@@ -1689,13 +1689,25 @@
     const res=await authFetch(`/extranet/property/rooms/${currentRoomTypeId}/inventory/bulk`,{ method:"POST", body:JSON.stringify({items}) });
     disableWhileBusy(false);
     if (!res.ok){ setStatus("Inventory apply failed ("+res.status+")","error"); toast('Inventory apply failed', 'error'); return; }
-    const js=await res.json();
-    setStatus(`Inventory applied to ${js.upserted ?? js.count ?? items.length} day(s) — saved automatically; no need to click “Save changes”.`,"ok");
-    toast('Inventory applied (auto-saved)', 'ok');
+    // Success UI
+    setStatus(`Prices applied to ${js.upserted ?? js.count ?? items.length} day(s) — saved automatically; no need to click “Save changes”.`, "ok");
+    toast('Prices applied (auto-saved)', 'ok');
+
+    // Immediately fetch back the same window to verify server state
+    try {
+      const verifyUrl = `/extranet/property/rooms/${currentRoomTypeId}/prices?start=${start}&end=${end}&ratePlanId=${encodeURIComponent(ratePlanId)}`;
+      const verifyRes = await authFetch(verifyUrl);
+      const verifyRows = verifyRes.ok ? await verifyRes.json() : [];
+      console.log("PRC verify GET url:", verifyUrl);
+      console.log("PRC verify GET rows:", verifyRows);
+    } catch (e) {
+      console.warn("PRC verify GET failed:", e);
+    }
+
+    // Re-render UI and flash the affected dates
     await renderCalendar();
-    
-    // Highlight affected dates
     flashDates(dates);
+
   });
 
     // Bulk prices (validates & auto-formats)
@@ -1745,20 +1757,31 @@
     console.log("PRC payload (final):", { items });
 
     disableWhileBusy(true);
-    const res=await authFetch(prcUrl,{
-      method:"POST",
+    const res = await authFetch(prcUrl, {
+      method: "POST",
       headers: { "Content-Type": "application/json" },
-      body:JSON.stringify({items})
+      body: JSON.stringify({ items })
     });
     disableWhileBusy(false);
 
-    if (!res.ok){
-      setStatus("Price apply failed ("+res.status+")","error");
+    // Capture raw body for debugging even if it's not JSON
+    let js;
+    let respRaw = "";
+    try {
+      respRaw = await res.text();
+      try { js = JSON.parse(respRaw); } catch { js = { raw: respRaw }; }
+    } catch(_) {
+      js = { parseError: true };
+    }
+    console.log("PRC status:", res.status, js);
+
+    // Handle non-OK early
+    if (!res.ok) {
+      setStatus("Price apply failed (" + res.status + ")", "error");
       toast('Price apply failed', 'error');
       return;
     }
 
-    const js=await res.json();
     setStatus(`Prices applied to ${js.upserted ?? js.count ?? items.length} day(s) — saved automatically; no need to click “Save changes”.`,"ok");
     toast('Prices applied (auto-saved)', 'ok');
     await renderCalendar();
