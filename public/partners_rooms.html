@@ -1698,7 +1698,7 @@
     flashDates(dates);
   });
 
-  // Bulk prices (validates & auto-formats)
+    // Bulk prices (validates & auto-formats)
   el("apply-price").addEventListener("click", async ()=>{
     if (!currentRoomTypeId) return setStatus("Select a room type.","error");
     if (!validateRangeOrWarn()) return;
@@ -1716,15 +1716,38 @@
     const priceFixed = parseFloat(raw).toFixed(2);
     if (priceEl){ priceEl.value = priceFixed; priceEl.classList.remove("error"); }
 
+    // Validate rate plan id from dropdown
+    const ddl = document.getElementById('ratePlanSelect');
+    const ratePlanId = ddl ? Number(ddl.value) : NaN;
+    if (!Number.isFinite(ratePlanId)) {
+      setStatus("Please select a valid rate plan.","error");
+      return;
+    }
+
     const start=el("range-start").value, end=el("range-end").value;
     const ONE_DAY=86400000;
     const dates=[]; { const s=new Date(start+"T00:00:00Z"); const e=new Date(end+"T00:00:00Z");
       for(let d=new Date(s); d<=e; d=new Date(d.getTime()+ONE_DAY)) dates.push(iso(d)); }
-    const items=dates.map(d=>({ date:d, price:priceFixed, ratePlanId: currentRatePlanId }));
+
+    // Build normalized items (coerce to Number and round to 2dp)
+    const items=dates.map(d=>{
+      const n = Number(priceFixed);
+      return Number.isFinite(n) ? { date:d, price: Math.round(n * 100) / 100, ratePlanId } : null;
+    }).filter(Boolean);
+
+    if (!items.length){
+      setStatus("No valid prices to apply.","error");
+      return;
+    }
+
+    const prcUrl = `/extranet/property/rooms/${currentRoomTypeId}/prices/bulk`;
+    console.log("PRC url (final):", prcUrl);
+    console.log("PRC payload (final):", { items });
 
     disableWhileBusy(true);
-    const res=await authFetch(`/extranet/property/rooms/${currentRoomTypeId}/prices/bulk`,{
+    const res=await authFetch(prcUrl,{
       method:"POST",
+      headers: { "Content-Type": "application/json" },
       body:JSON.stringify({items})
     });
     disableWhileBusy(false);
@@ -1790,11 +1813,32 @@
         if (typeof obj.roomsOpen==='number') inv.roomsOpen = obj.roomsOpen;
         if (typeof obj.minStay==='number') inv.minStay = obj.minStay;
         if (Object.keys(inv).length) invItems.push({ date, ...inv });
-        if (typeof obj.price==='string' && obj.price!=='') prcItems.push({ date, price: obj.price, ratePlanId: currentRatePlanId });
+
+        // Normalize price: must be a finite non-negative number; round to 2dp
+        if (typeof obj.price==='string' && obj.price!=='') {
+          const n = Number(obj.price);
+          if (Number.isFinite(n) && n >= 0) {
+            prcItems.push({ date, price: Math.round(n * 100) / 100, ratePlanId: currentRatePlanId });
+          }
+        }
       }
+
       const reqs=[];
-      if (invItems.length) reqs.push(authFetch(`/extranet/property/rooms/${currentRoomTypeId}/inventory/bulk`,{method:"POST", body:JSON.stringify({items:invItems})}));
-      if (prcItems.length) reqs.push(authFetch(`/extranet/property/rooms/${currentRoomTypeId}/prices/bulk`,{method:"POST", body:JSON.stringify({items:prcItems})}));
+      if (invItems.length) {
+        reqs.push(authFetch(`/extranet/property/rooms/${currentRoomTypeId}/inventory/bulk`,{
+          method:"POST",
+          body:JSON.stringify({items:invItems})
+        }));
+      }
+      if (prcItems.length) {
+        // Debug visibility mirrors Apply Price path
+        console.log("PRC url (save):", `/extranet/property/rooms/${currentRoomTypeId}/prices/bulk`);
+        console.log("PRC payload (save):", { items: prcItems });
+        reqs.push(authFetch(`/extranet/property/rooms/${currentRoomTypeId}/prices/bulk`,{
+          method:"POST",
+          body:JSON.stringify({items:prcItems})
+        }));
+      }
       if (reqs.length){
         const resps = await Promise.all(reqs);
         if (resps.some(r=>!r.ok)) throw new Error(`Grid save failed (${resps.map(r=>r.status).join('/')})`);
@@ -1903,9 +1947,13 @@
 
       if (hasRoomEdits || hasGridEdits || invalidCount > 0){
         e.preventDefault();
-        const msg = invalidCount > 0
-          ? `You have ${invalidCount} invalid field${invalidCount>1?'s':''}. Leave without fixing/saving?`
-          : `You have unsaved changes. Leave without saving?`;
+        let msg;
+        if (invalidCount > 0) {
+          const plural = invalidCount > 1 ? 's' : '';
+          msg = 'You have ' + invalidCount + ' invalid field' + plural + '. Leave without fixing/saving?';
+        } else {
+          msg = 'You have unsaved changes. Leave without saving?';
+        }
         if (confirm(msg)){
           // proceed to menu
           location.href = '/partners_app.html';
