@@ -1686,28 +1686,39 @@
     const items=dates.map(d=>{ const o={date:d,isClosed,roomsOpen:Math.floor(roomsOpenN)}; if (Number.isFinite(minStayN)) o.minStay=Math.floor(minStayN); return o; });
 
     disableWhileBusy(true);
-    const res=await authFetch(`/extranet/property/rooms/${currentRoomTypeId}/inventory/bulk`,{ method:"POST", body:JSON.stringify({items}) });
+    const res = await authFetch(`/extranet/property/rooms/${currentRoomTypeId}/inventory/bulk`, { method:"POST", body: JSON.stringify({ items }) });
     disableWhileBusy(false);
-    if (!res.ok){ setStatus("Inventory apply failed ("+res.status+")","error"); toast('Inventory apply failed', 'error'); return; }
-    // Success UI
-    setStatus(`Prices applied to ${js.upserted ?? js.count ?? items.length} day(s) — saved automatically; no need to click “Save changes”.`, "ok");
-    toast('Prices applied (auto-saved)', 'ok');
 
-    // Immediately fetch back the same window to verify server state
+    // Parse body defensively so we never reference an undefined var
+    let invResObj; let invRaw = "";
     try {
-      const verifyUrl = `/extranet/property/rooms/${currentRoomTypeId}/prices?start=${start}&end=${end}&ratePlanId=${encodeURIComponent(ratePlanId)}`;
-      const verifyRes = await authFetch(verifyUrl);
-      const verifyRows = verifyRes.ok ? await verifyRes.json() : [];
-      console.log("PRC verify GET url:", verifyUrl);
-      console.log("PRC verify GET rows:", verifyRows);
-    } catch (e) {
-      console.warn("PRC verify GET failed:", e);
+      invRaw = await res.text();
+      try { invResObj = JSON.parse(invRaw); } catch { invResObj = { raw: invRaw }; }
+    } catch(_) { invResObj = {}; }
+
+    if (!res.ok){
+      setStatus("Inventory apply failed ("+res.status+")","error");
+      toast("Inventory apply failed","error");
+      return;
     }
 
-    // Re-render UI and flash the affected dates
+    // Correct success copy (Inventory, not Prices)
+    setStatus(`Inventory applied to ${invResObj.upserted ?? invResObj.count ?? items.length} day(s) — saved automatically; no need to click “Save changes”.`,"ok");
+    toast("Inventory applied (auto-saved)","ok");
+
+    // Verify the same window comes back with updated inventory
+    try {
+      const verifyUrl = `/extranet/property/rooms/${currentRoomTypeId}/inventory?start=${start}&end=${end}`;
+      const verifyRes = await authFetch(verifyUrl);
+      const verifyRows = verifyRes.ok ? await verifyRes.json() : [];
+      console.log("INV verify GET url:", verifyUrl);
+      console.log("INV verify GET rows:", verifyRows);
+    } catch(e) {
+      console.warn("INV verify GET failed:", e);
+    }
+
     await renderCalendar();
     flashDates(dates);
-
   });
 
     // Bulk prices (validates & auto-formats)
@@ -1799,12 +1810,15 @@
       setStatus(`Prices applied to ${prcResObj.upserted ?? prcResObj.count ?? items.length} day(s) — saved automatically; no need to click “Save changes”.`, "ok");
       toast('Prices applied (auto-saved)', 'ok');
 
-      // Immediately verify what GET returns for this window/plan
+      // If the GET endpoint returns no rows (backend filter mismatch),
+      // still show the new price immediately so the user sees the change.
+      // We'll try GET first; if empty, we optimistically fill the tiles.
+      let verifyRows = [];
       try {
         const verifyPlan = Number.isFinite(Number(window.currentRatePlanId)) ? Number(window.currentRatePlanId) : ratePlanId;
         const verifyUrl = `/extranet/property/rooms/${currentRoomTypeId}/prices?start=${start}&end=${end}&ratePlanId=${encodeURIComponent(verifyPlan)}`;
         const verifyRes = await authFetch(verifyUrl);
-        const verifyRows = verifyRes.ok ? await verifyRes.json() : [];
+        verifyRows = verifyRes.ok ? await verifyRes.json() : [];
         console.log("PRC verify GET url:", verifyUrl);
         console.log("PRC verify GET rows:", verifyRows);
       } catch (e) {
@@ -1812,6 +1826,18 @@
       }
 
       await renderCalendar();
+
+      // If server GET returned nothing (or a different shape), paint the UI with the posted price.
+      if (!Array.isArray(verifyRows) || verifyRows.length === 0) {
+        const val = Number(priceFixed).toFixed(2);
+        dates.forEach(d => {
+          const card = document.getElementById(`day-${d}`);
+          const input = card?.querySelector('input[data-kind="price"]');
+          if (input) input.value = val;
+        });
+        console.warn("UI filled optimistically with posted price because verify GET was empty.");
+      }
+
       flashDates(dates);
   });
 
