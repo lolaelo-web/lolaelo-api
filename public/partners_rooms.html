@@ -463,7 +463,7 @@
 
             <!-- Save button (disabled for now; we’ll wire it in the next step) -->
             <div style="display:flex;gap:8px;justify-content:flex-end;margin-top:10px;">
-              <button id="save-plan-rules" class="btn btn-primary" disabled title="Coming next">Save plan rules</button>
+              <button id="save-plan-rules" class="btn btn-primary" disabled title="Coming next">Save Plan Rate IDs</button>
             </div>
           </div>
 
@@ -708,18 +708,53 @@
     }
   }
 
-  function populateRatePlanDropdown(plans){
+    function populateRatePlanDropdown(plans){
     const sel = document.getElementById('ratePlanSelect');
     if (!sel) return;
-    const desired = Number(currentRatePlanId) || (plans[0]?.id ?? 1);
+
+    const arr = Array.isArray(plans) ? plans.slice() : [];
+    const std = arr.find(p => p.isDefault || p.code === 'STD' || p.id === 1);
+    const rest = arr.filter(p => p !== std)
+                    .sort((a,b)=>String(a.name||a.code).localeCompare(String(b.name||b.code)));
+
+    const ordered = std ? [std, ...rest] : rest;
+
+    // remember current selection if still valid
+    const current = Number.isFinite(Number(window.currentRatePlanId))
+      ? Number(window.currentRatePlanId) : null;
+
     sel.innerHTML = '';
-    for (const p of plans){
+    for (const p of ordered){
       const opt = document.createElement('option');
+
+      let label = (p.name && String(p.name).trim()) ? String(p.name).trim()
+                : (p.code || `Plan ${p.id}`);
+
+      // fallback names for customs if no nickname set
+      if (!p.name && (p.code === 'CUS1' || p.code === 'CUS2')){
+        label = (p.code === 'CUS1') ? 'Custom 1' : 'Custom 2';
+      }
+
+      // hint id on Standard
+      if (p.isDefault || p.code === 'STD' || p.id === 1){
+        label = `${label} (${p.id})`;
+      }
+
       opt.value = String(p.id);
-      opt.textContent = p.name || `Plan ${p.id}`;
+      opt.textContent = label;
       sel.appendChild(opt);
     }
-    sel.value = String(desired);
+
+    // choose selection: keep current → STD → first
+    let desired = null;
+    if (current && ordered.some(p => Number(p.id) === current)) desired = current;
+    else if (std) desired = Number(std.id);
+    else if (ordered[0]) desired = Number(ordered[0].id);
+
+    if (desired != null){
+      sel.value = String(desired);
+      window.currentRatePlanId = desired;
+    }
   }
 
   function setStatus(msg, cls=""){ status.className="note "+cls; status.textContent=msg; }
@@ -2573,5 +2608,6 @@
     height: 100%;
   }
 </style>
+
 </body>
 </html>
