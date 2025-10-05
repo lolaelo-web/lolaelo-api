@@ -25,7 +25,14 @@
     .spacer{ flex:1; }
     .header-actions{ display:flex; gap:8px; align-items:center; }
     .header-actions .note{ white-space:nowrap; }
-
+    /* Rate plan chip group */
+    .rateplan-checks .chip{
+      display:inline-flex; align-items:center; gap:6px;
+      padding:6px 10px; border:1px solid var(--border);
+      border-radius:999px; cursor:pointer; user-select:none;
+      background:var(--chip);
+    }
+    .rateplan-checks input[type="checkbox"]{ width:16px; height:16px; accent-color: var(--accent); }
     .wrap{ display:grid; grid-template-columns:300px 1fr; height:calc(100vh - var(--header-h)); overflow:hidden; }
     .left{ border-right:1px solid var(--border); background:var(--panel); display:flex; flex-direction:column; min-width:0; }
     .right{ background:var(--panel-2); display:flex; flex-direction:column; min-width:0; }
@@ -286,7 +293,6 @@
     <h1>Rooms & Availability</h1>
     <div class="spacer"></div>
     <div class="header-actions"><!-- ANCHOR: HEADER_ACTIONS -->
-      <button id="open-plans" class="btn secondary">Plans</button>
       <!-- RATE_PLAN_FILTER END -->
       <span id="status" class="note">Ready.</span>
       <span id="dirty-count" class="note">No changes</span>
@@ -336,17 +342,14 @@
           </div>
 
           <button id="apply-price" class="secondary btn btn-secondary-outline" title="Applies immediately (auto-saves)">Apply Price</button>
-
-          <div class="rate-plan-selector">
-            <label for="ratePlanSelect">Rate plan</label>
-            <select id="ratePlanSelect" class="input">
-              <option value="1">Standard (1)</option>
-            </select>
-          </div>
-
           <button id="copy-link" class="secondary btn btn-secondary-outline" type="button" title="Copy the current link with room, date range, and plan">Copy link</button>
         </div>
           </div> <!-- CLOSES .controls -->
+          <!-- RATE_PLAN_FILTER ROW (chips above day tiles) -->
+          <div id="rateplan-checks-row" class="rateplan-checks-row" style="display:flex; align-items:center; gap:10px; padding:10px 12px; border-bottom:1px solid var(--border); background:var(--panel);">
+            <span class="note" style="margin:0;">Rate plans</span>
+            <div id="rateplan-checks" class="rateplan-checks" style="display:flex; flex-wrap:wrap; gap:8px; align-items:center;"></div>
+          </div>
 
           <div class="calendar">
             <div id="cal-grid" class="cal-grid"></div>
@@ -609,7 +612,14 @@
       if (currentRoomTypeId != null) qs.set('room', String(currentRoomTypeId));
       if (currentRangeStart) qs.set('start', currentRangeStart);
       if (currentRangeEnd)   qs.set('end',   currentRangeEnd);
-      if (currentRatePlanId != null) qs.set('plan', String(currentRatePlanId));
+
+      // plan (primary) + plans (full selection)
+      const ids = (typeof window.getSelectedRatePlanIds === 'function') ? window.getSelectedRatePlanIds() : [];
+      const primary = ids.length ? Number(ids[0]) : Number(currentRatePlanId || 1);
+      if (Number.isFinite(primary)) qs.set('plan', String(primary));
+      if (ids.length) qs.set('plans', ids.join(','));
+      else qs.delete('plans');
+
       const next = location.pathname + '?' + qs.toString() + location.hash;
       if (mode === 'push') history.pushState(null, '', next);
       else history.replaceState(null, '', next);
@@ -708,54 +718,46 @@
     }
   }
 
-    function populateRatePlanDropdown(plans){
-    const sel = document.getElementById('ratePlanSelect');
-    if (!sel) return;
-
-    const arr = Array.isArray(plans) ? plans.slice() : [];
-    const std = arr.find(p => p.isDefault || p.code === 'STD' || p.id === 1);
-    const rest = arr.filter(p => p !== std)
-                    .sort((a,b)=>String(a.name||a.code).localeCompare(String(b.name||b.code)));
-
-    const ordered = std ? [std, ...rest] : rest;
-
-    // remember current selection if still valid
-    const current = Number.isFinite(Number(window.currentRatePlanId))
-      ? Number(window.currentRatePlanId) : null;
-
-    sel.innerHTML = '';
-    for (const p of ordered){
-      const opt = document.createElement('option');
-
-      let label = (p.name && String(p.name).trim()) ? String(p.name).trim()
-                : (p.code || `Plan ${p.id}`);
-
-      // fallback names for customs if no nickname set
-      if (!p.name && (p.code === 'CUS1' || p.code === 'CUS2')){
-        label = (p.code === 'CUS1') ? 'Custom 1' : 'Custom 2';
-      }
-
-      // hint id on Standard
-      if (p.isDefault || p.code === 'STD' || p.id === 1){
-        label = `${label} (${p.id})`;
-      }
-
-      opt.value = String(p.id);
-      opt.textContent = label;
-      sel.appendChild(opt);
+    /* ANCHOR: RATE_PLAN_DROPDOWN_TO_CHECKS (drop-in) */
+function populateRatePlanDropdown(plans){
+  // 1) Render the checkbox chips instead of the legacy <select>
+  try {
+    if (typeof populateRatePlanChecks === 'function') {
+      populateRatePlanChecks(plans);
     }
+  } catch (_) {}
 
-    // choose selection: keep current → STD → first
-    let desired = null;
-    if (current && ordered.some(p => Number(p.id) === current)) desired = current;
-    else if (std) desired = Number(std.id);
-    else if (ordered[0]) desired = Number(ordered[0].id);
+  // 2) Hide (but keep) the legacy <select> for safe rollback
+  const sel = document.getElementById('ratePlanSelect');
+  if (sel) sel.style.display = 'none';
 
-    if (desired != null){
-      sel.value = String(desired);
-      window.currentRatePlanId = desired;
-    }
+  // 3) Primary plan = first checked id (keeps downstream code working)
+  const ids = (typeof window.getSelectedRatePlanIds === 'function')
+    ? window.getSelectedRatePlanIds()
+    : [];
+  window.currentRatePlanId = ids.length ? Number(ids[0]) : 1;
+
+  // 4) Persist + URL sync + initial refresh
+  try { if (typeof saveCtx === 'function') saveCtx(); } catch (_){}
+  try { if (typeof updateURLFromState === 'function') updateURLFromState(); } catch (_){}
+  if (typeof renderCalendar === 'function') renderCalendar({ reason: 'init:rateplans' });
+
+  // 5) Listen once for future checkbox changes → update state + refresh
+  const handler = (e) => {
+    const list = (e && e.detail && Array.isArray(e.detail.ids)) ? e.detail.ids : [];
+    window.currentRatePlanId = list.length ? Number(list[0]) : 1;
+    try { if (typeof saveCtx === 'function') saveCtx(); } catch (_){}
+    try { if (typeof updateURLFromState === 'function') updateURLFromState(); } catch (_){}
+    if (typeof renderCalendar === 'function') renderCalendar({ reason: 'rateplans:changed' });
+  };
+
+  // idempotent wiring
+  if (window.__rateplansChangedHandlerRef) {
+    document.removeEventListener('rateplans:changed', window.__rateplansChangedHandlerRef);
   }
+  document.addEventListener('rateplans:changed', handler);
+  window.__rateplansChangedHandlerRef = handler;
+}
 
   function setStatus(msg, cls=""){ status.className="note "+cls; status.textContent=msg; }
 
@@ -1572,13 +1574,27 @@
     prepareRangeDefaults();
     if (!validateRangeOrWarn()) return;
 
+    /* ANCHOR: RATEPLAN_PRIMARY_RESOLVE */
+    const selectedIds = (typeof window.getSelectedRatePlanIds === 'function')
+      ? window.getSelectedRatePlanIds()
+      : [];
+    const primaryPlanId = selectedIds.length
+      ? Number(selectedIds[0])
+      : Number(currentRatePlanId || 1);
+
+    // Keep legacy global in sync so downstream code continues to work.
+    window.currentRatePlanId = primaryPlanId;
+
     const invUrl = `/extranet/property/rooms/${currentRoomTypeId}/inventory?start=${currentRangeStart}&end=${currentRangeEnd}`;
-    const prcUrl = `/extranet/property/rooms/${currentRoomTypeId}/prices?start=${currentRangeStart}&end=${currentRangeEnd}&ratePlanId=${encodeURIComponent(currentRatePlanId)}`;
+    const prcUrl = `/extranet/property/rooms/${currentRoomTypeId}/prices?start=${currentRangeStart}&end=${currentRangeEnd}&ratePlanId=${encodeURIComponent(primaryPlanId)}`;
 
     if (localStorage.getItem('rooms_debug') === '1'){
       console.debug("Calendar fetch URLs", {
-        roomId: currentRoomTypeId, invUrl, prcUrl,
-        start: currentRangeStart, end: currentRangeEnd, ratePlanId: currentRatePlanId
+        roomId: currentRoomTypeId,
+        invUrl, prcUrl,
+        start: currentRangeStart, end: currentRangeEnd,
+        primaryPlanId,
+        selectedRatePlanIds: selectedIds
       });
     }
 
@@ -1889,13 +1905,11 @@
     const priceFixed = parseFloat(raw).toFixed(2);
     if (priceEl){ priceEl.value = priceFixed; priceEl.classList.remove("error"); }
 
-    // Validate rate plan id from dropdown
-    const ddl = document.getElementById('ratePlanSelect');
-    const ratePlanId = ddl ? Number(ddl.value) : NaN;
-    if (!Number.isFinite(ratePlanId)) {
-      setStatus("Please select a valid rate plan.","error");
-      return;
-    }
+    // Resolve rate plan from checkbox chips (fallback to current/global)
+    const ids = (typeof window.getSelectedRatePlanIds === 'function')
+      ? window.getSelectedRatePlanIds()
+      : [];
+    const ratePlanId = ids.length ? Number(ids[0]) : Number(window.currentRatePlanId || 1);
 
     const start=el("range-start").value, end=el("range-end").value;
     const ONE_DAY=86400000;
@@ -2031,6 +2045,14 @@
       }
 
       // 2) Apply calendar edits if any
+      // ANCHOR: SAVE_PRIMARY_RATEPLAN
+      const _ids = (typeof window.getSelectedRatePlanIds === 'function')
+        ? window.getSelectedRatePlanIds()
+        : [];
+      const _primaryPlanId = _ids.length ? Number(_ids[0]) : Number(window.currentRatePlanId || 1);
+      // Keep legacy global in sync so downstream code continues to work
+      window.currentRatePlanId = _primaryPlanId;
+
       const invItems=[], prcItems=[];
       for (const [date,obj] of dirty.entries()){
         const inv={};
@@ -2043,7 +2065,7 @@
         if (typeof obj.price==='string' && obj.price!=='') {
           const n = Number(obj.price);
           if (Number.isFinite(n) && n >= 0) {
-            prcItems.push({ date, price: Math.round(n * 100) / 100, ratePlanId: currentRatePlanId });
+            prcItems.push({ date, price: Math.round(n * 100) / 100, ratePlanId: _primaryPlanId });
           }
         }
       }
@@ -2190,8 +2212,18 @@
   })();
 
   // ANCHOR: COPY_LINK_BTN
-  el('copy-link')?.addEventListener('click', async () => {
-    const url = location.href;
+    el('copy-link')?.addEventListener('click', async () => {
+    // Build URL with both primary plan and the selected list
+    const u = new URL(location.href);
+    // Primary (first checked) — keep legacy ?plan=
+    const ids = (typeof window.getSelectedRatePlanIds === 'function') ? window.getSelectedRatePlanIds() : [];
+    const primary = ids.length ? Number(ids[0]) : Number(window.currentRatePlanId || 1);
+    if (Number.isFinite(primary)) u.searchParams.set('plan', String(primary));
+    // Full selection — new ?plans=1,2,3
+    if (ids.length) u.searchParams.set('plans', ids.join(','));
+    else u.searchParams.delete('plans');
+
+    const url = u.toString();
     try {
       await navigator.clipboard.writeText(url);
       toast('Link copied to clipboard', 'ok');
@@ -2204,18 +2236,21 @@
     }
   });
 
-  // NEW: wire Rate plan selector
+  /* ANCHOR: RATEPLAN_WIRE_NOOP_TO_CHIPS */
   function wireRatePlanSelector(ctx) {
-    const ddl = document.getElementById('ratePlanSelect');
-    if (!ddl) return;
-    ddl.value = String(ctx?.ratePlanId ?? currentRatePlanId ?? 1);
-    ddl.addEventListener('change', () => {
-      currentRatePlanId = Number(ddl.value) || 1;
-      saveCtx();
-      updateURLFromState();
-      if (currentRoomTypeId) scheduleRender(180);
-      try { fetchRatePlansSafe().then(renderPlansPanel).catch(()=>{}); } catch(_){}
-    });
+    // If chips are present and ctx includes a plan, ensure it's checked + sync state.
+    const host = document.getElementById('rateplan-checks');
+    const targetId = Number(ctx?.ratePlanId);
+    if (host && Number.isFinite(targetId)) {
+      const box = host.querySelector(`input[type="checkbox"][data-plan-id="${targetId}"]`);
+      if (box && !box.checked) {
+        box.checked = true;
+        box.dispatchEvent(new Event('change'));
+      }
+      window.currentRatePlanId = targetId;
+      return;
+    }
+    // No chips? Nothing to wire. Keep currentRatePlanId as-is.
   }
 
   (async function init(){
@@ -2227,6 +2262,16 @@
     const qStart = qs.get('start');
     const qEnd   = qs.get('end');
     const qPlan  = qs.get('plan');
+    // Support multi-plan deeplink, e.g. ?plans=1,2,3
+    const qPlans = qs.get('plans');
+    if (qPlans) {
+      const list = qPlans.split(',').map(s => Number(s.trim())).filter(Number.isFinite);
+      if (list.length) {
+        try { localStorage.setItem('rateplan.selectedIds', JSON.stringify(list)); } catch(_){}
+        // If no explicit single plan was provided, prefer first of the list
+        if (!qPlan) ctx.ratePlanId = list[0];
+      }
+    }
 
     if (qRoom) {
       // numeric or string ids supported
@@ -2244,6 +2289,12 @@
     if (qPlan) {
       const pn = Number(qPlan);
       ctx.ratePlanId = Number.isFinite(pn) ? pn : 1;
+    }
+    if (qPlans) {
+      const arr = qPlans.split(',').map(s => Number(s.trim())).filter(n => Number.isFinite(n));
+      if (arr.length) {
+        ctx.ratePlanIds = arr;
+      }
     }
   } catch(_){}
     // clamp ctx/start/end (from URL or localStorage) to today-or-later
@@ -2278,6 +2329,13 @@
       applyMonthWindowToRange({ rerender:false }); // this will also clamp end >= start
     }
   }
+    // Seed initial chip selection from deep link if provided
+    if (Array.isArray(ctx.ratePlanIds) && ctx.ratePlanIds.length) {
+      window.__initialSelectedRatePlanIds = ctx.ratePlanIds.slice();
+      try {
+        localStorage.setItem('rateplan.selectedIds', JSON.stringify(window.__initialSelectedRatePlanIds));
+      } catch(_) {}
+    }
 
     if (ctx.roomId) currentRoomTypeId = ctx.roomId;
     setRightActive(!!currentRoomTypeId);
@@ -2545,100 +2603,6 @@
   const initial=document.getElementById('range-start')?.value || window.currentRangeStart || iso(new Date());
   setWindow(initial,false);
 })();
-</script>
-<!-- === ANCHOR: PLANS_PANEL === -->
-<div id="plans-panel" hidden style="position:fixed; inset:0; background:rgba(0,0,0,0.35); display:grid; place-items:center; z-index:9999;">
-  <div style="width:min(1100px,96vw); max-height:90vh; overflow:auto; background:#111; color:#eee; border-radius:16px; box-shadow:0 10px 30px rgba(0,0,0,0.5);">
-    <div style="display:flex; align-items:center; justify-content:space-between; padding:14px 16px; border-bottom:1px solid #2a2a2a;">
-      <h2 style="margin:0; font:600 18px/1.2 Inter,system-ui;">Rate Plans</h2>
-      <div style="display:flex; gap:8px;">
-        <button id="save-plan-rules" class="btn primary">Save rules</button>
-        <button id="close-plans" class="btn">Close</button>
-      </div>
-    </div>
-    <div style="padding:16px;">
-      <div class="plans-list">
-        <!-- Minimal starter row; we’ll replace with real data in the next step -->
-        <div class="plan-row card" data-plan-code="STD1" style="background:#161616; border:1px solid #2a2a2a; border-radius:12px; padding:12px; display:grid; gap:8px;">
-          <div class="plan-head" style="display:flex; align-items:center; justify-content:space-between; gap:8px;">
-            <div>
-              <div style="font-weight:600;">STD1</div>
-              <div class="plan-meta" style="opacity:.75; font-size:12px;">Standard Flexible</div>
-            </div>
-            <div>
-              <label style="font-size:12px; opacity:.8; margin-right:8px;">Min stay</label>
-              <input type="number" min="1" step="1" value="1" style="width:90px;" data-plan-minstay />
-            </div>
-          </div>
-
-          <!-- Placeholder rule editor; PLAN_RULES_SAVE will read inputs later -->
-          <div class="rule-editor" style="display:flex; flex-wrap:wrap; gap:8px; align-items:center;">
-            <span style="opacity:.8; font-size:12px;">Rule:</span>
-            <select data-field="sign">
-              <option value="+">+</option>
-              <option value="-">-</option>
-            </select>
-            <input type="number" data-field="value" value="0" />
-            <select data-field="unit">
-              <option value="%">%</option>
-              <option value="abs">$</option>
-            </select>
-            <span style="opacity:.6; font-size:12px;">(placeholder)</span>
-          </div>
-        </div>
-      </div>
-      <p style="margin-top:12px; opacity:.7; font-size:12px;">Panel shell only — next step wires real rows + save logic.</p>
-    </div>
-  </div>
-</div>
-
-<script>
-  // === ANCHOR: PLANS_PANEL_WIRES ===
-  (function wirePlansPanel(){
-    const btnOpen = document.getElementById('open-plans');
-    const panel = document.getElementById('plans-panel');
-    const btnClose = document.getElementById('close-plans');
-
-    if (!btnOpen || !panel || !btnClose) return;
-
-    btnOpen.addEventListener('click', () => {
-      panel.hidden = false;
-      document.body.style.overflow = 'hidden';
-    });
-
-    const close = () => {
-      panel.hidden = true;
-      document.body.style.overflow = '';
-    };
-
-    btnClose.addEventListener('click', close);
-    panel.addEventListener('click', (e) => {
-      if (e.target === panel) close();
-    });
-
-    // Scratch state for PLAN_RULES_SAVE
-    window.__pendingPlanRules = window.__pendingPlanRules || {};
-    panel.addEventListener('input', (e) => {
-      const row = e.target.closest('.plan-row');
-      if (!row) return;
-      const code = row.getAttribute('data-plan-code');
-      if (!code) return;
-
-      const minStayEl = row.querySelector('[data-plan-minstay]');
-      const minStay = minStayEl ? Number(minStayEl.value || 1) : undefined;
-
-      // Optional: capture placeholder rule editor fields
-      const sign = row.querySelector('[data-field="sign"]')?.value ?? '+';
-      const value = Number(row.querySelector('[data-field="value"]')?.value ?? 0);
-      const unit = row.querySelector('[data-field="unit"]')?.value ?? '%';
-
-      window.__pendingPlanRules[code] = {
-        ...(window.__pendingPlanRules[code] || {}),
-        ...(minStay ? { minStay } : {}),
-        rule: { sign, value, unit }
-      };
-    });
-  })();
 </script>
 
 <!-- PLANS PANEL: compact controls + vertical scroll -->
