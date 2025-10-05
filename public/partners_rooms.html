@@ -2436,18 +2436,22 @@
           setStatus('No rule changes detected.', 'warn');
           return;
         }
-        // Build payload from the scratch state we exposed earlier
-        const rules = window.__pendingPlanRules; // {BRKF:{sign,unit,value}, NRF:{...}}
-        const plans = Object.entries(rules).map(([code, cfg]) => {
+        // Build payload from DOM + scratch state, capturing optional custom names
+        const rules = window.__pendingPlanRules || {};
+        const rows = document.querySelectorAll('#plans-panel .plan-row[data-plan-code]');
+        const plans = Array.from(rows).map(row => {
+          const code = row.getAttribute('data-plan-code');
+          const cfg  = rules[code] || {};
+          const nameEl = row.querySelector('[data-field="name"]');
+          const name = nameEl ? (nameEl.textContent || '').trim() : undefined;
+
           const sign  = (cfg.sign === '-') ? -1 : +1;
           const unit  = (cfg.unit === '%') ? 'PERCENT' : 'ABSOLUTE';
-          const value = Number(cfg.value);
-          return {
-            code,                       // e.g., 'BRKF'
-            kind: unit,                 // 'PERCENT' | 'ABSOLUTE'
-            value: Number.isFinite(value) ? (sign * Math.abs(value)) : 0
-          };
-        });
+          const raw   = Number(cfg.value);
+          const value = Number.isFinite(raw) ? (sign * Math.abs(raw)) : 0;
+
+          return { code, name, kind: unit, value };
+        }).filter(p => p && p.code); // keep only well-formed rows
 
         // POST to API (derived-only model config)
         const url = '/extranet/property/rateplans';
@@ -2507,5 +2511,67 @@
   setWindow(initial,false);
 })();
 </script>
+<!-- PLANS PANEL: compact controls + vertical scroll -->
+<style id="plans-panel-compact">
+  /* 1–3) Tighten control widths */
+  #plans-panel .rule-editor select[data-field="sign"]{
+    width: 3.2ch; min-width: 3.2ch; max-width: 3.2ch; text-align:center;
+    padding-left: 6px; padding-right: 18px;  /* room for dropdown chevron */
+  }
+  #plans-panel .rule-editor input[data-field="value"]{
+    width: 6ch; min-width: 6ch; max-width: 6ch; text-align: right;
+  }
+  #plans-panel .rule-editor select[data-field="unit"]{
+    width: 3.6ch; min-width: 3.6ch; max-width: 3.6ch; text-align:center;
+    padding-left: 6px; padding-right: 18px;
+  }
+
+  /* 4) Make the panel itself vertically scrollable when content exceeds height */
+  .plans-panel{
+    max-height: 42vh;            /* enough to show several rows; scroll when needed */
+    overflow-y: auto;
+    overscroll-behavior: contain; /* keep scroll contained to the panel */
+  }
+
+  /* Minor spacing polish */
+  #plans-panel .plan-meta{ margin-top: 2px; }
+  #plans-panel .rule-editor{ gap: 6px; }
+</style>
+
+<script>
+(() => {
+  // Ensure vertical wheel inside the panel doesn't get hijacked by the calendar's horizontal wheel logic
+  const panel = document.getElementById('plans-panel');
+  if (panel){
+    panel.addEventListener('wheel', (e) => {
+      // If the panel can scroll vertically, stop the event so the calendar doesn't convert it to horizontal scroll.
+      const canScrollY = panel.scrollHeight > panel.clientHeight;
+      if (canScrollY){
+        // Allow normal vertical scrolling inside the panel
+        e.stopPropagation();
+        // Do not preventDefault — we want native vertical scroll behavior
+      }
+    }, { capture: true, passive: true });
+  }
+})();
+</script>
+<style id="plans-panel-2col">
+  /* Single column on small screens; two columns on roomy layouts */
+  #plans-panel .plans-list{
+    display: grid;
+    grid-template-columns: 1fr;   /* default: 1 per row */
+    gap: 10px;
+  }
+  @media (min-width: 1100px){
+    #plans-panel .plans-list{
+      grid-template-columns: 1fr 1fr;  /* 2 per row */
+    }
+  }
+
+  /* Make each plan card stretch nicely within its grid cell */
+  #plans-panel .plan-row{
+    height: 100%;
+  }
+</style>
 </body>
 </html>
