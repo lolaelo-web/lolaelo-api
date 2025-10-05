@@ -44,7 +44,7 @@ function ensureDefaults(propId: string) {
   ]);
 }
 
-function sanitizePlanInput(p: any): { code: string; kind: RPKind; value: number } | null {
+function sanitizePlanInput(p: any): { code: string; kind: RPKind; value: number; name?: string } | null {
   if (!p || typeof p !== 'object') return null;
   const code = String(p.code || '').toUpperCase().slice(0, 10);
   let kind: RPKind = String(p.kind || '').toUpperCase() as RPKind;
@@ -54,7 +54,8 @@ function sanitizePlanInput(p: any): { code: string; kind: RPKind; value: number 
   // guards
   if (kind === 'PERCENT')  value = Math.max(-100,  Math.min(100,  value));
   if (kind === 'ABSOLUTE') value = Math.max(-1000, Math.min(1000, value));
-  return { code, kind, value };
+  const name = (typeof p.name === 'string' && p.name.trim()) ? p.name.trim().slice(0, 40) : undefined;
+  return { code, kind, value, name };
 }
 
 // GET: read current plans for this property
@@ -92,9 +93,18 @@ app.post('/extranet/property/rateplans', express.json(), async (req: Request, re
       if (tgt) {
         tgt.kind = u.kind;
         tgt.value = u.value;
+        if (u.name) tgt.name = u.name; // allow renaming BRKF/NRF/CUS1/CUS2
       } else {
         const nextId = Math.max(...plans.map(p => p.id)) + 1;
-        plans.push({ id: nextId, name: u.code, code: u.code, isDefault: false, kind: u.kind, value: u.value, active: true });
+        plans.push({
+          id: nextId,
+          name: u.name || u.code,
+          code: u.code,
+          isDefault: false,
+          kind: u.kind,
+          value: u.value,
+          active: true
+        });
       }
     }
 
