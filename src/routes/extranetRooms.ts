@@ -490,80 +490,62 @@ r.post("/:id/inventory/bulk", async (req, res) => {
   }
 });
 
-/** GET /:id/prices?start=YYYY-MM-DD&end=YYYY-MM-DD */
+/** GET /:id/prices?start=YYYY-MM-DD&end=YYYY-MM-DD[&ratePlanId=INT] */
 r.get("/:id/prices", async (req, res) => {
   try {
     const roomId = Number(req.params.id);
-    const start = String(req.query.start || "");
-    const end = String(req.query.end || "");
+    const start  = String(req.query.start || "");
+    const end    = String(req.query.end   || "");
     const ds = parseDate(start);
     const de = parseDate(end);
-    if (!roomId || !ds || !de)
+    if (!roomId || !ds || !de) {
       return res.status(400).json({ error: "bad params" });
+    }
 
     res.set("Cache-Control", "no-store");
-    const planId = Number(req.query.planId ?? 1);
 
-    const { rows } = await pool.query(
-      `SELECT
-         (p."date")::date      AS "date",
-         $4::int               AS "ratePlanId",
-         (p."price")::numeric  AS "price"
-       FROM ${T.prices} p
-       WHERE p."roomTypeId" = $1
-         AND p."ratePlanId" = $4
-         AND p."date" >= $2::date
-         AND p."date" <  ($3::date + INTERVAL '1 day')
-       ORDER BY p."date" ASC`,
-      [roomId, start, end, planId]
-    );
+    // Accept either ?ratePlanId= or legacy ?planId=
+    const planQ  = (req.query as any).ratePlanId ?? (req.query as any).planId;
+    const planId = planQ != null && String(planQ) !== "" ? Number(planQ) : NaN;
+
+    let rows;
+    if (Number.isFinite(planId)) {
+      // Filter by a specific plan
+      const r = await pool.query(
+        `SELECT
+           (p."date")::date     AS "date",
+           p."ratePlanId"       AS "ratePlanId",
+           (p."price")::numeric AS "price"
+         FROM ${T.prices} p
+         WHERE p."roomTypeId" = $1
+           AND p."ratePlanId"  = $4
+           AND p."date" >= $2::date
+           AND p."date" <  ($3::date + INTERVAL '1 day')
+         ORDER BY p."date" ASC`,
+        [roomId, start, end, planId]
+      );
+      rows = r.rows;
+    } else {
+      // No plan filter → return all plans in the range
+      const r = await pool.query(
+        `SELECT
+           (p."date")::date     AS "date",
+           p."ratePlanId"       AS "ratePlanId",
+           (p."price")::numeric AS "price"
+         FROM ${T.prices} p
+         WHERE p."roomTypeId" = $1
+           AND p."date" >= $2::date
+           AND p."date" <  ($3::date + INTERVAL '1 day')
+         ORDER BY p."date" ASC`,
+        [roomId, start, end]
+      );
+      rows = r.rows;
+    }
 
     return res.json(rows);
   } catch (e) {
     console.error("[prices:get] db error", e);
     return res.status(500).json({ error: "Prices fetch failed" });
-  }
-});
-
-/** GET /:id/snapshot?start=YYYY-MM-DD&end=YYYY-MM-DD&planId=1 */
-r.get("/:id/snapshot", async (req, res) => {
-  try {
-    const roomId = Number(req.params.id);
-    const start = String(req.query.start || "");
-    const end = String(req.query.end || "");
-    const ds = parseDate(start);
-    const de = parseDate(end);
-    if (!roomId || !ds || !de)
-      return res.status(400).json({ error: "bad params" });
-
-    res.set("Cache-Control", "no-store");
-    const planId = Number(req.query.planId ?? 1);
-
-    const { rows: inv } = await pool.query(
-      `SELECT (i."date")::date AS date, i."roomsOpen", i."minStay", i."isClosed"
-         FROM ${T.inv} i
-        WHERE i."roomTypeId" = $1
-          AND i."date" >= $2::date
-          AND i."date" <  ($3::date + INTERVAL '1 day')
-        ORDER BY i."date" ASC`,
-      [roomId, start, end]
-    );
-
-    const { rows: prices } = await pool.query(
-      `SELECT (p."date")::date AS date, $4::int AS "ratePlanId", (p."price")::numeric AS "price"
-         FROM ${T.prices} p
-        WHERE p."roomTypeId" = $1
-          AND p."ratePlanId" = $4
-          AND p."date" >= $2::date
-          AND p."date" <  ($3::date + INTERVAL '1 day')
-        ORDER BY p."date" ASC`,
-      [roomId, start, end, planId]
-    );
-
-    return res.json({ inventory: inv, prices });
-  } catch (e) {
-    console.error("[snapshot:get] db error", e);
-    return res.status(500).json({ error: "Snapshot fetch failed" });
   }
 });
 
