@@ -13,6 +13,26 @@ const __dirname = path.dirname(__filename);
 const app = express();
 app.disable("x-powered-by");
 
+// === ROUTE: GET /extranet/property/rateplans (derived-only stub) ===
+// Returns per-property rate plans with simple rule metadata.
+// Shape expected by the UI: [{ id, name, code, isDefault, kind, value }]
+app.get("/extranet/property/rateplans", async (req: Request, res: Response) => {
+  try {
+    // TODO: replace with actual propertyId from auth/session when available.
+    // For now, return a sensible default set that exercises the UI:
+    const plans = [
+      { id: 1, name: "Standard (1)", code: "STD", isDefault: true,  kind: "NONE",     value: 0 },
+      { id: 2, name: "Non-Refundable", code: "NRF", isDefault: false, kind: "PERCENT", value: -10 },
+      { id: 3, name: "Breakfast",      code: "BRKF",isDefault: false, kind: "ABSOLUTE",value: 15 }
+    ];
+    res.set("Cache-Control", "no-store");
+    res.json(plans);
+  } catch (e) {
+    console.error("rateplans error:", e);
+    res.status(500).json({ error: "rateplans_failed" });
+  }
+});
+
 // ---- CORS ----
 const CORS_ALLOWED_ORIGINS = [
   "https://www.lolaelo.com",

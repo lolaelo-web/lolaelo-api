@@ -351,6 +351,15 @@
           <div class="calendar">
             <div id="cal-grid" class="cal-grid"></div>
           </div>
+          <!-- ANCHOR: PLANS_PANEL_HTML -->
+          <div id="plans-panel" aria-live="polite" aria-label="Rate plan rules" class="note" style="display:block; padding:10px;">
+            <div style="font-weight:600; margin-bottom:6px;">Rate Plan Rules (Derived from Standard)</div>
+            <div id="plans-list">
+              <!-- Placeholder; will populate in a later step -->
+              <div class="note">Standard (1) — base plan. Additional derived plans will appear here.</div>
+            </div>
+          </div>
+
 
     </section>
   </div>
@@ -2064,6 +2073,7 @@
       saveCtx();
       updateURLFromState();
       if (currentRoomTypeId) scheduleRender(180);
+      try { fetchRatePlansSafe().then(renderPlansPanel).catch(()=>{}); } catch(_){}
     });
   }
 
@@ -2154,6 +2164,63 @@
     }
     try { updateURLFromState(); } catch(_){}
   })();
+  /* ANCHOR: PLANS_PANEL_RENDER */
+function renderPlansPanel(plans){
+  try{
+    const list = document.getElementById('plans-list');
+    if (!list) return;
+
+    if (!Array.isArray(plans) || plans.length === 0){
+      list.innerHTML = `<div class="note">No rate plans configured.</div>`;
+      return;
+    }
+
+    function describeRule(p){
+      const isStd = !!p.isDefault || (String(p.kind || '').toUpperCase() === 'NONE') || p.id === 1;
+      if (isStd) return 'Standard price (base)';
+
+      const kind = String(p.kind || '').toUpperCase();
+      const val  = Number(p.value);
+      if (kind === 'PERCENT' && Number.isFinite(val)){
+        return (val >= 0 ? `+${val}% from Standard` : `${val}% from Standard`);
+      }
+      if (kind === 'ABSOLUTE' && Number.isFinite(val)){
+        const v = Math.abs(val).toFixed(2);
+        return (val >= 0 ? `+$${v} from Standard` : `−$${v} from Standard`);
+      }
+      return 'Derived from Standard';
+    }
+
+    list.innerHTML = plans.map(p => {
+      const name = p.name || `Plan ${p.id}`;
+      const badge = p.code ? String(p.code) : (p.isDefault ? 'default' : `id:${p.id}`);
+      return `
+        <div style="display:grid;grid-template-columns:1fr auto;gap:8px;align-items:center;padding:6px 8px;border:1px solid var(--border);border-radius:8px;background:var(--panel-2);">
+          <div>
+            <div style="font-weight:600">${name}</div>
+            <div class="note">${describeRule(p)}</div>
+          </div>
+          <div class="note" style="padding:2px 8px;border:1px solid var(--border);border-radius:999px;background:var(--chip);">${badge}</div>
+        </div>
+      `;
+    }).join('');
+  }catch(_){}
+}
+
+// Populate once on load (uses existing fetchRatePlansSafe fallback behavior)
+(function ensurePlansPanel(){
+  try{
+    if (typeof fetchRatePlansSafe === 'function'){
+      fetchRatePlansSafe()
+        .then(plans => { renderPlansPanel(plans); })
+        .catch(() => { renderPlansPanel([{ id:1, name:'Standard (1)', isDefault:true, kind:'NONE' }]); });
+    } else {
+      renderPlansPanel([{ id:1, name:'Standard (1)', isDefault:true, kind:'NONE' }]);
+    }
+  }catch(_){
+    renderPlansPanel([{ id:1, name:'Standard (1)', isDefault:true, kind:'NONE' }]);
+  }
+})();
 })(); /* end main IIFE */
 </script>
 
