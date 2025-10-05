@@ -13,23 +13,95 @@ const __dirname = path.dirname(__filename);
 const app = express();
 app.disable("x-powered-by");
 
-// === ROUTE: GET /extranet/property/rateplans (derived-only stub) ===
-// Returns per-property rate plans with simple rule metadata.
-// Shape expected by the UI: [{ id, name, code, isDefault, kind, value }]
-app.get("/extranet/property/rateplans", async (req: Request, res: Response) => {
+// === RATE PLANS (Derived-only) — in-memory per propertyId demo store ===
+type RPKind = 'NONE' | 'PERCENT' | 'ABSOLUTE';
+interface RatePlan {
+  id: number;
+  name: string;
+  code: string;
+  isDefault: boolean;
+  kind: RPKind;   // NONE for Standard (read-only)
+  value: number;  // signed: e.g., -10 (percent) or +15 (absolute)
+  active?: boolean;
+}
+
+// naive per-property store (replace with DB later)
+const ratePlanStore = new Map<string, RatePlan[]>();
+
+function getPropertyId(req: Request): string {
+  // TODO: derive from auth/session. For now use partner token or fallback.
+  const token = (req.headers['x-partner-token'] as string) || 'demo';
+  return `prop:${(token || 'demo').slice(0, 16)}`;
+}
+
+// seed defaults if missing
+function ensureDefaults(propId: string) {
+  if (ratePlanStore.has(propId)) return;
+  ratePlanStore.set(propId, [
+    { id: 1, name: 'Standard (1)',   code: 'STD',  isDefault: true,  kind: 'NONE',     value: 0 },
+    { id: 2, name: 'Non-Refundable', code: 'NRF',  isDefault: false, kind: 'PERCENT',  value: -10 },
+    { id: 3, name: 'Breakfast',      code: 'BRKF', isDefault: false, kind: 'ABSOLUTE', value: 15 },
+  ]);
+}
+
+function sanitizePlanInput(p: any): { code: string; kind: RPKind; value: number } | null {
+  if (!p || typeof p !== 'object') return null;
+  const code = String(p.code || '').toUpperCase().slice(0, 10);
+  let kind: RPKind = String(p.kind || '').toUpperCase() as RPKind;
+  if (!['PERCENT', 'ABSOLUTE'].includes(kind)) return null; // only derived rules editable
+  let value = Number(p.value);
+  if (!Number.isFinite(value)) return null;
+  // guards
+  if (kind === 'PERCENT')  value = Math.max(-100,  Math.min(100,  value));
+  if (kind === 'ABSOLUTE') value = Math.max(-1000, Math.min(1000, value));
+  return { code, kind, value };
+}
+
+// GET: read current plans for this property
+app.get('/extranet/property/rateplans', async (req: Request, res: Response) => {
   try {
-    // TODO: replace with actual propertyId from auth/session when available.
-    // For now, return a sensible default set that exercises the UI:
-    const plans = [
-      { id: 1, name: "Standard (1)", code: "STD", isDefault: true,  kind: "NONE",     value: 0 },
-      { id: 2, name: "Non-Refundable", code: "NRF", isDefault: false, kind: "PERCENT", value: -10 },
-      { id: 3, name: "Breakfast",      code: "BRKF",isDefault: false, kind: "ABSOLUTE",value: 15 }
-    ];
-    res.set("Cache-Control", "no-store");
+    const propId = getPropertyId(req);
+    ensureDefaults(propId);
+    const plans = ratePlanStore.get(propId)!;
+    res.set('Cache-Control', 'no-store');
     res.json(plans);
   } catch (e) {
-    console.error("rateplans error:", e);
-    res.status(500).json({ error: "rateplans_failed" });
+    console.error('rateplans GET error:', e);
+    res.status(500).json({ error: 'rateplans_get_failed' });
+  }
+});
+
+// POST: update derived rules (code, kind, value). Standard/STD is read-only.
+app.post('/extranet/property/rateplans', express.json(), async (req: Request, res: Response) => {
+  try {
+    const propId = getPropertyId(req);
+    ensureDefaults(propId);
+    const plans = ratePlanStore.get(propId)!;
+
+    const body = req.body || {};
+    const items = Array.isArray(body.plans) ? body.plans : [];
+    if (!items.length) return res.status(400).json({ error: 'no_plans' });
+
+    const updates = items.map(sanitizePlanInput).filter(Boolean) as NonNullable<ReturnType<typeof sanitizePlanInput>>[];
+    if (!updates.length) return res.status(400).json({ error: 'invalid_plans' });
+
+    const byCode = new Map(plans.map(p => [p.code.toUpperCase(), p]));
+    for (const u of updates) {
+      if (u.code === 'STD') continue; // Standard is read-only
+      const tgt = byCode.get(u.code);
+      if (tgt) {
+        tgt.kind = u.kind;
+        tgt.value = u.value;
+      } else {
+        const nextId = Math.max(...plans.map(p => p.id)) + 1;
+        plans.push({ id: nextId, name: u.code, code: u.code, isDefault: false, kind: u.kind, value: u.value, active: true });
+      }
+    }
+
+    res.json({ ok: true, plans });
+  } catch (e) {
+    console.error('rateplans POST error:', e);
+    res.status(500).json({ error: 'rateplans_post_failed' });
   }
 });
 

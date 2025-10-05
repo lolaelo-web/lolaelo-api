@@ -352,14 +352,72 @@
             <div id="cal-grid" class="cal-grid"></div>
           </div>
           <!-- ANCHOR: PLANS_PANEL_HTML -->
-          <div id="plans-panel" aria-live="polite" aria-label="Rate plan rules" class="note" style="display:block; padding:10px;">
-            <div style="font-weight:600; margin-bottom:6px;">Rate Plan Rules (Derived from Standard)</div>
-            <div id="plans-list">
-              <!-- Placeholder; will populate in a later step -->
-              <div class="note">Standard (1) — base plan. Additional derived plans will appear here.</div>
+          <div id="plans-panel" aria-live="polite" aria-label="Rate plan rules" class="plans-panel" style="margin:12px;margin-top:0;background:var(--panel);border:1px solid var(--border);border-radius:10px;padding:12px;">
+            <h3 style="margin:0 0 8px 0;font-size:14px;letter-spacing:.2px;">Rate Plan Rules (Derived from Standard)</h3>
+
+            <div id="plans-list" class="plans-list" style="display:grid;gap:8px;">
+              <!-- Standard (read-only) -->
+              <div class="plan-row" style="display:grid;grid-template-columns:1fr auto;gap:8px;align-items:center;padding:8px 10px;border-radius:8px;background:var(--panel-2);border:1px solid var(--border);">
+                <div>
+                  <div class="plan-name" style="font-weight:600;">Standard (1)</div>
+                  <div class="plan-meta" style="color:var(--muted);font-size:12px;">Base plan — other plans derive from this.</div>
+                </div>
+                <div class="plan-badge" style="font-size:12px;padding:4px 8px;border-radius:999px;border:1px solid var(--border);background:var(--chip);">read-only</div>
+              </div>
+
+              <!-- Breakfast (editable) -->
+              <div class="plan-row" data-plan-code="BRKF" style="display:grid;grid-template-columns:1fr auto;gap:8px;align-items:center;padding:8px 10px;border-radius:8px;background:var(--panel-2);border:1px solid var(--border);">
+                <div>
+                  <div class="plan-name" style="font-weight:600;">Breakfast</div>
+                  <div class="plan-meta" style="color:var(--muted);font-size:12px;">Rule applies to Standard price</div>
+                  <div class="rule-editor" style="display:flex;gap:8px;align-items:center;margin-top:6px;">
+                    <label class="note">Adjust</label>
+                    <select class="input" data-field="sign" style="min-width:86px;background:var(--chip);border:1px solid var(--border);color:var(--text);border-radius:8px;padding:6px 8px;">
+                      <option value="+">+</option>
+                      <option value="-" selected>-</option>
+                    </select>
+                    <input class="input" data-field="value" type="number" step="0.01" min="0" placeholder="15.00"
+                      style="width:10ch;background:var(--chip);border:1px solid var(--border);color:var(--text);border-radius:8px;padding:6px 8px;text-align:right;" />
+                    <select class="input" data-field="unit" style="min-width:86px;background:var(--chip);border:1px solid var(--border);color:var(--text);border-radius:8px;padding:6px 8px;">
+                      <option value="$" selected>$</option>
+                      <option value="%">%</option>
+                    </select>
+                    <span class="note" data-field="preview" style="color:var(--muted);font-size:12px;">Example: $100 → $85.00</span>
+                  </div>
+                </div>
+                <div class="plan-badge" style="font-size:12px;padding:4px 8px;border-radius:999px;border:1px solid var(--border);background:var(--chip);">code: BRKF</div>
+              </div>
+
+              <!-- Non-Refundable (editable) -->
+              <div class="plan-row" data-plan-code="NRF" style="display:grid;grid-template-columns:1fr auto;gap:8px;align-items:center;padding:8px 10px;border-radius:8px;background:var(--panel-2);border:1px solid var(--border);">
+                <div>
+                  <div class="plan-name" style="font-weight:600;">Non-Refundable</div>
+                  <div class="plan-meta" style="color:var(--muted);font-size:12px;">Rule applies to Standard price</div>
+                  <div class="rule-editor" style="display:flex;gap:8px;align-items:center;margin-top:6px;">
+                    <label class="note">Adjust</label>
+                    <select class="input" data-field="sign" style="min-width:86px;background:var(--chip);border:1px solid var(--border);color:var(--text);border-radius:8px;padding:6px 8px;">
+                      <option value="+">+</option>
+                      <option value="-" selected>-</option>
+                    </select>
+                    <input class="input" data-field="value" type="number" step="0.01" min="0" placeholder="10.00"
+                      style="width:10ch;background:var(--chip);border:1px solid var(--border);color:var(--text);border-radius:8px;padding:6px 8px;text-align:right;" />
+                    <select class="input" data-field="unit" style="min-width:86px;background:var(--chip);border:1px solid var(--border);color:var(--text);border-radius:8px;padding:6px 8px;">
+                      <option value="%">%</option>
+                      <option value="$">$</option>
+                    </select>
+                    <span class="note" data-field="preview" style="color:var(--muted);font-size:12px;">Example: $100 → $90.00</span>
+                  </div>
+                </div>
+                <div class="plan-badge" style="font-size:12px;padding:4px 8px;border-radius:999px;border:1px solid var(--border);background:var(--chip);">code: NRF</div>
+              </div>
+
+            </div>
+
+            <!-- Save button (disabled for now; we’ll wire it in the next step) -->
+            <div style="display:flex;gap:8px;justify-content:flex-end;margin-top:10px;">
+              <button id="save-plan-rules" class="btn btn-primary" disabled title="Coming next">Save plan rules</button>
             </div>
           </div>
-
 
     </section>
   </div>
@@ -2165,62 +2223,211 @@
     try { updateURLFromState(); } catch(_){}
   })();
   /* ANCHOR: PLANS_PANEL_RENDER */
-function renderPlansPanel(plans){
-  try{
-    const list = document.getElementById('plans-list');
-    if (!list) return;
+  function renderPlansPanel(plans){
+    try{
+      const list = document.getElementById('plans-list');
+      if (!list) return;
 
-    if (!Array.isArray(plans) || plans.length === 0){
-      list.innerHTML = `<div class="note">No rate plans configured.</div>`;
-      return;
-    }
-
-    function describeRule(p){
-      const isStd = !!p.isDefault || (String(p.kind || '').toUpperCase() === 'NONE') || p.id === 1;
-      if (isStd) return 'Standard price (base)';
-
-      const kind = String(p.kind || '').toUpperCase();
-      const val  = Number(p.value);
-      if (kind === 'PERCENT' && Number.isFinite(val)){
-        return (val >= 0 ? `+${val}% from Standard` : `${val}% from Standard`);
+      if (!Array.isArray(plans) || plans.length === 0){
+        list.innerHTML = `<div class="note">No rate plans configured.</div>`;
+        return;
       }
-      if (kind === 'ABSOLUTE' && Number.isFinite(val)){
-        const v = Math.abs(val).toFixed(2);
-        return (val >= 0 ? `+$${v} from Standard` : `−$${v} from Standard`);
-      }
-      return 'Derived from Standard';
-    }
 
-    list.innerHTML = plans.map(p => {
-      const name = p.name || `Plan ${p.id}`;
-      const badge = p.code ? String(p.code) : (p.isDefault ? 'default' : `id:${p.id}`);
-      return `
-        <div style="display:grid;grid-template-columns:1fr auto;gap:8px;align-items:center;padding:6px 8px;border:1px solid var(--border);border-radius:8px;background:var(--panel-2);">
-          <div>
-            <div style="font-weight:600">${name}</div>
-            <div class="note">${describeRule(p)}</div>
+      function describeRule(p){
+        const isStd = !!p.isDefault || (String(p.kind || '').toUpperCase() === 'NONE') || p.id === 1;
+        if (isStd) return 'Standard price (base)';
+
+        const kind = String(p.kind || '').toUpperCase();
+        const val  = Number(p.value);
+        if (kind === 'PERCENT' && Number.isFinite(val)){
+          return (val >= 0 ? `+${val}% from Standard` : `${val}% from Standard`);
+        }
+        if (kind === 'ABSOLUTE' && Number.isFinite(val)){
+          const v = Math.abs(val).toFixed(2);
+          return (val >= 0 ? `+$${v} from Standard` : `−$${v} from Standard`);
+        }
+        return 'Derived from Standard';
+      }
+
+      list.innerHTML = plans.map(p => {
+        const name = p.name || `Plan ${p.id}`;
+        const badge = p.code ? String(p.code) : (p.isDefault ? 'default' : `id:${p.id}`);
+        return `
+          <div style="display:grid;grid-template-columns:1fr auto;gap:8px;align-items:center;padding:6px 8px;border:1px solid var(--border);border-radius:8px;background:var(--panel-2);">
+            <div>
+              <div style="font-weight:600">${name}</div>
+              <div class="note">${describeRule(p)}</div>
+            </div>
+            <div class="note" style="padding:2px 8px;border:1px solid var(--border);border-radius:999px;background:var(--chip);">${badge}</div>
           </div>
-          <div class="note" style="padding:2px 8px;border:1px solid var(--border);border-radius:999px;background:var(--chip);">${badge}</div>
-        </div>
-      `;
-    }).join('');
-  }catch(_){}
-}
+        `;
+      }).join('');
+    }catch(_){}
+  }
 
-// Populate once on load (uses existing fetchRatePlansSafe fallback behavior)
-(function ensurePlansPanel(){
-  try{
-    if (typeof fetchRatePlansSafe === 'function'){
-      fetchRatePlansSafe()
-        .then(plans => { renderPlansPanel(plans); })
-        .catch(() => { renderPlansPanel([{ id:1, name:'Standard (1)', isDefault:true, kind:'NONE' }]); });
-    } else {
+  // Populate once on load (uses existing fetchRatePlansSafe fallback behavior)
+  (function ensurePlansPanel(){
+    try{
+      if (typeof fetchRatePlansSafe === 'function'){
+        fetchRatePlansSafe()
+          .then(plans => { renderPlansPanel(plans); })
+          .catch(() => { renderPlansPanel([{ id:1, name:'Standard (1)', isDefault:true, kind:'NONE' }]); });
+      } else {
+        renderPlansPanel([{ id:1, name:'Standard (1)', isDefault:true, kind:'NONE' }]);
+      }
+    }catch(_){
       renderPlansPanel([{ id:1, name:'Standard (1)', isDefault:true, kind:'NONE' }]);
     }
-  }catch(_){
-    renderPlansPanel([{ id:1, name:'Standard (1)', isDefault:true, kind:'NONE' }]);
-  }
-})();
+  })();
+  /* ANCHOR: PLAN_RULE_EDITORS */
+  (function wirePlanRuleEditors(){
+    const panel = document.getElementById('plans-panel');
+    if (!panel) return;
+
+    // Local scratch state for pending edits
+    const state = {}; // e.g., { BRKF: {sign:'-', unit:'$', value:15}, NRF:{sign:'-', unit:'%', value:10} }
+
+    const EXAMPLE_BASE = 100; // $100 example to show preview
+
+    function calcPreview(sign, unit, value){
+      const v = Number(value);
+      if (!Number.isFinite(v) || v < 0) return null;
+      let out = EXAMPLE_BASE;
+      if (unit === '%'){
+        const delta = (EXAMPLE_BASE * v) / 100;
+        out = sign === '-' ? (EXAMPLE_BASE - delta) : (EXAMPLE_BASE + delta);
+      } else {
+        out = sign === '-' ? (EXAMPLE_BASE - v) : (EXAMPLE_BASE + v);
+      }
+      return Math.max(0, Math.round(out * 100) / 100);
+    }
+
+    function refreshSaveEnabled(){
+      const btn = document.getElementById('save-plan-rules');
+      if (!btn) return;
+      // Enable if every editable row has a valid config
+      const rows = panel.querySelectorAll('.plan-row[data-plan-code]');
+      let allValid = rows.length > 0;
+      rows.forEach(row => {
+        const code = row.getAttribute('data-plan-code');
+        const cfg = state[code];
+        const ok = cfg && (cfg.sign === '+' || cfg.sign === '-') &&
+                  (cfg.unit === '$' || cfg.unit === '%') &&
+                  Number.isFinite(Number(cfg.value)) && Number(cfg.value) >= 0;
+        allValid = allValid && ok;
+      });
+      btn.disabled = !allValid;
+    }
+
+    function attachRow(row){
+      const code = row.getAttribute('data-plan-code');
+      if (!code) return;
+
+      const selSign  = row.querySelector('select[data-field="sign"]');
+      const inpValue = row.querySelector('input[data-field="value"]');
+      const selUnit  = row.querySelector('select[data-field="unit"]');
+      const prevEl   = row.querySelector('[data-field="preview"]');
+
+      // Seed defaults from DOM
+      state[code] = {
+        sign: (selSign?.value || '-'),
+        unit: (selUnit?.value || '$'),
+        value: Number(inpValue?.value || inpValue?.placeholder || 0)
+      };
+
+      function update(){
+        const sign  = selSign?.value || '-';
+        const unit  = selUnit?.value || '$';
+        const value = inpValue?.value === '' ? NaN : Number(inpValue.value);
+
+        // Store
+        state[code] = { sign, unit, value: Number.isFinite(value) ? value : NaN };
+
+        // Preview
+        const sample = calcPreview(sign, unit, value);
+        if (prevEl){
+          if (sample == null){
+            prevEl.textContent = `Example: $${EXAMPLE_BASE} → —`;
+          } else {
+            prevEl.textContent = `Example: $${EXAMPLE_BASE} → $${sample.toFixed(2)}`;
+          }
+        }
+
+        // Basic validity styling
+        if (inpValue){
+          const bad = !(Number.isFinite(value) && value >= 0);
+          inpValue.classList.toggle('error', bad);
+        }
+
+        refreshSaveEnabled();
+      }
+
+      ['change','input','blur'].forEach(ev => {
+        selSign?.addEventListener(ev, update);
+        selUnit?.addEventListener(ev, update);
+        inpValue?.addEventListener(ev, update);
+      });
+
+      // Initial paint
+      update();
+    }
+
+    panel.querySelectorAll('.plan-row[data-plan-code]').forEach(attachRow);
+
+    // Expose pending rules for later POST (next step will use this)
+    window.__pendingPlanRules = state;
+  })();
+  /* ANCHOR: PLAN_RULES_SAVE */
+  (function wirePlanRulesSave(){
+    const btn = document.getElementById('save-plan-rules');
+    if (!btn) return;
+
+    btn.addEventListener('click', async () => {
+      try {
+        if (!window.__pendingPlanRules) {
+          setStatus('No rule changes detected.', 'warn');
+          return;
+        }
+        // Build payload from the scratch state we exposed earlier
+        const rules = window.__pendingPlanRules; // {BRKF:{sign,unit,value}, NRF:{...}}
+        const plans = Object.entries(rules).map(([code, cfg]) => {
+          const sign  = (cfg.sign === '-') ? -1 : +1;
+          const unit  = (cfg.unit === '%') ? 'PERCENT' : 'ABSOLUTE';
+          const value = Number(cfg.value);
+          return {
+            code,                       // e.g., 'BRKF'
+            kind: unit,                 // 'PERCENT' | 'ABSOLUTE'
+            value: Number.isFinite(value) ? (sign * Math.abs(value)) : 0
+          };
+        });
+
+        // POST to API (derived-only model config)
+        const url = '/extranet/property/rateplans';
+        const res = await authFetch(url, {
+          method: 'POST',
+          body: JSON.stringify({ plans })
+        });
+
+        // Handle typical responses
+        if (res && res.ok) {
+          setStatus('Plan rules saved.', 'ok');
+          toast('Plan rules saved', 'ok');
+          // Re-fetch to refresh panel/dropdown in case IDs/names changed
+          try { fetchRatePlansSafe().then(renderPlansPanel).catch(()=>{}); } catch(_){}
+          return;
+        }
+
+        // Graceful fallback if endpoint not live yet
+        const status = res ? res.status : 'ERR';
+        setStatus(`Could not save plan rules (${status}). UI kept your inputs.`, 'warn');
+        toast('Save skipped — backend not ready', 'warn');
+      } catch (e) {
+        console.warn('Plan rules save error:', e);
+        setStatus('Save failed — see console for details.', 'error');
+        toast('Plan rules save failed', 'error');
+      }
+    });
+  })();
 })(); /* end main IIFE */
 </script>
 
