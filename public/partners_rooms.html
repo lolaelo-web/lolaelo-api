@@ -356,6 +356,8 @@
           <div id="rateplan-checks-row" class="rateplan-checks-row" style="display:flex; align-items:center; gap:10px; padding:10px 12px; border-bottom:1px solid var(--border); background:var(--panel);">
             <span class="note" style="margin:0;">Rate plans</span>
             <div id="rateplan-checks" class="rateplan-checks" style="display:flex; flex-wrap:wrap; gap:8px; align-items:center;"></div>
+            <div style="flex:1"></div>
+            <button id="save-plan-rules" class="btn btn-primary" type="button" title="Save rules for derived plans">Save Plan Rate IDs</button>
           </div>
 
           <div class="calendar">
@@ -369,7 +371,7 @@
               <!-- Standard (read-only) -->
               <div class="plan-row" style="display:grid;grid-template-columns:1fr auto;gap:8px;align-items:center;padding:8px 10px;border-radius:8px;background:var(--panel-2);border:1px solid var(--border);">
                 <div>
-                  <div class="plan-name" style="font-weight:600;">Standard (1)</div>
+                  <div class="plan-name" style="font-weight:600;">Standard</div>
                   <div class="plan-meta" style="color:var(--muted);font-size:12px;">Base plan — other plans derive from this.</div>
                 </div>
                 <div class="plan-badge" style="font-size:12px;padding:4px 8px;border-radius:999px;border:1px solid var(--border);background:var(--chip);">read-only</div>
@@ -470,13 +472,7 @@
                 <div class="plan-badge" style="font-size:12px;padding:4px 8px;border-radius:999px;border:1px solid var(--border);background:var(--chip);">code: CUS2</div>
               </div>
             </div>
-
-            <!-- Save button (disabled for now; we’ll wire it in the next step) -->
-            <div style="display:flex;gap:8px;justify-content:flex-end;margin-top:10px;">
-              <button id="save-plan-rules" class="btn btn-primary" disabled title="Coming next">Save Plan Rate IDs</button>
-            </div>
           </div>
-
     </section>
   </div>
 
@@ -706,42 +702,47 @@
     lastRatePlanLoadNote = '';
     // Hard short-circuit: avoid any network call (prevents 404 log noise)
     if (!RATEPLANS_FETCH_ENABLED){
-      lastRatePlanLoadNote = 'Rate plans endpoint disabled — using Standard (1).';
-      return [{ id: 1, name: 'Standard (1)' }];
+      lastRatePlanLoadNote = 'Rate plans endpoint disabled — using Standard.';
+      return [{ id: 1, name: 'Standard' }];
     }
 
     try{
       const r = await authFetch('/extranet/property/rateplans');
       if (!r) {
-        lastRatePlanLoadNote = 'Network error loading rate plans — using Standard (1).';
-        return [{ id: 1, name: 'Standard (1)' }];
+        lastRatePlanLoadNote = 'Network error loading rate plans — using Standard.';
+        return [{ id: 1, name: 'Standard' }];
       }
       if (r.status === 401 || r.status === 403){
-        lastRatePlanLoadNote = 'Auth error loading rate plans — please sign in. Using Standard (1).';
-        return [{ id: 1, name: 'Standard (1)' }];
+        lastRatePlanLoadNote = 'Auth error loading rate plans — please sign in. Using Standard.';
+        return [{ id: 1, name: 'Standard' }];
       }
       if (!r.ok){
-        lastRatePlanLoadNote = `Server error ${r.status} loading rate plans — using Standard (1).`;
-        return [{ id: 1, name: 'Standard (1)' }];
+        lastRatePlanLoadNote = `Server error ${r.status} loading rate plans — using Standard.`;
+        return [{ id: 1, name: 'Standard' }];
       }
       const arr = await r.json();
       if (Array.isArray(arr) && arr.length){
         return arr
           .filter(p => p && p.id != null)
-          .map(p => ({ id: Number(p.id), name: String(p.name || p.code || `Plan ${p.id}`) }));
+          .map(p => ({
+            id: Number(p.id),
+            name: String(p.name || p.code || `Plan ${p.id}`),
+            code: (p.code ? String(p.code) : ''),
+            isDefault: !!p.isDefault
+          }));
       } else {
-        lastRatePlanLoadNote = 'No rate plans found — using Standard (1).';
-        return [{ id: 1, name: 'Standard (1)' }];
+        lastRatePlanLoadNote = 'No rate plans found — using Standard.';
+        return [{ id: 1, name: 'Standard' }];
       }
     }catch(_){
-      lastRatePlanLoadNote = 'Unexpected error loading rate plans — using Standard (1).';
-      return [{ id: 1, name: 'Standard (1)' }];
+      lastRatePlanLoadNote = 'Unexpected error loading rate plans — using Standard.';
+      return [{ id: 1, name: 'Standard' }];
     }
   }
 
   /* ANCHOR: RATE_PLAN_DROPDOWN_TO_CHECKS (drop-in) */
   function populateRatePlanDropdown(plans){
-    // 1) Render the checkbox chips instead of the legacy <select>
+    // 1) Render the checkbox chips (new UI)
     try {
       if (typeof populateRatePlanChecks === 'function') {
         populateRatePlanChecks(plans);
@@ -783,6 +784,30 @@
   /* === RATEPLAN_CHIPS: render + state + events === */
   (function(){
     const LS_KEY = 'rateplan.selectedIds';
+    function friendlyPlanName(p){
+      const code = String(p.code || '').toUpperCase();
+      const raw  = String(p.name || p.code || `Plan ${p.id}`);
+
+      // Standard
+      if (p.isDefault || code === 'STD' || code === 'STD1' || /standard/i.test(raw)) return 'Standard';
+
+      // Breakfast
+      if (code === 'BRKF' || /breakfast/i.test(raw)) return 'Breakfast';
+
+      // Non-Refundable
+      if (code === 'NRF' || /non[-\s]?ref/i.test(raw) || /non[-\s]?refundable/i.test(raw)) return 'Non-Refundable';
+
+      // Custom 1/2
+      if (code === 'CUS1') return 'Custom 1';
+      if (code === 'CUS2') return 'Custom 2';
+
+      // Fallback: strip trailing "(1)" etc
+      return raw.replace(/\s*\(\d+\)\s*$/, '');
+    }
+
+    function stripStandardSuffix(name){
+      return String(name || '').replace(/\s*\(1\)\s*$/,''); // remove "(1)" suffix anywhere
+    }
 
     function loadSelectedIds(){
       // 1) deep link seed (set earlier in init)
@@ -794,7 +819,7 @@
         const raw = localStorage.getItem(LS_KEY);
         if (raw){
           const arr = JSON.parse(raw);
-          if (Array.isArray(arr) && arr.length) return arr.map(Number).filter(n => Number.isFinite(n));
+          if (Array.isArray(arr) && arr.length) return arr.map(Number).filter(Number.isFinite);
         }
       }catch(_){}
       // 3) fallback: currentRatePlanId or Standard(1)
@@ -812,20 +837,54 @@
         const raw = localStorage.getItem(LS_KEY);
         if (raw){
           const arr = JSON.parse(raw);
-          if (Array.isArray(arr) && arr.length) return arr.map(Number).filter(n => Number.isFinite(n));
+          if (Array.isArray(arr) && arr.length) return arr.map(Number).filter(Number.isFinite);
         }
       }catch(_){}
       const cur = Number(window.currentRatePlanId);
       return Number.isFinite(cur) ? [cur] : [1];
     };
 
+    function normalizePlans(plans){
+      // Base list from backend (strip "(1)" if present)
+      const base = (Array.isArray(plans) && plans.length)
+        ? plans.map(p => ({ id: Number(p.id), name: stripStandardSuffix(p.name || p.code || `Plan ${p.id}`) }))
+        : [{ id:1, name:'Standard' }];
+
+      // Ensure Custom 1 & Custom 2 are present
+      const namesLC = new Set(base.map(p => String(p.name).toLowerCase()));
+      if (!namesLC.has('custom 1')) base.push({ id: 1001, name: 'Custom 1' });
+      if (!namesLC.has('custom 2')) base.push({ id: 1002, name: 'Custom 2' });
+
+      return base;
+    }
+    function friendlyPlanName(p){
+      const code = String(p.code || '').toUpperCase();
+      const raw  = String(p.name || p.code || `Plan ${p.id}`);
+
+      // Standard
+      if (p.isDefault || code === 'STD' || code === 'STD1' || /standard/i.test(raw)) return 'Standard';
+
+      // Breakfast
+      if (code === 'BRKF' || /breakfast/i.test(raw)) return 'Breakfast';
+
+      // Non-Refundable
+      if (code === 'NRF' || /non[-\s]?ref/i.test(raw) || /non[-\s]?refundable/i.test(raw)) return 'Non-Refundable';
+
+      // Custom 1/2 by code
+      if (code === 'CUS1') return 'Custom 1';
+      if (code === 'CUS2') return 'Custom 2';
+
+      // Fallback: cleaned raw
+      return raw.replace(/\s*\(\d+\)\s*$/, ''); // strip trailing "(1)" etc
+    }
+
     window.populateRatePlanChecks = function populateRatePlanChecks(plans){
       const host = document.getElementById('rateplan-checks');
       const row  = document.getElementById('rateplan-checks-row');
       if (!host) return;
 
-      const list = (Array.isArray(plans) && plans.length) ? plans : [{ id:1, name:'Standard (1)' }];
-      const selected = new Set(loadSelectedIds());
+      const list = normalizePlans(plans);
+      const selected = new Set(loadSelectedIds().map(Number));
 
       host.innerHTML = '';
       list.forEach(p => {
@@ -839,7 +898,7 @@
         box.checked = selected.has(Number(p.id));
 
         const txt = document.createElement('span');
-        txt.textContent = p.name || (p.code || `Plan ${p.id}`);
+        txt.textContent = friendlyPlanName(p);
 
         label.appendChild(box);
         label.appendChild(txt);
@@ -861,14 +920,18 @@
           saveSelectedIds(out);
 
           // Notify listeners (calendar + URL)
-          document.dispatchEvent(new CustomEvent('rateplans:changed', { detail:{ ids: out } }));
+          const checkedInOrder = Array.from(host.querySelectorAll('input[type="checkbox"]:checked'))
+            .map(n => Number(n.getAttribute('data-plan-id')))
+            .filter(Number.isFinite);
+
+          document.dispatchEvent(new CustomEvent('rateplans:changed', { detail:{ ids: checkedInOrder } }));
           try { if (typeof updateURLFromState === 'function') updateURLFromState(); } catch(_){}
           if (typeof scheduleRender === 'function') scheduleRender(180);
           else if (typeof renderCalendar === 'function') renderCalendar({ reason: 'rateplans:changed' });
         });
       });
 
-      if (row) row.style.display = 'flex';     // ensure row is visible
+      if (row) row.style.display = 'flex'; // ensure row is visible
       // Do NOT fire an initial event here; populateRatePlanDropdown handles first render.
     };
   })();
@@ -880,7 +943,7 @@
     if (!hostRow || !host) return;
 
     // Normalize plans (fallback to Standard)
-    const list = (Array.isArray(plans) && plans.length) ? plans : [{ id:1, name:'Standard (1)' }];
+    const list = (Array.isArray(plans) && plans.length) ? plans : [{ id:1, name:'Standard' }];
 
     // Seed selection: deeplink > saved > current/global > first
     let selected = [];
@@ -2142,6 +2205,7 @@
       // Success UI
       setStatus(`Prices applied to ${prcResObj.upserted ?? prcResObj.count ?? items.length} day(s) — saved automatically; no need to click “Save changes”.`, "ok");
       toast('Prices applied (auto-saved)', 'ok');
+      { const _pElClear = el('price'); if (_pElClear){ _pElClear.value = ''; _pElClear.classList.remove('error'); } }
 
       // If the GET endpoint returns no rows (backend filter mismatch),
       // still show the new price immediately so the user sees the change.
@@ -2266,6 +2330,10 @@
       if (currentRoomTypeId) await renderCalendar();
       setStatus("Saved.","ok");
       toast('All changes saved', 'ok');
+      if (prcItems && prcItems.length){
+        const _pElClear2 = el('price');
+        if (_pElClear2){ _pElClear2.value = ''; _pElClear2.classList.remove('error'); }
+      }
     } catch (e) {
       console.error(e);
       setStatus(String(e.message || "Save error"), "error");
@@ -2581,14 +2649,15 @@
       if (typeof fetchRatePlansSafe === 'function'){
         fetchRatePlansSafe()
           .then(plans => { renderPlansPanel(plans); })
-          .catch(() => { renderPlansPanel([{ id:1, name:'Standard (1)', isDefault:true, kind:'NONE' }]); });
+          .catch(() => { renderPlansPanel([{ id:1, name:'Standard', isDefault:true, kind:'NONE' }]); });
       } else {
-        renderPlansPanel([{ id:1, name:'Standard (1)', isDefault:true, kind:'NONE' }]);
+        renderPlansPanel([{ id:1, name:'Standard', isDefault:true, kind:'NONE' }]);
       }
     }catch(_){
-      renderPlansPanel([{ id:1, name:'Standard (1)', isDefault:true, kind:'NONE' }]);
+      renderPlansPanel([{ id:1, name:'Standard', isDefault:true, kind:'NONE' }]);
     }
   })();
+
   /* ANCHOR: PLAN_RULE_EDITORS */
   (function wirePlanRuleEditors(){
     const panel = document.getElementById('plans-panel');
