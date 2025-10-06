@@ -2189,18 +2189,37 @@
         return;
       }
 
-      // If server returns a different ratePlanId, sync UI to it
+      // If server returns a different ratePlanId, sync UI to it (chips-aware)
       if (prcResObj && Number.isFinite(Number(prcResObj.ratePlanId))) {
         const serverPlanId = Number(prcResObj.ratePlanId);
         if (serverPlanId !== ratePlanId) {
-          console.warn("Server wrote to different ratePlanId; syncing UI:", serverPlanId);
+          console.warn("Server wrote to different ratePlanId; syncing UI to chips:", serverPlanId);
           window.currentRatePlanId = serverPlanId;
-          const ddl = document.getElementById('ratePlanSelect');
-          if (ddl) ddl.value = String(serverPlanId);
-          try { updateURLFromState?.(); } catch(_) {}
-          try { saveCtx?.(); } catch(_) {}
+
+          try {
+            // 1) Put serverPlanId first in the chip selection (persisted)
+            const LS_KEY = 'rateplan.selectedIds';
+            let cur = [];
+            try { cur = JSON.parse(localStorage.getItem(LS_KEY) || '[]'); } catch(_) { cur = []; }
+            const rest = (Array.isArray(cur) ? cur : [])
+              .map(Number)
+              .filter(n => Number.isFinite(n) && n !== serverPlanId);
+            const next = [serverPlanId, ...rest];
+            localStorage.setItem(LS_KEY, JSON.stringify(next));
+
+            // 2) Ensure its checkbox is checked in the UI
+            const host = document.getElementById('rateplan-checks');
+            const box = host?.querySelector(`input[type="checkbox"][data-plan-id="${serverPlanId}"]`);
+            if (box && !box.checked) box.checked = true;
+
+            // 3) Notify listeners so renderCalendar now fetches with the same plan id
+            document.dispatchEvent(new CustomEvent('rateplans:changed', { detail: { ids: next } }));
+            updateURLFromState?.();
+            saveCtx?.();
+          } catch(_) {}
         }
       }
+
 
       // Success UI
       setStatus(`Prices applied to ${prcResObj.upserted ?? prcResObj.count ?? items.length} day(s) — saved automatically; no need to click “Save changes”.`, "ok");
