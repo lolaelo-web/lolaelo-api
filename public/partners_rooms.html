@@ -33,6 +33,11 @@
       background:var(--chip);
     }
     .rateplan-checks input[type="checkbox"]{ width:16px; height:16px; accent-color: var(--accent); }
+
+    /* NEW: selected + focus styles for rate-plan chips */
+    .rateplan-checks input[type="checkbox"]:checked + span { font-weight:600; }
+    .rateplan-checks input[type="checkbox"]:focus-visible { outline:2px solid var(--brand); outline-offset:2px; }
+
     .wrap{ display:grid; grid-template-columns:300px 1fr; height:calc(100vh - var(--header-h)); overflow:hidden; }
     .left{ border-right:1px solid var(--border); background:var(--panel); display:flex; flex-direction:column; min-width:0; }
     .right{ background:var(--panel-2); display:flex; flex-direction:column; min-width:0; }
@@ -241,6 +246,8 @@
     .rate-plan-selector{ display:grid; grid-template-columns: 1fr; gap:4px; align-self:flex-start; min-width:220px; }
     .rate-plan-selector label{ color:var(--muted); font-size:12px; line-height:1; margin-left:2px; }
     #ratePlanSelect{ min-width:200px; }
+    /* ANCHOR: KILL_OVERLAY_CSS */
+    #plans-panel[style*="position:fixed"]{ display:none !important; } /* hide modal-style duplicate */
 
   /* Header actions: allow wrapping and reduce button height */
   .header-actions{ flex-wrap:wrap; }
@@ -523,6 +530,20 @@
   const calGrid = el("cal-grid");
   const monthPrevBtn = el("month-prev");
   const monthNextBtn = el("month-next");
+  /* ANCHOR: KILL_OVERLAY_DUP */
+  function removeOverlayPlansPanel(){
+    const panels = document.querySelectorAll('#plans-panel');
+    if (panels.length > 1){
+      panels.forEach(p=>{
+        const pos = getComputedStyle(p).position;
+        if (pos === 'fixed') p.remove();   // nuke the modal copy
+      });
+    }
+    // ensure inline panel is visible if someone left hidden=""
+    const inlinePanel = document.querySelector('#plans-panel');
+    if (inlinePanel && inlinePanel.hasAttribute('hidden')) inlinePanel.removeAttribute('hidden');
+  }
+  document.addEventListener('DOMContentLoaded', removeOverlayPlansPanel);
 
   let currentRoomTypeId = null;
   let currentRangeStart = null, currentRangeEnd = null;
@@ -718,47 +739,197 @@
     }
   }
 
-    /* ANCHOR: RATE_PLAN_DROPDOWN_TO_CHECKS (drop-in) */
-function populateRatePlanDropdown(plans){
-  // 1) Render the checkbox chips instead of the legacy <select>
-  try {
-    if (typeof populateRatePlanChecks === 'function') {
-      populateRatePlanChecks(plans);
-    }
-  } catch (_) {}
+  /* ANCHOR: RATE_PLAN_DROPDOWN_TO_CHECKS (drop-in) */
+  function populateRatePlanDropdown(plans){
+    // 1) Render the checkbox chips instead of the legacy <select>
+    try {
+      if (typeof populateRatePlanChecks === 'function') {
+        populateRatePlanChecks(plans);
+      }
+    } catch (_) {}
 
-  // 2) Hide (but keep) the legacy <select> for safe rollback
-  const sel = document.getElementById('ratePlanSelect');
-  if (sel) sel.style.display = 'none';
+    // 2) Hide (but keep) the legacy <select> for safe rollback
+    const sel = document.getElementById('ratePlanSelect');
+    if (sel) sel.style.display = 'none';
 
-  // 3) Primary plan = first checked id (keeps downstream code working)
-  const ids = (typeof window.getSelectedRatePlanIds === 'function')
-    ? window.getSelectedRatePlanIds()
-    : [];
-  window.currentRatePlanId = ids.length ? Number(ids[0]) : 1;
+    // 3) Primary plan = first checked id (keeps downstream code working)
+    const ids = (typeof window.getSelectedRatePlanIds === 'function')
+      ? window.getSelectedRatePlanIds()
+      : [];
+    window.currentRatePlanId = ids.length ? Number(ids[0]) : 1;
 
-  // 4) Persist + URL sync + initial refresh
-  try { if (typeof saveCtx === 'function') saveCtx(); } catch (_){}
-  try { if (typeof updateURLFromState === 'function') updateURLFromState(); } catch (_){}
-  if (typeof renderCalendar === 'function') renderCalendar({ reason: 'init:rateplans' });
-
-  // 5) Listen once for future checkbox changes → update state + refresh
-  const handler = (e) => {
-    const list = (e && e.detail && Array.isArray(e.detail.ids)) ? e.detail.ids : [];
-    window.currentRatePlanId = list.length ? Number(list[0]) : 1;
+    // 4) Persist + URL sync + initial refresh
     try { if (typeof saveCtx === 'function') saveCtx(); } catch (_){}
     try { if (typeof updateURLFromState === 'function') updateURLFromState(); } catch (_){}
-    if (typeof renderCalendar === 'function') renderCalendar({ reason: 'rateplans:changed' });
-  };
+    if (typeof renderCalendar === 'function') renderCalendar({ reason: 'init:rateplans' });
 
-  // idempotent wiring
-  if (window.__rateplansChangedHandlerRef) {
-    document.removeEventListener('rateplans:changed', window.__rateplansChangedHandlerRef);
+    // 5) Listen once for future checkbox changes → update state + refresh
+    const handler = (e) => {
+      const list = (e && e.detail && Array.isArray(e.detail.ids)) ? e.detail.ids : [];
+      window.currentRatePlanId = list.length ? Number(list[0]) : 1;
+      try { if (typeof saveCtx === 'function') saveCtx(); } catch (_){}
+      try { if (typeof updateURLFromState === 'function') updateURLFromState(); } catch (_){}
+      if (typeof renderCalendar === 'function') renderCalendar({ reason: 'rateplans:changed' });
+    };
+
+    // idempotent wiring
+    if (window.__rateplansChangedHandlerRef) {
+      document.removeEventListener('rateplans:changed', window.__rateplansChangedHandlerRef);
+    }
+    document.addEventListener('rateplans:changed', handler);
+    window.__rateplansChangedHandlerRef = handler;
   }
-  document.addEventListener('rateplans:changed', handler);
-  window.__rateplansChangedHandlerRef = handler;
-}
 
+  /* === RATEPLAN_CHIPS: render + state + events === */
+  (function(){
+    const LS_KEY = 'rateplan.selectedIds';
+
+    function loadSelectedIds(){
+      // 1) deep link seed (set earlier in init)
+      if (Array.isArray(window.__initialSelectedRatePlanIds) && window.__initialSelectedRatePlanIds.length){
+        return window.__initialSelectedRatePlanIds.slice();
+      }
+      // 2) localStorage
+      try{
+        const raw = localStorage.getItem(LS_KEY);
+        if (raw){
+          const arr = JSON.parse(raw);
+          if (Array.isArray(arr) && arr.length) return arr.map(Number).filter(n => Number.isFinite(n));
+        }
+      }catch(_){}
+      // 3) fallback: currentRatePlanId or Standard(1)
+      const cur = Number(window.currentRatePlanId);
+      return Number.isFinite(cur) ? [cur] : [1];
+    }
+
+    function saveSelectedIds(ids){
+      try{ localStorage.setItem(LS_KEY, JSON.stringify(ids)); }catch(_){}
+    }
+
+    // Expose for other code (updateURLFromState(), etc.)
+    window.getSelectedRatePlanIds = function getSelectedRatePlanIds(){
+      try{
+        const raw = localStorage.getItem(LS_KEY);
+        if (raw){
+          const arr = JSON.parse(raw);
+          if (Array.isArray(arr) && arr.length) return arr.map(Number).filter(n => Number.isFinite(n));
+        }
+      }catch(_){}
+      const cur = Number(window.currentRatePlanId);
+      return Number.isFinite(cur) ? [cur] : [1];
+    };
+
+    window.populateRatePlanChecks = function populateRatePlanChecks(plans){
+      const host = document.getElementById('rateplan-checks');
+      const row  = document.getElementById('rateplan-checks-row');
+      if (!host) return;
+
+      const list = (Array.isArray(plans) && plans.length) ? plans : [{ id:1, name:'Standard (1)' }];
+      const selected = new Set(loadSelectedIds());
+
+      host.innerHTML = '';
+      list.forEach(p => {
+        const label = document.createElement('label');
+        label.className = 'chip';
+        label.style.marginRight = '4px';
+
+        const box = document.createElement('input');
+        box.type = 'checkbox';
+        box.setAttribute('data-plan-id', String(p.id));
+        box.checked = selected.has(Number(p.id));
+
+        const txt = document.createElement('span');
+        txt.textContent = p.name || (p.code || `Plan ${p.id}`);
+
+        label.appendChild(box);
+        label.appendChild(txt);
+        host.appendChild(label);
+
+        box.addEventListener('change', () => {
+          const id = Number(box.getAttribute('data-plan-id'));
+          if (box.checked) selected.add(id);
+          else selected.delete(id);
+
+          // Never allow empty selection
+          if (selected.size === 0){
+            selected.add(id);
+            box.checked = true;
+            return;
+          }
+
+          const out = Array.from(selected).sort((a,b)=>a-b);
+          saveSelectedIds(out);
+
+          // Notify listeners (calendar + URL)
+          document.dispatchEvent(new CustomEvent('rateplans:changed', { detail:{ ids: out } }));
+          try { if (typeof updateURLFromState === 'function') updateURLFromState(); } catch(_){}
+          if (typeof scheduleRender === 'function') scheduleRender(180);
+          else if (typeof renderCalendar === 'function') renderCalendar({ reason: 'rateplans:changed' });
+        });
+      });
+
+      if (row) row.style.display = 'flex';     // ensure row is visible
+      // Do NOT fire an initial event here; populateRatePlanDropdown handles first render.
+    };
+  })();
+
+  /* ANCHOR: RATEPLAN_CHIPS_RENDER */
+  function populateRatePlanChecks(plans){
+    const hostRow = document.getElementById('rateplan-checks-row');
+    const host    = document.getElementById('rateplan-checks');
+    if (!hostRow || !host) return;
+
+    // Normalize plans (fallback to Standard)
+    const list = (Array.isArray(plans) && plans.length) ? plans : [{ id:1, name:'Standard (1)' }];
+
+    // Seed selection: deeplink > saved > current/global > first
+    let selected = [];
+    if (Array.isArray(window.__initialSelectedRatePlanIds) && window.__initialSelectedRatePlanIds.length){
+      selected = window.__initialSelectedRatePlanIds.slice();
+    } else {
+      try { selected = JSON.parse(localStorage.getItem('rateplan.selectedIds') || '[]'); } catch(_){}
+    }
+    if (!selected.length){
+      const fallback = Number(window.currentRatePlanId || list[0].id || 1);
+      if (Number.isFinite(fallback)) selected = [fallback];
+    }
+
+    // Render chips
+    host.innerHTML = list.map(p => {
+      const id = Number(p.id);
+      const label = String(p.name || p.code || `Plan ${id}`);
+      const checked = selected.includes(id) ? 'checked' : '';
+      return `
+        <label class="chip" title="${label}">
+          <input type="checkbox" data-plan-id="${id}" ${checked} />
+          <span>${label}</span>
+        </label>`;
+    }).join('');
+
+    // Helper used by other modules
+    window.getSelectedRatePlanIds = function(){
+      return Array.from(host.querySelectorAll('input[type="checkbox"][data-plan-id]:checked'))
+        .map(i => Number(i.getAttribute('data-plan-id')))
+        .filter(Number.isFinite);
+    };
+
+    // Change -> persist + URL + event
+    function emit(){
+      const ids = window.getSelectedRatePlanIds();
+      try { localStorage.setItem('rateplan.selectedIds', JSON.stringify(ids)); } catch(_){}
+      try { if (typeof updateURLFromState === 'function') updateURLFromState(); } catch(_){}
+      document.dispatchEvent(new CustomEvent('rateplans:changed', { detail: { ids } }));
+    }
+
+    host.addEventListener('change', (e) => {
+      const t = e.target;
+      if (t && t.matches && t.matches('input[type="checkbox"][data-plan-id]')) emit();
+    });
+
+    // Make row visible and fire initial event so the calendar picks the selection
+    hostRow.style.display = 'flex';
+    document.dispatchEvent(new CustomEvent('rateplans:changed', { detail: { ids: window.getSelectedRatePlanIds() }}));
+  }
   function setStatus(msg, cls=""){ status.className="note "+cls; status.textContent=msg; }
 
   /* ANCHOR: RIGHT_ACTIVE_TOGGLE */
@@ -1323,13 +1494,8 @@ function populateRatePlanDropdown(plans){
         if (n) ["input","change","blur"].forEach(ev=> n.addEventListener(ev, refresh));
       });
 
-      // Also refresh after room selection and calendar renders
-      const _renderCalendar = window.renderCalendar;
-      window.renderCalendar = async function(){
-        const r = await _renderCalendar();
-        refresh();
-        return r;
-      };
+      // Also refresh after calendar finishes rendering
+      document.addEventListener('calendar:rendered', refresh);
 
       // initial
       refresh();
@@ -1799,6 +1965,9 @@ function populateRatePlanDropdown(plans){
 
     updateDirtyUI();
     if (!status.className.includes("ok")) setStatus("Calendar ready.","");
+    
+    // Notify listeners that a render just completed (used by Apply buttons, etc.)
+    try { document.dispatchEvent(new Event('calendar:rendered')); } catch(_) {}
   }
 
   /* ANCHOR: RESTORE_LAST_FOCUS */
