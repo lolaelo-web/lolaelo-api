@@ -395,6 +395,7 @@
                       <option value="$">$</option>
                     </select>
                     <span class="note" data-field="preview" style="color:var(--muted);font-size:12px;">Example: $100 → $90.00</span>
+                    <a href="#" class="note" data-act="reset" style="margin-left:2px;">Reset</a>
                   </div>
                 </div>
                 <div class="plan-badge" style="font-size:12px;padding:4px 8px;border-radius:999px;border:1px solid var(--border);background:var(--chip);">code: NRF</div>
@@ -418,6 +419,7 @@
                       <option value="%">%</option>
                     </select>
                     <span class="note" data-field="preview" style="color:var(--muted);font-size:12px;">Example: $100 → $85.00</span>
+                    <a href="#" class="note" data-act="reset" style="margin-left:2px;">Reset</a>
                   </div>
                 </div>
                 <div class="plan-badge" style="font-size:12px;padding:4px 8px;border-radius:999px;border:1px solid var(--border);background:var(--chip);">code: BRKF</div>
@@ -443,6 +445,7 @@
                       <option value="%">%</option>
                     </select>
                     <span class="note" data-field="preview" style="color:var(--muted);font-size:12px;">Example: $100 → —</span>
+                    <a href="#" class="note" data-act="reset" style="margin-left:2px;">Reset</a>
                   </div>
                 </div>
                 <div class="plan-badge" style="font-size:12px;padding:4px 8px;border-radius:999px;border:1px solid var(--border);background:var(--chip);">code: CUS1</div>
@@ -468,6 +471,7 @@
                       <option value="%">%</option>
                     </select>
                     <span class="note" data-field="preview" style="color:var(--muted);font-size:12px;">Example: $100 → —</span>
+                    <a href="#" class="note" data-act="reset" style="margin-left:2px;">Reset</a>
                   </div>
                 </div>
                 <div class="plan-badge" style="font-size:12px;padding:4px 8px;border-radius:999px;border:1px solid var(--border);background:var(--chip);">code: CUS2</div>
@@ -750,6 +754,17 @@
   function populateRatePlanDropdown(plans){
     // 1) Render the checkbox chips (new UI)
     try {
+        // apply label overrides for CUS1/CUS2 before first paint
+        try{
+          const labels = JSON.parse(localStorage.getItem('rateplan.customLabels') || '{}') || {};
+          plans = Array.isArray(plans) ? plans.map(p => {
+            const code = String(p.code || '').toUpperCase();
+            let name = String(p.name || p.code || `Plan ${p.id}`).replace(/\s*\(\d+\)\s*$/,'');
+            if (labels.CUS1 && (code === 'CUS1' || /custom 1/i.test(name))) name = labels.CUS1;
+            if (labels.CUS2 && (code === 'CUS2' || /custom 2/i.test(name))) name = labels.CUS2;
+            return { ...p, name };
+          }) : plans;
+        }catch(_){}
       if (typeof populateRatePlanChecks === 'function') {
         populateRatePlanChecks(plans);
       }
@@ -890,34 +905,80 @@
       };
     }
 
+    /* ANCHOR: buildRenderablePlans (drop-in replacement) */
     function buildRenderablePlans(plans){
+      // Pull persisted custom labels + optional code→id mapping
+      let customLabels = {};
+      let codeToId     = {};
+      try { customLabels = JSON.parse(localStorage.getItem('rateplan.customLabels') || '{}') || {}; } catch(_){}
+      try { codeToId     = JSON.parse(localStorage.getItem('rateplan.codeToId')     || '{}') || {}; } catch(_){}
+
       const byCode = new Map();
 
+      // Normalize backend list, strip trailing "(1)" from names
       (Array.isArray(plans) ? plans : []).forEach(p => {
         if (p && p.id != null){
-          const code = String(p.code||'').toUpperCase();
-          const cleaned = stripParenNum(p.name || p.code || `Plan ${p.id}`);
-          byCode.set(code || `ID:${p.id}`, { id:Number(p.id), code, name: cleaned, placeholder:false });
+          const code = String(p.code || '').toUpperCase();
+          const name = String(p.name || p.code || `Plan ${p.id}`).replace(/\s*\(\d+\)\s*$/,'');
+          byCode.set(code || `ID:${p.id}`, { id: Number(p.id), code, name, placeholder: false });
         }
       });
 
-      // Ensure Standard exists
-      if (![...byCode.keys()].some(k => k==='STD')){
-        byCode.set('STD', { id:1, code:'STD', name:'Standard', placeholder:false });
+      // Ensure Standard exists (and display as "Standard" without "(1)")
+      const hasStd = [...byCode.keys()].some(k => k === 'STD');
+      if (!hasStd){
+        byCode.set('STD', { id: 1, code: 'STD', name: 'Standard', placeholder: false });
+      } else {
+        const std = byCode.get('STD');
+        if (std) std.name = 'Standard';
       }
 
-      // Always include Custom 1/2 (disabled until IDs known)
-      byCode.set('CUS1', hydrateCustom('CUS1','Custom 1'));
-      byCode.set('CUS2', hydrateCustom('CUS2','Custom 2'));
+      // Ensure Custom 1 / Custom 2 always exist (use persisted label + stable ids)
+      const cus1Id = Number(codeToId.CUS1) || 1001;
+      const cus2Id = Number(codeToId.CUS2) || 1002;
 
+      const labelFor = (code, fallback) => {
+        const v = (customLabels && customLabels[code]) ? String(customLabels[code]).trim() : '';
+        return v || fallback;
+      };
+
+      // CUS1
+      if (byCode.has('CUS1')) {
+        const c1 = byCode.get('CUS1');
+        c1.id    = Number(c1.id) || cus1Id;
+        c1.name  = labelFor('CUS1', String(c1.name || 'Custom 1')).replace(/\s*\(\d+\)\s*$/,'');
+      } else {
+        byCode.set('CUS1', { id: cus1Id, code: 'CUS1', name: labelFor('CUS1', 'Custom 1'), placeholder: false });
+      }
+
+      // CUS2
+      if (byCode.has('CUS2')) {
+        const c2 = byCode.get('CUS2');
+        c2.id    = Number(c2.id) || cus2Id;
+        c2.name  = labelFor('CUS2', String(c2.name || 'Custom 2')).replace(/\s*\(\d+\)\s*$/,'');
+      } else {
+        byCode.set('CUS2', { id: cus2Id, code: 'CUS2', name: labelFor('CUS2', 'Custom 2'), placeholder: false });
+      }
+
+      // Order: Standard, Breakfast, Non-Refundable, Custom1, Custom2, then the rest
       const arr = [...byCode.values()];
+      const rank = (p) => {
+        const c = p.code || '';
+        if (c === 'STD')  return 0;
+        if (c === 'BRKF') return 1;
+        if (c === 'NRF')  return 2;
+        if (c === 'CUS1') return 3;
+        if (c === 'CUS2') return 4;
+        return 5;
+      };
       arr.sort((a,b)=>{
-        if (a.code==='STD') return -1;
-        if (b.code==='STD') return  1;
+        const ra = rank(a), rb = rank(b);
+        if (ra !== rb) return ra - rb;
         const ai = Number(a.id), bi = Number(b.id);
         if (Number.isFinite(ai) && Number.isFinite(bi)) return ai - bi;
         return String(a.code).localeCompare(String(b.code));
       });
+
       return arr;
     }
 
@@ -943,6 +1004,17 @@
           try { updateURLFromState?.(); } catch (_) {}
         }
       } catch (_) {}
+      // Fallback: if still nothing is selected, default to Standard (by code), else first plan
+      if (selected.size === 0) {
+        const std = list.find(p => (p.code || '').toUpperCase() === 'STD');
+        const stdId = Number(std?.id) || Number(list[0]?.id);
+        if (Number.isFinite(stdId)) {
+          const ordered = [stdId];
+          localStorage.setItem('rateplan.selectedIds', JSON.stringify(ordered));
+          window.currentRatePlanId = stdId;
+          try { updateURLFromState?.(); } catch (_) {}
+        }
+      }
       host.innerHTML = '';
       list.forEach(p => {
         const numericId = Number.isFinite(Number(p.id)) && !p.placeholder;
@@ -1078,6 +1150,7 @@
           <span>${label}</span>
         </label>`;
     }).join('');
+    try { document.dispatchEvent(new CustomEvent('plans:rendered', { detail:{ plans } })); } catch(_){}
 
     // Helper used by other modules
     window.getSelectedRatePlanIds = function(){
@@ -2880,6 +2953,38 @@
 
     // Local scratch state for pending edits
     const state = {}; // e.g., { BRKF: {sign:'-', unit:'$', value:15}, NRF:{sign:'-', unit:'%', value:10} }
+    /* === hydrate panel row from server === */
+    function applyServerRuleToRow(row, plan){
+      const selSign  = row.querySelector('select[data-field="sign"]');
+      const selUnit  = row.querySelector('select[data-field="unit"]');
+      const inpValue = row.querySelector('input[data-field="value"]');
+
+      const kind = String(plan.kind || '').toUpperCase();  // 'PERCENT' | 'ABSOLUTE' | 'NONE'
+      const v    = Number(plan.value);
+      if (!Number.isFinite(v)) return;
+
+      const sign = (v < 0) ? '-' : '+';
+      const mag  = Math.abs(v);
+
+      if (selSign)  selSign.value  = sign;
+      if (selUnit)  selUnit.value  = (kind === 'PERCENT') ? '%' : '$';
+      if (inpValue){
+        inpValue.value = String(mag);
+        // drive preview + validity without requiring user input
+        inpValue.dispatchEvent(new Event('input'));
+      }
+    }
+
+    /* when plans panel finishes rendering, push server rules into rows by code */
+    document.addEventListener('plans:rendered', (e) => {
+      const plans = Array.isArray(e.detail?.plans) ? e.detail.plans : [];
+      plans.forEach(p => {
+        const code = String(p.code || '').toUpperCase();
+        if (!code) return;
+        const row = panel.querySelector(`.plan-row[data-plan-code="${code}"]`);
+        if (row) applyServerRuleToRow(row, p);
+      });
+    });
 
     const EXAMPLE_BASE = 100; // $100 example to show preview
 
@@ -3012,6 +3117,20 @@
             prevEl.textContent = `Example: $${EXAMPLE_BASE} → $${sample.toFixed(2)}`;
           }
         }
+        // Update the small descriptor under the plan name to match current UI numbers
+        const meta = row.querySelector('.plan-meta, .note');
+        if (meta){
+          const signTxt = (selSign?.value === '-') ? '−' : '+';
+          const unitTxt = (selUnit?.value === '%') ? '%' : '$';
+          const nVal    = Number.isFinite(value) ? Number(value) : NaN;
+          if (!Number.isFinite(nVal)){
+            meta.textContent = 'Rule applies to Standard price';
+          } else {
+            meta.textContent = (unitTxt === '%')
+              ? `${signTxt}${nVal}% from Standard`
+              : `${signTxt}$${nVal.toFixed(2)} from Standard`;
+          }
+        }
 
         // Basic validity styling
         if (inpValue){
@@ -3033,6 +3152,20 @@
     }
 
     panel.querySelectorAll('.plan-row[data-plan-code]').forEach(attachRow);
+    /* reset a single row back to server rule */
+    panel.addEventListener('click', async (e) => {
+      const a = e.target.closest('a[data-act="reset"]');
+      if (!a) return;
+      e.preventDefault();
+      const row = a.closest('.plan-row[data-plan-code]');
+      const code = row?.getAttribute('data-plan-code');
+      if (!code) return;
+      try{
+        const plans = await fetchRatePlansSafe();
+        const p = (plans || []).find(x => String(x.code || '').toUpperCase() === String(code).toUpperCase());
+        if (p) applyServerRuleToRow(row, p);
+      }catch(_){}
+    });
 
     // Expose pending rules for later POST (next step will use this)
     window.__pendingPlanRules = state;
@@ -3123,6 +3256,7 @@
         // Refresh plans and repaint UI with label overrides
         try {
           const fresh = await fetchRatePlansSafe();
+          try { document.dispatchEvent(new CustomEvent('rateplans:fetched', { detail:{ plans: fresh } })); } catch(_){}
           const overridden = applyLabelOverrides(fresh);
           if (typeof populateRatePlanDropdown === 'function') populateRatePlanDropdown(overridden);
           if (typeof renderPlansPanel === 'function') renderPlansPanel(overridden);
