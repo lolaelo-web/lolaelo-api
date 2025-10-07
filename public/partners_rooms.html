@@ -1843,6 +1843,64 @@
 
     if (prcRes && prcRes.ok){ try{ prcRows = await prcRes.json(); } catch(_){} }
     else { try{ const b = prcRes ? await prcRes.text() : ""; console.warn("Prices load failed", { url: prcUrl, status: prcRes?.status, body: b.slice(0,500) }); } catch(_){} }
+    /* INSERT: PLAN_FALLBACK_IF_EMPTY (no-reload, single-pass) */
+    try {
+      if (Array.isArray(prcRows) && prcRows.length === 0) {
+        // Prevent loops per (room|range) combo
+        const guardKey = `${currentRoomTypeId}|${currentRangeStart}|${currentRangeEnd}`;
+        window.__planFallbackGuard = window.__planFallbackGuard || {};
+        if (!window.__planFallbackGuard[guardKey]) {
+          window.__planFallbackGuard[guardKey] = true;
+
+          // Build candidate list: (saved chips w/o current) + 1..16 (unique)
+          const cur = Number(window.currentRatePlanId || 1);
+          let saved = [];
+          try { saved = JSON.parse(localStorage.getItem('rateplan.selectedIds') || '[]') || []; } catch(_) {}
+          const cand = [...new Set([
+            ...saved.filter(n => Number.isFinite(n) && n !== cur),
+            ...Array.from({length:16}, (_,i)=>i+1).filter(n => n !== cur)
+          ])];
+
+          let found = null;
+          for (const id of cand) {
+            const testUrl = `/extranet/property/rooms/${currentRoomTypeId}/prices?start=${currentRangeStart}&end=${currentRangeEnd}&ratePlanId=${id}`;
+            const rr = await fetchWithRetry(testUrl, {}, 1, 0);
+            if (rr && rr.ok) {
+              let rows = [];
+              try { rows = await rr.json(); } catch(_) {}
+              if (Array.isArray(rows) && rows.length > 0) {
+                found = { id, rows }; break;
+              }
+            }
+          }
+
+          if (found) {
+            // Persist as the sole selected plan (chips will reflect)
+            try { localStorage.setItem('rateplan.selectedIds', JSON.stringify([found.id])); } catch(_) {}
+            window.currentRatePlanId = found.id;
+
+            // Update URL (no reload)
+            try {
+              const u = new URL(location.href);
+              u.searchParams.set('plan', String(found.id));
+              u.searchParams.set('plans', String(found.id));
+              history.replaceState(null, '', u.toString());
+            } catch(_) {}
+
+            // Notify chips listeners so future actions use the same id
+            try { document.dispatchEvent(new CustomEvent('rateplans:changed', { detail:{ ids:[found.id] } })); } catch(_) {}
+
+            // Use the found rows in this very render
+            prcRows = found.rows;
+            if (localStorage.getItem('rooms_debug') === '1') {
+              console.debug('[plan-fallback] switched to plan', found.id, 'rows:', prcRows.length);
+            }
+          }
+        }
+      }
+    } catch (e) {
+      console.warn('Plan fallback failed', e);
+    }
 
     if (!(invRes?.ok) || !(prcRes?.ok)){
       setStatus(`Loaded with partial data (${invRes?.status ?? "ERR"}/${prcRes?.status ?? "ERR"})`, "warn");
