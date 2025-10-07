@@ -774,6 +774,7 @@
     const handler = (e) => {
       const list = (e && e.detail && Array.isArray(e.detail.ids)) ? e.detail.ids : [];
       window.currentRatePlanId = list.length ? Number(list[0]) : 1;
+      try { localStorage.setItem('rateplan.lastPlanId', String(window.currentRatePlanId)); } catch(_){}
       try { if (typeof saveCtx === 'function') saveCtx(); } catch (_){}
       try { if (typeof updateURLFromState === 'function') updateURLFromState(); } catch (_){}
       if (typeof renderCalendar === 'function') renderCalendar({ reason: 'rateplans:changed' });
@@ -928,7 +929,20 @@
 
       const list     = buildRenderablePlans(plans);
       const selected = new Set(loadSelectedIds());
+      // Prefer last-used plan (from localStorage) and make it primary if it exists
+      try {
+        const last = Number(localStorage.getItem('rateplan.lastPlanId'));
+        const idsInList = new Set(list.map(p => Number(p.id)));
+        if (Number.isFinite(last) && idsInList.has(last)) {
+          selected.add(last);
+          const ordered = [last, ...Array.from(selected).filter(id => id !== last)];
+          localStorage.setItem('rateplan.selectedIds', JSON.stringify(ordered));
 
+          // keep global + URL in sync so fetches use the promoted primary
+          window.currentRatePlanId = last;
+          try { updateURLFromState?.(); } catch (_) {}
+        }
+      } catch (_) {}
       host.innerHTML = '';
       list.forEach(p => {
         const numericId = Number.isFinite(Number(p.id)) && !p.placeholder;
@@ -974,6 +988,14 @@
             const inOrder = Array.from(host.querySelectorAll('input[type="checkbox"]:checked'))
               .map(n => Number(n.getAttribute('data-plan-id')))
               .filter(Number.isFinite);
+            
+              // Persist primary plan + sync global for next loads/renders
+            const primary = inOrder[0];
+            if (Number.isFinite(primary)) {
+              try { localStorage.setItem('rateplan.lastPlanId', String(primary)); } catch (_) {}
+              window.currentRatePlanId = primary;
+              try { saveCtx?.(); } catch (_) {}
+            }
 
             document.dispatchEvent(new CustomEvent('rateplans:changed', { detail:{ ids: inOrder } }));
             try { updateURLFromState?.(); } catch(_){}
@@ -1891,16 +1913,25 @@
     prepareRangeDefaults();
     if (!validateRangeOrWarn()) return;
 
-    /* ANCHOR: RATEPLAN_PRIMARY_RESOLVE */
+    /* ANCHOR: RATEPLAN_PRIMARY_RESOLVE (stable) */
     const selectedIds = (typeof window.getSelectedRatePlanIds === 'function')
       ? window.getSelectedRatePlanIds()
       : [];
-    const primaryPlanId = selectedIds.length
-      ? Number(selectedIds[0])
-      : Number(currentRatePlanId || 1);
+    let primaryPlanId = Number.isFinite(Number(selectedIds?.[0])) ? Number(selectedIds[0]) : NaN;
 
-    // Keep legacy global in sync so downstream code continues to work.
+    // Prefer the last successful plan if chips don’t specify one
+    const lastPlan = Number(localStorage.getItem('rateplan.lastPlanId') || '');
+    if (!Number.isFinite(primaryPlanId) && Number.isFinite(lastPlan)) {
+      primaryPlanId = lastPlan;
+    }
+
+    // Final fallback: legacy global or 1
+    if (!Number.isFinite(primaryPlanId) || primaryPlanId <= 0) {
+      primaryPlanId = Number(window.currentRatePlanId || 1) || 1;
+    }
+
     window.currentRatePlanId = primaryPlanId;
+    try { localStorage.setItem('rateplan.lastPlanId', String(primaryPlanId)); } catch(_){}
 
     const invUrl = `/extranet/property/rooms/${currentRoomTypeId}/inventory?start=${currentRangeStart}&end=${currentRangeEnd}`;
     const prcUrl = `/extranet/property/rooms/${currentRoomTypeId}/prices?start=${currentRangeStart}&end=${currentRangeEnd}&ratePlanId=${encodeURIComponent(primaryPlanId)}`;
@@ -3117,6 +3148,8 @@
     if (rs&&re){ rs.value=sISO; re.value=eISO; }
     window.currentRangeStart=sISO; window.currentRangeEnd=eISO; window.currentAnchor=new Date(sISO+'T00:00:00Z');
     setLabel(sISO);
+    // keep the same plan across week jumps
+    try { window.currentRatePlanId = Number(localStorage.getItem('rateplan.lastPlanId')) || window.currentRatePlanId; } catch(_) {}
     if (typeof window.updateURLFromState==='function') window.updateURLFromState();
     if (doRender && typeof window.renderCalendar==='function') window.renderCalendar();
   };
