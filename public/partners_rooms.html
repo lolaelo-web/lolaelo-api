@@ -674,6 +674,71 @@
       window.__selectedPlanIds = ids.slice();
     } catch(_){}
   })();
+  // Plan State Guard: block invalid plan ids (e.g., 6) from URL, storage, and globals
+  (function planStateGuard(){
+    function sanitizeIds(ids){
+      let arr = Array.isArray(ids) ? ids.map(n => Number(n)).filter(Number.isFinite) : [];
+      // Drop 6 if present (invalid for this room/property)
+      arr = arr.filter(n => n !== 6);
+      // Ensure we keep at least Standard(1)
+      if (!arr.length) arr = [1];
+      // Dedupe, keep primary first
+      const seen = new Set(); const out = [];
+      for (const n of arr){ if (!seen.has(n)){ seen.add(n); out.push(n); } }
+      return out;
+    }
+
+    function rewriteURL(u){
+      const plan  = Number(u.searchParams.get('plan') || '');
+      const plans = (u.searchParams.get('plans') || '').split(',').map(s => Number(s.trim())).filter(Number.isFinite);
+      const sane  = sanitizeIds(plans.length ? plans : (Number.isFinite(plan) ? [plan] : []));
+      u.searchParams.set('plan', String(sane[0]));
+      u.searchParams.set('plans', sane.join(','));
+    }
+
+    // Intercept storage writes for rateplan keys
+    const _setItem = localStorage.setItem.bind(localStorage);
+    localStorage.setItem = function(k, v){
+      try {
+        if (k === 'rateplan.selectedIds') {
+          const ids = JSON.parse(v || '[]');
+          v = JSON.stringify(sanitizeIds(ids));
+        }
+        if (k === 'rateplan.lastPlanId') {
+          let n = Number(v);
+          if (!Number.isFinite(n) || n === 6) n = 1;
+          v = String(n);
+        }
+      } catch(_) {}
+      return _setItem(k, v);
+    };
+
+    // Intercept URL writes that touch plan/plans
+    const _replace = history.replaceState.bind(history);
+    const _push    = history.pushState.bind(history);
+    function wrap(fn){ return function(a,b,url){
+      try {
+        if (typeof url === 'string') { const u = new URL(url, location.href); rewriteURL(u); url = u.toString(); }
+      } catch(_) {}
+      return fn(a,b,url);
+    }; }
+    history.replaceState = wrap(_replace);
+    history.pushState    = wrap(_push);
+
+    // Guard the global primary setter
+    let __crp = window.currentRatePlanId;
+    try {
+      Object.defineProperty(window, 'currentRatePlanId', {
+        configurable: true,
+        get(){ return __crp; },
+        set(v){
+          let n = Number(v);
+          if (!Number.isFinite(n) || n === 6) n = 1;
+          __crp = n;
+        }
+      });
+    } catch(_) {}
+  })();
 
   /* ANCHOR: DEEPLINK_HELPERS */
   function updateURLFromState(mode='replace'){
