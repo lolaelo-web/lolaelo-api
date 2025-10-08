@@ -2842,19 +2842,25 @@
     (function(){
       if (typeof window.wireRatePlanSelector !== 'function') {
         // Prefer an existing local function if it's already defined
-        const local = (typeof wireRatePlanSelector === 'function') ? wireRatePlanSelector : function(ctx){
-          const host = document.getElementById('rateplan-checks');
-          const targetId = Number(ctx?.ratePlanId);
-          if (host && Number.isFinite(targetId)) {
-            const box = host.querySelector(`input[type="checkbox"][data-plan-id="${targetId}"]`);
-            if (box && !box.checked) {
-              box.checked = true;
-              box.dispatchEvent(new Event('change'));
-            }
-            window.currentRatePlanId = targetId;
-          }
-          // If no chips yet, no-op; init will proceed normally.
-        };
+        const local = (typeof wireRatePlanSelector === 'function')
+          ? wireRatePlanSelector
+          : function(ctx){
+              const host = document.getElementById('rateplan-checks');
+              const targetId = Number(ctx?.ratePlanId);
+              if (host && Number.isFinite(targetId)) {
+                const box = host.querySelector(`input[type="checkbox"][data-plan-id="${targetId}"]`);
+                if (box) {
+                  if (!box.checked) {
+                    box.checked = true;
+                    box.dispatchEvent(new Event('change'));
+                  }
+                  window.currentRatePlanId = targetId;
+                  return; // only set primary if the chip actually exists
+                }
+                // Target plan id not present among chips — ignore (no-op)
+              }
+              // No chips yet or invalid id — no-op; sanitizers will pick a valid primary
+            };
         window.wireRatePlanSelector = local;
       }
     })();
