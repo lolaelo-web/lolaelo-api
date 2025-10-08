@@ -861,11 +861,12 @@
     const sel = document.getElementById('ratePlanSelect');
     if (sel) sel.style.display = 'none';
 
-    // 3) Primary plan = first checked id (keeps downstream code working)
-    const ids = (typeof window.getSelectedRatePlanIds === 'function')
-      ? window.getSelectedRatePlanIds()
-      : [];
-    window.currentRatePlanId = ids.length ? Number(ids[0]) : 1;
+    // 3) Primary plan = canonical from chips (filters out invalid/hidden ids)
+    const primary = (typeof getCanonicalPrimaryPlanId === 'function')
+      ? getCanonicalPrimaryPlanId()
+      : (Number(localStorage.getItem('rateplan.lastPlanId') || 1) || 1);
+    window.currentRatePlanId = primary;
+    try { localStorage.setItem('rateplan.lastPlanId', String(primary)); } catch(_){}
 
     // 4) Persist + URL sync + initial refresh
     try { if (typeof saveCtx === 'function') saveCtx(); } catch (_){}
@@ -1196,8 +1197,15 @@
       );
 
       // Preserve the original selection even if some IDs have no chip today
-      const selectedOrig = Array.isArray(selected) ? selected.map(Number).filter(Number.isFinite) : [];
-      const visibleSelected = selectedOrig.filter(n => validIds.has(n));
+      let selectedOrig = Array.isArray(selected) ? selected.map(Number).filter(Number.isFinite) : [];
+      let visibleSelected = selectedOrig.filter(n => validIds.has(n));
+
+      // Default to Standard if nothing is selected (so a chip is checked on first paint)
+      if (!selectedOrig.length) {
+        const stdId = Number(byCode.get('STD')?.id || 1);
+        selectedOrig = [stdId];
+        visibleSelected = validIds.has(stdId) ? [stdId] : [];
+      }
 
       // Runtime truth = original (don’t drop invisible ids)
       window.__selectedPlanIds = selectedOrig.slice();
@@ -1279,6 +1287,7 @@
           window.currentRatePlanId = primary;
 
           try { if (typeof updateURLFromState === 'function') updateURLFromState(); } catch(_){}
+          try { sessionStorage.setItem('rooms:lastURL', location.href); } catch(_){}
           document.dispatchEvent(new CustomEvent('rateplans:changed', { detail:{ ids: fullSelected } }));
         });
         }
@@ -1288,7 +1297,7 @@
       hostRow.style.display = 'flex';
 
       // Persist current primary + broadcast initial selection (don’t overwrite selectedIds here)
-      const primary = (selectedOrig[0] ?? Number(localStorage.getItem('rateplan.lastPlanId')) ?? 1);
+      const primary = (visibleSelected.length ? visibleSelected[0] : (selectedOrig[0] ?? Number(localStorage.getItem('rateplan.lastPlanId')) ?? 1));
       window.currentRatePlanId = primary;
       try { localStorage.setItem('rateplan.lastPlanId', String(primary)); } catch(_){}
       try { if (typeof updateURLFromState === 'function') updateURLFromState(); } catch(_){}
@@ -2125,22 +2134,9 @@
     if (!validateRangeOrWarn()) return;
 
     /* ANCHOR: RATEPLAN_PRIMARY_RESOLVE (stable) */
-    const selectedIds = (typeof window.getSelectedRatePlanIds === 'function')
-      ? window.getSelectedRatePlanIds()
-      : [];
-    let primaryPlanId = Number.isFinite(Number(selectedIds?.[0])) ? Number(selectedIds[0]) : NaN;
-
-    // Prefer the last successful plan if chips don’t specify one
-    const lastPlan = Number(localStorage.getItem('rateplan.lastPlanId') || '');
-    if (!Number.isFinite(primaryPlanId) && Number.isFinite(lastPlan)) {
-      primaryPlanId = lastPlan;
-    }
-
-    // Final fallback: legacy global or 1
-    if (!Number.isFinite(primaryPlanId) || primaryPlanId <= 0) {
-      primaryPlanId = Number(window.currentRatePlanId || 1) || 1;
-    }
-
+    const primaryPlanId = (typeof getCanonicalPrimaryPlanId === 'function')
+      ? getCanonicalPrimaryPlanId()
+      : (Number(localStorage.getItem('rateplan.lastPlanId') || 1) || 1);
     window.currentRatePlanId = primaryPlanId;
     try { localStorage.setItem('rateplan.lastPlanId', String(primaryPlanId)); } catch(_){}
 
@@ -2525,11 +2521,10 @@
     const priceFixed = parseFloat(raw).toFixed(2);
     if (priceEl){ priceEl.value = priceFixed; priceEl.classList.remove("error"); }
 
-    // Resolve rate plan from checkbox chips (fallback to current/global)
-    const ids = (typeof window.getSelectedRatePlanIds === 'function')
-      ? window.getSelectedRatePlanIds()
-      : [];
-    const ratePlanId = ids.length ? Number(ids[0]) : Number(window.currentRatePlanId || 1);
+    // Resolve canonical primary (filters hidden/invalid ids; defaults to STD)
+    const ratePlanId = (typeof getCanonicalPrimaryPlanId === 'function')
+      ? getCanonicalPrimaryPlanId()
+      : (Number(localStorage.getItem('rateplan.lastPlanId') || 1) || 1);
 
     const start=el("range-start").value, end=el("range-end").value;
     const ONE_DAY=86400000;
@@ -2914,6 +2909,7 @@
             }
             history.replaceState({}, '', url.toString());
           } catch(_) {}
+          try { sessionStorage.setItem('rooms:lastURL', location.href); } catch(_) {}
           // console.log('[rp] canonicalized ->', { ids, primary });
         } catch(err){
           console.warn('RATEPLAN_WIRE_NOOP_TO_CHIPS canonicalization failed:', err);
@@ -3164,6 +3160,7 @@
       if (first){ first.click(); void renderCalendar(); }
     }
     try { updateURLFromState(); } catch(_){}
+    try { sessionStorage.setItem('rooms:lastURL', location.href); } catch(_){}
   }
   /* end RATE_PLAN_INIT */
 })(); // closes the surrounding async IIFE
