@@ -635,19 +635,38 @@
   /* ANCHOR: DEEPLINK_HELPERS */
   function updateURLFromState(mode='replace'){
     try{
-      const qs = new URLSearchParams(location.search);
-      if (currentRoomTypeId != null) qs.set('room', String(currentRoomTypeId));
-      if (currentRangeStart) qs.set('start', currentRangeStart);
-      if (currentRangeEnd)   qs.set('end',   currentRangeEnd);
+      const url = new URL(location.href);
 
-      // plan (primary) + plans (full selection)
-      const ids = (typeof window.getSelectedRatePlanIds === 'function') ? window.getSelectedRatePlanIds() : [];
-      const primary = ids.length ? Number(ids[0]) : Number(currentRatePlanId || 1);
-      if (Number.isFinite(primary)) qs.set('plan', String(primary));
-      if (ids.length) qs.set('plans', ids.join(','));
-      else qs.delete('plans');
+      // Preserve date & room if present in the UI/state
+      const rs = el('range-start'), re = el('range-end');
+      const startISO = rs?.value || currentRangeStart || url.searchParams.get('start');
+      const endISO   = re?.value || currentRangeEnd   || url.searchParams.get('end');
+      const roomId   = (typeof currentRoomTypeId !== 'undefined' && currentRoomTypeId != null)
+        ? currentRoomTypeId
+        : url.searchParams.get('room');
 
-      const next = location.pathname + '?' + qs.toString() + location.hash;
+      if (startISO) url.searchParams.set('start', String(startISO));
+      if (endISO)   url.searchParams.set('end',   String(endISO));
+      if (roomId != null && roomId !== '') url.searchParams.set('room', String(roomId));
+
+      // === Canonical plan state: source of truth is globals (then storage) ===
+      let ids = Array.isArray(window.__selectedPlanIds) ? window.__selectedPlanIds.slice() : [];
+      if (!ids.length) {
+        try { ids = JSON.parse(localStorage.getItem('rateplan.selectedIds') || '[]'); } catch(_) {}
+        if (!Array.isArray(ids)) ids = [];
+        ids = ids.map(n => Number(n)).filter(Number.isFinite);
+      }
+      const primary = Number.isFinite(window.currentRatePlanId)
+        ? Number(window.currentRatePlanId)
+        : (ids.length ? ids[0] : Number(localStorage.getItem('rateplan.lastPlanId') || ''));
+      const planId = Number.isFinite(primary) ? primary : 1;
+      if (!ids.length) ids = [planId];
+
+      // Write back canonical values (prevents old plan=6 lingering)
+      url.searchParams.set('plan', String(planId));
+      url.searchParams.set('plans', ids.join(','));
+
+      const next = url.pathname + '?' + url.searchParams.toString() + url.hash;
       if (mode === 'push') history.pushState(null, '', next);
       else history.replaceState(null, '', next);
     }catch(_){}
@@ -2802,6 +2821,26 @@
         }
       });
     })();
+    // === GLOBALIZE wireRatePlanSelector (shim-safe) ===
+    (function(){
+      if (typeof window.wireRatePlanSelector !== 'function') {
+        // Prefer an existing local function if it's already defined
+        const local = (typeof wireRatePlanSelector === 'function') ? wireRatePlanSelector : function(ctx){
+          const host = document.getElementById('rateplan-checks');
+          const targetId = Number(ctx?.ratePlanId);
+          if (host && Number.isFinite(targetId)) {
+            const box = host.querySelector(`input[type="checkbox"][data-plan-id="${targetId}"]`);
+            if (box && !box.checked) {
+              box.checked = true;
+              box.dispatchEvent(new Event('change'));
+            }
+            window.currentRatePlanId = targetId;
+          }
+          // If no chips yet, no-op; init will proceed normally.
+        };
+        window.wireRatePlanSelector = local;
+      }
+    })();
 
   (async function init(){
   const ctx = loadCtx() || {};
@@ -2902,12 +2941,20 @@
     let last = Number(localStorage.getItem('rateplan.lastPlanId') || '');
     if (!Number.isFinite(last)) last = undefined;
 
-    let primary = Number.isFinite(planFromUrl) ? planFromUrl : (selected[0] ?? last);
+    // Prefer stored selection first, then last, then URL (no more plan=6 bounce)
+    let primary = (selected[0] ?? last);
+    if (!Number.isFinite(primary) && Number.isFinite(planFromUrl)) primary = planFromUrl;
     if (!Number.isFinite(primary)) primary = 1;
 
     // Expose for renderers and downstream listeners
     window.__selectedPlanIds = (selected.length ? selected : [primary]).filter(Number.isFinite);
     currentRatePlanId = primary;
+
+    // Persist the resolved canonical state so later code reads the same truth
+    try {
+      localStorage.setItem('rateplan.selectedIds', JSON.stringify(window.__selectedPlanIds));
+      localStorage.setItem('rateplan.lastPlanId', String(currentRatePlanId));
+    } catch(_){}
 
     // Sync URL with the resolved state (plan + plans)
     try {
