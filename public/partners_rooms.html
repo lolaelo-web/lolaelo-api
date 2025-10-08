@@ -1107,6 +1107,7 @@
       });
 
       // Seed selection: runtime (__selectedPlanIds) > deeplink > saved > last used > Standard(1)
+      // Then validate against the actual chips and fallback to Standard if none match.
       let selected = [];
       if (Array.isArray(window.__selectedPlanIds) && window.__selectedPlanIds.length){
         selected = window.__selectedPlanIds.slice();
@@ -1115,17 +1116,33 @@
       } else {
         try { selected = JSON.parse(localStorage.getItem('rateplan.selectedIds') || '[]'); } catch(_){}
       }
+
+      // Pull last known primary as a weak fallback
+      let last = Number(localStorage.getItem('rateplan.lastPlanId') || '');
+      if (!Number.isFinite(last)) last = undefined;
+      if (!selected.length && Number.isFinite(last)) selected = [last];
+
+      // Build valid id set from the chips we will render
+      const validIds = new Set(
+        list
+          .map(p => Number(p.id))
+          .filter(Number.isFinite)
+      );
+
+      // Keep only ids that exist in the current chips
+      selected = Array.isArray(selected) ? selected.map(n => Number(n)).filter(n => validIds.has(n)) : [];
+
+      // If nothing valid remains, force Standard(1) or the STD chip’s id
       if (!selected.length){
-        const last = Number(localStorage.getItem('rateplan.lastPlanId') || '');
-        if (Number.isFinite(last)) selected = [last];
-      }
-      if (!selected.length){
-        selected = [Number(byCode.get('STD')?.id || 1)]; // Standard by default
+        selected = [Number(byCode.get('STD')?.id || 1)];
       }
 
-      // Keep globals in sync for downstream readers
-      try { window.__selectedPlanIds = selected.slice(); } catch(_){}
-
+      // Keep globals in sync for downstream readers and persist immediately
+      try {
+        window.__selectedPlanIds = selected.slice();
+        localStorage.setItem('rateplan.selectedIds', JSON.stringify(selected));
+        localStorage.setItem('rateplan.lastPlanId', String(selected[0]));
+      } catch(_){}
 
       // Render chips
       host.innerHTML = '';
