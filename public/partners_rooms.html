@@ -1087,9 +1087,11 @@
         return String(a.code).localeCompare(String(b.code));
       });
 
-      // Seed selection: deeplink > saved > last used > Standard(1)
+      // Seed selection: runtime (__selectedPlanIds) > deeplink > saved > last used > Standard(1)
       let selected = [];
-      if (Array.isArray(window.__initialSelectedRatePlanIds) && window.__initialSelectedRatePlanIds.length){
+      if (Array.isArray(window.__selectedPlanIds) && window.__selectedPlanIds.length){
+        selected = window.__selectedPlanIds.slice();
+      } else if (Array.isArray(window.__initialSelectedRatePlanIds) && window.__initialSelectedRatePlanIds.length){
         selected = window.__initialSelectedRatePlanIds.slice();
       } else {
         try { selected = JSON.parse(localStorage.getItem('rateplan.selectedIds') || '[]'); } catch(_){}
@@ -1101,6 +1103,10 @@
       if (!selected.length){
         selected = [Number(byCode.get('STD')?.id || 1)]; // Standard by default
       }
+
+      // Keep globals in sync for downstream readers
+      try { window.__selectedPlanIds = selected.slice(); } catch(_){}
+
 
       // Render chips
       host.innerHTML = '';
@@ -2860,12 +2866,41 @@
     if (ctx.roomId) currentRoomTypeId = ctx.roomId;
     setRightActive(!!currentRoomTypeId);
 
-    // ANCHOR: RATE_PLAN_INIT
-    currentRatePlanId = Number(ctx.ratePlanId ?? 1) || 1;
+   // ANCHOR: RATE_PLAN_INIT
+  {
+    // Prefer URL ?plan, then stored selected[0], then lastPlanId, else 1 (STD)
+    const url = new URL(location.href);
+    const planFromUrl = Number(url.searchParams.get('plan') || '');
+    let selected = [];
+    try { selected = JSON.parse(localStorage.getItem('rateplan.selectedIds') || '[]'); } catch(_){}
+    selected = Array.isArray(selected) ? selected.map(n => Number(n)).filter(Number.isFinite) : [];
+
+    let last = Number(localStorage.getItem('rateplan.lastPlanId') || '');
+    if (!Number.isFinite(last)) last = undefined;
+
+    let primary = Number.isFinite(planFromUrl) ? planFromUrl : (selected[0] ?? last);
+    if (!Number.isFinite(primary)) primary = 1;
+
+    // Expose for renderers and downstream listeners
+    window.__selectedPlanIds = (selected.length ? selected : [primary]).filter(Number.isFinite);
+    currentRatePlanId = primary;
+
+    // Sync URL with the resolved state (plan + plans)
+    try {
+      if (String(url.searchParams.get('plan')) !== String(primary)) {
+        url.searchParams.set('plan', String(primary));
+      }
+      if (window.__selectedPlanIds?.length) {
+        const next = window.__selectedPlanIds.join(',');
+        if (url.searchParams.get('plans') !== next) url.searchParams.set('plans', next);
+      }
+      history.replaceState({}, '', url.toString());
+    } catch(_){}
+
+    // Continue existing flow
     const plans = await fetchRatePlansSafe();
     populateRatePlanDropdown(plans);
 
-    // If fetch fell back or had issues, expose the reason
     if (lastRatePlanLoadNote) {
       const sel = document.getElementById('ratePlanSelect');
       if (sel) sel.title = lastRatePlanLoadNote;
@@ -2882,7 +2917,10 @@
       if (first){ first.click(); void renderCalendar(); }
     }
     try { updateURLFromState(); } catch(_){}
-  })();
+  }
+  /* end RATE_PLAN_INIT */
+})(); // closes the surrounding async IIFE
+
   /* ANCHOR: PLANS_PANEL_RENDER */
   function renderPlansPanel(plans){
     try{
