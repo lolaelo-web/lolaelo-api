@@ -631,6 +631,49 @@
       if (typeof updateURLFromState==='function') updateURLFromState();
       if (rerender) void renderCalendar();
   }
+  // Preboot scrub: purge invalid plan=6 from URL + storage before anything else reads it
+  (function prebootPlanScrub(){
+    try{
+      // Read storage
+      let ids = [];
+      try { ids = JSON.parse(localStorage.getItem('rateplan.selectedIds') || '[]'); } catch(_){}
+      if (!Array.isArray(ids)) ids = [];
+
+      let last = Number(localStorage.getItem('rateplan.lastPlanId') || '');
+      if (!Number.isFinite(last)) last = undefined;
+
+      // Remove hard-bad id 6 if present
+      ids = ids.map(n => Number(n)).filter(n => Number.isFinite(n) && n !== 6);
+      if (last === 6) last = undefined;
+
+      // Ensure we end up with at least STD(1)
+      if (!ids.length && !Number.isFinite(last)) last = 1;
+      if (!ids.length) ids = [last];
+
+      // Write back canonical storage
+      try {
+        localStorage.setItem('rateplan.selectedIds', JSON.stringify(ids));
+        localStorage.setItem('rateplan.lastPlanId', String(ids[0]));
+      } catch(_){}
+
+      // Scrub URL (?plan, ?plans) to match canonical
+      try {
+        const url = new URL(location.href);
+        const plan = String(ids[0] || 1);
+        const plansStr = ids.join(',');
+        if (url.searchParams.get('plan') === '6') url.searchParams.set('plan', plan);
+        if ((url.searchParams.get('plans') || '').split(',').includes('6')) {
+          if (plansStr) url.searchParams.set('plans', plansStr);
+          else url.searchParams.delete('plans');
+        }
+        history.replaceState({}, '', url.toString());
+      } catch(_){}
+
+      // Set globals early (harmless if later code overrides with same values)
+      window.currentRatePlanId = ids[0] || 1;
+      window.__selectedPlanIds = ids.slice();
+    } catch(_){}
+  })();
 
   /* ANCHOR: DEEPLINK_HELPERS */
   function updateURLFromState(mode='replace'){
