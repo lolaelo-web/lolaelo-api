@@ -631,114 +631,6 @@
       if (typeof updateURLFromState==='function') updateURLFromState();
       if (rerender) void renderCalendar();
   }
-  // Preboot scrub: purge invalid plan=6 from URL + storage before anything else reads it
-  (function prebootPlanScrub(){
-    try{
-      // Read storage
-      let ids = [];
-      try { ids = JSON.parse(localStorage.getItem('rateplan.selectedIds') || '[]'); } catch(_){}
-      if (!Array.isArray(ids)) ids = [];
-
-      let last = Number(localStorage.getItem('rateplan.lastPlanId') || '');
-      if (!Number.isFinite(last)) last = undefined;
-
-      // Remove hard-bad id 6 if present
-      ids = ids.map(n => Number(n)).filter(n => Number.isFinite(n) && n !== 6);
-      if (last === 6) last = undefined;
-
-      // Ensure we end up with at least STD(1)
-      if (!ids.length && !Number.isFinite(last)) last = 1;
-      if (!ids.length) ids = [last];
-
-      // Write back canonical storage
-      try {
-        localStorage.setItem('rateplan.selectedIds', JSON.stringify(ids));
-        localStorage.setItem('rateplan.lastPlanId', String(ids[0]));
-      } catch(_){}
-
-      // Scrub URL (?plan, ?plans) to match canonical
-      try {
-        const url = new URL(location.href);
-        const plan = String(ids[0] || 1);
-        const plansStr = ids.join(',');
-        if (url.searchParams.get('plan') === '6') url.searchParams.set('plan', plan);
-        if ((url.searchParams.get('plans') || '').split(',').includes('6')) {
-          if (plansStr) url.searchParams.set('plans', plansStr);
-          else url.searchParams.delete('plans');
-        }
-        history.replaceState({}, '', url.toString());
-      } catch(_){}
-
-      // Set globals early (harmless if later code overrides with same values)
-      window.currentRatePlanId = ids[0] || 1;
-      window.__selectedPlanIds = ids.slice();
-    } catch(_){}
-  })();
-  // Plan State Guard: block invalid plan ids (e.g., 6) from URL, storage, and globals
-  (function planStateGuard(){
-    function sanitizeIds(ids){
-      let arr = Array.isArray(ids) ? ids.map(n => Number(n)).filter(Number.isFinite) : [];
-      // Drop 6 if present (invalid for this room/property)
-      arr = arr.filter(n => n !== 6);
-      // Ensure we keep at least Standard(1)
-      if (!arr.length) arr = [1];
-      // Dedupe, keep primary first
-      const seen = new Set(); const out = [];
-      for (const n of arr){ if (!seen.has(n)){ seen.add(n); out.push(n); } }
-      return out;
-    }
-
-    function rewriteURL(u){
-      const plan  = Number(u.searchParams.get('plan') || '');
-      const plans = (u.searchParams.get('plans') || '').split(',').map(s => Number(s.trim())).filter(Number.isFinite);
-      const sane  = sanitizeIds(plans.length ? plans : (Number.isFinite(plan) ? [plan] : []));
-      u.searchParams.set('plan', String(sane[0]));
-      u.searchParams.set('plans', sane.join(','));
-    }
-
-    // Intercept storage writes for rateplan keys
-    const _setItem = localStorage.setItem.bind(localStorage);
-    localStorage.setItem = function(k, v){
-      try {
-        if (k === 'rateplan.selectedIds') {
-          const ids = JSON.parse(v || '[]');
-          v = JSON.stringify(sanitizeIds(ids));
-        }
-        if (k === 'rateplan.lastPlanId') {
-          let n = Number(v);
-          if (!Number.isFinite(n) || n === 6) n = 1;
-          v = String(n);
-        }
-      } catch(_) {}
-      return _setItem(k, v);
-    };
-
-    // Intercept URL writes that touch plan/plans
-    const _replace = history.replaceState.bind(history);
-    const _push    = history.pushState.bind(history);
-    function wrap(fn){ return function(a,b,url){
-      try {
-        if (typeof url === 'string') { const u = new URL(url, location.href); rewriteURL(u); url = u.toString(); }
-      } catch(_) {}
-      return fn(a,b,url);
-    }; }
-    history.replaceState = wrap(_replace);
-    history.pushState    = wrap(_push);
-
-    // Guard the global primary setter
-    let __crp = window.currentRatePlanId;
-    try {
-      Object.defineProperty(window, 'currentRatePlanId', {
-        configurable: true,
-        get(){ return __crp; },
-        set(v){
-          let n = Number(v);
-          if (!Number.isFinite(n) || n === 6) n = 1;
-          __crp = n;
-        }
-      });
-    } catch(_) {}
-  })();
 
   /* ANCHOR: DEEPLINK_HELPERS */
   function updateURLFromState(mode='replace'){
@@ -777,10 +669,27 @@
       const next = url.pathname + '?' + url.searchParams.toString() + url.hash;
       if (mode === 'push') history.pushState(null, '', next);
       else history.replaceState(null, '', next);
+      try { sessionStorage.setItem('rooms:lastURL', next); } catch(_) {}
     }catch(_){}
   }
 
   window.updateURLFromState = updateURLFromState;
+  
+  // NEW: persist the latest canonical URL for this tab on hide/unload
+  (function persistCanonicalURLOnHide(){
+    function save(){
+      try {
+        // Only persist if we’re on this rooms page
+        if (location.pathname.includes('partners_rooms.html')) {
+          sessionStorage.setItem('rooms:lastURL', location.href);
+        }
+      } catch(_){}
+    }
+    // Save when the page is hidden or being unloaded (covers hub hops / hard refreshes)
+    window.addEventListener('visibilitychange', save, { capture:true });
+    window.addEventListener('pagehide',         save, { capture:true });
+    window.addEventListener('beforeunload',     save, { capture:true });
+  })();
 
   (function ensureToken(){
     const hashToken = new URLSearchParams(location.hash.slice(1)).get('token');
@@ -1283,25 +1192,27 @@
 
       // Build valid id set from the chips we will render
       const validIds = new Set(
-        list
-          .map(p => Number(p.id))
-          .filter(Number.isFinite)
+        list.map(p => Number(p.id)).filter(Number.isFinite)
       );
 
-      // Keep only ids that exist in the current chips
-      selected = Array.isArray(selected) ? selected.map(n => Number(n)).filter(n => validIds.has(n)) : [];
+      // Preserve the original selection even if some IDs have no chip today
+      const selectedOrig = Array.isArray(selected) ? selected.map(Number).filter(Number.isFinite) : [];
+      const visibleSelected = selectedOrig.filter(n => validIds.has(n));
 
-      // If nothing valid remains, force Standard(1) or the STD chip’s id
-      if (!selected.length){
-        selected = [Number(byCode.get('STD')?.id || 1)];
-      }
-
-      // Keep globals in sync for downstream readers and persist immediately
+      // Runtime truth = original (don’t drop invisible ids)
+      window.__selectedPlanIds = selectedOrig.slice();
+      // Persist original (only if not already the same)
       try {
-        window.__selectedPlanIds = selected.slice();
-        localStorage.setItem('rateplan.selectedIds', JSON.stringify(selected));
-        localStorage.setItem('rateplan.lastPlanId', String(selected[0]));
+        const prevRaw = localStorage.getItem('rateplan.selectedIds') || '[]';
+        const prev = JSON.parse(prevRaw);
+        if (!Array.isArray(prev) || prev.join(',') !== selectedOrig.join(',')) {
+          localStorage.setItem('rateplan.selectedIds', JSON.stringify(selectedOrig));
+        }
+        if (selectedOrig.length) {
+          localStorage.setItem('rateplan.lastPlanId', String(selectedOrig[0]));
+        }
       } catch(_){}
+
 
       // Render chips
       host.innerHTML = '';
@@ -1320,7 +1231,7 @@
         box.type = 'checkbox';
         box.setAttribute('data-plan-id', String(p.id));
         box.disabled = !numericId;
-        box.checked  = numericId && selected.includes(Number(p.id));
+        box.checked  = numericId && visibleSelected.includes(Number(p.id));
 
         const txt = document.createElement('span');
         txt.textContent = p.name;
@@ -1331,49 +1242,61 @@
 
         if (numericId){
           box.addEventListener('change', () => {
-            const id = Number(box.getAttribute('data-plan-id'));
-            const cur = new Set(selected);
-            if (box.checked) cur.add(id); else cur.delete(id);
+          const id = Number(box.getAttribute('data-plan-id'));
 
-            // always keep at least one selected
-            if (cur.size === 0){ cur.add(id); box.checked = true; }
+          // work with visible selection first
+          const cur = new Set(visibleSelected);
+          if (box.checked) cur.add(id); else cur.delete(id);
 
-            // order: keep current visual order of checked boxes
-            const inOrder = Array.from(host.querySelectorAll('input[type="checkbox"]:checked'))
-              .map(n => Number(n.getAttribute('data-plan-id')))
-              .filter(Number.isFinite);
+          // always keep at least one selected (visibly)
+          if (cur.size === 0){ cur.add(id); box.checked = true; }
 
-            selected = inOrder.length ? inOrder : Array.from(cur);
+          // visible ids in visual order
+          const inOrder = Array.from(host.querySelectorAll('input[type="checkbox"]:checked'))
+            .map(n => Number(n.getAttribute('data-plan-id')))
+            .filter(Number.isFinite);
 
-            try { localStorage.setItem('rateplan.selectedIds', JSON.stringify(selected)); } catch(_){}
+          visibleSelected = inOrder.length ? inOrder : Array.from(cur);
 
-            // primary = first checked
-            const primary = selected[0];
-            if (Number.isFinite(primary)){
-              window.currentRatePlanId = primary;
-              try { localStorage.setItem('rateplan.lastPlanId', String(primary)); } catch(_){}
-            }
+          // Merge with any previously selected IDs that are not visible today
+          let stored = [];
+          try { stored = JSON.parse(localStorage.getItem('rateplan.selectedIds') || '[]'); } catch(_) {}
+          stored = Array.isArray(stored) ? stored.map(Number).filter(Number.isFinite) : [];
+          const hidden = stored.filter(n => !validIds.has(n));
 
-            try { if (typeof updateURLFromState === 'function') updateURLFromState(); } catch(_){}
-            document.dispatchEvent(new CustomEvent('rateplans:changed', { detail:{ ids: selected } }));
-          });
+          const fullSelected = [...visibleSelected, ...hidden.filter(n => !visibleSelected.includes(n))];
+
+          // Persist + set globals
+          try {
+            localStorage.setItem('rateplan.selectedIds', JSON.stringify(fullSelected));
+            localStorage.setItem('rateplan.lastPlanId', String(fullSelected[0] || 1));
+          } catch(_){}
+
+          window.__selectedPlanIds = fullSelected.slice();
+
+          // Primary = first visible, else first of full
+          const primary = Number.isFinite(visibleSelected[0]) ? visibleSelected[0] : (fullSelected[0] || 1);
+          window.currentRatePlanId = primary;
+
+          try { if (typeof updateURLFromState === 'function') updateURLFromState(); } catch(_){}
+          document.dispatchEvent(new CustomEvent('rateplans:changed', { detail:{ ids: fullSelected } }));
+        });
         }
       });
 
       // Ensure row is visible
       hostRow.style.display = 'flex';
 
-      // Persist current primary + broadcast initial selection
-      const primary = selected[0];
-      if (Number.isFinite(primary)){
-        window.currentRatePlanId = primary;
-        try { localStorage.setItem('rateplan.lastPlanId', String(primary)); } catch(_){}
-      }
-      try { localStorage.setItem('rateplan.selectedIds', JSON.stringify(selected)); } catch(_){}
+      // Persist current primary + broadcast initial selection (don’t overwrite selectedIds here)
+      const primary = (selectedOrig[0] ?? Number(localStorage.getItem('rateplan.lastPlanId')) ?? 1);
+      window.currentRatePlanId = primary;
+      try { localStorage.setItem('rateplan.lastPlanId', String(primary)); } catch(_){}
       try { if (typeof updateURLFromState === 'function') updateURLFromState(); } catch(_){}
 
       // Initial event so calendar fetch uses same id(s)
-      document.dispatchEvent(new CustomEvent('rateplans:changed', { detail:{ ids: selected } }));
+      document.dispatchEvent(new CustomEvent('rateplans:changed', {
+        detail:{ ids: window.__selectedPlanIds.slice() }
+      }));
 
       // Persist primary on first paint so refresh keeps the same plan
       try {
@@ -3026,7 +2949,39 @@
 
   (async function init(){
   const ctx = loadCtx() || {};
-    // ANCHOR: DEEPLINK_QUERY_IN
+    // NEW: restore any missing params from this-tab canonical URL
+    (function restoreCanonicalURLFromSession(){
+      try{
+        const saved = sessionStorage.getItem('rooms:lastURL');
+        if (!saved) return;
+
+        const cur  = new URL(location.href);
+        const last = new URL(saved, location.origin);
+
+        // Only act on the same page; don't clobber explicit params
+        const samePath  = (cur.pathname === last.pathname);
+        const keys      = ['room','start','end','plan','plans'];
+        let changed     = false;
+
+        if (!samePath) return;
+
+        keys.forEach(k => {
+          const curVal  = cur.searchParams.get(k);
+          const lastVal = last.searchParams.get(k);
+          if (!curVal && lastVal){
+            cur.searchParams.set(k, lastVal);
+            changed = true;
+          }
+        });
+
+        if (changed){
+          const next = cur.pathname + '?' + cur.searchParams.toString() + cur.hash;
+          history.replaceState(null, '', next);
+        }
+      }catch(_){}
+    })();
+
+  // ANCHOR: DEEPLINK_QUERY_IN
   try {
     const qs = new URLSearchParams(location.search);
     const qRoom  = qs.get('room');
@@ -3163,43 +3118,34 @@
             .filter(Number.isFinite)
         );
 
-        // Prefer STD if present, else 1, else first plan
-        const stdId = (() => {
-          const std = (Array.isArray(plans) ? plans : []).find(
-            p => String(p.code || '').toUpperCase() === 'STD' || p.isDefault || Number(p.id) === 1
-          );
-          return Number(std?.id) || Number((Array.isArray(plans) && plans[0]?.id) || 1) || 1;
-        })();
-
-        // Collect current ids from globals or storage
+        // Collect current ids from globals or storage (DON'T filter to valid here)
         let ids = Array.isArray(window.__selectedPlanIds) ? window.__selectedPlanIds.slice() : [];
         if (!ids.length) {
           try { ids = JSON.parse(localStorage.getItem('rateplan.selectedIds') || '[]'); } catch(_) {}
           if (!Array.isArray(ids)) ids = [];
+          ids = ids.map(Number).filter(Number.isFinite);
         }
-        ids = ids.map(n => Number(n)).filter(n => Number.isFinite(n) && validIds.has(n));
-        if (!ids.length) ids = [stdId];
+        if (!ids.length) ids = [1];
 
-        // Fix primary if invalid or missing
+        // Primary: prefer current/global; else first of stored; else 1
         let primary = Number(window.currentRatePlanId);
-        if (!Number.isFinite(primary) || !validIds.has(primary)) {
-          primary = ids[0] ?? stdId;
-        }
+        if (!Number.isFinite(primary)) primary = ids[0] || 1;
 
-        // Write back canonical truth
+        // Write back runtime truth unchanged (no filtering to validIds)
         window.__selectedPlanIds = ids.slice();
         window.currentRatePlanId = primary;
         try {
           localStorage.setItem('rateplan.selectedIds', JSON.stringify(ids));
           localStorage.setItem('rateplan.lastPlanId', String(primary));
-        } catch(_) {}
+        } catch(_){}
 
-        // Sync URL now to purge any lingering ?plan=6&plans=6
+        // Sync URL now
         try { updateURLFromState?.(); } catch(_){}
       } catch(e){
-        console.warn('sanitizePrimaryAgainstPlans failed', e);
+        console.warn('sanitizePrimaryAgainstPlans (non-destructive) failed', e);
       }
     })();
+
     populateRatePlanDropdown(plans);
 
     if (lastRatePlanLoadNote) {
