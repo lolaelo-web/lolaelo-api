@@ -2763,21 +2763,45 @@
   });
 
   /* ANCHOR: RATEPLAN_WIRE_NOOP_TO_CHIPS */
-  function wireRatePlanSelector(ctx) {
-    // If chips are present and ctx includes a plan, ensure it's checked + sync state.
-    const host = document.getElementById('rateplan-checks');
-    const targetId = Number(ctx?.ratePlanId);
-    if (host && Number.isFinite(targetId)) {
-      const box = host.querySelector(`input[type="checkbox"][data-plan-id="${targetId}"]`);
-      if (box && !box.checked) {
-        box.checked = true;
-        box.dispatchEvent(new Event('change'));
-      }
-      window.currentRatePlanId = targetId;
-      return;
-    }
-    // No chips? Nothing to wire. Keep currentRatePlanId as-is.
-  }
+    // Canonicalize plan state whenever chips change
+    (function wireCanonicalRatePlanSave(){
+      document.addEventListener('rateplans:changed', e => {
+        try {
+          const ids = Array.from(new Set(
+            (e?.detail?.ids || [])
+              .map(n => Number(n))
+              .filter(Number.isFinite)
+          ));
+          if (!ids.length) return;
+
+          const primary = ids[0];
+          window.__selectedPlanIds = ids.slice();
+          window.currentRatePlanId = primary;
+
+          // Persist consistently
+          try {
+            localStorage.setItem('rateplan.selectedIds', JSON.stringify(ids));
+            localStorage.setItem('rateplan.lastPlanId', String(primary));
+          } catch(_) {}
+
+          // Keep URL in sync (plan & plans)
+          try {
+            const url = new URL(location.href);
+            if (String(url.searchParams.get('plan')) !== String(primary)) {
+              url.searchParams.set('plan', String(primary));
+            }
+            const plansStr = ids.join(',');
+            if (url.searchParams.get('plans') !== plansStr) {
+              url.searchParams.set('plans', plansStr);
+            }
+            history.replaceState({}, '', url.toString());
+          } catch(_) {}
+          // console.log('[rp] canonicalized ->', { ids, primary });
+        } catch(err){
+          console.warn('RATEPLAN_WIRE_NOOP_TO_CHIPS canonicalization failed:', err);
+        }
+      });
+    })();
 
   (async function init(){
   const ctx = loadCtx() || {};
