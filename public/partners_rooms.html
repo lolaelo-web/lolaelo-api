@@ -768,6 +768,57 @@
       return [{ id: 1, name: 'Standard' }];
     }
   }
+  // Canonical primary plan resolution used by calendar/price fetches
+  function getCanonicalPrimaryPlanId(){
+    // Valid ids from visible chips
+    const valid = new Set(
+      Array.from(document.querySelectorAll('#rateplan-checks input[type="checkbox"][data-plan-id]'))
+        .map(n => Number(n.dataset.planId))
+        .filter(Number.isFinite)
+    );
+
+    // Start from current/global/storage
+    let plan = Number(window.currentRatePlanId);
+    if (!Number.isFinite(plan)) {
+      try {
+        const ids = JSON.parse(localStorage.getItem('rateplan.selectedIds') || '[]');
+        if (Array.isArray(ids) && ids.length) plan = Number(ids[0]);
+      } catch(_){}
+    }
+
+    // If invalid, pick STD(1) if present; else first valid chip
+    if (!Number.isFinite(plan) || !valid.has(plan)) {
+      const firstValid = [...valid];
+      const std = valid.has(1) ? 1 : (firstValid.length ? firstValid[0] : 1);
+      const prev = plan;
+      plan = std;
+
+      // Canonicalize globals/storage/URL to prevent future drift
+      window.currentRatePlanId = plan;
+      const selected = Array.isArray(window.__selectedPlanIds) ? window.__selectedPlanIds.slice() : [];
+      const nextSelected = (selected.length ? [plan, ...selected.filter(id => id !== plan)] : [plan]);
+      try {
+        localStorage.setItem('rateplan.selectedIds', JSON.stringify(nextSelected));
+        localStorage.setItem('rateplan.lastPlanId', String(plan));
+      } catch(_){}
+      try { updateURLFromState?.(); } catch(_){}
+      console.log('[plan-fallback] canonicalized fetch plan', { prev, plan });
+    }
+
+    return plan;
+  }
+
+  // Build URLs using canonical primary id
+  function buildCalendarFetchURLs(roomId, startISO, endISO){
+    const ratePlanId = getCanonicalPrimaryPlanId();
+    return {
+      roomId,
+      invUrl: `/extranet/property/rooms/${roomId}/inventory?start=${startISO}&end=${endISO}`,
+      prcUrl: `/extranet/property/rooms/${roomId}/prices?start=${startISO}&end=${endISO}&ratePlanId=${ratePlanId}`,
+      start: startISO,
+      end: endISO
+    };
+  }
 
   /* ANCHOR: RATE_PLAN_DROPDOWN_TO_CHECKS (drop-in) */
   function populateRatePlanDropdown(plans){
@@ -2874,16 +2925,18 @@
     const qStart = qs.get('start');
     const qEnd   = qs.get('end');
     const qPlan  = qs.get('plan');
-    // Support multi-plan deeplink, e.g. ?plans=1,2,3
-    const qPlans = qs.get('plans');
-    if (qPlans) {
-      const list = qPlans.split(',').map(s => Number(s.trim())).filter(Number.isFinite);
-      if (list.length) {
-        try { localStorage.setItem('rateplan.selectedIds', JSON.stringify(list)); } catch(_){}
-        // If no explicit single plan was provided, prefer first of the list
-        if (!qPlan) ctx.ratePlanId = list[0];
-      }
+  // Support multi-plan deeplink, e.g. ?plans=1,2,3
+  const qPlans = qs.get('plans');
+  if (qPlans) {
+    const list = qPlans.split(',').map(s => Number(s.trim())).filter(Number.isFinite);
+    if (list.length) {
+      // ⬇️ Do NOT persist URL params into localStorage here — seed runtime only
+      try { window.__initialSelectedRatePlanIds = list.slice(); } catch(_){}
+      ctx.ratePlanIds = list.slice();
+      // If no explicit single plan was provided, prefer first of the list
+      if (!qPlan) ctx.ratePlanId = list[0];
     }
+  }
 
     if (qRoom) {
       // numeric or string ids supported
