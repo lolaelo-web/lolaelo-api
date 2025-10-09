@@ -576,6 +576,9 @@
     } catch(_){}
   });
 
+  // Mark chips ready for renderCalendar guard
+  document.addEventListener('plans:rendered', () => { window.__plansReady = true; });
+
   // Ensure rate-plan chips match the current room as soon as chips finish rendering
   document.addEventListener('plans:rendered', () => {
     try { window.syncChipsToCurrentRoom?.(); } catch(_){}
@@ -2351,6 +2354,18 @@ document.addEventListener('rateplans:changed', (e) => {
   // Calendar render
   async function renderCalendar(){
     const __myEpoch = ++__renderEpoch;  // capture this call's epoch
+
+    // Defer first paint until rate-plan chips have rendered/synced at least once
+    if (!window.__plansReady) {
+      const once = () => {
+        document.removeEventListener('plans:rendered', once);
+        // only re-run if this call is still the latest request
+        if (__myEpoch === __renderEpoch) renderCalendar();
+      };
+      document.addEventListener('plans:rendered', once, { once: true });
+      return;
+    }
+
     if (!currentRoomTypeId){ setStatus("Pick a room type on the left.",""); return; }
     prepareRangeDefaults();
     if (!validateRangeOrWarn()) return;
