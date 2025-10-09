@@ -839,6 +839,8 @@
 
   /* ANCHOR: RATE_PLAN_DROPDOWN_TO_CHECKS (drop-in) */
   function populateRatePlanDropdown(plans){
+    const selectedIds = (Array.isArray(window.__selectedPlanIds) ? window.__selectedPlanIds.slice() : []);
+
     // 1) Render the checkbox chips (new UI)
     try {
         // apply label overrides for CUS1/CUS2 before first paint
@@ -2139,6 +2141,12 @@
       : (Number(localStorage.getItem('rateplan.lastPlanId') || 1) || 1);
     window.currentRatePlanId = primaryPlanId;
     try { localStorage.setItem('rateplan.lastPlanId', String(primaryPlanId)); } catch(_){}
+    // Ensure local selectedIds exists for logging/debug
+    const selectedIds = (
+      typeof window.getSelectedRatePlanIds === 'function'
+        ? (window.getSelectedRatePlanIds() || [])
+        : (Array.isArray(window.__selectedPlanIds) ? window.__selectedPlanIds.slice() : [])
+    ).map(n => Number(n)).filter(Number.isFinite);
 
     const invUrl = `/extranet/property/rooms/${currentRoomTypeId}/inventory?start=${currentRangeStart}&end=${currentRangeEnd}`;
     const prcUrl = `/extranet/property/rooms/${currentRoomTypeId}/prices?start=${currentRangeStart}&end=${currentRangeEnd}&ratePlanId=${encodeURIComponent(primaryPlanId)}`;
