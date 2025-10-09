@@ -2478,7 +2478,34 @@ document.addEventListener('rateplans:changed', (e) => {
     }
 
     const invByDate = new Map(invRows.map(r => [String(r.date).slice(0,10), r]));
-    const prcByDate = new Map(prcRows.map(r => [String(r.date).slice(0,10), r]));
+
+    // STICKY PRICE CACHE — keep last known prices per (room, plan)
+    window.__priceCache = window.__priceCache || new Map();
+    const __cacheKey = `${currentRoomTypeId}|${primaryPlanId}`;
+
+    try {
+      if (Array.isArray(prcRows) && prcRows.length > 0) {
+        // Update cache with fresh rows
+        const map = new Map(window.__priceCache.get(__cacheKey) || []);
+        prcRows.forEach(r => {
+          const d = String(r.date).slice(0,10);
+          const p = Number(r.price);
+          if (Number.isFinite(p)) map.set(d, p);
+        });
+        window.__priceCache.set(__cacheKey, map);
+      }
+    } catch(_) {}
+
+    let prcByDate = new Map(prcRows.map(r => [String(r.date).slice(0,10), r]));
+
+    // If server returned no prices, hydrate from cache to avoid empty tiles
+    if (prcByDate.size === 0) {
+      const m = window.__priceCache.get(__cacheKey);
+      if (m && m.size) {
+        prcByDate = new Map([...m.entries()].map(([d,p]) => [d, { date: d, price: p }]));
+        try { setStatus('Showing last known prices (cached) for this plan until server responds.', 'warn'); } catch(_){}
+      }
+    }
 
     const ONE_DAY = 86400000;
     const daysBetween = (startISO,endISO) => {
