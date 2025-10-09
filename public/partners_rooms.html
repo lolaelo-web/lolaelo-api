@@ -529,6 +529,7 @@
   let visibleWeeks = 3;
   let currentMonth = (() => { const d=new Date(); return new Date(d.getFullYear(), d.getMonth(), 1); })();
   let currentAnchor = null;
+  let __renderEpoch = 0;   // prevents stale renderCalendar from clobbering newer UI
 
   const el = (id) => document.getElementById(id);
   const status = el("status");
@@ -2349,7 +2350,7 @@ document.addEventListener('rateplans:changed', (e) => {
 
   // Calendar render
   async function renderCalendar(){
-    calGrid.innerHTML = "";
+    const __myEpoch = ++__renderEpoch;  // capture this call's epoch
     if (!currentRoomTypeId){ setStatus("Pick a room type on the left.",""); return; }
     prepareRangeDefaults();
     if (!validateRangeOrWarn()) return;
@@ -2402,6 +2403,12 @@ document.addEventListener('rateplans:changed', (e) => {
     ]);
     setCalLoading(false);
     disableWhileBusy(false);
+
+    // If a newer render started while we were fetching, bail out (stale)
+    if (__myEpoch !== __renderEpoch) return;
+
+    // We’re the latest render: now it’s safe to clear and paint
+    calGrid.innerHTML = "";
 
     let invRows = []; let prcRows = [];
     if (invRes && invRes.ok){ try{ invRows = await invRes.json(); } catch(_){} }
