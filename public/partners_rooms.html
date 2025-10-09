@@ -551,19 +551,72 @@
   }
   document.addEventListener('DOMContentLoaded', removeOverlayPlansPanel);
 
-  let currentRoomTypeId = null;
-  let currentRangeStart = null, currentRangeEnd = null;
-
-  // Reason/note for rate plan load outcome (used for UI messaging)
-  let lastRatePlanLoadNote = '';
-
-  let busy = false;
-  window.addEventListener('beforeunload', function(e){
-    if (pendingRoomUpdates.size > 0 || dirty.size > 0){
-      e.preventDefault();
-      e.returnValue = '';
-    }
+  // On first paint, restore room/date window from saved context, then align chips
+  document.addEventListener('DOMContentLoaded', () => {
+    try {
+      const ctx = (typeof loadCtx === 'function') ? loadCtx() : null;
+      if (ctx && typeof ctx === 'object') {
+        if (Number.isFinite(Number(ctx.roomId))) {
+          window.currentRoomTypeId = Number(ctx.roomId);
+        }
+        if (ctx.start) {
+          const rs = document.getElementById('range-start');
+          if (rs) rs.value = String(ctx.start);
+          window.currentRangeStart = String(ctx.start);
+        }
+        if (ctx.end) {
+          const re = document.getElementById('range-end');
+          if (re) re.value = String(ctx.end);
+          window.currentRangeEnd = String(ctx.end);
+        }
+      }
+      // Snap chips/global primary to the hydrated room BEFORE any initial render
+      try { window.syncChipsToCurrentRoom?.(); } catch(_){}
+    } catch(_){}
   });
+
+  // Ensure rate-plan chips match the current room as soon as chips finish rendering
+  document.addEventListener('plans:rendered', () => {
+    try { window.syncChipsToCurrentRoom?.(); } catch(_){}
+  }, { once:true });
+
+  // Keep chips/globals room-scoped BEFORE other listeners run (no render race)
+  // Guarded to avoid infinite loop because syncChipsToCurrentRoom() re-dispatches 'rateplans:changed'
+  (function(){
+    let __syncing = false;
+    document.addEventListener('rateplans:changed', () => {
+      if (__syncing) return;
+      __syncing = true;
+      try { window.syncChipsToCurrentRoom?.(); } catch(_){}
+      finally { __syncing = false; }
+    }, { capture: true });
+  })();
+  // Persist the current room's chip selection whenever it changes (bubble phase)
+document.addEventListener('rateplans:changed', (e) => {
+  try {
+    const ids = Array.isArray(e?.detail?.ids) ? e.detail.ids : [];
+    const rid = Number(window.currentRoomTypeId);
+    if (Number.isFinite(rid) && typeof setRoomPlanSelection === 'function') {
+      setRoomPlanSelection(rid, ids);
+      try { updateURLFromState?.(); } catch(_){}
+    }
+  } catch(_){}
+});
+
+    let currentRoomTypeId = null;
+    let currentRangeStart = null, currentRangeEnd = null;
+
+    // Reason/note for rate plan load outcome (used for UI messaging)
+    let lastRatePlanLoadNote = '';
+
+    let busy = false;
+    window.addEventListener('beforeunload', function(e){
+      if (pendingRoomUpdates.size > 0 || dirty.size > 0){
+        e.preventDefault();
+        e.returnValue = '';
+      }
+    });
+
   const pendingRoomUpdates = new Map(); // roomId -> payload
   const readOnlyRoomField = new Map();  // roomId -> true
 
@@ -634,44 +687,56 @@
 
   /* ANCHOR: DEEPLINK_HELPERS */
   function updateURLFromState(mode='replace'){
-    try{
-      const url = new URL(location.href);
+  try{
+    const url = new URL(location.href);
 
-      // Preserve date & room if present in the UI/state
-      const rs = el('range-start'), re = el('range-end');
-      const startISO = rs?.value || currentRangeStart || url.searchParams.get('start');
-      const endISO   = re?.value || currentRangeEnd   || url.searchParams.get('end');
-      const roomId   = (typeof currentRoomTypeId !== 'undefined' && currentRoomTypeId != null)
-        ? currentRoomTypeId
-        : url.searchParams.get('room');
+    // Preserve date & room if present in the UI/state
+    const rs = el('range-start'), re = el('range-end');
+    const startISO = rs?.value || currentRangeStart || url.searchParams.get('start');
+    const endISO   = re?.value || currentRangeEnd   || url.searchParams.get('end');
+    const roomId   = (typeof currentRoomTypeId !== 'undefined' && currentRoomTypeId != null)
+      ? currentRoomTypeId
+      : url.searchParams.get('room');
 
-      if (startISO) url.searchParams.set('start', String(startISO));
-      if (endISO)   url.searchParams.set('end',   String(endISO));
-      if (roomId != null && roomId !== '') url.searchParams.set('room', String(roomId));
+    if (startISO) url.searchParams.set('start', String(startISO));
+    if (endISO)   url.searchParams.set('end',   String(endISO));
+    if (roomId != null && roomId !== '') url.searchParams.set('room', String(roomId));
 
-      // === Canonical plan state: source of truth is globals (then storage) ===
-      let ids = Array.isArray(window.__selectedPlanIds) ? window.__selectedPlanIds.slice() : [];
+    // === Canonical plan state: prefer ROOM-SCOPED selection, then fallback ===
+    let ids = [];
+    const rid = Number(roomId ?? window.currentRoomTypeId);
+
+    if (Number.isFinite(rid) && typeof getRoomPlanSelection === 'function') {
+      try { ids = getRoomPlanSelection(rid) || []; } catch(_) { ids = []; }
+    }
+
+    // Fallback to global chips / legacy storage
+    if (!Array.isArray(ids) || !ids.length) {
+      ids = Array.isArray(window.__selectedPlanIds) ? window.__selectedPlanIds.slice() : [];
       if (!ids.length) {
-        try { ids = JSON.parse(localStorage.getItem('rateplan.selectedIds') || '[]'); } catch(_) {}
-        if (!Array.isArray(ids)) ids = [];
-        ids = ids.map(n => Number(n)).filter(Number.isFinite);
+        try { ids = JSON.parse(localStorage.getItem('rateplan.selectedIds') || '[]'); } catch(_) { ids = []; }
       }
-      const primary = Number.isFinite(window.currentRatePlanId)
+    }
+
+    // Normalize + choose primary
+    ids = (Array.isArray(ids) ? ids.map(n => Number(n)).filter(n => Number.isFinite(n) && n > 0) : []);
+    const primary =
+      Number.isFinite(Number(window.currentRatePlanId))
         ? Number(window.currentRatePlanId)
-        : (ids.length ? ids[0] : Number(localStorage.getItem('rateplan.lastPlanId') || ''));
-      const planId = Number.isFinite(primary) ? primary : 1;
-      if (!ids.length) ids = [planId];
+        : (ids[0] || Number(localStorage.getItem('rateplan.lastPlanId') || 1) || 1);
+    const planId = Number.isFinite(primary) ? primary : 1;
+    if (!ids.length) ids = [planId];
 
-      // Write back canonical values (prevents old plan=6 lingering)
-      url.searchParams.set('plan', String(planId));
-      url.searchParams.set('plans', ids.join(','));
+    // Write back canonical values
+    url.searchParams.set('plan', String(planId));
+    url.searchParams.set('plans', ids.join(','));
 
-      const next = url.pathname + '?' + url.searchParams.toString() + url.hash;
-      if (mode === 'push') history.pushState(null, '', next);
-      else history.replaceState(null, '', next);
-      try { sessionStorage.setItem('rooms:lastURL', next); } catch(_) {}
-    }catch(_){}
-  }
+    const next = url.pathname + '?' + url.searchParams.toString() + url.hash;
+    if (mode === 'push') history.pushState(null, '', next);
+    else history.replaceState(null, '', next);
+    try { sessionStorage.setItem('rooms:lastURL', next); } catch(_){}
+  }catch(_){}
+}
 
   window.updateURLFromState = updateURLFromState;
   
@@ -785,42 +850,29 @@
       return [{ id: 1, name: 'Standard' }];
     }
   }
-  // Canonical primary plan resolution used by calendar/price fetches
-  function getCanonicalPrimaryPlanId(){
-    // Valid ids from visible chips
-    const valid = new Set(
-      Array.from(document.querySelectorAll('#rateplan-checks input[type="checkbox"][data-plan-id]'))
-        .map(n => Number(n.dataset.planId))
-        .filter(Number.isFinite)
-    );
+  // Canonical primary plan id for the given room (defaults to current)
+  function getCanonicalPrimaryPlanId(roomId){
+    const rid = Number(roomId || window.currentRoomTypeId);
 
-    // Start from current/global/storage
-    let plan = Number(window.currentRatePlanId);
-    if (!Number.isFinite(plan)) {
-      try {
-        const ids = JSON.parse(localStorage.getItem('rateplan.selectedIds') || '[]');
-        if (Array.isArray(ids) && ids.length) plan = Number(ids[0]);
-      } catch(_){}
+    // Valid ids from visible, enabled chips
+    const boxes = Array.from(document.querySelectorAll('#rateplan-checks input[type="checkbox"][data-plan-id]'));
+    const valid = new Set(boxes.filter(b => !b.disabled).map(b => Number(b.dataset.planId)).filter(Number.isFinite));
+
+    let selected = window.getRoomPlanSelection(rid);
+    let plan = selected.find(id => valid.has(id));
+
+    if (!Number.isFinite(plan)){
+      plan = valid.has(1) ? 1 : ([...valid][0] || 1);
+      const rest = selected.filter(id => id !== plan && valid.has(id));
+      window.saveRoomPlanSelection(rid, [plan, ...rest]);
+      if (localStorage.getItem('rooms_debug') === '1'){
+        console.debug('[plan-fallback] canonicalized per-room fetch plan', { rid, plan });
+      }
     }
 
-    // If invalid, pick STD(1) if present; else first valid chip
-    if (!Number.isFinite(plan) || !valid.has(plan)) {
-      const firstValid = [...valid];
-      const std = valid.has(1) ? 1 : (firstValid.length ? firstValid[0] : 1);
-      const prev = plan;
-      plan = std;
-
-      // Canonicalize globals/storage/URL to prevent future drift
-      window.currentRatePlanId = plan;
-      const selected = Array.isArray(window.__selectedPlanIds) ? window.__selectedPlanIds.slice() : [];
-      const nextSelected = (selected.length ? [plan, ...selected.filter(id => id !== plan)] : [plan]);
-      try {
-        localStorage.setItem('rateplan.selectedIds', JSON.stringify(nextSelected));
-        localStorage.setItem('rateplan.lastPlanId', String(plan));
-      } catch(_){}
-      try { updateURLFromState?.(); } catch(_){}
-      console.log('[plan-fallback] canonicalized fetch plan', { prev, plan });
-    }
+    window.currentRatePlanId = plan;
+    try { localStorage.setItem('rateplan.lastPlanId', String(plan)); } catch(_){}
+    try { updateURLFromState?.(); } catch(_){}
 
     return plan;
   }
@@ -1109,6 +1161,87 @@
       };
     }
   })();
+  /* === ROOM-SCOPED RATE PLAN SELECTION HELPERS === */
+  (function(){
+    const LS_SEL_BY_ROOM   = 'rateplan.selectedByRoom';     // { [roomId]: number[] }
+    const LS_LAST_BY_ROOM  = 'rateplan.lastPlanIdByRoom';   // { [roomId]: number }
+
+    function readMap(key, fallback = {}) {
+      try { const o = JSON.parse(localStorage.getItem(key) || 'null'); return (o && typeof o === 'object') ? o : fallback; }
+      catch(_){ return fallback; }
+    }
+    function writeMap(key, obj) {
+      try { localStorage.setItem(key, JSON.stringify(obj || {})); } catch(_){}
+    }
+
+    // Return this room’s selected plan IDs (primary first). Fallback to last/STD(1).
+    window.getRoomPlanSelection = function(roomId){
+      const id = Number(roomId);
+      if (!Number.isFinite(id)) return [];
+      const byRoom = readMap(LS_SEL_BY_ROOM, {});
+      const arr = Array.isArray(byRoom[id]) ? byRoom[id] : [];
+      if (arr.length) return arr.map(n=>Number(n)).filter(Number.isFinite);
+
+      const lastBy = readMap(LS_LAST_BY_ROOM, {});
+      const last = Number(lastBy[id] ?? localStorage.getItem('rateplan.lastPlanId') ?? 1);
+      return Number.isFinite(last) && last > 0 ? [last] : [1];
+    };
+
+    // Persist this room’s plan IDs (and keep legacy globals in sync).
+    window.setRoomPlanSelection = function(roomId, ids){
+      const id = Number(roomId);
+      if (!Number.isFinite(id)) return;
+      const clean = (Array.isArray(ids) ? ids : []).map(n=>Number(n)).filter(Number.isFinite);
+      if (!clean.length) return;
+
+      const byRoom = readMap(LS_SEL_BY_ROOM, {});
+      byRoom[id] = clean;
+      writeMap(LS_SEL_BY_ROOM, byRoom);
+
+      const lastBy = readMap(LS_LAST_BY_ROOM, {});
+      lastBy[id] = clean[0];
+      writeMap(LS_LAST_BY_ROOM, lastBy);
+
+      try {
+        localStorage.setItem('rateplan.selectedIds', JSON.stringify(clean));
+        localStorage.setItem('rateplan.lastPlanId', String(clean[0]));
+      } catch(_){}
+    };
+
+    // Make the visible chips match the current room’s selection, then broadcast.
+    window.syncChipsToCurrentRoom = function(){
+      const rid = Number(window.currentRoomTypeId);
+      if (!Number.isFinite(rid)) return;
+
+      const desired = window.getRoomPlanSelection(rid);
+      const host = document.getElementById('rateplan-checks');
+      if (!host) return;
+
+      const inputs = [...host.querySelectorAll('input[type="checkbox"][data-plan-id]')];
+      const validIds = inputs.map(n => Number(n.dataset.planId)).filter(Number.isFinite);
+
+      let toCheck = desired.filter(id => validIds.includes(Number(id)));
+      if (!toCheck.length && validIds.length) toCheck = [validIds.includes(1) ? 1 : validIds[0]];
+
+      // Apply UI state without flicker
+      inputs.forEach(n => { n.checked = toCheck.includes(Number(n.dataset.planId)); });
+
+      // Sync globals + notify dependents (calendar, URL)
+      window.__selectedPlanIds = toCheck.slice();
+      window.currentRatePlanId = Number(toCheck[0]) || 1;
+      try { localStorage.setItem('rateplan.lastPlanId', String(window.currentRatePlanId)); } catch(_){}
+      document.dispatchEvent(new CustomEvent('rateplans:changed', { detail:{ ids: toCheck.slice() } }));
+    };
+
+    // When chips change, persist per-room
+    document.addEventListener('rateplans:changed', (e)=>{
+      const rid = Number(window.currentRoomTypeId);
+      if (!Number.isFinite(rid)) return;
+      const ids = Array.isArray(e.detail?.ids) ? e.detail.ids : [];
+      if (ids.length) window.setRoomPlanSelection(rid, ids);
+    });
+  })();
+
   /* ANCHOR: RATEPLAN_CHIPS_RENDER */
   if (!window.populateRatePlanChecks) {
     window.populateRatePlanChecks = function populateRatePlanChecks(plans){
@@ -1275,6 +1408,11 @@
           const hidden = stored.filter(n => !validIds.has(n));
 
           const fullSelected = [...visibleSelected, ...hidden.filter(n => !visibleSelected.includes(n))];
+            // Persist room-scoped selection too
+            const rid = Number(window.currentRoomTypeId);
+            if (Number.isFinite(rid) && typeof window.setRoomPlanSelection === 'function') {
+              window.setRoomPlanSelection(rid, fullSelected);
+            }
 
           // Persist + set globals
           try {
@@ -1326,6 +1464,83 @@
 
   // Leave this function immediately after the block
   function setStatus(msg, cls=""){ status.className="note "+cls; status.textContent=msg; }
+
+  /* ANCHOR: PER_ROOM_RATEPLANS_STORE */
+  (function(){
+    const LS_BYROOM = 'rateplan.selectedByRoom';
+    const LS_LAST_BYROOM = 'rateplan.lastPlanIdByRoom';
+
+    function readMap(key){
+      try { const o = JSON.parse(localStorage.getItem(key)||'{}'); return (o && typeof o==='object') ? o : {}; }
+      catch(_) { return {}; }
+    }
+    function writeMap(key, obj){ try { localStorage.setItem(key, JSON.stringify(obj||{})); } catch(_){} }
+
+    // Read room-scoped selection (fallback to global, then STD=1)
+    window.getRoomPlanSelection = function(roomId){
+      const rid = Number(roomId || window.currentRoomTypeId);
+      const byRoom = readMap(LS_BYROOM);
+      let ids = Array.isArray(byRoom[rid]) ? byRoom[rid] : null;
+
+      if (!ids || !ids.length){
+        let globalArr = []; try { globalArr = JSON.parse(localStorage.getItem('rateplan.selectedIds') || '[]'); } catch(_){}
+        let last = Number(localStorage.getItem('rateplan.lastPlanId') || '');
+        ids = (Array.isArray(globalArr) && globalArr.length ? globalArr : (Number.isFinite(last) ? [last] : [1]));
+      }
+      ids = ids.map(Number).filter(n => Number.isFinite(n) && n > 0);
+      if (!ids.length) ids = [1];
+      return ids;
+    };
+
+    // Persist room-scoped selection (also sync legacy globals for compatibility)
+    window.saveRoomPlanSelection = function(roomId, ids){
+      const rid = Number(roomId || window.currentRoomTypeId);
+      const clean = (Array.isArray(ids) ? ids : []).map(Number).filter(n => Number.isFinite(n) && n>0);
+      const next = clean.length ? clean : [1];
+
+      const byRoom = readMap(LS_BYROOM); byRoom[rid] = next; writeMap(LS_BYROOM, byRoom);
+      const lastMap = readMap(LS_LAST_BYROOM); lastMap[rid] = next[0]; writeMap(LS_LAST_BYROOM, lastMap);
+
+      try{
+        localStorage.setItem('rateplan.selectedIds', JSON.stringify(next));
+        localStorage.setItem('rateplan.lastPlanId', String(next[0]));
+      }catch(_){}
+
+      window.__selectedPlanIds = next.slice();
+      window.currentRatePlanId = next[0];
+
+      try { updateURLFromState?.(); } catch(_){}
+    };
+
+    // Ensure chips reflect current room; broadcast if we changed them
+    window.syncChipsToCurrentRoom = function(){
+      const rid = Number(window.currentRoomTypeId);
+      if (!Number.isFinite(rid)) return;
+
+      const want = window.getRoomPlanSelection(rid);
+      const boxes = Array.from(document.querySelectorAll('#rateplan-checks input[type="checkbox"][data-plan-id]'))
+        .filter(n => !n.disabled);
+      const have = boxes.filter(b => b.checked).map(b => Number(b.dataset.planId));
+
+      const same = want.length === have.length && want.every(id => have.includes(id));
+      if (!same){
+        boxes.forEach(b => { const id = Number(b.dataset.planId); b.checked = want.includes(id); });
+        window.saveRoomPlanSelection(rid, want);
+        try { document.dispatchEvent(new CustomEvent('rateplans:changed', { detail:{ ids: want.slice(), roomId: rid } })); } catch(_){}
+      }
+    };
+
+    // Persist per-room whenever the chips selection changes
+    document.addEventListener('rateplans:changed', (e)=>{
+      const ids = Array.isArray(e.detail?.ids) ? e.detail.ids.map(Number).filter(Number.isFinite) : [];
+      const rid = Number(window.currentRoomTypeId);
+      if (Number.isFinite(rid) && ids.length){ window.saveRoomPlanSelection(rid, ids); }
+    });
+
+    // After the chips render (initial or refresh), align to the active room
+    document.addEventListener('plans:rendered', ()=> { try { window.syncChipsToCurrentRoom(); } catch(_){} });
+  })();
+
 
   /* ANCHOR: RIGHT_ACTIVE_TOGGLE */
   function setRightActive(flag){
@@ -1593,6 +1808,10 @@
       div.addEventListener("click", async (e)=>{
         if (e.target.closest("button")) return;
         currentRoomTypeId = rt.id;
+
+        // NEW: align rate-plan chips to this room before any render/fetch
+        try { window.syncChipsToCurrentRoom?.(); } catch(_){}
+
         saveCtx();
         updateURLFromState('push');
         if (dirty.clear) dirty.clear();
@@ -2136,37 +2355,31 @@
     if (!validateRangeOrWarn()) return;
 
     /* ANCHOR: RATEPLAN_PRIMARY_RESOLVE (stable) */
-    let idsLS = [];
-    try { idsLS = JSON.parse(localStorage.getItem('rateplan.selectedIds') || '[]'); } catch(_){}
-    if (!Array.isArray(idsLS)) idsLS = [];
-
-    // Prefer stored selection; if empty, prefer lastPlanId; else STD(1)
-    if (!idsLS.length) {
-      let last = Number(localStorage.getItem('rateplan.lastPlanId') || '');
-      if (Number.isFinite(last) && last > 0) {
-        idsLS = [last];
-      } else {
-        idsLS = [1];
+    // Room-scoped plan selection first; avoid global/localStorage mutations here
+    let planIds = [];
+    try {
+      if (typeof getRoomPlanSelection === 'function') {
+        planIds = getRoomPlanSelection(currentRoomTypeId) || [];
       }
-      try {
-        localStorage.setItem('rateplan.selectedIds', JSON.stringify(idsLS));
-        localStorage.setItem('rateplan.lastPlanId', String(idsLS[0]));
-      } catch(_){}
+    } catch(_) { planIds = []; }
+
+    // Fallbacks (global chips → LS → STD)
+    if (!Array.isArray(planIds) || !planIds.length) {
+      planIds = Array.isArray(window.__selectedPlanIds) ? window.__selectedPlanIds.slice() : [];
+      if (!planIds.length) {
+        try { planIds = JSON.parse(localStorage.getItem('rateplan.selectedIds') || '[]'); } catch(_) { planIds = []; }
+      }
     }
+    planIds = planIds.map(Number).filter(n => Number.isFinite(n) && n > 0);
+    if (!planIds.length) planIds = [1];
 
-    // Normalize to numeric ids
-    idsLS = idsLS.map(n => Number(n)).filter(Number.isFinite && (n => n > 0));
-    if (!idsLS.length) { idsLS = [1]; }
+    const primaryPlanId = planIds[0];
 
-    // Canonical primary + globals
-    const primaryPlanId = idsLS[0];
-    window.__selectedPlanIds = idsLS.slice();
+    // Keep globals consistent for downstream code (do not write to LS here)
+    window.__selectedPlanIds = planIds.slice();
     window.currentRatePlanId = primaryPlanId;
-    try { localStorage.setItem('rateplan.lastPlanId', String(primaryPlanId)); } catch(_){}
 
-    // For debug logging below
-    const selectedIds = idsLS.slice();
-
+    // Build fetch URLs using the room-scoped primary plan
     const invUrl = `/extranet/property/rooms/${currentRoomTypeId}/inventory?start=${currentRangeStart}&end=${currentRangeEnd}`;
     const prcUrl = `/extranet/property/rooms/${currentRoomTypeId}/prices?start=${currentRangeStart}&end=${currentRangeEnd}&ratePlanId=${encodeURIComponent(primaryPlanId)}`;
 
@@ -2176,7 +2389,7 @@
         invUrl, prcUrl,
         start: currentRangeStart, end: currentRangeEnd,
         primaryPlanId,
-        selectedRatePlanIds: selectedIds
+        selectedRatePlanIds: planIds.slice()
       });
     }
 
@@ -2530,10 +2743,12 @@
     const priceFixed = parseFloat(raw).toFixed(2);
     if (priceEl){ priceEl.value = priceFixed; priceEl.classList.remove("error"); }
 
-    // Resolve canonical primary (filters hidden/invalid ids; defaults to STD)
-    const ratePlanId = (typeof getCanonicalPrimaryPlanId === 'function')
-      ? getCanonicalPrimaryPlanId()
-      : (Number(localStorage.getItem('rateplan.lastPlanId') || 1) || 1);
+    // Resolve primary plan for the CURRENT ROOM (fallbacks to legacy/global → STD)
+    const ratePlanId = (typeof getRoomPlanSelection === 'function')
+      ? (getRoomPlanSelection(currentRoomTypeId)[0] || 1)
+      : ((typeof getCanonicalPrimaryPlanId === 'function')
+          ? getCanonicalPrimaryPlanId()
+          : (Number(localStorage.getItem('rateplan.lastPlanId') || 1) || 1));
 
     const start=el("range-start").value, end=el("range-end").value;
     const ONE_DAY=86400000;
