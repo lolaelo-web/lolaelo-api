@@ -2951,6 +2951,35 @@
         window.wireRatePlanSelector = local;
       }
     })();
+  /* ANCHOR: SELECTED_IDS_HELPER (shim-safe) */
+  (function(){
+    // Always return a stable, non-empty array of numeric plan ids
+    if (typeof window.getSelectedRatePlanIds !== 'function') {
+      window.getSelectedRatePlanIds = function(){
+        try {
+          const raw = localStorage.getItem('rateplan.selectedIds') || '[]';
+          const ids = JSON.parse(raw);
+          const arr = Array.isArray(ids) ? ids.map(Number).filter(Number.isFinite) : [];
+          if (arr.length) return arr;
+        } catch(_) {}
+        const last = Number(localStorage.getItem('rateplan.lastPlanId') || 1) || 1;
+        return [last];
+      };
+    }
+
+    // Single source of truth for the primary id used by renderCalendar()
+    if (typeof window.getCanonicalPrimaryPlanId !== 'function') {
+      window.getCanonicalPrimaryPlanId = function(){
+        const ids = (typeof window.getSelectedRatePlanIds === 'function')
+          ? window.getSelectedRatePlanIds()
+          : [];
+        const first = Number(ids[0]);
+        if (Number.isFinite(first) && first > 0) return first;
+        const last = Number(localStorage.getItem('rateplan.lastPlanId') || 1) || 1;
+        return last;
+      };
+    }
+  })();
 
   (async function init(){
   const ctx = loadCtx() || {};
