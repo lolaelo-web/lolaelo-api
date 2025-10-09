@@ -2136,17 +2136,36 @@
     if (!validateRangeOrWarn()) return;
 
     /* ANCHOR: RATEPLAN_PRIMARY_RESOLVE (stable) */
-    const primaryPlanId = (typeof getCanonicalPrimaryPlanId === 'function')
-      ? getCanonicalPrimaryPlanId()
-      : (Number(localStorage.getItem('rateplan.lastPlanId') || 1) || 1);
+    let idsLS = [];
+    try { idsLS = JSON.parse(localStorage.getItem('rateplan.selectedIds') || '[]'); } catch(_){}
+    if (!Array.isArray(idsLS)) idsLS = [];
+
+    // Prefer stored selection; if empty, prefer lastPlanId; else STD(1)
+    if (!idsLS.length) {
+      let last = Number(localStorage.getItem('rateplan.lastPlanId') || '');
+      if (Number.isFinite(last) && last > 0) {
+        idsLS = [last];
+      } else {
+        idsLS = [1];
+      }
+      try {
+        localStorage.setItem('rateplan.selectedIds', JSON.stringify(idsLS));
+        localStorage.setItem('rateplan.lastPlanId', String(idsLS[0]));
+      } catch(_){}
+    }
+
+    // Normalize to numeric ids
+    idsLS = idsLS.map(n => Number(n)).filter(Number.isFinite && (n => n > 0));
+    if (!idsLS.length) { idsLS = [1]; }
+
+    // Canonical primary + globals
+    const primaryPlanId = idsLS[0];
+    window.__selectedPlanIds = idsLS.slice();
     window.currentRatePlanId = primaryPlanId;
     try { localStorage.setItem('rateplan.lastPlanId', String(primaryPlanId)); } catch(_){}
-    // Ensure local selectedIds exists for logging/debug
-    const selectedIds = (
-      typeof window.getSelectedRatePlanIds === 'function'
-        ? (window.getSelectedRatePlanIds() || [])
-        : (Array.isArray(window.__selectedPlanIds) ? window.__selectedPlanIds.slice() : [])
-    ).map(n => Number(n)).filter(Number.isFinite);
+
+    // For debug logging below
+    const selectedIds = idsLS.slice();
 
     const invUrl = `/extranet/property/rooms/${currentRoomTypeId}/inventory?start=${currentRangeStart}&end=${currentRangeEnd}`;
     const prcUrl = `/extranet/property/rooms/${currentRoomTypeId}/prices?start=${currentRangeStart}&end=${currentRangeEnd}&ratePlanId=${encodeURIComponent(primaryPlanId)}`;
@@ -2177,57 +2196,39 @@
 
     if (prcRes && prcRes.ok){ try{ prcRows = await prcRes.json(); } catch(_){} }
     else { try{ const b = prcRes ? await prcRes.text() : ""; console.warn("Prices load failed", { url: prcUrl, status: prcRes?.status, body: b.slice(0,500) }); } catch(_){} }
-    /* INSERT: PLAN_FALLBACK_IF_EMPTY (no-reload, single-pass) */
+    /* INSERT: PLAN_FALLBACK_IF_EMPTY (display-only, no persistence) */
     try {
       if (Array.isArray(prcRows) && prcRows.length === 0) {
-        // Prevent loops per (room|range) combo
-        const guardKey = `${currentRoomTypeId}|${currentRangeStart}|${currentRangeEnd}`;
+        // Guard per (room|range|primaryPlanId) so we try only once per view
+        const guardKey = `${currentRoomTypeId}|${currentRangeStart}|${currentRangeEnd}|${primaryPlanId}`;
         window.__planFallbackGuard = window.__planFallbackGuard || {};
         if (!window.__planFallbackGuard[guardKey]) {
           window.__planFallbackGuard[guardKey] = true;
 
-          // Build candidate list: (saved chips w/o current) + 1..16 (unique)
-          const cur = Number(window.currentRatePlanId || 1);
+          // Build candidates WITHOUT changing user selection
           let saved = [];
           try { saved = JSON.parse(localStorage.getItem('rateplan.selectedIds') || '[]') || []; } catch(_) {}
-          const cand = [...new Set([
+          const cur = Number(primaryPlanId);
+          const candidates = [...new Set([
             ...saved.filter(n => Number.isFinite(n) && n !== cur),
-            ...Array.from({length:16}, (_,i)=>i+1).filter(n => n !== cur)
+            ...Array.from({ length: 16 }, (_, i) => i + 1).filter(n => n !== cur)
           ])];
 
-          let found = null;
-          for (const id of cand) {
+          for (const id of candidates) {
             const testUrl = `/extranet/property/rooms/${currentRoomTypeId}/prices?start=${currentRangeStart}&end=${currentRangeEnd}&ratePlanId=${id}`;
             const rr = await fetchWithRetry(testUrl, {}, 1, 0);
             if (rr && rr.ok) {
               let rows = [];
               try { rows = await rr.json(); } catch(_) {}
               if (Array.isArray(rows) && rows.length > 0) {
-                found = { id, rows }; break;
+                // DISPLAY ONLY — do NOT persist, update URL, or dispatch events.
+                prcRows = rows;
+                if (localStorage.getItem('rooms_debug') === '1') {
+                  console.debug('[plan-fallback DISPLAY-ONLY] selected plan had 0 rows; showing plan', id, 'rows:', rows.length);
+                }
+                try { setStatus('No prices for the selected plan in this range — showing another available plan (display only).', 'warn'); } catch(_) {}
+                break;
               }
-            }
-          }
-
-          if (found) {
-            // Persist as the sole selected plan (chips will reflect)
-            try { localStorage.setItem('rateplan.selectedIds', JSON.stringify([found.id])); } catch(_) {}
-            window.currentRatePlanId = found.id;
-
-            // Update URL (no reload)
-            try {
-              const u = new URL(location.href);
-              u.searchParams.set('plan', String(found.id));
-              u.searchParams.set('plans', String(found.id));
-              history.replaceState(null, '', u.toString());
-            } catch(_) {}
-
-            // Notify chips listeners so future actions use the same id
-            try { document.dispatchEvent(new CustomEvent('rateplans:changed', { detail:{ ids:[found.id] } })); } catch(_) {}
-
-            // Use the found rows in this very render
-            prcRows = found.rows;
-            if (localStorage.getItem('rooms_debug') === '1') {
-              console.debug('[plan-fallback] switched to plan', found.id, 'rows:', prcRows.length);
             }
           }
         }
@@ -3773,7 +3774,7 @@
     if (rs&&re){ rs.value=sISO; re.value=eISO; }
     window.currentRangeStart=sISO; window.currentRangeEnd=eISO; window.currentAnchor=new Date(sISO+'T00:00:00Z');
     setLabel(sISO);
-    try { window.currentRatePlanId = Number(localStorage.getItem('rateplan.lastPlanId')) || window.currentRatePlanId; } catch(_) {}
+    /* don’t touch currentRatePlanId here; chips/init own it */
     if (typeof window.updateURLFromState==='function') window.updateURLFromState();
     if (doRender && typeof window.renderCalendar==='function') window.renderCalendar();
   };
