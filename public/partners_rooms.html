@@ -2531,7 +2531,6 @@ document.addEventListener('rateplans:changed', (e) => {
       }
       if (prcByDate.size) { try { setStatus('Showing last known prices (cached).', 'warn'); } catch(_){} }
     }
-
     const ONE_DAY = 86400000;
     const daysBetween = (startISO,endISO) => {
       const s = new Date(startISO+"T00:00:00Z"); const e = new Date(endISO+"T00:00:00Z");
