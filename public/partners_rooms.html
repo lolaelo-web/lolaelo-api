@@ -2399,6 +2399,112 @@ document.addEventListener('rateplans:changed', (e) => {
     const invUrl = `/extranet/property/rooms/${currentRoomTypeId}/inventory?start=${currentRangeStart}&end=${currentRangeEnd}`;
     const prcUrl = `/extranet/property/rooms/${currentRoomTypeId}/prices?start=${currentRangeStart}&end=${currentRangeEnd}&ratePlanId=${encodeURIComponent(primaryPlanId)}`;
 
+    /* PREFETCH_WARM_START: hydrate from hub prefetch (price cache warm) */
+    (function(){
+      try {
+        const keyExact = `rooms:prefetch:${currentRoomTypeId}:${primaryPlanId}:${currentRangeStart}:${currentRangeEnd}`;
+        // prefer the exact key; fall back to the latest if it matches our room/plan
+        let raw = sessionStorage.getItem(keyExact);
+        if (!raw) {
+          const latestKey = sessionStorage.getItem('rooms:prefetch:latest') || '';
+          if (latestKey && latestKey.startsWith(`rooms:prefetch:${currentRoomTypeId}:${primaryPlanId}:`)) {
+            raw = sessionStorage.getItem(latestKey);
+          }
+        }
+        if (!raw) return;
+
+        const obj = JSON.parse(raw) || {};
+        // Seed the sticky price cache so even if the first fetch is slow/empty,
+        // tiles won’t appear blank for this (room, plan).
+        if (Array.isArray(obj.prc) && obj.prc.length) {
+          window.__priceCache = window.__priceCache || new Map();
+          const ck = `${currentRoomTypeId}|${primaryPlanId}`;
+          const map = new Map(window.__priceCache.get(ck) || []);
+          obj.prc.forEach(r => {
+            const d = String(r.date).slice(0,10);
+            const p = Number(r.price);
+            if (Number.isFinite(p)) map.set(d, p);
+          });
+          window.__priceCache.set(ck, map);
+        }
+      } catch(_) { /* silent */ }
+    })();
+
+    /* EARLY_WARM_PAINT: render tiles asap using cached prices (overwritten by live fetch later) */
+    (function(){
+      try {
+        // Make sure we have a visible range
+        const sISO = currentRangeStart, eISO = currentRangeEnd;
+        if (!sISO || !eISO) return;
+
+        // Pull any cached prices for this (room|plan)
+        window.__priceCache = window.__priceCache || new Map();
+        const ck = `${currentRoomTypeId}|${primaryPlanId}`;
+        const warmMap = window.__priceCache.get(ck);
+        if (!warmMap || warmMap.size === 0) return;
+
+        // If we already rendered once in this call (e.g., due to re-entry), skip
+        if (calGrid && calGrid.dataset.warmPainted === '1') return;
+
+        // Build the date list quickly (no network)
+        const ONE_DAY = 86400000;
+        const days = (() => {
+          const out = [];
+          const s = new Date(sISO + "T00:00:00Z");
+          const e = new Date(eISO + "T00:00:00Z");
+          for (let d = new Date(s); d <= e; d = new Date(d.getTime() + ONE_DAY)) {
+            out.push(d.toISOString().slice(0,10));
+          }
+          return out;
+        })();
+
+        // Paint a minimal grid immediately so price fields never look empty
+        calGrid.innerHTML = "";
+        days.forEach(d => {
+          const price = warmMap.get(d);
+          const card = document.createElement("div");
+          card.className = "day";
+          card.id = `day-${d}`;
+          card.setAttribute('data-date', d);
+
+          const _dow = new Date(d + "T00:00:00Z").getDay();
+          const isWE = (_dow === 0 || _dow === 6);
+
+          card.innerHTML = `
+            <div class="date">${isWE ? '<span class="we-badge" aria-label="Weekend">WE</span>' : ''} ${d}</div>
+
+            <div class="chip" title="Rooms Open">
+              <span class="tag">Open</span>
+              <input type="number" min="0" value="" data-date="${d}" data-kind="open">
+            </div>
+
+            <div class="chip" title="Price (USD)">
+              <span class="tag">Price</span>
+              <div class="money">
+                <span class="prefix">$</span>
+                <input type="text" value="${Number.isFinite(price) ? Number(price).toFixed(2) : ''}" data-date="${d}" data-kind="price">
+              </div>
+            </div>
+
+            <div class="chip" title="Min Stay">
+              <span class="tag">MinStay</span>
+              <input type="number" min="1" value="" data-date="${d}" data-kind="minstay">
+            </div>
+
+            <div class="chip" title="Closed">
+              <span class="tag">Closed</span>
+              <input type="checkbox" data-date="${d}" data-kind="closed">
+            </div>
+          `;
+          calGrid.appendChild(card);
+        });
+
+        // Mark that we painted a warm view; the normal render later will overwrite fully
+        calGrid.dataset.warmPainted = '1';
+        try { setStatus('Showing cached prices while loading…', ''); } catch(_) {}
+      } catch(_) { /* no-op */ }
+    })();
+
     if (localStorage.getItem('rooms_debug') === '1'){
       console.debug("Calendar fetch URLs", {
         roomId: currentRoomTypeId,
@@ -4144,5 +4250,66 @@ document.addEventListener('rateplans:changed', (e) => {
     height: 100%;
   }
 </style>
+<script>
+(() => {
+  // Prefetch inventory + prices for the last-used (room, plan, range) right before navigating to Rooms.
+  const API_BASE = (location.origin.includes('lolaelo-api.onrender.com') ? '' : 'https://lolaelo-api.onrender.com');
+  const LS_CTX = 'rooms_ctx_v1';
+
+  function readCtx() {
+    try { return JSON.parse(localStorage.getItem(LS_CTX) || '{}') || {}; }
+    catch { return {}; }
+  }
+
+  async function prefetchRooms() {
+    const ctx = readCtx();
+    const room = ctx.roomId;
+    const start = ctx.start;
+    const end = ctx.end;
+    const plan = Number(ctx.ratePlanId) || Number(localStorage.getItem('rateplan.lastPlanId') || 1) || 1;
+
+    if (!room || !start || !end) return; // nothing to prefetch yet
+
+    const invUrl = `/extranet/property/rooms/${room}/inventory?start=${start}&end=${end}`;
+    const prcUrl = `/extranet/property/rooms/${room}/prices?start=${start}&end=${end}&ratePlanId=${plan}`;
+
+    const token = localStorage.getItem('partnerToken') || localStorage.getItem('lolaelo_session') || '';
+    const headers = token ? { "Authorization": "Bearer " + token, "x-partner-token": token } : {};
+
+    try {
+      const [invRes, prcRes] = await Promise.all([
+        fetch(API_BASE + invUrl, { headers }),
+        fetch(API_BASE + prcUrl, { headers })
+      ]);
+      const inv = invRes.ok ? await invRes.json() : [];
+      const prc = prcRes.ok ? await prcRes.json() : [];
+
+      const key = `rooms:prefetch:${room}:${plan}:${start}:${end}`;
+      sessionStorage.setItem(key, JSON.stringify({ inv, prc, ts: Date.now() }));
+      sessionStorage.setItem('rooms:prefetch:latest', key);
+    } catch (_) { /* silent prefetch */ }
+  }
+
+  function arm(el) {
+    if (!el || el.__roomsPrefetchArmed) return;
+    el.__roomsPrefetchArmed = true;
+    // Fire once on first intent to navigate
+    el.addEventListener('mouseenter', prefetchRooms, { once: true });
+    el.addEventListener('mousedown',  prefetchRooms, { once: true });
+    el.addEventListener('touchstart', prefetchRooms, { once: true });
+  }
+
+  function init() {
+    const sel = 'a[href*="partners_rooms.html"]';
+    document.querySelectorAll(sel).forEach(arm);
+    // Cover hubs that render links later
+    const mo = new MutationObserver(() => document.querySelectorAll(sel).forEach(arm));
+    mo.observe(document.body, { childList: true, subtree: true });
+  }
+
+  document.addEventListener('DOMContentLoaded', init);
+})();
+</script>
+
 </body>
 </html>
