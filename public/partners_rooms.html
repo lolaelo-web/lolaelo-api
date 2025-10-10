@@ -2479,13 +2479,25 @@ document.addEventListener('rateplans:changed', (e) => {
 
     const invByDate = new Map(invRows.map(r => [String(r.date).slice(0,10), r]));
 
-    // STICKY PRICE CACHE — keep last known prices per (room, plan)
+    // STICKY PRICE CACHE — keep last known prices per (room, plan) in memory + localStorage
     window.__priceCache = window.__priceCache || new Map();
     const __cacheKey = `${currentRoomTypeId}|${primaryPlanId}`;
+    const LS_CACHE_KEY = 'rooms.priceCache.v1';
+
+    // helpers for LS cache
+    function __loadPriceLS(){
+      try { const o = JSON.parse(localStorage.getItem(LS_CACHE_KEY) || '{}'); return (o && typeof o==='object') ? o : {}; }
+      catch(_){ return {}; }
+    }
+    function __savePriceLS(obj){
+      try { localStorage.setItem(LS_CACHE_KEY, JSON.stringify(obj)); } catch(_){}
+    }
+
+    let __lsCache = __loadPriceLS();
 
     try {
       if (Array.isArray(prcRows) && prcRows.length > 0) {
-        // Update cache with fresh rows
+        // Update in-memory cache
         const map = new Map(window.__priceCache.get(__cacheKey) || []);
         prcRows.forEach(r => {
           const d = String(r.date).slice(0,10);
@@ -2493,18 +2505,31 @@ document.addEventListener('rateplans:changed', (e) => {
           if (Number.isFinite(p)) map.set(d, p);
         });
         window.__priceCache.set(__cacheKey, map);
+
+        // Persist to localStorage (so values survive full page reload / hub hops)
+        const obj = Object.fromEntries(map); // { "2025-10-09": 149.00, ... }
+        __lsCache[__cacheKey] = obj;
+        __savePriceLS(__lsCache);
       }
     } catch(_) {}
 
     let prcByDate = new Map(prcRows.map(r => [String(r.date).slice(0,10), r]));
 
-    // If server returned no prices, hydrate from cache to avoid empty tiles
+    // If server returned no prices, hydrate from memory cache; if empty, try localStorage cache
     if (prcByDate.size === 0) {
-      const m = window.__priceCache.get(__cacheKey);
-      if (m && m.size) {
-        prcByDate = new Map([...m.entries()].map(([d,p]) => [d, { date: d, price: p }]));
-        try { setStatus('Showing last known prices (cached) for this plan until server responds.', 'warn'); } catch(_){}
+      const mem = window.__priceCache.get(__cacheKey);
+      if (mem && mem.size) {
+        prcByDate = new Map([...mem.entries()].map(([d,p]) => [d, { date: d, price: p }]));
+      } else {
+        const lsObj = __lsCache[__cacheKey];
+        if (lsObj && typeof lsObj === 'object') {
+          const entries = Object.entries(lsObj);
+          if (entries.length) {
+            prcByDate = new Map(entries.map(([d,p]) => [d, { date: d, price: Number(p) }]));
+          }
+        }
       }
+      if (prcByDate.size) { try { setStatus('Showing last known prices (cached).', 'warn'); } catch(_){} }
     }
 
     const ONE_DAY = 86400000;
