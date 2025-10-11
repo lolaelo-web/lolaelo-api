@@ -595,17 +595,512 @@
       finally { __syncing = false; }
     }, { capture: true });
   })();
-  // Persist the current room's chip selection whenever it changes (bubble phase)
-document.addEventListener('rateplans:changed', (e) => {
-  try {
-    const ids = Array.isArray(e?.detail?.ids) ? e.detail.ids : [];
-    const rid = Number(window.currentRoomTypeId);
-    if (Number.isFinite(rid) && typeof setRoomPlanSelection === 'function') {
-      setRoomPlanSelection(rid, ids);
-      try { updateURLFromState?.(); } catch(_){}
+
+  /* ANCHOR: HARDEN_GUARD_RELOAD */
+  (function installReloadGuards(){
+    const evt = 'rateplans:changed';
+    const SUPPRESS_MS = 500;
+    let last = 0;
+
+    // Capture-phase listener runs before your existing handler
+    document.addEventListener(evt, function(e){
+      const now = Date.now();
+      if (now - last < SUPPRESS_MS) {
+        e.stopImmediatePropagation(); // suppress burst duplicates
+        return;
+      }
+      last = now;
+    }, true);
+  })();
+
+  /* ANCHOR: PLAN_CACHE_TTL */
+  (function planCacheTTL(){
+    const LS_KEY = 'rateplan.cache.v2'; // { ids:'1,6', primary:1, ts:1699999999999, ttl:600000 }
+    const DEFAULT_TTL_MS = 10 * 60 * 1000; // 10 minutes (tune as needed)
+
+    const safeLS = {
+      get(k){ try { return localStorage.getItem(k); } catch(_){ return null; } },
+      set(k,v){ try { localStorage.setItem(k, v); } catch(_){ } },
+      del(k){ try { localStorage.removeItem(k); } catch(_){ } },
+    };
+
+    function now(){ return Date.now(); }
+
+    function readCache(){
+      const raw = safeLS.get(LS_KEY);
+      if (!raw) return null;
+      try { return JSON.parse(raw); } catch(_){ return null; }
     }
-  } catch(_){}
-});
+
+    function isFresh(entry){
+      if (!entry || !Number.isFinite(entry.ts)) return false;
+      const ttl = Number.isFinite(entry.ttl) ? entry.ttl : DEFAULT_TTL_MS;
+      return (now() - entry.ts) < ttl;
+    }
+
+    function writeCache(idsArrOrString, primary, ttlMs){
+      const ids = Array.isArray(idsArrOrString) ? idsArrOrString.join(',') : String(idsArrOrString||'');
+      const payload = { ids, primary: Number(primary)||null, ts: now(), ttl: Number(ttlMs)||DEFAULT_TTL_MS };
+      safeLS.set(LS_KEY, JSON.stringify(payload));
+    }
+
+    function currentSelectedIdsFromDOM(){
+      // Try to infer from chips/checkboxes if present; fall back to window state.
+      const chipNodes = document.querySelectorAll('[data-plan-id].selected, input[name="rateplan"]:checked, input[data-plan-id]:checked');
+      const fromDOM = Array.from(chipNodes).map(n => Number(n.getAttribute('data-plan-id') || n.value)).filter(Number.isFinite);
+      if (fromDOM.length) return fromDOM;
+      if (Array.isArray(window.currentRatePlanIds) && window.currentRatePlanIds.length) return window.currentRatePlanIds;
+      if (Number.isFinite(window.currentRatePlanId)) return [window.currentRatePlanId];
+      return [];
+    }
+
+    function primaryFrom(ids){
+      if (!ids || !ids.length) return null;
+      // Convention: first selected is primary
+      return Number(ids[0]) || null;
+    }
+
+    // 🔁 Keep cache updated whenever rateplans change (bubbling phase, after your handlers)
+    document.addEventListener('rateplans:changed', function(e){
+      // Prefer explicit payload if provided by your app
+      const detailIds = e && e.detail && e.detail.ids;
+      const ids = Array.isArray(detailIds) ? detailIds
+                : (typeof detailIds === 'string' ? detailIds.split(',').map(s=>Number(s.trim())).filter(Number.isFinite)
+                : currentSelectedIdsFromDOM());
+      if (!ids || !ids.length) return;
+
+      const primary = (e && e.detail && Number.isFinite(e.detail.primary))
+        ? Number(e.detail.primary)
+        : primaryFrom(ids);
+
+      writeCache(ids, primary);
+    }, false);
+
+    // 🩹 Self-heal on load/boot: if nothing is selected yet and cache is fresh, restore once
+    (function tryRestoreOnce(){
+      const hasSelection = currentSelectedIdsFromDOM().length > 0 || Number.isFinite(window.currentRatePlanId);
+      if (hasSelection) return;
+
+      const entry = readCache();
+      if (!isFresh(entry) || !entry || !entry.ids) return;
+
+      const ids = entry.ids.split(',').map(s=>Number(s.trim())).filter(Number.isFinite);
+      if (!ids.length) return;
+
+      // Set global hints (non-invasive to DOM) and emit one clean event
+      window.currentRatePlanId = Number.isFinite(entry.primary) ? entry.primary : primaryFrom(ids);
+      window.currentRatePlanIds = ids.slice();
+
+      // This will notify the rest of the app; Step 1’s guard prevents bursts.
+      document.dispatchEvent(new CustomEvent('rateplans:changed', {
+        detail: { ids: ids.slice(), primary: window.currentRatePlanId, source: 'plan-cache-ttl-restore' }
+      }));
+    })();
+
+    // Public helpers if you want to adjust TTL elsewhere
+    window.__planCacheTTL = {
+      read: readCache,
+      write: writeCache,
+      isFresh
+    };
+  })();
+
+  /* ANCHOR: NET_SINGLE_FLIGHT */
+  (function installSingleFlight(){
+    const flights = new Map(); // key -> { promise, controllers: Set<AbortController>, startedAt }
+    const DEFAULT_TIMEOUT_MS = 12000;
+
+    function withTimeout(ms, controller){
+      return setTimeout(() => {
+        try { controller.abort(); } catch(_) {}
+      }, ms);
+    }
+
+    function normalizeKey(url, opts){
+      try {
+        const u = new URL(url, location.origin);
+        // Normalize order of params for stable keying
+        const params = [...u.searchParams.entries()].sort((a,b)=> a[0].localeCompare(b[0]));
+        const q = new URLSearchParams(params).toString();
+        const method = (opts && (opts.method||'GET')).toUpperCase();
+        return `${method} ${u.pathname}?${q}`;
+      } catch {
+        return (opts && (opts.method||'GET')).toUpperCase() + ' ' + String(url);
+      }
+    }
+
+    async function json(url, opts={}, keyOverride){
+      const controller = new AbortController();
+      const timeoutMs = Number.isFinite(opts.timeoutMs) ? opts.timeoutMs : DEFAULT_TIMEOUT_MS;
+      const key = keyOverride || normalizeKey(url, opts);
+
+      // Coalesce if an identical request is already in flight
+      if (flights.has(key)) {
+        const existing = flights.get(key);
+        return existing.promise;
+      }
+
+      // Add a small cache-buster to avoid intermediary caches (kept in key as well)
+      try {
+        const u = new URL(url, location.origin);
+        u.searchParams.set('cb', String(Date.now()));
+        url = u.toString();
+      } catch { /* non-URL, ignore */ }
+
+      const timer = withTimeout(timeoutMs, controller);
+      const finalOpts = { ...opts, signal: controller.signal };
+
+      const p = (async () => {
+        try {
+          const res = await fetch(url, finalOpts);
+          if (!res.ok) {
+            const txt = await res.text().catch(()=> '');
+            throw new Error(`HTTP ${res.status} ${res.statusText} :: ${txt}`);
+          }
+          const ct = res.headers.get('content-type') || '';
+          return ct.includes('application/json') ? res.json() : res.text();
+        } finally {
+          clearTimeout(timer);
+          flights.delete(key);
+        }
+      })();
+
+      /* ANCHOR: NET_SINGLE_FLIGHT_CACHE */
+      (function decorateSingleFlightWithCache(){
+        if (!window.__singleFlight || typeof window.__singleFlight.json !== 'function') return;
+
+        const LS_NS = 'net.cache.v1:'; // key = LS_NS + normalizeKey(url, opts)
+        const DEV = !/^(prod|production)$/i.test(String(window.__env||'')) && location.hostname !== 'lolaelo.com';
+
+        function lsGet(k){
+          try { const raw = localStorage.getItem(k); return raw ? JSON.parse(raw) : null; } catch(_){ return null; }
+        }
+        function lsSet(k,v){
+          try { localStorage.setItem(k, JSON.stringify(v)); } catch(_){}
+        }
+
+        // Must mirror the key used by cancel prefixes: "METHOD /path?sorted=query"
+        function normalizeKey(url, opts){
+          try {
+            const u = new URL(url, location.origin);
+            // Sort params for stable keys; DO NOT include the runtime cache-buster (we add it later)
+            const entries = [...u.searchParams.entries()].filter(([k]) => k !== 'cb').sort((a,b)=> a[0].localeCompare(b[0]));
+            const q = new URLSearchParams(entries).toString();
+            const method = (opts && (opts.method||'GET')).toUpperCase();
+            return `${method} ${u.pathname}${q ? ('?'+q) : ''}`;
+          } catch {
+            return (opts && (opts.method||'GET')).toUpperCase() + ' ' + String(url);
+          }
+        }
+
+        // TTL policy: shorter for prices, longer for static-ish lists like rateplans
+        function ttlForKey(key){
+          if (key.startsWith('GET /api/prices')) return 2 * 60 * 1000;     // 2 minutes
+          if (key.startsWith('GET /api/rateplans')) return 60 * 60 * 1000; // 60 minutes
+          return 5 * 60 * 1000; // default 5 minutes
+        }
+
+        function isFresh(entry, key){
+          if (!entry || typeof entry.ts !== 'number') return false;
+          const ttl = ttlForKey(key);
+          return (Date.now() - entry.ts) < ttl;
+        }
+
+        const origJson = window.__singleFlight.json;
+
+        async function jsonWithCache(url, opts={}, keyOverride){
+          const key = keyOverride || normalizeKey(url, opts);
+          const lsKey = LS_NS + key;
+
+          try {
+            // Try network first (keeps existing single-flight semantics)
+            const data = await origJson(url, opts, keyOverride);
+            // Only cache JSON-serializable payloads
+            try { lsSet(lsKey, { ts: Date.now(), data }); } catch(_){}
+            return data;
+          } catch (err) {
+            // On failure, attempt stale-while-revalidate style read
+            const entry = lsGet(lsKey);
+            if (isFresh(entry, key)) {
+              if (DEV) console.warn('[NET_CACHE] Using cached response for', key, 'due to error:', String(err));
+              return entry.data;
+            }
+            throw err;
+          }
+        }
+
+        // Swap in the decorated version transparently
+        window.__singleFlight.json = jsonWithCache;
+      })();
+
+      /* ANCHOR: NET_SINGLE_FLIGHT_RETRY */
+      (function decorateSingleFlightWithRetry(){
+        if (!window.__singleFlight || typeof window.__singleFlight.json !== 'function') return;
+
+        const origJson = window.__singleFlight.json;
+
+        // Only retry these read endpoints
+        function isRetryableKey(key){
+          return key.startsWith('GET /api/prices') || key.startsWith('GET /api/rateplans');
+        }
+
+        // Re-create the same key normalization used earlier (without cb)
+        function normalizeKey(url, opts){
+          try {
+            const u = new URL(url, location.origin);
+            const entries = [...u.searchParams.entries()].filter(([k]) => k !== 'cb').sort((a,b)=> a[0].localeCompare(b[0]));
+            const q = new URLSearchParams(entries).toString();
+            const method = (opts && (opts.method||'GET')).toUpperCase();
+            return `${method} ${u.pathname}${q ? ('?'+q) : ''}`;
+          } catch {
+            return (opts && (opts.method||'GET')).toUpperCase() + ' ' + String(url);
+          }
+        }
+
+        function sleep(ms){
+          return new Promise(r => setTimeout(r, ms + Math.floor(Math.random()*60)));
+        }
+
+        function isRetryableError(err){
+          const msg = String(err && (err.message || err));
+          // Network/abort/timeouts:
+          if (/abort/i.test(msg) || /network/i.test(msg) || /timeout/i.test(msg)) return true;
+          // We may also receive 'HTTP 5xx ...'
+          if (/HTTP\s+5\d{2}/.test(msg)) return true;
+          return false;
+        }
+
+        async function jsonWithRetry(url, opts={}, keyOverride){
+          const key = keyOverride || normalizeKey(url, opts);
+
+          // Non-retryable endpoints fall back to original
+          if (!isRetryableKey(key)) {
+            return origJson(url, opts, keyOverride);
+          }
+
+          const attempts = [300, 700, 1500]; // backoff plan
+          let lastErr;
+
+          // First try (attempt 0)
+          try { return await origJson(url, opts, keyOverride); }
+          catch(e){ lastErr = e; if (!isRetryableError(e)) throw e; }
+
+          // Retries with backoff
+          for (let i=0; i<attempts.length; i++){
+            await sleep(attempts[i]);
+            try { return await origJson(url, opts, keyOverride); }
+            catch(e){ lastErr = e; if (!isRetryableError(e)) break; }
+          }
+
+          // Give up — allow upstream cache decorator to try LS fallback or bubble up
+          throw lastErr;
+        }
+
+        window.__singleFlight.json = jsonWithRetry;
+      })();
+
+      /* ANCHOR: NET_SINGLE_FLIGHT_EVENTS */
+      (function decorateSingleFlightWithEvents(){
+        if (!window.__singleFlight || typeof window.__singleFlight.json !== 'function') return;
+
+        const origJson = window.__singleFlight.json;
+
+        // Must mirror our normalization (without 'cb') for consistent keys
+        function normalizeKey(url, opts){
+          try {
+            const u = new URL(url, location.origin);
+            const entries = [...u.searchParams.entries()].filter(([k]) => k !== 'cb').sort((a,b)=> a[0].localeCompare(b[0]));
+            const q = new URLSearchParams(entries).toString();
+            const method = (opts && (opts.method||'GET')).toUpperCase();
+            return `${method} ${u.pathname}${q ? ('?'+q) : ''}`;
+          } catch {
+            return (opts && (opts.method||'GET')).toUpperCase() + ' ' + String(url);
+          }
+        }
+
+        function emit(name, detail){
+          try { document.dispatchEvent(new CustomEvent(name, { detail })); } catch(_){}
+        }
+
+        async function jsonWithEvents(url, opts={}, keyOverride){
+          const key = keyOverride || normalizeKey(url, opts);
+          const startedAt = Date.now();
+
+          emit('net:request', { key, startedAt });
+
+          try {
+            const data = await origJson(url, opts, keyOverride);
+            emit('net:success', { key, ms: Date.now() - startedAt });
+            return data;
+          } catch (err) {
+            emit('net:failure', { key, ms: Date.now() - startedAt, error: String(err) });
+            throw err;
+          }
+        }
+
+        window.__singleFlight.json = jsonWithEvents;
+      })();
+
+      flights.set(key, { promise: p, controllers: new Set([controller]), startedAt: Date.now() });
+      return p;
+    }
+
+    function cancelByPrefix(prefix){
+      for (const [key, entry] of flights.entries()) {
+        if (key.startsWith(prefix)) {
+          for (const c of entry.controllers) { try { c.abort(); } catch(_){} }
+          flights.delete(key);
+        }
+      }
+    }
+
+    window.__singleFlight = { json, cancelByPrefix };
+  })();
+
+  /* ANCHOR: EVENT_SCHEMA_GUARD */
+  (function installEventSchemaGuard(){
+    const EVT = 'rateplans:changed';
+    const DEV = !/^(prod|production)$/i.test(String(window.__env||'')) && location.hostname !== 'lolaelo.com';
+
+    function numify(v){ const n = Number(v); return Number.isFinite(n) ? n : null; }
+
+    function normalize(detail){
+      // Accept: undefined | string "1,6" | number[] | object { ids, primary, source }
+      let ids = [];
+      let primary = null;
+      let source = '';
+
+      if (detail == null) {
+        // noop
+      } else if (Array.isArray(detail)) {
+        ids = detail;
+      } else if (typeof detail === 'string') {
+        ids = detail.split(',').map(s=>Number(s.trim()));
+      } else if (typeof detail === 'object') {
+        if (Array.isArray(detail.ids)) ids = detail.ids;
+        else if (typeof detail.ids === 'string') ids = detail.ids.split(',').map(s=>Number(s.trim()));
+        else if (detail.ids == null && typeof detail.primary !== 'undefined') {
+          const p = numify(detail.primary);
+          if (p != null) ids = [p];
+        }
+        primary = numify(detail.primary);
+        source = String(detail.source || '');
+      }
+
+      ids = ids.map(Number).filter(Number.isFinite);
+      if (primary == null && ids.length) primary = ids[0];
+      if (primary != null && !ids.includes(primary)) ids.unshift(primary);
+
+      return { ids, primary, source };
+    }
+
+    // Capture-phase: sanitize/standardize every incoming event before other handlers
+    document.addEventListener(EVT, function(e){
+      try {
+        const norm = normalize(e.detail);
+        if (!norm.ids.length) {
+          if (DEV) console.warn('[EVENT_SCHEMA_GUARD] Dropping event with empty ids:', e.detail);
+          e.stopImmediatePropagation();
+          return;
+        }
+        e.detail = norm; // overwrite with normalized schema
+      } catch(err){
+        if (DEV) console.error('[EVENT_SCHEMA_GUARD] Error normalizing event:', err);
+        e.stopImmediatePropagation();
+      }
+    }, true);
+  })();
+
+  /* ANCHOR: EMIT_RATEPLANS_CHANGED_HELPER */
+  (function installEmitHelper(){
+    function emitRateplansChanged(ids, primary=null, source=''){
+      try {
+        const arr = Array.isArray(ids)
+          ? ids
+          : (typeof ids === 'string' ? ids.split(',') : []);
+        const normIds = arr.map(n=>Number(n)).filter(Number.isFinite);
+        const p = Number.isFinite(Number(primary)) ? Number(primary) : (normIds[0] ?? null);
+        const detail = { ids: normIds, primary: p, source: String(source||'manual') };
+        document.dispatchEvent(new CustomEvent('rateplans:changed', { detail }));
+      } catch(_){}
+    }
+    window.emitRateplansChanged = emitRateplansChanged;
+  })();
+  
+  /* ANCHOR: NET_CANCEL_ON_EVENT */
+  (function wireCancelOnRateplanChange(){
+    // Cancel any in-flight calls that are tied to price/plan loads when plan changes
+    document.addEventListener('rateplans:changed', () => {
+      if (window.__singleFlight && window.__singleFlight.cancelByPrefix) {
+        // Prefixes should match the normalized keys you use below (method + path)
+        window.__singleFlight.cancelByPrefix('GET /api/prices');
+        window.__singleFlight.cancelByPrefix('GET /api/rateplans');
+      }
+    }, false);
+  })();
+
+  /* ANCHOR: DOM_STATE_GUARDS */
+  (function installDomStateGuards(){
+    // Track last applied plan-ids per room to skip no-op updates
+    const lastAppliedByRoom = new Map(); // roomTypeId:number -> "idsKey" (e.g., "1,6")
+
+    function normalizeIds(ids){
+      return (Array.isArray(ids) ? ids : [])
+        .map(n => Number(n))
+        .filter(Number.isFinite)
+        .sort((a,b)=>a-b)
+        .join(',');
+    }
+
+    // Batches DOM updates to next frame to avoid layout thrash
+    let rafToken = null;
+    let pendingApply = null;
+
+    function scheduleApply(fn){
+      pendingApply = fn;
+      if (rafToken != null) return;
+      rafToken = requestAnimationFrame(() => {
+        const f = pendingApply;
+        pendingApply = null;
+        rafToken = null;
+        try { f && f(); } catch(_){}
+      });
+    }
+
+    // Public helper your handler can call
+    function applyRateplanSelection(roomTypeId, ids){
+      const idsKey = normalizeIds(ids);
+      const prevKey = lastAppliedByRoom.get(roomTypeId);
+      if (idsKey === prevKey) return; // no change, skip
+
+      scheduleApply(() => {
+        try {
+          if (typeof setRoomPlanSelection === 'function'){
+            setRoomPlanSelection(roomTypeId, ids);
+          }
+          lastAppliedByRoom.set(roomTypeId, idsKey);
+          try { updateURLFromState?.(); } catch(_){}
+        } catch(_){}
+      });
+    }
+
+    // Expose for reuse
+    window.__domGuards = {
+      applyRateplanSelection,
+      _lastAppliedByRoom: lastAppliedByRoom
+    };
+  })();
+
+  // Persist the current room's chip selection whenever it changes (bubble phase)
+  document.addEventListener('rateplans:changed', (e) => {
+    try {
+      const ids = Array.isArray(e?.detail?.ids) ? e.detail.ids : [];
+      const rid = Number(window.currentRoomTypeId);
+      if (Number.isFinite(rid) && window.__domGuards?.applyRateplanSelection) {
+        window.__domGuards.applyRateplanSelection(rid, ids);
+      }
+    } catch(_){}
+  });
 
     let currentRoomTypeId = null;
     let currentRangeStart = null, currentRangeEnd = null;
