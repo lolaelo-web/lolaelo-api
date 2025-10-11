@@ -1282,6 +1282,99 @@
     window.__singleFlight = { json, cancelByPrefix };
   })();
 
+  /* ANCHOR: PLAN_RESTORE_ON_RATEPLANS_FETCH */
+  (function restoreAfterRateplansFetch(){
+    const EVT = 'rateplans:changed';
+
+    function hasDomSelection(){
+      return !!document.querySelector('[data-plan-id].selected, input[name="rateplan"]:checked, input[data-plan-id]:checked');
+    }
+    function normIds(arr){
+      return (Array.isArray(arr)? arr:[])
+        .map(n=>Number(n))
+        .filter(Number.isFinite)
+        .sort((a,b)=>a-b);
+    }
+    function idsExist(ids){
+      try {
+        if (typeof window.__planCacheTTL?._idsExistInDOM === 'function') {
+          return window.__planCacheTTL._idsExistInDOM(ids);
+        }
+      } catch(_){}
+      const set = new Set(ids.map(String));
+      const nodes = document.querySelectorAll('[data-plan-id], input[data-plan-id], input[name="rateplan"]');
+      for (const n of nodes) {
+        const pid = n.getAttribute('data-plan-id') || n.value;
+        if (pid != null && set.has(String(Number(pid)))) return true;
+      }
+      return false;
+    }
+    function emit(ids, primary, source){
+      try {
+        if (typeof window.emitRateplansChanged === 'function') {
+          window.emitRateplansChanged(ids, primary, source);
+        } else {
+          document.dispatchEvent(new CustomEvent(EVT, { detail: { ids, primary, source } }));
+        }
+      } catch(_){}
+    }
+
+    // When rateplans load successfully, attempt a one-time restore if needed
+    document.addEventListener('net:success', () => {
+      try {
+        // Only act if chips exist but nothing is selected yet
+        const hasChips = !!document.querySelector('[data-plan-id], input[name="rateplan"], input[data-plan-id]');
+        if (!hasChips || hasDomSelection()) return;
+
+        const entry = window.__planCacheTTL?.read?.();
+        if (!entry || !window.__planCacheTTL?.isFresh?.(entry) || !entry.ids) return;
+
+        const ids = normIds(String(entry.ids).split(',').map(s=>Number(s.trim())));
+        if (!ids.length || !idsExist(ids)) return;
+
+        const primary = Number.isFinite(Number(entry.primary)) ? Number(entry.primary) : ids[0];
+        emit(ids, primary, 'plan-rateplans-fetch');
+      } catch(_){}
+    }, false);
+  })();
+
+  /* ANCHOR: PLAN_CACHE_PRUNE_ON_RATEPLANS */
+  (function prunePlanCacheOnRateplansFetch(){
+    if (!window.__planCacheTTL?.read || !window.__planCacheTTL?.write) return;
+
+    function availableIdsFromDOM(){
+      const nodes = document.querySelectorAll('[data-plan-id], input[data-plan-id], input[name="rateplan"]');
+      return Array.from(nodes)
+        .map(n => Number(n.getAttribute('data-plan-id') || n.value))
+        .filter(Number.isFinite);
+    }
+
+    document.addEventListener('net:success', (e) => {
+      try {
+        const entry = window.__planCacheTTL.read();
+        if (!entry || !window.__planCacheTTL.isFresh?.(entry) || !entry.ids) return;
+
+        // Only act right after rateplans finish loading (chips are present)
+        // We key by prefix so any GET /api/rateplans?... matches.
+        const key = e?.detail?.key || '';
+        if (typeof key !== 'string' || !key.startsWith('GET /api/rateplans')) return;
+
+        const avail = new Set(availableIdsFromDOM());
+        const cachedIds = String(entry.ids).split(',').map(s => Number(s.trim())).filter(Number.isFinite);
+        const pruned = cachedIds.filter(id => avail.has(id));
+
+        // If nothing changed, bail
+        if (pruned.length === cachedIds.length) return;
+
+        // Recompute primary to a valid one
+        const primary = avail.has(Number(entry.primary)) ? Number(entry.primary) : (pruned[0] ?? null);
+
+        // Write back the pruned cache (preserving ttl if present)
+        window.__planCacheTTL.write(pruned, primary, Number(entry.ttl)||undefined);
+      } catch(_){}
+    }, false);
+  })();
+
   /* ANCHOR: EVENT_SCHEMA_GUARD */
   (function installEventSchemaGuard(){
     const EVT = 'rateplans:changed';
@@ -1335,6 +1428,96 @@
       }
     }, true);
   })();
+  
+  /* ANCHOR: PLAN_USER_INTENT_LOCK */
+  (function installPlanUserIntentLock(){
+    const EVT = 'rateplans:changed';
+    const USER_SRC = 'plan-panel-aggregate';     // emitted by our aggregator on real user input
+    const RESTORE_PREFIXES = ['plan-cache-', 'history-', 'plan-url-sync', 'idle-', 'plan-reassert-'];
+    const LOCK_MS = 1200;
+
+    let until = 0;
+
+    function isRestoreSource(src){
+      const s = String(src||'');
+      return RESTORE_PREFIXES.some(p => s.startsWith(p));
+    }
+
+    // When the user changes selection, start a brief lock window
+    document.addEventListener(EVT, (e) => {
+      try {
+        if ((e?.detail?.source||'') === USER_SRC) {
+          until = Date.now() + LOCK_MS;
+        }
+      } catch(_){}
+    }, false);
+
+    // Capture-phase gate: drop restore events during the lock window
+    document.addEventListener(EVT, (e) => {
+      try {
+        const src = e?.detail?.source || '';
+        if (Date.now() < until && isRestoreSource(src)) {
+          // Ignore late restores that would overwrite the user's fresh choice
+          e.stopImmediatePropagation();
+        }
+      } catch(_){}
+    }, true); // capture
+  })();
+
+  /* ANCHOR: PLAN_GLOBALS_SYNC */
+  (function installPlanGlobalsSync(){
+    const EVT = 'rateplans:changed';
+
+    document.addEventListener(EVT, (e) => {
+      try {
+        const ids = Array.isArray(e?.detail?.ids) ? e.detail.ids.map(Number).filter(Number.isFinite) : [];
+        const primary = Number.isFinite(Number(e?.detail?.primary)) ? Number(e.detail.primary) : (ids[0] ?? null);
+
+        // No-ops if unchanged
+        const prevIds = Array.isArray(window.currentRatePlanIds) ? window.currentRatePlanIds.map(Number).filter(Number.isFinite) : [];
+        const sameIds = ids.length === prevIds.length && ids.every((v,i)=>v===prevIds[i]);
+        const samePrimary = Number(window.currentRatePlanId) === primary;
+        if (sameIds && samePrimary) return;
+
+        // Update globals
+        window.currentRatePlanIds = ids.slice();
+        if (primary != null) window.currentRatePlanId = primary; else delete window.currentRatePlanId;
+      } catch(_){}
+    }, false);
+  })();
+
+  /* ANCHOR: PLAN_INTEGRITY_CHECK */
+  (function installPlanIntegrityCheck(){
+    const EVT = 'rateplans:changed';
+    const DEV = !/^(prod|production)$/i.test(String(window.__env||'')) && location.hostname !== 'lolaelo.com';
+
+    function domIds(){
+      const nodes = document.querySelectorAll('[data-plan-id].selected, input[name="rateplan"]:checked, input[data-plan-id]:checked');
+      return Array.from(nodes)
+        .map(n => Number(n.getAttribute('data-plan-id') || n.value))
+        .filter(Number.isFinite)
+        .sort((a,b)=>a-b);
+    }
+
+    function sig(arr){ return (Array.isArray(arr) ? arr.slice().sort((a,b)=>a-b) : []).join(','); }
+
+    // After every normalized change, verify DOM reflects it within a frame
+    document.addEventListener(EVT, (e) => {
+      if (!DEV) return; // diagnostics only in dev
+      try {
+        const ids = Array.isArray(e?.detail?.ids) ? e.detail.ids : [];
+        const expected = sig(ids);
+        // Check soon after handlers run, giving UI a frame to apply
+        requestAnimationFrame(() => {
+          const actual = sig(domIds());
+          if (expected && actual !== expected) {
+            console.warn('[PLAN_INTEGRITY_CHECK] DOM mismatch after rateplans:changed',
+              { expectedIds: expected, actualIds: actual, source: e?.detail?.source || '' });
+          }
+        });
+      } catch(_){}
+    }, false);
+  })();
 
   /* ANCHOR: EMIT_RATEPLANS_CHANGED_HELPER */
   (function installEmitHelper(){
@@ -1350,6 +1533,69 @@
       } catch(_){}
     }
     window.emitRateplansChanged = emitRateplansChanged;
+  })();
+  
+  /* ANCHOR: PLAN_REASSERT_AFTER_RESTORE */
+  (function installPlanReassert(){
+    const EVT = 'rateplans:changed';
+    const RESTORE_PREFIXES = ['plan-cache-', 'history-', 'plan-url-sync', 'idle-'];
+
+    let reassert = { sig: '', timers: [] };
+
+    function sigFromIds(ids){
+      return (Array.isArray(ids) ? ids.slice().sort((a,b)=>a-b) : []).join(',');
+    }
+
+    function currentDomSig(){
+      const nodes = document.querySelectorAll('[data-plan-id].selected, input[name="rateplan"]:checked, input[data-plan-id]:checked');
+      const ids = Array.from(nodes)
+        .map(n => Number(n.getAttribute('data-plan-id') || n.value))
+        .filter(Number.isFinite)
+        .sort((a,b)=>a-b);
+      return ids.join(',');
+    }
+
+    function cancelTimers(){
+      reassert.timers.forEach(t => clearTimeout(t));
+      reassert = { sig: '', timers: [] };
+    }
+
+    function scheduleReassert(ids, primary){
+      cancelTimers();
+      const sig = sigFromIds(ids);
+      reassert.sig = sig;
+
+      function maybeReassert(tag){
+        try {
+          // If user already changed selection, or DOM already matches, skip
+          if (currentDomSig() === sig) return;
+          if (typeof window.emitRateplansChanged === 'function') {
+            window.emitRateplansChanged(ids, primary, tag);
+          } else {
+            document.dispatchEvent(new CustomEvent(EVT, { detail: { ids, primary, source: tag } }));
+          }
+        } catch(_){}
+      }
+
+      // Avoid our 500ms burst guard; pick 600ms and 1200ms
+      reassert.timers.push(setTimeout(() => maybeReassert('plan-reassert-600'), 600));
+      reassert.timers.push(setTimeout(() => maybeReassert('plan-reassert-1200'), 1200));
+    }
+
+    // Start reassert only for non-user restore sources
+    document.addEventListener(EVT, (e) => {
+      try {
+        const ids = Array.isArray(e?.detail?.ids) ? e.detail.ids : [];
+        const primary = Number.isFinite(Number(e?.detail?.primary)) ? Number(e.detail.primary) : (ids[0] ?? null);
+        const src = String(e?.detail?.source || '');
+        const isRestore = RESTORE_PREFIXES.some(p => src.startsWith(p));
+        if (isRestore && ids.length) {
+          scheduleReassert(ids, primary);
+        }
+        // If the user changes plans, cancel any pending reasserts
+        if (src === 'plan-panel-aggregate') cancelTimers();
+      } catch(_){}
+    }, false);
   })();
 
   /* ANCHOR: PLAN_HISTORY_SYNC */
@@ -1495,7 +1741,7 @@
       } catch(_){}
     }, false);
   })();
-  
+
   /* ANCHOR: PLAN_DIAG_PROBE */
   (function installPlanDiagProbe(){
     function domSelection(){
@@ -1562,6 +1808,54 @@
     }
 
     window.rateplanProbe = rateplanProbe;
+  })();
+
+  /* ANCHOR: PLAN_DEBUG_NUKE */
+  (function installRateplanNuke(){
+    function rateplanNuke(){
+      try {
+        // 1) Clear DOM selection
+        const nodes = document.querySelectorAll(
+          '[data-plan-id].selected, input[name="rateplan"]:checked, input[data-plan-id]:checked'
+        );
+        nodes.forEach(n => {
+          if (n.matches('input[type="checkbox"], input[type="radio"]')) n.checked = false;
+          n.classList && n.classList.remove('selected');
+        });
+
+        // 2) Clear globals
+        delete window.currentRatePlanId;
+        window.currentRatePlanIds = [];
+
+        // 3) Clear URL params
+        try {
+          const sp = new URLSearchParams(location.search);
+          sp.delete('plans'); sp.delete('plan');
+          history.replaceState(history.state || {}, document.title, location.pathname + (sp.toString() ? '?' + sp.toString() : ''));
+        } catch(_){}
+
+        // 4) Clear history bits
+        try {
+          const s = (history.state && typeof history.state === 'object') ? history.state : {};
+          delete s.planIds; delete s.planPrimary;
+          history.replaceState(s, document.title, location.href);
+        } catch(_){}
+
+        // 5) Clear scoped LS cache for current scope
+        try {
+          const prop = Number(window.currentPropertyId) || Number(new URLSearchParams(location.search).get('propertyId')) || 0;
+          const room = Number(window.currentRoomTypeId) || 0;
+          const scoped = `rateplan.cache.v2::p${prop}::r${room}`;
+          localStorage.removeItem(scoped);
+        } catch(_){}
+
+        // 6) Emit a single normalized empty-change (optional no-op): we skip to avoid handlers expecting ids
+        console.warn('[rateplanNuke] Cleared DOM, globals, URL, history, and scoped cache.');
+      } catch(err){
+        console.error('[rateplanNuke] error:', err);
+      }
+    }
+    window.rateplanNuke = rateplanNuke;
   })();
 
   /* ANCHOR: PLAN_IDLE_RECONCILE */
@@ -1651,6 +1945,91 @@
     document.addEventListener('DOMContentLoaded', () => setTimeout(reconcileOnce, 150), { once: true });
   })();
   
+  /* ANCHOR: PLAN_RESTORE_ON_VISIBLE */
+  (function restorePlansOnVisible(){
+    const EVT = 'rateplans:changed';
+
+    function hasDomSelection(){
+      return !!document.querySelector('[data-plan-id].selected, input[name="rateplan"]:checked, input[data-plan-id]:checked');
+    }
+    function normIds(ids){
+      return (Array.isArray(ids) ? ids : [])
+        .map(n=>Number(n))
+        .filter(Number.isFinite)
+        .sort((a,b)=>a-b);
+    }
+    function idsExist(ids){
+      try {
+        if (typeof window.__planCacheTTL?._idsExistInDOM === 'function') {
+          return window.__planCacheTTL._idsExistInDOM(ids);
+        }
+      } catch(_){}
+      // fallback: scan DOM
+      const set = new Set(ids.map(String));
+      const nodes = document.querySelectorAll('[data-plan-id], input[data-plan-id], input[name="rateplan"]');
+      for (const n of nodes) {
+        const pid = n.getAttribute('data-plan-id') || n.value;
+        if (pid != null && set.has(String(Number(pid)))) return true;
+      }
+      return false;
+    }
+    function readFromURL(){
+      try {
+        const sp = new URLSearchParams(location.search);
+        const raw = sp.get('plans') || sp.get('plan') || '';
+        return normIds(raw.split(',').map(s=>Number(s.trim())));
+      } catch(_){ return []; }
+    }
+    function readFromHistory(){
+      try {
+        const s = (history.state && typeof history.state === 'object') ? history.state : {};
+        return normIds(Array.isArray(s.planIds) ? s.planIds : []);
+      } catch(_){ return []; }
+    }
+    function readFromCache(){
+      try {
+        const entry = window.__planCacheTTL?.read?.();
+        if (!entry || !window.__planCacheTTL?.isFresh?.(entry)) return [];
+        return normIds(String(entry.ids||'').split(',').map(s=>Number(s.trim())));
+      } catch(_){ return []; }
+    }
+    function emit(ids, primary, source){
+      try {
+        if (typeof window.emitRateplansChanged === 'function') {
+          window.emitRateplansChanged(ids, primary, source);
+        } else {
+          document.dispatchEvent(new CustomEvent(EVT, { detail: { ids, primary, source } }));
+        }
+      } catch(_){}
+    }
+
+    // Fire when tab becomes visible again
+    document.addEventListener('visibilitychange', () => {
+      if (document.visibilityState !== 'visible') return;
+      // Only restore if nothing is selected yet
+      if (hasDomSelection()) return;
+
+      // Prefer URL → History → Cache, and only if those IDs exist in the current DOM
+      const fromURL = readFromURL();
+      if (fromURL.length && idsExist(fromURL)) {
+        emit(fromURL, fromURL[0], 'plan-visible-url');
+        return;
+      }
+
+      const fromHist = readFromHistory();
+      if (fromHist.length && idsExist(fromHist)) {
+        emit(fromHist, fromHist[0], 'plan-visible-history');
+        return;
+      }
+
+      const fromCache = readFromCache();
+      if (fromCache.length && idsExist(fromCache)) {
+        emit(fromCache, fromCache[0], 'plan-visible-cache');
+        return;
+      }
+    }, { capture: true });
+  })();
+
   /* ANCHOR: NET_CANCEL_ON_EVENT */
   (function wireCancelOnRateplanChange(){
     // Cancel any in-flight calls that are tied to price/plan loads when plan changes
@@ -1715,6 +2094,59 @@
     };
   })();
 
+  /* ANCHOR: PLAN_APPLY_DOM_FALLBACK */
+  (function installPlanApplyDomFallback(){
+    // Low-level DOM applier (used only if setRoomPlanSelection is absent)
+    function applyPlansDirectToDom(roomTypeId, ids){
+      try {
+        const set = new Set((Array.isArray(ids)? ids: []).map(n=>Number(n)).filter(Number.isFinite));
+        const scope = document.getElementById('plans-panel') || document;
+
+        // Uncheck / unselect everything first (scoped)
+        scope.querySelectorAll('input[name="rateplan"], input[data-plan-id]').forEach(inp => {
+          if (inp.type === 'checkbox' || inp.type === 'radio') inp.checked = false;
+        });
+        scope.querySelectorAll('[data-plan-id].selected').forEach(n => n.classList.remove('selected'));
+
+        // Apply selection
+        scope.querySelectorAll('[data-plan-id], input[data-plan-id], input[name="rateplan"]').forEach(n => {
+          const pid = Number(n.getAttribute('data-plan-id') || n.value);
+          if (!Number.isFinite(pid)) return;
+          if (set.has(pid)) {
+            if (n.matches('input[type="checkbox"], input[type="radio"]')) n.checked = true;
+            const host = n.closest('[data-plan-id]') || n;
+            host.classList && host.classList.add('selected');
+          }
+        });
+      } catch(_){}
+    }
+
+    // If the page hasn't provided setRoomPlanSelection, install a safe fallback.
+    if (typeof window.setRoomPlanSelection !== 'function') {
+      window.setRoomPlanSelection = function(roomTypeId, ids){
+        // Defer to next frame to avoid fighting other handlers
+        try { requestAnimationFrame(() => applyPlansDirectToDom(roomTypeId, ids)); }
+        catch(_) { setTimeout(() => applyPlansDirectToDom(roomTypeId, ids), 0); }
+      };
+    } else {
+      // Wrap existing to add a verification pass if DOM didn't reflect selection
+      const original = window.setRoomPlanSelection;
+      window.setRoomPlanSelection = function(roomTypeId, ids){
+        try { original(roomTypeId, ids); } catch(_){}
+        // If DOM still doesn't show selection, apply minimal corrective pass
+        try {
+          const want = (Array.isArray(ids)? ids: []).map(Number).filter(Number.isFinite).sort((a,b)=>a-b).join(',');
+          const nodes = document.querySelectorAll('[data-plan-id].selected, input[name="rateplan"]:checked, input[data-plan-id]:checked');
+          const have = Array.from(nodes).map(n => Number(n.getAttribute('data-plan-id') || n.value))
+                            .filter(Number.isFinite).sort((a,b)=>a-b).join(',');
+          if (want && have !== want) {
+            requestAnimationFrame(() => applyPlansDirectToDom(roomTypeId, ids));
+          }
+        } catch(_){}
+      };
+    }
+  })();
+
   /* ANCHOR: PLAN_PANEL_CHANGE_AGGREGATOR */
   (function installPlanPanelChangeAggregator(){
     const PANEL = document.getElementById('plans-panel') || document.body;
@@ -1777,6 +2209,50 @@
         lastSig = ids.slice().sort((a,b)=>a-b).join(',');
       } catch(_){}
     }, false);
+  })();
+
+  /* ANCHOR: PLAN_BOOTSTRAP_FROM_DOM */
+  (function bootstrapPlansFromDomOnce(){
+    const EVT = 'rateplans:changed';
+    let ran = false;
+
+    function collectDomIds(){
+      const nodes = document.querySelectorAll('[data-plan-id].selected, input[name="rateplan"]:checked, input[data-plan-id]:checked');
+      return Array.from(nodes)
+        .map(n => Number(n.getAttribute('data-plan-id') || n.value))
+        .filter(Number.isFinite)
+        .sort((a,b)=>a-b);
+    }
+
+    function currentSig(){ return (Array.isArray(window.currentRatePlanIds) ? window.currentRatePlanIds.slice().sort((a,b)=>a-b) : []).join(','); }
+    function domSig(){ return collectDomIds().join(','); }
+
+    function emit(ids, primary, source){
+      if (typeof window.emitRateplansChanged === 'function') {
+        window.emitRateplansChanged(ids, primary, source);
+      } else {
+        document.dispatchEvent(new CustomEvent(EVT, { detail: { ids, primary, source } }));
+      }
+    }
+
+    function run(){
+      if (ran) return; ran = true;
+      const ids = collectDomIds();
+      if (!ids.length) return;
+
+      // If globals already match DOM, do nothing
+      if (currentSig() === ids.join(',')) return;
+
+      const primary = ids[0];
+      emit(ids, primary, 'plan-bootstrap-dom');
+    }
+
+    // Try on next frame and on DOMContentLoaded (whichever fires effectively first)
+    try {
+      requestAnimationFrame(() => setTimeout(run, 50));
+    } catch(_) { setTimeout(run, 80); }
+
+    document.addEventListener('DOMContentLoaded', () => setTimeout(run, 80), { once: true });
   })();
 
   // Persist the current room's chip selection whenever it changes (bubble phase)
