@@ -6512,30 +6512,27 @@
   if (typeof window.renderPlansPanel !== 'function') {
     window.renderPlansPanel = function(plans){
       const panel = document.getElementById('plans-panel');
-      if (!panel) return;
+      const host  = document.getElementById('rateplan-checks') || panel;
+      if (!host) return;
+
       const items = Array.isArray(plans) ? plans : [];
       const html = items.map(p => `
         <div class="plan-row" data-plan-id="${Number(p.id)}" data-plan-code="${String(p.code||'').toUpperCase()}">
-          <label class="plan-label" style="display:flex;gap:.5rem;align-items:center;">
+          <label class="plan-label">
             <input type="checkbox" class="plan-check" data-plan-id="${Number(p.id)}" />
-            <span class="plan-code" style="font-weight:600">${String(p.code||'').toUpperCase()}</span>
-            <span class="plan-name" style="opacity:.75">${p.name || ''}</span>
+            <span class="plan-code">${String(p.code||'').toUpperCase()}</span>
+            <span class="plan-name" style="opacity:.75;margin-left:.25rem">${p.name || ''}</span>
           </label>
         </div>
       `).join('');
-      // Put into a dedicated container inside the panel if present, else append after header
-      let mount = panel.querySelector('.plans-list');
-      if (!mount) {
-        mount = document.createElement('div');
-        mount.className = 'plans-list';
-        panel.appendChild(mount);
-      }
-      mount.innerHTML = html;
+
+      // Render inside the canonical container to keep existing CSS/grid
+      host.innerHTML = html;
 
       // Broadcast fresh IDs so other logic aligns
       const ids = items.map(p => Number(p.id)).filter(Number.isFinite).sort((a,b)=>a-b);
       document.dispatchEvent(new CustomEvent('rateplans:changed', { detail:{ ids: ids.join(','), source:'min-api-loader' }}));
-      console.info('[PLANS_PANEL] rendered rows', { ids });
+      console.info('[PLANS_PANEL] rendered rows', { ids, mount: host?.id || '(panel)' });
     };
     console.info('[PLANS_PANEL] shimmed renderPlansPanel');
   }
