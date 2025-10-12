@@ -3420,7 +3420,7 @@
     };
 
     // Make the visible chips match the current room’s selection, then broadcast.
-    window.syncChipsToCurrentRoom = function(){
+    if (typeof window.syncChipsToCurrentRoom !== 'function') window.syncChipsToCurrentRoom = function(){
       const rid = Number(window.currentRoomTypeId);
       if (!Number.isFinite(rid)) return;
 
@@ -6489,6 +6489,83 @@
     document.dispatchEvent(new CustomEvent('rateplans:changed', { detail:{ ids: ids.join(','), source:'min-render' }}));
     console.info('[PLANS_PANEL_MIN_RENDER] ensured rows', { ids });
   };
+})();
+</script>
+<!-- ANCHOR: PLANS_PANEL_MIN_API_LOADER (define missing plan funcs) -->
+<script>
+(function ensurePlanFns(){
+  // Only define if missing so we do not override your real implementations
+  if (typeof window.buildRenderablePlans !== 'function') {
+    window.buildRenderablePlans = function(planObjs){
+      const arr = Array.isArray(planObjs) ? planObjs : [];
+      return arr
+        .map(p => ({
+          id: Number(p.id || p.ratePlanId),
+          code: String(p.code || '').toUpperCase(),
+          name: p.name || p.code || `Plan ${p.id || p.ratePlanId}`
+        }))
+        .filter(p => Number.isFinite(p.id));
+    };
+    console.info('[PLANS_PANEL] shimmed buildRenderablePlans');
+  }
+
+  if (typeof window.renderPlansPanel !== 'function') {
+    window.renderPlansPanel = function(plans){
+      const panel = document.getElementById('plans-panel');
+      if (!panel) return;
+      const items = Array.isArray(plans) ? plans : [];
+      const html = items.map(p => `
+        <div class="plan-row" data-plan-id="${Number(p.id)}" data-plan-code="${String(p.code||'').toUpperCase()}">
+          <label class="plan-label" style="display:flex;gap:.5rem;align-items:center;">
+            <input type="checkbox" class="plan-check" data-plan-id="${Number(p.id)}" />
+            <span class="plan-code" style="font-weight:600">${String(p.code||'').toUpperCase()}</span>
+            <span class="plan-name" style="opacity:.75">${p.name || ''}</span>
+          </label>
+        </div>
+      `).join('');
+      // Put into a dedicated container inside the panel if present, else append after header
+      let mount = panel.querySelector('.plans-list');
+      if (!mount) {
+        mount = document.createElement('div');
+        mount.className = 'plans-list';
+        panel.appendChild(mount);
+      }
+      mount.innerHTML = html;
+
+      // Broadcast fresh IDs so other logic aligns
+      const ids = items.map(p => Number(p.id)).filter(Number.isFinite).sort((a,b)=>a-b);
+      document.dispatchEvent(new CustomEvent('rateplans:changed', { detail:{ ids: ids.join(','), source:'min-api-loader' }}));
+      console.info('[PLANS_PANEL] rendered rows', { ids });
+    };
+    console.info('[PLANS_PANEL] shimmed renderPlansPanel');
+  }
+
+  if (typeof window.loadRatePlansForRoom !== 'function') {
+    window.loadRatePlansForRoom = async function(roomId){
+      if (!roomId) return [];
+      const url = `/extranet/property/rateplans?roomTypeId=${roomId}`;
+      const fetcher = (typeof window.authFetch === 'function') ? window.authFetch : fetch;
+      const r = await fetcher(url, { method:'GET' });
+      const j = await r.json();
+      const raw = Array.isArray(j) ? j : (j.rows || j.plans || []);
+      const plans = window.buildRenderablePlans(raw);
+
+      // Cache by room for other helpers
+      window.__cachedPlansByRoom = window.__cachedPlansByRoom || new Map();
+      window.__cachedPlansByRoom.set(roomId, plans);
+
+      // Render immediately
+      window.renderPlansPanel(plans);
+      return plans;
+    };
+    console.info('[PLANS_PANEL] shimmed loadRatePlansForRoom');
+  }
+
+  // Try to load for current room after calendar render
+  document.addEventListener('calendar:rendered', () => {
+    const roomId = window.currentRoomTypeId || (window.__lastRenderedRoom||{}).id;
+    if (roomId) window.loadRatePlansForRoom(roomId).catch(()=>{});
+  }, { capture:false });
 })();
 </script>
 
