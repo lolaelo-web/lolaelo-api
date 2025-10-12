@@ -6375,5 +6375,80 @@
     height: 100%;
   }
 </style>
+<!-- ANCHOR: PLANS_PANEL_SELF_HEAL (empty-panel recovery) -->
+<script>
+(function plansPanelSelfHeal(){
+  // Debounce guard for repeated events
+  const KEY = '__plansPanelHealTick';
+  const LS_KEYS = ['rateplans.ids','rateplan.ids','rateplans.lastIds','rateplan.lastIds'];
+
+  async function fetchPlans(roomId){
+    const url = `/extranet/property/rateplans?roomTypeId=${roomId}`;
+    const r = (typeof window.authFetch === 'function') ? await window.authFetch(url) : await fetch(url);
+    const j = await r.json();
+    const raw = Array.isArray(j) ? j : (j.rows || j.plans || []);
+    return raw.map(p => ({
+      id: Number(p.id || p.ratePlanId),
+      code: String(p.code||'').toUpperCase(),
+      name: p.name || p.code || `Plan ${p.id||p.ratePlanId}`
+    })).filter(p => Number.isFinite(p.id));
+  }
+
+  async function ensurePlansRendered(sourceLabel){
+    const roomId = window.currentRoomTypeId || (window.__lastRenderedRoom||{}).id;
+    if (!roomId) return;
+
+    const panel = document.getElementById('plans-panel');
+    if (!panel) return;
+
+    const hasRows = panel.querySelectorAll('.plan-row[data-plan-id]').length > 0;
+    if (hasRows) return; // already good
+
+    // Clear stale LS expectations that can fight the DOM
+    try { LS_KEYS.forEach(k => localStorage.removeItem(k)); } catch(_){}
+
+    // Use cache first
+    window.__cachedPlansByRoom = window.__cachedPlansByRoom || new Map();
+    let plans = window.__cachedPlansByRoom.get(roomId);
+
+    if (!plans || !plans.length) {
+      // Fetch fresh from API
+      const apiPlans = await fetchPlans(roomId);
+      plans = (typeof window.buildRenderablePlans === 'function')
+        ? window.buildRenderablePlans(apiPlans)
+        : apiPlans;
+      window.__cachedPlansByRoom.set(roomId, plans);
+    }
+
+    // Render
+    if (typeof window.renderPlansPanel === 'function') {
+      window.renderPlansPanel(plans);
+    }
+
+    // Broadcast fresh IDs so integrity checks realign
+    const ids = plans.map(p => p.id).sort((a,b)=>a-b);
+    document.dispatchEvent(new CustomEvent('rateplans:changed', { detail:{ ids: ids.join(','), source: `heal:${sourceLabel||''}`}}));
+
+    // Log for debug
+    const domIds = Array.from(panel.querySelectorAll('.plan-row[data-plan-id]'))
+                   .map(el => Number(el.dataset.planId)).sort((a,b)=>a-b);
+    console.info('[PLANS_PANEL_SELF_HEAL]', { roomId, ids, domIds, source: sourceLabel });
+  }
+
+  // When plans change but panel is empty, repair it.
+  document.addEventListener('rateplans:changed', () => {
+    // rAF + micro-debounce to let other handlers run first
+    cancelAnimationFrame(window[KEY]);
+    window[KEY] = requestAnimationFrame(() => ensurePlansRendered('rateplans:changed'));
+  }, { capture:false });
+
+  // Also run after calendar (room) render just in case
+  document.addEventListener('calendar:rendered', () => {
+    cancelAnimationFrame(window[KEY]);
+    window[KEY] = requestAnimationFrame(() => ensurePlansRendered('calendar:rendered'));
+  }, { capture:false });
+})();
+</script>
+
 </body>
 </html>
