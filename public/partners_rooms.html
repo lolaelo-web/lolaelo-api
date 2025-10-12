@@ -6450,5 +6450,47 @@
 })();
 </script>
 
+<!-- ANCHOR: PLANS_PANEL_MIN_RENDER (safe fallback if no rows) -->
+<script>
+(function ensurePlansPanelHasRows(){
+  const PANEL_ID = 'plans-panel';
+
+  // Wrap existing renderer (if any) with a post-check; otherwise provide a minimal renderer.
+  const orig = window.renderPlansPanel;
+  window.renderPlansPanel = function(plans){
+    try { if (typeof orig === 'function') orig(plans); } catch(_) {}
+
+    const panel = document.getElementById(PANEL_ID);
+    if (!panel) return;
+
+    // If rows already exist, we're good.
+    if (panel.querySelector('.plan-row[data-plan-id]')) return;
+
+    // Minimal, non-invasive render to guarantee presence of rows.
+    const safePlans = (Array.isArray(plans) ? plans : []).filter(p => Number.isFinite(p.id));
+    if (!safePlans.length) return;
+
+    panel.innerHTML = safePlans.map(p => {
+      const id = Number(p.id);
+      const code = String(p.code || '').toUpperCase();
+      const name = p.name || code || `Plan ${id}`;
+      return `
+        <div class="plan-row" data-plan-id="${id}" data-plan-code="${code}">
+          <label class="plan-label">
+            <input type="checkbox" class="plan-check" data-plan-id="${id}" />
+            <span class="plan-code">${code}</span>
+            <span class="plan-name" style="opacity:.7;margin-left:.25rem">${name}</span>
+          </label>
+        </div>`;
+    }).join('');
+
+    // Broadcast IDs so other logic aligns
+    const ids = safePlans.map(p => p.id).sort((a,b)=>a-b);
+    document.dispatchEvent(new CustomEvent('rateplans:changed', { detail:{ ids: ids.join(','), source:'min-render' }}));
+    console.info('[PLANS_PANEL_MIN_RENDER] ensured rows', { ids });
+  };
+})();
+</script>
+
 </body>
 </html>
