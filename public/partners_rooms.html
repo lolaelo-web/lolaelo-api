@@ -6468,32 +6468,29 @@
     console.info('[PLANS_PANEL] shimmed buildRenderablePlans');
   }
 
-  if (typeof window.renderPlansPanel !== 'function') {
+    if (typeof window.renderPlansPanel !== 'function') {
+    // Shim: do NOT render into #rateplan-checks (chips are canonical).
+    // Just compute current plan IDs and broadcast so the rest of the page stays in sync.
     window.renderPlansPanel = function(plans){
-      const panel = document.getElementById('plans-panel');
-      const host  = document.getElementById('rateplan-checks') || panel;
+      const host = document.getElementById('rateplan-checks');
       if (!host) return;
 
-      const items = Array.isArray(plans) ? plans : [];
-      const html = items.map(p => `
-        <div class="plan-row" data-plan-id="${Number(p.id)}" data-plan-code="${String(p.code||'').toUpperCase()}">
-          <label class="plan-label">
-            <input type="checkbox" class="plan-check" data-plan-id="${Number(p.id)}" />
-            <span class="plan-code">${String(p.code||'').toUpperCase()}</span>
-            <span class="plan-name" style="opacity:.75;margin-left:.25rem">${p.name || ''}</span>
-          </label>
-        </div>
-      `).join('');
+      // Prefer whatever the DOM already has (chips or checkboxes), falling back to API 'plans'
+      const domIds = [...host.querySelectorAll('.chip[data-plan-id], .plan-row [data-plan-id], input.plan-check[data-plan-id]')]
+        .map(el => Number(el.getAttribute('data-plan-id')))
+        .filter(Number.isFinite);
 
-      // Render inside the canonical container to keep existing CSS/grid
-      host.innerHTML = html;
+      const ids = (domIds.length
+        ? Array.from(new Set(domIds))                                   // existing DOM wins
+        : (Array.isArray(plans) ? plans.map(p => Number(p.id || p.ratePlanId)) : [])
+            .filter(Number.isFinite));
 
-      // Broadcast fresh IDs so other logic aligns
-      const ids = items.map(p => Number(p.id)).filter(Number.isFinite).sort((a,b)=>a-b);
-      document.dispatchEvent(new CustomEvent('rateplans:changed', { detail:{ ids: ids.join(','), source:'min-api-loader' }}));
-      console.info('[PLANS_PANEL] rendered rows', { ids, mount: host?.id || '(panel)' });
+      // Broadcast IDs so integrity checks and URL state align
+      const sorted = ids.sort((a,b)=>a-b);
+      document.dispatchEvent(new CustomEvent('rateplans:changed', { detail:{ ids: String(sorted), source:'min-api-loader:sync-only' }}));
+      console.info('[PLANS_PANEL] sync-only renderPlansPanel', { ids: sorted, mount: '#rateplan-checks' });
     };
-    console.info('[PLANS_PANEL] shimmed renderPlansPanel');
+    console.info('[PLANS_PANEL] shimmed renderPlansPanel (sync-only)');
   }
 
   if (typeof window.loadRatePlansForRoom !== 'function') {
