@@ -845,6 +845,77 @@
     };
   })();
 
+  /* ANCHOR: PLAN_NET_CANCEL_ON_SCOPE */
+  (function cancelNetworkOnScopeChange(){
+    if (!window.__singleFlight?.cancelByPrefix) return;
+
+    const SSK = 'plan.scope.last';
+
+    function getScope(){
+      const prop = Number(window.currentPropertyId) || Number(new URLSearchParams(location.search).get('propertyId')) || 0;
+      const room = Number(window.currentRoomTypeId) || 0;
+      return { prop, room };
+    }
+    function readLast(){
+      try { return JSON.parse(sessionStorage.getItem(SSK) || 'null'); } catch(_){ return null; }
+    }
+    function writeLast(s){
+      try { sessionStorage.setItem(SSK, JSON.stringify(s)); } catch(_){}
+    }
+    function scopesDiffer(a,b){
+      if (!a || !b) return true;
+      return Number(a.prop)!==Number(b.prop) || Number(a.room)!==Number(b.room);
+    }
+
+    function cancelAll(){
+      try {
+        // Abort any pending reads tied to old scope
+        window.__singleFlight.cancelByPrefix('GET /api/prices');
+        window.__singleFlight.cancelByPrefix('GET /api/rateplans');
+        // (Extend here if you have other GETs to cancel)
+      } catch(_){}
+    }
+
+    function handleScopeChange(){
+      cancelAll();
+      // Optional: clear the "pending" flag so UI doesn’t look stuck
+      const host = document.getElementById('plans-panel') || document.documentElement;
+      host && host.removeAttribute('data-price-pending');
+    }
+
+    // Initial compare on load
+    (function init(){
+      const now = getScope();
+      const last = readLast();
+      if (scopesDiffer(now, last)) handleScopeChange();
+      writeLast(now);
+    })();
+
+    // React to navigation events that imply scope changes
+    window.addEventListener('popstate', () => {
+      const now = getScope();
+      const last = readLast();
+      if (scopesDiffer(now, last)) { handleScopeChange(); writeLast(now); }
+    }, { capture: true });
+
+    window.addEventListener('pageshow', () => {
+      const now = getScope();
+      const last = readLast();
+      if (scopesDiffer(now, last)) { handleScopeChange(); writeLast(now); }
+    }, { capture: true });
+
+    // Also react when URL’s query string changes without navigation (SPA links)
+    let prevHref = location.href;
+    setInterval(() => {
+      if (location.href !== prevHref) {
+        prevHref = location.href;
+        const now = getScope();
+        const last = readLast();
+        if (scopesDiffer(now, last)) { handleScopeChange(); writeLast(now); }
+      }
+    }, 400);
+  })();
+
   /* ANCHOR: PLAN_CACHE_DEFER_RESTORE */
   (function deferPlanRestoreUntilChips(){
     // Requires: window.__planCacheTTL (from PLAN_CACHE_TTL), and optionally window.emitRateplansChanged
@@ -1266,6 +1337,325 @@
         window.__singleFlight.json = jsonWithEvents;
       })();
 
+      /* ANCHOR: PLAN_PRICE_HINT_AND_PENDING */
+      (function installPriceHintAndPending(){
+        const EVT = 'rateplans:changed';
+        const host = document.getElementById('plans-panel') || document.documentElement;
+
+        // When selection changes, emit a hint with current selection signature.
+        document.addEventListener(EVT, (e) => {
+          try {
+            const ids = Array.isArray(e?.detail?.ids) ? e.detail.ids.map(Number).filter(Number.isFinite) : [];
+            if (!ids.length) return;
+            const sig = ids.slice().sort((a,b)=>a-b).join(',');
+
+            // Mark UI as "price pending" — optional CSS hook
+            host && host.setAttribute('data-price-pending', '1');
+
+            // Non-breaking hint event; your code can listen for this to eagerly fetch prices if desired
+            document.dispatchEvent(new CustomEvent('prices:hint', { detail: { planSig: sig, source: String(e?.detail?.source || '') }}));
+          } catch(_){}
+        }, false);
+
+        // Clear pending flag on successful prices response
+        document.addEventListener('net:success', (e) => {
+          try {
+            const key = String(e?.detail?.key || '');
+            if (!key.startsWith('GET /api/prices')) return;
+            host && host.removeAttribute('data-price-pending');
+          } catch(_){}
+        }, false);
+
+        // Also clear pending flag on price failure (epoch guard will auto-refetch when needed)
+        document.addEventListener('net:failure', (e) => {
+          try {
+            const key = String(e?.detail?.key || '');
+            if (!key.startsWith('GET /api/prices')) return;
+            host && host.removeAttribute('data-price-pending');
+          } catch(_){}
+        }, false);
+      })();
+
+      /* ANCHOR: PLAN_PRICE_HINT_DEBOUNCE */
+      (function debouncePriceHints(){
+        // Coalesce rapid selection changes into a single refetch signal.
+        // Non-breaking: your app can optionally listen to 'prices:refetch'
+        // to kick a fetch for the current view.
+        let t = null;
+        let lastSig = '';
+
+        function emitRefetch(sig){
+          try {
+            document.dispatchEvent(new CustomEvent('prices:refetch', { detail: { planSig: sig }}));
+          } catch(_){}
+        }
+
+        document.addEventListener('prices:hint', (e) => {
+          try {
+            const sig = String(e?.detail?.planSig || '');
+            if (!sig) return;
+            lastSig = sig;
+            clearTimeout(t);
+            t = setTimeout(() => emitRefetch(lastSig), 120);
+          } catch(_){}
+        }, false);
+      })();
+
+      /* ANCHOR: PLAN_PRICE_PENDING_WATCHDOG */
+      (function installPricePendingWatchdog(){
+        if (!window.__singleFlight || typeof window.__singleFlight.json !== 'function') return;
+
+        const host = document.getElementById('plans-panel') || document.documentElement;
+        let timer = null;
+
+        function currentPlanSig(){
+          const ids = Array.isArray(window.currentRatePlanIds) ? window.currentRatePlanIds
+                    : (Number.isFinite(window.currentRatePlanId) ? [window.currentRatePlanId] : []);
+          return ids.map(n=>Number(n)).filter(Number.isFinite).sort((a,b)=>a-b).join(',');
+        }
+
+        function keyToUrl(key){
+          try {
+            const space = key.indexOf(' ');
+            if (space === -1) return null;
+            const pathQuery = key.slice(space + 1);
+            return new URL(pathQuery, location.origin).toString();
+          } catch { return null; }
+        }
+
+        let lastPricesKey = '';
+        document.addEventListener('net:request', (e) => {
+          const k = String(e?.detail?.key || '');
+          if (k.startsWith('GET /api/prices')) lastPricesKey = k;
+        }, false);
+
+        function armWatchdog(){
+          clearTimeout(timer);
+          // Only arm if we’re actually pending
+          if (!host || host.getAttribute('data-price-pending') !== '1') return;
+          // If still pending after 2500ms, refetch for the *current* selection
+          timer = setTimeout(async () => {
+            try {
+              // Cancel if pending cleared in the meantime
+              if (!host || host.getAttribute('data-price-pending') !== '1') return;
+              const url = keyToUrl(lastPricesKey);
+              if (!url) return;
+              await window.__singleFlight.json(url, { method: 'GET' });
+            } catch(_) {}
+          }, 2500);
+        }
+
+        // Arm on hint (selection changed) and on debounce refetch signal
+        document.addEventListener('prices:hint', armWatchdog, false);
+        document.addEventListener('prices:refetch', armWatchdog, false);
+
+        // Disarm on success/failure of prices
+        function disarm(){ clearTimeout(timer); timer = null; }
+        document.addEventListener('net:success', (e) => {
+          if (String(e?.detail?.key || '').startsWith('GET /api/prices')) disarm();
+        }, false);
+        document.addEventListener('net:failure', (e) => {
+          if (String(e?.detail?.key || '').startsWith('GET /api/prices')) disarm();
+        }, false);
+      })();
+
+      /* ANCHOR: PRICES_SIG_CACHE */
+      (function installSelectionScopedPriceCache(){
+        if (!window.__singleFlight || typeof window.__singleFlight.json !== 'function') return;
+
+        const TTL_MS = 2 * 60 * 1000; // 2 minutes (aligns with NET_SINGLE_FLIGHT_CACHE for /api/prices)
+        const cache = new Map(); // sig -> { ts, data }
+        const orig = window.__singleFlight.json;
+
+        function now(){ return Date.now(); }
+        function isFresh(entry){ return !!entry && (now() - entry.ts) < TTL_MS; }
+
+        function currentPlanSig(){
+          const ids = Array.isArray(window.currentRatePlanIds)
+            ? window.currentRatePlanIds
+            : (Number.isFinite(window.currentRatePlanId) ? [window.currentRatePlanId] : []);
+          return ids.map(Number).filter(Number.isFinite).sort((a,b)=>a-b).join(',');
+        }
+
+        function sigFromUrl(url){
+          try {
+            const u = new URL(url, location.origin);
+            const s = u.searchParams.get('sel');
+            return s ? s : '';
+          } catch { return ''; }
+        }
+
+        // Decorate prices calls to store (and broadcast) results by selection signature
+        window.__singleFlight.json = async function jsonWithPricesSigCache(url, opts={}, keyOverride){
+          // Only affect /api/prices calls
+          let keyStr = '';
+          try {
+            const method = (opts && (opts.method||'GET')).toUpperCase();
+            const u = new URL(url, location.origin);
+            keyStr = `${method} ${u.pathname}`;
+          } catch { keyStr = (opts && (opts.method||'GET') || 'GET') + ' ' + String(url); }
+
+          const isPrices = keyStr.startsWith('GET /api/prices');
+          if (!isPrices) return orig(url, opts, keyOverride);
+
+          // Use selection signature in URL if present (from PLAN_PRICE_EPOCH_GUARD), else compute
+          const planSig = sigFromUrl(url) || currentPlanSig();
+
+          const data = await orig(url, opts, keyOverride);
+
+          try {
+            // Save fresh copy
+            cache.set(planSig, { ts: now(), data });
+            // Immediately announce ready data for this selection
+            document.dispatchEvent(new CustomEvent('prices:ready', {
+              detail: { planSig, data, source: 'net' }
+            }));
+          } catch(_){}
+
+          return data;
+        };
+
+        // If a selection change happens and we already have fresh prices for that sig,
+        // emit them instantly (before the network completes) for perceived snappiness.
+        document.addEventListener('prices:hint', (e) => {
+          try {
+            const sig = String(e?.detail?.planSig || '');
+            if (!sig) return;
+            const entry = cache.get(sig);
+            if (isFresh(entry)) {
+              document.dispatchEvent(new CustomEvent('prices:ready', {
+                detail: { planSig: sig, data: entry.data, source: 'cache' }
+              }));
+            }
+          } catch(_){}
+        }, false);
+
+        // Expose a tiny helper for manual pulls if you want
+        window.__pricesBySig = {
+          get(sig){ const x = cache.get(String(sig||'')); return isFresh(x) ? x.data : null; },
+          getCurrent(){ return this.get(currentPlanSig()); },
+          _debugDump(){ return Array.from(cache.keys()); }
+        };
+      })();
+
+      /* ANCHOR: PRICES_READY_GATE */
+      (function installPricesReadyGate(){
+        const host = document.getElementById('plans-panel') || document.documentElement;
+
+        function currentPlanSig(){
+          const ids = Array.isArray(window.currentRatePlanIds)
+            ? window.currentRatePlanIds
+            : (Number.isFinite(window.currentRatePlanId) ? [window.currentRatePlanId] : []);
+          return ids.map(Number).filter(Number.isFinite).sort((a,b)=>a-b).join(',');
+        }
+
+        // Only re-emit prices when they match the current selection signature.
+        // Non-breaking: your app can optionally listen to 'prices:display' to render.
+        document.addEventListener('prices:ready', (e) => {
+          try {
+            const sig = String(e?.detail?.planSig || '');
+            const data = e?.detail?.data;
+            const src  = String(e?.detail?.source || '');
+
+            if (!sig) return;
+
+            if (sig === currentPlanSig()) {
+              // Clear any "stale" marker and announce display-ready prices
+              host && host.removeAttribute('data-price-stale');
+              document.dispatchEvent(new CustomEvent('prices:display', {
+                detail: { planSig: sig, data, source: src }
+              }));
+            } else {
+              // Mark that we received prices for an outdated selection; harmless, just diagnostic
+              host && host.setAttribute('data-price-stale', '1');
+            }
+          } catch(_){}
+        }, false);
+      })();
+
+      /* ANCHOR: PRICES_PENDING_CLEAR_ON_DISPLAY */
+      (function clearPendingOnPricesDisplay(){
+        const host = document.getElementById('plans-panel') || document.documentElement;
+
+        // When prices are ready-to-display (cache or network), clear pending and tag the sig.
+        document.addEventListener('prices:display', (e) => {
+          try {
+            const sig = String(e?.detail?.planSig || '');
+            if (host) {
+              host.removeAttribute('data-price-pending');   // stop any spinner immediately
+              if (sig) host.setAttribute('data-price-sig', sig); // useful for debugging/styling
+            }
+          } catch(_){}
+        }, false);
+      })();
+
+      /* ANCHOR: PLAN_PRICE_EPOCH_GUARD */
+      (function decoratePricesWithEpochGuard(){
+        if (!window.__singleFlight || typeof window.__singleFlight.json !== 'function') return;
+
+        const origJson = window.__singleFlight.json;
+        const LS_NS = 'net.cache.v1:'; // matches NET_SINGLE_FLIGHT_CACHE
+        const DEV = !/^(prod|production)$/i.test(String(window.__env||'')) && location.hostname !== 'lolaelo.com';
+
+        function normalizeKey(url, opts){
+          try {
+            const u = new URL(url, location.origin);
+            const entries = [...u.searchParams.entries()].filter(([k]) => k !== 'cb').sort((a,b)=> a[0].localeCompare(b[0]));
+            const q = new URLSearchParams(entries).toString();
+            const method = (opts && (opts.method||'GET')).toUpperCase();
+            return `${method} ${u.pathname}${q ? ('?'+q) : ''}`;
+          } catch {
+            return (opts && (opts.method||'GET')).toUpperCase() + ' ' + String(url);
+          }
+        }
+
+        function currentPlanSig(){
+          const ids = Array.isArray(window.currentRatePlanIds) ? window.currentRatePlanIds : (
+            Number.isFinite(window.currentRatePlanId) ? [window.currentRatePlanId] : []
+          );
+          return ids.map(n=>Number(n)).filter(Number.isFinite).sort((a,b)=>a-b).join(',');
+        }
+
+        function deleteCacheForKey(key){
+          try { localStorage.removeItem(LS_NS + key); } catch(_){}
+        }
+
+        async function jsonWithEpoch(url, opts={}, keyOverride){
+          const key = keyOverride || normalizeKey(url, opts);
+
+          // Only guard read calls to prices
+          if (!key.startsWith('GET /api/prices')) {
+            return origJson(url, opts, keyOverride);
+          }
+
+          // Capture the selection signature at request start
+          const sigAtStart = currentPlanSig();
+
+          // Also append it to the URL as sel= to isolate cache entries per selection
+          try {
+            const u = new URL(url, location.origin);
+            u.searchParams.set('sel', sigAtStart || 'none');
+            url = u.toString();
+          } catch(_) {}
+
+          // Use original (already decorated with retry/cache/events)
+          const data = await origJson(url, opts, keyOverride);
+
+          // If selection changed while we were in-flight, reject as stale and nuke that cache entry
+          const sigNow = currentPlanSig();
+          if (sigNow !== sigAtStart) {
+            const nk = normalizeKey(url, opts); // includes sel=; matches cache key
+            deleteCacheForKey(nk);
+            if (DEV) console.warn('[PRICES_EPOCH_GUARD] Dropping stale price response (sig changed)', { sigAtStart, sigNow });
+            throw new Error('STALE_PRICE_RESPONSE: selection changed during prices request');
+          }
+
+          return data;
+        }
+
+        window.__singleFlight.json = jsonWithEpoch;
+      })();
+
       flights.set(key, { promise: p, controllers: new Set([controller]), startedAt: Date.now() });
       return p;
     }
@@ -1280,6 +1670,50 @@
     }
 
     window.__singleFlight = { json, cancelByPrefix };
+  })();
+
+  /* ANCHOR: PLAN_PRICE_AUTO_REFETCH_ON_STALE */
+  (function autoRefetchPricesOnStale(){
+    if (!window.__singleFlight || typeof window.__singleFlight.json !== 'function') return;
+
+    // Track the most recent prices request key so we can reconstruct a fresh URL
+    let lastPricesKey = '';
+
+    function keyToUrl(key){
+      // key format: "GET /api/prices?foo=1&bar=2"
+      try {
+        const space = key.indexOf(' ');
+        if (space === -1) return null;
+        const pathQuery = key.slice(space + 1);
+        return new URL(pathQuery, location.origin).toString();
+      } catch { return null; }
+    }
+
+    // Remember latest prices request (any variant)
+    document.addEventListener('net:request', (e) => {
+      try {
+        const k = String(e?.detail?.key || '');
+        if (k.startsWith('GET /api/prices')) lastPricesKey = k;
+      } catch(_){}
+    }, false);
+
+    // If a prices call fails because selection changed mid-flight, immediately refetch for the *current* selection.
+    document.addEventListener('net:failure', async (e) => {
+      try {
+        const key = String(e?.detail?.key || '');
+        const err = String(e?.detail?.error || '');
+        if (!key.startsWith('GET /api/prices')) return;
+        if (!/STALE_PRICE_RESPONSE/.test(err)) return;
+
+        // Rebuild a fresh URL from the last known prices key (without cb/sel; guards will add them)
+        const url = keyToUrl(lastPricesKey || key);
+        if (!url) return;
+
+        // Fire a replacement request; existing guards (single-flight + epoch) will keep it clean
+        await window.__singleFlight.json(url, { method: 'GET' });
+        // No need to do anything else — your existing prices rendering logic should react to the success.
+      } catch(_){}
+    }, false);
   })();
 
   /* ANCHOR: PLAN_RESTORE_ON_RATEPLANS_FETCH */
@@ -1429,6 +1863,68 @@
     }, true);
   })();
   
+  /* ANCHOR: PLAN_SELECTION_EPOCH */
+  (function installPlanSelectionEpoch(){
+    // Global epoch controller
+    const EP = { cur: 0, isCurrent(e){ return Number(e) === this.cur; } };
+    window.__planEpoch = EP;
+
+    // Capture-phase: stamp every normalized event with a fresh epoch
+    document.addEventListener('rateplans:changed', (e) => {
+      try {
+        // Bump epoch and stamp detail
+        EP.cur += 1;
+        const epoch = EP.cur;
+        if (e.detail && typeof e.detail === 'object') e.detail.epoch = epoch;
+
+        // Surface epoch for debug and to help CSS/tests if needed
+        const host = document.getElementById('plans-panel') || document.documentElement;
+        host && host.setAttribute('data-plan-epoch', String(epoch));
+      } catch(_){}
+    }, true); // capture -> runs before other handlers
+
+    // After handlers run: guard against stale DOM application
+    document.addEventListener('rateplans:changed', (e) => {
+      try {
+        const epoch = Number(e?.detail?.epoch);
+        if (!Number.isFinite(epoch)) return;
+
+        // Verify DOM reflects the latest epoch within a frame; if not, nudge it once.
+        requestAnimationFrame(() => {
+          // If another newer change happened in the meantime, bail.
+          if (!EP.isCurrent(epoch)) return;
+
+          // Build DOM signature
+          const nodes = document.querySelectorAll('[data-plan-id].selected, input[name="rateplan"]:checked, input[data-plan-id]:checked');
+          const have = Array.from(nodes).map(n => Number(n.getAttribute('data-plan-id') || n.value))
+                            .filter(Number.isFinite).sort((a,b)=>a-b).join(',');
+
+          const wantArr = Array.isArray(e?.detail?.ids) ? e.detail.ids.map(Number).filter(Number.isFinite).sort((a,b)=>a-b) : [];
+          const want = wantArr.join(',');
+
+          if (want && have !== want) {
+            const rid = Number(window.currentRoomTypeId);
+            // Use whichever applier is available (our wrapper or fallback)
+            if (Number.isFinite(rid) && typeof window.setRoomPlanSelection === 'function') {
+              try { window.setRoomPlanSelection(rid, wantArr); } catch(_){}
+            }
+          }
+        });
+      } catch(_){}
+    }, false);
+
+    // Tag outgoing prices requests with the epoch (helps diagnostics & cache separation if needed)
+    document.addEventListener('net:request', (e) => {
+      try {
+        const key = String(e?.detail?.key || '');
+        if (!key.startsWith('GET /api/prices')) return;
+        // Reflect latest epoch for visibility (request URL already carries sel= from the price guard)
+        const host = document.getElementById('plans-panel') || document.documentElement;
+        host && host.setAttribute('data-price-epoch', String(EP.cur));
+      } catch(_){}
+    }, false);
+  })();
+
   /* ANCHOR: PLAN_USER_INTENT_LOCK */
   (function installPlanUserIntentLock(){
     const EVT = 'rateplans:changed';
@@ -1596,6 +2092,58 @@
         if (src === 'plan-panel-aggregate') cancelTimers();
       } catch(_){}
     }, false);
+  })();
+
+  /* ANCHOR: PLAN_REASSERT_AFTER_USER */
+  (function installPlanUserReassert(){
+    const EVT = 'rateplans:changed';
+    const USER_SRC = 'plan-panel-aggregate'; // emitted by our aggregator on real user input
+
+    let timer = null;
+    let sigTarget = '';
+
+    function sigOfIds(ids){
+      return (Array.isArray(ids) ? ids.slice().sort((a,b)=>a-b) : []).join(',');
+    }
+    function currentDomSig(){
+      const nodes = document.querySelectorAll('[data-plan-id].selected, input[name="rateplan"]:checked, input[data-plan-id]:checked');
+      const ids = Array.from(nodes)
+        .map(n => Number(n.getAttribute('data-plan-id') || n.value))
+        .filter(Number.isFinite)
+        .sort((a,b)=>a-b);
+      return ids.join(',');
+    }
+    function scheduleVerify(ids, primary){
+      clearTimeout(timer);
+      sigTarget = sigOfIds(ids);
+      timer = setTimeout(() => {
+        timer = null;
+        // If DOM lost the user's selection (e.g., late re-render), reassert once
+        if (!sigTarget || currentDomSig() === sigTarget) return;
+        try {
+          if (typeof window.emitRateplansChanged === 'function') {
+            window.emitRateplansChanged(ids, primary, 'plan-user-reassert-500');
+          } else {
+            document.dispatchEvent(new CustomEvent(EVT, { detail: { ids, primary, source: 'plan-user-reassert-500' } }));
+          }
+        } catch(_){}
+      }, 500);
+    }
+
+    // Start a one-off verify after genuine user input
+    document.addEventListener(EVT, (e) => {
+      try {
+        const src = String(e?.detail?.source || '');
+        if (src !== USER_SRC) return;
+        const ids = Array.isArray(e?.detail?.ids) ? e.detail.ids.map(Number).filter(Number.isFinite) : [];
+        if (!ids.length) return;
+        const primary = Number.isFinite(Number(e?.detail?.primary)) ? Number(e.detail.primary) : ids[0];
+        scheduleVerify(ids, primary);
+      } catch(_){}
+    }, false);
+
+    // Any subsequent change cancels the pending verify
+    document.addEventListener(EVT, () => { clearTimeout(timer); timer = null; sigTarget = ''; }, true);
   })();
 
   /* ANCHOR: PLAN_HISTORY_SYNC */
