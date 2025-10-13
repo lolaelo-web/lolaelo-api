@@ -6608,6 +6608,110 @@
   }, true);
 })();
 </script>
+<!-- ANCHOR: RATEPLAN_CHIPS_WRAPPER_DEDUP (minimal, safe) -->
+<script>
+(function(){
+  if (window.__RATEPLAN_CHIPS_WRAPPER_DEDUP__) return;
+  window.__RATEPLAN_CHIPS_WRAPPER_DEDUP__ = true;
+
+  const HOST_SEL = '#rateplan-checks';
+  const WRAP_SEL = '.chip[data-plan-id], .plan-row[data-plan-id]';
+  const CB_SEL   = 'input[type="checkbox"][data-plan-id]';
+
+  function parseCsvIds(csv){
+    return String(csv||'').split(',')
+      .map(n=>Number(n.trim()))
+      .filter(Number.isFinite)
+      .sort((a,b)=>a-b);
+  }
+
+  function dedupeOnce(targetIds){
+    const host = document.querySelector(HOST_SEL);
+    if (!host) return;
+
+    // If no targetIds provided, use wrappers currently present.
+    let want = Array.isArray(targetIds) && targetIds.length
+      ? targetIds
+      : [...host.querySelectorAll(WRAP_SEL)]
+          .map(w => Number(w.getAttribute('data-plan-id')))
+          .filter(Number.isFinite)
+          .sort((a,b)=>a-b);
+
+    const keep = new Set(want);
+
+    // Remove any standalone inputs not inside a wrapper
+    host.querySelectorAll(CB_SEL).forEach(cb=>{
+      const wrap = cb.closest(WRAP_SEL);
+      if (!wrap) cb.remove();
+    });
+
+    // Remove wrappers not in desired set
+    host.querySelectorAll(WRAP_SEL).forEach(w=>{
+      const pid = Number(w.getAttribute('data-plan-id'));
+      if (!keep.has(pid)) w.remove();
+    });
+
+    // Keep only first wrapper per id
+    const first = new Map();
+    [...host.querySelectorAll(WRAP_SEL)].forEach(w=>{
+      const pid = Number(w.getAttribute('data-plan-id'));
+      if (first.has(pid)) { w.remove(); return; }
+      first.set(pid, w);
+    });
+
+    // Ensure each desired id exists exactly once with a single checked checkbox
+    want.forEach(id=>{
+      let wrap = first.get(id);
+      if (!wrap){
+        wrap = document.createElement('div');
+        wrap.className = 'chip';
+        wrap.setAttribute('data-plan-id', String(id));
+        wrap.innerHTML = `<label class="plan-label">
+          <input type="checkbox" class="plan-check" data-plan-id="${id}" />
+          <span class="plan-code">${id}</span>
+        </label>`;
+        host.appendChild(wrap);
+        first.set(id, wrap);
+      }
+      const inputs = [...wrap.querySelectorAll(CB_SEL)];
+      let cb = inputs[0];
+      inputs.slice(1).forEach(x=>x.remove());
+      if (!cb){
+        cb = document.createElement('input');
+        cb.type = 'checkbox';
+        cb.className = 'plan-check';
+        cb.setAttribute('data-plan-id', String(id));
+        wrap.appendChild(cb);
+      }
+      cb.checked = true; cb.disabled = false;
+      wrap.classList.add('active');
+    });
+  }
+
+  // Run once after DOM is ready
+  document.addEventListener('DOMContentLoaded', ()=>dedupeOnce(), { once:true });
+
+  // Normalize on rateplans:changed (capture so we act before other listeners)
+  document.addEventListener('rateplans:changed', (e)=>{
+    try {
+      const csv = e?.detail?.ids;
+      const ids = parseCsvIds(csv);
+      if (ids.length) dedupeOnce(ids);
+      // Re-broadcast a clean event for downstream listeners
+      setTimeout(()=>{
+        const cleanIds = [...document.querySelectorAll(`${HOST_SEL} ${CB_SEL}:checked`)]
+          .map(cb=>Number(cb.getAttribute('data-plan-id')))
+          .filter(Number.isFinite)
+          .sort((a,b)=>a-b)
+          .join(',');
+        document.dispatchEvent(new CustomEvent('rateplans:changed', { detail:{ ids: cleanIds, source:'wrapper-dedup' }}));
+      },0);
+      // Stop the original so only normalized detail propagates
+      e.stopImmediatePropagation();
+    } catch(_) { /* fall through */ }
+  }, true);
+})();
+</script>
 
 </body>
 </html>
