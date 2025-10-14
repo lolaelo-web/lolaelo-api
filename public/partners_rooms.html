@@ -6491,7 +6491,7 @@
     return map;
   }
 
-  // --- shims (only if missing) ----------------------------------------------
+    // --- shims (only if missing) ----------------------------------------------
   if (typeof window.buildRenderablePlans !== 'function') {
     window.buildRenderablePlans = function(planObjs){
       var arr = Array.isArray(planObjs) ? planObjs : [];
@@ -6518,11 +6518,43 @@
       var host = document.getElementById('rateplan-checks');
       if (!host) return;
 
+      // Local helpers (no external deps)
+      function qsaNums(sel, attr, root){
+        attr = attr || 'data-plan-id';
+        root = root || document;
+        var list = root.querySelectorAll(sel);
+        var out = [];
+        for (var i=0; i<list.length; i++){
+          var v = Number(list[i].getAttribute(attr));
+          if (isFinite(v)) out.push(v);
+        }
+        return out;
+      }
+      function uniqNums(arr){
+        var out = [], seen = Object.create(null);
+        for (var i=0;i<(arr||[]).length;i++){
+          var n = arr[i];
+          if (typeof n === 'number' && isFinite(n) && !seen[n]){ seen[n]=1; out.push(n); }
+        }
+        return out;
+      }
+      function buildCodeIdMap(src){
+        var map = new Map();
+        var arr = Array.isArray(src) ? src : [];
+        for (var i=0;i<arr.length;i++){
+          var p = arr[i] || {};
+          var id = Number(p.id || p.ratePlanId);
+          var code = String(p.code || '').toUpperCase();
+          if (isFinite(id) && code) map.set(code, id);
+        }
+        return map;
+      }
+
       // Gather IDs already present
       var chipIds = qsaNums('.chip[data-plan-id]', 'data-plan-id', host);
       var rowIds  = qsaNums('#plans-panel .plan-row[data-plan-id]');
 
-      // Also include rows that only have data-plan-code (CUS1/CUS2 before id attaches)
+      // Include rows that only have data-plan-code (before id attaches)
       var codeOnlyEls = document.querySelectorAll('#plans-panel .plan-row[data-plan-code]:not([data-plan-id])');
       var codeOnlyIds = [];
       if (codeOnlyEls.length){
@@ -6565,28 +6597,84 @@
   }
 
   if (typeof window.loadRatePlansForRoom !== 'function') {
+    // Augments API plans with chip-derived plans (covers Custom 1/2) before caching.
     window.loadRatePlansForRoom = function(roomId){
       if (!roomId) return Promise.resolve([]);
+
+      function normPlans(raw){
+        var out = [];
+        var arr = Array.isArray(raw) ? raw : (raw && (raw.rows || raw.plans) ? (raw.rows || raw.plans) : []);
+        for (var i=0; i<arr.length; i++){
+          var p = arr[i] || {};
+          var id = Number(p.id || p.ratePlanId);
+          if (!isFinite(id)) continue;
+          out.push({
+            id: id,
+            code: String(p.code || '').toUpperCase(),
+            name: p.name || p.code || ('Plan ' + (p.id || p.ratePlanId))
+          });
+        }
+        return out;
+      }
+      function chipPlans(){
+        var list = document.querySelectorAll('#rateplan-checks .chip[data-plan-id]');
+        var out = [];
+        for (var i=0; i<list.length; i++){
+          var el = list[i];
+          var id = Number(el.getAttribute('data-plan-id'));
+          if (!isFinite(id)) continue;
+          var code = String(el.getAttribute('data-plan-code') || '').toUpperCase();
+          var label = (el.textContent || '').trim();
+          if (!code) {
+            if (/custom\s*1/i.test(label)) code = 'CUS1';
+            else if (/custom\s*2/i.test(label)) code = 'CUS2';
+          }
+          out.push({ id:id, code:code, name:label || code || ('Plan ' + id) });
+        }
+        return out;
+      }
+      function unionById(a, b){
+        var seen = Object.create(null), out = [];
+        function add(arr){
+          for (var i=0;i<(arr||[]).length;i++){
+            var p = arr[i]; if (!p) continue;
+            var id = Number(p.id);
+            if (!isFinite(id) || seen[id]) continue;
+            seen[id] = 1; out.push(p);
+          }
+        }
+        add(a); add(b);
+        return out;
+      }
+
       var url = '/extranet/property/rateplans?roomTypeId=' + roomId;
       var fetcher = (typeof window.authFetch === 'function') ? window.authFetch : fetch;
 
       return fetcher(url, { method:'GET' })
         .then(function(r){ return r.json(); })
         .then(function(j){
-          var raw = Array.isArray(j) ? j : (j.rows || j.plans || []);
-          var plans = (typeof window.buildRenderablePlans === 'function')
-            ? window.buildRenderablePlans(raw)
-            : raw;
-          // Cache by room
+          var apiPlans = normPlans(j);
+          var chipAugments = chipPlans();
+          var merged = unionById(apiPlans, chipAugments);
+
+          // Cache by room (consumers that read from cache will now see customs)
           window.__cachedPlansByRoom = window.__cachedPlansByRoom || new Map();
-          window.__cachedPlansByRoom.set(roomId, plans);
-          // Compute/broadcast active IDs now
-          window.renderPlansPanel(plans);
-          return plans;
+          window.__cachedPlansByRoom.set(roomId, merged);
+
+          // Broadcast ids now based on merged set
+          if (typeof window.renderPlansPanel === 'function') window.renderPlansPanel(merged);
+          return merged;
         })
-        .catch(function(){ return []; });
+        .catch(function(e){
+          // API failed — keep UI consistent with whatever chips indicate
+          var fallback = chipPlans();
+          window.__cachedPlansByRoom = window.__cachedPlansByRoom || new Map();
+          window.__cachedPlansByRoom.set(roomId, fallback);
+          if (typeof window.renderPlansPanel === 'function') window.renderPlansPanel(fallback);
+          return fallback;
+        });
     };
-    console.info('[PLANS_PANEL] shimmed loadRatePlansForRoom');
+    console.info('[PLANS_PANEL] shimmed loadRatePlansForRoom (chip-augmented)');
   }
 
   // After calendar builds, load plans for current room and broadcast IDs
