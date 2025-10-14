@@ -6453,7 +6453,39 @@
 <!-- ANCHOR: PLANS_PANEL_MIN_API_LOADER (define missing plan funcs) -->
 <script>
 (function ensurePlanFns(){
-  // Only define if missing so we do not override your real implementations
+  // --- helpers ---------------------------------------------------------------
+  function uniqNums(arr){
+    return Array.from(new Set((arr||[]).filter(Number.isFinite)));
+  }
+  function qsaNums(sel, attr='data-plan-id', root=document){
+    return Array.from(root.querySelectorAll(sel))
+      .map(el => Number(el.getAttribute(attr)))
+      .filter(Number.isFinite);
+  }
+
+  // Track any plan IDs we've ever seen in the DOM (guards re-renders)
+  window.__seenPlanIds = window.__seenPlanIds || new Set();
+  function captureDomPlanIds(){
+    try {
+      const chipIds = qsaNums('#rateplan-checks .chip[data-plan-id]');
+      const rowIds  = qsaNums('#plans-panel .plan-row[data-plan-id]');
+      [...chipIds, ...rowIds].forEach(id => window.__seenPlanIds.add(id));
+      return uniqNums([...chipIds, ...rowIds]);
+    } catch(_){ return []; }
+  }
+
+  // Keep updating __seenPlanIds whenever the plans panel changes
+  (function watchPlansPanel(){
+    try {
+      const panel = document.querySelector('#plans-panel');
+      if (!panel) return;
+      const mo = new MutationObserver(() => captureDomPlanIds());
+      mo.observe(panel, { childList:true, subtree:true });
+      captureDomPlanIds(); // initial
+    } catch(_){}
+  })();
+
+  // --- shims (only if missing) ----------------------------------------------
   if (typeof window.buildRenderablePlans !== 'function') {
     window.buildRenderablePlans = function(planObjs){
       const arr = Array.isArray(planObjs) ? planObjs : [];
@@ -6468,27 +6500,32 @@
     console.info('[PLANS_PANEL] shimmed buildRenderablePlans');
   }
 
-    if (typeof window.renderPlansPanel !== 'function') {
-    // Shim: do NOT render into #rateplan-checks (chips are canonical).
-    // Just compute current plan IDs and broadcast so the rest of the page stays in sync.
+  if (typeof window.renderPlansPanel !== 'function') {
+    // NOTE: We do NOT render into #rateplan-checks (chips stay canonical).
+    // We only compute the active plan IDs and broadcast them.
     window.renderPlansPanel = function(plans){
       const host = document.getElementById('rateplan-checks');
       if (!host) return;
 
-      // Prefer whatever the DOM already has (chips or checkboxes), falling back to API 'plans'
-      const domIds = [...host.querySelectorAll('.chip[data-plan-id], .plan-row [data-plan-id], input.plan-check[data-plan-id]')]
-        .map(el => Number(el.getAttribute('data-plan-id')))
-        .filter(Number.isFinite);
+      // Gather sources:
+      const chipIds  = qsaNums('.chip[data-plan-id]', 'data-plan-id', host);
+      const rowIds   = qsaNums('#plans-panel .plan-row[data-plan-id]');
+      const seenIds  = Array.from(window.__seenPlanIds || []);
+      const apiIds   = (Array.isArray(plans)
+                        ? plans.map(p => Number(p.id || p.ratePlanId)).filter(Number.isFinite)
+                        : []);
 
-      const ids = (domIds.length
-        ? Array.from(new Set(domIds))                                   // existing DOM wins
-        : (Array.isArray(plans) ? plans.map(p => Number(p.id || p.ratePlanId)) : [])
-            .filter(Number.isFinite));
+      // Union all sources so customs never vanish on sync re-render
+      let ids = uniqNums([...chipIds, ...rowIds, ...seenIds, ...apiIds]).sort((a,b)=>a-b);
 
-      // Broadcast IDs so integrity checks and URL state align
-      const sorted = ids.sort((a,b)=>a-b);
-      document.dispatchEvent(new CustomEvent('rateplans:changed', { detail:{ ids: String(sorted), source:'min-api-loader:sync-only' }}));
-      console.info('[PLANS_PANEL] sync-only renderPlansPanel', { ids: sorted, mount: '#rateplan-checks' });
+      // Keep __seenPlanIds updated (no harm if duplicates)
+      ids.forEach(id => window.__seenPlanIds.add(id));
+
+      // Broadcast for URL/state sync; chips renderer will handle UI
+      document.dispatchEvent(new CustomEvent('rateplans:changed', {
+        detail:{ ids: String(ids), source:'min-api-loader:sync-only' }
+      }));
+      console.info('[PLANS_PANEL] sync-only renderPlansPanel', { ids, mount: '#rateplan-checks' });
     };
     console.info('[PLANS_PANEL] shimmed renderPlansPanel (sync-only)');
   }
@@ -6507,20 +6544,25 @@
       window.__cachedPlansByRoom = window.__cachedPlansByRoom || new Map();
       window.__cachedPlansByRoom.set(roomId, plans);
 
-      // Render immediately
+      // Compute/broadcast active IDs now
       window.renderPlansPanel(plans);
       return plans;
     };
     console.info('[PLANS_PANEL] shimmed loadRatePlansForRoom');
   }
 
-  // Try to load for current room after calendar render
+  // After calendar builds, load plans for current room and broadcast IDs
   document.addEventListener('calendar:rendered', () => {
-    const roomId = window.currentRoomTypeId || (window.__lastRenderedRoom||{}).id;
-    if (roomId) window.loadRatePlansForRoom(roomId).catch(()=>{});
+    try {
+      captureDomPlanIds(); // catch any customs that flashed in early pass
+      const roomId = window.currentRoomTypeId || (window.__lastRenderedRoom||{}).id;
+      if (roomId) window.loadRatePlansForRoom(roomId).catch(()=>{});
+    } catch(_){}
   }, { capture:false });
+
 })();
 </script>
+
 <!-- ANCHOR: RATEPLAN_EVENT_NORMALIZER (prevents stale expectedIds mismatches) -->
 <script>
 (function rateplanEventNormalizer(){
