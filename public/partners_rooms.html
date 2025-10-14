@@ -6608,93 +6608,86 @@
   }, true);
 })();
 </script>
-<!-- ANCHOR: RATEPLAN_CHIPS_WRAPPER_DEDUP (no wrapper creation; safe) -->
+<!-- ANCHOR: RATEPLAN_CHIPS_NORMALIZE (checkbox plans only; do NOT touch custom chips) -->
 <script>
 (function(){
-  if (window.__RATEPLAN_CHIPS_WRAPPER_DEDUP_V2__) return;
-  window.__RATEPLAN_CHIPS_WRAPPER_DEDUP_V2__ = true;
+  if (window.__RATEPLAN_CHIPS_NORMALIZE__) return;
+  window.__RATEPLAN_CHIPS_NORMALIZE__ = true;
 
   const HOST_SEL = '#rateplan-checks';
-  const WRAP_SEL = '.chip[data-plan-id], .plan-row[data-plan-id]';
+  const WRAP_SEL = '.chip, .plan-row';
   const CB_SEL   = 'input[type="checkbox"][data-plan-id]';
 
-  function parseCsvIds(csv){
-    return String(csv||'').split(',')
+  function parseIds(csv){
+    return String(csv||'')
+      .split(',')
       .map(n=>Number(n.trim()))
       .filter(Number.isFinite)
       .sort((a,b)=>a-b);
   }
 
-  function normalizeOnce(targetIds){
+  function normalizeCheckboxPlans(targetIds){
     const host = document.querySelector(HOST_SEL);
     if (!host) return;
 
-    // Desired IDs come from event detail OR URL
+    // Desired plan ids (from event or URL); these are the ONLY ids we enforce
     let want = Array.isArray(targetIds) && targetIds.length
       ? targetIds.slice().sort((a,b)=>a-b)
       : (()=>{
           try {
             const u = new URL(location.href);
-            return parseCsvIds(u.searchParams.get('plans'));
+            return parseIds(u.searchParams.get('plans'));
           } catch(_) { return []; }
         })();
 
     const wantSet = new Set(want);
 
-    // 1) Remove any checkbox sitting outside a wrapper
-    host.querySelectorAll(CB_SEL).forEach(cb=>{
-      const wrap = cb.closest(WRAP_SEL);
-      if (!wrap) cb.remove();
-    });
+    // Work ONLY on wrappers that already have a checkbox (real selectable plans)
+    const wraps = [...host.querySelectorAll(WRAP_SEL)]
+      .map(w => ({ w, cb: w.querySelector(CB_SEL) }))
+      .filter(x => !!x.cb);
 
-    // 2) Work ONLY with existing wrappers; NEVER create new ones
-    //    - Prune wrappers whose pid is not in "want"
-    //    - Dedupe: keep first wrapper per pid, remove extras
-    const seen = new Map();
-    [...host.querySelectorAll(WRAP_SEL)].forEach(w=>{
-      const pid = Number(w.getAttribute('data-plan-id'));
-      if (!Number.isFinite(pid)) return; // leave foreign rows alone
-      if (!wantSet.has(pid)) { w.remove(); return; } // not part of desired set
-      if (seen.has(pid)) { w.remove(); return; }     // duplicate wrapper
-      seen.set(pid, w);
-    });
-
-    // 3) For each remaining wrapper, ensure exactly ONE checkbox and set checked state
-    seen.forEach((wrap, pid)=>{
-      const inputs = [...wrap.querySelectorAll(CB_SEL)];
-      let cb = inputs[0];
-      inputs.slice(1).forEach(x=>x.remove()); // prune extras
-      if (!cb) {
-        // Only add a checkbox if the wrapper exists (we do NOT create wrappers)
-        cb = document.createElement('input');
-        cb.type = 'checkbox';
-        cb.className = 'plan-check';
-        cb.setAttribute('data-plan-id', String(pid));
-        const label = wrap.querySelector('.plan-label') || wrap;
-        label.insertBefore(cb, label.firstChild || null);
-      } else {
-        cb.setAttribute('data-plan-id', String(pid));
+    // Deduplicate: if multiple wrappers share the same data-plan-id, keep the first
+    const firstById = new Map();
+    wraps.forEach(({w, cb})=>{
+      const pid = Number(cb.getAttribute('data-plan-id'));
+      if (!Number.isFinite(pid)) return; // ignore unknowns
+      if (firstById.has(pid)) {
+        // remove extra checkbox(es) from duplicate wrappers but don't remove the wrapper itself
+        [...w.querySelectorAll(CB_SEL)].slice(0).forEach(el=>el.remove());
+        return;
       }
-      cb.checked = true;
-      cb.disabled = false;
-      wrap.classList.add('active');
+      firstById.set(pid, w);
+      // also dedupe multiple checkboxes inside the same wrapper
+      const inputs = [...w.querySelectorAll(CB_SEL)];
+      inputs.slice(1).forEach(x=>x.remove());
     });
 
-    // 4) Re-broadcast a normalized event with the ids actually checked
+    // Apply checked state ONLY to ids we manage; leave custom chips (no checkbox) untouched
+    firstById.forEach((wrap, pid)=>{
+      const cb = wrap.querySelector(CB_SEL);
+      if (!cb) return;
+      const shouldCheck = wantSet.size ? wantSet.has(pid) : cb.checked;
+      cb.checked = shouldCheck;
+      cb.disabled = false;
+      wrap.classList.toggle('active', shouldCheck);
+    });
+
+    // Emit a clean snapshot of actually checked checkbox-ids
     const checkedCsv = [...host.querySelectorAll(`${CB_SEL}:checked`)]
       .map(cb=>Number(cb.getAttribute('data-plan-id')))
       .filter(Number.isFinite)
       .sort((a,b)=>a-b)
       .join(',');
-    document.dispatchEvent(new CustomEvent('rateplans:changed', { detail:{ ids: checkedCsv, source:'wrapper-dedup-v2' }}));
+    document.dispatchEvent(new CustomEvent('rateplans:changed', { detail:{ ids: checkedCsv, source:'chips-normalize' }}));
   }
 
-  // Run once on ready, then on rateplans:changed (capture, but we DO NOT create wrappers)
-  document.addEventListener('DOMContentLoaded', ()=>normalizeOnce(), { once:true });
+  // Run once after DOM ready, then on changes (capture-phase but non-destructive)
+  document.addEventListener('DOMContentLoaded', ()=>normalizeCheckboxPlans(), { once:true });
   document.addEventListener('rateplans:changed', (e)=>{
-    const ids = parseCsvIds(e?.detail?.ids);
-    normalizeOnce(ids);
-    // NOTE: we do NOT stop propagation here — minimal, non-invasive
+    const ids = parseIds(e?.detail?.ids);
+    normalizeCheckboxPlans(ids);
+    // Do NOT stop propagation; we’re passive on purpose.
   }, true);
 })();
 </script>
