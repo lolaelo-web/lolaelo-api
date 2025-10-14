@@ -6752,6 +6752,60 @@
   init();
 })();
 </script>
+<!-- ANCHOR: PLAN_ROW_ID_PATCH (restore data-plan-id for CUS1/CUS2 after re-render) -->
+<script>
+(() => {
+  async function getPlans(roomId){
+    if (!roomId) return [];
+    // use cache if present
+    window.__cachedPlansByRoom = window.__cachedPlansByRoom || new Map();
+    if (window.__cachedPlansByRoom.has(roomId)) return window.__cachedPlansByRoom.get(roomId);
+
+    // fetch minimal if cache missing
+    const url = `/extranet/property/rateplans?roomTypeId=${roomId}`;
+    const fetcher = (typeof window.authFetch === 'function') ? window.authFetch : fetch;
+    try {
+      const r = await fetcher(url, { method:'GET' });
+      const j = await r.json();
+      const raw = Array.isArray(j) ? j : (j.rows || j.plans || []);
+      const plans = (typeof window.buildRenderablePlans === 'function')
+        ? window.buildRenderablePlans(raw)
+        : raw.map(p => ({ id:Number(p.id||p.ratePlanId), code:String(p.code||'').toUpperCase(), name:p.name||p.code||`Plan ${p.id||p.ratePlanId}` }))
+             .filter(p => Number.isFinite(p.id));
+      window.__cachedPlansByRoom.set(roomId, plans);
+      return plans;
+    } catch { return []; }
+  }
+
+  async function restoreIds(){
+    const roomId = window.currentRoomTypeId || (window.__lastRenderedRoom||{}).id;
+    if (!roomId) return;
+
+    const plans = await getPlans(roomId);
+    if (!plans.length) return;
+
+    const byCode = new Map(plans.map(p => [String(p.code||'').toUpperCase(), Number(p.id)]));
+    // Any plan rows that have a code but lost data-plan-id during re-render (commonly CUS1/CUS2)
+    document.querySelectorAll('#plans-panel .plan-row[data-plan-code]:not([data-plan-id])')
+      .forEach(row => {
+        const code = String(row.getAttribute('data-plan-code')||'').toUpperCase();
+        const id = byCode.get(code);
+        if (Number.isFinite(id)) row.setAttribute('data-plan-id', String(id));
+      });
+  }
+
+  // Run after calendar builds (the moment customs currently disappear)
+  document.addEventListener('calendar:rendered', () => {
+    // Let the DOM settle, then patch
+    requestAnimationFrame(() => restoreIds());
+  }, { capture:false });
+
+  // Also catch any explicit rateplan renders
+  ['rateplans:loaded','rateplans:rendered','rateplans:refreshed'].forEach(ev => {
+    document.addEventListener(ev, () => requestAnimationFrame(() => restoreIds()));
+  });
+})();
+</script>
 
 </body>
 </html>
