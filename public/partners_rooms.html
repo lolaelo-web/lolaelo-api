@@ -6615,9 +6615,7 @@
   const ROW_SEL   = '#plans-panel .plan-row[data-plan-id][data-plan-code]';
   const BOX_Q     = 'input[type="checkbox"][name="plan-id[]"]';
 
-  function hasBox(row){
-    return !!row.querySelector(BOX_Q);
-  }
+  function hasBox(row){ return !!row.querySelector(BOX_Q); }
 
   function getCheckedIds(){
     return Array.from(document.querySelectorAll(`${ROW_SEL} ${BOX_Q}:checked`))
@@ -6627,35 +6625,29 @@
 
   function makeBox(row){
     try {
-      const idAttr = row.getAttribute('data-plan-id');
-      const id = Number(idAttr);
+      const id = Number(row.getAttribute('data-plan-id'));
       if (!Number.isFinite(id)) return;
 
-      // Target a predictable slot, but fall back gracefully
       const slot = row.querySelector('.plan-check')
                 || row.querySelector('.plan-actions')
                 || row.querySelector('.plan-name')
                 || row.firstElementChild
                 || row;
 
-      // Create checkbox
       const box = document.createElement('input');
       box.type = 'checkbox';
       box.name = 'plan-id[]';
       box.value = String(id);
       box.className = 'plan-check-input';
 
-      // Restore selection heuristic (keeps prior UX stable)
       try {
         const last = Number(localStorage.getItem('rateplan.lastPlanId'));
         if (Number.isFinite(last) && last === id) box.checked = true;
-      } catch(_) {}
+      } catch(_){}
 
-      // Wire change -> broadcast selected ids
       box.addEventListener('change', () => {
         try {
           const ids = getCheckedIds();
-          // Persist "primary" plan if single select UX is used elsewhere
           if (ids.length > 0) {
             const primary = ids[0];
             window.currentRatePlanId = primary;
@@ -6665,7 +6657,6 @@
         } catch(_){}
       });
 
-      // Insert if truly missing
       if (!hasBox(row) && slot && slot.prepend) slot.prepend(box);
     } catch(_){}
   }
@@ -6673,20 +6664,34 @@
   function repair(){
     const panel = document.querySelector(PANEL_SEL);
     if (!panel) return;
-    document.querySelectorAll(ROW_SEL).forEach(row => {
-      if (!hasBox(row)) makeBox(row);
-    });
+    document.querySelectorAll(ROW_SEL).forEach(row => { if (!hasBox(row)) makeBox(row); });
   }
 
-  // Run now and on the app's plan lifecycle events
+  // Run on common app events
+  const run = () => repair();
   if (document.readyState === 'loading') {
-    document.addEventListener('DOMContentLoaded', repair);
+    document.addEventListener('DOMContentLoaded', run, { once:true });
   } else {
-    repair();
+    run();
   }
-  document.addEventListener('rateplans:loaded',    repair);
-  document.addEventListener('rateplans:rendered',  repair);
-  document.addEventListener('rateplans:refreshed', repair);
+  document.addEventListener('rateplans:loaded',    run);
+  document.addEventListener('rateplans:rendered',  run);
+  document.addEventListener('rateplans:refreshed', run);
+  document.addEventListener('calendar:rendered',   run);
+
+  // NEW: persist after *any* DOM rewrite of the plans panel
+  const mo = new MutationObserver((mutations) => {
+    for (const m of mutations) {
+      if (m.type === 'childList') { repair(); break; }
+    }
+  });
+  const startObserver = () => {
+    const panel = document.querySelector(PANEL_SEL);
+    if (panel) mo.observe(panel, { childList: true, subtree: true });
+  };
+  // Start now and also after the panel gets (re)mounted
+  startObserver();
+  document.addEventListener('rateplans:mounted', startObserver);
 })();
 </script>
 
