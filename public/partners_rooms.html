@@ -6655,85 +6655,101 @@
 (function ensurePlanCheckboxes(){
   const PANEL_SEL = '#plans-panel';
   const ROW_SEL   = '#plans-panel .plan-row[data-plan-id][data-plan-code]';
-  const BOX_Q     = 'input[type="checkbox"][name="plan-id[]"]';
+  const BOX_Q     = 'input.plan-check[data-plan-id]'; // align with app convention
+  const HOST_CHIPS = '#rateplan-checks';
+
+  function chipIsActive(id){
+    try {
+      const chip = document.querySelector(`${HOST_CHIPS} .chip[data-plan-id="${id}"]`);
+      return !!(chip && chip.classList.contains('active'));
+    } catch(_) { return false; }
+  }
 
   function hasBox(row){ return !!row.querySelector(BOX_Q); }
-
-  function getCheckedIds(){
-    return Array.from(document.querySelectorAll(`${ROW_SEL} ${BOX_Q}:checked`))
-      .map(el => Number(el.value))
-      .filter(Number.isFinite);
-  }
 
   function makeBox(row){
     try {
       const id = Number(row.getAttribute('data-plan-id'));
       if (!Number.isFinite(id)) return;
 
-      const slot = row.querySelector('.plan-check')
-                || row.querySelector('.plan-actions')
+      // Prefer a stable region to host the checkbox
+      const slot = row.querySelector('.plan-meta')
                 || row.querySelector('.plan-name')
+                || row.querySelector('.rule-editor')
                 || row.firstElementChild
                 || row;
 
+      // Build a label + input so CSS can style it naturally
+      const wrap = document.createElement('label');
+      wrap.className = 'plan-check-wrap';
+      wrap.style.display = 'inline-flex';
+      wrap.style.alignItems = 'center';
+      wrap.style.gap = '6px';
+      wrap.style.marginRight = '8px';
+
       const box = document.createElement('input');
       box.type = 'checkbox';
-      box.name = 'plan-id[]';
-      box.value = String(id);
-      box.className = 'plan-check-input';
+      box.className = 'plan-check';
+      box.setAttribute('data-plan-id', String(id));
+      box.disabled = true; // display-only; chips are canonical
+      box.checked = chipIsActive(id);
 
-      try {
-        const last = Number(localStorage.getItem('rateplan.lastPlanId'));
-        if (Number.isFinite(last) && last === id) box.checked = true;
-      } catch(_){}
+      // Accessible text only (no extra label text to avoid layout drift)
+      const sr = document.createElement('span');
+      sr.className = 'sr-only';
+      sr.textContent = `Plan ${id}`;
 
-      box.addEventListener('change', () => {
-        try {
-          const ids = getCheckedIds();
-          if (ids.length > 0) {
-            const primary = ids[0];
-            window.currentRatePlanId = primary;
-            try { localStorage.setItem('rateplan.lastPlanId', String(primary)); } catch(_){}
-          }
-          document.dispatchEvent(new CustomEvent('rateplans:changed', { detail:{ ids } }));
-        } catch(_){}
-      });
+      wrap.appendChild(box);
+      wrap.appendChild(sr);
 
-      if (!hasBox(row) && slot && slot.prepend) slot.prepend(box);
+      if (slot && slot.prepend) slot.prepend(wrap);
     } catch(_){}
   }
 
   function repair(){
     const panel = document.querySelector(PANEL_SEL);
     if (!panel) return;
-    document.querySelectorAll(ROW_SEL).forEach(row => { if (!hasBox(row)) makeBox(row); });
+    document.querySelectorAll(ROW_SEL).forEach(row => {
+      // If missing, add; if present, sync its checked state with chip
+      if (!hasBox(row)) {
+        makeBox(row);
+      } else {
+        try {
+          const id = Number(row.getAttribute('data-plan-id'));
+          const box = row.querySelector(BOX_Q);
+          if (box) box.checked = chipIsActive(id);
+        } catch(_){}
+      }
+    });
   }
 
-  // Run on common app events
-  const run = () => repair();
-  if (document.readyState === 'loading') {
-    document.addEventListener('DOMContentLoaded', run, { once:true });
-  } else {
-    run();
-  }
-  document.addEventListener('rateplans:loaded',    run);
-  document.addEventListener('rateplans:rendered',  run);
-  document.addEventListener('rateplans:refreshed', run);
-  document.addEventListener('calendar:rendered',   run);
-
-  // NEW: persist after *any* DOM rewrite of the plans panel
-  const mo = new MutationObserver((mutations) => {
-    for (const m of mutations) {
-      if (m.type === 'childList') { repair(); break; }
+  function init(){
+    // Initial pass
+    if (document.readyState === 'loading') {
+      document.addEventListener('DOMContentLoaded', repair, { once:true });
+    } else {
+      repair();
     }
-  });
-  const startObserver = () => {
-    const panel = document.querySelector(PANEL_SEL);
-    if (panel) mo.observe(panel, { childList: true, subtree: true });
-  };
-  // Start now and also after the panel gets (re)mounted
-  startObserver();
-  document.addEventListener('rateplans:mounted', startObserver);
+
+    // Re-apply on common lifecycle events
+    ['rateplans:loaded','rateplans:rendered','rateplans:refreshed','calendar:rendered','rateplans:changed']
+      .forEach(ev => document.addEventListener(ev, () => requestAnimationFrame(repair)));
+
+    // Persist through DOM rewrites of the plans panel
+    const mo = new MutationObserver((muts) => {
+      for (const m of muts) {
+        if (m.type === 'childList') { repair(); break; }
+      }
+    });
+    const startObserver = () => {
+      const panel = document.querySelector(PANEL_SEL);
+      if (panel) mo.observe(panel, { childList:true, subtree:true });
+    };
+    startObserver();
+    document.addEventListener('rateplans:mounted', startObserver);
+  }
+
+  init();
 })();
 </script>
 
