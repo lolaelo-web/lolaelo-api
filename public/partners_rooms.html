@@ -5382,13 +5382,31 @@
   /* ANCHOR: RATEPLAN_WIRE_NOOP_TO_CHIPS */
     // Canonicalize plan state whenever chips change
     (function wireCanonicalRatePlanSave(){
+      function coerceIds(raw){
+        try {
+          if (Array.isArray(raw)) return raw.map(Number).filter(Number.isFinite);
+          if (typeof raw === 'string') {
+            return raw.split(',').map(s=>Number(s.trim())).filter(Number.isFinite);
+          }
+          // Set or iterable of numbers/strings
+          if (raw && typeof raw === 'object') {
+            const out = [];
+            if (typeof raw.forEach === 'function') {
+              raw.forEach(v => out.push(Number(v)));
+              return out.filter(Number.isFinite);
+            }
+            if (Symbol.iterator in raw) {
+              return Array.from(raw, v => Number(v)).filter(Number.isFinite);
+            }
+          }
+        } catch(_) {}
+        return [];
+      }
+
       document.addEventListener('rateplans:changed', e => {
         try {
-          const ids = Array.from(new Set(
-            (e?.detail?.ids || [])
-              .map(n => Number(n))
-              .filter(Number.isFinite)
-          ));
+          const raw = (e && e.detail && e.detail.ids) || [];
+          const ids = Array.from(new Set(coerceIds(raw)));
           if (!ids.length) return;
 
           const primary = ids[0];
@@ -5512,61 +5530,57 @@
 
   // ANCHOR: DEEPLINK_QUERY_IN
   try {
-    const qs = new URLSearchParams(location.search);
-    const qRoom  = qs.get('room');
-    const qStart = qs.get('start');
-    const qEnd   = qs.get('end');
-    const qPlan  = qs.get('plan');
-  // Support multi-plan deeplink, e.g. ?plans=1,2,3
-  const qPlans = qs.get('plans');
-  if (qPlans) {
-    const list = qPlans.split(',').map(s => Number(s.trim())).filter(Number.isFinite);
-    if (list.length) {
-      // ⬇️ Do NOT persist URL params into localStorage here — seed runtime only
-      try { window.__initialSelectedRatePlanIds = list.slice(); } catch(_){}
-      ctx.ratePlanIds = list.slice();
-      // If no explicit single plan was provided, prefer first of the list
-      if (!qPlan) ctx.ratePlanId = list[0];
-    }
-  }
+    const qs    = new URLSearchParams(location.search);
+    const qRoom = qs.get('room');
+    const qStart= qs.get('start');
+    const qEnd  = qs.get('end');
+    const qPlan = qs.get('plan');
+    const qPlans= qs.get('plans'); // e.g., "1,2,6"
 
+    // --- room: numeric or string ids supported
     if (qRoom) {
-      // numeric or string ids supported
       const n = Number(qRoom);
       ctx.roomId = Number.isFinite(n) ? n : qRoom;
     }
-    if (qStart && qEnd) {
-    // strict yyyy-mm-dd (zero-padded) validation
+
+    // --- date window: strict yyyy-mm-dd; we only seed ctx here, clamp below
     const isoRx = /^\d{4}-(0[1-9]|1[0-2])-(0[1-9]|[12]\d|3[01])$/;
-    if (isoRx.test(qStart) && isoRx.test(qEnd)) {
+    if (qStart && qEnd && isoRx.test(qStart) && isoRx.test(qEnd)) {
       ctx.start = qStart;
       ctx.end   = qEnd;
     }
-  }
-    if (qPlan) {
-      const pn = Number(qPlan);
-      ctx.ratePlanId = Number.isFinite(pn) ? pn : 1;
-    }
-    if (qPlans) {
-      const arr = qPlans.split(',').map(s => Number(s.trim())).filter(n => Number.isFinite(n));
-      if (arr.length) {
-        ctx.ratePlanIds = arr;
-      }
-    }
-  } catch(_){}
-    // clamp ctx/start/end (from URL or localStorage) to today-or-later
-{
-  const today = todayISO();
 
-    if (ctx.start && ctx.end){
-      // sanitize incoming dates
+    // --- plans: single plan id has priority; otherwise use multi-plan list
+    let list = [];
+    if (qPlans) {
+      list = qPlans.split(',')
+        .map(s => Number(s.trim()))
+        .filter(Number.isFinite);
+    }
+
+    if (Number.isFinite(Number(qPlan))) {
+      ctx.ratePlanId  = Number(qPlan);
+      ctx.ratePlanIds = list.length ? list.slice() : [ctx.ratePlanId];
+    } else if (list.length) {
+      // No explicit single plan — prefer the first from the list as primary
+      ctx.ratePlanIds = list.slice();
+      ctx.ratePlanId  = list[0];
+    }
+
+    // NOTE: Do NOT persist to localStorage here; RATE_PLAN_INIT owns persistence.
+    // If you want to expose the deep-link list to later code:
+    try { window.__initialSelectedRatePlanIds = Array.isArray(ctx.ratePlanIds) ? ctx.ratePlanIds.slice() : undefined; } catch(_){}
+  } catch(_) {}
+
+  // --- clamp ctx.start/end to today-or-later and sync initial UI (no persistence here)
+  {
+    const today = todayISO();
+
+    if (ctx.start && ctx.end) {
       let s = String(ctx.start);
       let e = String(ctx.end);
-
-      // start must be today or later
-      if (s < today) s = today;
-      // end must be >= start
-      if (e < s) e = s;
+      if (s < today) s = today;   // start must be today or later
+      if (e < s)     e = s;       // end must be >= start
 
       currentRangeStart = s;
       currentRangeEnd   = e;
@@ -5576,16 +5590,15 @@
 
       currentAnchor = new Date(s + "T00:00:00Z");
       setMonthLabel();
-      // also normalize the URL so refresh keeps good dates
-      updateURLFromState?.();
+      updateURLFromState?.();      // normalize URL only
     } else {
-      // fall back to a clean, clamped window starting today
-      const startISO = today; // force today
+      const startISO = today;
       currentAnchor = new Date(startISO + "T00:00:00Z");
       setMonthLabel();
-      applyMonthWindowToRange({ rerender:false }); // this will also clamp end >= start
+      applyMonthWindowToRange({ rerender:false }); // also clamps end >= start
     }
   }
+
     // Seed initial chip selection from deep link if provided
     if (Array.isArray(ctx.ratePlanIds) && ctx.ratePlanIds.length) {
       window.__initialSelectedRatePlanIds = ctx.ratePlanIds.slice();
@@ -6780,7 +6793,7 @@
 (function ensurePlanCheckboxes(){
   const PANEL_SEL = '#plans-panel';
   const ROW_SEL   = '#plans-panel .plan-row[data-plan-id][data-plan-code]';
-  const BOX_Q     = 'input.plan-check[data-plan-id]'; // align with app convention
+  const BOX_Q     = 'input.plan-check[data-plan-id]';
   const HOST_CHIPS = '#rateplan-checks';
 
   function chipIsActive(id){
@@ -6797,14 +6810,12 @@
       const id = Number(row.getAttribute('data-plan-id'));
       if (!Number.isFinite(id)) return;
 
-      // Prefer a stable region to host the checkbox
       const slot = row.querySelector('.plan-meta')
                 || row.querySelector('.plan-name')
                 || row.querySelector('.rule-editor')
                 || row.firstElementChild
                 || row;
 
-      // Build a label + input so CSS can style it naturally
       const wrap = document.createElement('label');
       wrap.className = 'plan-check-wrap';
       wrap.style.display = 'inline-flex';
@@ -6816,10 +6827,10 @@
       box.type = 'checkbox';
       box.className = 'plan-check';
       box.setAttribute('data-plan-id', String(id));
-      box.disabled = true; // display-only; chips are canonical
+      // make it interactive and mark for delegate handler
+      box.dataset.delegatesChip = '1';
       box.checked = chipIsActive(id);
 
-      // Accessible text only (no extra label text to avoid layout drift)
       const sr = document.createElement('span');
       sr.className = 'sr-only';
       sr.textContent = `Plan ${id}`;
@@ -6835,32 +6846,31 @@
     const panel = document.querySelector(PANEL_SEL);
     if (!panel) return;
     document.querySelectorAll(ROW_SEL).forEach(row => {
-      // If missing, add; if present, sync its checked state with chip
       if (!hasBox(row)) {
         makeBox(row);
       } else {
         try {
           const id = Number(row.getAttribute('data-plan-id'));
           const box = row.querySelector(BOX_Q);
-          if (box) box.checked = chipIsActive(id);
+          if (box){
+            box.checked = chipIsActive(id);
+            box.dataset.delegatesChip = '1'; // ensure delegate picks it up
+          }
         } catch(_){}
       }
     });
   }
 
   function init(){
-    // Initial pass
     if (document.readyState === 'loading') {
       document.addEventListener('DOMContentLoaded', repair, { once:true });
     } else {
       repair();
     }
 
-    // Re-apply on common lifecycle events
     ['rateplans:loaded','rateplans:rendered','rateplans:refreshed','calendar:rendered','rateplans:changed']
       .forEach(ev => document.addEventListener(ev, () => requestAnimationFrame(repair)));
 
-    // Persist through DOM rewrites of the plans panel
     const mo = new MutationObserver((muts) => {
       for (const m of muts) {
         if (m.type === 'childList') { repair(); break; }
@@ -6877,6 +6887,66 @@
   init();
 })();
 </script>
+
+<!-- ANCHOR: PLAN_CHECKBOX_DELEGATE (panel boxes drive chips) -->
+<script>
+(function planCheckboxDelegate(){
+  const HOST_CHIPS = '#rateplan-checks';
+
+  function toggleChipById(pid, wantActive){
+    const chip = document.querySelector(`${HOST_CHIPS} .chip[data-plan-id="${pid}"]`);
+    if (!chip) return false;
+
+    const isActive = chip.classList.contains('active');
+    if (wantActive && !isActive) chip.classList.add('active');
+    if (!wantActive && isActive) chip.classList.remove('active');
+
+    // keep the underlying chip checkbox, if any, in sync
+    const chipBox = chip.querySelector('input[type="checkbox"][data-plan-id]');
+    if (chipBox) chipBox.checked = chip.classList.contains('active');
+
+    // rebuild the selected ids and persist
+    const ids = [...document.querySelectorAll(`${HOST_CHIPS} .chip[data-plan-id]`)]
+      .filter(el => el.classList.contains('active'))
+      .map(el => Number(el.getAttribute('data-plan-id')))
+      .filter(Number.isFinite)
+      .sort((a,b)=>a-b);
+
+    window.__selectedPlanIds = ids.slice();
+    try {
+      localStorage.setItem('rateplan.selectedIds', JSON.stringify(ids));
+      if (ids[0] != null) localStorage.setItem('rateplan.lastPlanId', String(ids[0]));
+    } catch(_) {}
+
+    try { if (typeof window.updateURLFromState === 'function') window.updateURLFromState(); } catch(_){}
+
+    // broadcast a normalized event so downstream listeners get the canonical csv
+    try {
+      document.dispatchEvent(new CustomEvent('rateplans:changed', {
+        detail: { ids: ids.join(','), source: 'panel-checkbox' }
+      }));
+    } catch(_){}
+
+    return true;
+  }
+
+  // Delegate clicks/changes from the plans panel
+  document.addEventListener('change', (e) => {
+    const el = e.target;
+    if (!(el instanceof HTMLInputElement)) return;
+    if (el.type !== 'checkbox') return;
+    if (!el.classList.contains('plan-check')) return;
+    if (el.dataset.delegatesChip !== '1') return;
+
+    const pid = Number(el.getAttribute('data-plan-id'));
+    if (!Number.isFinite(pid)) return;
+
+    // forward to chips; panel checkbox visual state will be re-synced by listeners
+    toggleChipById(pid, !!el.checked);
+  }, { capture: true });
+})();
+</script>
+
 <!-- ANCHOR: PLAN_ROW_ID_FROM_CHIPS (mirror chip ids to rows after re-render) -->
 <script>
 (() => {
