@@ -6789,6 +6789,99 @@
   init();
 })();
 </script>
+<!-- ANCHOR: PLAN_ROW_ID_FROM_CHIPS (mirror chip ids to rows after re-render) -->
+<script>
+(() => {
+  const PANEL = '#plans-panel';
+  const CHIPS = '#rateplan-checks .chip[data-plan-id]';
+
+  function normalizeName(s){
+    return String(s||'').trim().toLowerCase().replace(/\s+/g,' ');
+  }
+
+  function mapChips(){
+    const outByCode = new Map();
+    const outByName = new Map();
+    document.querySelectorAll(CHIPS).forEach(ch => {
+      const pid  = Number(ch.getAttribute('data-plan-id'));
+      const code = String(ch.getAttribute('data-plan-code')||'').toUpperCase();
+      const name = normalizeName(ch.textContent || '');
+      if (Number.isFinite(pid)){
+        if (code) outByCode.set(code, pid);
+        if (name) outByName.set(name, pid);
+      }
+    });
+    return { byCode: outByCode, byName: outByName };
+  }
+
+  function syncRowsFromChips(){
+    const { byCode, byName } = mapChips();
+    const panel = document.querySelector(PANEL);
+    if (!panel) return;
+
+    panel.querySelectorAll('.plan-row').forEach(row => {
+      // If row already has an id, leave it
+      if (row.hasAttribute('data-plan-id')){
+        return;
+      }
+      // Try by code first
+      const code = String(row.getAttribute('data-plan-code')||'').toUpperCase();
+      let pid = code ? byCode.get(code) : undefined;
+
+      // Fallback by visible name text (covers “Mike check 1/2”)
+      if (!Number.isFinite(pid)){
+        const nameEl = row.querySelector('[data-field="name"]');
+        const name = normalizeName(nameEl ? nameEl.textContent : row.textContent);
+        pid = byName.get(name);
+      }
+
+      if (Number.isFinite(pid)){
+        row.setAttribute('data-plan-id', String(pid));
+        // Ensure a checkbox element exists and mirrors chip state (display-only)
+        let cb = row.querySelector('input.plan-check[data-plan-id]');
+        if (!cb){
+          // Prefer a safe host
+          const slot = row.querySelector('.plan-meta') || row.querySelector('.plan-name') || row.firstElementChild || row;
+          if (slot && slot.prepend){
+            const label = document.createElement('label');
+            label.style.display = 'inline-flex';
+            label.style.alignItems = 'center';
+            label.style.gap = '6px';
+            cb = document.createElement('input');
+            cb.type = 'checkbox';
+            cb.className = 'plan-check';
+            cb.setAttribute('data-plan-id', String(pid));
+            cb.disabled = true; // chips are canonical; this is visual parity
+            label.appendChild(cb);
+            slot.prepend(label);
+          }
+        }
+        // Mirror chip active state
+        const chip = document.querySelector(`#rateplan-checks .chip[data-plan-id="${pid}"]`);
+        if (cb && chip) cb.checked = chip.classList.contains('active');
+      }
+    });
+  }
+
+  // Run after calendar render (when the rows are rebuilt)
+  document.addEventListener('calendar:rendered', () => requestAnimationFrame(syncRowsFromChips));
+  // Also run when plans/chips change
+  ['rateplans:loaded','rateplans:rendered','rateplans:refreshed','rateplans:changed']
+    .forEach(ev => document.addEventListener(ev, () => requestAnimationFrame(syncRowsFromChips)));
+
+  // Keep it sticky across DOM rewrites of the plans panel
+  const mo = new MutationObserver(() => syncRowsFromChips());
+  const startObserver = () => {
+    const panel = document.querySelector(PANEL);
+    if (panel) mo.observe(panel, { childList:true, subtree:true });
+  };
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', () => { syncRowsFromChips(); startObserver(); }, { once:true });
+  } else {
+    syncRowsFromChips(); startObserver();
+  }
+})();
+</script>
 
 </body>
 </html>
