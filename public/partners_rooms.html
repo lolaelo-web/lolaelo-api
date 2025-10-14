@@ -6455,130 +6455,146 @@
 (function ensurePlanFns(){
   // --- helpers ---------------------------------------------------------------
   function uniqNums(arr){
-    return Array.from(new Set((arr||[]).filter(Number.isFinite)));
-  }
-  function qsaNums(sel, attr='data-plan-id', root=document){
-    return Array.from(root.querySelectorAll(sel))
-      .map(el => Number(el.getAttribute(attr)))
-      .filter(Number.isFinite);
-  }
-
-  // Track any plan IDs we've ever seen in the DOM (guards re-renders)
-  window.__seenPlanIds = window.__seenPlanIds || new Set();
-  function captureDomPlanIds(){
-    try {
-      const chipIds = qsaNums('#rateplan-checks .chip[data-plan-id]');
-      const rowIds  = qsaNums('#plans-panel .plan-row[data-plan-id]');
-      [...chipIds, ...rowIds].forEach(id => window.__seenPlanIds.add(id));
-      return uniqNums([...chipIds, ...rowIds]);
-    } catch(_){ return []; }
+    var out = [];
+    var seen = Object.create(null);
+    for (var i=0; i<(arr||[]).length; i++){
+      var n = arr[i];
+      if (typeof n === 'number' && isFinite(n) && !seen[n]){
+        seen[n] = true;
+        out.push(n);
+      }
+    }
+    return out;
   }
 
-  // Keep updating __seenPlanIds whenever the plans panel changes
-  (function watchPlansPanel(){
-    try {
-      const panel = document.querySelector('#plans-panel');
-      if (!panel) return;
-      const mo = new MutationObserver(() => captureDomPlanIds());
-      mo.observe(panel, { childList:true, subtree:true });
-      captureDomPlanIds(); // initial
-    } catch(_){}
-  })();
+  function qsaNums(sel, attr, root){
+    attr = attr || 'data-plan-id';
+    root = root || document;
+    var list = root.querySelectorAll(sel);
+    var out = [];
+    for (var i=0; i<list.length; i++){
+      var v = Number(list[i].getAttribute(attr));
+      if (isFinite(v)) out.push(v);
+    }
+    return out;
+  }
+
+  function buildCodeIdMap(plans){
+    var map = new Map();
+    var arr = Array.isArray(plans) ? plans : [];
+    for (var i=0; i<arr.length; i++){
+      var p = arr[i] || {};
+      var id = Number(p.id || p.ratePlanId);
+      var code = String(p.code || '').toUpperCase();
+      if (isFinite(id) && code) map.set(code, id);
+    }
+    return map;
+  }
 
   // --- shims (only if missing) ----------------------------------------------
   if (typeof window.buildRenderablePlans !== 'function') {
     window.buildRenderablePlans = function(planObjs){
-      const arr = Array.isArray(planObjs) ? planObjs : [];
-      return arr
-        .map(p => ({
-          id: Number(p.id || p.ratePlanId),
+      var arr = Array.isArray(planObjs) ? planObjs : [];
+      var out = [];
+      for (var i=0; i<arr.length; i++){
+        var p = arr[i] || {};
+        var id = Number(p.id || p.ratePlanId);
+        if (!isFinite(id)) continue;
+        out.push({
+          id: id,
           code: String(p.code || '').toUpperCase(),
-          name: p.name || p.code || `Plan ${p.id || p.ratePlanId}`
-        }))
-        .filter(p => Number.isFinite(p.id));
+          name: p.name || p.code || ('Plan ' + (p.id || p.ratePlanId))
+        });
+      }
+      return out;
     };
     console.info('[PLANS_PANEL] shimmed buildRenderablePlans');
   }
 
-    if (typeof window.renderPlansPanel !== 'function') {
-    // We DO NOT render into #rateplan-checks here. Chips remain canonical UI.
-    // This shim computes authoritative plan IDs and broadcasts them.
+  if (typeof window.renderPlansPanel !== 'function') {
+    // We DO NOT render into #rateplan-checks here. Chips are the canonical UI.
+    // This shim only computes authoritative plan IDs and broadcasts them.
     window.renderPlansPanel = function(plans){
-      const host = document.getElementById('rateplan-checks');
+      var host = document.getElementById('rateplan-checks');
       if (!host) return;
 
-      // Build a code->id map from 'plans' or from cached plans for current room
-      function getCodeIdMap(){
-        const map = new Map();
-        const roomId = window.currentRoomTypeId || (window.__lastRenderedRoom||{}).id;
-        const source = Array.isArray(plans) && plans.length
-          ? plans
-          : (window.__cachedPlansByRoom instanceof Map && roomId && window.__cachedPlansByRoom.get(roomId)) || [];
-        (source || []).forEach(p => {
-          const id = Number(p.id || p.ratePlanId);
-          const code = String(p.code || '').toUpperCase();
-          if (Number.isFinite(id) && code) map.set(code, id);
-        });
-        return map;
+      // Gather IDs already present
+      var chipIds = qsaNums('.chip[data-plan-id]', 'data-plan-id', host);
+      var rowIds  = qsaNums('#plans-panel .plan-row[data-plan-id]');
+
+      // Also include rows that only have data-plan-code (CUS1/CUS2 before id attaches)
+      var codeOnlyEls = document.querySelectorAll('#plans-panel .plan-row[data-plan-code]:not([data-plan-id])');
+      var codeOnlyIds = [];
+      if (codeOnlyEls.length){
+        var roomId = window.currentRoomTypeId || ((window.__lastRenderedRoom||{}).id);
+        var sourcePlans = Array.isArray(plans) && plans.length ? plans : [];
+        if (!sourcePlans.length && window.__cachedPlansByRoom instanceof Map && roomId && window.__cachedPlansByRoom.has(roomId)) {
+          sourcePlans = window.__cachedPlansByRoom.get(roomId);
+        }
+        var codeMap = buildCodeIdMap(sourcePlans);
+        for (var i=0; i<codeOnlyEls.length; i++){
+          var code = String(codeOnlyEls[i].getAttribute('data-plan-code') || '').toUpperCase();
+          var id = codeMap.get(code);
+          if (typeof id === 'number' && isFinite(id)) codeOnlyIds.push(id);
+        }
       }
 
-      // Gather sources from DOM and API
-      const chipIds  = qsaNums('.chip[data-plan-id]', 'data-plan-id', host);
-      const rowIds   = qsaNums('#plans-panel .plan-row[data-plan-id]');
-      const apiIds   = (Array.isArray(plans) ? plans.map(p => Number(p.id || p.ratePlanId)) : []).filter(Number.isFinite);
+      // API-sourced ids (if any provided)
+      var apiIds = [];
+      if (Array.isArray(plans)) {
+        for (var j=0; j<plans.length; j++){
+          var pid = Number(plans[j].id || plans[j].ratePlanId);
+          if (isFinite(pid)) apiIds.push(pid);
+        }
+      }
 
-      // NEW: also include rows that only have data-plan-code (no data-plan-id yet)
-      const codeMap  = getCodeIdMap();
-      const codeOnly = Array.from(document.querySelectorAll('#plans-panel .plan-row[data-plan-code]:not([data-plan-id])'))
-        .map(el => String(el.getAttribute('data-plan-code') || '').toUpperCase())
-        .map(code => codeMap.get(code))
-        .filter(Number.isFinite);
-
-      // Union all sources so Custom 1/2 don't get dropped on re-render
-      const ids = Array.from(new Set([ ...chipIds, ...rowIds, ...codeOnly, ...apiIds ])).sort((a,b)=>a-b);
+      // Union all sources so customs never vanish on sync re-render
+      var ids = uniqNums(chipIds.concat(rowIds, codeOnlyIds, apiIds)).sort(function(a,b){ return a-b; });
 
       // Keep seen ids updated (harmless if duplicates)
       window.__seenPlanIds = window.__seenPlanIds || new Set();
-      ids.forEach(id => window.__seenPlanIds.add(id));
+      for (var k=0; k<ids.length; k++){ window.__seenPlanIds.add(ids[k]); }
 
       // Broadcast for URL/state sync; chips renderer handles UI
       document.dispatchEvent(new CustomEvent('rateplans:changed', {
         detail:{ ids: String(ids), source:'min-api-loader:sync-only' }
       }));
-      console.info('[PLANS_PANEL] sync-only renderPlansPanel', { ids, mount: '#rateplan-checks' });
+      console.info('[PLANS_PANEL] sync-only renderPlansPanel', { ids: ids, mount: '#rateplan-checks' });
     };
     console.info('[PLANS_PANEL] shimmed renderPlansPanel (sync-only)');
   }
 
-
   if (typeof window.loadRatePlansForRoom !== 'function') {
-    window.loadRatePlansForRoom = async function(roomId){
-      if (!roomId) return [];
-      const url = `/extranet/property/rateplans?roomTypeId=${roomId}`;
-      const fetcher = (typeof window.authFetch === 'function') ? window.authFetch : fetch;
-      const r = await fetcher(url, { method:'GET' });
-      const j = await r.json();
-      const raw = Array.isArray(j) ? j : (j.rows || j.plans || []);
-      const plans = window.buildRenderablePlans(raw);
+    window.loadRatePlansForRoom = function(roomId){
+      if (!roomId) return Promise.resolve([]);
+      var url = '/extranet/property/rateplans?roomTypeId=' + roomId;
+      var fetcher = (typeof window.authFetch === 'function') ? window.authFetch : fetch;
 
-      // Cache by room for other helpers
-      window.__cachedPlansByRoom = window.__cachedPlansByRoom || new Map();
-      window.__cachedPlansByRoom.set(roomId, plans);
-
-      // Compute/broadcast active IDs now
-      window.renderPlansPanel(plans);
-      return plans;
+      return fetcher(url, { method:'GET' })
+        .then(function(r){ return r.json(); })
+        .then(function(j){
+          var raw = Array.isArray(j) ? j : (j.rows || j.plans || []);
+          var plans = (typeof window.buildRenderablePlans === 'function')
+            ? window.buildRenderablePlans(raw)
+            : raw;
+          // Cache by room
+          window.__cachedPlansByRoom = window.__cachedPlansByRoom || new Map();
+          window.__cachedPlansByRoom.set(roomId, plans);
+          // Compute/broadcast active IDs now
+          window.renderPlansPanel(plans);
+          return plans;
+        })
+        .catch(function(){ return []; });
     };
     console.info('[PLANS_PANEL] shimmed loadRatePlansForRoom');
   }
 
   // After calendar builds, load plans for current room and broadcast IDs
-  document.addEventListener('calendar:rendered', () => {
+  document.addEventListener('calendar:rendered', function(){
     try {
-      captureDomPlanIds(); // catch any customs that flashed in early pass
-      const roomId = window.currentRoomTypeId || (window.__lastRenderedRoom||{}).id;
-      if (roomId) window.loadRatePlansForRoom(roomId).catch(()=>{});
-    } catch(_){}
+      var roomId = window.currentRoomTypeId || ((window.__lastRenderedRoom||{}).id);
+      if (roomId) window.loadRatePlansForRoom(roomId);
+    } catch (e) {}
   }, { capture:false });
 
 })();
