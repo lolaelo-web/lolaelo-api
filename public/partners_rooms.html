@@ -6826,7 +6826,6 @@
         // Ensure a checkbox element exists and mirrors chip state (display-only)
         let cb = row.querySelector('input.plan-check[data-plan-id]');
         if (!cb){
-          // Prefer a safe host
           const slot = row.querySelector('.plan-meta') || row.querySelector('.plan-name') || row.firstElementChild || row;
           if (slot && slot.prepend){
             const label = document.createElement('label');
@@ -6837,11 +6836,18 @@
             cb.type = 'checkbox';
             cb.className = 'plan-check';
             cb.setAttribute('data-plan-id', String(pid));
-            cb.disabled = true; // chips are canonical; this is visual parity
+            // make interactive and let the delegate handler forward to chips
+            cb.disabled = false;
+            cb.dataset.delegatesChip = '1';
             label.appendChild(cb);
             slot.prepend(label);
           }
+        } else {
+          // ensure any existing checkbox is interactive + delegated
+          cb.disabled = false;
+          cb.dataset.delegatesChip = '1';
         }
+
         // Mirror chip active state
         const chip = document.querySelector(`#rateplan-checks .chip[data-plan-id="${pid}"]`);
         if (cb && chip) cb.checked = chip.classList.contains('active');
