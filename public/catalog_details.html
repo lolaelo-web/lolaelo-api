@@ -157,7 +157,7 @@
       border-radius: 12px;
       padding: 10px;
       display: grid;
-      grid-template-columns: 84px 1fr auto; /* thumb | text | action */
+      grid-template-columns: 30px 84px 1fr auto; /* + | thumb | text | action */
       gap: 10px;
       align-items: center;
       background: #fff;
@@ -178,8 +178,72 @@
       text-decoration: none; display: inline-block;
     }
     @media (max-width: 840px){
-      .roomcat{ grid-template-columns: 72px 1fr; }
+      .roomcat{ grid-template-columns: 30px 72px 1fr; } /* + | thumb | text */
       .roomcat .btn-select{ grid-column: 1 / -1; justify-self: start; }
+    }
+
+    /* ANCHOR: ROOMCAT_PLANS_CSS */
+    .roomcat .toggle {
+      appearance: none;
+      border: 1px solid var(--line);
+      background: #fff;
+      border-radius: 8px;
+      width: 30px; height: 30px;
+      display: inline-flex; align-items: center; justify-content: center;
+      cursor: pointer; font-weight: 700;
+    }
+    .roomcat .toggle[aria-expanded="true"] { background: #fff0ea; border-color: #ffd3c2; color: #c2410c; }
+
+    /* Smooth expand/collapse for sub-rows */
+    .planlist{
+      grid-column: 1 / -1;
+      margin-top: 8px;
+
+      /* animation */
+      max-height: 0;
+      overflow: hidden;
+      opacity: 0;
+      visibility: hidden;
+      transition:
+        max-height .28s ease,
+        opacity .20s ease,
+        visibility 0s linear .28s; /* hide after collapse */
+    }
+    .planlist.open{
+      /* allow animation without display:none */
+      max-height: 800px; /* large enough for several rows */
+      opacity: 1;
+      visibility: visible;
+      transition:
+        max-height .32s ease,
+        opacity .20s ease,
+        visibility 0s; /* show immediately */
+    }
+
+    /* Respect reduced-motion */
+    @media (prefers-reduced-motion: reduce){
+      .planlist, .planlist.open{
+        transition: none !important;
+      }
+    }
+
+    .planrow{
+      display: grid;
+      grid-template-columns: 1fr auto;
+      align-items: center;
+      gap: 8px;
+      padding: 8px 10px;
+      border: 1px dashed var(--line);
+      border-radius: 10px;
+      background: #fafafa;
+      margin-bottom: 8px;
+    }
+    .planrow .planname{ font-weight: 600; }
+    .planrow .meta { font-size: 12px; color: var(--muted); }
+    .planrow .btn-select {
+      border: 1px solid var(--bubble); background: var(--bubble); color: #fff;
+      padding: 6px 10px; border-radius: 10px; font-weight: 700; cursor: pointer;
+      text-decoration: none; display: inline-block;
     }
 
     /* ANCHOR: DETAILS_PANEL_BOX */
@@ -607,6 +671,7 @@
 
     function money(v){ const n=Number(v); return Number.isFinite(n) ? `$${n.toFixed(2)}` : '—'; }
 
+    
     async function load(){
       // ANCHOR: DETAILS_FETCH_WITH_PLAN
       console.log("[details] fetching catalog details with:", {
@@ -820,13 +885,71 @@
           setHero(Number(b.dataset.idx || '0'));
         });
       }
-
-      /* ANCHOR: ROOMCAT_LIST_JS */
+  
+      /* ANCHOR: ROOMCAT_LIST_JS (expandable with per-plan subrows; self-contained) */
       (function(){
         const listEl = document.getElementById('roomCats');
         if (!listEl) return;
 
-        const rooms = Array.isArray(j?.rooms) ? j.rooms : [];
+        // local helpers
+        function getSelectedPlanIds(){
+          try { const a = JSON.parse(localStorage.getItem('rateplan.selectedIds')||'[]'); return Array.isArray(a)?a.map(Number).filter(Number.isFinite):[]; }
+          catch { return []; }
+        }
+        function getCustomLabels(){
+          try { return JSON.parse(localStorage.getItem('rateplan.customLabels')||'{}')||{}; }
+          catch { return {}; }
+        }
+        function friendlyPlanName(id){
+          if (Number(id) === 1) return 'Standard';
+          const labels = getCustomLabels();
+          return labels.CUS1 || labels.CUS2 || `Plan ${Number(id)}`;
+        }
+        function derivePlansForDisplay(){
+          // 1) Try localStorage (set by partners_rooms.html)
+          let ids = [];
+          try {
+            const a = JSON.parse(localStorage.getItem('rateplan.selectedIds') || '[]');
+            if (Array.isArray(a)) ids = a.map(Number).filter(Number.isFinite);
+          } catch {}
+
+          // 2) If empty, fall back to URL (?plans=1,2,6 or ?plan=1)
+          if (!ids.length) {
+            try {
+              const u = new URL(location.href);
+              const csv = (u.searchParams.get('plans') || '').trim();
+              if (csv) {
+                ids = csv.split(',').map(s => Number(s.trim())).filter(Number.isFinite);
+              } else {
+                const p = Number(u.searchParams.get('ratePlanId') || u.searchParams.get('plan'));
+                if (Number.isFinite(p)) ids = [p];
+              }
+            } catch {}
+          }
+
+          // 3) Default to Standard if still empty
+          if (!ids.length) ids = [1];
+
+          // 4) Build display objects with friendly names
+          let labels = {};
+          try { labels = JSON.parse(localStorage.getItem('rateplan.customLabels') || '{}') || {}; } catch {}
+          const items = ids.map(id => ({
+            id,
+            name: (id === 1) ? 'Standard'
+                : (labels.CUS1 || labels.CUS2 || `Plan ${id}`)
+          }));
+
+          // 5) Ensure Standard is present when nothing else included
+          if (!items.some(p => p.id === 1)) items.unshift({ id:1, name:'Standard' });
+
+          // 6) Dedupe by id, preserving order
+          const seen = new Set();
+          return items.filter(p => (seen.has(p.id) ? false : (seen.add(p.id), true)));
+        }
+
+        const j = window.__detailsPayload || {};
+        const rooms = Array.isArray(j.rooms) ? j.rooms : [];
+
         const openRooms = rooms
           .map(r => {
             const daily = Array.isArray(r.daily) ? r.daily : [];
@@ -851,6 +974,22 @@
               font-family="Inter, Arial, sans-serif" font-size="16" fill="#9ca3af">${label}</text>
           </svg>`);
 
+        const plans = derivePlansForDisplay(); // [{id,name}, …]
+
+        function planRowsHTML(roomId){
+          return plans.map(p => {
+            const url = `/room_details.html?propertyId=${encodeURIComponent(propertyId)}&roomId=${encodeURIComponent(roomId)}&start=${encodeURIComponent(start)}&end=${encodeURIComponent(end)}&ratePlanId=${encodeURIComponent(p.id)}`;
+            return `
+              <div class="planrow" data-plan-id="${p.id}">
+                <div>
+                  <div class="planname">${p.name}</div>
+                  <div class="meta">Plan ID: ${p.id}</div>
+                </div>
+                <a class="btn-select" href="${url}" aria-label="Select ${p.name}">Select</a>
+              </div>`;
+          }).join('');
+        }
+        
         listEl.innerHTML = openRooms.map(({ room, minPrice }) => {
           const rid = room.id ?? room.roomId ?? room.code ?? '';
           const name = String(room.name ?? 'Room').trim() || 'Room';
@@ -862,25 +1001,194 @@
           const area = (m2txt || ft2txt) ? ` · ${[m2txt, ft2txt].filter(Boolean).join(' / ')}` : '';
           const price = (minPrice != null && isFinite(minPrice)) ? `$${minPrice.toFixed(2)}` : '—';
 
-          const target = `/room_details.html?propertyId=${encodeURIComponent(propertyId)}&roomId=${encodeURIComponent(rid)}&start=${encodeURIComponent(start)}&end=${encodeURIComponent(end)}`;
-
           return `
-            <div class="roomcat">
-              <img src="${thumb}" alt="${name} thumbnail" loading="lazy" decoding="async">
-              <div>
-                <h3>${name}</h3>
-                <div class="meta">From ${price}${area}</div>
-              </div>
-              <a class="btn-select" href="${target}" aria-label="Select ${name}">Select</a>
-            </div>`;
+          <div class="roomcat" data-room-id="${rid}">
+            ${ (plans && plans.length > 1)
+                ? `<button class="toggle" type="button" aria-expanded="false" aria-label="Show plans" tabindex="0" role="button">+</button>`
+                : `<span class="visually-hidden">Single rate plan</span>` }
+
+            <img src="${thumb}" alt="${name} thumbnail" loading="lazy" decoding="async">
+            <div>
+              <h3>${name}</h3>
+              <div class="meta">From ${price}${area}</div>
+            </div>
+
+            <a class="btn-select"
+              href="/room_details.html?propertyId=${encodeURIComponent(propertyId)}&roomId=${encodeURIComponent(rid)}&start=${encodeURIComponent(start)}&end=${encodeURIComponent(end)}&ratePlanId=${
+                encodeURIComponent((() => { try {
+                  const u = new URL(location.href);
+                  const p = u.searchParams.get('ratePlanId') || u.searchParams.get('plan');
+                  if (p && Number.isFinite(Number(p))) return String(Number(p));
+                  const last = Number(localStorage.getItem('rateplan.lastPlanId') || '');
+                  return Number.isFinite(last) ? String(last) : '1';
+                } catch(_) { return '1'; } })())
+              }"
+              aria-label="Select ${name}">Select</a>
+
+            ${ (plans && plans.length > 1)
+                ? `<div class="planlist" aria-label="Rate plans for ${name}">
+                    ${planRowsHTML(rid)}
+                  </div>`
+                : `` }
+          </div>
+        `;
         }).join('');
+
+        // === Persist expand/collapse per property+room (session only) ===
+        const EXPAND_KEY = `details.expand.${propertyId}`;
+        function loadExpandMap(){
+          try { return JSON.parse(sessionStorage.getItem(EXPAND_KEY) || '{}') || {}; } catch { return {}; }
+        }
+        function saveExpandMap(map){
+          try { sessionStorage.setItem(EXPAND_KEY, JSON.stringify(map || {})); } catch {}
+        }
+        function applyExpandedFromStorage(){
+          const map = loadExpandMap();
+          document.querySelectorAll('#roomCats .roomcat').forEach(cat => {
+            const rid = cat.getAttribute('data-room-id');
+            if (!rid) return;
+            if (map[rid]) {
+              const panel = cat.querySelector('.planlist');
+              const toggle = cat.querySelector('.toggle');
+              if (panel) panel.classList.add('open');
+              if (toggle) { toggle.setAttribute('aria-expanded','true'); toggle.textContent = '−'; }
+            }
+          });
+        }
+        applyExpandedFromStorage();
+
+        /* Toggle open/closed with mouse */
+        listEl.addEventListener('click', (e) => {
+          const t = e.target.closest('.toggle');
+          if (!t) return;
+          const cat = t.closest('.roomcat');
+          const panel = cat.querySelector('.planlist');
+          if (!panel) return;
+          const open = panel.classList.toggle('open');
+
+          // close any other open room panels (accordion behavior)
+          if (open) {
+            document.querySelectorAll('#roomCats .roomcat .planlist.open').forEach(pl => {
+              if (pl === panel) return;
+              pl.classList.remove('open');
+              pl.setAttribute('aria-hidden','true');
+              const btn = pl.closest('.roomcat')?.querySelector('.toggle');
+              if (btn){
+                btn.setAttribute('aria-expanded','false');
+                btn.setAttribute('aria-label','Show plans');
+                btn.textContent = '+';
+              }
+              // keep persistence in sync for the room we just closed
+              const rid2 = pl.closest('.roomcat')?.getAttribute('data-room-id');
+              if (rid2){
+                const map = loadExpandMap();
+                map[rid2] = false;
+                saveExpandMap(map);
+              }
+            });
+          }
+
+          panel.setAttribute('aria-hidden', open ? 'false' : 'true');
+          t.setAttribute('aria-expanded', open ? 'true' : 'false');
+          t.setAttribute('aria-label', open ? 'Hide plans' : 'Show plans');
+          t.textContent = open ? '−' : '+';
+          if (open) { cat.scrollIntoView({ behavior: 'smooth', block: 'nearest' }); }
+
+          // persist expanded state (sessionStorage)
+          const rid = cat.getAttribute('data-room-id');
+          const map = loadExpandMap();
+          map[rid] = !!open;
+          saveExpandMap(map);
+        });
+     
+        /* Also support keyboard (Enter/Space) on the toggle */
+        listEl.addEventListener('keydown', (e) => {
+          const t = e.target.closest('.toggle');
+          if (!t) return;
+          if (e.key !== 'Enter' && e.key !== ' ') return;
+          e.preventDefault();
+          const cat = t.closest('.roomcat');
+          const panel = cat.querySelector('.planlist');
+          if (!panel) return;
+          const open = panel.classList.toggle('open');
+
+          // close any other open room panels (accordion behavior)
+          if (open) {
+            document.querySelectorAll('#roomCats .roomcat .planlist.open').forEach(pl => {
+              if (pl === panel) return;
+              pl.classList.remove('open');
+              pl.setAttribute('aria-hidden','true');
+              const btn = pl.closest('.roomcat')?.querySelector('.toggle');
+              if (btn){
+                btn.setAttribute('aria-expanded','false');
+                btn.setAttribute('aria-label','Show plans');
+                btn.textContent = '+';
+              }
+              // keep persistence in sync for the room we just closed
+              const rid2 = pl.closest('.roomcat')?.getAttribute('data-room-id');
+              if (rid2){
+                const map = loadExpandMap();
+                map[rid2] = false;
+                saveExpandMap(map);
+              }
+            });
+          }
+
+          panel.setAttribute('aria-hidden', open ? 'false' : 'true');
+          t.setAttribute('aria-expanded', open ? 'true' : 'false');
+          t.setAttribute('aria-label', open ? 'Hide plans' : 'Show plans');
+          t.textContent = open ? '−' : '+';
+          if (open) { cat.scrollIntoView({ behavior: 'smooth', block: 'nearest' }); }
+
+          // persist expanded state (sessionStorage)
+          const rid = cat.getAttribute('data-room-id');
+          const map = loadExpandMap();
+          map[rid] = !!open;
+          saveExpandMap(map);
+        });
+
+        /* Repaint sub-rows if plans changed while away (hub -> back) */
+        document.addEventListener('visibilitychange', () => {
+          if (document.visibilityState !== 'visible') return;
+          const newPlans = derivePlansForDisplay();
+          const same = JSON.stringify(newPlans.map(p=>p.id)) === JSON.stringify(plans.map(p=>p.id));
+          if (same) return;
+
+          document.querySelectorAll('#roomCats .roomcat').forEach(cat => {
+            const rid = cat.getAttribute('data-room-id');
+
+            // Update toggle visibility if plan count changed
+            const hasExtras = newPlans.length > 1;
+            let toggle = cat.querySelector('.toggle');
+            if (hasExtras && !toggle) {
+              toggle = document.createElement('button');
+              toggle.className = 'toggle';
+              toggle.type = 'button';
+              toggle.setAttribute('aria-expanded', 'false');
+              toggle.setAttribute('aria-label', 'Show plans');
+              toggle.setAttribute('tabindex', '0');
+              toggle.setAttribute('role', 'button');
+              toggle.textContent = '+';
+              cat.insertBefore(toggle, cat.firstElementChild);
+            } else if (!hasExtras && toggle) {
+              toggle.replaceWith(document.createElement('span'));
+            }
+
+            const panel = cat.querySelector('.planlist');
+            if (panel){
+              panel.innerHTML = newPlans.map(p => {
+                const url = `/room_details.html?propertyId=${encodeURIComponent(propertyId)}&roomId=${encodeURIComponent(rid)}&start=${encodeURIComponent(start)}&end=${encodeURIComponent(end)}&ratePlanId=${encodeURIComponent(p.id)}`;
+                return `
+                  <div class="planrow" data-plan-id="${p.id}">
+                    <div><div class="planname">${p.name}</div><div class="meta">Plan ID: ${p.id}</div></div>
+                    <a class="btn-select" href="${url}">Select</a>
+                  </div>`;
+              }).join('');
+            }
+          });
+        });
       })();
     }
-
-    (() => {
-      const bookBtn = document.getElementById('book');
-      if (bookBtn) bookBtn.addEventListener('click', () => showToast('Booking flow coming soon'));
-    })();
 
     /* ANCHOR: TOAST_JS_HELPER */
     function showToast(msg, ms=1600){
