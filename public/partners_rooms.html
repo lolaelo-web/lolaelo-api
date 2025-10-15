@@ -6874,6 +6874,79 @@
   }
 })();
 </script>
+<script>
+(() => {
+  const LEGACY = ['rateplans.ids','rateplan.ids','rateplans.lastIds','rateplan.lastIds'];
+  try { LEGACY.forEach(k => localStorage.removeItem(k)); } catch(_){}
+})();
+</script>
+<script>
+(() => {
+  const HOST_CHIPS = '#rateplan-checks';
+  function resyncFromLS(){
+    try{
+      const ids = JSON.parse(localStorage.getItem('rateplan.selectedIds') || '[]') || [];
+      const set = new Set((ids||[]).map(Number).filter(Number.isFinite));
+      // chips
+      document.querySelectorAll(`${HOST_CHIPS} .chip[data-plan-id]`).forEach(ch => {
+        const pid = Number(ch.getAttribute('data-plan-id'));
+        ch.classList.toggle('active', set.has(pid));
+        const cb = ch.querySelector('input[type="checkbox"][data-plan-id]');
+        if (cb) cb.checked = set.has(pid);
+      });
+      // panel checkboxes mirror
+      document.querySelectorAll('#plans-panel .plan-row[data-plan-id] input.plan-check[data-plan-id]').forEach(cb => {
+        const pid = Number(cb.getAttribute('data-plan-id'));
+        cb.checked = set.has(pid);
+        cb.disabled = false; cb.dataset.delegatesChip = '1';
+      });
+      // broadcast canonical list
+      document.dispatchEvent(new CustomEvent('rateplans:changed', { detail:{ ids: ids.join(','), source:'visibility-resync' } }));
+    } catch(_) {}
+  }
+  document.addEventListener('visibilitychange', () => {
+    if (document.visibilityState === 'visible') resyncFromLS();
+  });
+})();
+</script>
+<!-- ANCHOR: PLAN_LABEL_DECORATOR (decorate fetchRatePlansSafe with label overrides) -->
+<script>
+(() => {
+  if (typeof window.fetchRatePlansSafe !== 'function') return;
+
+  const LS_KEY = 'rateplan.customLabels';
+
+  function applyLabelOverrides(plans){
+    let labels = {};
+    try { labels = JSON.parse(localStorage.getItem(LS_KEY) || '{}') || {}; } catch(_){}
+    if (!Array.isArray(plans)) return plans;
+    return plans.map(p => {
+      const code = String(p.code || '').toUpperCase();
+      let name = String(p.name || p.code || `Plan ${p.id}`).replace(/\s*\(\d+\)\s*$/,'');
+      if (labels.CUS1 && (code === 'CUS1' || /custom 1/i.test(name))) name = labels.CUS1;
+      if (labels.CUS2 && (code === 'CUS2' || /custom 2/i.test(name))) name = labels.CUS2;
+      return { ...p, name };
+    });
+  }
+
+  const orig = window.fetchRatePlansSafe;
+  window.fetchRatePlansSafe = async function decoratedFetchRatePlansSafe(){
+    const plans = await orig.apply(this, arguments);
+    const overridden = applyLabelOverrides(plans);
+
+    // repaint chips + plans panel if helpers exist
+    try {
+      if (typeof window.populateRatePlanDropdown === 'function') window.populateRatePlanDropdown(overridden);
+      if (typeof window.renderPlansPanel === 'function') window.renderPlansPanel(overridden);
+      // rebroadcast ids so downstream (calendar, URL sync) stays coherent
+      const ids = (overridden || []).map(p => Number(p.id)).filter(Number.isFinite).sort((a,b)=>a-b);
+      document.dispatchEvent(new CustomEvent('rateplans:changed', { detail:{ ids: ids.join(','), source:'label-decorator' }}));
+    } catch(_) {}
+
+    return overridden;
+  };
+})();
+</script>
 
 </body>
 </html>
