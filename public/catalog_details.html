@@ -1092,7 +1092,8 @@
                   code: String(p.code || '').toUpperCase(),
                   name: p.name || p.code || `Plan ${p.id || p.ratePlanId}`
                 }))
-                .filter(p => Number.isFinite(p.id));
+                .filter(p => Number.isFinite(p.id))
+                .filter(p => p.isActive === true || p.enabled === true || p.checked === true);
             } catch(_){
               // unauth or not available — fall back to whatever we already display
               return [];
