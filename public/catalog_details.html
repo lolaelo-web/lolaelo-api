@@ -1042,6 +1042,25 @@
         `;
         }).join('');
 
+        setTimeout(() => { try { hydratePlansFromPartners?.(); } catch (e) { console.warn('[hydrate] after render failed', e); } }, 0);
+
+        // Re-hydrate if #roomCats changes (pagination, filters, rerenders)
+        (() => {
+          const listEl = document.getElementById('roomCats');
+          if (!listEl) return;
+          let armed = true;
+          const mo = new MutationObserver(() => {
+            if (!armed) return;
+            armed = false;               // debounce
+            setTimeout(() => {           // let DOM settle
+              try { hydratePlansFromPartners?.(); } 
+              catch (e) { console.warn('[hydrate] mutation observer failed', e); }
+              armed = true;
+            }, 0);
+          });
+          mo.observe(listEl, { childList: true, subtree: true });
+        })();
+
         // ANCHOR: PARTNER_HYDRATE_AFTER_RENDER
         requestAnimationFrame(() => {
           requestAnimationFrame(() => {
@@ -1164,9 +1183,11 @@
 
           // Pull room ids from the payload (authoritative) and wait for DOM rows
           const payloadRoomIds = (Array.isArray(j?.rooms) ? j.rooms : [])
-            .map(r => r.id ?? r.roomId ?? r.code)
+            .map(r =>
+              r.roomTypeId ?? r.typeId ?? r.id ?? r.roomId ?? r.code
+            )
             .filter(Boolean)
-            .map(String);
+            .map(v => String(v));
 
           await waitForCats();
 
@@ -1202,7 +1223,9 @@
 
             if (!plans.length) continue;
 
-            panel.innerHTML = renderPlanRows(rid, plans);
+            panel.innerHTML = renderPlanRows(rid, plans);          // render rows
+            panel.setAttribute('data-hydrated', 'true');           // mark as partner-authoritative
+            panel.dataset.hydratedAt = String(Date.now());         // (optional) timestamp for debugging
 
             // Update the top-right Select link to primary in-scope plan
             const selIds = (function(){
@@ -1401,45 +1424,15 @@
           } catch (_) {}
         });
 
-        /* Repaint sub-rows if plans changed while away (hub -> back) */
+        /* Repaint sub-rows if plans changed while away (hub -> back) — delegate to partner hydration */
         document.addEventListener('visibilitychange', () => {
           if (document.visibilityState !== 'visible') return;
-          const newPlans = derivePlansForDisplay();
-          const same = JSON.stringify(newPlans.map(p=>p.id)) === JSON.stringify(plans.map(p=>p.id));
-          if (same) return;
-
-          document.querySelectorAll('#roomCats .roomcat').forEach(cat => {
-            const rid = cat.getAttribute('data-room-id');
-
-            // Update toggle visibility if plan count changed
-            const hasExtras = newPlans.length > 1;
-            let toggle = cat.querySelector('.toggle');
-            if (hasExtras && !toggle) {
-              toggle = document.createElement('button');
-              toggle.className = 'toggle';
-              toggle.type = 'button';
-              toggle.setAttribute('aria-expanded', 'false');
-              toggle.setAttribute('aria-label', 'Show plans');
-              toggle.setAttribute('tabindex', '0');
-              toggle.setAttribute('role', 'button');
-              toggle.textContent = '+';
-              cat.insertBefore(toggle, cat.firstElementChild);
-            } else if (!hasExtras && toggle) {
-              toggle.replaceWith(document.createElement('span'));
-            }
-
-            const panel = cat.querySelector('.planlist');
-            if (panel){
-              panel.innerHTML = newPlans.map(p => {
-                const url = `/room_details.html?propertyId=${encodeURIComponent(propertyId)}&roomId=${encodeURIComponent(rid)}&start=${encodeURIComponent(start)}&end=${encodeURIComponent(end)}&ratePlanId=${encodeURIComponent(p.id)}`;
-                return `
-                  <div class="planrow" data-plan-id="${p.id}">
-                    <div><div class="planname">${p.name}</div><div class="meta">Plan ID: ${p.id}</div></div>
-                    <a class="btn-select" href="${url}">Select</a>
-                  </div>`;
-              }).join('');
-            }
-          });
+          try {
+            // Re-run the authoritative partner hydrate instead of repainting from the local fallback.
+            hydratePlansFromPartners?.();
+          } catch (_) {
+            // no-op
+          }
         });
       })();
     }
