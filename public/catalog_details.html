@@ -991,7 +991,7 @@
         }
         
         listEl.innerHTML = openRooms.map(({ room, minPrice }) => {
-          const rid = room.id ?? room.roomId ?? room.code ?? '';
+          const rid = room.roomTypeId ?? room.typeId ?? room.id ?? room.roomId ?? room.code ?? '';
           const name = String(room.name ?? 'Room').trim() || 'Room';
           const thumb = (Array.isArray(room.images) && room.images.length) ? (room.images[0]?.url || room.images[0]) : ph(name);
           const m2 = room.areaM2 ?? room.areaSqm ?? null;
@@ -1072,33 +1072,49 @@
           }
           function labelFor(plan){
             const code = String(plan.code || '').toUpperCase();
-            const lbls = customLabels();
+            const lbls = customLabels(); // { CUS1: "...", CUS2: "..." }
+
+            // Partner overrides
             if (code === 'CUS1' && lbls.CUS1) return lbls.CUS1;
             if (code === 'CUS2' && lbls.CUS2) return lbls.CUS2;
+
+            // Built-ins
+            if (code === 'STD' || Number(plan.id) === 1) return 'Standard';
+            if (code === 'BRKF' || /breakfast/i.test(plan.name || '')) return 'Breakfast';
+            if (code === 'NRF' || /non[-\s]?ref/i.test(plan.name || '')) return 'Non-refundable';
+
+            // Fallback
             return String(plan.name || plan.code || `Plan ${plan.id}`);
           }
+
           async function fetchPlans(roomId){
-            if (!roomId) return [];
-            const url = `/extranet/property/rateplans?roomTypeId=${encodeURIComponent(roomId)}`;
-            try{
-              const fetcher = (typeof window.authFetch === 'function') ? window.authFetch : fetch;
-              const r = await fetcher(url, { method:'GET', cache:'no-store' });
-              if (!r.ok) throw new Error(String(r.status));
-              const j = await r.json();
-              const raw = Array.isArray(j) ? j : (j.rows || j.plans || []);
-              return raw
-                .map(p => ({
-                  id: Number(p.id || p.ratePlanId),
-                  code: String(p.code || '').toUpperCase(),
-                  name: p.name || p.code || `Plan ${p.id || p.ratePlanId}`
-                }))
-                .filter(p => Number.isFinite(p.id))
-                .filter(p => p.isActive === true || p.enabled === true || p.checked === true);
-            } catch(_){
-              // unauth or not available — fall back to whatever we already display
-              return [];
-            }
+          if (!roomId) return [];
+          const rid = String(roomId).trim();
+
+          // include propertyId and send cookies for auth
+          const url = `/extranet/property/rateplans?propertyId=${encodeURIComponent(propertyId)}&roomTypeId=${encodeURIComponent(rid)}`;
+
+          try{
+            const fetcher = (typeof window.authFetch === 'function') ? window.authFetch : fetch;
+            const r = await fetcher(url, { method:'GET', cache:'no-store', credentials:'include' });
+            if (!r.ok) throw new Error(`HTTP ${r.status}`);
+
+            const j = await r.json();
+            const raw = Array.isArray(j) ? j : (j.rows || j.plans || j.data || j.result || []);
+
+            return raw
+              .map(p => ({
+                id: Number(p.id ?? p.ratePlanId ?? p.rate_plan_id),
+                code: String(p.code ?? p.ratePlanCode ?? p.rate_plan_code ?? '').toUpperCase(),
+                name: p.name ?? p.label ?? p.code ?? `Plan ${p.id ?? p.ratePlanId}`
+              }))
+              .filter(p => Number.isFinite(p.id));
+          } catch (err){
+            console.warn('[hydratePlansFromPartners] fetchPlans failed for room', rid, err);
+            return [];
           }
+        }
+
           function renderPlanRows(roomId, plans){
             const sel = selectedIds();
             const plansQS = sel.length ? `&plans=${encodeURIComponent(sel.join(','))}` : '';
@@ -1121,54 +1137,77 @@
             return rows;
           }
 
-          // For each rendered room, fetch partner plans and swap in the authoritative list
-          const cats = document.querySelectorAll('#roomCats .roomcat');
-          for (const cat of cats){
-            const rid = cat.getAttribute('data-room-id');
-            const panel = cat.querySelector('.planlist');
-            if (!panel) continue;
+          // === HYDRATE_LOOP_BEGIN (drop-in replacement) ===
+          async function waitForCats(maxTries = 20){
+            for (let i = 0; i < maxTries; i++){
+              const nodes = document.querySelectorAll('#roomCats .roomcat');
+              if (nodes.length) return nodes;
+              await new Promise(r => setTimeout(r, 100));
+            }
+            return document.querySelectorAll('#roomCats .roomcat');
+          }
 
-            const plans = await fetchPlans(rid);
+          // Pull room ids from the payload (authoritative) and wait for DOM rows
+          const payloadRoomIds = (Array.isArray(j?.rooms) ? j.rooms : [])
+            .map(r => r.id ?? r.roomId ?? r.code)
+            .filter(Boolean)
+            .map(String);
 
-              // sync with locally stored partner state (selectedIds/customLabels)
-              try {
-                const sel = JSON.parse(localStorage.getItem('rateplan.selectedIds') || '[]');
-                const lbls = JSON.parse(localStorage.getItem('rateplan.customLabels') || '{}') || {};
-                const activeIds = Array.isArray(sel) ? sel.map(Number).filter(Number.isFinite) : [];
+          await waitForCats();
 
-                // filter to only those plans selected by the partner
-                if (activeIds.length) {
-                  plans.splice(0, plans.length, ...plans.filter(p => activeIds.includes(p.id)));
-                }
+          for (const ridRaw of payloadRoomIds){
+            const rid = String(ridRaw);
+            const selector = `#roomCats .roomcat[data-room-id="${CSS.escape(rid)}"]`;
+            const cat = document.querySelector(selector);
+            if (!cat) continue;
 
-                // apply custom labels if any exist
-                plans.forEach(p => {
-                  if (p.code === 'CUS1' && lbls.CUS1) p.name = lbls.CUS1;
-                  if (p.code === 'CUS2' && lbls.CUS2) p.name = lbls.CUS2;
-                });
+            let panel = cat.querySelector('.planlist');
+            if (!panel){
+              panel = document.createElement('div');
+              panel.className = 'planlist';
+              panel.setAttribute('aria-label', 'Rate plans');
+              cat.appendChild(panel);
+            }
 
-                console.log('[hydratePlansFromPartners] applied local partner plan filter', { activeIds, labels: lbls, final: plans.map(p=>p.name) });
-              } catch (err) {
-                console.warn('[hydratePlansFromPartners] local sync failed', err);
-              }
+            let plans = await fetchPlans(rid);        // [{id,code,name}]
+            if (!plans.length) continue;
+
+            // sync with locally stored partner state (selectedIds/customLabels)
+            try {
+              const sel = JSON.parse(localStorage.getItem('rateplan.selectedIds') || '[]');
+              const lbls = JSON.parse(localStorage.getItem('rateplan.customLabels') || '{}') || {};
+              const activeIds = Array.isArray(sel) ? sel.map(Number).filter(Number.isFinite) : [];
+
+              if (activeIds.length) plans = plans.filter(p => activeIds.includes(p.id));
+              plans.forEach(p => {
+                if (p.code === 'CUS1' && lbls.CUS1) p.name = lbls.CUS1;
+                if (p.code === 'CUS2' && lbls.CUS2) p.name = lbls.CUS2;
+              });
+            } catch {}
 
             if (!plans.length) continue;
 
             panel.innerHTML = renderPlanRows(rid, plans);
 
-            // Update the top-right Select link to use the in-scope primary plan
-            const sel = selectedIds();
-            const plansQS = sel.length ? `&plans=${encodeURIComponent(sel.join(','))}` : '';
-            const inScope = sel.length ? plans.filter(p => sel.includes(p.id)) : plans.slice();
+            // Update the top-right Select link to primary in-scope plan
+            const selIds = (function(){
+              try {
+                const a = JSON.parse(localStorage.getItem('rateplan.selectedIds') || '[]');
+                return Array.isArray(a) ? a.map(Number).filter(Number.isFinite) : [];
+              } catch { return []; }
+            })();
+            const plansQS = selIds.length ? `&plans=${encodeURIComponent(selIds.join(','))}` : '';
+            const inScope = selIds.length ? plans.filter(p => selIds.includes(p.id)) : plans.slice();
             const primary = (inScope.length ? inScope[0] : (plans[0] || { id:1 }));
+
             const topLink = cat.querySelector('.btn-select');
             if (topLink){
               const href = `/room_details.html?propertyId=${encodeURIComponent(propertyId)}&roomId=${encodeURIComponent(rid)}&start=${encodeURIComponent(start)}&end=${encodeURIComponent(end)}&ratePlanId=${encodeURIComponent(primary.id)}${plansQS}`;
               topLink.setAttribute('href', href);
             }
 
-            // If there is only one plan after hydration, hide toggle; else show it
-            const hasExtras = (plans.length > 1);
+            // Show toggle only if multiple plans
+            const hasExtras = plans.length > 1;
             let toggle = cat.querySelector('.toggle');
             if (hasExtras && !toggle){
               toggle = document.createElement('button');
@@ -1182,7 +1221,7 @@
               toggle.replaceWith(document.createElement('span'));
             }
           }
-          console.log('[details] hydrated partner plans:', plans);
+          // === HYDRATE_LOOP_END ===
         };
         hydratePlansFromPartners().catch(()=>{});
 
@@ -1200,6 +1239,30 @@
           if (e.key === 'rateplan.selectedIds' || e.key === 'rateplan.customLabels') {
             (async () => { try { await (async function(){ await hydratePlansFromPartners?.(); })(); } catch(_){} })();
           }
+        });
+
+        // Persist last chosen plan when any "Select" is clicked
+        listEl.addEventListener('click', (e) => {
+          const link = e.target.closest('.planrow .btn-select, .roomcat > .btn-select');
+          if (!link) return;
+
+          try {
+            // Prefer data-plan-id from plan rows; otherwise read from link href
+            const row = e.target.closest('.planrow');
+            let pid = row ? Number(row.getAttribute('data-plan-id')) : NaN;
+            if (!Number.isFinite(pid)) {
+              const u = new URL(link.href, location.href);
+              pid = Number(u.searchParams.get('ratePlanId'));
+            }
+            if (Number.isFinite(pid)) {
+              localStorage.setItem('rateplan.lastPlanId', String(pid));
+              // optional: mirror into selectedIds if partner has none
+              const sel = JSON.parse(localStorage.getItem('rateplan.selectedIds') || '[]');
+              if (Array.isArray(sel) && !sel.map(Number).includes(pid)) {
+                localStorage.setItem('rateplan.selectedIds', JSON.stringify([...sel, pid]));
+              }
+            }
+          } catch {}
         });
 
         /* Toggle open/closed with mouse */
