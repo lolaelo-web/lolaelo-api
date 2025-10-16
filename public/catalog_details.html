@@ -1057,6 +1057,127 @@
         }
         applyExpandedFromStorage();
 
+        // === Partner-managed rate plans: hydrate per-room plan names/ids ===
+        window.hydratePlansFromPartners = async function hydratePlansFromPartners(){
+          // helpers
+          function selectedIds(){
+            try {
+              const a = JSON.parse(localStorage.getItem('rateplan.selectedIds') || '[]');
+              return Array.isArray(a) ? a.map(Number).filter(Number.isFinite) : [];
+            } catch { return []; }
+          }
+          function customLabels(){
+            try { return JSON.parse(localStorage.getItem('rateplan.customLabels') || '{}') || {}; }
+            catch { return {}; }
+          }
+          function labelFor(plan){
+            const code = String(plan.code || '').toUpperCase();
+            const lbls = customLabels();
+            if (code === 'CUS1' && lbls.CUS1) return lbls.CUS1;
+            if (code === 'CUS2' && lbls.CUS2) return lbls.CUS2;
+            return String(plan.name || plan.code || `Plan ${plan.id}`);
+          }
+          async function fetchPlans(roomId){
+            if (!roomId) return [];
+            const url = `/extranet/property/rateplans?roomTypeId=${encodeURIComponent(roomId)}`;
+            try{
+              const fetcher = (typeof window.authFetch === 'function') ? window.authFetch : fetch;
+              const r = await fetcher(url, { method:'GET', cache:'no-store' });
+              if (!r.ok) throw new Error(String(r.status));
+              const j = await r.json();
+              const raw = Array.isArray(j) ? j : (j.rows || j.plans || []);
+              return raw
+                .map(p => ({
+                  id: Number(p.id || p.ratePlanId),
+                  code: String(p.code || '').toUpperCase(),
+                  name: p.name || p.code || `Plan ${p.id || p.ratePlanId}`
+                }))
+                .filter(p => Number.isFinite(p.id));
+            } catch(_){
+              // unauth or not available — fall back to whatever we already display
+              return [];
+            }
+          }
+          function renderPlanRows(roomId, plans){
+            const sel = selectedIds();
+            const plansQS = sel.length ? `&plans=${encodeURIComponent(sel.join(','))}` : '';
+            // If partners selected specific plans, filter to those; otherwise keep all
+            const inScope = sel.length ? plans.filter(p => sel.includes(p.id)) : plans.slice();
+            // Ensure Standard (id:1) shows when nothing selected
+            const rows = (inScope.length ? inScope : [{ id:1, code:'STD', name:'Standard' }])
+              .map(p => {
+                const name = labelFor(p);
+                const url = `/room_details.html?propertyId=${encodeURIComponent(propertyId)}&roomId=${encodeURIComponent(roomId)}&start=${encodeURIComponent(start)}&end=${encodeURIComponent(end)}&ratePlanId=${encodeURIComponent(p.id)}${plansQS}`;
+                return `
+                  <div class="planrow" data-plan-id="${p.id}">
+                    <div>
+                      <div class="planname">${name}</div>
+                      <div class="meta">Plan ID: ${p.id}</div>
+                    </div>
+                    <a class="btn-select" href="${url}" aria-label="Select ${name}">Select</a>
+                  </div>`;
+              }).join('');
+            return rows;
+          }
+
+          // For each rendered room, fetch partner plans and swap in the authoritative list
+          const cats = document.querySelectorAll('#roomCats .roomcat');
+          for (const cat of cats){
+            const rid = cat.getAttribute('data-room-id');
+            const panel = cat.querySelector('.planlist');
+            if (!panel) continue;
+
+            const plans = await fetchPlans(rid);
+            if (!plans.length) continue;
+
+            panel.innerHTML = renderPlanRows(rid, plans);
+
+            // Update the top-right Select link to use the in-scope primary plan
+            const sel = selectedIds();
+            const plansQS = sel.length ? `&plans=${encodeURIComponent(sel.join(','))}` : '';
+            const inScope = sel.length ? plans.filter(p => sel.includes(p.id)) : plans.slice();
+            const primary = (inScope.length ? inScope[0] : (plans[0] || { id:1 }));
+            const topLink = cat.querySelector('.btn-select');
+            if (topLink){
+              const href = `/room_details.html?propertyId=${encodeURIComponent(propertyId)}&roomId=${encodeURIComponent(rid)}&start=${encodeURIComponent(start)}&end=${encodeURIComponent(end)}&ratePlanId=${encodeURIComponent(primary.id)}${plansQS}`;
+              topLink.setAttribute('href', href);
+            }
+
+            // If there is only one plan after hydration, hide toggle; else show it
+            const hasExtras = (plans.length > 1);
+            let toggle = cat.querySelector('.toggle');
+            if (hasExtras && !toggle){
+              toggle = document.createElement('button');
+              toggle.className = 'toggle';
+              toggle.type = 'button';
+              toggle.setAttribute('aria-expanded','false');
+              toggle.setAttribute('aria-label','Show plans');
+              toggle.textContent = '+';
+              cat.insertBefore(toggle, cat.firstElementChild);
+            } else if (!hasExtras && toggle){
+              toggle.replaceWith(document.createElement('span'));
+            }
+          }
+          console.log('[details] hydrated partner plans:', plans);
+        };
+        hydratePlansFromPartners().catch(()=>{});
+
+        // Re-hydrate when returning from partners hub or when labels/selection change
+        document.addEventListener('visibilitychange', () => {
+          if (document.visibilityState === 'visible') {
+            // re-run the partner plan hydration to pick up latest state
+            (async () => { try { await (async function(){ await hydratePlansFromPartners?.(); })(); } catch(_){} })();
+          }
+        });
+
+        // Also react to cross-tab/local edits (selectedIds, customLabels)
+        window.addEventListener('storage', (e) => {
+          if (!e) return;
+          if (e.key === 'rateplan.selectedIds' || e.key === 'rateplan.customLabels') {
+            (async () => { try { await (async function(){ await hydratePlansFromPartners?.(); })(); } catch(_){} })();
+          }
+        });
+
         /* Toggle open/closed with mouse */
         listEl.addEventListener('click', (e) => {
           const t = e.target.closest('.toggle');
