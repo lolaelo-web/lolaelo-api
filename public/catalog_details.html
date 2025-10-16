@@ -1042,6 +1042,13 @@
         `;
         }).join('');
 
+        // ANCHOR: PARTNER_HYDRATE_AFTER_RENDER
+        requestAnimationFrame(() => {
+          requestAnimationFrame(() => {
+            try { hydratePlansFromPartners?.(); } catch (e) { console.warn('[hydrate] failed', e); }
+          });
+        });
+
         // === Persist expand/collapse per property+room (session only) ===
         const EXPAND_KEY = `details.expand.${propertyId}`;
         function loadExpandMap(){
@@ -1361,6 +1368,37 @@
           const map = loadExpandMap();
           map[rid] = !!open;
           saveExpandMap(map);
+        });
+
+        // Persist chosen plan and ensure &plans= follows the link
+        listEl.addEventListener('click', (e) => {
+          const a = e.target.closest('.planrow .btn-select, .roomcat > .btn-select');
+          if (!a) return;
+
+          try {
+            // 1) Persist last clicked plan id (for top "Select" and subrows)
+            const row = e.target.closest('.planrow');
+            const pid = row ? Number(row.getAttribute('data-plan-id')) : null;
+            if (Number.isFinite(pid)) {
+              localStorage.setItem('rateplan.lastPlanId', String(pid));
+            }
+
+            // 2) Append &plans=<csv> from localStorage if present
+            const sel = (() => {
+              try {
+                const arr = JSON.parse(localStorage.getItem('rateplan.selectedIds') || '[]');
+                return Array.isArray(arr)
+                  ? [...new Set(arr.map(Number).filter(Number.isFinite))]
+                  : [];
+              } catch { return []; }
+            })();
+
+            if (sel.length) {
+              const u = new URL(a.href, location.origin);
+              u.searchParams.set('plans', sel.join(','));
+              a.setAttribute('href', u.toString());
+            }
+          } catch (_) {}
         });
 
         /* Repaint sub-rows if plans changed while away (hub -> back) */
