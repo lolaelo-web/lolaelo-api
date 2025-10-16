@@ -1129,6 +1129,29 @@
             if (!panel) continue;
 
             const plans = await fetchPlans(rid);
+
+              // sync with locally stored partner state (selectedIds/customLabels)
+              try {
+                const sel = JSON.parse(localStorage.getItem('rateplan.selectedIds') || '[]');
+                const lbls = JSON.parse(localStorage.getItem('rateplan.customLabels') || '{}') || {};
+                const activeIds = Array.isArray(sel) ? sel.map(Number).filter(Number.isFinite) : [];
+
+                // filter to only those plans selected by the partner
+                if (activeIds.length) {
+                  plans.splice(0, plans.length, ...plans.filter(p => activeIds.includes(p.id)));
+                }
+
+                // apply custom labels if any exist
+                plans.forEach(p => {
+                  if (p.code === 'CUS1' && lbls.CUS1) p.name = lbls.CUS1;
+                  if (p.code === 'CUS2' && lbls.CUS2) p.name = lbls.CUS2;
+                });
+
+                console.log('[hydratePlansFromPartners] applied local partner plan filter', { activeIds, labels: lbls, final: plans.map(p=>p.name) });
+              } catch (err) {
+                console.warn('[hydratePlansFromPartners] local sync failed', err);
+              }
+
             if (!plans.length) continue;
 
             panel.innerHTML = renderPlanRows(rid, plans);
