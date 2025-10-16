@@ -976,9 +976,17 @@
 
         const plans = derivePlansForDisplay(); // [{id,name}, …]
 
-        function planRowsHTML(roomId){
+       function planRowsHTML(roomId){
+          // read partner-selected plan ids from localStorage and build passthrough
+          let plansQS = '';
+          try {
+            const sel = JSON.parse(localStorage.getItem('rateplan.selectedIds') || '[]');
+            const ids = Array.isArray(sel) ? sel.map(Number).filter(Number.isFinite) : [];
+            if (ids.length) plansQS = `&plans=${encodeURIComponent(ids.join(','))}`;
+          } catch {}
+
           return plans.map(p => {
-            const url = `/room_details.html?propertyId=${encodeURIComponent(propertyId)}&roomId=${encodeURIComponent(roomId)}&start=${encodeURIComponent(start)}&end=${encodeURIComponent(end)}&ratePlanId=${encodeURIComponent(p.id)}`;
+            const url = `/room_details.html?propertyId=${encodeURIComponent(propertyId)}&roomId=${encodeURIComponent(roomId)}&start=${encodeURIComponent(start)}&end=${encodeURIComponent(end)}&ratePlanId=${encodeURIComponent(p.id)}${plansQS}`;
             return `
               <div class="planrow" data-plan-id="${p.id}">
                 <div>
