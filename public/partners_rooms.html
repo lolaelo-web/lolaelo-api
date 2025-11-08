@@ -6277,7 +6277,7 @@
           var chipAugments = chipPlans();
           var merged = unionById(apiPlans, chipAugments);
 
-          // Cache by room (consumers that read from cache will now see customs)
+          // Cache by room (consumers reading from cache now see the full merged plan list)
           window.__cachedPlansByRoom = window.__cachedPlansByRoom || new Map();
           window.__cachedPlansByRoom.set(roomId, merged);
 
