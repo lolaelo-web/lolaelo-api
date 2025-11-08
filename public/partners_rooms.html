@@ -6144,13 +6144,6 @@
     console.info('[PLANS_PANEL_SELF_HEAL]', { roomId, ids, domIds, source: sourceLabel });
   }
 
-  // When plans change but panel is empty, repair it.
-  document.addEventListener('rateplans:changed', () => {
-    // rAF + micro-debounce to let other handlers run first
-    cancelAnimationFrame(window[KEY]);
-    window[KEY] = requestAnimationFrame(() => ensurePlansRendered('rateplans:changed'));
-  }, { capture:false });
-
   // Also run after calendar (room) render just in case
   document.addEventListener('calendar:rendered', () => {
     cancelAnimationFrame(window[KEY]);
