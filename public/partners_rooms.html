@@ -4536,11 +4536,27 @@
 
           // Build candidates WITHOUT changing user selection
           let saved = [];
-          try { saved = JSON.parse(localStorage.getItem('rateplan.selectedIds') || '[]') || []; } catch(_) {}
+          try {
+            saved = JSON.parse(localStorage.getItem('rateplan.selectedIds') || '[]') || [];
+          } catch (_) {}
+
           const cur = Number(primaryPlanId);
+
+          // Derive known plan ids from the visible chips to avoid brute-forcing 1..16
+          let fromChips = [];
+          try {
+            const host = document.getElementById('rateplan-checks');
+            if (host) {
+              fromChips = [...host.querySelectorAll('input[type="checkbox"][data-plan-id]')]
+                .map(n => Number(n.dataset.planId))
+                .filter(n => Number.isFinite(n) && n !== cur);
+            }
+          } catch (_) {}
+
+          // Candidates: saved (other than current) + visible chip ids (other than current)
           const candidates = [...new Set([
             ...saved.filter(n => Number.isFinite(n) && n !== cur),
-            ...Array.from({ length: 16 }, (_, i) => i + 1).filter(n => n !== cur)
+            ...fromChips
           ])];
 
           for (const id of candidates) {
@@ -4548,14 +4564,19 @@
             const rr = await fetchWithRetry(testUrl, {}, 1, 0);
             if (rr && rr.ok) {
               let rows = [];
-              try { rows = await rr.json(); } catch(_) {}
+              try {
+                rows = await rr.json();
+              } catch (_) {}
+
               if (Array.isArray(rows) && rows.length > 0) {
-                // DISPLAY ONLY — do NOT persist, update URL, or dispatch events.
+                // DISPLAY ONLY: do not persist, update URL, or dispatch events.
                 prcRows = rows;
                 if (localStorage.getItem('rooms_debug') === '1') {
                   console.debug('[plan-fallback DISPLAY-ONLY] selected plan had 0 rows; showing plan', id, 'rows:', rows.length);
                 }
-                try { setStatus('No prices for the selected plan in this range — showing another available plan (display only).', 'warn'); } catch(_) {}
+                try {
+                  setStatus('No prices for the selected plan in this range, showing another available plan (display only).', 'warn');
+                } catch (_) {}
                 break;
               }
             }
