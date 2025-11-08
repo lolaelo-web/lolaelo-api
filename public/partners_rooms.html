@@ -6022,23 +6022,58 @@
 (() => {
   const iso = (d)=>d.toISOString().slice(0,10);
   const addDaysISO=(isoStr,n)=>{ const d=new Date(isoStr+"T00:00:00Z"); d.setDate(d.getDate()+n); return iso(d); };
-  const setLabel=(sISO)=>{ const lbl=document.getElementById('month-label'); if(lbl) lbl.textContent=new Date(sISO+'T00:00:00Z').toLocaleString(undefined,{month:'short',year:'numeric'}); };
-  const setWindow=(sISO,doRender=true)=>{
-    const eISO=addDaysISO(sISO,21-1), rs=document.getElementById('range-start'), re=document.getElementById('range-end');
-    if (rs&&re){ rs.value=sISO; re.value=eISO; }
-    window.currentRangeStart=sISO; window.currentRangeEnd=eISO; window.currentAnchor=new Date(sISO+'T00:00:00Z');
-    setLabel(sISO);
-    /* don’t touch currentRatePlanId here; chips/init own it */
-    if (typeof window.updateURLFromState==='function') window.updateURLFromState();
-    if (doRender && typeof window.renderCalendar==='function') window.renderCalendar();
-  };
+  const setLabel = (sISO) => {
+  const lbl = document.getElementById('month-label');
+  if (!lbl) return;
+  try {
+    lbl.textContent = new Date(sISO + 'T00:00:00Z').toLocaleString(undefined, {
+      month: 'short',
+      year: 'numeric'
+    });
+  } catch (_) {
+    lbl.textContent = sISO;
+  }
+};
+
+// Current window size in days, default 7 if range not set
+const getSpanDays = () => {
+  const rsEl = document.getElementById('range-start');
+  const reEl = document.getElementById('range-end');
+  if (rsEl && reEl && rsEl.value && reEl.value) {
+    const d1 = new Date(rsEl.value + 'T00:00:00Z');
+    const d2 = new Date(reEl.value + 'T00:00:00Z');
+    const ms = d2.getTime() - d1.getTime();
+    const span = Math.round(ms / 86400000) + 1;
+    if (span >= 1 && span <= 21) return span;
+  }
+  return 7; // default window
+};
+
+const setWindow = (sISO, doRender = true) => {
+  const span = getSpanDays();
+  const eISO = addDaysISO(sISO, span - 1);
+  const rs = document.getElementById('range-start');
+  const re = document.getElementById('range-end');
+  if (rs && re) {
+    rs.value = sISO;
+    re.value = eISO;
+  }
+  window.currentRangeStart = sISO;
+  window.currentRangeEnd = eISO;
+  window.currentAnchor = new Date(sISO + 'T00:00:00Z');
+  setLabel(sISO);
+  if (typeof window.updateURLFromState === 'function') window.updateURLFromState();
+  if (doRender && typeof window.renderCalendar === 'function') window.renderCalendar();
+};
+
   const prev=document.getElementById('month-prev'), next=document.getElementById('month-next'), todayBtn=document.getElementById('month-today');
   if (!prev||!next){ console.warn('[MN-HARDFIX-LOCK] nav buttons missing'); return; }
   prev.onclick=null; next.onclick=null; if (todayBtn) todayBtn.onclick=null;
   const install=(el,dir)=>{ el.addEventListener('click',(ev)=>{ ev.stopImmediatePropagation(); ev.preventDefault();
     const rs=document.getElementById('range-start')?.value || window.currentRangeStart;
     const re=document.getElementById('range-end')?.value   || window.currentRangeEnd || rs;
-    const nextStart=(dir==='next') ? addDaysISO(re,+1) : addDaysISO(rs,-21);
+    const span = getSpanDays();
+    const nextStart = (dir === 'next') ? addDaysISO(re,+1) : addDaysISO(rs,-span);
     setWindow(nextStart,true);
   },{capture:true}); };
   install(prev,'prev'); install(next,'next');
