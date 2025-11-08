@@ -424,58 +424,6 @@
                 </div>
                 <div class="plan-badge" style="font-size:12px;padding:4px 8px;border-radius:999px;border:1px solid var(--border);background:var(--chip);">code: BRKF</div>
               </div>
-
-              <!-- Custom 1 (editable, renameable) -->
-              <div class="plan-row" data-plan-code="CUS1" style="display:grid;grid-template-columns:1fr auto;gap:8px;align-items:center;padding:8px 10px;border-radius:8px;background:var(--panel-2);border:1px solid var(--border);">
-                <div>
-                  <div class="plan-name" style="font-weight:600;">
-                    <span contenteditable="true" data-field="name" style="outline:0;border-bottom:1px dashed var(--border);">Custom 1</span>
-                  </div>
-                  <div class="plan-meta" style="color:var(--muted);font-size:12px;">Rule applies to Standard price</div>
-                  <div class="rule-editor" style="display:flex;gap:8px;align-items:center;margin-top:6px;">
-                    <label class="note">Adjust</label>
-                    <select class="input" data-field="sign" style="min-width:86px;background:var(--chip);border:1px solid var(--border);color:var(--text);border-radius:8px;padding:6px 8px;">
-                      <option value="+">+</option>
-                      <option value="-">-</option>
-                    </select>
-                    <input class="input" data-field="value" type="number" step="0.01" min="0" placeholder="0.00"
-                          style="width:10ch;background:var(--chip);border:1px solid var(--border);color:var(--text);border-radius:8px;padding:6px 8px;text-align:right;" />
-                    <select class="input" data-field="unit" style="min-width:86px;background:var(--chip);border:1px solid var(--border);color:var(--text);border-radius:8px;padding:6px 8px;">
-                      <option value="$" selected>$</option>
-                      <option value="%">%</option>
-                    </select>
-                    <span class="note" data-field="preview" style="color:var(--muted);font-size:12px;">Example: $100 → —</span>
-                    <a href="#" class="note" data-act="reset" style="margin-left:2px;">Reset</a>
-                  </div>
-                </div>
-                <div class="plan-badge" style="font-size:12px;padding:4px 8px;border-radius:999px;border:1px solid var(--border);background:var(--chip);">code: CUS1</div>
-              </div>
-
-              <!-- Custom 2 (editable, renameable) -->
-              <div class="plan-row" data-plan-code="CUS2" style="display:grid;grid-template-columns:1fr auto;gap:8px;align-items:center;padding:8px 10px;border-radius:8px;background:var(--panel-2);border:1px solid var(--border);">
-                <div>
-                  <div class="plan-name" style="font-weight:600;">
-                    <span contenteditable="true" data-field="name" style="outline:0;border-bottom:1px dashed var(--border);">Custom 2</span>
-                  </div>
-                  <div class="plan-meta" style="color:var(--muted);font-size:12px;">Rule applies to Standard price</div>
-                  <div class="rule-editor" style="display:flex;gap:8px;align-items:center;margin-top:6px;">
-                    <label class="note">Adjust</label>
-                    <select class="input" data-field="sign" style="min-width:86px;background:var(--chip);border:1px solid var(--border);color:var(--text);border-radius:8px;padding:6px 8px;">
-                      <option value="+">+</option>
-                      <option value="-">-</option>
-                    </select>
-                    <input class="input" data-field="value" type="number" step="0.01" min="0" placeholder="0.00"
-                          style="width:10ch;background:var(--chip);border:1px solid var(--border);color:var(--text);border-radius:8px;padding:6px 8px;text-align:right;" />
-                    <select class="input" data-field="unit" style="min-width:86px;background:var(--chip);border:1px solid var(--border);color:var(--text);border-radius:8px;padding:6px 8px;">
-                      <option value="$" selected>$</option>
-                      <option value="%">%</option>
-                    </select>
-                    <span class="note" data-field="preview" style="color:var(--muted);font-size:12px;">Example: $100 → —</span>
-                    <a href="#" class="note" data-act="reset" style="margin-left:2px;">Reset</a>
-                  </div>
-                </div>
-                <div class="plan-badge" style="font-size:12px;padding:4px 8px;border-radius:999px;border:1px solid var(--border);background:var(--chip);">code: CUS2</div>
-              </div>
             </div> <!-- closes id="plans-list" -->
 
             <!-- Save button at bottom-right of the panel -->
@@ -3106,17 +3054,6 @@
 
     // 1) Render the checkbox chips (new UI)
     try {
-        // apply label overrides for CUS1/CUS2 before first paint
-        try{
-          const labels = JSON.parse(localStorage.getItem('rateplan.customLabels') || '{}') || {};
-          plans = Array.isArray(plans) ? plans.map(p => {
-            const code = String(p.code || '').toUpperCase();
-            let name = String(p.name || p.code || `Plan ${p.id}`).replace(/\s*\(\d+\)\s*$/,'');
-            if (labels.CUS1 && (code === 'CUS1' || /custom 1/i.test(name))) name = labels.CUS1;
-            if (labels.CUS2 && (code === 'CUS2' || /custom 2/i.test(name))) name = labels.CUS2;
-            return { ...p, name };
-          }) : plans;
-        }catch(_){}
       if (typeof populateRatePlanChecks === 'function') {
         populateRatePlanChecks(plans);
       }
@@ -3156,13 +3093,12 @@
     window.__rateplansChangedHandlerRef = handler;
   }
 
-  /* === RATEPLAN_CHIPS: render + state + events (drop-in, no <script> wrapper) === */
-  (function(){
+    (function(){
     const LS_KEY_IDS     = 'rateplan.selectedIds';
-    const LS_KEY_LABELS  = 'rateplan.customLabels';   // { CUS1: "Holiday Special", CUS2: "…" }
-    const LS_KEY_CODEMAP = 'rateplan.codeToId';       // { CUS1: 6, CUS2: 7 }
-    
-    // --- Custom label helpers (persisted) ---
+    const LS_KEY_LABELS  = 'rateplan.customLabels';   // generic label store (no special CUS1/CUS2 behavior)
+    const LS_KEY_CODEMAP = 'rateplan.codeToId';       // generic code→id mapping
+
+    // --- Custom label helpers (persisted, generic) ---
     function getCustomLabel(code){
       try {
         const map = JSON.parse(localStorage.getItem(LS_KEY_LABELS) || '{}');
@@ -3178,37 +3114,37 @@
       } catch(_) {}
     }
 
-    // --- Friendly name (uses overrides for CUS1/CUS2) ---
+    // --- Friendly name (no CUS1/CUS2 special cases) ---
     function friendlyPlanName(p){
       const code = String(p.code || '').toUpperCase();
       const raw  = String(p.name || p.code || `Plan ${p.id}`);
 
-      // honor overrides for custom codes
-      if (code === 'CUS1'){ const o = getCustomLabel('CUS1'); if (o) return o; }
-      if (code === 'CUS2'){ const o = getCustomLabel('CUS2'); if (o) return o; }
-
       if (p.isDefault || code === 'STD' || code === 'STD1' || /standard/i.test(raw)) return 'Standard';
       if (code === 'BRKF' || /breakfast/i.test(raw)) return 'Breakfast';
       if (code === 'NRF'  || /non[-\s]?ref/i.test(raw) || /non[-\s]?refundable/i.test(raw)) return 'Non-Refundable';
-      if (code === 'CUS1') return 'Custom 1';
-      if (code === 'CUS2') return 'Custom 2';
 
-      return raw.replace(/\s*\(\d+\)\s*$/, ''); // strip trailing "(1)" etc
+      // Fallback: original name without trailing "(1)" etc.
+      return raw.replace(/\s*\(\d+\)\s*$/, '');
     }
 
-    // ----- label + code→id helpers
+    // ----- label + code→id helpers (generic)
     const getLabels = () => {
-      try { const o = JSON.parse(localStorage.getItem(LS_KEY_LABELS)||'{}'); return (o && typeof o==='object') ? o : {}; }
-      catch(_) { return {}; }
+      try {
+        const o = JSON.parse(localStorage.getItem(LS_KEY_LABELS) || '{}');
+        return (o && typeof o === 'object') ? o : {};
+      } catch(_) { return {}; }
     };
     const setLabel = (code, name) => {
       const o = getLabels();
-      o[code] = String(name||'').trim() || (code==='CUS1'?'Custom 1':'Custom 2');
+      // No implicit "Custom 1/2" defaults; just store the trimmed name
+      o[code] = String(name || '').trim();
       localStorage.setItem(LS_KEY_LABELS, JSON.stringify(o));
     };
     const getCodeMap = () => {
-      try { const o = JSON.parse(localStorage.getItem(LS_KEY_CODEMAP)||'{}'); return (o && typeof o==='object') ? o : {}; }
-      catch(_) { return {}; }
+      try {
+        const o = JSON.parse(localStorage.getItem(LS_KEY_CODEMAP) || '{}');
+        return (o && typeof o === 'object') ? o : {};
+      } catch(_) { return {}; }
     };
 
     // ----- selection persistence
@@ -3260,80 +3196,53 @@
 
     /* ANCHOR: buildRenderablePlans (drop-in replacement) */
     function buildRenderablePlans(plans){
-      // Pull persisted custom labels + optional code→id mapping
-      let customLabels = {};
-      let codeToId     = {};
-      try { customLabels = JSON.parse(localStorage.getItem('rateplan.customLabels') || '{}') || {}; } catch(_){}
-      try { codeToId     = JSON.parse(localStorage.getItem('rateplan.codeToId')     || '{}') || {}; } catch(_){}
-
       const byCode = new Map();
 
       // Normalize backend list, strip trailing "(1)" from names
       (Array.isArray(plans) ? plans : []).forEach(p => {
-        if (p && p.id != null){
-          const code = String(p.code || '').toUpperCase();
-          const name = String(p.name || p.code || `Plan ${p.id}`).replace(/\s*\(\d+\)\s*$/,'');
-          byCode.set(code || `ID:${p.id}`, { id: Number(p.id), code, name, placeholder: false });
-        }
+        if (!p || p.id == null) return;
+        const code = String(p.code || '').toUpperCase();
+        const rawName = String(p.name || p.code || `Plan ${p.id}`);
+        const name = rawName.replace(/\s*\(\d+\)\s*$/, '');
+        byCode.set(code || `ID:${p.id}`, {
+          id: Number(p.id),
+          code,
+          name,
+          placeholder: false
+        });
       });
 
-      // Ensure Standard exists (and display as "Standard" without "(1)")
-      const hasStd = [...byCode.keys()].some(k => k === 'STD');
-      if (!hasStd){
+      // Ensure Standard exists, and force label to "Standard"
+      if (!byCode.has('STD')) {
         byCode.set('STD', { id: 1, code: 'STD', name: 'Standard', placeholder: false });
       } else {
         const std = byCode.get('STD');
         if (std) std.name = 'Standard';
       }
 
-      // Ensure Custom 1 / Custom 2 always exist (use persisted label + stable ids)
-      const cus1Id = Number(codeToId.CUS1) || 1001;
-      const cus2Id = Number(codeToId.CUS2) || 1002;
-
-      const labelFor = (code, fallback) => {
-        const v = (customLabels && customLabels[code]) ? String(customLabels[code]).trim() : '';
-        return v || fallback;
-      };
-
-      // CUS1
-      if (byCode.has('CUS1')) {
-        const c1 = byCode.get('CUS1');
-        c1.id    = Number(c1.id) || cus1Id;
-        c1.name  = labelFor('CUS1', String(c1.name || 'Custom 1')).replace(/\s*\(\d+\)\s*$/,'');
-      } else {
-        byCode.set('CUS1', { id: cus1Id, code: 'CUS1', name: labelFor('CUS1', 'Custom 1'), placeholder: false });
-      }
-
-      // CUS2
-      if (byCode.has('CUS2')) {
-        const c2 = byCode.get('CUS2');
-        c2.id    = Number(c2.id) || cus2Id;
-        c2.name  = labelFor('CUS2', String(c2.name || 'Custom 2')).replace(/\s*\(\d+\)\s*$/,'');
-      } else {
-        byCode.set('CUS2', { id: cus2Id, code: 'CUS2', name: labelFor('CUS2', 'Custom 2'), placeholder: false });
-      }
-
-      // Order: Standard, Breakfast, Non-Refundable, Custom1, Custom2, then the rest
+      // Sort: Standard, Breakfast, Non-Refundable, then the rest
       const arr = [...byCode.values()];
       const rank = (p) => {
         const c = p.code || '';
         if (c === 'STD')  return 0;
         if (c === 'BRKF') return 1;
         if (c === 'NRF')  return 2;
-        if (c === 'CUS1') return 3;
-        if (c === 'CUS2') return 4;
-        return 5;
+        return 3;
       };
-      arr.sort((a,b)=>{
+
+      arr.sort((a, b) => {
         const ra = rank(a), rb = rank(b);
         if (ra !== rb) return ra - rb;
+
         const ai = Number(a.id), bi = Number(b.id);
         if (Number.isFinite(ai) && Number.isFinite(bi)) return ai - bi;
-        return String(a.code).localeCompare(String(b.code));
+
+        return String(a.code || '').localeCompare(String(b.code || ''));
       });
 
       return arr;
     }
+
 
     // After plans are fetched/saved, record code→id so Custom chips become active
     document.addEventListener('rateplans:fetched', (e)=>{
@@ -3352,7 +3261,7 @@
       if (!(el instanceof HTMLElement)) return;
       if (!el.matches('#plans-panel [data-field="name"]')) return;
       const row = el.closest('.plan-row[data-plan-code]');
-      const code = row?.getAttribute('data-plan-code'); // "CUS1" / "CUS2"
+      const code = row?.getAttribute('data-plan-code'); // e.g. "STD", "BRKF", "NRF"
       if (!code) return;
       setLabel(code, el.textContent || '');
       const last = window.__lastFetchedPlans || null;
@@ -3460,7 +3369,7 @@
       const host    = document.getElementById('rateplan-checks');
       if (!hostRow || !host) return;
 
-      // --- label + code→id helpers (persisted in other parts of the page)
+      // --- optional label + code→id helpers (generic, no Custom 1/2 handling)
       let customLabels = {};
       let codeToId     = {};
       try { customLabels = JSON.parse(localStorage.getItem('rateplan.customLabels') || '{}') || {}; } catch(_) {}
@@ -3483,35 +3392,13 @@
         const std = byCode.get('STD'); if (std) std.name = 'Standard';
       }
 
-      // Ensure Custom 1 / Custom 2 appear as chips (use stored code→id if known)
-      const cus1Id = Number(codeToId.CUS1) || NaN;
-      const cus2Id = Number(codeToId.CUS2) || NaN;
-      if (!byCode.has('CUS1')){
-        byCode.set('CUS1', {
-          id: Number.isFinite(cus1Id) ? cus1Id : 'CUS1',
-          code:'CUS1',
-          name: (customLabels.CUS1?.trim() || 'Custom 1 (Click to Rename)'),
-          placeholder: !Number.isFinite(cus1Id)
-        });
-      }
-      if (!byCode.has('CUS2')){
-        byCode.set('CUS2', {
-          id: Number.isFinite(cus2Id) ? cus2Id : 'CUS2',
-          code:'CUS2',
-          name: (customLabels.CUS2?.trim() || 'Custom 2 (Click to Rename)'),
-          placeholder: !Number.isFinite(cus2Id)
-        });
-      }
-
       // Order chips: Standard, Breakfast, Non-Refundable, Custom1, Custom2, then others
       const rank = (p) => {
         const c = p.code || '';
         if (c === 'STD')  return 0;
         if (c === 'BRKF') return 1;
         if (c === 'NRF')  return 2;
-        if (c === 'CUS1') return 3;
-        if (c === 'CUS2') return 4;
-        return 5;
+        return 3;
       };
       const list = [...byCode.values()].sort((a,b)=>{
         const ra=rank(a), rb=rank(b);
@@ -5743,18 +5630,11 @@
         // base label (no “(1)” suffixes)
         let name = String(p.name || p.code || `Plan ${p.id}`).replace(/\s*\(\d+\)\s*$/,'');
 
-        // panel-only display suffix for editable customs
-        let displayName = name;
-        if ((code === 'CUS1' && /^custom\s*1$/i.test(name)) ||
-            (code === 'CUS2' && /^custom\s*2$/i.test(name))) {
-          displayName = `${name} (Click to Rename)`; // visual hint only
-        }
-
         const badge = p.code ? String(p.code) : (p.isDefault ? 'default' : `id:${p.id}`);
         return `
           <div style="display:grid;grid-template-columns:1fr auto;gap:8px;align-items:center;padding:6px 8px;border:1px solid var(--border);border-radius:8px;background:var(--panel-2);">
             <div>
-              <div style="font-weight:600">${displayName}</div>
+              <div style="font-weight:600">${name}</div>
               <div class="note">${describeRule(p)}</div>
             </div>
               <div class="note" style="padding:2px 8px;border:1px solid var(--border);border-radius:999px;background:var(--chip);">${badge}</div>
@@ -5814,9 +5694,6 @@
     }
   })();
 
-  // INSERT: CUSTOM_LABEL_LIVE_UPDATES (CUS1/CUS2 names reflect immediately in chips)
-  const LS_KEY_LABELS = 'rateplan.customLabels';
-
   // Draft persistence for numeric rules (survives refresh until a successful save)
   const LS_KEY_DRAFTS = 'rateplan.ruleDrafts'; // shape: { CODE: { sign:'-', unit:'%', value: 10 } }
   function loadDrafts(){
@@ -5827,26 +5704,10 @@
   }
   const ruleDrafts = loadDrafts();
 
-  async function refreshChipsWithLabels(){
-    try{
-      const labels = JSON.parse(localStorage.getItem(LS_KEY_LABELS) || '{}') || {};
-      let plans = await fetchRatePlansSafe();
-      plans = Array.isArray(plans) ? plans.map(p => {
-        const code = String(p.code || '').toUpperCase();
-        let name = String(p.name || p.code || `Plan ${p.id}`).replace(/\s*\(\d+\)\s*$/,'');
-        if (labels.CUS1 && (code === 'CUS1' || /custom 1/i.test(name))) name = labels.CUS1;
-        if (labels.CUS2 && (code === 'CUS2' || /custom 2/i.test(name))) name = labels.CUS2;
-        return { ...p, name };
-      }) : plans;
-      if (typeof populateRatePlanDropdown === 'function') populateRatePlanDropdown(plans);
-      if (typeof renderPlansPanel === 'function') renderPlansPanel(plans);
-    }catch(_){}
-  }
-
     // Local scratch state for pending edits
     const state = {}; // e.g., { BRKF: {sign:'-', unit:'$', value:15}, NRF:{sign:'-', unit:'%', value:10} }
     // === Draft persistence for rule editors (no overlap with existing symbols) ===
-    const LS_KEY_RULE_DRAFTS = 'rateplan.ruleDrafts'; // { BRKF:{sign:'-',unit:'$',value:15}, NRF:{…}, CUS1:{…}, CUS2:{…} }
+    const LS_KEY_RULE_DRAFTS = 'rateplan.ruleDrafts'; // { STD:{sign:'-',unit:'$',value:0}, BRKF:{…}, NRF:{…} }
 
     function loadRuleDrafts(){
       try {
@@ -5935,28 +5796,21 @@
 
     let numericInvalid   = false;  // any row has a bad numeric value
     let anyNumericGiven  = false;  // at least one row has a number filled in
-    let labelChanged     = false;  // CUS1/CUS2 label edited from default
 
     rows.forEach(row => {
       const code = row.getAttribute('data-plan-code');
       const cfg  = state[code] || {};
-      const nameEl = row.querySelector('[data-field="name"]');
-
-      // ---- label change: enable save if Custom 1/2 renamed to non-default
-      if (nameEl && (code === 'CUS1' || code === 'CUS2')) {
-        const raw = (nameEl.textContent || '').trim();
-        const def = (code === 'CUS1') ? 'Custom 1' : 'Custom 2';
-        if (raw && raw !== def) labelChanged = true;
-      }
 
       // ---- numeric rules: empty is neutral/valid; if present must be >= 0
       const val = (cfg && cfg.value !== undefined) ? cfg.value : NaN;
       const hasNumber = (val !== '' && Number.isFinite(Number(val)));
       if (hasNumber) {
         anyNumericGiven = true;
-        if (!( (cfg.sign === '+' || cfg.sign === '-') &&
-              (cfg.unit === '$' || cfg.unit === '%') &&
-              Number(val) >= 0 )) {
+        if (!(
+          (cfg.sign === '+' || cfg.sign === '-') &&
+          (cfg.unit === '$' || cfg.unit === '%') &&
+          Number(val) >= 0
+        )) {
           numericInvalid = true;
         }
       }
@@ -5964,8 +5818,8 @@
 
     // Enable when:
     // - no invalid numbers, AND
-    // - (a) any numeric rule provided, OR (b) a Custom label changed
-    btn.disabled = !!(numericInvalid || !(anyNumericGiven || labelChanged));
+    // - at least one numeric rule provided
+    btn.disabled = !!(numericInvalid || !anyNumericGiven);
   }
 
     function attachRow(row){
@@ -5977,83 +5831,9 @@
       const selUnit  = row.querySelector('select[data-field="unit"]');
       const prevEl = row.querySelector('[data-field="preview"]');
 
-      // --- Allow renaming Custom 1/2 and refresh the chips row ---
+      // Plan name element (used for display/metadata only)
       const nameEl = row.querySelector('[data-field="name"]');
       
-            // --- Allow renaming Custom 1/2 and show a "(Click to Rename)" hint in-panel ---
-      if (nameEl && (code === 'CUS1' || code === 'CUS2')) {
-        // Seed from persisted label (localStorage key used by chips code)
-        try {
-          const labels = JSON.parse(localStorage.getItem('rateplan.customLabels') || '{}') || {};
-          const saved  = labels[code];
-          if (typeof saved === 'string' && saved.trim() && nameEl.textContent.trim() !== saved.trim()) {
-            nameEl.textContent = saved.trim();
-          }
-        } catch (_) {}
-
-        // If still default, add a small inline hint
-        const rawName = (nameEl.textContent || '').trim();
-        const isDefaultCus1 = (code === 'CUS1') && /^custom\s*1$/i.test(rawName);
-        const isDefaultCus2 = (code === 'CUS2') && /^custom\s*2$/i.test(rawName);
-        if (isDefaultCus1 || isDefaultCus2) {
-          // Add ARIA title and a subtle inline hint once
-          nameEl.title = 'Click to rename';
-          if (!nameEl.querySelector('.name-hint')) {
-            const hint = document.createElement('span');
-            hint.className = 'name-hint';
-            hint.textContent = ' (Click to Rename)';
-            nameEl.appendChild(hint);
-          }
-        } else {
-          // Ensure hint is not shown once user renamed
-          nameEl.title = '';
-          nameEl.querySelector('.name-hint')?.remove();
-        }
-
-        function commitCustomName(){
-          const v = (nameEl.textContent || '').replace(/\s*\(Click to Rename\)\s*$/i,'').trim();
-          try {
-            const labels = JSON.parse(localStorage.getItem('rateplan.customLabels') || '{}') || {};
-            if (v) labels[code] = v; else delete labels[code]; // clear key when empty
-            localStorage.setItem('rateplan.customLabels', JSON.stringify(labels));
-          } catch (_) {}
-
-          // Re-evaluate hint after rename
-          nameEl.querySelector('.name-hint')?.remove();
-          const now = v;
-          const stillDefault = (code === 'CUS1' && /^custom\s*1$/i.test(now)) ||
-                               (code === 'CUS2' && /^custom\s*2$/i.test(now));
-          if (stillDefault) {
-            nameEl.title = 'Click to rename';
-            const hint = document.createElement('span');
-            hint.className = 'name-hint';
-            hint.textContent = ' (Click to Rename)';
-            nameEl.appendChild(hint);
-          } else {
-            nameEl.title = '';
-          }
-
-          // Fast repaint of chips so the new label shows in the header row
-          try {
-            if (typeof refreshChipsWithLabels === 'function') {
-              refreshChipsWithLabels();
-            } else if (typeof populateRatePlanChecks === 'function') {
-              if (typeof fetchRatePlansSafe === 'function') {
-                fetchRatePlansSafe().then(plans => { populateRatePlanChecks(plans); });
-              } else {
-                populateRatePlanChecks([]); // minimal refresh fallback
-              }
-            }
-            updateURLFromState?.();
-          } catch (_) {}
-        }
-
-        nameEl.addEventListener('blur', commitCustomName);
-        nameEl.addEventListener('keydown', (e) => {
-          if (e.key === 'Enter') { e.preventDefault(); nameEl.blur(); } // commit on Enter
-        });
-      }
-
       // Seed from drafts (if present), else from DOM
       const draft = __preloadedRuleDrafts[code];
       const seedSign  = (draft && (draft.sign === '+' || draft.sign === '-')) ? draft.sign : (selSign?.value || '-');
@@ -6125,58 +5905,7 @@
     }
 
     panel.querySelectorAll('.plan-row[data-plan-code]').forEach(attachRow);
-    // Live-sync chip labels when Custom 1/2 names are edited
-    (function wireCustomNameLiveSync(){
-      const LS_KEY = 'rateplan.customLabels';
-
-      function saveLabelsToLS(partial){
-        try{
-          const cur = JSON.parse(localStorage.getItem(LS_KEY) || '{}') || {};
-          const next = { ...cur, ...partial };
-          // drop empty values
-          Object.keys(next).forEach(k => { if (!String(next[k]||'').trim()) delete next[k]; });
-          localStorage.setItem(LS_KEY, JSON.stringify(next));
-        }catch(_){}
-      }
-
-      async function repaintChips(){
-        try{
-          const plans = await fetchRatePlansSafe();
-          if (typeof populateRatePlanChecks === 'function') populateRatePlanChecks(plans);
-        }catch(_){}
-      }
-
-      // Handle blur + Enter on the editable name fields
-      panel.addEventListener('keydown', (e) => {
-        if (e.key !== 'Enter') return;
-        const el = e.target;
-        if (!(el instanceof HTMLElement)) return;
-        if (!el.matches('#plans-panel [data-field="name"]')) return;
-        e.preventDefault();
-        el.blur();
-      }, { capture:true });
-
-      panel.addEventListener('blur', (e) => {
-        const el = e.target;
-        if (!(el instanceof HTMLElement)) return;
-        if (!el.matches('#plans-panel [data-field="name"]')) return;
-
-        const row  = el.closest('.plan-row[data-plan-code]');
-        const code = String(row?.getAttribute('data-plan-code') || '').toUpperCase(); // CUS1 / CUS2 / etc.
-        if (!code) return;
-
-        const raw  = (el.textContent || '').trim();
-        // Persist only for Custom 1/2; other codes ignore
-        if (code === 'CUS1' || code === 'CUS2'){
-          const defLabel = (code === 'CUS1') ? 'Custom 1' : 'Custom 2';
-          const val = (raw && raw !== defLabel) ? raw : '';
-          const payload = {}; payload[code] = val;
-          saveLabelsToLS(payload);
-          repaintChips(); // repaint the chips row using latest labels
-        }
-      }, { capture:true });
-    })();
-
+    
     /* reset a single row back to server rule */
     panel.addEventListener('click', async (e) => {
       const a = e.target.closest('a[data-act="reset"]');
@@ -6197,36 +5926,9 @@
   })();
   
     /* ANCHOR: PLAN_RULES_SAVE */
-  (function wirePlanRulesSave(){
+    (function wirePlanRulesSave(){
     const btn = document.getElementById('save-plan-rules');
     if (!btn) return;
-
-    const LS_KEY_LABELS = 'rateplan.customLabels'; // { CUS1:"Holiday Special", CUS2:"…" }
-
-    function readCustomLabelsFromDOM(){
-      const out = {};
-      const row1 = document.querySelector('#plans-panel .plan-row[data-plan-code="CUS1"] [data-field="name"]');
-      const row2 = document.querySelector('#plans-panel .plan-row[data-plan-code="CUS2"] [data-field="name"]');
-      const v1 = (row1?.textContent || '').trim();
-      const v2 = (row2?.textContent || '').trim();
-      if (v1 && v1 !== 'Custom 1') out.CUS1 = v1;
-      if (v2 && v2 !== 'Custom 2') out.CUS2 = v2;
-      return out;
-    }
-
-    function applyLabelOverrides(plans){
-      let labels = {};
-      try { labels = JSON.parse(localStorage.getItem(LS_KEY_LABELS) || '{}') || {}; } catch(_){}
-      if (!Array.isArray(plans)) return plans;
-
-      return plans.map(p => {
-        const code = String(p.code || '').toUpperCase();
-        let name = String(p.name || p.code || `Plan ${p.id}`).replace(/\s*\(\d+\)\s*$/,'');
-        if (labels.CUS1 && (code === 'CUS1' || /custom 1/i.test(name))) name = labels.CUS1;
-        if (labels.CUS2 && (code === 'CUS2' || /custom 2/i.test(name))) name = labels.CUS2;
-        return { ...p, name };
-      });
-    }
 
     btn.addEventListener('click', async () => {
       try {
@@ -6251,12 +5953,6 @@
           return { code, name, kind: unit, value };
         }).filter(p => p && p.code);
 
-        // Save local labels so chips/panel reflect immediately
-        const customLabels = readCustomLabelsFromDOM();
-        if (Object.keys(customLabels).length){
-          try { localStorage.setItem(LS_KEY_LABELS, JSON.stringify(customLabels)); } catch(_){}
-        }
-
         // Try backend save
         let status = 0, ok = false, res;
         try {
@@ -6271,24 +5967,24 @@
         if (ok) {
           setStatus('Plan rules saved.', 'ok');
           toast('Plan rules saved', 'ok');
-        // Backend accepted — clear the saved drafts for the codes we just posted
-        try {
-          const postedCodes = (Array.isArray(plans) ? plans.map(p=>p.code).filter(Boolean) : []);
-          clearRuleDrafts(postedCodes.length ? postedCodes : undefined); // if unknown, nuke all
-        } catch(_) {}
-
+          // Backend accepted — clear the saved drafts for the codes we just posted
+          try {
+            const postedCodes = (Array.isArray(plans) ? plans.map(p=>p.code).filter(Boolean) : []);
+            clearRuleDrafts(postedCodes.length ? postedCodes : undefined); // if unknown, nuke all
+          } catch(_) {}
         } else {
           setStatus(`Could not save plan rules (${status || 'ERR'}). UI kept your inputs.`, 'warn');
           toast('Save skipped — backend not ready', 'warn');
         }
 
-        // Refresh plans and repaint UI with label overrides
+        // Refresh plans and repaint UI
         try {
           const fresh = await fetchRatePlansSafe();
-          try { document.dispatchEvent(new CustomEvent('rateplans:fetched', { detail:{ plans: fresh } })); } catch(_){}
-          const overridden = applyLabelOverrides(fresh);
-          if (typeof populateRatePlanDropdown === 'function') populateRatePlanDropdown(overridden);
-          if (typeof renderPlansPanel === 'function') renderPlansPanel(overridden);
+          try {
+            document.dispatchEvent(new CustomEvent('rateplans:fetched', { detail:{ plans: fresh } }));
+          } catch(_){}
+          if (typeof populateRatePlanDropdown === 'function') populateRatePlanDropdown(fresh);
+          if (typeof renderPlansPanel === 'function') renderPlansPanel(fresh);
         } catch(_) {}
       } catch (e) {
         console.warn('Plan rules save error:', e);
@@ -6525,7 +6221,7 @@
   }
 
   if (typeof window.loadRatePlansForRoom !== 'function') {
-    // Augments API plans with chip-derived plans (covers Custom 1/2) before caching.
+    // Augments API plans with chip-derived plans before caching.
     window.loadRatePlansForRoom = function(roomId){
       if (!roomId) return Promise.resolve([]);
 
@@ -6553,10 +6249,6 @@
           if (!isFinite(id)) continue;
           var code = String(el.getAttribute('data-plan-code') || '').toUpperCase();
           var label = (el.textContent || '').trim();
-          if (!code) {
-            if (/custom\s*1/i.test(label)) code = 'CUS1';
-            else if (/custom\s*2/i.test(label)) code = 'CUS2';
-          }
           out.push({ id:id, code:code, name:label || code || ('Plan ' + id) });
         }
         return out;
@@ -6907,44 +6599,6 @@
   document.addEventListener('visibilitychange', () => {
     if (document.visibilityState === 'visible') resyncFromLS();
   });
-})();
-</script>
-<!-- ANCHOR: PLAN_LABEL_DECORATOR (decorate fetchRatePlansSafe with label overrides) -->
-<script>
-(() => {
-  if (typeof window.fetchRatePlansSafe !== 'function') return;
-
-  const LS_KEY = 'rateplan.customLabels';
-
-  function applyLabelOverrides(plans){
-    let labels = {};
-    try { labels = JSON.parse(localStorage.getItem(LS_KEY) || '{}') || {}; } catch(_){}
-    if (!Array.isArray(plans)) return plans;
-    return plans.map(p => {
-      const code = String(p.code || '').toUpperCase();
-      let name = String(p.name || p.code || `Plan ${p.id}`).replace(/\s*\(\d+\)\s*$/,'');
-      if (labels.CUS1 && (code === 'CUS1' || /custom 1/i.test(name))) name = labels.CUS1;
-      if (labels.CUS2 && (code === 'CUS2' || /custom 2/i.test(name))) name = labels.CUS2;
-      return { ...p, name };
-    });
-  }
-
-  const orig = window.fetchRatePlansSafe;
-  window.fetchRatePlansSafe = async function decoratedFetchRatePlansSafe(){
-    const plans = await orig.apply(this, arguments);
-    const overridden = applyLabelOverrides(plans);
-
-    // repaint chips + plans panel if helpers exist
-    try {
-      if (typeof window.populateRatePlanDropdown === 'function') window.populateRatePlanDropdown(overridden);
-      if (typeof window.renderPlansPanel === 'function') window.renderPlansPanel(overridden);
-      // rebroadcast ids so downstream (calendar, URL sync) stays coherent
-      const ids = (overridden || []).map(p => Number(p.id)).filter(Number.isFinite).sort((a,b)=>a-b);
-      document.dispatchEvent(new CustomEvent('rateplans:changed', { detail:{ ids: ids.join(','), source:'label-decorator' }}));
-    } catch(_) {}
-
-    return overridden;
-  };
 })();
 </script>
 
