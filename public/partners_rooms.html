@@ -6110,7 +6110,7 @@
     const panel = document.getElementById('plans-panel');
     if (!panel) return;
 
-    const hasRows = panel.querySelectorAll('.plan-row[data-plan-id]').length > 0;
+    const hasRows = panel.querySelectorAll('.plan-row').length > 0;
     if (hasRows) return; // already good
 
     // Clear stale LS expectations that can fight the DOM
