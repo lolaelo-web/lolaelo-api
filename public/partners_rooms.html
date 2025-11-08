@@ -6323,15 +6323,22 @@
     console.info('[PLANS_PANEL] shimmed loadRatePlansForRoom (chip-augmented)');
   }
 
-  // After calendar builds, load plans for current room and broadcast IDs
-  document.addEventListener('calendar:rendered', function(){
-    try {
-      var roomId = window.currentRoomTypeId || ((window.__lastRenderedRoom||{}).id);
-      if (roomId) window.loadRatePlansForRoom(roomId);
-    } catch (e) {}
-  }, { capture:false });
+    // After calendar builds, ensure plans for current room are loaded at least once
+    document.addEventListener('calendar:rendered', function(){
+      try {
+        var roomId = window.currentRoomTypeId || ((window.__lastRenderedRoom||{}).id);
+        if (!roomId) return;
 
-})();
+        // Use cache guard so we do not reload plans on every calendar render
+        window.__cachedPlansByRoom = window.__cachedPlansByRoom || new Map();
+        if (window.__cachedPlansByRoom.has(roomId)) return;
+
+        if (typeof window.loadRatePlansForRoom === 'function') {
+          window.loadRatePlansForRoom(roomId).catch(function(){});
+        }
+      } catch (e) {}
+    }, { capture:false });
+  })();
 </script>
 
 <!-- ANCHOR: PLAN_CHECKBOX_REPAIR (safe, non-destructive) -->
