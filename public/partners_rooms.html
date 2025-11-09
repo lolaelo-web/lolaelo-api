@@ -5035,7 +5035,15 @@
       // We'll try GET first; if empty, we optimistically fill the tiles.
       let verifyRows = [];
       try {
-        const verifyPlan = Number.isFinite(Number(window.currentRatePlanId)) ? Number(window.currentRatePlanId) : ratePlanId;
+        // Prefer the server's canonical ratePlanId if it was returned
+        const verifyPlanRaw = (prcResObj && Number.isFinite(Number(prcResObj.ratePlanId)))
+          ? Number(prcResObj.ratePlanId)
+          : (Number.isFinite(Number(window.currentRatePlanId))
+              ? Number(window.currentRatePlanId)
+              : ratePlanId);
+
+        const verifyPlan = Number.isFinite(verifyPlanRaw) ? verifyPlanRaw : ratePlanId;
+
         const verifyUrl = `/extranet/property/rooms/${currentRoomTypeId}/prices?start=${start}&end=${end}&ratePlanId=${encodeURIComponent(verifyPlan)}`;
         const verifyRes = await authFetch(verifyUrl);
         verifyRows = verifyRes.ok ? await verifyRes.json() : [];
