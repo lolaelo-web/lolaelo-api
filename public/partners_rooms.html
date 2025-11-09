@@ -6063,7 +6063,10 @@ const setWindow = (sISO, doRender = true) => {
   window.currentAnchor = new Date(sISO + 'T00:00:00Z');
   setLabel(sISO);
   if (typeof window.updateURLFromState === 'function') window.updateURLFromState();
-  if (doRender && typeof window.renderCalendar === 'function') window.renderCalendar();
+    if (doRender && typeof window.renderCalendar === 'function') {
+    console.debug('[MN10] renderCalendar fired');
+    window.renderCalendar();
+  }
 };
 
   const prev=document.getElementById('month-prev'), next=document.getElementById('month-next'), todayBtn=document.getElementById('month-today');
