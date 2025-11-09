@@ -4008,38 +4008,38 @@
       const syncEndMin = ()=> { re.min = rs.value || todayISO(); };
 
       function ensureWindow(){
-        // Keep ~3-week window if user collapses range
-        if (!rs.value) rs.value = todayISO();
-        if (!re.value || re.value < rs.value){
-          const s = new Date(rs.value+"T00:00:00Z");
-          const e = new Date(s.getTime() + (21-1)*ONE_DAY);
-          re.value = iso(e);
-        }
+      // Keep ~1-week window if user collapses range
+      if (!rs.value) rs.value = todayISO();
+      if (!re.value || re.value < rs.value){
+        const s = new Date(rs.value+"T00:00:00Z");
+        const e = new Date(s.getTime() + (7-1)*ONE_DAY);
+        re.value = iso(e);
       }
+    }
 
-      // On load/init
+    // On load/init
+    syncEndMin();
+    ensureWindow();
+
+    // When start changes: push end if needed, sync min
+    rs.addEventListener("change", ()=>{
       syncEndMin();
-      ensureWindow();
+      if (!re.value || re.value < rs.value){
+        const s = new Date(rs.value+"T00:00:00Z");
+        const e = new Date(s.getTime() + (7-1)*ONE_DAY);
+        re.value = iso(e);
+      }
+    });
 
-      // When start changes: push end if needed, sync min
-      rs.addEventListener("change", ()=>{
-        syncEndMin();
-        if (!re.value || re.value < rs.value){
-          const s = new Date(rs.value+"T00:00:00Z");
-          const e = new Date(s.getTime() + (21-1)*ONE_DAY);
-          re.value = iso(e);
-        }
-      });
-
-      // When end changes: if end < start, snap back to ~3 weeks
-      re.addEventListener("change", ()=>{
-        if (re.value && rs.value && re.value < rs.value){
-          const s = new Date(rs.value+"T00:00:00Z");
-          const e = new Date(s.getTime() + (21-1)*ONE_DAY);
-          re.value = iso(e);
-        }
-      });
-    })();
+    // When end changes: if end < start, snap back to ~1 week
+    re.addEventListener("change", ()=>{
+      if (re.value && rs.value && re.value < rs.value){
+        const s = new Date(rs.value+"T00:00:00Z");
+        const e = new Date(s.getTime() + (7-1)*ONE_DAY);
+        re.value = iso(e);
+      }
+    });
+  })();
 
     // ANCHOR: RANGE_QUICK_SELECTS
     (function wireQuickRange(){
@@ -6063,10 +6063,7 @@ const setWindow = (sISO, doRender = true) => {
   window.currentAnchor = new Date(sISO + 'T00:00:00Z');
   setLabel(sISO);
   if (typeof window.updateURLFromState === 'function') window.updateURLFromState();
-    if (doRender && typeof window.renderCalendar === 'function') {
-    console.debug('[MN10] renderCalendar fired');
-    window.renderCalendar();
-  }
+  if (doRender && typeof window.renderCalendar === 'function') window.renderCalendar();
 };
 
   const prev=document.getElementById('month-prev'), next=document.getElementById('month-next'), todayBtn=document.getElementById('month-today');
