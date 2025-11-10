@@ -1038,26 +1038,28 @@
               desc = 'Standard conditions apply for this rate.';
             }
 
-            // Pull per-plan price (via Option A payload)
+            // per–rate-plan price from /catalog/details payload
             const planPrice = (typeof getPlanPriceForRoom === 'function')
               ? getPlanPriceForRoom(roomId, p.id)
               : null;
             const priceHtml = planPrice != null ? money(planPrice) : '';
 
-            const url = `/room_details.html?propertyId=${encodeURIComponent(propertyId)}&roomId=${encodeURIComponent(roomId)}&start=${encodeURIComponent(start)}&end=${encodeURIComponent(end)}&ratePlanId=${encodeURIComponent(p.id)}${plansQS}`;
+            const url = `/room_details.html?propertyId=${encodeURIComponent(propertyId)}&roomId=${encodeURIComponent(roomId)}&start=${encodeURIComponent(start)}&end=${encodeURIComponent(end)}&ratePlanId=${encodeURIComponent(p.id)}&planLabel=${encodeURIComponent(label)}${plansQS}`;
 
             return `
               <div class="planrow" data-plan-id="${p.id}">
-                <div>
-                  <div class="planname">${label}</div>
+                <div class="planinfo">
+                  <div class="planheader" style="display:flex;align-items:center;justify-content:space-between;gap:8px;">
+                    <div class="planname">${label}</div>
+                    ${priceHtml ? `<div class="planprice">${priceHtml}</div>` : ``}
+                  </div>
                   <div class="meta">${desc}</div>
-                  ${priceHtml ? `<div class="planprice">${priceHtml}</div>` : ``}
                 </div>
                 <a class="btn-select" href="${url}" aria-label="Select ${label}">Select</a>
               </div>`;
           }).join('');
         }
-       
+      
         listEl.innerHTML = openRooms.map(({ room, minPrice }) => {
           const rid = room.roomTypeId ?? room.typeId ?? room.id ?? room.roomId ?? room.code ?? '';
           const name = String(room.name ?? 'Room').trim() || 'Room';
@@ -1242,7 +1244,7 @@
 
             // Ensure Standard (id:1) shows when nothing selected
             if (!inScope.length) {
-              inScope = [{ id:1, code:'STD', name:'Standard' }];
+              inScope = [{ id: 1, code: 'STD', name: 'Standard' }];
             }
 
             // Sort cheapest → most expensive using semantic priority
@@ -1258,20 +1260,22 @@
                 const name = labelFor(p);
                 const desc = describePlan(p);
 
-                // New: pull per–rate-plan price from details payload (Option A)
+                // per–rate-plan price from /catalog/details payload
                 const planPrice = (typeof getPlanPriceForRoom === 'function')
                   ? getPlanPriceForRoom(roomId, p.id)
                   : null;
                 const priceHtml = planPrice != null ? money(planPrice) : '';
 
-                const url = `/room_details.html?propertyId=${encodeURIComponent(propertyId)}&roomId=${encodeURIComponent(roomId)}&start=${encodeURIComponent(start)}&end=${encodeURIComponent(end)}&ratePlanId=${encodeURIComponent(p.id)}${plansQS}`;
+                const url = `/room_details.html?propertyId=${encodeURIComponent(propertyId)}&roomId=${encodeURIComponent(roomId)}&start=${encodeURIComponent(start)}&end=${encodeURIComponent(end)}&ratePlanId=${encodeURIComponent(p.id)}&planLabel=${encodeURIComponent(name)}${plansQS}`;
 
                 return `
                   <div class="planrow" data-plan-id="${p.id}">
-                    <div>
-                      <div class="planname">${name}</div>
+                    <div class="planinfo">
+                      <div class="planheader" style="display:flex;align-items:center;justify-content:space-between;gap:8px;">
+                        <div class="planname">${name}</div>
+                        ${priceHtml ? `<div class="planprice">${priceHtml}</div>` : ``}
+                      </div>
                       <div class="meta">${desc}</div>
-                      ${priceHtml ? `<div class="planprice">${priceHtml}</div>` : ``}
                     </div>
                     <a class="btn-select" href="${url}" aria-label="Select ${name}">Select</a>
                   </div>`;

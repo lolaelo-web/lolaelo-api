@@ -67,8 +67,11 @@
 
       <aside class="panel">
         <div id="stay-range" class="muted"></div>
+        <div id="plan-label" class="muted"></div>
+        <div id="plan-desc" class="note"></div>
         <div class="row"><div class="muted">From</div><div id="from" class="price">—</div></div>
         <div id="nights" class="muted"></div>
+        <div id="total" class="muted"></div>
         <button id="continue" class="cta" type="button">Continue (mock)</button>
       </aside>
     </div>
@@ -79,6 +82,8 @@
   const qs = new URLSearchParams(location.search);
   const propertyId = qs.get('propertyId');
   const roomId     = qs.get('roomId');
+  const ratePlanId = qs.get('ratePlanId') || qs.get('plan') || null;
+  const rawPlanLabel = qs.get('planLabel') || '';
   const start      = qs.get('start') || new Date().toISOString().slice(0,10);
   const end        = qs.get('end')   || start;
 
@@ -90,10 +95,13 @@
   const roomName = document.getElementById('room-name');
   const roomMeta = document.getElementById('room-meta');
   const chipsEl  = document.getElementById('amenities');
-  const descEl   = document.getElementById('desc');
-  const fromEl   = document.getElementById('from');
-  const rangeEl  = document.getElementById('stay-range');
-  const nightsEl = document.getElementById('nights');
+  const descEl       = document.getElementById('desc');
+  const fromEl       = document.getElementById('from');
+  const rangeEl      = document.getElementById('stay-range');
+  const nightsEl     = document.getElementById('nights');
+  const planLabelEl  = document.getElementById('plan-label');
+  const planDescEl   = document.getElementById('plan-desc');
+  const totalEl      = document.getElementById('total');
 
   let images = [];
   let heroIndex = 0;
@@ -141,25 +149,65 @@
   function money(n){ const x=Number(n); return Number.isFinite(x) ? `$${x.toFixed(2)}` : '—'; }
   function daysBetween(a,b){ return Math.round((new Date(b)-new Date(a))/86400000); }
 
+  function money(n){ const x=Number(n); return Number.isFinite(x) ? `$${x.toFixed(2)}` : '—'; }
+  function daysBetween(a,b){ return Math.round((new Date(b)-new Date(a))/86400000); }
+
+  // === PLAN LABEL HELPERS ===
+  function normalizePlanLabel(raw){
+    const s = String(raw || '').trim();
+    if (!s) return '';
+    if (/non[-\s]?ref/i.test(s)) return 'Non-refundable';
+    if (/breakfast/i.test(s))   return 'With Breakfast';
+    if (/standard/i.test(s))    return 'Standard';
+    return s;
+  }
+
+  function describePlanFromLabel(label){
+    if (/non[-\s]?ref/i.test(label)) {
+      return 'Lower price, no refunds or changes.';
+    }
+    if (/with breakfast/i.test(label)) {
+      return 'This rate includes breakfast for 2.';
+    }
+    if (/standard/i.test(label)) {
+      return 'Flexible standard rate with free cancellation.';
+    }
+    return '';
+  }
+  // === END PLAN LABEL HELPERS ===
+
   async function load(){
     rangeEl.textContent = `${start} — ${end}`;
     heroWrap.classList.add('is-loading');
 
-    // Load property + rooms once
-    const url = `/catalog/details?propertyId=${encodeURIComponent(propertyId)}&start=${encodeURIComponent(start)}&end=${encodeURIComponent(end)}`;
-    const r   = await fetch(url, { cache:'no-store' });
+    // Load property + rooms once ( scoped to this rate plan if provided )
+    let url = `/catalog/details?propertyId=${encodeURIComponent(propertyId)}&start=${encodeURIComponent(start)}&end=${encodeURIComponent(end)}`;
+    if (ratePlanId) {
+      url += `&ratePlanId=${encodeURIComponent(ratePlanId)}`;
+    }
+    const r = await fetch(url, { cache:'no-store' });
     if (!r.ok) throw new Error(`HTTP ${r.status}`);
     const j = await r.json();
 
     propName.textContent = j?.name || 'Stay';
 
     const rooms = Array.isArray(j?.rooms) ? j.rooms : [];
-    // Resolve room by common ids
+    // Resolve room by roomTypeId (matches roomId from catalog_details links), with fallbacks
     const room = rooms.find(rr =>
-      String(rr.id ?? rr.roomId ?? rr.code ?? '') === String(roomId)
+      String(rr.roomTypeId ?? rr.id ?? rr.roomId ?? rr.code ?? '') === String(roomId)
     ) || rooms[0];
 
     roomName.textContent = room?.name || 'Room';
+
+    const normPlan = normalizePlanLabel(rawPlanLabel);
+    const planDesc = describePlanFromLabel(normPlan);
+
+    if (planLabelEl && normPlan) {
+      planLabelEl.textContent = `Plan: ${normPlan}`;
+    }
+    if (planDescEl && planDesc) {
+      planDescEl.textContent = planDesc;
+    }
 
     // Meta line (size/occupancy if available)
     const m2  = room?.areaM2 ?? room?.areaSqm ?? null;
@@ -178,13 +226,24 @@
     chipsEl.innerHTML = am.slice(0,8).map(a=>`<span class="chip">${String(a)}</span>`).join('');
     descEl.textContent = String(room?.description || j?.description || '');
 
-    // Price roll-up from room.daily
+    // Price roll-up from room.daily (for this specific rate plan)
     const daily = Array.isArray(room?.daily) ? room.daily : [];
     const open  = daily.filter(d => !d.closed && Number(d.inventory ?? d.open ?? 0) > 0);
-    const minP  = open.length ? Math.min(...open.map(d => Number(d.price ?? Infinity))) : null;
-    fromEl.textContent = minP!=null ? money(minP) : '—';
+    const priced = open.filter(d => d.price != null && !isNaN(Number(d.price)));
+
+    const minP  = priced.length ? Math.min(...priced.map(d => Number(d.price))) : null;
+    fromEl.textContent = minP != null ? money(minP) : '—';
+
     const nights = daysBetween(start,end);
-    nightsEl.textContent = nights>0 ? `${nights} night${nights===1?'':'s'}` : '';
+    nightsEl.textContent = nights > 0 ? `${nights} night${nights === 1 ? '' : 's'}` : '';
+
+    // Estimated total for stay = sum of nightly prices for this room + plan over the range
+    const total = priced.length ? priced.reduce((sum, d) => sum + Number(d.price), 0) : null;
+    if (totalEl) {
+      totalEl.textContent = total != null
+        ? `Estimated total for stay: ${money(total)}`
+        : '';
+    }
 
     // Images: prefer room.images → details.images → catalog.search(by partnerId)
     const pick = (arr)=> (Array.isArray(arr)?arr:[])
