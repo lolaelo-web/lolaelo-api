@@ -4473,7 +4473,7 @@
       }
     } catch(_) { planIds = []; }
 
-       // Fallbacks (global chips → LS → STD)
+      // Fallbacks (global chips → LS → STD)
       if (!Array.isArray(planIds) || !planIds.length) {
         planIds = Array.isArray(window.__selectedPlanIds)
           ? window.__selectedPlanIds.slice()
@@ -4489,18 +4489,22 @@
       planIds = planIds.map(Number).filter(n => Number.isFinite(n) && n > 0);
       if (!planIds.length) planIds = [1];
 
-      // If we have a canonical plan for this room from the server, force it to be primary
+      // Prefer any persisted per-room canonical plan id (e.g. server wrote to 12)
       try {
         let canonical = null;
 
-        if (typeof ctx !== 'undefined' &&
-            ctx &&
-            ctx.canonicalRatePlanByRoomId &&
-            Number.isFinite(Number(ctx.canonicalRatePlanByRoomId[currentRoomTypeId]))) {
-          canonical = Number(ctx.canonicalRatePlanByRoomId[currentRoomTypeId]);
-        } else if (window.__roomCanonicalRatePlanId &&
-                  Number.isFinite(Number(window.__roomCanonicalRatePlanId[currentRoomTypeId]))) {
+        // First: in-memory map for this tab
+        if (window.__roomCanonicalRatePlanId &&
+            Number.isFinite(Number(window.__roomCanonicalRatePlanId[currentRoomTypeId]))) {
           canonical = Number(window.__roomCanonicalRatePlanId[currentRoomTypeId]);
+        } else {
+          // Second: per-room canonical id from localStorage (survives hard refresh)
+          const key = `room:${currentRoomTypeId}:canonicalRatePlanId`;
+          const raw = localStorage.getItem(key);
+          const n = Number(raw);
+          if (Number.isFinite(n)) {
+            canonical = n;
+          }
         }
 
         if (canonical && Number.isFinite(canonical) && canonical > 0) {
@@ -5089,29 +5093,28 @@
 
         // 2) Persist canonical plan id for this room into UI state
         try {
-          // Global "current" plan
+          // Global "current" plan for this tab
           window.currentRatePlanId = verifyPlan;
 
-          // Per-room canonical map on window
+          // Memory-scoped per-room map
           if (!window.__roomCanonicalRatePlanId) {
             window.__roomCanonicalRatePlanId = {};
           }
           window.__roomCanonicalRatePlanId[currentRoomTypeId] = verifyPlan;
 
-          // Mirror on ctx so calendar/render logic can pick it up
-          if (ctx) {
-            if (!ctx.canonicalRatePlanByRoomId) {
-              ctx.canonicalRatePlanByRoomId = {};
-            }
-            ctx.canonicalRatePlanByRoomId[currentRoomTypeId] = verifyPlan;
+          // Persist per-room canonical plan id so it survives hard refreshes
+          try {
+            const key = `room:${currentRoomTypeId}:canonicalRatePlanId`;
+            localStorage.setItem(key, String(verifyPlan));
+          } catch (_) {}
 
-            if (Array.isArray(ctx.ratePlanIds) && ctx.ratePlanIds.length) {
-              ctx.ratePlanIds = [verifyPlan];
-            }
-          }
+          // Keep generic "last plan" for legacy bits
+          try {
+            localStorage.setItem('rateplan.lastPlanId', String(verifyPlan));
+          } catch (_) {}
         } catch (persistErr) {
           console.warn(
-            "[PRC verify] failed to persist verifyPlan into ctx/window",
+            "[PRC verify] failed to persist verifyPlan into window/localStorage",
             persistErr
           );
         }
