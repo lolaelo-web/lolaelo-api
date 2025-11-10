@@ -60,6 +60,9 @@ export interface CatalogDetails {
     name: string;
     maxGuests: number;
     daily: RoomDaily[];               // ordered by date ASC
+
+    /** optional per–rate-plan pricing summary for this room */
+    ratePlanSummaries?: RatePlanSummary[];
   }>;
 
   currency: Currency;                 // "USD"
@@ -72,6 +75,13 @@ export interface RoomDaily {
   price: number | null; // null means not bookable / closed to arrival
   open: boolean;        // open/closed flag
   minStay?: number;     // optional minimum nights
+}
+
+/** Per–rate-plan price summary for /catalog/details */
+export interface RatePlanSummary {
+  ratePlanId: number;          // canonical ratePlanId (matches extranet / partners_rooms)
+  priceFrom: number | null;    // min nightly price over the requested range
+  currency: Currency;          // e.g. "USD"
 }
 
 /* ======================= Helpers (pure) ======================= */

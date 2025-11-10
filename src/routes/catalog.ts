@@ -831,6 +831,41 @@ router.get("/details", async (req: Request, res: Response) => {
         daily: v.daily,
       })) as any;
 
+      // Build per–rate-plan "from" price summaries for each room
+      const planSummaryByRoom = new Map<number, { ratePlanId: number; priceFrom: number | null; currency: string }[]>();
+      try {
+        const tmp = new Map<string, { roomTypeId: number; ratePlanId: number; minPrice: number | null }>();
+
+        for (const r of rows) {
+          const rid = Number(r.room_type_id);
+          const pid = Number(r.rate_plan_id);
+          if (!Number.isFinite(rid) || !Number.isFinite(pid)) continue;
+
+          if (r.price === null || r.price === undefined) continue;
+          const n = Number(r.price);
+          if (!Number.isFinite(n)) continue;
+
+          const key = `${rid}:${pid}`;
+          const cur = tmp.get(key);
+          const currentMin = cur?.minPrice ?? null;
+          if (currentMin == null || n < currentMin) {
+            tmp.set(key, { roomTypeId: rid, ratePlanId: pid, minPrice: n });
+          }
+        }
+
+        for (const value of tmp.values()) {
+          const arr = planSummaryByRoom.get(value.roomTypeId) ?? [];
+          arr.push({
+            ratePlanId: value.ratePlanId,
+            priceFrom: value.minPrice,
+            currency: "USD", // current catalog Currency type
+          });
+          planSummaryByRoom.set(value.roomTypeId, arr);
+        }
+      } catch (e) {
+        req.app?.get("logger")?.warn?.({ e, propertyId }, "details.ratePlanSummaries-build failed");
+      }
+
       console.log("[details] rooms-db-direct", {
         partnerId,
         count: dbRooms.length,
@@ -845,7 +880,21 @@ router.get("/details", async (req: Request, res: Response) => {
           base.rooms = dbRooms;
         }
         (base as any)._roomsSource = "db-direct";
+
+        // Attach per–rate-plan summaries into each room for the front end
+        try {
+          const roomsArr = Array.isArray((base as any).rooms) ? (base as any).rooms : [];
+          for (const room of roomsArr) {
+            const ridNum = Number((room as any).roomTypeId);
+            if (!Number.isFinite(ridNum)) continue;
+            const summaries = planSummaryByRoom.get(ridNum) || [];
+            (room as any).ratePlanSummaries = summaries;
+          }
+        } catch (e) {
+          req.app?.get("logger")?.warn?.({ e, propertyId }, "details.ratePlanSummaries-attach failed");
+        }
       }
+
     } catch (err) {
       req.app?.get("logger")?.warn?.({ err, propertyId }, "details.rooms-db-direct failed");
     }

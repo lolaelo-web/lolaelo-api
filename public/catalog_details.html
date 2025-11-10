@@ -950,6 +950,20 @@
         const payload = window.__detailsPayload || {};
         const rooms = Array.isArray(payload.rooms) ? payload.rooms : [];
 
+        function getPlanPriceForRoom(roomTypeId, ratePlanId){
+          const rid = Number(roomTypeId);
+          const pid = Number(ratePlanId);
+
+          const r = rooms.find(rm => Number(rm.roomTypeId) === rid);
+          if (!r || !Array.isArray(r.ratePlanSummaries)) return null;
+
+          const rp = r.ratePlanSummaries.find(x => Number(x.ratePlanId) === pid);
+          if (!rp) return null;
+
+          const v = Number(rp.priceFrom);
+          return Number.isFinite(v) ? v : null;
+        }
+
         const openRooms = rooms
           .map(r => {
             const daily = Array.isArray(r.daily) ? r.daily : [];
@@ -1012,7 +1026,7 @@
               label = 'Standard';
             }
 
-            // Brief description instead of "Plan ID: x"
+            // Brief description
             let desc;
             if (/non[-\s]?ref/i.test(label)) {
               desc = 'Lower price, no refunds or changes.';
@@ -1024,6 +1038,12 @@
               desc = 'Standard conditions apply for this rate.';
             }
 
+            // Pull per-plan price (via Option A payload)
+            const planPrice = (typeof getPlanPriceForRoom === 'function')
+              ? getPlanPriceForRoom(roomId, p.id)
+              : null;
+            const priceHtml = planPrice != null ? money(planPrice) : '';
+
             const url = `/room_details.html?propertyId=${encodeURIComponent(propertyId)}&roomId=${encodeURIComponent(roomId)}&start=${encodeURIComponent(start)}&end=${encodeURIComponent(end)}&ratePlanId=${encodeURIComponent(p.id)}${plansQS}`;
 
             return `
@@ -1031,6 +1051,7 @@
                 <div>
                   <div class="planname">${label}</div>
                   <div class="meta">${desc}</div>
+                  ${priceHtml ? `<div class="planprice">${priceHtml}</div>` : ``}
                 </div>
                 <a class="btn-select" href="${url}" aria-label="Select ${label}">Select</a>
               </div>`;
@@ -1081,24 +1102,12 @@
         `;
         }).join('');
 
-        setTimeout(() => { try { hydratePlansFromPartners?.(); } catch (e) { console.warn('[hydrate] after render failed', e); } }, 0);
+        setTimeout(() => {
+          try { hydratePlansFromPartners?.(); }
+          catch (e) { console.warn('[hydrate] after render failed', e); }
+        }, 0);
 
-        // Re-hydrate if #roomCats changes (pagination, filters, rerenders)
-        (() => {
-          const listEl = document.getElementById('roomCats');
-          if (!listEl) return;
-          let armed = true;
-          const mo = new MutationObserver(() => {
-            if (!armed) return;
-            armed = false;               // debounce
-            setTimeout(() => {           // let DOM settle
-              try { hydratePlansFromPartners?.(); } 
-              catch (e) { console.warn('[hydrate] mutation observer failed', e); }
-              armed = true;
-            }, 0);
-          });
-          mo.observe(listEl, { childList: true, subtree: true });
-        })();
+        // (no MutationObserver auto-rehydrate block here anymore)
 
         // ANCHOR: PARTNER_HYDRATE_AFTER_RENDER
         requestAnimationFrame(() => {
@@ -1186,32 +1195,43 @@
           }
 
           async function fetchPlans(roomId){
-          if (!roomId) return [];
-          const rid = String(roomId).trim();
+            if (!roomId) return [];
+            const rid = String(roomId).trim();
 
-          // include propertyId and send cookies for auth
-          const url = `/extranet/property/rateplans?propertyId=${encodeURIComponent(propertyId)}&roomTypeId=${encodeURIComponent(rid)}`;
+            // include propertyId and send cookies for auth
+            const url = `/extranet/property/rateplans?propertyId=${encodeURIComponent(propertyId)}&roomTypeId=${encodeURIComponent(rid)}`;
 
-          try{
-            const fetcher = (typeof window.authFetch === 'function') ? window.authFetch : fetch;
-            const r = await fetcher(url, { method:'GET', cache:'no-store', credentials:'include' });
-            if (!r.ok) throw new Error(`HTTP ${r.status}`);
+            try {
+              const fetcher = (typeof window.authFetch === 'function') ? window.authFetch : fetch;
+              const r = await fetcher(url, {
+                method: 'GET',
+                cache: 'no-store',
+                credentials: 'include'
+              });
 
-            const j = await r.json();
-            const raw = Array.isArray(j) ? j : (j.rows || j.plans || j.data || j.result || []);
+              if (!r.ok) throw new Error(`HTTP ${r.status}`);
 
-            return raw
-              .map(p => ({
-                id: Number(p.id ?? p.ratePlanId ?? p.rate_plan_id),
-                code: String(p.code ?? p.ratePlanCode ?? p.rate_plan_code ?? '').toUpperCase(),
-                name: p.name ?? p.label ?? p.code ?? `Plan ${p.id ?? p.ratePlanId}`
-              }))
-              .filter(p => Number.isFinite(p.id));
-          } catch (err){
-            console.warn('[hydratePlansFromPartners] fetchPlans failed for room', rid, err);
-            return [];
+              const j = await r.json();
+              const raw = Array.isArray(j) ? j : (j.rows || j.plans || j.data || j.result || []);
+
+              const parsed = raw
+                .map(p => ({
+                  id: Number(p.id ?? p.ratePlanId ?? p.rate_plan_id),
+                  code: String(p.code ?? p.ratePlanCode ?? p.rate_plan_code ?? '').toUpperCase(),
+                  name: p.name ?? p.label ?? p.code ?? `Plan ${p.id ?? p.ratePlanId}`
+                }))
+                .filter(p => Number.isFinite(p.id));
+
+              if (!parsed.length) {
+                console.warn('[hydratePlansFromPartners] no usable rateplans for room', rid);
+              }
+
+              return parsed;
+            } catch (err) {
+              console.warn('[hydratePlansFromPartners] fetchPlans failed for room', rid, err);
+              return [];
+            }
           }
-        }
 
           function renderPlanRows(roomId, plans){
             const sel = selectedIds();
@@ -1237,12 +1257,21 @@
               .map(p => {
                 const name = labelFor(p);
                 const desc = describePlan(p);
+
+                // New: pull per–rate-plan price from details payload (Option A)
+                const planPrice = (typeof getPlanPriceForRoom === 'function')
+                  ? getPlanPriceForRoom(roomId, p.id)
+                  : null;
+                const priceHtml = planPrice != null ? money(planPrice) : '';
+
                 const url = `/room_details.html?propertyId=${encodeURIComponent(propertyId)}&roomId=${encodeURIComponent(roomId)}&start=${encodeURIComponent(start)}&end=${encodeURIComponent(end)}&ratePlanId=${encodeURIComponent(p.id)}${plansQS}`;
+
                 return `
                   <div class="planrow" data-plan-id="${p.id}">
                     <div>
                       <div class="planname">${name}</div>
                       <div class="meta">${desc}</div>
+                      ${priceHtml ? `<div class="planprice">${priceHtml}</div>` : ``}
                     </div>
                     <a class="btn-select" href="${url}" aria-label="Select ${name}">Select</a>
                   </div>`;
