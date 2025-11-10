@@ -5033,56 +5033,44 @@
       // If the GET endpoint returns no rows (backend filter mismatch),
       // still show the new price immediately so the user sees the change.
       // We'll try GET first; if empty, we optimistically fill the tiles.
-            // Canonical verify GET using server ratePlanId
+      // Canonical verify GET using server ratePlanId
       let verifyRows = [];
       try {
-        console.log("[PRC] bulk POST response object:", prcResObj);
+        // Canonical plan id comes from the server response
+        const rawServerPlanId = prcResObj && prcResObj.ratePlanId;
+        const serverPlanId = Number(rawServerPlanId);
 
-        const fallbackPlan = Number.isFinite(Number(window.currentRatePlanId))
-          ? Number(window.currentRatePlanId)
+        // If server returned a usable plan id, trust it. Otherwise fall back.
+        const verifyPlan = Number.isFinite(serverPlanId)
+          ? serverPlanId
           : ratePlanId;
 
-        // Try to infer the canonical ratePlanId the server actually used
-        let serverPlanId = fallbackPlan;
-        try {
-          const top = prcResObj && (prcResObj.data || prcResObj);
+        console.log("PRC verify: rawServerPlanId:", rawServerPlanId, "verifyPlan:", verifyPlan);
 
-          if (top && Number.isFinite(Number(top.ratePlanId))) {
-            serverPlanId = Number(top.ratePlanId);
-          } else if (top && Array.isArray(top.items) && top.items.length) {
-            const firstItemPlan = Number(top.items[0].ratePlanId);
-            if (Number.isFinite(firstItemPlan)) {
-              serverPlanId = firstItemPlan;
-            }
+        // Persist canonical plan into UI state as best we can
+        try {
+          window.currentRatePlanId = verifyPlan;
+
+          if (ctx && Array.isArray(ctx.ratePlanIds) && ctx.ratePlanIds.length) {
+            ctx.ratePlanIds = [verifyPlan];
           }
         } catch (e) {
-          console.warn("[PRC] could not derive serverPlanId from response, using fallback", e);
+          console.warn("PRC verify: failed to persist verifyPlan into ctx/window", e);
         }
 
-        console.log("[PRC] derived serverPlanId:", serverPlanId, "fallbackPlan:", fallbackPlan);
+        const verifyUrl =
+          `/extranet/property/rooms/${currentRoomTypeId}/prices` +
+          `?start=${start}&end=${end}&ratePlanId=${encodeURIComponent(verifyPlan)}`;
 
-        // Persist canonical plan id for this room into UI state where possible
-        try {
-          window.currentRatePlanId = serverPlanId;
-          if (Array.isArray(ctx.ratePlanIds) && ctx.ratePlanIds.length) {
-            ctx.ratePlanIds = [serverPlanId];
-          }
-        } catch (e) {
-          console.warn("[PRC] failed to persist canonical plan id into ctx/window", e);
-        }
-
-        const verifyPlan = serverPlanId;
-        const verifyUrl = `/extranet/property/rooms/${currentRoomTypeId}/prices?start=${start}&end=${end}&ratePlanId=${encodeURIComponent(verifyPlan)}`;
-        console.log("[PRC] verify GET planId:", verifyPlan);
-        console.log("[PRC] verify GET url:", verifyUrl);
+        console.log("PRC verify GET url:", verifyUrl);
 
         const verifyRes = await authFetch(verifyUrl);
         verifyRows = verifyRes.ok ? await verifyRes.json() : [];
-        console.log("[PRC] verify GET rows:", verifyRows);
+
+        console.log("PRC verify GET rows:", verifyRows);
       } catch (e) {
         console.warn("PRC verify GET failed:", e);
       }
-
 
       await renderCalendar();
 
