@@ -5036,41 +5036,72 @@
       // Canonical verify GET using server ratePlanId
       let verifyRows = [];
       try {
-        // Canonical plan id comes from the server response
-        const rawServerPlanId = prcResObj && prcResObj.ratePlanId;
+        // 1) Canonical plan id from server response (supports flat or .data)
+        const rawServerPlanId =
+          prcResObj &&
+          (prcResObj.ratePlanId ??
+           (prcResObj.data && prcResObj.data.ratePlanId));
+
         const serverPlanId = Number(rawServerPlanId);
 
-        // If server returned a usable plan id, trust it. Otherwise fall back.
+        // If server gives a numeric plan id, always trust it.
         const verifyPlan = Number.isFinite(serverPlanId)
           ? serverPlanId
           : ratePlanId;
 
-        console.log("PRC verify: rawServerPlanId:", rawServerPlanId, "verifyPlan:", verifyPlan);
+        console.log(
+          "[PRC verify] rawServerPlanId:",
+          rawServerPlanId,
+          "verifyPlan:",
+          verifyPlan
+        );
 
-        // Persist canonical plan into UI state as best we can
+        // 2) Persist canonical plan id for this room into UI state
         try {
+          // Global "current" plan
           window.currentRatePlanId = verifyPlan;
 
-          if (ctx && Array.isArray(ctx.ratePlanIds) && ctx.ratePlanIds.length) {
-            ctx.ratePlanIds = [verifyPlan];
+          // Per-room canonical map on window
+          if (!window.__roomCanonicalRatePlanId) {
+            window.__roomCanonicalRatePlanId = {};
           }
-        } catch (e) {
-          console.warn("PRC verify: failed to persist verifyPlan into ctx/window", e);
+          window.__roomCanonicalRatePlanId[currentRoomTypeId] = verifyPlan;
+
+          // Mirror on ctx so calendar/render logic can pick it up
+          if (ctx) {
+            if (!ctx.canonicalRatePlanByRoomId) {
+              ctx.canonicalRatePlanByRoomId = {};
+            }
+            ctx.canonicalRatePlanByRoomId[currentRoomTypeId] = verifyPlan;
+
+            if (Array.isArray(ctx.ratePlanIds) && ctx.ratePlanIds.length) {
+              ctx.ratePlanIds = [verifyPlan];
+            }
+          }
+        } catch (persistErr) {
+          console.warn(
+            "[PRC verify] failed to persist verifyPlan into ctx/window",
+            persistErr
+          );
         }
 
+        // 3) Verify GET using canonical plan id
         const verifyUrl =
           `/extranet/property/rooms/${currentRoomTypeId}/prices` +
-          `?start=${start}&end=${end}&ratePlanId=${encodeURIComponent(verifyPlan)}`;
+          `?start=${start}&end=${end}&ratePlanId=${encodeURIComponent(
+            verifyPlan
+          )}`;
 
-        console.log("PRC verify GET url:", verifyUrl);
+        console.log("[PRC verify] GET url:", verifyUrl);
 
         const verifyRes = await authFetch(verifyUrl);
         verifyRows = verifyRes.ok ? await verifyRes.json() : [];
 
-        console.log("PRC verify GET rows:", verifyRows);
+        console.log("[PRC verify] GET rows:", verifyRows);
       } catch (e) {
         console.warn("PRC verify GET failed:", e);
       }
+
 
       await renderCalendar();
 
