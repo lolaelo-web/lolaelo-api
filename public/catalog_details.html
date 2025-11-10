@@ -947,17 +947,31 @@
           return items.filter(p => (seen.has(p.id) ? false : (seen.add(p.id), true)));
         }
 
-        const j = window.__detailsPayload || {};
-        const rooms = Array.isArray(j.rooms) ? j.rooms : [];
+        const payload = window.__detailsPayload || {};
+        const rooms = Array.isArray(payload.rooms) ? payload.rooms : [];
 
         const openRooms = rooms
           .map(r => {
             const daily = Array.isArray(r.daily) ? r.daily : [];
             const openNights = daily.filter(d => !d.closed && Number(d.inventory ?? d.open ?? 0) > 0);
-            const minPrice = openNights.length ? Math.min(...openNights.map(d => Number(d.price ?? Infinity))) : null;
+            const minPrice = openNights.length
+              ? Math.min(...openNights.map(d => Number(d.price ?? Infinity)))
+              : null;
             return { room: r, openNights, minPrice };
           })
           .filter(x => x.openNights.length > 0);
+
+        // Update the big right-hand "From" price to the lowest across all open rooms
+        try {
+          const globalMin = openRooms.reduce((acc, x) => {
+            const p = Number(x.minPrice);
+            if (!Number.isFinite(p)) return acc;
+            return acc == null ? p : Math.min(acc, p);
+          }, null);
+          if (typeof fromEl !== 'undefined' && fromEl && globalMin != null) {
+            fromEl.textContent = money(globalMin);
+          }
+        } catch (_) {}
 
         if (!openRooms.length){
           listEl.innerHTML = `
@@ -976,7 +990,7 @@
 
         const plans = derivePlansForDisplay(); // [{id,name}, …]
 
-       function planRowsHTML(roomId){
+        function planRowsHTML(roomId){
           // read partner-selected plan ids from localStorage and build passthrough
           let plansQS = '';
           try {
@@ -986,18 +1000,43 @@
           } catch {}
 
           return plans.map(p => {
+            const rawName = String(p.name || '');
+            let label = rawName;
+
+            // Normalize label
+            if (/non[-\s]?ref/i.test(rawName)) {
+              label = 'Non-refundable';
+            } else if (/breakfast/i.test(rawName)) {
+              label = 'With Breakfast';
+            } else if (/standard/i.test(rawName)) {
+              label = 'Standard';
+            }
+
+            // Brief description instead of "Plan ID: x"
+            let desc;
+            if (/non[-\s]?ref/i.test(label)) {
+              desc = 'Lower price, no refunds or changes.';
+            } else if (/with breakfast/i.test(label)) {
+              desc = 'This rate includes breakfast for 2.';
+            } else if (/standard/i.test(label)) {
+              desc = 'Flexible standard rate with free cancellation.';
+            } else {
+              desc = 'Standard conditions apply for this rate.';
+            }
+
             const url = `/room_details.html?propertyId=${encodeURIComponent(propertyId)}&roomId=${encodeURIComponent(roomId)}&start=${encodeURIComponent(start)}&end=${encodeURIComponent(end)}&ratePlanId=${encodeURIComponent(p.id)}${plansQS}`;
+
             return `
               <div class="planrow" data-plan-id="${p.id}">
                 <div>
-                  <div class="planname">${p.name}</div>
-                  <div class="meta">Plan ID: ${p.id}</div>
+                  <div class="planname">${label}</div>
+                  <div class="meta">${desc}</div>
                 </div>
-                <a class="btn-select" href="${url}" aria-label="Select ${p.name}">Select</a>
+                <a class="btn-select" href="${url}" aria-label="Select ${label}">Select</a>
               </div>`;
           }).join('');
         }
-        
+       
         listEl.innerHTML = openRooms.map(({ room, minPrice }) => {
           const rid = room.roomTypeId ?? room.typeId ?? room.id ?? room.roomId ?? room.code ?? '';
           const name = String(room.name ?? 'Room').trim() || 'Room';
@@ -1114,11 +1153,36 @@
 
             // Built-ins
             if (code === 'STD' || Number(plan.id) === 1) return 'Standard';
-            if (code === 'BRKF' || /breakfast/i.test(plan.name || '')) return 'Breakfast';
+            if (code === 'BRKF' || /breakfast/i.test(plan.name || '')) return 'With Breakfast';
             if (code === 'NRF' || /non[-\s]?ref/i.test(plan.name || '')) return 'Non-refundable';
 
             // Fallback
             return String(plan.name || plan.code || `Plan ${plan.id}`);
+          }
+
+          function describePlan(plan){
+            const label = labelFor(plan);
+
+            if (/non[-\s]?ref/i.test(label)) {
+              return 'Lower price, no refunds or changes.';
+            }
+            if (/with breakfast/i.test(label)) {
+              return 'This rate includes breakfast for 2.';
+            }
+            if (/standard/i.test(label)) {
+              return 'Flexible standard rate with free cancellation.';
+            }
+            return 'Standard conditions apply for this rate.';
+          }
+
+          function planSortKey(plan){
+            const label = labelFor(plan);
+
+            if (/non[-\s]?ref/i.test(label))   return 1; // cheapest
+            if (/standard/i.test(label))       return 2;
+            if (/with breakfast/i.test(label)) return 3; // most expensive
+
+            return 99; // unknown / custom at the end
           }
 
           async function fetchPlans(roomId){
@@ -1152,22 +1216,38 @@
           function renderPlanRows(roomId, plans){
             const sel = selectedIds();
             const plansQS = sel.length ? `&plans=${encodeURIComponent(sel.join(','))}` : '';
+
             // If partners selected specific plans, filter to those; otherwise keep all
-            const inScope = sel.length ? plans.filter(p => sel.includes(p.id)) : plans.slice();
+            let inScope = sel.length ? plans.filter(p => sel.includes(p.id)) : plans.slice();
+
             // Ensure Standard (id:1) shows when nothing selected
-            const rows = (inScope.length ? inScope : [{ id:1, code:'STD', name:'Standard' }])
+            if (!inScope.length) {
+              inScope = [{ id:1, code:'STD', name:'Standard' }];
+            }
+
+            // Sort cheapest → most expensive using semantic priority
+            const sorted = inScope.slice().sort((a, b) => {
+              const pa = planSortKey(a);
+              const pb = planSortKey(b);
+              if (pa !== pb) return pa - pb;
+              return (Number(a.id) || 0) - (Number(b.id) || 0);
+            });
+
+            const rows = sorted
               .map(p => {
                 const name = labelFor(p);
+                const desc = describePlan(p);
                 const url = `/room_details.html?propertyId=${encodeURIComponent(propertyId)}&roomId=${encodeURIComponent(roomId)}&start=${encodeURIComponent(start)}&end=${encodeURIComponent(end)}&ratePlanId=${encodeURIComponent(p.id)}${plansQS}`;
                 return `
                   <div class="planrow" data-plan-id="${p.id}">
                     <div>
                       <div class="planname">${name}</div>
-                      <div class="meta">Plan ID: ${p.id}</div>
+                      <div class="meta">${desc}</div>
                     </div>
                     <a class="btn-select" href="${url}" aria-label="Select ${name}">Select</a>
                   </div>`;
               }).join('');
+
             return rows;
           }
 
@@ -1227,7 +1307,7 @@
             panel.setAttribute('data-hydrated', 'true');           // mark as partner-authoritative
             panel.dataset.hydratedAt = String(Date.now());         // (optional) timestamp for debugging
 
-            // Update the top-right Select link to primary in-scope plan
+            // Update the top-right Select link to primary (cheapest) in-scope plan
             const selIds = (function(){
               try {
                 const a = JSON.parse(localStorage.getItem('rateplan.selectedIds') || '[]');
@@ -1235,8 +1315,20 @@
               } catch { return []; }
             })();
             const plansQS = selIds.length ? `&plans=${encodeURIComponent(selIds.join(','))}` : '';
-            const inScope = selIds.length ? plans.filter(p => selIds.includes(p.id)) : plans.slice();
-            const primary = (inScope.length ? inScope[0] : (plans[0] || { id:1 }));
+
+            let inScopeTop = selIds.length ? plans.filter(p => selIds.includes(p.id)) : plans.slice();
+            if (!inScopeTop.length) {
+              inScopeTop = [{ id:1, code:'STD', name:'Standard' }];
+            }
+
+            const sortedTop = inScopeTop.slice().sort((a, b) => {
+              const pa = planSortKey(a);
+              const pb = planSortKey(b);
+              if (pa !== pb) return pa - pb;
+              return (Number(a.id) || 0) - (Number(b.id) || 0);
+            });
+
+            const primary = sortedTop[0] || { id:1 };
 
             const topLink = cat.querySelector('.btn-select');
             if (topLink){
