@@ -4473,25 +4473,56 @@
       }
     } catch(_) { planIds = []; }
 
-    // Fallbacks (global chips → LS → STD)
-    if (!Array.isArray(planIds) || !planIds.length) {
-      planIds = Array.isArray(window.__selectedPlanIds) ? window.__selectedPlanIds.slice() : [];
-      if (!planIds.length) {
-        try { planIds = JSON.parse(localStorage.getItem('rateplan.selectedIds') || '[]'); } catch(_) { planIds = []; }
+       // Fallbacks (global chips → LS → STD)
+      if (!Array.isArray(planIds) || !planIds.length) {
+        planIds = Array.isArray(window.__selectedPlanIds)
+          ? window.__selectedPlanIds.slice()
+          : [];
+        if (!planIds.length) {
+          try {
+            planIds = JSON.parse(localStorage.getItem('rateplan.selectedIds') || '[]');
+          } catch (_) {
+            planIds = [];
+          }
+        }
       }
-    }
-    planIds = planIds.map(Number).filter(n => Number.isFinite(n) && n > 0);
-    if (!planIds.length) planIds = [1];
+      planIds = planIds.map(Number).filter(n => Number.isFinite(n) && n > 0);
+      if (!planIds.length) planIds = [1];
 
-    const primaryPlanId = planIds[0];
+      // If we have a canonical plan for this room from the server, force it to be primary
+      try {
+        let canonical = null;
 
-    // Keep globals consistent for downstream code (do not write to LS here)
-    window.__selectedPlanIds = planIds.slice();
-    window.currentRatePlanId = primaryPlanId;
+        if (typeof ctx !== 'undefined' &&
+            ctx &&
+            ctx.canonicalRatePlanByRoomId &&
+            Number.isFinite(Number(ctx.canonicalRatePlanByRoomId[currentRoomTypeId]))) {
+          canonical = Number(ctx.canonicalRatePlanByRoomId[currentRoomTypeId]);
+        } else if (window.__roomCanonicalRatePlanId &&
+                  Number.isFinite(Number(window.__roomCanonicalRatePlanId[currentRoomTypeId]))) {
+          canonical = Number(window.__roomCanonicalRatePlanId[currentRoomTypeId]);
+        }
 
-    // Build fetch URLs using the room-scoped primary plan
-    const invUrl = `/extranet/property/rooms/${currentRoomTypeId}/inventory?start=${currentRangeStart}&end=${currentRangeEnd}`;
-    const prcUrl = `/extranet/property/rooms/${currentRoomTypeId}/prices?start=${currentRangeStart}&end=${currentRangeEnd}&ratePlanId=${encodeURIComponent(primaryPlanId)}`;
+        if (canonical && Number.isFinite(canonical) && canonical > 0) {
+          const rest = planIds.filter(id => Number(id) !== canonical);
+          planIds = [canonical, ...rest];
+        }
+      } catch (_) {
+        // non-fatal; fall back to planIds as-is
+      }
+
+      const primaryPlanId = planIds[0];
+
+      // Keep globals consistent for downstream code (do not write to LS here)
+      window.__selectedPlanIds = planIds.slice();
+      window.currentRatePlanId = primaryPlanId;
+
+      // Build fetch URLs using the room-scoped primary plan
+      const invUrl =
+        `/extranet/property/rooms/${currentRoomTypeId}/inventory?start=${currentRangeStart}&end=${currentRangeEnd}`;
+      const prcUrl =
+        `/extranet/property/rooms/${currentRoomTypeId}/prices?start=${currentRangeStart}` +
+        `&end=${currentRangeEnd}&ratePlanId=${encodeURIComponent(primaryPlanId)}`;
 
     if (localStorage.getItem('rooms_debug') === '1'){
       console.debug("Calendar fetch URLs", {
@@ -5160,11 +5191,19 @@
 
       // 2) Apply calendar edits if any
       // ANCHOR: SAVE_PRIMARY_RATEPLAN
-      const _ids = (typeof window.getSelectedRatePlanIds === 'function')
-        ? window.getSelectedRatePlanIds()
-        : [];
-      const _primaryPlanId = _ids.length ? Number(_ids[0]) : Number(window.currentRatePlanId || 1);
-      // Keep legacy global in sync so downstream code continues to work
+      // Resolve the primary plan id used for these edits (aligned with calendar)
+      let _primaryPlanId;
+      if (typeof getCanonicalPrimaryPlanId === 'function') {
+        _primaryPlanId = getCanonicalPrimaryPlanId(currentRoomTypeId);
+      } else {
+        const _ids = (typeof window.getSelectedRatePlanIds === 'function')
+          ? window.getSelectedRatePlanIds()
+          : [];
+        _primaryPlanId = _ids.length ? Number(_ids[0]) : Number(window.currentRatePlanId || 1);
+      }
+      _primaryPlanId = (Number.isFinite(_primaryPlanId) && _primaryPlanId > 0) ? _primaryPlanId : 1;
+
+      // Keep legacy global in sync for other code paths
       window.currentRatePlanId = _primaryPlanId;
 
       const invItems=[], prcItems=[];
