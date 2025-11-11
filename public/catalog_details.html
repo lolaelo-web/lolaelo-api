@@ -951,17 +951,48 @@
         const rooms = Array.isArray(payload.rooms) ? payload.rooms : [];
 
         function getPlanPriceForRoom(roomTypeId, ratePlanId){
-          const rid = Number(roomTypeId);
-          const pid = Number(ratePlanId);
+          try {
+            const payload = window.__detailsPayload || {};
+            const rooms   = Array.isArray(payload.rooms) ? payload.rooms : [];
+            const rid     = Number(roomTypeId);
+            const pid     = Number(ratePlanId);
 
-          const r = rooms.find(rm => Number(rm.roomTypeId) === rid);
-          if (!r || !Array.isArray(r.ratePlanSummaries)) return null;
+            if (!Number.isFinite(rid) || !Number.isFinite(pid)) return null;
 
-          const rp = r.ratePlanSummaries.find(x => Number(x.ratePlanId) === pid);
-          if (!rp) return null;
+            // 1) Prefer explicit per-rate-plan summaries from the details payload
+            const summaries = Array.isArray(payload.ratePlanSummaries)
+              ? payload.ratePlanSummaries
+              : [];
 
-          const v = Number(rp.priceFrom);
-          return Number.isFinite(v) ? v : null;
+            const hit = summaries.find(s =>
+              Number(s.roomTypeId) === rid &&
+              Number(s.ratePlanId) === pid
+            );
+
+            if (hit && hit.price != null && Number.isFinite(Number(hit.price))) {
+              return Number(hit.price);
+            }
+
+            // 2) Fallback: if /catalog/details was called with this ratePlanId,
+            //    the room's daily[] already represents that plan. Use min open price.
+            const room = rooms.find(rm =>
+              Number(rm.roomTypeId ?? rm.id ?? rm.roomId) === rid
+            );
+
+            if (room && Array.isArray(room.daily)) {
+              const pricedOpen = room.daily.filter(d =>
+                !d.closed &&
+                d.price != null &&
+                !isNaN(Number(d.price))
+              );
+              if (pricedOpen.length) {
+                return Math.min(...pricedOpen.map(d => Number(d.price)));
+              }
+            }
+          } catch (e) {
+            console.warn('[getPlanPriceForRoom] failed', e);
+          }
+          return null;
         }
 
         const openRooms = rooms
@@ -1005,59 +1036,44 @@
         const plans = derivePlansForDisplay(); // [{id,name}, …]
 
         function planRowsHTML(roomId){
-          // read partner-selected plan ids from localStorage and build passthrough
-          let plansQS = '';
-          try {
-            const sel = JSON.parse(localStorage.getItem('rateplan.selectedIds') || '[]');
-            const ids = Array.isArray(sel) ? sel.map(Number).filter(Number.isFinite) : [];
-            if (ids.length) plansQS = `&plans=${encodeURIComponent(ids.join(','))}`;
-          } catch {}
+          const sel = selectedIds();
+          const plansQS = sel.length ? `&plans=${encodeURIComponent(sel.join(','))}` : '';
+          const basePlans = sel.length
+            ? sel.map(id => ({ id, code:'', name:`Plan ${id}` }))
+            : [{ id:1, code:'STD', name:'Standard' }];
 
-          return plans.map(p => {
-            const rawName = String(p.name || '');
-            let label = rawName;
+          const rows = basePlans.map(p => {
+            const label = labelFor(p);
+            const desc  = describePlan(p);
 
-            // Normalize label
-            if (/non[-\s]?ref/i.test(rawName)) {
-              label = 'Non-refundable';
-            } else if (/breakfast/i.test(rawName)) {
-              label = 'With Breakfast';
-            } else if (/standard/i.test(rawName)) {
-              label = 'Standard';
-            }
+            // NEW: pull per-plan price (uses same /catalog/details payload)
+            const rawPrice = getPlanPriceForRoom(roomId, p.id);
+            const hasPrice = rawPrice != null && Number.isFinite(Number(rawPrice));
+            const priceLabel = hasPrice ? money(rawPrice) : null;
+            const priceHtml = hasPrice
+              ? `<div class="meta"><strong>${priceLabel}</strong> / night</div>`
+              : '';
 
-            // Brief description
-            let desc;
-            if (/non[-\s]?ref/i.test(label)) {
-              desc = 'Lower price, no refunds or changes.';
-            } else if (/with breakfast/i.test(label)) {
-              desc = 'This rate includes breakfast for 2.';
-            } else if (/standard/i.test(label)) {
-              desc = 'Flexible standard rate with free cancellation.';
-            } else {
-              desc = 'Standard conditions apply for this rate.';
-            }
-
-            // per–rate-plan price from /catalog/details payload
-            const planPrice = (typeof getPlanPriceForRoom === 'function')
-              ? getPlanPriceForRoom(roomId, p.id)
-              : null;
-            const priceHtml = planPrice != null ? money(planPrice) : '';
-
-            const url = `/room_details.html?propertyId=${encodeURIComponent(propertyId)}&roomId=${encodeURIComponent(roomId)}&start=${encodeURIComponent(start)}&end=${encodeURIComponent(end)}&ratePlanId=${encodeURIComponent(p.id)}&planLabel=${encodeURIComponent(label)}${plansQS}`;
+            const url =
+              `/room_details.html?propertyId=${encodeURIComponent(propertyId)}` +
+              `&roomId=${encodeURIComponent(roomId)}` +
+              `&start=${encodeURIComponent(start)}` +
+              `&end=${encodeURIComponent(end)}` +
+              `&ratePlanId=${encodeURIComponent(p.id)}` +
+              `&planLabel=${encodeURIComponent(label)}` +
+              `${plansQS}`;
 
             return `
               <div class="planrow" data-plan-id="${p.id}">
-                <div class="planinfo">
-                  <div class="planheader" style="display:flex;align-items:center;justify-content:space-between;gap:8px;">
-                    <div class="planname">${label}</div>
-                    ${priceHtml ? `<div class="planprice">${priceHtml}</div>` : ``}
-                  </div>
+                <div>
+                  <div class="planname">${label}</div>
                   <div class="meta">${desc}</div>
+                  ${priceHtml}
                 </div>
                 <a class="btn-select" href="${url}" aria-label="Select ${label}">Select</a>
               </div>`;
           }).join('');
+          return rows;
         }
       
         listEl.innerHTML = openRooms.map(({ room, minPrice }) => {
@@ -1238,49 +1254,41 @@
           function renderPlanRows(roomId, plans){
             const sel = selectedIds();
             const plansQS = sel.length ? `&plans=${encodeURIComponent(sel.join(','))}` : '';
-
             // If partners selected specific plans, filter to those; otherwise keep all
-            let inScope = sel.length ? plans.filter(p => sel.includes(p.id)) : plans.slice();
-
+            const inScope = sel.length ? plans.filter(p => sel.includes(p.id)) : plans.slice();
             // Ensure Standard (id:1) shows when nothing selected
-            if (!inScope.length) {
-              inScope = [{ id: 1, code: 'STD', name: 'Standard' }];
-            }
-
-            // Sort cheapest → most expensive using semantic priority
-            const sorted = inScope.slice().sort((a, b) => {
-              const pa = planSortKey(a);
-              const pb = planSortKey(b);
-              if (pa !== pb) return pa - pb;
-              return (Number(a.id) || 0) - (Number(b.id) || 0);
-            });
-
-            const rows = sorted
+            const rows = (inScope.length ? inScope : [{ id:1, code:'STD', name:'Standard' }])
               .map(p => {
                 const name = labelFor(p);
                 const desc = describePlan(p);
 
-                // per–rate-plan price from /catalog/details payload
-                const planPrice = (typeof getPlanPriceForRoom === 'function')
-                  ? getPlanPriceForRoom(roomId, p.id)
-                  : null;
-                const priceHtml = planPrice != null ? money(planPrice) : '';
+                // NEW: pull per-plan price for this room+plan from /catalog/details payload
+                const rawPrice = getPlanPriceForRoom(roomId, p.id);
+                const hasPrice = rawPrice != null && Number.isFinite(Number(rawPrice));
+                const priceLabel = hasPrice ? money(rawPrice) : null;
+                const priceHtml = hasPrice
+                  ? `<div class="meta"><strong>${priceLabel}</strong> / night</div>`
+                  : '';
 
-                const url = `/room_details.html?propertyId=${encodeURIComponent(propertyId)}&roomId=${encodeURIComponent(roomId)}&start=${encodeURIComponent(start)}&end=${encodeURIComponent(end)}&ratePlanId=${encodeURIComponent(p.id)}&planLabel=${encodeURIComponent(name)}${plansQS}`;
+                const url =
+                  `/room_details.html?propertyId=${encodeURIComponent(propertyId)}` +
+                  `&roomId=${encodeURIComponent(roomId)}` +
+                  `&start=${encodeURIComponent(start)}` +
+                  `&end=${encodeURIComponent(end)}` +
+                  `&ratePlanId=${encodeURIComponent(p.id)}` +
+                  `&planLabel=${encodeURIComponent(name)}` +
+                  `${plansQS}`;
 
                 return `
                   <div class="planrow" data-plan-id="${p.id}">
-                    <div class="planinfo">
-                      <div class="planheader" style="display:flex;align-items:center;justify-content:space-between;gap:8px;">
-                        <div class="planname">${name}</div>
-                        ${priceHtml ? `<div class="planprice">${priceHtml}</div>` : ``}
-                      </div>
+                    <div>
+                      <div class="planname">${name}</div>
                       <div class="meta">${desc}</div>
+                      ${priceHtml}
                     </div>
                     <a class="btn-select" href="${url}" aria-label="Select ${name}">Select</a>
                   </div>`;
               }).join('');
-
             return rows;
           }
 
