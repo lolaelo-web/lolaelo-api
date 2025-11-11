@@ -1035,18 +1035,29 @@
 
         const plans = derivePlansForDisplay(); // [{id,name}, …]
 
-        function planRowsHTML(roomId){
-          const sel = selectedIds();
+        function planRowsHTML(roomId) {
+          // Safe default in case selectedIds() is not defined
+          let sel = [];
+          try {
+            if (typeof selectedIds === 'function') sel = selectedIds() || [];
+          } catch (_) {
+            sel = [];
+          }
+
           const plansQS = sel.length ? `&plans=${encodeURIComponent(sel.join(','))}` : '';
           const basePlans = sel.length
-            ? sel.map(id => ({ id, code:'', name:`Plan ${id}` }))
-            : [{ id:1, code:'STD', name:'Standard' }];
+            ? sel.map(id => ({ id, code: '', name: `Plan ${id}` }))
+            : [
+                { id: 1, code: 'NRF', name: 'Non-refundable' },
+                { id: 2, code: 'STD', name: 'Standard' },
+                { id: 3, code: 'BRK', name: 'With Breakfast' }
+              ];
 
           const rows = basePlans.map(p => {
             const label = labelFor(p);
-            const desc  = describePlan(p);
+            const desc = describePlan(p);
 
-            // NEW: pull per-plan price (uses same /catalog/details payload)
+            // Pull per-plan price (uses same /catalog/details payload)
             const rawPrice = getPlanPriceForRoom(roomId, p.id);
             const hasPrice = rawPrice != null && Number.isFinite(Number(rawPrice));
             const priceLabel = hasPrice ? money(rawPrice) : null;
@@ -1073,6 +1084,7 @@
                 <a class="btn-select" href="${url}" aria-label="Select ${label}">Select</a>
               </div>`;
           }).join('');
+
           return rows;
         }
       
