@@ -1036,28 +1036,21 @@
         const plans = derivePlansForDisplay(); // [{id,name}, …]
 
         function planRowsHTML(roomId) {
-          // Safe default in case selectedIds() is not defined
-          let sel = [];
-          try {
-            if (typeof selectedIds === 'function') sel = selectedIds() || [];
-          } catch (_) {
-            sel = [];
-          }
+          // Fixed 3 core plans for now
+          const basePlans = [
+            { id: 1, label: 'Non-refundable', desc: 'Pay now. No changes or refunds.' },
+            { id: 2, label: 'Standard',       desc: 'Standard flexible rate.' },
+            { id: 3, label: 'With Breakfast', desc: 'Standard rate with breakfast included.' }
+          ];
 
-          const plansQS = sel.length ? `&plans=${encodeURIComponent(sel.join(','))}` : '';
-          const basePlans = sel.length
-            ? sel.map(id => ({ id, code: '', name: `Plan ${id}` }))
-            : [
-                { id: 1, code: 'NRF', name: 'Non-refundable' },
-                { id: 2, code: 'STD', name: 'Standard' },
-                { id: 3, code: 'BRK', name: 'With Breakfast' }
-              ];
+          // No selectedIds logic or external helpers for now
+          const plansQS = '';
 
           const rows = basePlans.map(p => {
-            const label = labelFor(p);
-            const desc = describePlan(p);
+            const label = p.label;
+            const desc  = p.desc;
 
-            // Pull per-plan price (uses same /catalog/details payload)
+            // Per-plan price (uses same /catalog/details payload)
             const rawPrice = getPlanPriceForRoom(roomId, p.id);
             const hasPrice = rawPrice != null && Number.isFinite(Number(rawPrice));
             const priceLabel = hasPrice ? money(rawPrice) : null;
@@ -1087,7 +1080,7 @@
 
           return rows;
         }
-      
+     
         listEl.innerHTML = openRooms.map(({ room, minPrice }) => {
           const rid = room.roomTypeId ?? room.typeId ?? room.id ?? room.roomId ?? room.code ?? '';
           const name = String(room.name ?? 'Room').trim() || 'Room';
