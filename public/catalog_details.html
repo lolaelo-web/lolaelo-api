@@ -1036,24 +1036,44 @@
         const plans = derivePlansForDisplay(); // [{id,name}, …]
 
         function planRowsHTML(roomId) {
-          // Fixed 3 core plans for now
+          // Fixed 3 core plans, in the order you want to show them
           const basePlans = [
-            { id: 1, label: 'Non-refundable', desc: 'Pay now. No changes or refunds.' },
-            { id: 2, label: 'Standard',       desc: 'Standard flexible rate.' },
-            { id: 3, label: 'With Breakfast', desc: 'Standard rate with breakfast included.' }
+            { id: 2, label: 'Standard',       desc: 'Flexible standard rate with free cancellation.' },
+            { id: 1, label: 'Non-refundable', desc: 'Lower price, no refunds or changes.' },
+            { id: 3, label: 'With Breakfast', desc: 'This rate includes breakfast for 2.' }
           ];
 
-          // No selectedIds logic or external helpers for now
           const plansQS = '';
 
-          const rows = basePlans.map(p => {
-            const label = p.label;
-            const desc  = p.desc;
+          // Try to get the Standard plan price from the payload
+          const stdFromBackend = getPlanPriceForRoom(roomId, 2);
+          const baseStd = stdFromBackend != null && Number.isFinite(Number(stdFromBackend))
+            ? Number(stdFromBackend)
+            : null;
 
-            // Per-plan price (uses same /catalog/details payload)
-            const rawPrice = getPlanPriceForRoom(roomId, p.id);
-            const hasPrice = rawPrice != null && Number.isFinite(Number(rawPrice));
-            const priceLabel = hasPrice ? money(rawPrice) : null;
+          const rows = basePlans.map(p => {
+            // First choice: use backend per-plan price if present
+            let rawPrice = getPlanPriceForRoom(roomId, p.id);
+            let numPrice = rawPrice != null ? Number(rawPrice) : null;
+
+            // Fallback: derive per-plan price from Standard using your rules
+            if (numPrice == null || !Number.isFinite(numPrice)) {
+              if (baseStd != null) {
+                if (p.id === 1) {
+                  // Non-refundable: -10 percent
+                  numPrice = Math.round(baseStd * 0.9 * 100) / 100;
+                } else if (p.id === 2) {
+                  // Standard: base price
+                  numPrice = baseStd;
+                } else if (p.id === 3) {
+                  // With Breakfast: +10
+                  numPrice = baseStd + 10;
+                }
+              }
+            }
+
+            const hasPrice = numPrice != null && Number.isFinite(numPrice);
+            const priceLabel = hasPrice ? money(numPrice) : null;
             const priceHtml = hasPrice
               ? `<div class="meta"><strong>${priceLabel}</strong> / night</div>`
               : '';
@@ -1064,17 +1084,17 @@
               `&start=${encodeURIComponent(start)}` +
               `&end=${encodeURIComponent(end)}` +
               `&ratePlanId=${encodeURIComponent(p.id)}` +
-              `&planLabel=${encodeURIComponent(label)}` +
+              `&planLabel=${encodeURIComponent(p.label)}` +
               `${plansQS}`;
 
             return `
               <div class="planrow" data-plan-id="${p.id}">
                 <div>
-                  <div class="planname">${label}</div>
-                  <div class="meta">${desc}</div>
+                  <div class="planname">${p.label}</div>
+                  <div class="meta">${p.desc}</div>
                   ${priceHtml}
                 </div>
-                <a class="btn-select" href="${url}" aria-label="Select ${label}">Select</a>
+                <a class="btn-select" href="${url}" aria-label="Select ${p.label}">Select</a>
               </div>`;
           }).join('');
 
