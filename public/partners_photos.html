@@ -286,25 +286,46 @@ async function listPhotos(){
       assignBtn.disabled = true;
       try {
         const v = Number(assignSel.value);
-        const payload = {
-          // Only send roomTypeId; keep backend idempotent
-          roomTypeId: Number.isFinite(v) ? v : null
-        };
-        const rr = await fetch(BASE + '/extranet/property/photos/' + row.id, {
+        const payload = { roomTypeId: Number.isFinite(v) ? v : null };
+        const url = BASE + '/extranet/property/photos/' + row.id;
+
+        console.log('[photos][assign] PUT', url, payload);
+
+        // Try PUT first
+        let rr = await fetch(url, {
           method: 'PUT',
           headers: headers(),
           body: JSON.stringify(payload)
         });
-        if (!rr.ok) {
-          const err = await rr.text();
-          alert('Assign failed: ' + rr.status + '\n' + err);
-        } else {
-          await listPhotos(); // refresh grid to reflect new filter/labels
+
+        // If backend prefers PATCH (or PUT not allowed), retry once with PATCH
+        if (!rr.ok && (rr.status === 405 || rr.status === 404)) {
+          console.log('[photos][assign] PUT not allowed (', rr.status, ') → retry PATCH');
+          rr = await fetch(url, {
+            method: 'PATCH',
+            headers: headers(),
+            body: JSON.stringify(payload)
+          });
         }
+
+        const txt = await rr.text().catch(() => '');
+        console.log('[photos][assign] status:', rr.status, 'body:', txt);
+
+        if (!rr.ok) {
+          alert('Assign failed: ' + rr.status + '\n' + txt);
+          return;
+        }
+
+        alert('Assigned successfully.');
+        await listPhotos(); // refresh grid to reflect new filter/labels
+      } catch (e) {
+        console.warn('[photos][assign] exception', e);
+        alert('Assign error: ' + (e && e.message ? e.message : e));
       } finally {
         assignBtn.disabled = false;
       }
     };
+
     assignRow.appendChild(assignBtn);
 
     body.appendChild(assignRow);
