@@ -451,7 +451,7 @@
           </div>
 
           <!-- ANCHOR: PLANS_PANEL_HTML -->
-          <div id="plans-panel" aria-live="polite" aria-label="Rate plan rules" class="plans-panel" style="margin:12px;margin-top:0;background:var(--panel);border:1px solid var(--border);border-radius:10px;padding:12px;">
+          <div id="plans-panel" aria-live="polite" aria-label="Rate plan rules" class="plans-panel" style="margin:12px;margin-top:12px;margin-bottom:12px;background:var(--panel);border:1px solid var(--border);border-radius:10px;padding:12px;">
             <h3 style="margin:0 0 8px 0;font-size:14px;letter-spacing:.2px;">Rate Plan Rules (Derived from Standard)</h3>
 
             <div id="plans-list" class="plans-list" style="display:grid;gap:8px;">
@@ -666,8 +666,12 @@
       const rid = Number(window.currentRoomTypeId);
       const qs  = new URLSearchParams(window.location.search || "");
       if (Number.isFinite(rid)) qs.set("room", String(rid));
+
       const url = "/partners_photos.html" + (qs.toString() ? ("?" + qs.toString()) : "");
-      window.location.href = url;
+      console.log("[Room photos] Navigating to:", url);
+      managePhotosBtn.disabled = true;
+      managePhotosBtn.textContent = "Opening Photos...";
+      setTimeout(() => { window.location.href = url; }, 300);
     });
   }
 

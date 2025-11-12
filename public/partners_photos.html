@@ -161,9 +161,19 @@ transform: translateY(-1px);
 
       <!-- Upload row -->
       <div class="row">
-        <input id="file" type="file" accept="image/jpeg,image/png,image/webp" class="input" />
-        <button id="uploadBtn" class="btn">Upload Photo</button>
-        <span class="muted">Your current session is used for auth.</span>
+        <input type="file" id="file-input" ...>
+        <button id="upload-btn" ...>Upload Photo</button>
+      </div>
+
+      <div class="spacer"></div>
+
+      <!-- Room filter -->
+      <div id="room-filter" class="row">
+        <label for="roomSelect" class="muted">Assign to:</label>
+        <select id="roomSelect" class="input">
+          <option value="">Property (no room)</option>
+        </select>
+        <span class="muted">New uploads will be assigned here.</span>
       </div>
 
       <div class="spacer"></div>
@@ -189,8 +199,14 @@ function fmtDate(iso){ if(!iso) return ''; return new Date(iso).toLocaleString()
 async function listPhotos(){
   const grid = document.getElementById('grid');
   grid.innerHTML = '<div class="muted">Loading…</div>';
-  const url = BASE + '/extranet/property/photos?cb=' + Date.now();
-  const r = await fetch(url, { headers: headers(false), cache: 'no-store' });
+  const rid = Number(window.currentRoomTypeIdForPhotos);
+  let url = BASE + '/extranet/property/photos';
+  const qs = new URLSearchParams();
+  if (Number.isFinite(rid)) qs.set('roomTypeId', String(rid));
+  qs.set('cb', String(Date.now()));
+  url += '?' + qs.toString();
+
+  const r = await fetch(url, { method: 'GET', headers: headers(false), cache: 'no-store' });
   if (!r.ok){ grid.innerHTML = '<div>Failed to load ('+r.status+')</div>'; return; }
   const raw = await r.json(); const rows = Array.isArray(raw.value) ? raw.value : raw;
 
@@ -220,6 +236,78 @@ async function listPhotos(){
 
     const ta = document.createElement('textarea'); ta.className='alt input'; ta.placeholder='Alt/description…'; ta.value=row.alt||'';
     body.appendChild(ta);
+
+    // --- Assign-to-room row (dropdown + apply) ---
+    const assignRow = document.createElement('div');
+    assignRow.className = 'row';
+
+    const assignLabel = document.createElement('label');
+    assignLabel.className = 'muted';
+    assignLabel.textContent = 'Assign to:';
+    assignRow.appendChild(assignLabel);
+
+    const assignSel = document.createElement('select');
+    assignSel.className = 'input';
+    assignSel.style.minWidth = '220px';
+
+    // Build options from cached room list
+    const roomsList = Array.isArray(window.__roomsListForPhotos) ? window.__roomsListForPhotos : [];
+    // Default: property-level (no room)
+    const optNone = document.createElement('option');
+    optNone.value = '';
+    optNone.textContent = 'Property (no room)';
+    assignSel.appendChild(optNone);
+
+    // Room options
+    roomsList.forEach(rm => {
+      const id = Number(rm.roomTypeId ?? rm.id);
+      const name = String(rm.name ?? rm.title ?? `Room ${id}`);
+      if (!Number.isFinite(id)) return;
+      const opt = document.createElement('option');
+      opt.value = String(id);
+      opt.textContent = name;
+      assignSel.appendChild(opt);
+    });
+
+    // Preselect current assignment if present
+    if (Number.isFinite(Number(row.roomTypeId))) {
+      assignSel.value = String(Number(row.roomTypeId));
+    } else {
+      assignSel.value = '';
+    }
+
+    assignRow.appendChild(assignSel);
+
+    const assignBtn = document.createElement('button');
+    assignBtn.className = 'btn secondary';
+    assignBtn.textContent = 'Apply';
+    assignBtn.onclick = async () => {
+      assignBtn.disabled = true;
+      try {
+        const v = Number(assignSel.value);
+        const payload = {
+          // Only send roomTypeId; keep backend idempotent
+          roomTypeId: Number.isFinite(v) ? v : null
+        };
+        const rr = await fetch(BASE + '/extranet/property/photos/' + row.id, {
+          method: 'PUT',
+          headers: headers(),
+          body: JSON.stringify(payload)
+        });
+        if (!rr.ok) {
+          const err = await rr.text();
+          alert('Assign failed: ' + rr.status + '\n' + err);
+        } else {
+          await listPhotos(); // refresh grid to reflect new filter/labels
+        }
+      } finally {
+        assignBtn.disabled = false;
+      }
+    };
+    assignRow.appendChild(assignBtn);
+
+    body.appendChild(assignRow);
+    // --- end assign-to-room row ---
 
     const actions = document.createElement('div'); actions.className='actions';
 
@@ -301,10 +389,15 @@ async function upload(){
     width = img.naturalWidth || null; height = img.naturalHeight || null;
   } catch {}
 
+  const roomTypeId = Number(window.currentRoomTypeIdForPhotos);
+  const payload = { key: up.key, url: up.url, alt: f.name, width, height, isCover: false };
+  if (Number.isFinite(roomTypeId)) payload.roomTypeId = roomTypeId;
+
   const r3 = await fetch(BASE + '/extranet/property/photos', {
     method:'POST', headers: headers(),
-    body: JSON.stringify({ key: up.key, url: up.url, alt: f.name, width, height, isCover: false })
+    body: JSON.stringify(payload)
   });
+
   if (!r3.ok){ const err = await r3.text(); return alert('Create failed: ' + r3.status + '\n' + err); }
 
   await listPhotos(); alert('Uploaded.');
@@ -318,6 +411,72 @@ window.addEventListener('pageshow', () => { if (typeof listPhotos === 'function'
 
 // Initial load
 listPhotos();
+
+// === Room filter wiring (populate + preselect) ===
+(function(){
+  const sel = document.getElementById('roomSelect');
+  if (!sel) return;
+
+  // Read ?room=<id> from URL (if present)
+  const qs = new URLSearchParams(window.location.search || "");
+  const preselectRoomId = Number(qs.get('room'));
+  let currentRoomTypeId = Number.isFinite(preselectRoomId) ? preselectRoomId : null;
+
+  async function populateRoomOptions(){
+    try {
+      // Expecting: [{ roomTypeId, id?, name, active? }, ...]
+      const res = await authFetch('/extranet/property/rooms', { method: 'GET' });
+      if (!res.ok) throw new Error('rooms fetch failed');
+      const data = await res.json().catch(() => ([]));
+      const arr = Array.isArray(data) ? data : (Array.isArray(data.rooms) ? data.rooms : []);
+      window.__roomsListForPhotos = arr; // cache rooms for per-photo assignment
+
+      // Keep the "Property (no room)" default
+      // Clear prior room options
+      for (let i = sel.options.length - 1; i >= 1; i--) sel.remove(i);
+
+      arr.forEach(r => {
+        const id = Number(r.roomTypeId ?? r.id);
+        const name = String(r.name ?? r.title ?? `Room ${id}`);
+        if (!Number.isFinite(id)) return;
+
+        const opt = document.createElement('option');
+        opt.value = String(id);
+        opt.textContent = name;
+        sel.appendChild(opt);
+      });
+
+      // Preselect if URL had ?room=
+      if (Number.isFinite(preselectRoomId)) {
+        sel.value = String(preselectRoomId);
+        currentRoomTypeId = preselectRoomId;
+        window.currentRoomTypeIdForPhotos = currentRoomTypeId;
+      } else {
+        sel.value = ""; // Property (no room)
+        currentRoomTypeId = null;
+        window.currentRoomTypeIdForPhotos = currentRoomTypeId;
+      }
+    } catch (e){
+      console.warn('[photos] populateRoomOptions failed', e);
+      // fall back to property-level (no room)
+      sel.value = "";
+      currentRoomTypeId = null;
+    }
+  }
+
+  // Track changes
+  sel.addEventListener('change', () => {
+  const v = Number(sel.value);
+  currentRoomTypeId = Number.isFinite(v) ? v : null;
+  window.currentRoomTypeIdForPhotos = currentRoomTypeId; // expose globally
+  console.log('[photos] currentRoomTypeId =', currentRoomTypeId ?? '(property)');
+  // Note: in Step 9 we will read this value during upload/save
+  });
+
+  // Init
+  populateRoomOptions();
+})();
+
 </script>
 </body>
 </html>
