@@ -160,9 +160,10 @@ transform: translateY(-1px);
       <div class="spacer"></div>
 
       <!-- Upload row -->
-      <div class="row">
-        <input type="file" id="file-input" ...>
-        <button id="upload-btn" ...>Upload Photo</button>
+      <div id="photos-toolbar" class="row">
+        <input id="file" type="file" accept="image/jpeg,image/png,image/webp" class="input" />
+        <button id="uploadBtn" class="btn">Upload Photo</button>
+        <span class="muted">Your current session is used for auth.</span>
       </div>
 
       <div class="spacer"></div>
@@ -425,14 +426,19 @@ listPhotos();
   async function populateRoomOptions(){
     try {
       // Expecting: [{ roomTypeId, id?, name, active? }, ...]
-      const res = await authFetch('/extranet/property/rooms', { method: 'GET' });
+      const res = await fetch(BASE + '/extranet/property/rooms', {
+        method: 'GET',
+        headers: headers(false),
+        cache: 'no-store'
+      });
       if (!res.ok) throw new Error('rooms fetch failed');
       const data = await res.json().catch(() => ([]));
       const arr = Array.isArray(data) ? data : (Array.isArray(data.rooms) ? data.rooms : []);
-      window.__roomsListForPhotos = arr; // cache rooms for per-photo assignment
 
-      // Keep the "Property (no room)" default
-      // Clear prior room options
+      // Cache rooms for per-photo assignment
+      window.__roomsListForPhotos = arr;
+
+      // Keep the "Property (no room)" default; clear prior room options
       for (let i = sel.options.length - 1; i >= 1; i--) sel.remove(i);
 
       arr.forEach(r => {
@@ -456,21 +462,31 @@ listPhotos();
         currentRoomTypeId = null;
         window.currentRoomTypeIdForPhotos = currentRoomTypeId;
       }
+
+      // 🔄 Refresh grid once options/selection are ready
+      await listPhotos();
+
     } catch (e){
       console.warn('[photos] populateRoomOptions failed', e);
       // fall back to property-level (no room)
       sel.value = "";
       currentRoomTypeId = null;
+      window.currentRoomTypeIdForPhotos = currentRoomTypeId;
+      try { await listPhotos(); } catch(_){}
     }
   }
 
   // Track changes
-  sel.addEventListener('change', () => {
-  const v = Number(sel.value);
-  currentRoomTypeId = Number.isFinite(v) ? v : null;
-  window.currentRoomTypeIdForPhotos = currentRoomTypeId; // expose globally
-  console.log('[photos] currentRoomTypeId =', currentRoomTypeId ?? '(property)');
-  // Note: in Step 9 we will read this value during upload/save
+  sel.addEventListener('change', async () => {
+    const v = Number(sel.value);
+    currentRoomTypeId = Number.isFinite(v) ? v : null;
+    window.currentRoomTypeIdForPhotos = currentRoomTypeId; // expose globally
+    console.log('[photos] currentRoomTypeId =', currentRoomTypeId ?? '(property)');
+    try {
+      await listPhotos(); // refresh grid whenever the user switches room
+    } catch (e) {
+      console.warn('[photos] listPhotos refresh failed after room change', e);
+    }
   });
 
   // Init
