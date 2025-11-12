@@ -211,6 +211,8 @@ async function listPhotos(){
   if (!r.ok){ grid.innerHTML = '<div>Failed to load ('+r.status+')</div>'; return; }
   const raw = await r.json(); const rows = Array.isArray(raw.value) ? raw.value : raw;
 
+  console.log('[photos][list] sample row:', rows[0]);
+
   grid.innerHTML = '';
   if (!rows.length){ grid.innerHTML = '<div class="muted">No photos yet.</div>'; return; }
 
