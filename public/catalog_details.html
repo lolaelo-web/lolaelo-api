@@ -950,49 +950,76 @@
         const payload = window.__detailsPayload || {};
         const rooms = Array.isArray(payload.rooms) ? payload.rooms : [];
 
-        function getPlanPriceForRoom(roomTypeId, ratePlanId){
+        function getPlanPriceForRoom(roomTypeId, ratePlanId) {
+          const rid = Number(roomTypeId);
+          const pid = Number(ratePlanId);
+
           try {
             const payload = window.__detailsPayload || {};
-            const rooms   = Array.isArray(payload.rooms) ? payload.rooms : [];
-            const rid     = Number(roomTypeId);
-            const pid     = Number(ratePlanId);
+            const rooms = Array.isArray(payload.rooms) ? payload.rooms : [];
+            const room = rooms.find(rm => {
+              const rtId = rm.roomTypeId != null ? Number(rm.roomTypeId) : null;
+              const id   = rm.id != null ? Number(rm.id) : null;
+              return rtId === rid || id === rid;
+            });
+            if (!room) return null;
 
-            if (!Number.isFinite(rid) || !Number.isFinite(pid)) return null;
-
-            // 1) Prefer explicit per-rate-plan summaries from the details payload
-            const summaries = Array.isArray(payload.ratePlanSummaries)
-              ? payload.ratePlanSummaries
-              : [];
-
-            const hit = summaries.find(s =>
-              Number(s.roomTypeId) === rid &&
-              Number(s.ratePlanId) === pid
-            );
-
-            if (hit && hit.price != null && Number.isFinite(Number(hit.price))) {
-              return Number(hit.price);
-            }
-
-            // 2) Fallback: if /catalog/details was called with this ratePlanId,
-            //    the room's daily[] already represents that plan. Use min open price.
-            const room = rooms.find(rm =>
-              Number(rm.roomTypeId ?? rm.id ?? rm.roomId) === rid
-            );
-
-            if (room && Array.isArray(room.daily)) {
-              const pricedOpen = room.daily.filter(d =>
-                !d.closed &&
-                d.price != null &&
-                !isNaN(Number(d.price))
-              );
-              if (pricedOpen.length) {
-                return Math.min(...pricedOpen.map(d => Number(d.price)));
+            // 1) If backend gives per-plan summary, trust that first
+            if (Array.isArray(room.ratePlanSummaries)) {
+              const rp = room.ratePlanSummaries.find(x => Number(x.ratePlanId) === pid);
+              if (rp) {
+                const v = Number(rp.priceFrom);
+                if (Number.isFinite(v)) return v;
               }
             }
+
+            // 2) Derive a base STANDARD nightly price from room.daily or priceFrom
+            let baseStd = null;
+
+            if (Array.isArray(room.daily) && room.daily.length) {
+              const nums = room.daily
+                .map(d => {
+                  if (d == null) return NaN;
+                  if ("price" in d) return Number(d.price);
+                  if ("amount" in d) return Number(d.amount);
+                  if ("basePrice" in d) return Number(d.basePrice);
+                  return NaN;
+                })
+                .filter(Number.isFinite);
+
+              if (nums.length) {
+                // use the minimum as "from" price, consistent with how you show From $X
+                baseStd = Math.min.apply(null, nums);
+              }
+            }
+
+            if (baseStd == null && room.priceFrom != null) {
+              const v = Number(room.priceFrom);
+              if (Number.isFinite(v)) baseStd = v;
+            }
+
+            if (baseStd == null) return null;
+
+            // 3) Apply rate plan rules on top of the base STANDARD price
+            if (pid === 1) {
+              // Non-refundable: -10 percent
+              return Math.round(baseStd * 0.9 * 100) / 100;
+            }
+            if (pid === 2) {
+              // Standard: base
+              return baseStd;
+            }
+            if (pid === 3) {
+              // With Breakfast: +10
+              return baseStd + 10;
+            }
+
+            // Fallback for any other plan ids
+            return baseStd;
           } catch (e) {
-            console.warn('[getPlanPriceForRoom] failed', e);
+            console.warn("[getPlanPriceForRoom] failed", e);
+            return null;
           }
-          return null;
         }
 
         const openRooms = rooms
