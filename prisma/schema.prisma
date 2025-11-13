@@ -106,19 +106,25 @@ model PropertyProfile {
 }
 
 model PropertyPhoto {
-  id        Int      @id @default(autoincrement())
-  partnerId Int
-  key       String   @unique
-  url       String
-  alt       String?
-  sortOrder Int      @default(0)
-  isCover   Boolean  @default(false)
-  width     Int?
-  height    Int?
-  createdAt DateTime @default(now())
-  partner   Partner  @relation(fields: [partnerId], references: [id], onDelete: Cascade)
+  id         Int       @id @default(autoincrement())
+  partnerId  Int
+  key        String    @unique
+  url        String
+  alt        String?
+  sortOrder  Int       @default(0)
+  isCover    Boolean   @default(false)
+  width      Int?
+  height     Int?
+  createdAt  DateTime  @default(now())
+
+  // NEW: nullable room linkage for per-room thumbnails
+  roomTypeId Int?
+  RoomType   RoomType? @relation(fields: [roomTypeId], references: [id], onDelete: SetNull)
+
+  partner    Partner   @relation(fields: [partnerId], references: [id], onDelete: Cascade)
 
   @@index([partnerId, sortOrder])
+  @@index([partnerId, roomTypeId, sortOrder]) // NEW helper index
   @@schema("public")
 }
 
@@ -154,6 +160,7 @@ model RoomType {
   rates       RatePlan[]
   inventory   RoomInventory[]
   prices      RoomPrice[]
+  PropertyPhotos PropertyPhoto[]   // back-relation for PropertyPhoto.RoomType
   partner     Partner         @relation(fields: [partnerId], references: [id], onDelete: Cascade)
 
   @@unique([partnerId, name])
@@ -360,19 +367,25 @@ model extranet_PropertyDocument {
 }
 
 model extranet_PropertyPhoto {
-  id        Int              @id @default(autoincrement())
-  partnerId Int
-  key       String           @unique
-  url       String
-  alt       String?
-  sortOrder Int              @default(0)
-  isCover   Boolean          @default(false)
-  width     Int?
-  height    Int?
-  createdAt DateTime         @default(now())
-  Partner   extranet_Partner @relation(fields: [partnerId], references: [id], onDelete: Cascade)
+  id         Int                @id @default(autoincrement())
+  partnerId  Int
+  key        String             @unique
+  url        String
+  alt        String?
+  sortOrder  Int                @default(0)
+  isCover    Boolean            @default(false)
+  width      Int?
+  height     Int?
+  createdAt  DateTime           @default(now())
+
+  // NEW: nullable room linkage (extranet schema)
+  roomTypeId Int?
+  RoomType   extranet_RoomType? @relation(fields: [roomTypeId], references: [id], onDelete: SetNull)
+
+  Partner    extranet_Partner   @relation(fields: [partnerId], references: [id], onDelete: Cascade)
 
   @@index([partnerId, sortOrder])
+  @@index([partnerId, roomTypeId, sortOrder]) // NEW helper index
   @@map("PropertyPhoto")
   @@schema("extranet")
 }
@@ -485,6 +498,7 @@ model extranet_RoomType {
   RatePlan      extranet_RatePlan[]
   RoomInventory extranet_RoomInventory[]
   RoomPrice     extranet_RoomPrice[]
+  PropertyPhotos extranet_PropertyPhoto[]   // back-relation for extranet_PropertyPhoto.RoomType
   Partner       extranet_Partner         @relation(fields: [partnerId], references: [id], onDelete: Cascade)
   PublicPmsMapping public_PmsMapping[]
 

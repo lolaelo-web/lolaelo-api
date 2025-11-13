@@ -41,11 +41,21 @@ async function getOrCreatePartnerId(req: any): Promise<number> {
   const created = await prisma.partner.create({ data: { email, name } });
   return created.id;
 }
-// GET list
+
 router.get("/", requirePartner, async (req: any, res: Response) => {
   const partnerId = await getOrCreatePartnerId(req);
+
+  // Optional filter by roomTypeId
+  const ridRaw = req.query?.roomTypeId;
+  const where: any = { partnerId };
+  if (typeof ridRaw !== "undefined") {
+    const n = Number(ridRaw);
+    // If client passes a number → filter by that room; if empty → property-level (NULL)
+    where.roomTypeId = Number.isFinite(n) ? n : null;
+  }
+
   const photos = await prisma.propertyPhoto.findMany({
-    where: { partnerId },
+    where,
     orderBy: [{ sortOrder: "asc" }, { id: "asc" }],
   });
   res.json(photos);
