@@ -142,7 +142,7 @@ router.post("/", requirePartner, async (req: any, res: Response) => {
   }
 });
 
-// UPDATE one
+// UPDATE one (PUT)
 router.put("/:id", requirePartner, async (req: any, res: Response) => {
   const partnerId = await getOrCreatePartnerId(req);
   const id = Number(req.params.id || 0);
@@ -156,47 +156,92 @@ router.put("/:id", requirePartner, async (req: any, res: Response) => {
     return res.status(403).json({ error: "Forbidden: not your photo" });
   }
 
-  const {
-    alt,
-    width,
-    height,
-    sortOrder,
-    isCover,
-    roomTypeId, // NEW
-  } = req.body || {};
+  const { alt, width, height, sortOrder, isCover, roomTypeId } = req.body || {};
+  console.log("[photos.update] body:", req.body);
 
   const data: any = {};
   if (typeof alt !== "undefined") data.alt = alt;
-  if (typeof width !== "undefined") data.width = width == null ? null : Number(width);
-  if (typeof height !== "undefined") data.height = height == null ? null : Number(height);
-  if (typeof sortOrder !== "undefined") data.sortOrder = Number(sortOrder) || 0;
-  if (typeof isCover !== "undefined") data.isCover = !!isCover;
-
-  // NEW: Allow assigning/unassigning to room
+  if (typeof width !== "undefined") {
+    data.width = width == null ? null : Number(width);
+  }
+  if (typeof height !== "undefined") {
+    data.height = height == null ? null : Number(height);
+  }
+  if (typeof sortOrder !== "undefined") {
+    data.sortOrder = Number(sortOrder) || 0;
+  }
+  if (typeof isCover !== "undefined") {
+    data.isCover = !!isCover;
+  }
   if (typeof roomTypeId !== "undefined") {
-    const rid = Number(roomTypeId);
-    data.roomTypeId = Number.isFinite(rid) ? rid : null;
+    if (roomTypeId === null || roomTypeId === "") {
+      data.roomTypeId = null;
+    } else {
+      const n = Number(roomTypeId);
+      data.roomTypeId = Number.isFinite(n) ? n : null;
+    }
   }
 
-  try {
-    const updated = await prisma.propertyPhoto.update({
-      where: { id },
-      data,
-    });
-    res.json(updated);
-  } catch (err: any) {
-    console.error("[photos.update] error", {
-      message: err?.message,
-      code: err?.code,
-      meta: err?.meta,
-    });
-    return res.status(400).json({
-      error: "update_failed",
-      message: err?.message ?? null,
-      code: err?.code ?? null,
-      meta: err?.meta ?? null,
-    });
+  console.log("[photos.update] data:", data);
+
+  const updated = await prisma.propertyPhoto.update({
+    where: { id },
+    data,
+  });
+
+  console.log("[photos.update] updated row:", updated);
+  return res.json(updated);
+});
+
+// PATCH (partial update)
+router.patch("/:id", requirePartner, async (req: any, res: Response) => {
+  const partnerId = await getOrCreatePartnerId(req);
+  const id = Number(req.params.id || 0);
+  if (!Number.isFinite(id) || id <= 0) {
+    return res.status(400).json({ error: "id required" });
   }
+
+  const row = await prisma.propertyPhoto.findUnique({ where: { id } });
+  if (!row) return res.status(404).json({ error: "Not found" });
+  if (row.partnerId !== partnerId) {
+    return res.status(403).json({ error: "Forbidden: not your photo" });
+  }
+
+  const { alt, width, height, sortOrder, isCover, roomTypeId } = req.body || {};
+  console.log("[photos.patch] body:", req.body);
+
+  const data: any = {};
+  if (typeof alt !== "undefined") data.alt = alt;
+  if (typeof width !== "undefined") {
+    data.width = width == null ? null : Number(width);
+  }
+  if (typeof height !== "undefined") {
+    data.height = height == null ? null : Number(height);
+  }
+  if (typeof sortOrder !== "undefined") {
+    data.sortOrder = Number(sortOrder) || 0;
+  }
+  if (typeof isCover !== "undefined") {
+    data.isCover = !!isCover;
+  }
+  if (typeof roomTypeId !== "undefined") {
+    if (roomTypeId === null || roomTypeId === "") {
+      data.roomTypeId = null;
+    } else {
+      const n = Number(roomTypeId);
+      data.roomTypeId = Number.isFinite(n) ? n : null;
+    }
+  }
+
+  console.log("[photos.patch] data:", data);
+
+  const updated = await prisma.propertyPhoto.update({
+    where: { id },
+    data,
+  });
+
+  console.log("[photos.patch] updated row:", updated);
+  return res.json(updated);
 });
 
 router.patch("/:id", requirePartner, async (req: any, res: Response) => {
