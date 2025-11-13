@@ -42,46 +42,88 @@ async function getOrCreatePartnerId(req: any): Promise<number> {
   return created.id;
 }
 
+// LIST (optionally filter by roomTypeId) — always returns roomTypeId
 router.get("/", requirePartner, async (req: any, res: Response) => {
   const partnerId = await getOrCreatePartnerId(req);
 
-  // Optional filter by roomTypeId
-  const ridRaw = req.query?.roomTypeId;
+  // Optional filter ?roomTypeId=32 or ?roomTypeId= (property-level)
   const where: any = { partnerId };
-  if (typeof ridRaw !== "undefined") {
-    const n = Number(ridRaw);
-    // If client passes a number → filter by that room; if empty → property-level (NULL)
-    where.roomTypeId = Number.isFinite(n) ? n : null;
+  if (Object.prototype.hasOwnProperty.call(req.query, "roomTypeId")) {
+    const raw = String(req.query.roomTypeId ?? "");
+    if (raw.trim() === "") {
+      // explicit property-level (no room)
+      where.roomTypeId = null;
+    } else {
+      const n = Number(raw);
+      if (Number.isFinite(n)) where.roomTypeId = n;
+    }
   }
 
-  const photos = await prisma.propertyPhoto.findMany({
-    where,
-    orderBy: [{ sortOrder: "asc" }, { id: "asc" }],
-  });
-  res.json(photos);
+  try {
+    const photos = await prisma.propertyPhoto.findMany({
+      where,
+      orderBy: [{ sortOrder: "asc" }, { createdAt: "asc" }],
+      select: {
+        id: true,
+        partnerId: true,
+        key: true,
+        url: true,
+        alt: true,
+        sortOrder: true,
+        isCover: true,
+        width: true,
+        height: true,
+        createdAt: true,
+        roomTypeId: true,
+      },
+    });
+    return res.json(photos);
+  } catch (err: any) {
+    console.error("[photos.list] error", { message: err?.message, code: err?.code, meta: err?.meta });
+    return res.status(400).json({
+      error: "list_failed",
+      message: err?.message ?? null,
+      code: err?.code ?? null,
+      meta: err?.meta ?? null,
+    });
+  }
 });
 
 // CREATE one (after uploading to S3 you POST the key+url here)
 router.post("/", requirePartner, async (req: any, res: Response) => {
   const partnerId = await getOrCreatePartnerId(req);
-  const { key, url, alt = null, width = null, height = null, isCover = false } = req.body || {};
-  if (!key || !url) return res.status(400).json({ error: "key and url required" });
+  const {
+    key,
+    url,
+    alt = null,
+    width = null,
+    height = null,
+    isCover = false,
+    roomTypeId = null,
+  } = req.body || {};
+
+  if (!key || !url) {
+    return res.status(400).json({ error: "key and url required" });
+  }
 
   try {
     const count = await prisma.propertyPhoto.count({ where: { partnerId } });
-    if (count >= MAX_COUNT) return res.status(400).json({ error: "Too many photos" });
+    if (count >= MAX_COUNT) {
+      return res.status(400).json({ error: "Too many photos" });
+    }
 
-    // Build only known/likely columns; add others conditionally
+    // Build known columns; include roomTypeId if valid
     const data: any = {
       partnerId,
       key: String(key),
       url: String(url),
       sortOrder: count,
     };
-    if (typeof alt     !== "undefined") data.alt     = alt;
-    if (typeof width   !== "undefined") data.width   = width  == null ? null : Number(width);
-    if (typeof height  !== "undefined") data.height  = height == null ? null : Number(height);
+    if (typeof alt !== "undefined") data.alt = alt;
+    if (typeof width !== "undefined") data.width = width == null ? null : Number(width);
+    if (typeof height !== "undefined") data.height = height == null ? null : Number(height);
     if (typeof isCover !== "undefined") data.isCover = !!isCover;
+    if (Number.isFinite(Number(roomTypeId))) data.roomTypeId = Number(roomTypeId);
 
     const created = await prisma.propertyPhoto.create({ data });
     return res.json(created);
@@ -89,14 +131,13 @@ router.post("/", requirePartner, async (req: any, res: Response) => {
     console.error("[photos.create] error", {
       message: err?.message,
       code: err?.code,
-      meta: err?.meta
+      meta: err?.meta,
     });
-    // Surface Prisma error so we avoid 502 and can see what's wrong
     return res.status(400).json({
       error: "create_failed",
       message: err?.message ?? null,
       code: err?.code ?? null,
-      meta: err?.meta ?? null
+      meta: err?.meta ?? null,
     });
   }
 });
@@ -105,13 +146,25 @@ router.post("/", requirePartner, async (req: any, res: Response) => {
 router.put("/:id", requirePartner, async (req: any, res: Response) => {
   const partnerId = await getOrCreatePartnerId(req);
   const id = Number(req.params.id || 0);
-  if (!Number.isFinite(id) || id <= 0) return res.status(400).json({ error: "id required" });
+  if (!Number.isFinite(id) || id <= 0) {
+    return res.status(400).json({ error: "id required" });
+  }
 
   const row = await prisma.propertyPhoto.findUnique({ where: { id } });
   if (!row) return res.status(404).json({ error: "Not found" });
-  if (row.partnerId !== partnerId) return res.status(403).json({ error: "Forbidden: not your photo" });
+  if (row.partnerId !== partnerId) {
+    return res.status(403).json({ error: "Forbidden: not your photo" });
+  }
 
-  const { alt, width, height, sortOrder, isCover } = req.body || {};
+  const {
+    alt,
+    width,
+    height,
+    sortOrder,
+    isCover,
+    roomTypeId, // NEW
+  } = req.body || {};
+
   const data: any = {};
   if (typeof alt !== "undefined") data.alt = alt;
   if (typeof width !== "undefined") data.width = width == null ? null : Number(width);
@@ -119,8 +172,37 @@ router.put("/:id", requirePartner, async (req: any, res: Response) => {
   if (typeof sortOrder !== "undefined") data.sortOrder = Number(sortOrder) || 0;
   if (typeof isCover !== "undefined") data.isCover = !!isCover;
 
-  const updated = await prisma.propertyPhoto.update({ where: { id }, data });
-  res.json(updated);
+  // NEW: Allow assigning/unassigning to room
+  if (typeof roomTypeId !== "undefined") {
+    const rid = Number(roomTypeId);
+    data.roomTypeId = Number.isFinite(rid) ? rid : null;
+  }
+
+  try {
+    const updated = await prisma.propertyPhoto.update({
+      where: { id },
+      data,
+    });
+    res.json(updated);
+  } catch (err: any) {
+    console.error("[photos.update] error", {
+      message: err?.message,
+      code: err?.code,
+      meta: err?.meta,
+    });
+    return res.status(400).json({
+      error: "update_failed",
+      message: err?.message ?? null,
+      code: err?.code ?? null,
+      meta: err?.meta ?? null,
+    });
+  }
+});
+
+router.patch("/:id", requirePartner, async (req: any, res: Response) => {
+  // delegate to the PUT logic by reusing the handler payload semantics
+  (req as any).method = "PUT";
+  return (router as any).handle(req, res);
 });
 
 // DELETE one
