@@ -285,48 +285,57 @@ async function listPhotos(){
     assignBtn.className = 'btn secondary';
     assignBtn.textContent = 'Apply';
     assignBtn.onclick = async () => {
-      assignBtn.disabled = true;
-      try {
-        const v = Number(assignSel.value);
-        const payload = { roomTypeId: Number.isFinite(v) ? v : null };
-        const url = BASE + '/extranet/property/photos/' + row.id;
+    assignBtn.disabled = true;
+    try {
+      const v = Number(assignSel.value);
+      const payload = { roomTypeId: Number.isFinite(v) ? v : null };
+      const url = BASE + '/extranet/property/photos/' + row.id;
 
-        console.log('[photos][assign] PUT', url, payload);
+      console.log('[photos][assign] PUT', url, payload);
 
-        // Try PUT first
-        let rr = await fetch(url, {
-          method: 'PUT',
+      // Try PUT first
+      let rr = await fetch(url, {
+        method: 'PUT',
+        headers: headers(),
+        body: JSON.stringify(payload)
+      });
+
+      // If backend prefers PATCH (or PUT not allowed), retry once with PATCH
+      if (!rr.ok && (rr.status === 405 || rr.status === 404)) {
+        console.log('[photos][assign] PUT not allowed (', rr.status, ') → retry PATCH');
+        rr = await fetch(url, {
+          method: 'PATCH',
           headers: headers(),
           body: JSON.stringify(payload)
         });
-
-        // If backend prefers PATCH (or PUT not allowed), retry once with PATCH
-        if (!rr.ok && (rr.status === 405 || rr.status === 404)) {
-          console.log('[photos][assign] PUT not allowed (', rr.status, ') → retry PATCH');
-          rr = await fetch(url, {
-            method: 'PATCH',
-            headers: headers(),
-            body: JSON.stringify(payload)
-          });
-        }
-
-        const txt = await rr.text().catch(() => '');
-        console.log('[photos][assign] status:', rr.status, 'body:', txt);
-
-        if (!rr.ok) {
-          alert('Assign failed: ' + rr.status + '\n' + txt);
-          return;
-        }
-
-        alert('Assigned successfully.');
-        await listPhotos(); // refresh grid to reflect new filter/labels
-      } catch (e) {
-        console.warn('[photos][assign] exception', e);
-        alert('Assign error: ' + (e && e.message ? e.message : e));
-      } finally {
-        assignBtn.disabled = false;
       }
-    };
+
+      const txt = await rr.text().catch(() => '');
+      console.log('[photos][assign] status:', rr.status, 'body:', txt);
+
+      if (!rr.ok) {
+        alert('Assign failed: ' + rr.status + '\n' + txt);
+        return;
+      }
+
+      // ✅ Make it stick immediately in the UI without relying on list() response
+      row.roomTypeId = payload.roomTypeId;               // persist in current card model
+      assignSel.value = payload.roomTypeId ? String(payload.roomTypeId) : '';
+
+      alert('Assigned successfully.');
+
+      // Optional: if the header filter is set to a specific room, refresh list to re-filter
+      const headerRid = Number(window.currentRoomTypeIdForPhotos);
+      if (Number.isFinite(headerRid)) {
+        await listPhotos();
+      }
+    } catch (e) {
+      console.warn('[photos][assign] exception', e);
+      alert('Assign error: ' + (e && e.message ? e.message : e));
+    } finally {
+      assignBtn.disabled = false;
+    }
+  };
 
     assignRow.appendChild(assignBtn);
 
