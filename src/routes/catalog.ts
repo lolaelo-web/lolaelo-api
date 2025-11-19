@@ -899,6 +899,69 @@ router.get("/details", async (req: Request, res: Response) => {
       req.app?.get("logger")?.warn?.({ err, propertyId }, "details.rooms-db-direct failed");
     }
 
+    // Room photos: attach partner-uploaded images per roomTypeId
+    try {
+      const roomsArr = Array.isArray(base?.rooms) ? (base.rooms as any[]) : [];
+      const roomTypeIds = Array.from(
+        new Set(
+          roomsArr
+            .map((r) => Number((r as any).roomTypeId))
+            .filter((n) => Number.isFinite(n))
+        )
+      ) as number[];
+
+      if (roomTypeIds.length) {
+        const cs = process.env.DATABASE_URL || "";
+        if (!cs) throw new Error("DATABASE_URL missing");
+
+        const wantsSSL = /\bsslmode=require\b/i.test(cs) || /render\.com/i.test(cs);
+        const pg = new PgClient({
+          connectionString: cs,
+          ssl: wantsSSL ? { rejectUnauthorized: false } : undefined,
+        });
+        await pg.connect();
+
+        const { rows: ph } = await pg.query(
+          `
+          SELECT "roomTypeId" AS room_type_id,
+                 url,
+                 COALESCE("isCover", FALSE) AS is_cover,
+                 "createdAt",
+                 id
+          FROM extranet."PropertyPhoto"
+          WHERE "partnerId" = $1
+            AND "roomTypeId" = ANY($2::int[])
+          ORDER BY "roomTypeId",
+                   is_cover DESC NULLS LAST,
+                   "createdAt" DESC NULLS LAST,
+                   id DESC
+          `,
+          [propertyId, roomTypeIds]
+        );
+        await pg.end();
+
+        const byRoom = new Map<number, string[]>();
+        for (const r of ph || []) {
+          const rid = Number(r?.room_type_id);
+          const url = String(r?.url || "").trim();
+          if (!Number.isFinite(rid) || !url) continue;
+          if (!byRoom.has(rid)) byRoom.set(rid, []);
+          byRoom.get(rid)!.push(url);
+        }
+
+        for (const room of roomsArr) {
+          const ridNum = Number((room as any).roomTypeId);
+          if (!Number.isFinite(ridNum)) continue;
+          const urls = byRoom.get(ridNum) || [];
+          if (urls.length) {
+            (room as any).images = urls; // cover-first for this room
+          }
+        }
+      }
+    } catch (err) {
+      req.app?.get("logger")?.warn?.({ err, propertyId }, "details.room-photos failed");
+    }
+
     // Currency backfill
     try {
       const cur = await getCurrency();
