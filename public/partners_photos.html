@@ -217,6 +217,12 @@ async function listPhotos(){
   if (!rows.length){ grid.innerHTML = '<div class="muted">No photos yet.</div>'; return; }
 
   for (const row of rows){
+    console.log('[photos][render-row]', {
+      id: row.id,
+      alt: row.alt,
+      roomTypeId: row.roomTypeId
+    });
+
     const card = document.createElement('div'); card.className='ph-card';
 
     const img = document.createElement('img');
