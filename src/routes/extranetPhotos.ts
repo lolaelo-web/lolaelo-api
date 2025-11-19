@@ -77,7 +77,11 @@ router.get("/", requirePartner, async (req: any, res: Response) => {
         roomTypeId: true,
       },
     });
+
+    console.log("[photos.list] sample row (with roomTypeId):", photos[0]);
+
     return res.json(photos);
+
   } catch (err: any) {
     console.error("[photos.list] error", { message: err?.message, code: err?.code, meta: err?.meta });
     return res.status(400).json({
