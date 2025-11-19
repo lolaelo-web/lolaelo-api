@@ -200,7 +200,8 @@ function fmtDate(iso){ if(!iso) return ''; return new Date(iso).toLocaleString()
 async function listPhotos(){
   const grid = document.getElementById('grid');
   grid.innerHTML = '<div class="muted">Loading…</div>';
-  const rid = Number(window.currentRoomTypeIdForPhotos);
+  const ridRaw = window.currentRoomTypeIdForPhotos;
+  const rid = (typeof ridRaw === 'number' && Number.isFinite(ridRaw)) ? ridRaw : NaN;
   let url = BASE + '/extranet/property/photos';
   const qs = new URLSearchParams();
   if (Number.isFinite(rid)) qs.set('roomTypeId', String(rid));
@@ -330,11 +331,9 @@ async function listPhotos(){
 
       alert('Assigned successfully.');
 
-      // Optional: if the header filter is set to a specific room, refresh list to re-filter
-      const headerRid = Number(window.currentRoomTypeIdForPhotos);
-      if (Number.isFinite(headerRid)) {
-        await listPhotos();
-      }
+    // Optional: if the header filter is set to a specific room, refresh list to re-filter
+    await listPhotos();
+
     } catch (e) {
       console.warn('[photos][assign] exception', e);
       alert('Assign error: ' + (e && e.message ? e.message : e));
