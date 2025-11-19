@@ -947,22 +947,42 @@ router.get("/details", async (req: Request, res: Response) => {
 
         await pg.end();
 
-        const byRoom = new Map<number, string[]>();
+        // Build per-room image arrays with full metadata
+        const byRoom = new Map<
+          number,
+          {
+            url: string;
+            alt: string | null;
+            width: number | null;
+            height: number | null;
+            key: string | null;
+            isCover: boolean;
+          }[]
+        >();
+
         for (const r of ph || []) {
           const rid = Number(r?.room_type_id);
           const url = String(r?.url || "").trim();
           if (!Number.isFinite(rid) || !url) continue;
+
           if (!byRoom.has(rid)) byRoom.set(rid, []);
-          byRoom.get(rid)!.push(url);
+
+          byRoom.get(rid)!.push({
+            url,
+            alt: r?.alt ?? null,
+            width: Number.isFinite(Number(r?.width)) ? Number(r.width) : null,
+            height: Number.isFinite(Number(r?.height)) ? Number(r.height) : null,
+            key: r?.key ?? null,
+            isCover: !!r?.is_cover,
+          });
         }
 
+        // Always attach an images array for each room (empty if no photos)
         for (const room of roomsArr) {
           const ridNum = Number((room as any).roomTypeId);
           if (!Number.isFinite(ridNum)) continue;
-          const urls = byRoom.get(ridNum) || [];
-          if (urls.length) {
-            (room as any).images = urls; // cover-first for this room
-          }
+          const imgs = byRoom.get(ridNum) ?? [];
+          (room as any).images = imgs;
         }
       }
     } catch (err) {
