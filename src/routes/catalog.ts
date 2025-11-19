@@ -923,18 +923,24 @@ router.get("/details", async (req: Request, res: Response) => {
 
         const { rows: ph } = await pg.query(
           `
-          SELECT "roomTypeId" AS room_type_id,
-                url,
-                COALESCE("isCover", FALSE) AS is_cover,
-                "createdAt",
-                id
-          FROM public."PropertyPhoto"
+          SELECT 
+            "roomTypeId" AS room_type_id,
+            "url",
+            COALESCE("isCover", FALSE) AS is_cover,
+            "createdAt",
+            "id",
+            "alt",
+            "width",
+            "height",
+            "key"
+          FROM extranet."PropertyPhoto"
           WHERE "partnerId" = $1
             AND "roomTypeId" = ANY($2::int[])
-          ORDER BY "roomTypeId",
-                  is_cover DESC NULLS LAST,
-                  "createdAt" DESC NULLS LAST,
-                  id DESC
+          ORDER BY 
+            "roomTypeId",
+            is_cover DESC NULLS LAST,
+            "createdAt" DESC NULLS LAST,
+            "id" DESC
           `,
           [propertyId, roomTypeIds]
         );
