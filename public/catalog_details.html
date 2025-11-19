@@ -1131,7 +1131,31 @@
         listEl.innerHTML = openRooms.map(({ room, minPrice }) => {
           const rid = room.roomTypeId ?? room.typeId ?? room.id ?? room.roomId ?? room.code ?? '';
           const name = String(room.name ?? 'Room').trim() || 'Room';
-          const thumb = (Array.isArray(room.images) && room.images.length) ? (room.images[0]?.url || room.images[0]) : ph(name);
+          // Prefer room-level images; fall back to property-level/detail images; then placeholder
+          let thumb = null;
+          if (Array.isArray(room.images) && room.images.length) {
+            thumb = room.images[0]?.url || room.images[0] || null;
+          }
+          if (!thumb) {
+            try {
+              const payload = window.__detailsPayload || {};
+              if (Array.isArray(payload.images) && payload.images.length) {
+                const it = payload.images[0];
+                thumb = (typeof it === "string")
+                  ? it
+                  : (it?.url || it?.photoUrl || it?.imageUrl || it?.src || it?.href || null);
+              }
+            } catch {}
+          }
+          if (!thumb && Array.isArray(images) && images.length) {
+            const it = images[0];
+            thumb = (typeof it === "string")
+              ? it
+              : (it?.url || it?.photoUrl || it?.imageUrl || it?.src || it?.href || null);
+          }
+          if (!thumb) {
+            thumb = ph(name);
+          }
           const m2 = room.areaM2 ?? room.areaSqm ?? null;
           const ft2 = room.areaFt2 ?? (m2 ? Math.round(m2 * 10.7639) : null);
           const m2txt = m2 ? `${m2} m²` : '';
@@ -1141,7 +1165,7 @@
 
           return `
           <div class="roomcat" data-room-id="${rid}">
-            ${ (plans && plans.length > 1)
+            ${ (plans && plans.length >= 1)
                 ? `<button class="toggle" type="button" aria-expanded="false" aria-label="Show plans" tabindex="0" role="button">+</button>`
                 : `<span class="visually-hidden">Single rate plan</span>` }
 
@@ -1163,7 +1187,7 @@
               }"
               aria-label="Select ${name}">Select</a>
 
-            ${ (plans && plans.length > 1)
+            ${ (plans && plans.length >= 1)
                 ? `<div class="planlist" aria-label="Rate plans for ${name}">
                     ${planRowsHTML(rid)}
                   </div>`
