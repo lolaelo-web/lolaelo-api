@@ -933,7 +933,7 @@ router.get("/details", async (req: Request, res: Response) => {
             "width",
             "height",
             "key"
-          FROM extranet."PropertyPhoto"
+          FROM public."PropertyPhoto"
           WHERE "partnerId" = $1
             AND "roomTypeId" = ANY($2::int[])
           ORDER BY 
