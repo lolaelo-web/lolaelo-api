@@ -208,7 +208,7 @@ router.get("/search", async (req: Request, res: Response) => {
             WHERE "partnerId" = ANY($1::bigint[])
             UNION ALL
             SELECT "partnerId" AS pid, url, COALESCE("isCover", FALSE) AS is_cover, "createdAt", id, 'extranet' AS src
-            FROM extranet."PropertyPhoto"
+            FROM public."PropertyPhoto"
             WHERE "partnerId" = ANY($1::bigint[])
           ) u
           ORDER BY is_cover DESC NULLS LAST, "createdAt" DESC NULLS LAST, id DESC
@@ -274,7 +274,7 @@ router.get("/search", async (req: Request, res: Response) => {
               SELECT DISTINCT ON (p."partnerId")
                     p."partnerId" AS pid,
                     p.url
-              FROM extranet."PropertyPhoto" p
+              FROM public."PropertyPhoto" p
               WHERE p."partnerId" = ANY($1::bigint[])
               ORDER BY p."partnerId", p."isCover" DESC NULLS LAST, p."createdAt" DESC NULLS LAST, p.id DESC
               `,
@@ -420,7 +420,7 @@ router.get("/search", async (req: Request, res: Response) => {
             WHERE "partnerId" = ANY($1::bigint[])
             UNION ALL
             SELECT "partnerId" AS pid, url, COALESCE("isCover", FALSE) AS is_cover, "createdAt", id
-            FROM extranet."PropertyPhoto"
+            FROM public."PropertyPhoto"
             WHERE "partnerId" = ANY($1::bigint[])
           ) u
           ORDER BY is_cover DESC NULLS LAST, "createdAt" DESC NULLS LAST, id DESC
