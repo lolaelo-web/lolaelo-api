@@ -294,9 +294,13 @@ async function listPhotos(){
     assignBtn.onclick = async () => {
     assignBtn.disabled = true;
     try {
-      const v = Number(assignSel.value);
-      const payload = { roomTypeId: Number.isFinite(v) ? v : null };
-      const url = BASE + '/extranet/property/photos/' + row.id;
+    const raw = (assignSel.value || '').trim();
+    const payload = {
+      // blank = property-level (no room), anything else = numeric roomTypeId
+      roomTypeId: raw === '' ? null :
+        (Number.isFinite(Number(raw)) ? Number(raw) : null),
+    };
+    const url = BASE + '/extranet/property/photos/' + row.id;
 
       console.log('[photos][assign] PUT', url, payload);
 
