@@ -709,7 +709,7 @@ router.get("/details", async (req: Request, res: Response) => {
         ),
         pic AS (
           SELECT url
-          FROM extranet."PropertyPhoto"
+          FROM public."PropertyPhoto"
           WHERE "partnerId" = $1
           ORDER BY "isCover" DESC NULLS LAST, "createdAt" DESC NULLS LAST, id DESC
           LIMIT 1
