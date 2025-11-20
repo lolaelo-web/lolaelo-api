@@ -574,7 +574,7 @@ r.get("/photos", async (req, res) => {
 
   try {
     const { rows } = await pool.query(
-      `SELECT "id","key","url","alt","sortOrder","isCover","width","height","createdAt"
+      `SELECT "id","key","url","alt","sortOrder","isCover","width","height","createdAt","roomTypeId"
          FROM ${TBL_PHOTO}
         WHERE "partnerId" = $1
         ORDER BY "isCover" DESC, "sortOrder" ASC, "id" ASC`,
