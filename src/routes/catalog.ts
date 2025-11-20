@@ -684,7 +684,7 @@ router.get("/details", async (req: Request, res: Response) => {
     if (!base || typeof base !== "object") base = {};
     console.log("[details] start", { propertyId, start, end, ratePlanId });
 
-    // Profiles (name/city/images) — DIRECT SQL using Partner.id for profile + cover photo
+    // Profiles (name/city/images) — DIRECT SQL using Partner.id for profile + photos
     try {
       const partnerId = Number.isFinite(propertyId) ? propertyId : NaN;
       if (!Number.isFinite(partnerId)) throw new Error("invalid partnerId for profiles");
@@ -699,7 +699,8 @@ router.get("/details", async (req: Request, res: Response) => {
       });
       await pg.connect();
 
-      // Prefer extranet profile; fallback to public. Also fetch one cover photo (or latest).
+      // Prefer extranet profile; fallback to public.
+      // Photos: all property-level photos (roomTypeId IS NULL), cover first.
       const q = `
         WITH prof AS (
           SELECT id, name, city, country FROM extranet."PropertyProfile" WHERE "partnerId" = $1
@@ -707,33 +708,56 @@ router.get("/details", async (req: Request, res: Response) => {
           SELECT id, name, city, country FROM public."PropertyProfile"   WHERE "partnerId" = $1
           LIMIT 1
         ),
-        pic AS (
+        phot AS (
           SELECT url
           FROM public."PropertyPhoto"
           WHERE "partnerId" = $1
+            AND "roomTypeId" IS NULL
           ORDER BY "isCover" DESC NULLS LAST, "createdAt" DESC NULLS LAST, id DESC
-          LIMIT 1
         )
         SELECT
           (SELECT id      FROM prof)    AS profile_id,
           (SELECT name    FROM prof)    AS name,
           (SELECT city    FROM prof)    AS city,
           (SELECT country FROM prof)    AS country,
-          (SELECT url     FROM pic)     AS cover_url
+          (SELECT url     FROM phot LIMIT 1)              AS cover_url,
+          (SELECT json_agg(url) FROM phot)                AS photos
       `;
       const { rows } = await pg.query(q, [partnerId]);
       await pg.end();
 
-      const r = rows?.[0] || {};
+      const r: any = rows?.[0] || {};
       if (r) {
         if (r.name)    base.name    = r.name;
         if (r.city)    base.city    = r.city;
         if (r.country) base.country = r.country;
 
-        // Attach cover image if present
-        if (r.cover_url) {
-          const imgs = Array.isArray(base.images) ? base.images : [];
-          base.images = [String(r.cover_url), ...imgs];
+        // Merge property-level photos (cover first) with any existing images, deduped
+        const existing = Array.isArray(base.images) ? base.images.slice() : [];
+        const merged: string[] = [];
+
+        const cover = r.cover_url ? String(r.cover_url).trim() : "";
+        if (cover && !merged.includes(cover)) merged.push(cover);
+
+        const rawPhotos = r.photos;
+        const extra: string[] =
+          Array.isArray(rawPhotos)
+            ? rawPhotos
+            : (typeof rawPhotos === "string" ? [rawPhotos] : []);
+
+        for (const u of extra) {
+          const url = typeof u === "string" ? u.trim() : "";
+          if (!url) continue;
+          if (!merged.includes(url)) merged.push(url);
+        }
+
+        for (const u of existing) {
+          const url = typeof u === "string" ? u : "";
+          if (url && !merged.includes(url)) merged.push(url);
+        }
+
+        if (merged.length) {
+          base.images = merged;
         }
       }
     } catch (err) {
