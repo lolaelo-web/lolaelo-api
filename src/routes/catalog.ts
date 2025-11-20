@@ -708,11 +708,19 @@ router.get("/details", async (req: Request, res: Response) => {
           SELECT id, name, city, country FROM public."PropertyProfile"   WHERE "partnerId" = $1
           LIMIT 1
         ),
+        -- Property-level photos (no room) for cover choice
         phot AS (
           SELECT url
           FROM public."PropertyPhoto"
           WHERE "partnerId" = $1
             AND "roomTypeId" IS NULL
+          ORDER BY "isCover" DESC NULLS LAST, "createdAt" DESC NULLS LAST, id DESC
+        ),
+        -- All photos (property + room-level) for the main carousel
+        phot_all AS (
+          SELECT url
+          FROM public."PropertyPhoto"
+          WHERE "partnerId" = $1
           ORDER BY "isCover" DESC NULLS LAST, "createdAt" DESC NULLS LAST, id DESC
         )
         SELECT
@@ -721,8 +729,9 @@ router.get("/details", async (req: Request, res: Response) => {
           (SELECT city    FROM prof)    AS city,
           (SELECT country FROM prof)    AS country,
           (SELECT url     FROM phot LIMIT 1)              AS cover_url,
-          (SELECT json_agg(url) FROM phot)                AS photos
+          (SELECT json_agg(url) FROM phot_all)            AS photos
       `;
+
       const { rows } = await pg.query(q, [partnerId]);
       await pg.end();
 
