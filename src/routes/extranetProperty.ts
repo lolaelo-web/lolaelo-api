@@ -664,47 +664,72 @@ r.post("/photos/upload-url", async (req, res) => {
 
 /**
  * POST /extranet/property/photos
- * Body: { key: string, url: string, alt?: string, width?: number, height?: number, isCover?: boolean }
+ * Body: { key, url, alt?, width?, height?, isCover?, roomTypeId? }
  */
 r.post("/photos", async (req, res) => {
   const partnerId = (req as any)?.partner?.id;
   if (!partnerId) return res.status(401).json({ error: "unauthorized" });
 
-  const { key, url, alt, width, height, isCover } = (req.body ?? {}) as any;
-  if (!key || !url) return res.status(400).json({ error: "key and url are required" });
+  const {
+    key,
+    url,
+    alt,
+    width,
+    height,
+    isCover,
+    roomTypeId,
+  } = (req.body ?? {}) as any;
+
+  if (!key || !url) {
+    return res.status(400).json({ error: "key and url are required" });
+  }
 
   try {
     // Next sortOrder = max + 1
     const nextSort = await pool.query(
-      `SELECT COALESCE(MAX("sortOrder"),0)+1 AS n FROM ${TBL_PHOTO} WHERE "partnerId" = $1`,
+      `SELECT COALESCE(MAX("sortOrder"),0)+1 AS n
+         FROM ${TBL_PHOTO}
+        WHERE "partnerId" = $1`,
       [partnerId]
     );
     const sortOrder = Number(nextSort.rows?.[0]?.n ?? 1);
 
-    // If setting as cover, clear others
+    // If setting as cover, clear existing cover
     if (isCover === true) {
       await pool.query(
-        `UPDATE ${TBL_PHOTO} SET "isCover" = FALSE WHERE "partnerId" = $1`,
+        `UPDATE ${TBL_PHOTO}
+            SET "isCover" = FALSE
+          WHERE "partnerId" = $1`,
         [partnerId]
       );
     }
 
     const { rows } = await pool.query(
       `INSERT INTO ${TBL_PHOTO}
-         ("partnerId","key","url","alt","sortOrder","isCover","width","height","createdAt")
-       VALUES ($1,$2,$3,$4,$5,$6,$7,$8, NOW())
-       RETURNING "id","key","url","alt","sortOrder","isCover","width","height","createdAt"`,
-      [partnerId, key, url, alt ?? null, sortOrder, !!isCover, Number(width) || null, Number(height) || null]
+         ("partnerId","key","url","alt","sortOrder","isCover","width","height","createdAt","roomTypeId")
+       VALUES ($1,$2,$3,$4,$5,$6,$7,$8, NOW(), $9)
+       RETURNING "id","key","url","alt","sortOrder","isCover","width","height","createdAt","roomTypeId"`,
+      [
+        partnerId,
+        key,
+        url,
+        alt ?? null,
+        sortOrder,
+        !!isCover,
+        Number(width) || null,
+        Number(height) || null,
+        Number.isFinite(Number(roomTypeId)) ? Number(roomTypeId) : null,
+      ]
     );
 
     return res.json(rows[0]);
   } catch (e) {
-    console.error("[photos:create] db error", e);
-    return res.status(500).json({ error: "Photo save failed" });
+    console.error("[property:photos:create] db error", e);
+    return res.status(500).json({ error: "Photo create failed" });
   }
 });
 
-/** PUT /extranet/property/photos/:id  -> update alt, isCover, sortOrder (safe ordering) */
+/** PUT /extranet/property/photos/:id  -> update alt, isCover, sortOrder, roomTypeId */
 r.put("/photos/:id", async (req, res) => {
   const partnerId = (req as any)?.partner?.id;
   if (!partnerId) return res.status(401).json({ error: "unauthorized" });
@@ -712,15 +737,15 @@ r.put("/photos/:id", async (req, res) => {
   const id = Number(req.params.id) || 0;
   if (!id) return res.status(400).json({ error: "invalid id" });
 
-  const { alt, isCover, sortOrder } = (req.body ?? {}) as any;
+  const { alt, isCover, sortOrder, roomTypeId } = (req.body ?? {}) as any;
 
   const client = await pool.connect();
   try {
     await client.query("BEGIN");
 
-    // Verify target exists first
+    // Get current row so we can preserve roomTypeId when it is not sent
     const exists = await client.query(
-      `SELECT "id" FROM ${TBL_PHOTO} WHERE "id" = $1 AND "partnerId" = $2 LIMIT 1`,
+      `SELECT "id","roomTypeId" FROM ${TBL_PHOTO} WHERE "id" = $1 AND "partnerId" = $2 LIMIT 1`,
       [id, partnerId]
     );
     if (!exists.rowCount) {
@@ -728,18 +753,31 @@ r.put("/photos/:id", async (req, res) => {
       return res.status(404).json({ error: "not found" });
     }
 
+    let nextRoomTypeId: number | null = exists.rows[0].roomTypeId ?? null;
+    if (Object.prototype.hasOwnProperty.call(req.body ?? {}, "roomTypeId")) {
+      // Field was sent; normalize it
+      if (roomTypeId === null || roomTypeId === "") {
+        nextRoomTypeId = null;
+      } else {
+        const n = Number(roomTypeId);
+        nextRoomTypeId = Number.isFinite(n) ? n : null;
+      }
+    }
+
     // Update the target row
     const upd = await client.query(
       `UPDATE ${TBL_PHOTO}
-          SET "alt" = COALESCE($1, "alt"),
-              "isCover" = COALESCE($2, "isCover"),
-              "sortOrder" = COALESCE($3, "sortOrder")
-        WHERE "id" = $4 AND "partnerId" = $5
-        RETURNING "id","key","url","alt","sortOrder","isCover","width","height","createdAt"`,
+          SET "alt"       = COALESCE($1, "alt"),
+              "isCover"   = COALESCE($2, "isCover"),
+              "sortOrder" = COALESCE($3, "sortOrder"),
+              "roomTypeId"= $4
+        WHERE "id" = $5 AND "partnerId" = $6
+        RETURNING "id","key","url","alt","sortOrder","isCover","width","height","createdAt","roomTypeId"`,
       [
         alt ?? null,
         (isCover === undefined ? null : !!isCover),
         (sortOrder == null ? null : Number(sortOrder)),
+        nextRoomTypeId,
         id,
         partnerId,
       ]
