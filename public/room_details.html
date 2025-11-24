@@ -292,6 +292,67 @@
   }
   // === END PLAN LABEL HELPERS ===
 
+  // === RATE PLAN DISPLAY HELPERS (mirror catalog_details) ===
+  function getSelectedPlanIds(){
+    try {
+      const a = JSON.parse(localStorage.getItem('rateplan.selectedIds') || '[]');
+      return Array.isArray(a) ? a.map(Number).filter(Number.isFinite) : [];
+    } catch {
+      return [];
+    }
+  }
+
+  function getCustomPlanLabels(){
+    try {
+      return JSON.parse(localStorage.getItem('rateplan.customLabels') || '{}') || {};
+    } catch {
+      return {};
+    }
+  }
+
+  function derivePlansForDisplay(){
+    // 1) Try localStorage (set by partners_rooms.html)
+    let ids = getSelectedPlanIds();
+
+    // 2) If empty, fall back to URL (?plans=1,2 or ?plan=1)
+    if (!ids.length) {
+      try {
+        const u = new URL(location.href);
+        const csv = (u.searchParams.get('plans') || '').trim();
+        if (csv) {
+          ids = csv.split(',').map(s => Number(s.trim())).filter(Number.isFinite);
+        } else {
+          const plan = u.searchParams.get('ratePlanId') || u.searchParams.get('plan');
+          const n = Number(plan);
+          if (Number.isFinite(n)) ids = [n];
+        }
+      } catch {}
+    }
+
+    // 3) Default to "Standard" (id 1) if still empty
+    if (!ids.length) ids = [1];
+
+    // 4) Build display objects with friendly names
+    const labels = getCustomPlanLabels();
+    let items = ids.map(id => ({
+      id,
+      name: (id === 1)
+        ? 'Standard'
+        : (labels.CUS1 || labels.CUS2 || `Plan ${id}`)
+    }));
+
+    // 5) Ensure Standard is present when nothing else included
+    if (!items.some(p => p.id === 1)) {
+      items.unshift({ id: 1, name: 'Standard' });
+    }
+
+    // 6) Dedupe by id, preserving order
+    const seen = new Set();
+    items = items.filter(p => (seen.has(p.id) ? false : (seen.add(p.id), true)));
+
+    return items;
+  }
+
   async function load(){
     rangeEl.textContent = `${start} — ${end}`;
     heroWrap.classList.add('is-loading');
@@ -386,62 +447,59 @@
         : '';
     }
 
-    // === PLAN SUMMARY (dynamic, from backend) ===
-    const box = document.getElementById('plan-summary');
-    if (box) {
+        // === PLAN SUMMARY (from selected plans, no extra API) ===
+    (() => {
+      const box = document.getElementById('plan-summary');
+      if (!box) return;
+
       const rid = room?.roomTypeId ?? room?.id ?? roomId;
-      if (rid) {
-        try {
-          const rpUrl = `/catalog/rateplans?propertyId=${propertyId}&roomTypeId=${rid}`;
-          const rpRes = await fetch(rpUrl, { cache: 'no-store' });
-          const rpList = rpRes.ok ? await rpRes.json() : [];
+      if (!rid) return;
 
-          if (Array.isArray(rpList) && rpList.length) {
-            const currentPlan = ratePlanId ? String(ratePlanId) : null;
-            let html = '';
+      const items = derivePlansForDisplay();
+      const currentPlan = ratePlanId ? String(ratePlanId) : null;
 
-            for (const rp of rpList) {
-              const id = rp.ratePlanId;
-              const label = rp.name || `Plan ${id}`;
-              const p = getPlanPriceForRoom(rid, id);
-              if (p == null) continue;
+      let html = '';
 
-              const isActive = currentPlan === String(id);
-              html += `
-                <div class="ps-row" data-plan="${id}" style="${isActive ? 'font-weight:600;' : ''}">
-                  <span class="ps-label">${label}</span>
-                  <span class="ps-price">${money(p)}</span>
-                </div>`;
-            }
+      for (const rp of items) {
+        const p = getPlanPriceForRoom(rid, rp.id);
+        if (p == null) continue;
 
-            if (html) {
-              box.hidden = false;
-              box.innerHTML = html;
-
-              box.addEventListener('click', e => {
-                const row = e.target.closest('.ps-row');
-                if (!row) return;
-
-                const newPlan = row.dataset.plan;
-                if (!newPlan) return;
-
-                const url = new URL(location.href);
-                url.searchParams.set('ratePlanId', newPlan);
-
-                const rp = rpList.find(x => String(x.ratePlanId) === newPlan);
-                if (rp && rp.name) {
-                  url.searchParams.set('planLabel', rp.name);
-                }
-
-                location.href = url.toString();
-              });
-            }
-          }
-        } catch (e) {
-          console.warn("RatePlan summary failed", e);
-        }
+        const isActive = currentPlan === String(rp.id);
+        html += `
+          <div class="ps-row" data-plan="${rp.id}" style="${isActive ? 'font-weight:600;' : ''}">
+            <span class="ps-label">${rp.name}</span>
+            <span class="ps-price">${money(p)}</span>
+          </div>`;
       }
-    }
+
+      if (!html) {
+        box.hidden = true;
+        box.innerHTML = '';
+        return;
+      }
+
+      box.hidden = false;
+      box.innerHTML = html;
+
+      // Click handler: reload with updated ratePlanId and label
+      box.addEventListener('click', e => {
+        const row = e.target.closest('.ps-row');
+        if (!row) return;
+
+        const newPlan = row.dataset.plan;
+        if (!newPlan) return;
+
+        const url = new URL(location.href);
+        url.searchParams.set('ratePlanId', newPlan);
+
+        const match = items.find(x => String(x.id) === String(newPlan));
+        if (match && match.name) {
+          url.searchParams.set('planLabel', match.name);
+        }
+
+        location.href = url.toString();
+      });
+    })();
 
     // Images: prefer room.images (matching this roomTypeId when tagged)
     // → property-level images → catalog.search(by partnerId) fallback
