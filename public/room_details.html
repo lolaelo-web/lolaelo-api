@@ -553,11 +553,18 @@
       setHero(0);
     }
 
-    // Optional property-level photo strip (non-interactive)
+    // Optional property-level photo strip (non-interactive, no duplicates)
     const propStrip = document.getElementById('prop-strip');
     if (propStrip) {
-      const propImages = pick(j?.images, { onlyPropertyLevel: true });
-      if (propImages.length) {
+      let propImages = pick(j?.images, { onlyPropertyLevel: true });
+
+      // Remove any URLs already used in the main room gallery
+      if (Array.isArray(images) && images.length && Array.isArray(propImages)) {
+        const roomSet = new Set(images);
+        propImages = propImages.filter(src => !roomSet.has(src));
+      }
+
+      if (propImages && propImages.length) {
         propStrip.hidden = false;
         propStrip.innerHTML = propImages
           .map((src, idx) => {
@@ -574,6 +581,12 @@
     thumbs.addEventListener('click', e=>{
       const b = e.target.closest('button.thumb'); if(!b) return;
       setHero(Number(b.dataset.idx||0));
+    });
+    
+    // Also change hero on hover for mouse users
+    thumbs.addEventListener('mouseover', e => {
+      const b = e.target.closest('button.thumb'); if (!b) return;
+      setHero(Number(b.dataset.idx || 0));
     });
   }
 
