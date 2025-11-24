@@ -32,6 +32,11 @@
     .thumbs.property-strip img{
       width:90px;
       height:60px;
+      object-fit:cover;
+      border-radius:12px;
+      background:#fff;
+      box-shadow:0 6px 16px rgba(0,0,0,.10);
+      display:block;
     }
     .grid{ display:grid; grid-template-columns:minmax(0,3fr) minmax(320px,1fr); gap:16px; align-items:start; }
     @media (max-width:860px){ .grid{ grid-template-columns:1fr; } }
@@ -338,51 +343,26 @@
     chipsEl.innerHTML = am.slice(0,8).map(a=>`<span class="chip">${String(a)}</span>`).join('');
     descEl.textContent = String(room?.description || j?.description || '');
 
-    // Price roll-up from room.daily, aligned with catalog_details
-    let daily = [];
-    const rawDaily = Array.isArray(room?.daily) ? room.daily : [];
+    // Price roll-up from room.daily (no per-plan IDs in daily yet)
+    const daily = (Array.isArray(room?.daily) ? room.daily : [])
+      .filter(d =>
+        !d.closed &&
+        Number(d.inventory ?? d.open ?? 0) > 0 &&
+        d.price != null &&
+        !isNaN(Number(d.price))
+      );
 
-    if (ratePlanId) {
-      const rt = String(ratePlanId);
-      daily = rawDaily.filter(d => {
-        const pid = String(
-          d.serverPlanId ??
-          d.ratePlanId ??
-          d.rate_plan_id ??
-          d.planId ??
-          d.rateplan ??
-          ''
-        );
-        return pid === rt;
-      });
-    } else {
-      // No plan chosen, use all rows
-      daily = rawDaily;
-    }
+    // From price: minimum nightly price across open nights
+    let minP = daily.length
+      ? Math.min(...daily.map(d => Number(d.price)))
+      : null;
 
-    // remove closed / no-inventory rows
-    daily = daily.filter(d =>
-      !d.closed &&
-      Number(d.inventory ?? d.open ?? 0) > 0
-    );
-
-    // keep priced rows only
-    const priced = daily.filter(d =>
-      d.price != null && !isNaN(Number(d.price))
-    );
-
-    // Base price from daily rows if present
-    let minP  = priced.length ? Math.min(...priced.map(d => Number(d.price))) : null;
-
-    // Fallback: derive price from details payload if daily rows are missing
+    // Fallback: if daily is somehow empty, try details payload helper
     if (minP == null) {
       const rid = room?.roomTypeId ?? room?.id ?? roomId;
       if (rid) {
-        const fallbackPlanId = ratePlanId || 2; // default to Standard if none selected
-        const fallbackPrice = getPlanPriceForRoom(rid, fallbackPlanId);
-        if (fallbackPrice != null) {
-          minP = fallbackPrice;
-        }
+        const fallbackPrice = getPlanPriceForRoom(rid, ratePlanId || 2);
+        if (fallbackPrice != null) minP = fallbackPrice;
       }
     }
 
@@ -391,78 +371,77 @@
     const nights = daysBetween(start,end);
     nightsEl.textContent = nights > 0 ? `${nights} night${nights === 1 ? '' : 's'}` : '';
 
-    // Estimated total for stay:
-    // 1) Use sum of nightly prices when we have them
-    // 2) Otherwise approximate: minP * nights
-    let total = priced.length ? priced.reduce((sum, d) => sum + Number(d.price), 0) : null;
+    // Estimated total for stay
+    let total = daily.length
+      ? daily.reduce((sum, d) => sum + Number(d.price), 0)
+      : null;
+
     if ((total == null || !isFinite(total)) && minP != null && nights > 0) {
       total = minP * nights;
     }
+
     if (totalEl) {
       totalEl.textContent = total != null && isFinite(total)
         ? `Estimated total for stay: ${money(total)}`
         : '';
     }
 
-    // === PLAN SUMMARY (interactive selection) ===
-
-    (() => {
-      const box = document.getElementById('plan-summary');
-      if (!box) return;
-      if (!window.__detailsPayload) return;
-
+    // === PLAN SUMMARY (dynamic, from backend) ===
+    const box = document.getElementById('plan-summary');
+    if (box) {
       const rid = room?.roomTypeId ?? room?.id ?? roomId;
-      if (!rid) return;
+      if (rid) {
+        try {
+          const rpUrl = `/catalog/rateplans?propertyId=${propertyId}&roomTypeId=${rid}`;
+          const rpRes = await fetch(rpUrl, { cache: 'no-store' });
+          const rpList = rpRes.ok ? await rpRes.json() : [];
 
-      const currentPlan = ratePlanId ? String(ratePlanId) : null;
+          if (Array.isArray(rpList) && rpList.length) {
+            const currentPlan = ratePlanId ? String(ratePlanId) : null;
+            let html = '';
 
-      const rows = [
-        { id: 1, label: 'Non-refundable' },
-        { id: 2, label: 'Standard' },
-        { id: 3, label: 'With Breakfast' }
-      ];
+            for (const rp of rpList) {
+              const id = rp.ratePlanId;
+              const label = rp.name || `Plan ${id}`;
+              const p = getPlanPriceForRoom(rid, id);
+              if (p == null) continue;
 
-      let html = '';
+              const isActive = currentPlan === String(id);
+              html += `
+                <div class="ps-row" data-plan="${id}" style="${isActive ? 'font-weight:600;' : ''}">
+                  <span class="ps-label">${label}</span>
+                  <span class="ps-price">${money(p)}</span>
+                </div>`;
+            }
 
-      for (const row of rows) {
-        const p = getPlanPriceForRoom(rid, row.id);
-        if (p != null) {
-          const isActive = currentPlan === String(row.id);
-          html += `
-            <div class="ps-row" data-plan="${row.id}" style="${isActive ? 'font-weight:600;' : ''}">
-              <span class="ps-label">${row.label}</span>
-              <span class="ps-price">${money(p)}</span>
-            </div>`;
+            if (html) {
+              box.hidden = false;
+              box.innerHTML = html;
+
+              box.addEventListener('click', e => {
+                const row = e.target.closest('.ps-row');
+                if (!row) return;
+
+                const newPlan = row.dataset.plan;
+                if (!newPlan) return;
+
+                const url = new URL(location.href);
+                url.searchParams.set('ratePlanId', newPlan);
+
+                const rp = rpList.find(x => String(x.ratePlanId) === newPlan);
+                if (rp && rp.name) {
+                  url.searchParams.set('planLabel', rp.name);
+                }
+
+                location.href = url.toString();
+              });
+            }
+          }
+        } catch (e) {
+          console.warn("RatePlan summary failed", e);
         }
       }
-
-      if (html) {
-        box.hidden = false;
-        box.innerHTML = html;
-
-        // Click handler: reload with updated ratePlanId
-        box.addEventListener('click', e => {
-          const row = e.target.closest('.ps-row');
-          if (!row) return;
-
-          const newPlan = row.dataset.plan;
-          if (!newPlan) return;
-
-          const url = new URL(location.href);
-          url.searchParams.set('ratePlanId', newPlan);
-
-          // Derive label for URL so reload shows correct label/description
-          if (newPlan === '1') url.searchParams.set('planLabel', 'Non-refundable');
-          else if (newPlan === '2') url.searchParams.set('planLabel', 'Standard');
-          else if (newPlan === '3') url.searchParams.set('planLabel', 'With Breakfast');
-
-          location.href = url.toString();
-        });
-      } else {
-        box.hidden = true;
-        box.innerHTML = '';
-      }
-    })();
+    }
 
     // Images: prefer room.images (matching this roomTypeId when tagged)
     // → property-level images → catalog.search(by partnerId) fallback
@@ -582,7 +561,7 @@
       const b = e.target.closest('button.thumb'); if(!b) return;
       setHero(Number(b.dataset.idx||0));
     });
-    
+
     // Also change hero on hover for mouse users
     thumbs.addEventListener('mouseover', e => {
       const b = e.target.closest('button.thumb'); if (!b) return;
