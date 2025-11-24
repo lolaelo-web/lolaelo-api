@@ -371,21 +371,41 @@
       d.price != null && !isNaN(Number(d.price))
     );
 
-    const minP  = priced.length ? Math.min(...priced.map(d => Number(d.price))) : null;
+    // Base price from daily rows if present
+    let minP  = priced.length ? Math.min(...priced.map(d => Number(d.price))) : null;
+
+    // Fallback: derive price from details payload if daily rows are missing
+    if (minP == null) {
+      const rid = room?.roomTypeId ?? room?.id ?? roomId;
+      if (rid) {
+        const fallbackPlanId = ratePlanId || 2; // default to Standard if none selected
+        const fallbackPrice = getPlanPriceForRoom(rid, fallbackPlanId);
+        if (fallbackPrice != null) {
+          minP = fallbackPrice;
+        }
+      }
+    }
+
     fromEl.textContent = minP != null ? money(minP) : '—';
 
     const nights = daysBetween(start,end);
     nightsEl.textContent = nights > 0 ? `${nights} night${nights === 1 ? '' : 's'}` : '';
 
-    // Estimated total for stay = sum of nightly prices for this room + plan over the range
-    const total = priced.length ? priced.reduce((sum, d) => sum + Number(d.price), 0) : null;
+    // Estimated total for stay:
+    // 1) Use sum of nightly prices when we have them
+    // 2) Otherwise approximate: minP * nights
+    let total = priced.length ? priced.reduce((sum, d) => sum + Number(d.price), 0) : null;
+    if ((total == null || !isFinite(total)) && minP != null && nights > 0) {
+      total = minP * nights;
+    }
     if (totalEl) {
-      totalEl.textContent = total != null
+      totalEl.textContent = total != null && isFinite(total)
         ? `Estimated total for stay: ${money(total)}`
         : '';
     }
 
     // === PLAN SUMMARY (interactive selection) ===
+
     (() => {
       const box = document.getElementById('plan-summary');
       if (!box) return;
