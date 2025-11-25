@@ -420,31 +420,33 @@
     padding-right: 6px;
   }
 
-  /* Room details / inclusions: 3-column grid, text first then checkbox */
-  /* ANCHOR: ROOM_DETAILS_GRID_FIX */
+  /* Room details / inclusions: 3 text columns + 3 checkbox columns */
   .ri-details-grid,
   .ri-inclusions-grid{
     display: grid;
-    grid-template-columns: 1fr auto 1fr auto 1fr auto;
+    grid-template-columns: 1fr auto 1fr auto 1fr auto;  /* text, box, text, box, text, box */
     column-gap: 24px;
     row-gap: 10px;
     padding-top: 6px;
   }
 
-  .ri-row{
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    gap: 8px;
+  /* Let label's children (span + input) be the grid cells */
+  .ri-details-grid label,
+  .ri-inclusions-grid label{
+    display: contents;
     font-size: 13px;
+    color: var(--text);
   }
 
-  .ri-row span{
-    flex: 1 1 auto;
+  .ri-details-grid label span,
+  .ri-inclusions-grid label span{
+    align-self: center;
   }
 
-  .ri-row input[type="checkbox"]{
-    flex: 0 0 auto;
+  .ri-details-grid input[type="checkbox"],
+  .ri-inclusions-grid input[type="checkbox"]{
+    justify-self: flex-start;
+    align-self: center;
     margin: 0;
     transform: scale(1.1);
   }
