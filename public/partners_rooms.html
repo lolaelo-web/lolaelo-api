@@ -395,33 +395,34 @@
 
   /* ANCHOR: ROOM_DETAILS_AND_SIZE_CLEANUP */
 
-  /* Room size: fields side-by-side */
+  /* Room size: fields side by side */
   .room-size-row{
     display: flex;
     gap: 16px;
-    align-items: center;
+    align-items: flex-end;
     flex-wrap: wrap;
   }
 
   .room-size-field{
     display: flex;
-    align-items: center;
-    gap: 6px;
+    flex-direction: column;
+    gap: 4px;
   }
 
   .room-size-field span{
-    min-width: 32px;    /* label width: “m²”, “sq ft” */
+    font-size: 12px;
+    color: var(--muted);
   }
 
   .room-size-field input{
-    width: 10ch;        /* wider than default */
+    width: 12ch;
     text-align: right;
     padding-right: 6px;
   }
 
-  /* PERFECT 3-column checkbox layout */
+  /* Room details / inclusions: 3-column grid, text first then checkbox */
   .ri-details-grid,
-  .ri-inclusions-grid {
+  .ri-inclusions-grid{
     display: grid;
     grid-template-columns: repeat(3, minmax(0, 1fr));
     column-gap: 32px;
@@ -429,20 +430,22 @@
     padding-top: 6px;
   }
 
-  /* each checkbox row is horizontal */
-  .ri-details-grid label,
-  .ri-inclusions-grid label {
+  .ri-row{
     display: flex;
     align-items: center;
-    gap: 6px;
+    justify-content: space-between;
+    gap: 8px;
     font-size: 13px;
-    color: var(--text);
   }
 
-  .ri-details-grid input[type="checkbox"],
-  .ri-inclusions-grid input[type="checkbox"] {
+  .ri-row span{
+    flex: 1 1 auto;
+  }
+
+  .ri-row input[type="checkbox"]{
+    flex: 0 0 auto;
     margin: 0;
-    transform: scale(1.15);    /* slightly larger for visibility */
+    transform: scale(1.1);
   }
 
   </style>
@@ -636,7 +639,7 @@
           <label class="muted">Room size</label>
           <div class="room-size-row">
             <div class="room-size-field">
-              <span class="muted small">m²</span>
+              <span class="muted small">sqm²</span>
               <input
                 id="edit-room-size-sqm"
                 class="input"
@@ -663,42 +666,102 @@
                     maxlength="150"
                     placeholder="Short description shown to guests"></textarea>
         </div>
-
-        <div class="row">
-          <label class="muted">Room details</label>
-          <div class="ri-details-grid">
-            <label><input type="checkbox" class="ri-detail" value="city_view"> City view</label>
-            <label><input type="checkbox" class="ri-detail" value="sea_view"> Sea / ocean view</label>
-            <label><input type="checkbox" class="ri-detail" value="garden_view"> Garden view</label>
-            <label><input type="checkbox" class="ri-detail" value="pool_view"> Pool view</label>
-            <label><input type="checkbox" class="ri-detail" value="high_floor"> High floor</label>
-            <label><input type="checkbox" class="ri-detail" value="ground_floor"> Ground floor</label>
-            <label><input type="checkbox" class="ri-detail" value="connecting"> Connecting rooms available</label>
-            <label><input type="checkbox" class="ri-detail" value="accessible"> Accessible room</label>
-            <label><input type="checkbox" class="ri-detail" value="kitchenette"> Kitchenette</label>
-            <label><input type="checkbox" class="ri-detail" value="living_area"> Separate living area</label>
+          <div class="row">
+            <label class="muted">Room details</label>
+            <div class="ri-details-grid">
+              <label class="ri-row">
+                <span>City view</span>
+                <input type="checkbox" class="ri-detail" value="city_view">
+              </label>
+              <label class="ri-row">
+                <span>Sea / ocean view</span>
+                <input type="checkbox" class="ri-detail" value="sea_view">
+              </label>
+              <label class="ri-row">
+                <span>Garden view</span>
+                <input type="checkbox" class="ri-detail" value="garden_view">
+              </label>
+              <label class="ri-row">
+                <span>Pool view</span>
+                <input type="checkbox" class="ri-detail" value="pool_view">
+              </label>
+              <label class="ri-row">
+                <span>High floor</span>
+                <input type="checkbox" class="ri-detail" value="high_floor">
+              </label>
+              <label class="ri-row">
+                <span>Ground floor</span>
+                <input type="checkbox" class="ri-detail" value="ground_floor">
+              </label>
+              <label class="ri-row">
+                <span>Connecting rooms available</span>
+                <input type="checkbox" class="ri-detail" value="connecting">
+              </label>
+              <label class="ri-row">
+                <span>Accessible room</span>
+                <input type="checkbox" class="ri-detail" value="accessible">
+              </label>
+              <label class="ri-row">
+                <span>Kitchenette</span>
+                <input type="checkbox" class="ri-detail" value="kitchenette">
+              </label>
+              <label class="ri-row">
+                <span>Separate living area</span>
+                <input type="checkbox" class="ri-detail" value="separate_living">
+              </label>
+            </div>
+            <textarea id="edit-room-details" class="input" rows="2"
+              placeholder="Other room details (optional)"></textarea>
           </div>
-          <textarea id="edit-room-details" class="input" rows="2"
-                    placeholder="Other room details (optional)"></textarea>
-        </div>
 
-        <div class="row">
-          <label class="muted">Inclusions</label>
-          <div class="ri-inclusions-grid">
-            <label><input type="checkbox" class="ri-inclusion" value="breakfast"> Breakfast included</label>
-            <label><input type="checkbox" class="ri-inclusion" value="half_board"> Half board</label>
-            <label><input type="checkbox" class="ri-inclusion" value="full_board"> Full board</label>
-            <label><input type="checkbox" class="ri-inclusion" value="all_inclusive"> All inclusive</label>
-            <label><input type="checkbox" class="ri-inclusion" value="free_parking"> Free parking</label>
-            <label><input type="checkbox" class="ri-inclusion" value="airport_shuttle"> Airport shuttle</label>
-            <label><input type="checkbox" class="ri-inclusion" value="late_checkout"> Late checkout (subject to availability)</label>
-            <label><input type="checkbox" class="ri-inclusion" value="early_checkin"> Early check-in (subject to availability)</label>
-            <label><input type="checkbox" class="ri-inclusion" value="spa_access"> Spa / wellness access</label>
-            <label><input type="checkbox" class="ri-inclusion" value="pool_access"> Pool access</label>
+          <div class="row">
+            <label class="muted">Inclusions</label>
+            <div class="ri-inclusions-grid">
+              <label class="ri-row">
+                <span>Breakfast included</span>
+                <input type="checkbox" class="ri-inclusion" value="breakfast">
+              </label>
+              <label class="ri-row">
+                <span>Half board</span>
+                <input type="checkbox" class="ri-inclusion" value="half_board">
+              </label>
+              <label class="ri-row">
+                <span>Full board</span>
+                <input type="checkbox" class="ri-inclusion" value="full_board">
+              </label>
+              <label class="ri-row">
+                <span>All inclusive</span>
+                <input type="checkbox" class="ri-inclusion" value="all_inclusive">
+              </label>
+              <label class="ri-row">
+                <span>Free parking</span>
+                <input type="checkbox" class="ri-inclusion" value="free_parking">
+              </label>
+              <label class="ri-row">
+                <span>Airport shuttle</span>
+                <input type="checkbox" class="ri-inclusion" value="airport_shuttle">
+              </label>
+              <label class="ri-row">
+                <span>Late checkout (subject to availability)</span>
+                <input type="checkbox" class="ri-inclusion" value="late_checkout">
+              </label>
+              <label class="ri-row">
+                <span>Early check-in (subject to availability)</span>
+                <input type="checkbox" class="ri-inclusion" value="early_checkin">
+              </label>
+              <label class="ri-row">
+                <span>Pool access</span>
+                <input type="checkbox" class="ri-inclusion" value="pool_access">
+              </label>
+              <label class="ri-row">
+                <span>Spa / wellness access</span>
+                <input type="checkbox" class="ri-inclusion" value="spa_access">
+              </label>
+            </div>
+            <textarea id="edit-room-inclusions" class="input" rows="2"
+                      placeholder="Other inclusions (optional)"></textarea>
           </div>
-          <textarea id="edit-room-inclusions" class="input" rows="2"
-                    placeholder="Other inclusions (optional)"></textarea>
-        </div>
+
         <!-- END ANCHOR: ROOM_INFO_FIELDS -->
 
         <div class="warn-msg" id="edit-warn" style="display:none;"></div>
