@@ -4,7 +4,7 @@
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>Lolaelo · Stay</title>
-  <link rel="icon" href="https://www.lolaelo.com/logo.png?cb=fav-v1" />
+  <link rel="icon" href="/assets/logo2.png?cb=fav2" type="image/png" />
   <!-- ANCHOR: FONTS_PRECONNECT -->
   <link rel="preconnect" href="https://fonts.googleapis.com" crossorigin>
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -158,10 +158,11 @@
     /* ANCHOR: DETAILS_LAYOUT_COLS */
     .layout{
       display:grid;
-      grid-template-columns: minmax(0,3fr) minmax(320px,1fr); /* 75/25 */
+      grid-template-columns: 1fr;
       gap:16px;
       align-items:start;
     }
+
     /* Keep two columns; collapse only below ~840px */
     @media (max-width:840px){
       .layout{ grid-template-columns: 1fr; }
@@ -282,20 +283,6 @@
       border: 1px solid var(--bubble); background: var(--bubble); color: #fff;
       padding: 6px 10px; border-radius: 10px; font-weight: 700; cursor: pointer;
       text-decoration: none; display: inline-block;
-    }
-
-    /* ANCHOR: DETAILS_PANEL_BOX */
-    .panel{
-      border: 1px solid var(--line);
-      border-radius: 16px;
-      padding: 18px 18px 20px;
-      background: #fff;
-      display: flex;
-      flex-direction: column;
-      gap: 14px;
-      min-width: 320px;
-      max-width: 420px;
-      margin-left: auto;
     }
 
     @media (min-width:900px){
@@ -528,13 +515,6 @@
         <!-- ANCHOR: ROOMCAT_LIST_HTML -->
         <div id="roomCats" class="roomcats" aria-label="Available room categories (open only)"></div>
       </section>
-
-      <aside class="panel">
-        <div class="muted" id="stay-range"></div>
-        <div class="muted">From</div>
-        <div class="price" id="from" aria-live="polite">—</div>
-        <button class="book" type="button" id="book">Book now (mock)</button>
-      </aside>
     </div>
   </div>
 
