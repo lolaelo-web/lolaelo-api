@@ -215,7 +215,7 @@
       .roomcat .btn-select{ grid-column: 1 / -1; justify-self: start; }
     }
 
-    /* ANCHOR: ROOM_MODAL_CSS */
+        /* ANCHOR: ROOM_MODAL_CSS */
     .room-modal-backdrop{
       position: fixed;
       inset: 0;
@@ -234,9 +234,9 @@
       position: relative;
       background: #fff;
       border-radius: 20px;
-      width: 100%;
-      max-width: 880px;
-      max-height: 90vh;
+      /* wider, almost full-screen but with a small side margin */
+      width: min(95vw, 1100px);
+      max-height: 92vh;
       box-shadow: 0 24px 60px rgba(15,23,42,0.40);
       overflow: hidden;             /* keep rounded corners */
       display: flex;
@@ -260,7 +260,8 @@
 
     .room-modal-body{
       display: grid;
-      grid-template-rows: auto minmax(220px, 2fr) minmax(150px, 1fr); /* ≈ 25 / 50 / 25 */
+      /* approx 40% for hero block, 60% for details + plans */
+      grid-template-rows: auto minmax(180px, 2fr) minmax(240px, 3fr);
       gap: 12px;
       padding: 18px 18px 20px;
       overflow-y: auto;   /* allow vertical scroll so thumbs + plans are always reachable */
@@ -280,7 +281,7 @@
 
     .room-modal-hero{
       display: grid;
-      grid-template-rows: minmax(180px, 1fr) auto;
+      grid-template-rows: minmax(160px, 1fr) auto;
       gap: 8px;
     }
     .room-modal-hero-main{
@@ -343,7 +344,8 @@
     @media (max-width: 640px){
       .room-modal-body{
         padding: 14px 14px 16px;
-        grid-template-rows: auto minmax(180px, 2fr) minmax(140px, 1fr);
+        /* keep same 40/60 bias but slightly more compact on small screens */
+        grid-template-rows: auto minmax(150px, 2fr) minmax(200px, 3fr);
       }
     }
 

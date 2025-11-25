@@ -363,6 +363,18 @@
   #apply-price{ grid-area:apply; justify-self:start; align-self:end; }
   #copy-link{ grid-area:copy;  justify-self:start; align-self:end; }
 
+  /* ANCHOR: ROOM_INFO_CSS */
+  #edit-room-summary,
+  #edit-room-details,
+  #edit-room-inclusions {
+    width: 100%;
+    resize: vertical;
+  }
+  #edit-room-details,
+  #edit-room-inclusions {
+    min-height: 60px;
+  }
+
   </style>
 </head>
 <body>
@@ -548,6 +560,25 @@
             <option value="false">Inactive</option>
           </select>
         </div>
+
+        <!-- ANCHOR: ROOM_INFO_FIELDS -->
+        <div class="row">
+          <label for="edit-room-summary" class="muted">Room summary</label>
+          <input id="edit-room-summary" class="input" maxlength="150"
+                 placeholder="Short description shown to guests" />
+        </div>
+        <div class="row">
+          <label for="edit-room-details" class="muted">Room details</label>
+          <textarea id="edit-room-details" class="input" rows="3"
+                    placeholder="Amenities, layout, view, notes..."></textarea>
+        </div>
+        <div class="row">
+          <label for="edit-room-inclusions" class="muted">Inclusions</label>
+          <textarea id="edit-room-inclusions" class="input" rows="2"
+                    placeholder="Breakfast, parking, shuttle, etc."></textarea>
+        </div>
+        <!-- END ANCHOR: ROOM_INFO_FIELDS -->
+
         <div class="warn-msg" id="edit-warn" style="display:none;"></div>
       </div>
       <footer>
@@ -2970,6 +3001,29 @@
   const pendingRoomUpdates = new Map(); // roomId -> payload
   const readOnlyRoomField = new Map();  // roomId -> true
 
+    // ANCHOR: ROOM_INFO_STATE
+  const ROOM_INFO_LS_KEY = "extranet_roomInfo_v1";
+
+  function loadRoomInfoMap(){
+    try{
+      const raw = localStorage.getItem(ROOM_INFO_LS_KEY);
+      if (!raw) return {};
+      const obj = JSON.parse(raw);
+      return (obj && typeof obj === "object") ? obj : {};
+    }catch(_){
+      return {};
+    }
+  }
+
+  function saveRoomInfoMap(map){
+    try{
+      localStorage.setItem(ROOM_INFO_LS_KEY, JSON.stringify(map));
+    }catch(_){}
+  }
+
+  // roomId -> { summary, details, inclusions }
+  let roomInfoById = loadRoomInfoMap();
+
   const clamp = (v,min,max)=>Math.min(Math.max(v,min),max);
   const toNumber = (v) => {
     if (v === null || v === undefined || v === "") return NaN;
@@ -3983,6 +4037,17 @@
     const activeSel = el('edit-active');
     if (activeSel) activeSel.value = String(!!rt.active);
 
+    // Fill room-info fields from local store (frontend-only for now)
+    try{
+      const info = (roomInfoById && roomInfoById[rt.id]) || {};
+      const sumEl = el('edit-room-summary');
+      const detEl = el('edit-room-details');
+      const incEl = el('edit-room-inclusions');
+      if (sumEl) sumEl.value = info.summary ?? '';
+      if (detEl) detEl.value = info.details ?? '';
+      if (incEl) incEl.value = info.inclusions ?? '';
+    }catch(_){}
+
     el('edit-warn').style.display = 'none';
     m.classList.add('open');
 
@@ -4015,6 +4080,25 @@
       const activeVal = (el('edit-active')?.value === 'true');
 
       const payload = {};
+
+      // Capture room-info fields (localStorage only, no API yet)
+      const infoSummary    = (el('edit-room-summary')?.value || '').trim();
+      const infoDetails    = (el('edit-room-details')?.value || '').trim();
+      const infoInclusions = (el('edit-room-inclusions')?.value || '').trim();
+
+      const prevInfo = roomInfoById[rt.id] || {};
+      const nextInfo = {
+        summary:    infoSummary,
+        details:    infoDetails,
+        inclusions: infoInclusions
+      };
+
+      if (prevInfo.summary    !== nextInfo.summary ||
+          prevInfo.details    !== nextInfo.details ||
+          prevInfo.inclusions !== nextInfo.inclusions) {
+        roomInfoById = { ...roomInfoById, [rt.id]: nextInfo };
+        saveRoomInfoMap(roomInfoById);
+      }
 
       if (nameVal && nameVal !== rt.name) payload.name = nameVal;
 
