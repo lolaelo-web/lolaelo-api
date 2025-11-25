@@ -409,6 +409,36 @@
     }
   }
 
+  /* ANCHOR: ROOM_SIZE_AND_CHECKBOX_ALIGN */
+  .room-size-row{
+    display: flex;
+    gap: 12px;
+  }
+
+  .room-size-field{
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  }
+
+  .room-size-field input{
+    width: 5ch;         /* about 5 characters wide */
+    text-align: right;
+  }
+
+  /* Align checkbox text with the boxes */
+  .ri-details-grid label,
+  .ri-inclusions-grid label{
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  }
+
+  .ri-details-grid input[type="checkbox"],
+  .ri-inclusions-grid input[type="checkbox"]{
+    margin: 0;
+  }
+
   </style>
 </head>
 <body>
@@ -598,22 +628,27 @@
         <!-- ANCHOR: ROOM_INFO_FIELDS -->
         <div class="row">
           <label class="muted">Room size</label>
-          <div style="display:flex; gap:8px;">
-            <input id="edit-room-size-sqm"
-                   class="input"
-                   inputmode="decimal"
-                   placeholder="m²"
-                   style="flex:1;"
-            />
-            <input id="edit-room-size-sqft"
-                   class="input"
-                   inputmode="decimal"
-                   placeholder="sq ft"
-                   style="flex:1;"
-            />
+          <div class="room-size-row">
+            <div class="room-size-field">
+              <span class="muted small">m²</span>
+              <input
+                id="edit-room-size-sqm"
+                class="input"
+                inputmode="decimal"
+                placeholder="0"
+              />
+            </div>
+            <div class="room-size-field">
+              <span class="muted small">sq ft</span>
+              <input
+                id="edit-room-size-sqft"
+                class="input"
+                inputmode="decimal"
+                placeholder="0"
+              />
+            </div>
           </div>
         </div>
-
         <div class="row">
           <label for="edit-room-summary" class="muted">Room summary</label>
           <textarea id="edit-room-summary"
