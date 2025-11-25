@@ -238,7 +238,7 @@
       max-width: 880px;
       max-height: 90vh;
       box-shadow: 0 24px 60px rgba(15,23,42,0.40);
-      overflow: hidden;
+      overflow: hidden;             /* keep rounded corners */
       display: flex;
       flex-direction: column;
     }
@@ -263,6 +263,8 @@
       grid-template-rows: auto minmax(220px, 2fr) minmax(150px, 1fr); /* ≈ 25 / 50 / 25 */
       gap: 12px;
       padding: 18px 18px 20px;
+      overflow-y: auto;   /* allow vertical scroll so thumbs + plans are always reachable */
+      min-height: 0;      /* required for scrollable grid inside flex parent */
     }
 
     .room-modal-top{
@@ -760,7 +762,13 @@
 
     function setHero(i){
       if (!images.length) return;
+
+      // clamp
       i = Math.max(0, Math.min(images.length - 1, i));
+
+      // if same index, do nothing (prevents redundant fade / “double blink”)
+      if (i === heroIndex) return;
+
       heroIndex = i;
       const src = images[i];
 
@@ -1367,7 +1375,7 @@
           return rows;
         }
      
-        listEl.innerHTML = openRooms.map(({ room, minPrice }) => {
+                listEl.innerHTML = openRooms.map(({ room, minPrice }) => {
           const rid = room.roomTypeId ?? room.typeId ?? room.id ?? room.roomId ?? room.code ?? '';
           const name = String(room.name ?? 'Room').trim() || 'Room';
           // Prefer room-level images; fall back to property-level/detail images; then placeholder
@@ -1403,7 +1411,7 @@
           const price = (minPrice != null && isFinite(minPrice)) ? `$${minPrice.toFixed(2)}` : '—';
 
           return `
-            <div class="roomcat" data-room-id="${rid}" onclick="openRoomModalById('${rid}')">
+            <div class="roomcat" data-room-id="${rid}">
             ${ (plans && plans.length >= 1)
                 ? `<button class="toggle" type="button" aria-expanded="false" aria-label="Show plans" tabindex="0" role="button">+</button>`
                 : `<span class="visually-hidden">Single rate plan</span>` }
@@ -1692,18 +1700,21 @@
               topLink.setAttribute('href', href);
             }
 
-            // Show toggle only if multiple plans
-            const hasExtras = plans.length > 1;
+            // Keep the toggle visible on details page as long as there is at least one plan.
+            const hasAnyPlan = plans.length > 0;
             let toggle = cat.querySelector('.toggle');
-            if (hasExtras && !toggle){
+
+            if (hasAnyPlan && !toggle) {
+              // Re-create the button if markup was missing
               toggle = document.createElement('button');
               toggle.className = 'toggle';
               toggle.type = 'button';
-              toggle.setAttribute('aria-expanded','false');
-              toggle.setAttribute('aria-label','Show plans');
+              toggle.setAttribute('aria-expanded', 'false');
+              toggle.setAttribute('aria-label', 'Show plans');
               toggle.textContent = '+';
               cat.insertBefore(toggle, cat.firstElementChild);
-            } else if (!hasExtras && toggle){
+            } else if (!hasAnyPlan && toggle) {
+              // Only strip the toggle if we truly have zero plans
               toggle.replaceWith(document.createElement('span'));
             }
           }
