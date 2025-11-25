@@ -563,19 +563,66 @@
 
         <!-- ANCHOR: ROOM_INFO_FIELDS -->
         <div class="row">
+          <label class="muted">Room size</label>
+          <div style="display:flex; gap:8px;">
+            <input id="edit-room-size-sqm"
+                   class="input"
+                   inputmode="decimal"
+                   placeholder="m²"
+                   style="flex:1;"
+            />
+            <input id="edit-room-size-sqft"
+                   class="input"
+                   inputmode="decimal"
+                   placeholder="sq ft"
+                   style="flex:1;"
+            />
+          </div>
+        </div>
+
+        <div class="row">
           <label for="edit-room-summary" class="muted">Room summary</label>
-          <input id="edit-room-summary" class="input" maxlength="150"
-                 placeholder="Short description shown to guests" />
+          <textarea id="edit-room-summary"
+                    class="input"
+                    rows="2"
+                    maxlength="150"
+                    placeholder="Short description shown to guests"></textarea>
         </div>
+
         <div class="row">
-          <label for="edit-room-details" class="muted">Room details</label>
-          <textarea id="edit-room-details" class="input" rows="3"
-                    placeholder="Amenities, layout, view, notes..."></textarea>
+          <label class="muted">Room details</label>
+          <div class="ri-details-grid">
+            <label><input type="checkbox" class="ri-detail" value="city_view"> City view</label>
+            <label><input type="checkbox" class="ri-detail" value="sea_view"> Sea / ocean view</label>
+            <label><input type="checkbox" class="ri-detail" value="garden_view"> Garden view</label>
+            <label><input type="checkbox" class="ri-detail" value="pool_view"> Pool view</label>
+            <label><input type="checkbox" class="ri-detail" value="high_floor"> High floor</label>
+            <label><input type="checkbox" class="ri-detail" value="ground_floor"> Ground floor</label>
+            <label><input type="checkbox" class="ri-detail" value="connecting"> Connecting rooms available</label>
+            <label><input type="checkbox" class="ri-detail" value="accessible"> Accessible room</label>
+            <label><input type="checkbox" class="ri-detail" value="kitchenette"> Kitchenette</label>
+            <label><input type="checkbox" class="ri-detail" value="living_area"> Separate living area</label>
+          </div>
+          <textarea id="edit-room-details" class="input" rows="2"
+                    placeholder="Other room details (optional)"></textarea>
         </div>
+
         <div class="row">
-          <label for="edit-room-inclusions" class="muted">Inclusions</label>
+          <label class="muted">Inclusions</label>
+          <div class="ri-inclusions-grid">
+            <label><input type="checkbox" class="ri-inclusion" value="breakfast"> Breakfast included</label>
+            <label><input type="checkbox" class="ri-inclusion" value="half_board"> Half board</label>
+            <label><input type="checkbox" class="ri-inclusion" value="full_board"> Full board</label>
+            <label><input type="checkbox" class="ri-inclusion" value="all_inclusive"> All inclusive</label>
+            <label><input type="checkbox" class="ri-inclusion" value="free_parking"> Free parking</label>
+            <label><input type="checkbox" class="ri-inclusion" value="airport_shuttle"> Airport shuttle</label>
+            <label><input type="checkbox" class="ri-inclusion" value="late_checkout"> Late checkout (subject to availability)</label>
+            <label><input type="checkbox" class="ri-inclusion" value="early_checkin"> Early check-in (subject to availability)</label>
+            <label><input type="checkbox" class="ri-inclusion" value="spa_access"> Spa / wellness access</label>
+            <label><input type="checkbox" class="ri-inclusion" value="pool_access"> Pool access</label>
+          </div>
           <textarea id="edit-room-inclusions" class="input" rows="2"
-                    placeholder="Breakfast, parking, shuttle, etc."></textarea>
+                    placeholder="Other inclusions (optional)"></textarea>
         </div>
         <!-- END ANCHOR: ROOM_INFO_FIELDS -->
 
@@ -3001,8 +3048,9 @@
   const pendingRoomUpdates = new Map(); // roomId -> payload
   const readOnlyRoomField = new Map();  // roomId -> true
 
-    // ANCHOR: ROOM_INFO_STATE
+  // ANCHOR: ROOM_INFO_STATE
   const ROOM_INFO_LS_KEY = "extranet_roomInfo_v1";
+  const SQM_TO_SQFT = 10.7639;
 
   function loadRoomInfoMap(){
     try{
@@ -3021,8 +3069,29 @@
     }catch(_){}
   }
 
-  // roomId -> { summary, details, inclusions }
+  // roomId -> { summary, details, inclusions, sizeSqm, sizeSqft }
   let roomInfoById = loadRoomInfoMap();
+
+  function syncRoomSizeFields(source){
+    const sqmEl  = el('edit-room-size-sqm');
+    const sqftEl = el('edit-room-size-sqft');
+    if (!sqmEl || !sqftEl) return;
+
+    const rawSqm  = (sqmEl.value || '').replace(/,/g,'').trim();
+    const rawSqft = (sqftEl.value || '').replace(/,/g,'').trim();
+
+    if (source === 'sqm'){
+      const v = parseFloat(rawSqm);
+      if (!Number.isFinite(v)) return;
+      const ft = v * SQM_TO_SQFT;
+      sqftEl.value = String(Math.round(ft));
+    } else if (source === 'sqft'){
+      const v = parseFloat(rawSqft);
+      if (!Number.isFinite(v)) return;
+      const m = v / SQM_TO_SQFT;
+      sqmEl.value = String(Math.round(m));
+    }
+  }
 
   const clamp = (v,min,max)=>Math.min(Math.max(v,min),max);
   const toNumber = (v) => {
@@ -4040,13 +4109,30 @@
     // Fill room-info fields from local store (frontend-only for now)
     try{
       const info = (roomInfoById && roomInfoById[rt.id]) || {};
-      const sumEl = el('edit-room-summary');
-      const detEl = el('edit-room-details');
-      const incEl = el('edit-room-inclusions');
-      if (sumEl) sumEl.value = info.summary ?? '';
-      if (detEl) detEl.value = info.details ?? '';
-      if (incEl) incEl.value = info.inclusions ?? '';
+      const sumEl  = el('edit-room-summary');
+      const detEl  = el('edit-room-details');
+      const incEl  = el('edit-room-inclusions');
+      const sqmEl  = el('edit-room-size-sqm');
+      const sqftEl = el('edit-room-size-sqft');
+
+      if (sumEl)  sumEl.value  = info.summary    ?? '';
+      if (detEl)  detEl.value  = info.details    ?? '';
+      if (incEl)  incEl.value  = info.inclusions ?? '';
+      if (sqmEl)  sqmEl.value  = info.sizeSqm    ?? '';
+      if (sqftEl) sqftEl.value = info.sizeSqft   ?? '';
     }catch(_){}
+
+    // Attach one-time blur handlers for size conversion
+    const sqmEl  = el('edit-room-size-sqm');
+    const sqftEl = el('edit-room-size-sqft');
+    if (sqmEl && !sqmEl.dataset.boundSize){
+      sqmEl.dataset.boundSize = '1';
+      sqmEl.addEventListener('blur', () => syncRoomSizeFields('sqm'));
+    }
+    if (sqftEl && !sqftEl.dataset.boundSize){
+      sqftEl.dataset.boundSize = '1';
+      sqftEl.addEventListener('blur', () => syncRoomSizeFields('sqft'));
+    }
 
     el('edit-warn').style.display = 'none';
     m.classList.add('open');
@@ -4082,20 +4168,26 @@
       const payload = {};
 
       // Capture room-info fields (localStorage only, no API yet)
-      const infoSummary    = (el('edit-room-summary')?.value || '').trim();
-      const infoDetails    = (el('edit-room-details')?.value || '').trim();
-      const infoInclusions = (el('edit-room-inclusions')?.value || '').trim();
+      const infoSummary     = (el('edit-room-summary')?.value || '').trim();
+      const infoDetails     = (el('edit-room-details')?.value || '').trim();
+      const infoInclusions  = (el('edit-room-inclusions')?.value || '').trim();
+      const infoSizeSqm     = (el('edit-room-size-sqm')?.value || '').trim();
+      const infoSizeSqft    = (el('edit-room-size-sqft')?.value || '').trim();
 
       const prevInfo = roomInfoById[rt.id] || {};
       const nextInfo = {
         summary:    infoSummary,
         details:    infoDetails,
-        inclusions: infoInclusions
+        inclusions: infoInclusions,
+        sizeSqm:    infoSizeSqm,
+        sizeSqft:   infoSizeSqft
       };
 
-      if (prevInfo.summary    !== nextInfo.summary ||
-          prevInfo.details    !== nextInfo.details ||
-          prevInfo.inclusions !== nextInfo.inclusions) {
+      if (prevInfo.summary    !== nextInfo.summary   ||
+          prevInfo.details    !== nextInfo.details   ||
+          prevInfo.inclusions !== nextInfo.inclusions||
+          prevInfo.sizeSqm    !== nextInfo.sizeSqm   ||
+          prevInfo.sizeSqft   !== nextInfo.sizeSqft) {
         roomInfoById = { ...roomInfoById, [rt.id]: nextInfo };
         saveRoomInfoMap(roomInfoById);
       }
