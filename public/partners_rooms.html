@@ -395,18 +395,28 @@
 
   /* ANCHOR: ROOM_DETAILS_AND_SIZE_CLEANUP */
 
-  /* widen sqm/sqft fields */
-  .room-size-field input{
-    width: 12ch;         /* ~2.5x the current width */
-    text-align: right;
-    padding-right: 6px;
+  /* Room size: fields side-by-side */
+  .room-size-row{
+    display: flex;
+    gap: 16px;
+    align-items: center;
+    flex-wrap: wrap;
   }
 
-  /* clean label alignment */
   .room-size-field{
     display: flex;
-    flex-direction: column;
-    gap: 4px;
+    align-items: center;
+    gap: 6px;
+  }
+
+  .room-size-field span{
+    min-width: 32px;    /* label width: “m²”, “sq ft” */
+  }
+
+  .room-size-field input{
+    width: 10ch;        /* wider than default */
+    text-align: right;
+    padding-right: 6px;
   }
 
   /* PERFECT 3-column checkbox layout */
@@ -414,7 +424,8 @@
   .ri-inclusions-grid {
     display: grid;
     grid-template-columns: repeat(3, minmax(0, 1fr));
-    gap: 12px 18px;
+    column-gap: 32px;
+    row-gap: 8px;
     padding-top: 6px;
   }
 
@@ -423,7 +434,7 @@
   .ri-inclusions-grid label {
     display: flex;
     align-items: center;
-    gap: 8px;
+    gap: 6px;
     font-size: 13px;
     color: var(--text);
   }
