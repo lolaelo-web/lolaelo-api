@@ -393,50 +393,45 @@
     margin-bottom: 14px;
   }
 
-  /* ANCHOR: ROOM_DETAILS_COLUMNS */
+  /* ANCHOR: ROOM_DETAILS_AND_SIZE_CLEANUP */
+
+  /* widen sqm/sqft fields */
+  .room-size-field input{
+    width: 12ch;         /* ~2.5x the current width */
+    text-align: right;
+    padding-right: 6px;
+  }
+
+  /* clean label alignment */
+  .room-size-field{
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+  }
+
+  /* PERFECT 3-column checkbox layout */
   .ri-details-grid,
   .ri-inclusions-grid {
     display: grid;
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-    gap: 6px 12px;
-    margin-bottom: 6px;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 12px 18px;
+    padding-top: 6px;
   }
 
-  @media (min-width: 1024px){
-    .ri-details-grid,
-    .ri-inclusions-grid {
-      grid-template-columns: repeat(3, minmax(0, 1fr));
-    }
-  }
-
-  /* ANCHOR: ROOM_SIZE_AND_CHECKBOX_ALIGN */
-  .room-size-row{
-    display: flex;
-    gap: 12px;
-  }
-
-  .room-size-field{
-    display: flex;
-    align-items: center;
-    gap: 6px;
-  }
-
-  .room-size-field input{
-    width: 5ch;         /* about 5 characters wide */
-    text-align: right;
-  }
-
-  /* Align checkbox text with the boxes */
+  /* each checkbox row is horizontal */
   .ri-details-grid label,
-  .ri-inclusions-grid label{
+  .ri-inclusions-grid label {
     display: flex;
     align-items: center;
-    gap: 6px;
+    gap: 8px;
+    font-size: 13px;
+    color: var(--text);
   }
 
   .ri-details-grid input[type="checkbox"],
-  .ri-inclusions-grid input[type="checkbox"]{
+  .ri-inclusions-grid input[type="checkbox"] {
     margin: 0;
+    transform: scale(1.15);    /* slightly larger for visibility */
   }
 
   </style>
@@ -4176,6 +4171,8 @@
     if (activeSel) activeSel.value = String(!!rt.active);
 
     // Fill room-info fields from local store (frontend-only for now)
+    let detailKeys = [];
+    let inclusionKeys = [];
     try{
       const info = (roomInfoById && roomInfoById[rt.id]) || {};
       const sumEl  = el('edit-room-summary');
@@ -4189,6 +4186,22 @@
       if (incEl)  incEl.value  = info.inclusions ?? '';
       if (sqmEl)  sqmEl.value  = info.sizeSqm    ?? '';
       if (sqftEl) sqftEl.value = info.sizeSqft   ?? '';
+
+      detailKeys    = Array.isArray(info.detailsKeys)    ? info.detailsKeys    : [];
+      inclusionKeys = Array.isArray(info.inclusionKeys)  ? info.inclusionKeys  : [];
+    }catch(_){}
+
+    // Apply checkbox state for details / inclusions
+    try{
+      const detailEls = document.querySelectorAll('.ri-detail');
+      detailEls.forEach(cb => {
+        cb.checked = detailKeys.includes(cb.value);
+      });
+
+      const inclusionEls = document.querySelectorAll('.ri-inclusion');
+      inclusionEls.forEach(cb => {
+        cb.checked = inclusionKeys.includes(cb.value);
+      });
     }catch(_){}
 
     // Attach one-time blur handlers for size conversion
@@ -4243,20 +4256,39 @@
       const infoSizeSqm     = (el('edit-room-size-sqm')?.value || '').trim();
       const infoSizeSqft    = (el('edit-room-size-sqft')?.value || '').trim();
 
+      // Checkbox selections
+      let infoDetailKeys = [];
+      let infoInclusionKeys = [];
+      try{
+        const detailEls = document.querySelectorAll('.ri-detail');
+        infoDetailKeys = Array.from(detailEls)
+          .filter(cb => cb.checked)
+          .map(cb => cb.value);
+
+        const inclusionEls = document.querySelectorAll('.ri-inclusion');
+        infoInclusionKeys = Array.from(inclusionEls)
+          .filter(cb => cb.checked)
+          .map(cb => cb.value);
+      }catch(_){}
+
       const prevInfo = roomInfoById[rt.id] || {};
       const nextInfo = {
-        summary:    infoSummary,
-        details:    infoDetails,
-        inclusions: infoInclusions,
-        sizeSqm:    infoSizeSqm,
-        sizeSqft:   infoSizeSqft
+        summary:        infoSummary,
+        details:        infoDetails,
+        inclusions:     infoInclusions,
+        sizeSqm:        infoSizeSqm,
+        sizeSqft:       infoSizeSqft,
+        detailsKeys:    infoDetailKeys,
+        inclusionKeys:  infoInclusionKeys
       };
 
-      if (prevInfo.summary    !== nextInfo.summary   ||
-          prevInfo.details    !== nextInfo.details   ||
-          prevInfo.inclusions !== nextInfo.inclusions||
-          prevInfo.sizeSqm    !== nextInfo.sizeSqm   ||
-          prevInfo.sizeSqft   !== nextInfo.sizeSqft) {
+      if (prevInfo.summary        !== nextInfo.summary       ||
+          prevInfo.details        !== nextInfo.details       ||
+          prevInfo.inclusions     !== nextInfo.inclusions    ||
+          prevInfo.sizeSqm        !== nextInfo.sizeSqm       ||
+          prevInfo.sizeSqft       !== nextInfo.sizeSqft      ||
+          JSON.stringify(prevInfo.detailsKeys   || []) !== JSON.stringify(nextInfo.detailsKeys) ||
+          JSON.stringify(prevInfo.inclusionKeys || []) !== JSON.stringify(nextInfo.inclusionKeys)) {
         roomInfoById = { ...roomInfoById, [rt.id]: nextInfo };
         saveRoomInfoMap(roomInfoById);
       }
