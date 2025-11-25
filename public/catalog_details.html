@@ -281,20 +281,26 @@
 
     .room-modal-hero{
       display: grid;
-      grid-template-rows: minmax(160px, 1fr) auto;
+      grid-template-rows: minmax(180px, 1fr) auto;
       gap: 8px;
     }
     .room-modal-hero-main{
+      position: relative;
       border-radius: 14px;
       overflow: hidden;
       border: 1px solid var(--line);
-      background: #f3f4f6;
+      background: #000; /* darker so letterboxing looks intentional */
+      cursor: zoom-in;
     }
     .room-modal-hero-main img{
       width: 100%;
       height: 100%;
-      object-fit: cover;
+      object-fit: cover;   /* default = cropped, strong visual */
       display: block;
+      transition: object-fit 0.2s ease;
+    }
+    .room-modal-hero-main:hover img{
+      object-fit: contain; /* on hover = show full image, “fit to screen” inside hero */
     }
 
     .room-modal-thumbs{
@@ -611,6 +617,39 @@
       box-shadow: 0 6px 18px rgba(255,106,61,0.35);
       transform: translateY(-1px);
     }
+    
+    /* ANCHOR: ROOM_DIALOG_LAYOUT */
+    /* Wider edit-room dialog */
+    .dialog{
+      width: min(760px, calc(100vw - 24px));
+      max-width: 840px;
+    }
+
+    /* Column layout for Room details / Inclusions checkboxes */
+    .ri-details-grid,
+    .ri-inclusions-grid{
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 6px 12px;
+      margin-bottom: 6px;
+    }
+
+    @media (min-width: 1024px){
+      .ri-details-grid,
+      .ri-inclusions-grid{
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+      }
+    }
+
+    /* Make the textareas span full width and be comfortable height */
+    #edit-room-summary,
+    #edit-room-details,
+    #edit-room-inclusions{
+      width: 100%;
+      resize: vertical;
+      min-height: 60px;
+    }
+
   </style>
 </head>
 <body>
@@ -678,7 +717,21 @@
               aria-label="Room photos"
             ></div>
           </div>
+            <div class="room-modal-info">
+            <p id="roomModalSummary" class="small"></p>
 
+            <div id="roomModalSpecs" class="small muted"></div>
+
+            <div class="room-modal-section" id="roomModalDetailsSection" style="display:none;">
+              <p class="room-modal-subtitle">Room details</p>
+              <ul id="roomModalDetailsList" class="small"></ul>
+            </div>
+
+            <div class="room-modal-section" id="roomModalInclusionsSection" style="display:none;">
+              <p class="room-modal-subtitle">Inclusions</p>
+              <ul id="roomModalInclusionsList" class="small"></ul>
+            </div>
+          </div>
           <div class="room-modal-plans">
             <p class="room-modal-subtitle">Available plans</p>
             <div id="roomModalPlans"></div>
@@ -2191,6 +2244,24 @@
         heroEl.alt = 'Photo failed to load';
       }
     });
+    // ANCHOR: ROOM_INFO_EXPORT
+    async function exportRoomInfoMock(){
+      try{
+        const blob = new Blob([JSON.stringify(roomInfoById, null, 2)], {type: 'application/json'});
+        const fileHandle = await window.showSaveFilePicker({
+          suggestedName: '_room_info_mock.json',
+          types: [{ description: 'JSON', accept: {'application/json': ['.json']} }]
+        });
+        const writable = await fileHandle.createWritable();
+        await writable.write(blob);
+        await writable.close();
+        alert("Saved _room_info_mock.json — upload this to /public/_mock/ in lolaelo-api.");
+      }catch(_){}
+    }
+
+    // Simple UI to export manually (kept hidden)
+    window.exportRoomInfoMock = exportRoomInfoMock;
+
   </script>
 
   <!-- ANCHOR: SCROLLTOP_HTML -->
