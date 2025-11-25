@@ -302,7 +302,7 @@
     /* Modal (Edit Room) */
     .modal{ position:fixed; inset:0; display:none; place-items:center; background:rgba(0,0,0,.45); z-index:50; }
     .modal.open{ display:grid; }
-    .dialog{ width:min(520px, calc(100vw - 24px)); background:var(--panel-2); border:1px solid var(--border); border-radius:12px; box-shadow:0 12px 26px rgba(0,0,0,.45); }
+    .dialog{ width:min(1200px, calc(100vw - 48px)); background:var(--panel-2); border:1px solid var(--border); border-radius:12px; box-shadow:0 12px 26px rgba(0,0,0,.45); }
     .dialog header{ display:flex; align-items:center; justify-content:space-between; padding:12px 14px; border-bottom:1px solid var(--border); background:var(--panel); }
     .dialog header h3{ margin:0; font-size:15px; }
     .dialog .body{ padding:14px; display:grid; gap:12px; }
@@ -391,6 +391,22 @@
   /* Extra vertical spacing between sections */
   .dialog .row{
     margin-bottom: 14px;
+  }
+
+  /* ANCHOR: ROOM_DETAILS_COLUMNS */
+  .ri-details-grid,
+  .ri-inclusions-grid {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 6px 12px;
+    margin-bottom: 6px;
+  }
+
+  @media (min-width: 1024px){
+    .ri-details-grid,
+    .ri-inclusions-grid {
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+    }
   }
 
   </style>
