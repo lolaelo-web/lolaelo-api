@@ -268,7 +268,6 @@ model extranet_Partner {
   createdAt                    DateTime                       @default(now())
   updatedAt                    DateTime
   ExtranetLoginCode            extranet_ExtranetLoginCode[]
-  ExtranetSession_bak_20250915 ExtranetSession_bak_20250915[]
   PmsConnection                extranet_PmsConnection[]
   PropertyDocument             extranet_PropertyDocument[]
   PropertyPhoto                extranet_PropertyPhoto[]
