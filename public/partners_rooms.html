@@ -312,6 +312,27 @@
     .muted{ color:var(--muted); font-size:12px; }
     .warn-msg{ color:var(--warn); font-size:12px; }
 
+    /* ANCHOR: EDIT_ROOM_CLOSE_BTN */
+    .edit-room-header{
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .dialog-close{
+      background: transparent;
+      border: none;
+      color: var(--muted);
+      font-size: 22px;
+      cursor: pointer;
+      padding: 0 6px;
+      line-height: 1;
+    }
+
+    .dialog-close:hover{
+      color: var(--text);
+    }
+
     /* RATE_PLAN_FILTER (moved under Price group) */
     .rate-plan-selector{ display:grid; grid-template-columns: 1fr; gap:4px; align-self:flex-start; min-width:220px; }
     .rate-plan-selector label{ color:var(--muted); font-size:12px; line-height:1; margin-left:2px; }
@@ -612,9 +633,16 @@
   <!-- Edit Room Modal -->
   <div id="edit-modal" class="modal" aria-modal="true" role="dialog" aria-labelledby="edit-title">
     <div class="dialog">
-      <header>
+      <header class="edit-room-header">
         <h3 id="edit-title">Edit room</h3>
-        <span class="muted" id="edit-id"></span>
+
+        <!-- Close button replaces old #id text -->
+        <button type="button"
+                id="edit-room-close"
+                class="dialog-close"
+                aria-label="Close">
+          ×
+        </button>
       </header>
       <div class="body">
         <div class="row">
@@ -771,7 +799,7 @@
       </div>
       <footer>
         <button id="edit-cancel" class="secondary btn btn-secondary-outline" type="button">Cancel</button>
-        <button id="edit-save" class="btn" type="button">OK</button>
+        <button id="edit-save" class="btn" type="button">Save</button>
       </footer>
     </div>
   </div>
@@ -4247,16 +4275,28 @@
     const activeSel = el('edit-active');
     if (activeSel) activeSel.value = String(!!rt.active);
 
-    // Fill room-info fields from local store (frontend-only for now)
+    // Fill room-info fields from backend first, then overlay any local overrides
     let detailKeys = [];
     let inclusionKeys = [];
     try{
-      const info = (roomInfoById && roomInfoById[rt.id]) || {};
       const sumEl  = el('edit-room-summary');
       const detEl  = el('edit-room-details');
       const incEl  = el('edit-room-inclusions');
       const sqmEl  = el('edit-room-size-sqm');
       const sqftEl = el('edit-room-size-sqft');
+
+      const dbInfo = {
+        summary:       rt.summary        ?? '',
+        details:       rt.details_text   ?? '',
+        inclusions:    rt.inclusion_text ?? '',
+        sizeSqm:       rt.size_sqm       ?? '',
+        sizeSqft:      rt.size_sqft      ?? '',
+        detailsKeys:   Array.isArray(rt.details_keys)   ? rt.details_keys   : [],
+        inclusionKeys: Array.isArray(rt.inclusion_keys) ? rt.inclusion_keys : [],
+      };
+
+      const localInfo = (roomInfoById && roomInfoById[rt.id]) || {};
+      const info = { ...dbInfo, ...localInfo };
 
       if (sumEl)  sumEl.value  = info.summary    ?? '';
       if (detEl)  detEl.value  = info.details    ?? '';
@@ -4370,6 +4410,37 @@
         saveRoomInfoMap(roomInfoById);
       }
 
+      // Map room-info fields into API payload for RoomType update
+      if (infoSummary) {
+        payload.summary = infoSummary;
+      }
+
+      if (infoDetails) {
+        payload.details_text = infoDetails;
+      }
+
+      if (infoInclusions) {
+        payload.inclusion_text = infoInclusions;
+      }
+
+      if (infoDetailKeys && infoDetailKeys.length) {
+        payload.details_keys = infoDetailKeys.slice();
+      }
+
+      if (infoInclusionKeys && infoInclusionKeys.length) {
+        payload.inclusion_keys = infoInclusionKeys.slice();
+      }
+
+      if (infoSizeSqm) {
+        const v = Number(String(infoSizeSqm).replace(/,/g, ""));
+        if (Number.isFinite(v) && v > 0) payload.size_sqm = v;
+      }
+
+      if (infoSizeSqft) {
+        const v = Number(String(infoSizeSqft).replace(/,/g, ""));
+        if (Number.isFinite(v) && v > 0) payload.size_sqft = v;
+      }
+
       if (nameVal && nameVal !== rt.name) payload.name = nameVal;
 
       if (baseVal !== "") {
@@ -4411,6 +4482,13 @@
     try { m.removeEventListener('keydown', onKey); } catch(_){}
     document.body.style.overflow = '';
   });
+  /* ANCHOR: EDIT_ROOM_CLOSE_WIRE */
+  const closeBtn = document.getElementById('edit-close-btn');
+  if (closeBtn) {
+    closeBtn.addEventListener('click', () => {
+      el('edit-cancel').click();
+    });
+  }
     el('edit-modal').addEventListener('click', (e)=>{
     if (e.target.id==='edit-modal'){
       const m = el('edit-modal');

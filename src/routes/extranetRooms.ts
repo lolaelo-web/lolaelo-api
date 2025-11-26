@@ -49,7 +49,11 @@ r.get("/", async (req, res) => {
 
     const { rows } = await pool.query(
       `
-      SELECT "id","name","code","description","occupancy","maxGuests","basePrice","active"
+      SELECT
+        "id","name","code","description","occupancy","maxGuests","basePrice","active",
+        "summary","size_sqm","size_sqft",
+        "details_keys","details_text",
+        "inclusion_keys","inclusion_text"
       FROM ${T.rooms}
       WHERE "partnerId" = $1
       ORDER BY "id" ASC
@@ -162,7 +166,13 @@ r.put("/:id", async (req, res) => {
     }
 
     // Accept any subset: name, description, basePrice, maxGuests/occupancy, active
-    const { name, description, basePrice, maxGuests, occupancy, active } = req.body ?? {};
+    const { 
+      name, description, basePrice, maxGuests, occupancy, active,
+      summary, size_sqm, size_sqft,
+      details_keys, details_text,
+      inclusion_keys, inclusion_text
+    } = req.body ?? {};
+
     const sets: string[] = [];
     const vals: any[] = [id];
     let i = 2;
@@ -170,9 +180,50 @@ r.put("/:id", async (req, res) => {
     if (typeof name === "string" && name.trim()) {
       sets.push(`"name"=$${i++}`); vals.push(name.trim());
     }
-    if (typeof description === "string") {
-      sets.push(`"description"=$${i++}`); vals.push(description);
+    
+    // NEW FIELDS: summary
+    if (typeof summary === "string") {
+      sets.push(`"summary"=$${i++}`);
+      vals.push(summary);
     }
+
+    // NEW FIELDS: size_sqm / size_sqft
+    if (size_sqm !== undefined && size_sqm !== null && String(size_sqm) !== "") {
+      const sqm = Number(size_sqm);
+      if (!Number.isFinite(sqm) || sqm < 0) {
+        return res.status(400).json({ error: "bad size_sqm" });
+      }
+      sets.push(`"size_sqm"=$${i++}`); vals.push(sqm);
+    }
+
+    if (size_sqft !== undefined && size_sqft !== null && String(size_sqft) !== "") {
+      const sqft = Number(size_sqft);
+      if (!Number.isFinite(sqft) || sqft < 0) {
+        return res.status(400).json({ error: "bad size_sqft" });
+      }
+      sets.push(`"size_sqft"=$${i++}`); vals.push(sqft);
+    }
+
+    // NEW FIELDS: details_keys / details_text
+    if (Array.isArray(details_keys)) {
+      sets.push(`"details_keys"=$${i++}`);
+      vals.push(details_keys);
+    }
+    if (typeof details_text === "string") {
+      sets.push(`"details_text"=$${i++}`);
+      vals.push(details_text);
+    }
+
+    // NEW FIELDS: inclusion_keys / inclusion_text
+    if (Array.isArray(inclusion_keys)) {
+      sets.push(`"inclusion_keys"=$${i++}`);
+      vals.push(inclusion_keys);
+    }
+    if (typeof inclusion_text === "string") {
+      sets.push(`"inclusion_text"=$${i++}`);
+      vals.push(inclusion_text);
+    }
+
     if (basePrice !== undefined && basePrice !== null && String(basePrice) !== "") {
       const bp = Number(String(basePrice).replace(/[^0-9.]/g, ""));
       if (!Number.isFinite(bp) || bp < 0) {

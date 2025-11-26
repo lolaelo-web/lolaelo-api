@@ -475,90 +475,93 @@ router.get("/search", async (req: Request, res: Response) => {
       if (!Number.isFinite(pid)) continue;
 
       try {
-          // DIRECT SQL (bypass adapter) to fetch RoomsDailyRow[] for search cards
-          let rooms: RoomsDailyRow[] = [];
-          try {
-            const cs = process.env.DATABASE_URL || "";
-            if (cs) {
-              const wantsSSL = /\bsslmode=require\b/i.test(cs) || /render\.com/i.test(cs);
-              const pg = new PgClient({
-                connectionString: cs,
-                ssl: wantsSSL ? { rejectUnauthorized: false } : undefined,
-              });
-              await pg.connect();
+        // DIRECT SQL (bypass adapter) to fetch RoomsDailyRow[] for search cards
+        let rooms: RoomsDailyRow[] = [];
 
-              const sql = `
-                WITH dd AS (
-                  SELECT generate_series($2::date, ($3::date - INTERVAL '1 day'), INTERVAL '1 day')::date AS d
-                ),
-                cand_rt AS (
-                  SELECT DISTINCT rt.id
-                  FROM extranet."RoomType" rt
-                  WHERE COALESCE(rt.active, TRUE) = TRUE
-                    AND rt.id IN (
-                      SELECT DISTINCT ri."roomTypeId"
-                      FROM extranet."RoomInventory" ri
-                      WHERE ri."partnerId" = $1
-                        AND COALESCE(ri."isClosed", FALSE) = FALSE
-                        AND COALESCE(ri."roomsOpen", 0) > 0
-                    )
-                    AND rt.id IN (
-                      SELECT DISTINCT rp."roomTypeId"
-                      FROM extranet."RoomPrice" rp
-                      WHERE rp."partnerId" = $1
-                        AND ($4::int IS NULL OR rp."ratePlanId" = $4::int)
-                    )
+        const cs = process.env.DATABASE_URL || "";
+        if (cs) {
+          const wantsSSL = /\bsslmode=require\b/i.test(cs) || /render\.com/i.test(cs);
+          const pg = new PgClient({
+            connectionString: cs,
+            ssl: wantsSSL ? { rejectUnauthorized: false } : undefined,
+          });
+          await pg.connect();
+
+          const sql = `
+            WITH dd AS (
+              SELECT generate_series($2::date, ($3::date - INTERVAL '1 day'), INTERVAL '1 day')::date AS d
+            ),
+            cand_rt AS (
+              SELECT DISTINCT rt.id
+              FROM extranet."RoomType" rt
+              WHERE COALESCE(rt.active, TRUE) = TRUE
+                AND rt.id IN (
+                  SELECT DISTINCT ri."roomTypeId"
+                  FROM extranet."RoomInventory" ri
+                  WHERE ri."partnerId" = $1
+                    AND COALESCE(ri."isClosed", FALSE) = FALSE
+                    AND COALESCE(ri."roomsOpen", 0) > 0
                 )
-                SELECT
-                  rt.id                       AS room_type_id,
-                  rt.name                     AS room_name,
-                  dd.d                        AS date,
-                  rp.price                    AS price,
-                  COALESCE(ri."roomsOpen",0)  AS inventory,
-                  COALESCE(ri."isClosed",false) AS is_closed
-                FROM dd
-                JOIN cand_rt crt ON 1=1
-                JOIN extranet."RoomType" rt ON rt.id = crt.id
-                LEFT JOIN extranet."RoomPrice" rp
-                  ON rp."partnerId" = $1 AND rp."roomTypeId" = rt.id AND rp.date = dd.d
-                  AND ($4::int IS NULL OR rp."ratePlanId" = $4::int)
-                LEFT JOIN extranet."RoomInventory" ri
-                  ON ri."partnerId" = $1 AND ri."roomTypeId" = rt.id AND ri.date = dd.d
-                ORDER BY rt.id, dd.d;
-              `;
-              const { rows } = await pg.query(sql, [pid, params.start, params.end, params.ratePlanId ?? null]);
-              await pg.end();
+                AND rt.id IN (
+                  SELECT DISTINCT rp."roomTypeId"
+                  FROM extranet."RoomPrice" rp
+                  WHERE rp."partnerId" = $1
+                    AND ($4::int IS NULL OR rp."ratePlanId" = $4::int)
+                )
+            )
+            SELECT
+              rt.id                         AS room_type_id,
+              rt.name                       AS room_name,
+              dd.d                          AS date,
+              rp.price                      AS price,
+              rp."ratePlanId"               AS rate_plan_id,
+              COALESCE(ri."roomsOpen", 0)   AS inventory,
+              COALESCE(ri."isClosed", FALSE) AS is_closed
+            FROM dd
+            JOIN cand_rt crt ON 1=1
+            JOIN extranet."RoomType" rt ON rt.id = crt.id
+            LEFT JOIN extranet."RoomPrice" rp
+              ON rp."partnerId" = $1 AND rp."roomTypeId" = rt.id AND rp.date = dd.d
+              AND ($4::int IS NULL OR rp."ratePlanId" = $4::int)
+            LEFT JOIN extranet."RoomInventory" ri
+              ON ri."partnerId" = $1 AND ri."roomTypeId" = rt.id AND ri.date = dd.d
+            ORDER BY rt.id, dd.d;
+          `;
+          const { rows } = await pg.query(sql, [pid, params.start, params.end, params.ratePlanId ?? null]);
+          await pg.end();
 
-              type Daily = RoomsDailyRow["daily"][number];
-              const byRoom = new Map<number, { name: string; daily: Daily[] }>();
-              for (const r of rows) {
-                const rid = Number(r.room_type_id);
-                // price coercion
-                let priceVal: number | null = null;
-                if (r.price !== null && r.price !== undefined) {
-                  const n = Number(r.price);
-                  priceVal = Number.isNaN(n) ? null : n;
-                }
-                const rec: Daily = {
-                  date: r.date ? new Date(r.date).toISOString().slice(0, 10) : undefined,
-                  price: priceVal,
-                  inventory: Number(r.inventory ?? 0),
-                  closed: !!r.is_closed,
-                  currency: undefined, // will be filled later
-                } as any;
-                const cur = byRoom.get(rid) ?? { name: String(r.room_name || ""), daily: [] };
-                cur.daily.push(rec);
-                byRoom.set(rid, cur);
-              }
-              rooms = Array.from(byRoom.entries()).map(([roomTypeId, v]) => ({
-                roomTypeId,
-                name: v.name,
-                daily: v.daily,
-              })) as any;
+          type Daily = RoomsDailyRow["daily"][number];
+          const byRoom = new Map<number, { name: string; daily: Daily[] }>();
+
+          for (const r of rows) {
+            const rid = Number(r.room_type_id);
+
+            // price coercion
+            let priceVal: number | null = null;
+            if (r.price !== null && r.price !== undefined) {
+              const n = Number(r.price);
+              priceVal = Number.isNaN(n) ? null : n;
             }
-          } catch (e) {
-            req.app?.get("logger")?.warn?.({ e, pid }, "rooms-db-direct(search) failed");
+
+            const rec: Daily = {
+              date: r.date ? new Date(r.date).toISOString().slice(0, 10) : undefined,
+              price: priceVal,
+              inventory: Number(r.inventory ?? 0),
+              closed: !!r.is_closed,
+              currency: undefined, // will be filled later
+            } as any;
+
+            const cur = byRoom.get(rid) ?? { name: String(r.room_name || ""), daily: [] };
+            cur.daily.push(rec);
+            byRoom.set(rid, cur);
           }
+
+          rooms = Array.from(byRoom.entries()).map(([roomTypeId, v]) => ({
+            roomTypeId,
+            name: v.name,
+            daily: v.daily,
+          })) as any;
+        }
 
         if (rooms.length > 0) {
           if ((p as any).detail && Array.isArray((p as any).detail.rooms)) {
@@ -570,40 +573,37 @@ router.get("/search", async (req: Request, res: Response) => {
           }
           _roomsApplied++;
 
-          try {
-            ((p as any).detail as any)._roomsSource = "db";
-          } catch {}
+          // mark DB source
+          (p as any).detail._roomsSource = "db";
 
-          try {
-            type Daily = RoomsDailyRow["daily"][number];
-            const allDaily: Daily[] = rooms.flatMap((r: RoomsDailyRow) => (r.daily as Daily[]) || []);
-            const availNights = allDaily.filter((d: Daily) => (d.inventory ?? 0) > 0).length;
-            const priced: Daily[] = allDaily.filter((d: Daily) => typeof d.price === "number");
-            const minPrice = priced.length ? Math.min(...priced.map((d: Daily) => (d.price as number))) : null;
-            const curCode = (priced[0]?.currency as string) || "USD";
+          // roll up availability and min price
+          type Daily = RoomsDailyRow["daily"][number];
+          const allDaily: Daily[] = rooms.flatMap((r: RoomsDailyRow) => (r.daily as Daily[]) || []);
+          const availNights = allDaily.filter((d: Daily) => (d.inventory ?? 0) > 0).length;
+          const priced: Daily[] = allDaily.filter((d: Daily) => typeof d.price === "number");
+          const minPrice = priced.length ? Math.min(...priced.map((d: Daily) => (d.price as number))) : null;
+          const curCode = (priced[0]?.currency as string) || "USD";
 
-            (p as any).availableNights = availNights;
-            (p as any).nightsTotal = allDaily.length;
+          (p as any).availableNights = availNights;
+          (p as any).nightsTotal = allDaily.length;
 
-            if (minPrice != null && Number.isFinite(minPrice)) {
-              (p as any).fromPrice = minPrice;
-              try {
-                (p as any).fromPriceStr = new Intl.NumberFormat("en-US", {
-                  style: "currency",
-                  currency: curCode,
-                }).format(Number(minPrice));
-              } catch {
-                (p as any).fromPriceStr = `$${(minPrice as number).toFixed(2)}`;
-              }
+          if (minPrice != null && Number.isFinite(minPrice)) {
+            (p as any).fromPrice = minPrice;
+            try {
+              (p as any).fromPriceStr = new Intl.NumberFormat("en-US", {
+                style: "currency",
+                currency: curCode,
+              }).format(Number(minPrice));
+            } catch (e) {
+              (p as any).fromPriceStr = `$${(minPrice as number).toFixed(2)}`;
             }
-          } catch (e) {
-            req.app?.get("logger")?.warn?.({ e, propertyId: pid }, "rooms-db-rollup failed");
           }
         }
       } catch (err) {
         req.app?.get("logger")?.warn?.({ err, propertyId: pid }, "rooms-db-wire failed");
       }
     }
+
     // ANCHOR: ROOMS_DB_WIRE_END
     // --- Final image backfill: only if no partner photos exist -------------------
     for (const p of props) {

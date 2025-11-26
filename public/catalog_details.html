@@ -2099,7 +2099,58 @@
       const thumbsWrap = document.getElementById("roomModalThumbs");
       const plansWrap  = document.getElementById("roomModalPlans");
 
+      const modalSummary        = document.getElementById("roomModalSummary");
+      const modalSpecs          = document.getElementById("roomModalSpecs");
+      const detailsSection      = document.getElementById("roomModalDetailsSection");
+      const detailsList         = document.getElementById("roomModalDetailsList");
+      const inclusionsSection   = document.getElementById("roomModalInclusionsSection");
+      const inclusionsList      = document.getElementById("roomModalInclusionsList");
+
       if (!backdrop) return;
+
+      const DETAIL_LABELS = {
+        city_view:        "City view",
+        sea_view:         "Sea / ocean view",
+        garden_view:      "Garden view",
+        pool_view:        "Pool view",
+        high_floor:       "High floor",
+        ground_floor:     "Ground floor",
+        connecting:       "Connecting rooms available",
+        accessible:       "Accessible room",
+        kitchenette:      "Kitchenette",
+        separate_living:  "Separate living area",
+      };
+
+      const INCLUSION_LABELS = {
+        breakfast:      "Breakfast included",
+        half_board:     "Half board",
+        full_board:     "Full board",
+        all_inclusive:  "All inclusive",
+        free_parking:   "Free parking",
+        airport_shuttle:"Airport shuttle",
+        late_checkout:  "Late checkout (subject to availability)",
+        early_checkin:  "Early check-in (subject to availability)",
+        pool_access:    "Pool access",
+        spa_access:     "Spa / wellness access",
+      };
+
+      function fillList(ul, labels, extraText) {
+        if (!ul) return;
+        while (ul.firstChild) ul.removeChild(ul.firstChild);
+
+        (labels || []).forEach(lbl => {
+          if (!lbl) return;
+          const li = document.createElement("li");
+          li.textContent = lbl;
+          ul.appendChild(li);
+        });
+
+        if (extraText && String(extraText).trim()) {
+          const li = document.createElement("li");
+          li.textContent = String(extraText).trim();
+          ul.appendChild(li);
+        }
+      }
 
       function normalizeRoomImages(room){
         let imgs = [];
@@ -2134,13 +2185,52 @@
         // Title
         modalTitle.textContent = room.name || "Room";
 
-        // Meta text (size)
-        const m2  = room.areaM2 ?? room.areaSqm ?? null;
-        const ft2 = m2 ? Math.round(m2 * 10.7639) : (room.areaFt2 ?? null);
-        const sizeTxt = m2
-          ? `${m2} m² / ${ft2} ft²`
-          : (ft2 ? `${ft2} ft²` : "");
-        modalMeta.textContent = sizeTxt;
+        // Size and specs (use new fields first, fall back to old ones)
+        const sizeSqm  = room.size_sqm ?? room.areaM2 ?? room.areaSqm ?? null;
+        const sizeSqft = room.size_sqft ?? (sizeSqm ? Math.round(sizeSqm * 10.7639) : (room.areaFt2 ?? null));
+        const sizeTxt = sizeSqm
+          ? `${sizeSqm} m² / ${sizeSqft} ft²`
+          : (sizeSqft ? `${sizeSqft} ft²` : "");
+
+        const maxGuests = room.maxGuests ?? room.occupancy ?? null;
+        const specsParts = [];
+        if (maxGuests) specsParts.push(`Sleeps up to ${maxGuests} guests`);
+        if (sizeTxt)   specsParts.push(sizeTxt);
+
+        if (modalMeta) {
+          // Keep a simple, always-present line
+          modalMeta.textContent = sizeTxt || "";
+        }
+        if (modalSpecs) {
+          const txt = specsParts.join(" • ");
+          modalSpecs.textContent = txt;
+          modalSpecs.style.display = txt ? "" : "none";
+        }
+
+        // Summary
+        if (modalSummary) {
+          const s = (room.summary || "").trim();
+          modalSummary.textContent = s;
+          modalSummary.style.display = s ? "" : "none";
+        }
+
+        // Details and inclusions from keys + free text
+        const detailKeys = Array.isArray(room.details_keys) ? room.details_keys : [];
+        const inclusionKeys = Array.isArray(room.inclusion_keys) ? room.inclusion_keys : [];
+        const detailLabels = detailKeys.map(k => DETAIL_LABELS[k]).filter(Boolean);
+        const inclusionLabels = inclusionKeys.map(k => INCLUSION_LABELS[k]).filter(Boolean);
+
+        if (detailsSection) {
+          const hasAny = detailLabels.length || (room.details_text && String(room.details_text).trim());
+          detailsSection.style.display = hasAny ? "" : "none";
+          if (hasAny) fillList(detailsList, detailLabels, room.details_text);
+        }
+
+        if (inclusionsSection) {
+          const hasAny = inclusionLabels.length || (room.inclusion_text && String(room.inclusion_text).trim());
+          inclusionsSection.style.display = hasAny ? "" : "none";
+          if (hasAny) fillList(inclusionsList, inclusionLabels, room.inclusion_text);
+        }
 
         // Images
         const imgs = normalizeRoomImages(room);
@@ -2161,17 +2251,15 @@
           });
         });
 
-        // Rate plans (reuse existing helper)
+        // Rate plans (existing logic below stays as-is)
         try {
           const rid = room.roomTypeId ?? room.typeId ?? room.id ?? room.roomId ?? room.code;
-          if (typeof planRowsHTML === "function" && rid != null) {
-            plansWrap.innerHTML = planRowsHTML(rid);
-          } else {
+          if (plansWrap && window.buildRoomPlans) {
             plansWrap.innerHTML = "";
+            const node = window.buildRoomPlans(room, rid);
+            if (node) plansWrap.appendChild(node);
           }
-        } catch {
-          plansWrap.innerHTML = "";
-        }
+        } catch(_){}
 
         backdrop.classList.add("is-open");
         backdrop.setAttribute("aria-hidden","false");

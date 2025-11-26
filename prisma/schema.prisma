@@ -154,6 +154,15 @@ model RoomType {
   description String?
   maxGuests   Int             @default(2)
   occupancy   Int             @default(2)
+
+  summary        String?         @db.Text
+  size_sqm       Int?
+  size_sqft      Int?
+  details_keys   String[]
+  details_text   String?         @db.Text
+  inclusion_keys String[]
+  inclusion_text String?         @db.Text
+
   basePrice   Decimal         @db.Decimal(10, 2)
   createdAt   DateTime        @default(now())
   updatedAt   DateTime        @updatedAt
@@ -249,20 +258,6 @@ model extranet_ExtranetLoginCode {
   @@index([expiresAt])
   @@index([partnerId])
   @@map("ExtranetLoginCode")
-  @@schema("extranet")
-}
-
-model ExtranetSession_bak_20250915 {
-  id        Int              @id(map: "ExtranetSession_pkey") @default(autoincrement())
-  partnerId Int
-  token     String           @unique(map: "ExtranetSession_token_key")
-  expiresAt DateTime
-  createdAt DateTime         @default(now())
-  revokedAt DateTime?
-  Partner   extranet_Partner @relation(fields: [partnerId], references: [id], onDelete: Cascade, map: "ExtranetSession_partnerId_fkey")
-
-  @@index([expiresAt], map: "ExtranetSession_expiresAt_idx")
-  @@index([partnerId], map: "ExtranetSession_partnerId_idx")
   @@schema("extranet")
 }
 
