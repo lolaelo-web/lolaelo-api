@@ -4263,7 +4263,7 @@
   /* ===== Rooms list & edit modal ===== */
   function openEditModal(rt){
     const m = el('edit-modal');
-    el('edit-id').textContent = `#${rt.id}`;
+    // No edit-id element in markup anymore; header just says "Edit room"
     el('edit-name').value = rt.name ?? '';
 
     const basePlain = String(rt.basePrice ?? '').replace(/[^0-9.]/g,'');
