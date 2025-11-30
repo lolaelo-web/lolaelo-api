@@ -2105,6 +2105,20 @@
       const inclusionsSection   = document.getElementById("roomModalInclusionsSection");
       const inclusionsList      = document.getElementById("roomModalInclusionsList");
 
+      // Share room-info metadata with partners extranet via localStorage
+      const ROOM_INFO_LS_KEY = "extranet_roomInfo_v1";
+
+      function loadRoomInfoMap(){
+        try{
+          const raw = localStorage.getItem(ROOM_INFO_LS_KEY);
+          if (!raw) return {};
+          const obj = JSON.parse(raw);
+          return (obj && typeof obj === "object") ? obj : {};
+        }catch(_){
+          return {};
+        }
+      }
+
       if (!backdrop) return;
 
       const DETAIL_LABELS = {
@@ -2180,6 +2194,51 @@
 
       function openRoomModal(room){
         if (!room) return;
+
+        // Overlay metadata from localStorage (partners_rooms edit modal)
+        try{
+          const rid = String(
+            room.roomTypeId ?? room.typeId ?? room.id ?? room.roomId ?? room.code ?? ""
+          );
+          if (rid) {
+            const infoMap  = loadRoomInfoMap();
+            const local    = infoMap && infoMap[rid];
+            if (local && typeof local === "object") {
+              const overrides = {};
+
+              // Text fields
+              if (local.summary && String(local.summary).trim()) {
+                overrides.summary = String(local.summary).trim();
+              }
+              if (local.details && String(local.details).trim()) {
+                overrides.details_text = String(local.details).trim();
+              }
+              if (local.inclusions && String(local.inclusions).trim()) {
+                overrides.inclusion_text = String(local.inclusions).trim();
+              }
+
+              // Size fields
+              if (local.sizeSqm) {
+                const v = Number(local.sizeSqm);
+                overrides.size_sqm = Number.isFinite(v) ? v : local.sizeSqm;
+              }
+              if (local.sizeSqft) {
+                const v = Number(local.sizeSqft);
+                overrides.size_sqft = Number.isFinite(v) ? v : local.sizeSqft;
+              }
+
+              // Checkbox selections
+              if (Array.isArray(local.detailsKeys) && local.detailsKeys.length) {
+                overrides.details_keys = local.detailsKeys;
+              }
+              if (Array.isArray(local.inclusionKeys) && local.inclusionKeys.length) {
+                overrides.inclusion_keys = local.inclusionKeys;
+              }
+
+              room = Object.assign({}, room, overrides);
+            }
+          }
+        }catch(_){}
 
         // Title
         modalTitle.textContent = room.name || "Room";
