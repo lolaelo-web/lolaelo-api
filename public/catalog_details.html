@@ -1304,12 +1304,12 @@
 
             // 3) Apply rate plan rules on top of the base STANDARD price
             if (pid === 1) {
-              // Non-refundable: -10 percent
-              return Math.round(baseStd * 0.9 * 100) / 100;
-            }
-            if (pid === 2) {
               // Standard: base
               return baseStd;
+            }
+            if (pid === 2) {
+              // Non-refundable: -10 percent
+              return Math.round(baseStd * 0.9 * 100) / 100;
             }
             if (pid === 3) {
               // With Breakfast: +10
@@ -1365,42 +1365,41 @@
         const plans = derivePlansForDisplay(); // [{id,name}, …]
 
         function planRowsHTML(roomId) {
-          // Fixed 3 core plans, in the order you want to show them
-          const basePlans = [
-            { id: 2, label: 'Standard',       desc: 'Flexible standard rate with free cancellation.' },
-            { id: 1, label: 'Non-refundable', desc: 'Lower price, no refunds or changes.' },
-            { id: 3, label: 'With Breakfast', desc: 'This rate includes breakfast for 2.' }
-          ];
+        // Fixed 3 core plans, in the order you want to show them
+        const basePlans = [
+          { id: 1, label: 'Standard',       desc: 'Flexible standard rate with free cancellation.' },
+          { id: 2, label: 'Non-refundable', desc: 'Lower price, no refunds or changes.' },
+          { id: 3, label: 'With Breakfast', desc: 'This rate includes breakfast for 2.' }
+        ];
 
-          const plansQS = '';
+        const plansQS = '';
 
-          // Try to get the Standard plan price from the payload
-          const stdFromBackend = getPlanPriceForRoom(roomId, 2);
-          const baseStd = stdFromBackend != null && Number.isFinite(Number(stdFromBackend))
-            ? Number(stdFromBackend)
-            : null;
+        // Try to get the Standard plan price from the payload
+        const stdFromBackend = getPlanPriceForRoom(roomId, 1);
+        const baseStd = stdFromBackend != null && Number.isFinite(Number(stdFromBackend))
+          ? Number(stdFromBackend)
+          : null;
 
-          const rows = basePlans.map(p => {
-            // First choice: use backend per-plan price if present
-            let rawPrice = getPlanPriceForRoom(roomId, p.id);
-            let numPrice = rawPrice != null ? Number(rawPrice) : null;
+        const rows = basePlans.map(p => {
+          // First choice: use backend per-plan price if present
+          let rawPrice = getPlanPriceForRoom(roomId, p.id);
+          let numPrice = rawPrice != null ? Number(rawPrice) : null;
 
-            // Fallback: derive per-plan price from Standard using your rules
-            if (numPrice == null || !Number.isFinite(numPrice)) {
-              if (baseStd != null) {
-                if (p.id === 1) {
-                  // Non-refundable: -10 percent
-                  numPrice = Math.round(baseStd * 0.9 * 100) / 100;
-                } else if (p.id === 2) {
-                  // Standard: base price
-                  numPrice = baseStd;
-                } else if (p.id === 3) {
-                  // With Breakfast: +10
-                  numPrice = baseStd + 10;
-                }
+          // Fallback: derive per-plan price from Standard using your rules
+          if (numPrice == null || !Number.isFinite(numPrice)) {
+            if (baseStd != null) {
+              if (p.id === 1) {
+                // Standard: base price
+                numPrice = baseStd;
+              } else if (p.id === 2) {
+                // Non-refundable: -10 percent
+                numPrice = Math.round(baseStd * 0.9 * 100) / 100;
+              } else if (p.id === 3) {
+                // With Breakfast: +10
+                numPrice = baseStd + 10;
               }
             }
-
+          }
             const hasPrice = numPrice != null && Number.isFinite(numPrice);
             const priceLabel = hasPrice ? money(numPrice) : null;
             const priceHtml = hasPrice
