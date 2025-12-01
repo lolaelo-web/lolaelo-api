@@ -153,6 +153,16 @@
       font-size: clamp(18px, 2.6vw, 22px);
       font-weight: 600;
       text-align: right;
+      display: flex;
+      flex-direction: column;
+      align-items: flex-end;
+      gap: 4px;
+    }
+
+    /* Date range under hotel name */
+    .stay-range{
+      font-size: 12px;
+      color: var(--muted);
     }
 
     /* ANCHOR: DETAILS_LAYOUT_COLS */
@@ -361,8 +371,9 @@
       background: #fafafa;
       display: flex;
       flex-direction: column;
-      align-items: center;     /* IMPORTANT: centers all children */
-      text-align: center;      /* centers all text */
+      align-items: center;     /* center content */
+      justify-content: space-between; /* << THE FIX: aligns all Select buttons */
+      text-align: center;
       gap: 6px;
     }
 
@@ -808,10 +819,13 @@
             style="display:block;height:54px;width:auto;"
           >
         </a>
-        <h1 class="title">
-          <span id="prop-name">Loading…</span>
-          <span id="src-badge" class="chip" style="display:none; margin-left:8px;">db</span>
-        </h1>
+          <h1 class="title">
+            <span>
+              <span id="prop-name">Loading…</span>
+              <span id="src-badge" class="chip" style="display:none; margin-left:8px;">db</span>
+            </span>
+            <div id="stay-range" class="stay-range"></div>
+          </h1>
       </div>
       <!-- /ANCHOR: DETAILS_TOPBAR -->
     </header>
@@ -1128,7 +1142,18 @@
 
     function money(v){ const n=Number(v); return Number.isFinite(n) ? `$${n.toFixed(2)}` : '—'; }
 
-    
+    function formatYMD(ymd){
+      if (!ymd || typeof ymd !== "string") return ymd;
+      const parts = ymd.split("-");
+      if (parts.length !== 3) return ymd;
+      const [y, m, d] = parts.map(Number);
+      if (!y || !m || !d) return ymd;
+      const months = ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
+      const label = months[m - 1];
+      if (!label) return ymd;
+      return `${label} ${d}, ${y}`;
+    }
+
     async function load(){
       // ANCHOR: DETAILS_FETCH_WITH_PLAN
       console.log("[details] fetching catalog details with:", {
@@ -1194,7 +1219,13 @@
         const srcBadgeEl = document.getElementById('src-badge');
         if (srcBadgeEl) srcBadgeEl.style.display = (j?._roomsSource === 'db') ? 'inline-block' : 'none';
       }
-      if (rangeEl) rangeEl.textContent = `${start} — ${end}`;
+      if (rangeEl){
+        const fs = formatYMD(start);
+        const fe = formatYMD(end);
+        rangeEl.textContent = (start === end)
+          ? fs
+          : `${fs} to ${fe}`;
+      }
 
       // Compute fromPrice from daily rows (first room) if available
       const daily0  = (j?.rooms?.[0]?.daily || []);
@@ -1584,7 +1615,7 @@
           return rows;
         }
      
-        listEl.innerHTML = openRooms.map(({ room, minPrice }) => {
+        openRooms.map(({ room, minPrice }) => {
           const rid = room.roomTypeId ?? room.typeId ?? room.id ?? room.roomId ?? room.code ?? '';
           const name = String(room.name ?? 'Room').trim() || 'Room';
           // Prefer room-level images; fall back to property-level/detail images; then placeholder
@@ -1612,12 +1643,45 @@
           if (!thumb) {
             thumb = ph(name);
           }
+
+          // Transparent nightly pricing for this room within the search window
+          const daily = Array.isArray(room.daily) ? room.daily : [];
+          const pricedNights = daily
+            .filter(d => !d?.closed && Number(d?.inventory ?? d?.open ?? 0) > 0)
+            .map(d => {
+              if (!d) return NaN;
+              if ("price" in d) return Number(d.price);
+              if ("amount" in d) return Number(d.amount);
+              if ("basePrice" in d) return Number(d.basePrice);
+              return NaN;
+            })
+            .filter(Number.isFinite);
+
+          let avg = null, min = null, max = null;
+          if (pricedNights.length) {
+            const sum = pricedNights.reduce((s, v) => s + v, 0);
+            avg = sum / pricedNights.length;
+            min = Math.min(...pricedNights);
+            max = Math.max(...pricedNights);
+          }
+
           const m2 = room.areaM2 ?? room.areaSqm ?? null;
           const ft2 = room.areaFt2 ?? (m2 ? Math.round(m2 * 10.7639) : null);
           const m2txt = m2 ? `${m2} m²` : '';
           const ft2txt = ft2 ? `${ft2} ft²` : '';
           const area = (m2txt || ft2txt) ? ` · ${[m2txt, ft2txt].filter(Boolean).join(' / ')}` : '';
-          const price = (minPrice != null && isFinite(minPrice)) ? `$${minPrice.toFixed(2)}` : '—';
+
+          let priceMeta;
+          if (avg != null && isFinite(avg)) {
+            const avgStr = `$${avg.toFixed(2)}`;
+            if (min != null && max != null && isFinite(min) && isFinite(max) && min !== max) {
+              priceMeta = `Avg ${avgStr} per night (range $${min.toFixed(2)}–$${max.toFixed(2)})`;
+            } else {
+              priceMeta = `Avg ${avgStr} per night`;
+            }
+          } else {
+            priceMeta = 'Price unavailable for these dates';
+          }
 
           return `
             <div class="roomcat" data-room-id="${rid}">
@@ -1628,11 +1692,11 @@
             <img src="${thumb}" alt="${name} thumbnail" loading="lazy" decoding="async">
             <div>
               <h3>${name}</h3>
-              <div class="meta">From ${price}${area}</div>
+              <div class="meta">${priceMeta}${area}</div>
             </div>
 
             <a class="btn-select"
-              href="/room_details.html?propertyId=${encodeURIComponent(propertyId)}&roomId=${encodeURIComponent(rid)}&start=${encodeURIComponent(start)}&end=${encodeURIComponent(end)}&ratePlanId=${
+              href="/room_details.html?propertyId=${encodeURIComponent(String(propertyId))}&start=${encodeURIComponent(start)}&end=${encodeURIComponent(end)}&ratePlanId=${
                 encodeURIComponent((() => { try {
                   const u = new URL(location.href);
                   const p = u.searchParams.get('ratePlanId') || u.searchParams.get('plan');
