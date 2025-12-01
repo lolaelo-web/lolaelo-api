@@ -220,6 +220,39 @@
       box-shadow: 0 2px 4px rgba(15,23,42,0.10);
     }
 
+    .roomcat-plan-btn{
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      margin-top: 6px;
+      padding: 7px 18px;
+      border-radius: 999px;
+      border: 1px solid #14b8a6; /* teal outline */
+      background:
+        linear-gradient(135deg,
+          rgba(34,211,238,0.06),
+          rgba(16,185,129,0.12));
+      color: #0f766e;
+      font-size: 13px;
+      font-weight: 600;
+      cursor: pointer;
+      text-decoration: none;
+      box-shadow:
+        0 0 0 1px rgba(20,184,166,0.20),
+        0 4px 12px rgba(15,23,42,0.08);
+    }
+
+    .roomcat-plan-btn:hover{
+      box-shadow:
+        0 0 0 1px rgba(20,184,166,0.35),
+        0 6px 16px rgba(15,23,42,0.12);
+      transform: translateY(-0.5px);
+    }
+
+    .roomcat-plan-btn:active{
+      transform: translateY(1px);
+    }
+
     @media (max-width: 840px){
       .roomcat{ grid-template-columns: 30px 72px 1fr; } /* + | thumb | text */
       .roomcat .btn-select{ grid-column: 1 / -1; justify-self: start; }
@@ -394,12 +427,12 @@
       margin-top: 6px;
       padding: 7px 18px;
       border-radius: 999px;
-      border: 1px solid #14b8a6; /* light aqua / teal */
+      border: 1px solid #14b8a6;
       background:
         linear-gradient(135deg,
-          rgba(34,211,238,0.08),
-          rgba(16,185,129,0.18));
-      color: #0f766e;            /* slightly darker teal text */
+          rgba(34,211,238,0.03),
+          rgba(16,185,129,0.07));
+      color: #0f766e;
       font-size: 13px;
       font-weight: 600;
       cursor: pointer;
@@ -409,8 +442,7 @@
       justify-content: center;
       box-shadow:
         0 0 0 1px rgba(20,184,166,0.25),
-        0 6px 16px rgba(15,23,42,0.10);
-      background-clip: padding-box;
+        0 6px 16px rgba(15,23,42,0.08);
     }
 
     .room-modal-plan-pill-btn:hover{
@@ -1618,7 +1650,12 @@
                   <div class="meta">${p.desc}</div>
                   ${priceHtml}
                 </div>
-                <a class="btn-select" href="${url}" aria-label="Select ${p.label}">Select</a>
+                <a class="roomcat-plan-btn"
+                    href="${url}"
+                    aria-label="Book now with this rate"
+                  >
+                    Book now
+                  </a>
               </div>`;
           }).join('');
 
@@ -1892,7 +1929,12 @@
                       <div class="meta">${desc}</div>
                       ${priceHtml}
                     </div>
-                    <a class="btn-select" href="${url}" aria-label="Select ${name}">Select</a>
+                    <a class="roomcat-plan-btn"
+                        href="${url}"
+                        aria-label="Book now with this rate"
+                      >
+                        Book now
+                      </a>
                   </div>`;
               }).join('');
             return rows;
