@@ -1615,7 +1615,7 @@
           return rows;
         }
      
-        openRooms.map(({ room, minPrice }) => {
+        listEl.innerHTML = openRooms.map(({ room, minPrice }) => {
           const rid = room.roomTypeId ?? room.typeId ?? room.id ?? room.roomId ?? room.code ?? '';
           const name = String(room.name ?? 'Room').trim() || 'Room';
           // Prefer room-level images; fall back to property-level/detail images; then placeholder
