@@ -58,15 +58,26 @@
       gap: 12px;
     }
 
-    .logo {
-      font-weight: 700;
-      letter-spacing: 0.06em;
-      font-size: 18px;
-    }
+		.logo {
+			display: inline-flex;
+			align-items: center;
+			gap: 10px;
+			font-weight: 700;
+			letter-spacing: 0.06em;
+			font-size: 18px;
+		}
 
-    .logo span {
-      color: var(--accent);
-    }
+		.logo img {
+			height: 26px;
+			display: block;
+		}
+
+		.logo-text {
+			color: var(--accent);
+			font-size: 14px;
+			font-weight: 600;
+			letter-spacing: 0.12em;
+		}
 
     .step-indicator {
       font-size: 13px;
@@ -78,14 +89,15 @@
       padding: 24px 16px 32px;
     }
 
-    .layout {
-      max-width: 1040px;
-      margin: 0 auto;
-      display: grid;
-      grid-template-columns: minmax(0, 2fr) minmax(0, 1.3fr);
-      gap: 24px;
-      align-items: flex-start;
-    }
+		.layout {
+			max-width: 1040px;
+			margin: 0 auto;
+			display: grid;
+			/* Left column a bit wider (≈1.1x), right a bit narrower */
+			grid-template-columns: minmax(0, 2.2fr) minmax(0, 1.1fr);
+			gap: 24px;
+			align-items: flex-start;
+		}
 
     @media (max-width: 900px) {
       .layout {
@@ -101,13 +113,30 @@
       border: 1px solid rgba(15, 23, 42, 0.02);
     }
 
-    .card-header {
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      gap: 10px;
-      margin-bottom: 10px;
-    }
+		.card-header {
+			display: flex;
+			align-items: center;
+			justify-content: space-between;
+			gap: 10px;
+			margin-bottom: 10px;
+			cursor: pointer;
+		}
+
+		.card-logos {
+			display: inline-flex;
+			gap: 4px;
+			margin-left: 8px;
+		}
+
+		.card-logo {
+			font-size: 10px;
+			font-weight: 600;
+			padding: 2px 6px;
+			border-radius: 6px;
+			border: 1px solid var(--border);
+			background: #f3f4f6;
+			color: #4b5563;
+		}
 
     .card-title {
       font-size: 15px;
@@ -262,6 +291,31 @@
       box-shadow: 0 0 0 1px rgba(15, 118, 110, 0.12);
     }
 
+		.phone-row {
+			display: flex;
+			gap: 8px;
+			align-items: center;
+		}
+
+		.phone-country {
+			min-width: 170px;
+			border-radius: 10px;
+			border: 1px solid var(--border);
+			padding: 8px 8px;
+			font-size: 13px;
+			background: #ffffff;
+		}
+
+		.phone-country:focus {
+			border-color: var(--teal);
+			box-shadow: 0 0 0 1px rgba(15, 118, 110, 0.12);
+			outline: none;
+		}
+
+		.phone-input {
+			flex: 1;
+		}
+
     textarea {
       min-height: 70px;
       resize: vertical;
@@ -403,7 +457,10 @@
   <div class="page">
     <header>
       <div class="header-inner">
-        <div class="logo"><span>LOLAELO</span> CHECKOUT</div>
+        <div class="logo">
+            <img src="/travel/logo.png" alt="Lolaelo" />
+            <span class="logo-text">CHECKOUT</span>
+        </div>
         <div class="step-indicator">
           Step 1 of 2 · Review and details
         </div>
@@ -511,10 +568,27 @@
                   <label for="email">Email</label>
                   <input id="email" type="email" autocomplete="email" />
                 </div>
-                <div>
-                  <label for="phone">Mobile number</label>
-                  <input id="phone" type="tel" autocomplete="tel" />
-                </div>
+									<div>
+										<label for="phone">Mobile number</label>
+										<div class="phone-row">
+											<select id="phoneCountry" class="phone-country">
+												<option value="+1">🇺🇸 +1 (United States)</option>
+												<option value="+63">🇵🇭 +63 (Philippines)</option>
+												<option value="+44">+44 (United Kingdom)</option>
+												<option value="+61">+61 (Australia)</option>
+												<option value="+65">+65 (Singapore)</option>
+												<option value="+81">+81 (Japan)</option>
+												<option value="+82">+82 (South Korea)</option>
+												<option value="+49">+49 (Germany)</option>
+												<option value="+33">+33 (France)</option>
+												<option value="+34">+34 (Spain)</option>
+												<option value="+39">+39 (Italy)</option>
+												<option value="+31">+31 (Netherlands)</option>
+												<option value="+63-other">Other</option>
+											</select>
+											<input id="phone" type="tel" autocomplete="tel" placeholder="9-digit mobile" class="phone-input" />
+										</div>
+									</div>
               </div>
               <div style="margin-top: 10px;">
                 <label for="specialRequests">Special requests (optional)</label>
@@ -544,17 +618,23 @@
               <div class="field-row">
                 <div class="field-label">How would you like to pay</div>
                 <div class="field-inline">
-                  <label class="pill">
-                    <span class="pill-dot"></span>
-                    <input
-                      type="radio"
-                      name="paymentMethod"
-                      value="card"
-                      checked
-                      style="margin-right: 4px;"
-                    />
-                    Card with Stripe Checkout
-                  </label>
+									<label class="pill">
+										<span class="pill-dot"></span>
+										<input
+											type="radio"
+											name="paymentMethod"
+											value="card"
+											checked
+											style="margin-right: 4px;"
+										/>
+										<span>Card with Stripe Checkout</span>
+										<span class="card-logos">
+											<span class="card-logo">VISA</span>
+											<span class="card-logo">MC</span>
+											<span class="card-logo">AMEX</span>
+											<span class="card-logo">DISC</span>
+										</span>
+									</label>
                   <label class="pill">
                     <input
                       type="radio"
@@ -794,6 +874,33 @@
 
       updateSummaries();
       refreshSections();
+
+      // Allow clicking headers to reopen a section, but keep only one open
+      document.querySelectorAll(".card-header").forEach(function (header) {
+        header.addEventListener("click", function () {
+          var card = header.closest(".card");
+          if (!card) return;
+          var section = Number(card.getAttribute("data-section"));
+          if (!section) return;
+
+          // Don’t let user jump ahead if previous sections aren’t confirmed
+          for (var i = 1; i < section; i++) {
+            if (!state.sectionConfirmed[i]) {
+              return;
+            }
+          }
+
+          // Open this section, close all others
+          document.querySelectorAll("[data-section-body]").forEach(function (bodyEl) {
+            var bodySection = Number(bodyEl.getAttribute("data-section-body"));
+            if (bodySection === section) {
+              bodyEl.classList.remove("hidden");
+            } else {
+              bodyEl.classList.add("hidden");
+            }
+          });
+        });
+      });
 
       document.querySelectorAll("[data-confirm]").forEach(function (btn) {
         btn.addEventListener("click", function () {
