@@ -333,16 +333,20 @@
       border-top: 1px solid #f3f4f6;
       padding-top: 10px;
       margin-top: 8px;
-      display: flex;
-      flex-wrap: wrap;
-      gap: 10px;
-      align-items: stretch;
     }
+
     .room-modal-subtitle{
       margin: 0 0 4px 0;
       font-size: 14px;
       font-weight: 600;
-      flex: 0 0 100%; /* label on its own line */
+    }
+
+    /* Inner container that actually holds the pills */
+    #roomModalPlans{
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+      align-items: stretch;
     }
 
     /* Horizontal plan pills */
@@ -358,14 +362,17 @@
       flex-direction: column;
       gap: 4px;
     }
+
     .room-modal-plan-pill-title{
       font-size: 14px;
       font-weight: 600;
     }
+
     .room-modal-plan-pill-desc{
       font-size: 13px;
       color: var(--muted);
     }
+
     .room-modal-plan-pill-btn{
       margin-top: 4px;
       align-self: flex-start; /* uses global .btn-select styles for orange bubble */
