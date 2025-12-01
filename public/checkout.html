@@ -10,7 +10,7 @@
     href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap"
     rel="stylesheet"
   />
-  <style>
+<style>
     :root {
       --bg: #f9fafb;
       --card-bg: #ffffff;
@@ -58,26 +58,26 @@
       gap: 12px;
     }
 
-		.logo {
-			display: inline-flex;
-			align-items: center;
-			gap: 10px;
-			font-weight: 700;
-			letter-spacing: 0.06em;
-			font-size: 18px;
-		}
+    .logo {
+      display: inline-flex;
+      align-items: center;
+      gap: 10px;
+      font-weight: 700;
+      letter-spacing: 0.06em;
+      font-size: 18px;
+    }
 
-		.logo img {
-			height: 26px;
-			display: block;
-		}
+    .logo img {
+      height: 26px;
+      display: block;
+    }
 
-		.logo-text {
-			color: var(--accent);
-			font-size: 14px;
-			font-weight: 600;
-			letter-spacing: 0.12em;
-		}
+    .logo-text {
+      color: var(--accent);
+      font-size: 14px;
+      font-weight: 600;
+      letter-spacing: 0.12em;
+    }
 
     .step-indicator {
       font-size: 13px;
@@ -89,15 +89,14 @@
       padding: 24px 16px 32px;
     }
 
-		.layout {
-			max-width: 1040px;
-			margin: 0 auto;
-			display: grid;
-			/* Left column a bit wider (≈1.1x), right a bit narrower */
-			grid-template-columns: minmax(0, 2.2fr) minmax(0, 1.1fr);
-			gap: 24px;
-			align-items: flex-start;
-		}
+    .layout {
+      max-width: 1040px;
+      margin: 0 auto;
+      display: grid;
+      grid-template-columns: minmax(0, 2.2fr) minmax(0, 1.1fr);
+      gap: 24px;
+      align-items: flex-start;
+    }
 
     @media (max-width: 900px) {
       .layout {
@@ -113,30 +112,31 @@
       border: 1px solid rgba(15, 23, 42, 0.02);
     }
 
-		.card-header {
-			display: flex;
-			align-items: center;
-			justify-content: space-between;
-			gap: 10px;
-			margin-bottom: 10px;
-			cursor: pointer;
-		}
+    .card-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 10px;
+      margin-bottom: 10px;
+      cursor: pointer;
+    }
 
-		.card-logos {
-			display: inline-flex;
-			gap: 4px;
-			margin-left: 8px;
-		}
+    .card-logos {
+      display: inline-flex;
+      gap: 4px;
+      margin-left: 8px;
+      align-items: center;
+    }
 
-		.card-logo {
-			font-size: 10px;
-			font-weight: 600;
-			padding: 2px 6px;
-			border-radius: 6px;
-			border: 1px solid var(--border);
-			background: #f3f4f6;
-			color: #4b5563;
-		}
+    .card-logo-img {
+      height: 22px;
+      display: block;
+    }
+
+    .pill img {
+      height: 22px;
+      display: block;
+    }
 
     .card-title {
       font-size: 15px;
@@ -291,30 +291,30 @@
       box-shadow: 0 0 0 1px rgba(15, 118, 110, 0.12);
     }
 
-		.phone-row {
-			display: flex;
-			gap: 8px;
-			align-items: center;
-		}
+    .phone-row {
+      display: flex;
+      gap: 8px;
+      align-items: center;
+    }
 
-		.phone-country {
-			min-width: 170px;
-			border-radius: 10px;
-			border: 1px solid var(--border);
-			padding: 8px 8px;
-			font-size: 13px;
-			background: #ffffff;
-		}
+    .phone-country {
+      min-width: 170px;
+      border-radius: 10px;
+      border: 1px solid var(--border);
+      padding: 8px 8px;
+      font-size: 13px;
+      background: #ffffff;
+    }
 
-		.phone-country:focus {
-			border-color: var(--teal);
-			box-shadow: 0 0 0 1px rgba(15, 118, 110, 0.12);
-			outline: none;
-		}
+    .phone-country:focus {
+      border-color: var(--teal);
+      box-shadow: 0 0 0 1px rgba(15, 118, 110, 0.12);
+      outline: none;
+    }
 
-		.phone-input {
-			flex: 1;
-		}
+    .phone-input {
+      flex: 1;
+    }
 
     textarea {
       min-height: 70px;
@@ -451,16 +451,25 @@
       border-radius: 999px;
       background: var(--teal);
     }
-  </style>
+</style>
 </head>
 <body>
   <div class="page">
     <header>
-      <div class="header-inner">
-        <div class="logo">
-            <img src="/travel/logo.png" alt="Lolaelo" />
-            <span class="logo-text">CHECKOUT</span>
-        </div>
+			<div class="checkout-header" style="display:flex;align-items:center;gap:10px;padding:18px 0 10px;">
+				<a href="https://www.lolaelo.com/">
+					<img
+						src="https://www.lolaelo.com/logo.png?cb=logo-5x"
+						alt="Lolaelo"
+						decoding="async"
+						loading="eager"
+						style="display:block;height:48px;width:auto;"
+					>
+				</a>
+				<span style="font-size:20px;font-weight:600;color:#ff6a3d;letter-spacing:0.4px;">
+					CHECKOUT
+				</span>
+			</div>
         <div class="step-indicator">
           Step 1 of 2 · Review and details
         </div>
@@ -620,6 +629,7 @@
                 <div class="field-inline">
 									<label class="pill">
 										<span class="pill-dot"></span>
+
 										<input
 											type="radio"
 											name="paymentMethod"
@@ -627,34 +637,43 @@
 											checked
 											style="margin-right: 4px;"
 										/>
+
 										<span>Card with Stripe Checkout</span>
+
 										<span class="card-logos">
-											<span class="card-logo">VISA</span>
-											<span class="card-logo">MC</span>
-											<span class="card-logo">AMEX</span>
-											<span class="card-logo">DISC</span>
+											<img
+												src="https://www.lolaelo.com/travel/assets/card_logos.png"
+												alt="Supported cards"
+												class="card-logo-img"
+												style="height:22px; display:block;"
+											>
 										</span>
-									</label>
-                  <label class="pill">
-                    <input
-                      type="radio"
-                      name="paymentMethod"
-                      value="paypal"
-                      disabled
-                      style="margin-right: 4px;"
-                    />
-                    PayPal (coming soon)
-                  </label>
-                  <label class="pill">
-                    <input
-                      type="radio"
-                      name="paymentMethod"
-                      value="gcash"
-                      disabled
-                      style="margin-right: 4px;"
-                    />
-                    GCash (coming soon)
-                  </label>
+											<label class="pill">
+												<input
+													type="radio"
+													name="paymentMethod"
+													value="paypal"
+													disabled
+													style="margin-right: 4px;"
+												/>
+												<img src="https://www.lolaelo.com/travel/assets/paypal.png"
+														alt="PayPal"
+														style="height:22px; margin-right:4px;">
+												PayPal (coming soon)
+											</label>
+										<label class="pill">
+											<input
+												type="radio"
+												name="paymentMethod"
+												value="gcash"
+												disabled
+												style="margin-right: 4px;"
+											/>
+											<img src="https://www.lolaelo.com/travel/assets/gcash.png"
+													alt="GCash"
+													style="height:22px; margin-right:4px;">
+											GCash (coming soon)
+										</label>
                 </div>
               </div>
               <p class="muted" style="margin-top: 10px;">
