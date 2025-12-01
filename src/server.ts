@@ -6,6 +6,9 @@ import path from "node:path";
 import { fileURLToPath, pathToFileURL } from "node:url";
 import { Client } from "pg";
 import { requireWriteToken } from "./middleware/requireWriteToken.js";
+import Stripe from "stripe";
+
+const stripe = new Stripe(process.env.STRIPE_SECRET_KEY as string);
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -754,5 +757,44 @@ app.get("/extranet/pms/uis/search", async (req: Request, res: Response) => {
 });
 
 // /ANCHOR: UIS_MOCK_SEARCH
+
+// Simple test endpoint: creates a Stripe Checkout Session with a fixed amount
+app.post("/api/payments/create-checkout-session", async (req: Request, res: Response) => {
+  try {
+    const session = await stripe.checkout.sessions.create({
+      mode: "payment",
+      payment_method_types: ["card"],
+      line_items: [
+        {
+          price_data: {
+            currency: "usd", // test currency for now
+            product_data: {
+              name: "Lolaelo test booking",
+            },
+            unit_amount: 5000, // 50.00 USD in smallest unit (cents)
+          },
+          quantity: 1,
+        },
+      ],
+      success_url: "https://lolaelo-api.onrender.com/checkout_success.html?session_id={CHECKOUT_SESSION_ID}",
+      cancel_url: "https://lolaelo-api.onrender.com/checkout_cancelled.html",
+    });
+
+    return res.json({ url: session.url });
+  } catch (err: any) {
+    console.error("Error creating checkout session:", err);
+    return res.status(500).json({
+      error: "stripe_error",
+      message: err?.message ?? "Unknown error",
+    });
+  }
+});
+
+// ---- Stripe webhook (test stub) ----
+app.post("/api/payments/webhook", (req: Request, res: Response) => {
+  console.log("Stripe webhook hit:", req.body?.type ?? "no type");
+  // We will add proper signature verification and booking linkage later
+  res.json({ received: true });
+});
 
 export default app;
