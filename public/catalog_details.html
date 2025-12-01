@@ -353,37 +353,38 @@
     /* Horizontal plan pills */
     .room-modal-plan-pill{
       flex: 1 1 0;
-      min-width: 180px;
-      max-width: 260px;
-      padding: 10px 12px;
+      min-width: 225px;    /* widened */
+      max-width: 325px;    /* widened */
+      padding: 14px 16px;  /* slightly more padding since wider */
       border-radius: 14px;
       border: 1px dashed var(--line);
       background: #fafafa;
       display: flex;
       flex-direction: column;
-      gap: 4px;
+      align-items: center;     /* IMPORTANT: centers all children */
+      text-align: center;      /* centers all text */
+      gap: 6px;
     }
 
     .room-modal-plan-pill-title{
-      font-size: 14px;
+      font-size: 15px;
       font-weight: 600;
+      text-align: center;
     }
 
     .room-modal-plan-pill-desc{
       font-size: 13px;
       color: var(--muted);
+      text-align: center;
     }
 
+    /* Center the Select button + keep the orange pill style */
     .room-modal-plan-pill-btn{
       margin-top: 8px;
-      align-self: flex-start;
-      display: inline-flex;
-      align-items: center;
-      justify-content: center;
-      padding: 6px 16px;
+      align-self: center;      /* centers button horizontally */
+      padding: 6px 18px;
       border-radius: 999px;
       border: none;
-      text-decoration: none;
       font-size: 13px;
       font-weight: 600;
       color: #fff;
@@ -392,11 +393,13 @@
       cursor: pointer;
       transition: transform 0.08s ease, box-shadow 0.08s ease, opacity 0.08s ease;
     }
+
     .room-modal-plan-pill-btn:hover{
       transform: translateY(-1px);
       box-shadow: 0 8px 20px rgba(255,106,61,0.55);
       opacity: 0.96;
     }
+
     .room-modal-plan-pill-btn:active{
       transform: translateY(0);
       box-shadow: 0 4px 10px rgba(255,106,61,0.35);
@@ -416,6 +419,82 @@
         /* keep same 40/60 bias but slightly more compact on small screens */
         grid-template-rows: auto minmax(150px, 2fr) minmax(200px, 3fr);
       }
+    }
+
+    /* ANCHOR: ROOM_MODAL_LIGHTBOX_CSS */
+    .room-modal-lightbox {
+      position: absolute;
+      inset: 0;
+      display: none;               /* hidden until opened */
+      align-items: center;
+      justify-content: center;
+      z-index: 999;                /* above modal body, below global modals */
+    }
+
+    .room-modal-lightbox.is-open {
+      display: flex;
+    }
+
+    .room-modal-lightbox-backdrop {
+      position: absolute;
+      inset: 0;
+      background: rgba(0,0,0,0.55);   /* darken inside modal only */
+      backdrop-filter: blur(2px);
+    }
+
+    .room-modal-lightbox-inner {
+      position: relative;
+      z-index: 1000;
+      max-width: 92%;
+      max-height: 92%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .room-modal-lightbox-img {
+      max-width: 100%;
+      max-height: 100%;
+      border-radius: 14px;
+      box-shadow: 0 8px 30px rgba(0,0,0,0.35);
+      object-fit: contain;
+      background: #000;
+    }
+
+    .room-modal-lightbox-close {
+      position: absolute;
+      top: -40px;
+      right: 0;
+      font-size: 26px;
+      border: none;
+      background: none;
+      color: #ffffff;
+      cursor: pointer;
+      z-index: 1100;
+    }
+
+    .room-modal-lightbox-prev,
+    .room-modal-lightbox-next {
+      position: absolute;
+      top: 50%;
+      transform: translateY(-50%);
+      font-size: 38px;
+      border: none;
+      background: none;
+      color: #ffffff;
+      cursor: pointer;
+      z-index: 1100;
+      padding: 8px 12px;
+      user-select: none;
+    }
+
+    .room-modal-lightbox-prev { left: -46px; }
+    .room-modal-lightbox-next { right: -46px; }
+
+    /* On small screens, bring arrows inside */
+    @media (max-width: 640px) {
+      .room-modal-lightbox-prev { left: 6px; }
+      .room-modal-lightbox-next { right: 6px; }
     }
 
     /* ANCHOR: ROOMCAT_PLANS_CSS */
@@ -798,6 +877,19 @@
           <div class="room-modal-plans">
             <p class="room-modal-subtitle">Available plans</p>
             <div id="roomModalPlans"></div>
+          </div>
+        </div>
+        <!-- ANCHOR: ROOM_MODAL_LIGHTBOX -->
+        <div id="roomModalLightbox" class="room-modal-lightbox" aria-hidden="true">
+          <div class="room-modal-lightbox-backdrop"></div>
+
+          <div class="room-modal-lightbox-inner">
+            <button class="room-modal-lightbox-close" aria-label="Close">×</button>
+            <button class="room-modal-lightbox-prev" aria-label="Previous image">‹</button>
+
+            <img class="room-modal-lightbox-img" src="" alt="Room photo" />
+
+            <button class="room-modal-lightbox-next" aria-label="Next image">›</button>
           </div>
         </div>
       </div>
