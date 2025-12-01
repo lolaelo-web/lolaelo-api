@@ -1,0 +1,868 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>Lolaelo - Checkout</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link
+    href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap"
+    rel="stylesheet"
+  />
+  <style>
+    :root {
+      --bg: #f9fafb;
+      --card-bg: #ffffff;
+      --border: #e5e7eb;
+      --text: #0f172a;
+      --muted: #6b7280;
+      --accent: #ff6a3d;
+      --accent-soft: rgba(255, 106, 61, 0.08);
+      --teal: #0f766e;
+      --radius-lg: 16px;
+      --shadow-soft: 0 12px 30px rgba(15, 23, 42, 0.08);
+    }
+
+    * { box-sizing: border-box; }
+
+    body {
+      margin: 0;
+      padding: 0;
+      font-family: "Inter", system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      background: var(--bg);
+      color: var(--text);
+    }
+
+    .page {
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+    }
+
+    header {
+      padding: 16px 24px;
+      border-bottom: 1px solid var(--border);
+      background: #ffffff;
+      position: sticky;
+      top: 0;
+      z-index: 20;
+    }
+
+    .header-inner {
+      max-width: 1040px;
+      margin: 0 auto;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+    }
+
+    .logo {
+      font-weight: 700;
+      letter-spacing: 0.06em;
+      font-size: 18px;
+    }
+
+    .logo span {
+      color: var(--accent);
+    }
+
+    .step-indicator {
+      font-size: 13px;
+      color: var(--muted);
+    }
+
+    main {
+      flex: 1;
+      padding: 24px 16px 32px;
+    }
+
+    .layout {
+      max-width: 1040px;
+      margin: 0 auto;
+      display: grid;
+      grid-template-columns: minmax(0, 2fr) minmax(0, 1.3fr);
+      gap: 24px;
+      align-items: flex-start;
+    }
+
+    @media (max-width: 900px) {
+      .layout {
+        grid-template-columns: minmax(0, 1fr);
+      }
+    }
+
+    .card {
+      background: var(--card-bg);
+      border-radius: var(--radius-lg);
+      box-shadow: var(--shadow-soft);
+      padding: 20px 20px 18px;
+      border: 1px solid rgba(15, 23, 42, 0.02);
+    }
+
+    .card-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 10px;
+      margin-bottom: 10px;
+    }
+
+    .card-title {
+      font-size: 15px;
+      font-weight: 600;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .card-step {
+      width: 22px;
+      height: 22px;
+      border-radius: 999px;
+      border: 1px solid var(--border);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 12px;
+      font-weight: 500;
+      color: var(--muted);
+    }
+
+    .card-step.active {
+      border-color: var(--accent);
+      background: var(--accent-soft);
+      color: var(--accent);
+    }
+
+    .card-step.completed {
+      border-color: var(--teal);
+      background: rgba(16, 185, 129, 0.08);
+      color: var(--teal);
+    }
+
+    .card-status {
+      font-size: 12px;
+      color: var(--muted);
+    }
+
+    .card-status.completed {
+      color: var(--teal);
+      font-weight: 500;
+    }
+
+    .section-body {
+      margin-top: 6px;
+      font-size: 14px;
+      color: var(--muted);
+    }
+
+    .section-body.hidden {
+      display: none;
+    }
+
+    .field-row {
+      margin-top: 12px;
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+    }
+
+    .field-label {
+      font-size: 13px;
+      color: var(--muted);
+    }
+
+    .field-value {
+      font-size: 14px;
+      color: var(--text);
+    }
+
+    .field-inline {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px 20px;
+      align-items: center;
+      margin-top: 8px;
+    }
+
+    .muted {
+      color: var(--muted);
+      font-size: 13px;
+    }
+
+    button {
+      font-family: inherit;
+      border: none;
+      cursor: pointer;
+    }
+
+    .btn-primary {
+      margin-top: 14px;
+      padding: 9px 16px;
+      border-radius: 999px;
+      background: var(--accent);
+      color: #ffffff;
+      font-size: 14px;
+      font-weight: 500;
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .btn-primary[disabled] {
+      opacity: 0.6;
+      cursor: default;
+    }
+
+    .btn-link {
+      background: none;
+      border: none;
+      color: var(--teal);
+      font-size: 13px;
+      padding: 0;
+    }
+
+    .guest-form-grid {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 10px 12px;
+      margin-top: 8px;
+    }
+
+    @media (max-width: 600px) {
+      .guest-form-grid {
+        grid-template-columns: minmax(0, 1fr);
+      }
+    }
+
+    label {
+      display: block;
+      font-size: 13px;
+      color: var(--muted);
+      margin-bottom: 4px;
+    }
+
+    input,
+    textarea {
+      width: 100%;
+      border-radius: 10px;
+      border: 1px solid var(--border);
+      padding: 8px 10px;
+      font-size: 14px;
+      font-family: inherit;
+      outline: none;
+      background: #ffffff;
+    }
+
+    input:focus,
+    textarea:focus {
+      border-color: var(--teal);
+      box-shadow: 0 0 0 1px rgba(15, 118, 110, 0.12);
+    }
+
+    textarea {
+      min-height: 70px;
+      resize: vertical;
+    }
+
+    .summary-card-title {
+      font-size: 15px;
+      font-weight: 600;
+      margin-bottom: 6px;
+    }
+
+    .summary-line {
+      display: flex;
+      justify-content: space-between;
+      align-items: baseline;
+      font-size: 13px;
+      margin-top: 4px;
+      color: var(--muted);
+    }
+
+    .summary-line strong {
+      font-size: 14px;
+      color: var(--text);
+    }
+
+    .summary-total {
+      margin-top: 10px;
+      padding-top: 8px;
+      border-top: 1px dashed var(--border);
+      display: flex;
+      justify-content: space-between;
+      align-items: baseline;
+    }
+
+    .summary-total-label {
+      font-size: 13px;
+      color: var(--muted);
+    }
+
+    .summary-total-amount {
+      font-size: 18px;
+      font-weight: 600;
+      color: var(--text);
+    }
+
+    .breakdown-toggle {
+      margin-top: 8px;
+      font-size: 13px;
+      color: var(--teal);
+      cursor: pointer;
+    }
+
+    .breakdown {
+      margin-top: 6px;
+      padding: 8px 0 4px;
+      border-top: 1px dashed var(--border);
+      display: none;
+      font-size: 12px;
+      color: var(--muted);
+    }
+
+    .breakdown.visible {
+      display: block;
+    }
+
+    .sticky-footer {
+      position: sticky;
+      bottom: 0;
+      margin-top: 16px;
+      background: linear-gradient(to top, rgba(249, 250, 251, 0.96), rgba(249, 250, 251, 0.9));
+      padding-top: 8px;
+    }
+
+    .sticky-inner {
+      max-width: 1040px;
+      margin: 0 auto;
+      padding: 10px 0 6px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+    }
+
+    .sticky-label {
+      font-size: 13px;
+      color: var(--muted);
+    }
+
+    .sticky-amount {
+      font-size: 16px;
+      font-weight: 600;
+      color: var(--text);
+    }
+
+    .sticky-button {
+      padding: 11px 24px;
+      border-radius: 999px;
+      background: var(--accent);
+      color: #ffffff;
+      font-size: 14px;
+      font-weight: 600;
+      border: none;
+      white-space: nowrap;
+    }
+
+    .sticky-button[disabled] {
+      opacity: 0.6;
+      cursor: default;
+    }
+
+    .error-text {
+      color: #b91c1c;
+      font-size: 13px;
+      margin-top: 6px;
+    }
+
+    .pill {
+      display: inline-flex;
+      align-items: center;
+      padding: 4px 10px;
+      border-radius: 999px;
+      font-size: 11px;
+      font-weight: 500;
+      border: 1px solid var(--border);
+      color: var(--muted);
+      background: #f9fafb;
+      gap: 6px;
+    }
+
+    .pill-dot {
+      width: 7px;
+      height: 7px;
+      border-radius: 999px;
+      background: var(--teal);
+    }
+  </style>
+</head>
+<body>
+  <div class="page">
+    <header>
+      <div class="header-inner">
+        <div class="logo"><span>LOLAELO</span> CHECKOUT</div>
+        <div class="step-indicator">
+          Step 1 of 2 · Review and details
+        </div>
+      </div>
+    </header>
+
+    <main>
+      <div class="layout">
+        <!-- Left side: progressive sections -->
+        <div>
+          <!-- Section 1 - Property and room -->
+          <div class="card" data-section="1">
+            <div class="card-header">
+              <div class="card-title">
+                <div class="card-step active" data-step-indicator="1">1</div>
+                Property and room
+              </div>
+              <div class="card-status" data-step-status="1">
+                Waiting for confirmation
+              </div>
+            </div>
+            <div class="section-body" data-section-body="1">
+              <div class="field-row">
+                <div class="field-label">Property</div>
+                <div class="field-value" id="propertyName">
+                  Property for ID <span id="propertyIdValue"></span>
+                </div>
+              </div>
+              <div class="field-row">
+                <div class="field-label">Room</div>
+                <div class="field-value" id="roomName">
+                  Room for ID <span id="roomIdValue"></span>
+                </div>
+              </div>
+              <div class="field-row">
+                <div class="field-label">Rate plan</div>
+                <div class="field-value" id="ratePlanName">
+                  Plan for ID <span id="ratePlanIdValue"></span>
+                </div>
+              </div>
+              <div class="field-inline">
+                <button class="btn-link" id="changePlanLink" type="button">
+                  Change room or rate plan
+                </button>
+              </div>
+              <button class="btn-primary" type="button" data-confirm="1">
+                Confirm room
+              </button>
+            </div>
+          </div>
+
+          <!-- Section 2 - Dates and pricing -->
+          <div class="card" data-section="2">
+            <div class="card-header">
+              <div class="card-title">
+                <div class="card-step" data-step-indicator="2">2</div>
+                Dates and pricing
+              </div>
+              <div class="card-status" data-step-status="2">
+                Locked until previous step
+              </div>
+            </div>
+            <div class="section-body hidden" data-section-body="2">
+              <div class="field-row">
+                <div class="field-label">Stay dates</div>
+                <div class="field-value" id="stayDatesText">Dates from URL</div>
+              </div>
+              <div class="field-row">
+                <div class="field-label">Nights</div>
+                <div class="field-value" id="nightsCountText">n nights</div>
+              </div>
+              <div class="field-inline">
+                <button class="btn-link" id="editDatesLink" type="button">
+                  Edit dates
+                </button>
+              </div>
+              <button class="btn-primary" type="button" data-confirm="2">
+                Confirm dates and price
+              </button>
+            </div>
+          </div>
+
+          <!-- Section 3 - Guest details -->
+          <div class="card" data-section="3">
+            <div class="card-header">
+              <div class="card-title">
+                <div class="card-step" data-step-indicator="3">3</div>
+                Guest details
+              </div>
+              <div class="card-status" data-step-status="3">
+                Locked until previous step
+              </div>
+            </div>
+            <div class="section-body hidden" data-section-body="3">
+              <div class="guest-form-grid">
+                <div>
+                  <label for="firstName">First name</label>
+                  <input id="firstName" autocomplete="given-name" />
+                </div>
+                <div>
+                  <label for="lastName">Last name</label>
+                  <input id="lastName" autocomplete="family-name" />
+                </div>
+                <div>
+                  <label for="email">Email</label>
+                  <input id="email" type="email" autocomplete="email" />
+                </div>
+                <div>
+                  <label for="phone">Mobile number</label>
+                  <input id="phone" type="tel" autocomplete="tel" />
+                </div>
+              </div>
+              <div style="margin-top: 10px;">
+                <label for="specialRequests">Special requests (optional)</label>
+                <textarea id="specialRequests"></textarea>
+              </div>
+              <div class="error-text" id="guestError" style="display: none;">
+                Please fill in first name, last name, email and mobile number.
+              </div>
+              <button class="btn-primary" type="button" data-confirm="3">
+                Confirm guest details
+              </button>
+            </div>
+          </div>
+
+          <!-- Section 4 - Payment method -->
+          <div class="card" data-section="4">
+            <div class="card-header">
+              <div class="card-title">
+                <div class="card-step" data-step-indicator="4">4</div>
+                Payment method
+              </div>
+              <div class="card-status" data-step-status="4">
+                Locked until previous step
+              </div>
+            </div>
+            <div class="section-body hidden" data-section-body="4">
+              <div class="field-row">
+                <div class="field-label">How would you like to pay</div>
+                <div class="field-inline">
+                  <label class="pill">
+                    <span class="pill-dot"></span>
+                    <input
+                      type="radio"
+                      name="paymentMethod"
+                      value="card"
+                      checked
+                      style="margin-right: 4px;"
+                    />
+                    Card with Stripe Checkout
+                  </label>
+                  <label class="pill">
+                    <input
+                      type="radio"
+                      name="paymentMethod"
+                      value="paypal"
+                      disabled
+                      style="margin-right: 4px;"
+                    />
+                    PayPal (coming soon)
+                  </label>
+                  <label class="pill">
+                    <input
+                      type="radio"
+                      name="paymentMethod"
+                      value="gcash"
+                      disabled
+                      style="margin-right: 4px;"
+                    />
+                    GCash (coming soon)
+                  </label>
+                </div>
+              </div>
+              <p class="muted" style="margin-top: 10px;">
+                For now, payments are processed securely by Stripe Checkout using your card or wallet.
+              </p>
+              <button class="btn-primary" type="button" data-confirm="4">
+                Confirm payment method
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <!-- Right side: booking summary -->
+        <aside>
+          <div class="card">
+            <div class="summary-card-title">Your stay</div>
+            <div class="summary-line">
+              <span>Property</span>
+              <strong id="summaryProperty">Property</strong>
+            </div>
+            <div class="summary-line">
+              <span>Room</span>
+              <strong id="summaryRoom">Room</strong>
+            </div>
+            <div class="summary-line">
+              <span>Rate plan</span>
+              <strong id="summaryPlan">Rate plan</strong>
+            </div>
+            <div class="summary-line">
+              <span>Dates</span>
+              <strong id="summaryDates">Dates</strong>
+            </div>
+            <div class="summary-line">
+              <span>Nights</span>
+              <strong id="summaryNights">n</strong>
+            </div>
+            <div class="summary-total">
+              <div>
+                <div class="summary-total-label">Total (test amount)</div>
+                <div class="muted">Final amount is calculated at server side</div>
+              </div>
+              <div class="summary-total-amount" id="summaryTotal">
+                $50.00
+              </div>
+            </div>
+            <div class="breakdown-toggle" id="breakdownToggle">
+              View nightly breakdown
+            </div>
+            <div class="breakdown" id="breakdownDetails">
+              For now this uses a flat test amount. Later we will show per night pricing from the backend.
+            </div>
+          </div>
+        </aside>
+      </div>
+
+      <div class="sticky-footer">
+        <div class="sticky-inner">
+          <div>
+            <div class="sticky-label">Total (test amount)</div>
+            <div class="sticky-amount" id="stickyAmount">
+              $50.00
+            </div>
+          </div>
+          <button class="sticky-button" id="confirmAndPayButton" disabled>
+            Confirm booking and continue to payment
+          </button>
+        </div>
+      </div>
+    </main>
+  </div>
+
+  <script>
+    function parseQuery() {
+      const params = new URLSearchParams(window.location.search);
+      return {
+        propertyId: params.get("propertyId") || "",
+        roomId: params.get("roomId") || "",
+        start: params.get("start") || "",
+        end: params.get("end") || "",
+        ratePlanId: params.get("ratePlanId") || ""
+      };
+    }
+
+    function formatDate(dateStr) {
+      if (!dateStr) return "";
+      const dt = new Date(dateStr);
+      if (Number.isNaN(dt.getTime())) return dateStr;
+      return dt.toLocaleDateString(undefined, {
+        month: "short",
+        day: "numeric",
+        year: "numeric"
+      });
+    }
+
+    function diffNights(startStr, endStr) {
+      if (!startStr || !endStr) return "";
+      const s = new Date(startStr);
+      const e = new Date(endStr);
+      if (Number.isNaN(s.getTime()) || Number.isNaN(e.getTime())) return "";
+      const ms = e.getTime() - s.getTime();
+      const nights = Math.round(ms / (1000 * 60 * 60 * 24));
+      return nights > 0 ? nights : "";
+    }
+
+    const state = {
+      propertyId: "",
+      roomId: "",
+      start: "",
+      end: "",
+      ratePlanId: "",
+      sectionConfirmed: { 1: false, 2: false, 3: false, 4: false }
+    };
+
+    function updateSummaries() {
+      const propertyText = state.propertyId || "Property";
+      const roomText = state.roomId || "Room";
+      const planText = state.ratePlanId || "Rate plan";
+
+      document.getElementById("propertyIdValue").textContent = state.propertyId;
+      document.getElementById("roomIdValue").textContent = state.roomId;
+      document.getElementById("ratePlanIdValue").textContent = state.ratePlanId;
+
+      document.getElementById("summaryProperty").textContent = propertyText;
+      document.getElementById("summaryRoom").textContent = roomText;
+      document.getElementById("summaryPlan").textContent = planText;
+
+      const startFormatted = formatDate(state.start);
+      const endFormatted = formatDate(state.end);
+      const nights = diffNights(state.start, state.end);
+      const datesText =
+        startFormatted && endFormatted
+          ? startFormatted + " to " + endFormatted
+          : "Dates";
+      document.getElementById("stayDatesText").textContent = datesText;
+      document.getElementById("summaryDates").textContent = datesText;
+      const nightsText = nights ? nights + " night" + (nights > 1 ? "s" : "") : "";
+      document.getElementById("nightsCountText").textContent = nightsText || "nights";
+      document.getElementById("summaryNights").textContent = nightsText || "n";
+    }
+
+    function setSectionState(section, status) {
+      const stepCircle = document.querySelector('[data-step-indicator="' + section + '"]');
+      const statusLabel = document.querySelector('[data-step-status="' + section + '"]');
+      const body = document.querySelector('[data-section-body="' + section + '"]');
+      if (!stepCircle || !statusLabel || !body) return;
+
+      if (status === "active") {
+        stepCircle.classList.add("active");
+        stepCircle.classList.remove("completed");
+        statusLabel.textContent = "Waiting for confirmation";
+        statusLabel.classList.remove("completed");
+        body.classList.remove("hidden");
+      } else if (status === "completed") {
+        stepCircle.classList.remove("active");
+        stepCircle.classList.add("completed");
+        statusLabel.textContent = "Confirmed";
+        statusLabel.classList.add("completed");
+        body.classList.add("hidden");
+      } else {
+        stepCircle.classList.remove("active");
+        stepCircle.classList.remove("completed");
+        statusLabel.textContent = "Locked until previous step";
+        statusLabel.classList.remove("completed");
+        body.classList.add("hidden");
+      }
+    }
+
+    function refreshSections() {
+      for (let i = 1; i <= 4; i++) {
+        const isConfirmed = state.sectionConfirmed[i];
+        if (i === 1) {
+          setSectionState(1, isConfirmed ? "completed" : "active");
+        } else {
+          const prevDone = state.sectionConfirmed[i - 1];
+          if (!prevDone) {
+            setSectionState(i, "locked");
+          } else {
+            setSectionState(i, isConfirmed ? "completed" : "active");
+          }
+        }
+      }
+      const allConfirmed =
+        state.sectionConfirmed[1] &&
+        state.sectionConfirmed[2] &&
+        state.sectionConfirmed[3] &&
+        state.sectionConfirmed[4];
+      document.getElementById("confirmAndPayButton").disabled = !allConfirmed;
+    }
+
+    function handleConfirmClick(section) {
+      if (section === 3) {
+        const firstName = document.getElementById("firstName").value.trim();
+        const lastName = document.getElementById("lastName").value.trim();
+        const email = document.getElementById("email").value.trim();
+        const phone = document.getElementById("phone").value.trim();
+        const errorEl = document.getElementById("guestError");
+
+        if (!firstName || !lastName || !email || !phone) {
+          if (errorEl) errorEl.style.display = "block";
+          return;
+        } else if (errorEl) {
+          errorEl.style.display = "none";
+        }
+      }
+
+      state.sectionConfirmed[section] = true;
+      refreshSections();
+    }
+
+    function initCheckout() {
+      const q = parseQuery();
+      state.propertyId = q.propertyId;
+      state.roomId = q.roomId;
+      state.start = q.start;
+      state.end = q.end;
+      state.ratePlanId = q.ratePlanId;
+
+      updateSummaries();
+      refreshSections();
+
+      document.querySelectorAll("[data-confirm]").forEach(function (btn) {
+        btn.addEventListener("click", function () {
+          const section = Number(btn.getAttribute("data-confirm"));
+          handleConfirmClick(section);
+        });
+      });
+
+      const breakdownToggle = document.getElementById("breakdownToggle");
+      const breakdownDetails = document.getElementById("breakdownDetails");
+      if (breakdownToggle && breakdownDetails) {
+        breakdownToggle.addEventListener("click", function () {
+          breakdownDetails.classList.toggle("visible");
+        });
+      }
+
+      const confirmAndPayButton = document.getElementById("confirmAndPayButton");
+      if (confirmAndPayButton) {
+        confirmAndPayButton.addEventListener("click", async function () {
+          if (confirmAndPayButton.disabled) return;
+
+          confirmAndPayButton.disabled = true;
+          confirmAndPayButton.textContent = "Redirecting to secure payment...";
+
+          try {
+            const response = await fetch("/api/payments/create-checkout-session", {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({
+                propertyId: state.propertyId,
+                roomId: state.roomId,
+                start: state.start,
+                end: state.end,
+                ratePlanId: state.ratePlanId
+              })
+            });
+
+            if (!response.ok) throw new Error("Failed to start payment");
+            const data = await response.json();
+            if (data && data.url) {
+              window.location.href = data.url;
+            } else {
+              throw new Error("Missing redirect URL");
+            }
+          } catch (err) {
+            console.error("Error starting Stripe Checkout", err);
+            confirmAndPayButton.disabled = false;
+            confirmAndPayButton.textContent = "Confirm booking and continue to payment";
+            alert("Could not start payment. Please try again.");
+          }
+        });
+      }
+
+      const changePlanLink = document.getElementById("changePlanLink");
+      if (changePlanLink) {
+        changePlanLink.addEventListener("click", function () {
+          window.history.back();
+        });
+      }
+
+      const editDatesLink = document.getElementById("editDatesLink");
+      if (editDatesLink) {
+        editDatesLink.addEventListener("click", function () {
+          window.history.back();
+        });
+      }
+    }
+
+    document.addEventListener("DOMContentLoaded", initCheckout);
+  </script>
+</body>
+</html>
