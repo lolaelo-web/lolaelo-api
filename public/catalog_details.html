@@ -389,32 +389,42 @@
       text-align: center;
     }
 
-    /* Center the Select button + keep the orange pill style */
+    /* Teal outline “Book now” button inside plan pills */
     .room-modal-plan-pill-btn{
-      margin-top: 8px;
-      align-self: center;      /* centers button horizontally */
-      padding: 6px 18px;
+      margin-top: 6px;
+      padding: 7px 18px;
       border-radius: 999px;
-      border: none;
+      border: 1px solid #14b8a6; /* light aqua / teal */
+      background:
+        linear-gradient(135deg,
+          rgba(34,211,238,0.08),
+          rgba(16,185,129,0.18));
+      color: #0f766e;            /* slightly darker teal text */
       font-size: 13px;
       font-weight: 600;
-      color: #fff;
-      background: linear-gradient(135deg, #ff7a3c, #ff5a2a);
-      box-shadow: 0 6px 16px rgba(255,106,61,0.45);
       cursor: pointer;
-      transition: transform 0.08s ease, box-shadow 0.08s ease, opacity 0.08s ease;
+      text-decoration: none;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      box-shadow:
+        0 0 0 1px rgba(20,184,166,0.25),
+        0 6px 16px rgba(15,23,42,0.10);
+      background-clip: padding-box;
     }
 
     .room-modal-plan-pill-btn:hover{
-      transform: translateY(-1px);
-      box-shadow: 0 8px 20px rgba(255,106,61,0.55);
-      opacity: 0.96;
+      box-shadow:
+        0 0 0 1px rgba(20,184,166,0.35),
+        0 8px 20px rgba(15,23,42,0.14);
+      transform: translateY(-0.5px);
     }
 
     .room-modal-plan-pill-btn:active{
-      transform: translateY(0);
-      box-shadow: 0 4px 10px rgba(255,106,61,0.35);
-      opacity: 0.9;
+      transform: translateY(1px);
+      box-shadow:
+        0 0 0 1px rgba(20,184,166,0.35),
+        0 4px 10px rgba(15,23,42,0.18);
     }
 
     /* Slightly larger body text inside the modal only */
@@ -2758,7 +2768,7 @@
               const desc  = getModalPlanDescription(id);
 
               const url =
-                `/room_details.html?propertyId=${encodeURIComponent(propertyId)}` +
+                `/checkout.html?propertyId=${encodeURIComponent(propertyId)}` +
                 `&roomId=${encodeURIComponent(roomId)}` +
                 (start ? `&start=${encodeURIComponent(start)}` : "") +
                 (end   ? `&end=${encodeURIComponent(end)}`   : "") +
@@ -2768,12 +2778,12 @@
               pill.className = "room-modal-plan-pill";
               pill.innerHTML =
                 `<div class="room-modal-plan-pill-title">${label}</div>
-                 <div class="room-modal-plan-pill-desc">${desc}</div>
-                 <a class="btn-select room-modal-plan-pill-btn"
+                <div class="room-modal-plan-pill-desc">${desc}</div>
+                <a class="room-modal-plan-pill-btn"
                     href="${url}"
-                    aria-label="Select ${label}">
-                   Select
-                 </a>`;
+                    aria-label="Book ${label} now">
+                    Book now
+                </a>`;
 
               plansWrap.appendChild(pill);
             });
