@@ -2260,6 +2260,103 @@
       const inclusionsSection   = document.getElementById("roomModalInclusionsSection");
       const inclusionsList      = document.getElementById("roomModalInclusionsList");
 
+      // ANCHOR: ROOM_MODAL_LIGHTBOX_JS
+      const lightboxEl  = document.getElementById("roomModalLightbox");
+      const lbBackdrop  = lightboxEl ? lightboxEl.querySelector(".room-modal-lightbox-backdrop") : null;
+      const lbImg       = lightboxEl ? lightboxEl.querySelector(".room-modal-lightbox-img") : null;
+      const lbCloseBtn  = lightboxEl ? lightboxEl.querySelector(".room-modal-lightbox-close") : null;
+      const lbPrevBtn   = lightboxEl ? lightboxEl.querySelector(".room-modal-lightbox-prev") : null;
+      const lbNextBtn   = lightboxEl ? lightboxEl.querySelector(".room-modal-lightbox-next") : null;
+
+      let lbImages = [];
+      let lbIndex  = 0;
+      let lbBound  = false;
+
+      function lbRender(){
+        if (!lbImg || !lbImages.length) return;
+        if (lbIndex < 0) lbIndex = 0;
+        if (lbIndex >= lbImages.length) lbIndex = lbImages.length - 1;
+        lbImg.src = lbImages[lbIndex];
+      }
+
+      function lbOpen(startIndex){
+        if (!lightboxEl || !lbImages.length) return;
+        if (Number.isFinite(startIndex)) {
+          lbIndex = Math.min(Math.max(startIndex, 0), lbImages.length - 1);
+        } else {
+          lbIndex = 0;
+        }
+        lbRender();
+        lightboxEl.classList.add("is-open");
+        lightboxEl.setAttribute("aria-hidden","false");
+      }
+
+      function lbClose(){
+        if (!lightboxEl) return;
+        lightboxEl.classList.remove("is-open");
+        lightboxEl.setAttribute("aria-hidden","true");
+      }
+
+      function lbStep(delta){
+        if (!lbImages.length) return;
+        const len = lbImages.length;
+        lbIndex = (lbIndex + delta + len) % len;
+        lbRender();
+      }
+
+      function lbBindOnce(){
+        if (lbBound || !lightboxEl) return;
+        lbBound = true;
+
+        if (lbCloseBtn) {
+          lbCloseBtn.addEventListener("click", lbClose);
+        }
+
+        if (lbBackdrop) {
+          lbBackdrop.addEventListener("click", lbClose);
+        }
+
+        if (lbPrevBtn) {
+          lbPrevBtn.addEventListener("click", () => lbStep(-1));
+        }
+
+        if (lbNextBtn) {
+          lbNextBtn.addEventListener("click", () => lbStep(1));
+        }
+
+        // Basic swipe support
+        let touchStartX = null;
+        lightboxEl.addEventListener("touchstart", (e) => {
+          if (e.touches && e.touches.length === 1) {
+            touchStartX = e.touches[0].clientX;
+          }
+        }, { passive: true });
+
+        lightboxEl.addEventListener("touchend", (e) => {
+          if (touchStartX == null || !e.changedTouches || !e.changedTouches.length) return;
+          const dx = e.changedTouches[0].clientX - touchStartX;
+          touchStartX = null;
+          if (Math.abs(dx) < 40) return; // ignore tiny swipes
+          if (dx < 0) {
+            lbStep(1);   // swipe left -> next
+          } else {
+            lbStep(-1);  // swipe right -> prev
+          }
+        }, { passive: true });
+
+        // Keyboard support when lightbox is open
+        document.addEventListener("keydown", (e) => {
+          if (!lightboxEl.classList.contains("is-open")) return;
+          if (e.key === "Escape") {
+            lbClose();
+          } else if (e.key === "ArrowRight") {
+            lbStep(1);
+          } else if (e.key === "ArrowLeft") {
+            lbStep(-1);
+          }
+        });
+      }
+
       // Share room-info metadata with partners extranet via localStorage
       const ROOM_INFO_LS_KEY = "extranet_roomInfo_v1";
 
@@ -2509,24 +2606,67 @@
           if (hasAny) fillList(inclusionsList, inclusionLabels, room.inclusion_text);
         }
 
-        // Images
+        // Images + lightbox + hover hero update
         const imgs = normalizeRoomImages(room);
-        modalImg.src = imgs[0];
 
-        thumbsWrap.innerHTML = imgs.map((src, i) => `
-          <button type="button" data-i="${i}" aria-current="${i === 0 ? "true" : "false"}">
-            <img src="${src}" alt="Photo ${i+1}">
-          </button>
-        `).join("");
+        if (!imgs.length) {
+          if (modalImg) {
+            modalImg.removeAttribute("src");
+          }
+          if (thumbsWrap) {
+            thumbsWrap.innerHTML = "";
+          }
+        } else {
+          if (modalImg) {
+            modalImg.src = imgs[0];
+            modalImg.style.cursor = "zoom-in";
+          }
 
-        thumbsWrap.querySelectorAll("button").forEach(btn => {
-          btn.addEventListener("click", () => {
+          // Share images with lightbox
+          lbImages = imgs.slice();
+          lbBindOnce();
+          lbIndex = 0;
+          lbRender();
+
+          // Build thumbnails
+          thumbsWrap.innerHTML = imgs.map((src, i) => `
+            <button type="button" data-i="${i}" aria-current="${i === 0 ? "true" : "false"}">
+              <img src="${src}" alt="Photo ${i+1}">
+            </button>
+          `).join("");
+
+          const thumbButtons = thumbsWrap.querySelectorAll("button");
+
+          thumbButtons.forEach(btn => {
             const idx = Number(btn.dataset.i || "0");
-            modalImg.src = imgs[idx] || imgs[0];
-            thumbsWrap.querySelectorAll("button").forEach(b => b.removeAttribute("aria-current"));
-            btn.setAttribute("aria-current","true");
+
+            // Hover: update hero + selected index
+            btn.addEventListener("mouseenter", () => {
+              if (!imgs.length) return;
+              const safeIdx = Number.isFinite(idx) ? idx : 0;
+              lbIndex = safeIdx;
+              modalImg.src = imgs[safeIdx] || imgs[0];
+              thumbButtons.forEach(b => b.removeAttribute("aria-current"));
+              btn.setAttribute("aria-current","true");
+            });
+
+            // Click: open lightbox at that image
+            btn.addEventListener("click", () => {
+              if (!imgs.length) return;
+              const safeIdx = Number.isFinite(idx) ? idx : 0;
+              lbIndex = safeIdx;
+              lbOpen(safeIdx);
+            });
           });
-        });
+
+          // Hero click opens lightbox at current image
+          if (modalImg) {
+            modalImg.onclick = () => {
+              if (!lbImages.length) return;
+              lbOpen(lbIndex);
+            };
+          }
+        }
 
         // Rate plans – 3 canonical plans, horizontal pills with Select buttons
         try {
