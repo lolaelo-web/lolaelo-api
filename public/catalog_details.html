@@ -214,8 +214,7 @@
       .roomcat{ grid-template-columns: 30px 72px 1fr; } /* + | thumb | text */
       .roomcat .btn-select{ grid-column: 1 / -1; justify-self: start; }
     }
-
-        /* ANCHOR: ROOM_MODAL_CSS */
+    /* ANCHOR: ROOM_MODAL_CSS */
     .room-modal-backdrop{
       position: fixed;
       inset: 0;
@@ -336,41 +335,46 @@
       margin-top: 8px;
       display: flex;
       flex-wrap: wrap;
-      gap: 8px;
-      align-items: flex-start;
+      gap: 10px;
+      align-items: stretch;
     }
     .room-modal-subtitle{
-      margin: 0;
+      margin: 0 0 4px 0;
       font-size: 14px;
       font-weight: 600;
-    }
-    /* Make the "Available plans" label sit on its own line */
-    .room-modal-plans .room-modal-subtitle{
-      flex: 0 0 100%;
+      flex: 0 0 100%; /* label on its own line */
     }
 
     /* Horizontal plan pills */
     .room-modal-plan-pill{
       flex: 1 1 0;
-      min-width: 150px;
-      padding: 8px 10px;
-      border-radius: 12px;
+      min-width: 180px;
+      max-width: 260px;
+      padding: 10px 12px;
+      border-radius: 14px;
       border: 1px dashed var(--line);
       background: #fafafa;
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
     }
     .room-modal-plan-pill-title{
       font-size: 14px;
       font-weight: 600;
-      margin-bottom: 2px;
     }
     .room-modal-plan-pill-desc{
       font-size: 13px;
       color: var(--muted);
     }
+    .room-modal-plan-pill-btn{
+      margin-top: 4px;
+      align-self: flex-start; /* uses global .btn-select styles for orange bubble */
+    }
 
     /* Slightly larger body text inside the modal only */
     .room-modal-body .small,
-    .room-modal-body .muted{
+    .room-modal-body .muted,
+    .room-modal-body li{
       font-size: 14px;
     }
 
@@ -1456,7 +1460,7 @@
           return rows;
         }
      
-                listEl.innerHTML = openRooms.map(({ room, minPrice }) => {
+        listEl.innerHTML = openRooms.map(({ room, minPrice }) => {
           const rid = room.roomTypeId ?? room.typeId ?? room.id ?? room.roomId ?? room.code ?? '';
           const name = String(room.name ?? 'Room').trim() || 'Room';
           // Prefer room-level images; fall back to property-level/detail images; then placeholder
@@ -2162,69 +2166,81 @@
       };
 
       const INCLUSION_LABELS = {
-        breakfast:      "Breakfast included",
-        half_board:     "Half board",
-        full_board:     "Full board",
-        all_inclusive:  "All inclusive",
-        free_parking:   "Free parking",
-        airport_shuttle:"Airport shuttle",
-        late_checkout:  "Late checkout (subject to availability)",
-        early_checkin:  "Early check-in (subject to availability)",
-        pool_access:    "Pool access",
-        spa_access:     "Spa / wellness access",
+        breakfast:       "Breakfast included",
+        half_board:      "Half board",
+        full_board:      "Full board",
+        all_inclusive:   "All inclusive",
+        free_parking:    "Free parking",
+        airport_shuttle: "Airport shuttle",
+        late_checkout:   "Late checkout (subject to availability)",
+        early_checkin:   "Early check-in (subject to availability)",
+        pool_access:     "Pool access",
+        spa_access:      "Spa / wellness access",
       };
 
+      // Canonical 3 plans only: 1 = Standard, 2 = With Breakfast, 3 = Non-Refundable
       function getModalSelectedPlanIds(){
-         // Prefer persisted selectedIds from partners_rooms
-         try{
-           const raw = localStorage.getItem('rateplan.selectedIds') || '[]';
-           const arr = JSON.parse(raw);
-           if (Array.isArray(arr) && arr.length){
-             return [...new Set(arr.map(Number).filter(Number.isFinite))];
-           }
-         }catch(_){}
+        let ids = [];
 
-         // Fallback to URL params (&plans= or &ratePlanId= / &plan=)
-         try{
-           const qs = new URLSearchParams(location.search);
-           const csv = (qs.get('plans') || '').trim();
-           if (csv){
-             return csv
-               .split(',')
-               .map(s => Number(s.trim()))
-               .filter(Number.isFinite);
-           }
-           const single = Number(qs.get('ratePlanId') || qs.get('plan'));
-           if (Number.isFinite(single)) return [single];
-         }catch(_){}
+        // 1) localStorage from partners_rooms
+        try{
+          const raw = localStorage.getItem('rateplan.selectedIds') || '[]';
+          const arr = JSON.parse(raw);
+          if (Array.isArray(arr)) {
+            ids = arr.map(Number).filter(Number.isFinite);
+          }
+        }catch{}
 
-         // Final fallback: assume Standard only
-         return [1];
-       }
+        // 2) URL (?plans=1,2,3 or ?ratePlanId=1)
+        if (!ids.length){
+          try{
+            const qs  = new URLSearchParams(location.search || '');
+            const csv = (qs.get('plans') || '').trim();
+            if (csv){
+              ids = csv
+                .split(',')
+                .map(s => Number(s.trim()))
+                .filter(Number.isFinite);
+            }else{
+              const single = Number(qs.get('ratePlanId') || qs.get('plan'));
+              if (Number.isFinite(single)) ids = [single];
+            }
+          }catch{}
+        }
 
-       function getModalPlanLabel(id, customLabels){
-         // Use same priority as partners side: STD / NRF / BRKF, then custom, then generic
-         if (id === 1) return customLabels.STD  || 'Standard';
-         if (id === 2) return customLabels.NRF  || customLabels.CUS1 || 'Non-Refundable';
-         if (id === 3) return customLabels.BRKF || customLabels.CUS2 || 'With Breakfast';
-         return `Plan ${id}`;
-       }
+        // 3) Default to all three if still empty
+        if (!ids.length) ids = [1,2,3];
 
-       function getModalPlanDescription(label){
-         const text = String(label || '');
-         const lower = text.toLowerCase();
+        // Only allow our three canonical plans and dedupe
+        const allowed = [1,2,3];
+        const seen = new Set();
+        return ids.filter(id => {
+          if (!allowed.includes(id)) return false;
+          if (seen.has(id)) return false;
+          seen.add(id);
+          return true;
+        });
+      }
 
-         if (/non[-\s]?ref/.test(lower)){
-           return 'Lower price, no refunds or changes.';
-         }
-         if (/breakfast/.test(lower)){
-           return 'This rate includes breakfast for 2.';
-         }
-         if (/standard/.test(lower)){
-           return 'Flexible standard rate with free cancellation.';
-         }
-         return 'Standard conditions apply for this rate.';
-       }
+      function getModalPlanLabel(id){
+        if (id === 1) return "Standard";
+        if (id === 2) return "With Breakfast";
+        if (id === 3) return "Non-Refundable";
+        return `Plan ${id}`;
+      }
+
+      function getModalPlanDescription(id){
+        if (id === 1){
+          return "Flexible standard rate with free cancellation.";
+        }
+        if (id === 2){
+          return "This rate includes breakfast for 2.";
+        }
+        if (id === 3){
+          return "Lower price, no refunds or changes.";
+        }
+        return "Standard conditions apply for this rate.";
+      }
 
       function fillList(ul, labels, extraText) {
         if (!ul) return;
@@ -2388,39 +2404,53 @@
           });
         });
 
-        // Rate plans – horizontal pills using selected rate plan ids + custom labels
-        try{
-          if (plansWrap){
+        // Rate plans – 3 canonical plans, horizontal pills with Select buttons
+        try {
+          if (plansWrap) {
             plansWrap.innerHTML = "";
 
-            let customLabels = {};
-            try{
-              const raw = localStorage.getItem('rateplan.customLabels') || '{}';
-              const parsed = JSON.parse(raw);
-              if (parsed && typeof parsed === 'object'){
-                customLabels = parsed;
-              }
-            }catch(_){}
+            const payload    = window.__detailsPayload || {};
+            const propertyId = payload.propertyId ?? payload.id ?? "";
+            const roomId     = room.roomTypeId ?? room.typeId ?? room.id ?? room.roomId ?? room.code ?? "";
 
-            const ids  = getModalSelectedPlanIds();
-            const seen = new Set();
+            let start = "";
+            let end   = "";
+            try {
+              const qs = new URLSearchParams(location.search || "");
+              start = qs.get("start") || "";
+              end   = qs.get("end")   || "";
+            } catch {}
+
+            const ids = getModalSelectedPlanIds();
 
             ids.forEach(id => {
-              if (!Number.isFinite(id) || seen.has(id)) return;
-              seen.add(id);
+              if (!Number.isFinite(id)) return;
 
-              const label = getModalPlanLabel(id, customLabels);
-              const desc  = getModalPlanDescription(label);
+              const label = getModalPlanLabel(id);        // Standard / With Breakfast / Non-Refundable
+              const desc  = getModalPlanDescription(id);
 
-              const pill = document.createElement('div');
-              pill.className = 'room-modal-plan-pill';
+              const url =
+                `/room_details.html?propertyId=${encodeURIComponent(propertyId)}` +
+                `&roomId=${encodeURIComponent(roomId)}` +
+                (start ? `&start=${encodeURIComponent(start)}` : "") +
+                (end   ? `&end=${encodeURIComponent(end)}`   : "") +
+                `&ratePlanId=${encodeURIComponent(id)}`;
+
+              const pill = document.createElement("div");
+              pill.className = "room-modal-plan-pill";
               pill.innerHTML =
                 `<div class="room-modal-plan-pill-title">${label}</div>
-                 <div class="room-modal-plan-pill-desc">${desc}</div>`;
+                 <div class="room-modal-plan-pill-desc">${desc}</div>
+                 <a class="btn-select room-modal-plan-pill-btn"
+                    href="${url}"
+                    aria-label="Select ${label}">
+                   Select
+                 </a>`;
+
               plansWrap.appendChild(pill);
             });
           }
-        }catch(_){}
+        } catch (_) {}
 
         backdrop.classList.add("is-open");
         backdrop.setAttribute("aria-hidden","false");
