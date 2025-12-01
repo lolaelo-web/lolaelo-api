@@ -5,17 +5,17 @@
 		rel="icon"
 		type="image/png"
 		sizes="32x32"
-		href="https://www.lolaelo.com/logo.png?cb=favicon-32"
+		href="https://www.lolaelo.com/logo2.png?cb=favicon-32"
 	/>
 	<link
 		rel="icon"
 		type="image/png"
 		sizes="16x16"
-		href="https://www.lolaelo.com/logo.png?cb=favicon-16"
+		href="https://www.lolaelo.com/logo2.png?cb=favicon-16"
 	/>
 	<link
 		rel="shortcut icon"
-		href="https://www.lolaelo.com/logo.png?cb=favicon"
+		href="https://www.lolaelo.com/logo2.png?cb=favicon"
 	/>
   <meta charset="UTF-8" />
   <title>Lolaelo - Checkout</title>
@@ -40,15 +40,12 @@
     --shadow-soft: 0 12px 30px rgba(15, 23, 42, 0.08);
   }
 
-  * {
-    box-sizing: border-box;
-  }
+  * { box-sizing: border-box; }
 
   body {
     margin: 0;
     padding: 0;
-    font-family: "Inter", system-ui, -apple-system, BlinkMacSystemFont,
-      "Segoe UI", sans-serif;
+    font-family: "Inter", system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
     background: var(--bg);
     color: var(--text);
   }
@@ -87,7 +84,7 @@
   }
 
   .logo img {
-    height: 26px;
+    height: 24px; /* smaller header logo */
     display: block;
   }
 
@@ -142,14 +139,9 @@
 
   .card-logos {
     display: inline-flex;
-    gap: 4px;
+    gap: 6px;
     margin-left: 8px;
     align-items: center;
-  }
-
-  .card-logo-img {
-    height: 33px; /* 1.5x previous 22px */
-    display: block;
   }
 
   .card-title {
@@ -399,11 +391,7 @@
     position: sticky;
     bottom: 0;
     margin-top: 16px;
-    background: linear-gradient(
-      to top,
-      rgba(249, 250, 251, 0.96),
-      rgba(249, 250, 251, 0.9)
-    );
+    background: linear-gradient(to top, rgba(249, 250, 251, 0.96), rgba(249, 250, 251, 0.9));
     padding-top: 8px;
   }
 
@@ -450,21 +438,21 @@
     margin-top: 6px;
   }
 
-  /* Payment method pills and captions */
+  /* Payment pills */
 
   .pill-wrap {
     display: flex;
     flex-direction: column;
     align-items: center;
     gap: 6px;
-    min-width: 170px;
+    min-width: 180px;
   }
 
   .pill {
     display: flex;
     align-items: center;
     justify-content: center;
-    padding: 10px 16px;
+    padding: 12px 18px;
     border-radius: 999px;
     font-size: 11px;
     font-weight: 500;
@@ -494,38 +482,44 @@
     background: var(--teal);
   }
 
-  /* Scale all payment logos to 1.5x */
+  /* BIGGER logos – ~5x original */
   .card-logos img,
   .pill img {
-    height: 33px;
+    height: 60px;
     display: block;
   }
 
   .payment-options-row {
-    gap: 14px;
+    gap: 16px;
   }
 
-  /* Security helper badge + bubble */
+  /* Security helper bottom-right */
 
   .payment-security {
-    margin-top: 8px;
+    margin-top: 10px;
     display: flex;
     justify-content: flex-end;
     position: relative;
   }
 
-  .security-badge {
+  .security-icon-btn {
     width: 32px;
     height: 32px;
     border-radius: 999px;
+    border: none;
     background: #e0f2fe;
     color: #0f766e;
     display: inline-flex;
     align-items: center;
     justify-content: center;
-    font-size: 16px; /* for emoji / icon character */
-    box-shadow: 0 4px 10px rgba(15, 23, 42, 0.18);
-    cursor: default;
+    box-shadow: 0 6px 16px rgba(15, 23, 42, 0.18);
+    font-size: 16px;
+    cursor: pointer;
+  }
+
+  .security-icon-btn:focus-visible {
+    outline: 2px solid #0f766e;
+    outline-offset: 2px;
   }
 
   .security-bubble {
@@ -561,6 +555,7 @@
   }
 </style>
 
+
 </head>
 <body>
   <div class="page">
@@ -582,7 +577,7 @@
 							alt="Lolaelo"
 							decoding="async"
 							loading="eager"
-							style="display:block;height:48px;width:auto;"
+							style="display:block;height:24px;width:auto;"
 						>
 					</a>
 				</div>
@@ -841,28 +836,22 @@
                 <button class="btn-primary" type="button" data-confirm="4">
                   Confirm payment method
                 </button>
-
-                <div class="payment-security">
-                  <button
-                    type="button"
-                    class="security-badge"
-                    aria-label="Learn more about payment security"
-                  >
-                    🛡
-                    <span class="visually-hidden">
-                      Learn more about why we use Stripe, PayPal and GCash
-                    </span>
-                  </button>
-                  <div class="security-bubble">
-                    <strong>Secure, global-grade payment partners</strong><br>
-                    Lolaelo never stores your card number. All payments are encrypted and processed
-                    by Stripe, PayPal and GCash on their own PCI-certified systems.
-                    <br><br>
-                    Stripe is a Level 1 PCI-DSS provider used by millions of businesses worldwide.
-                    PayPal and GCash let you pay from trusted wallets so your card details stay
-                    between you and them.
-                  </div>
-                </div>
+									<div class="payment-security" aria-label="Payment security details">
+										<button
+											type="button"
+											class="security-icon-btn"
+											aria-describedby="payment-security-bubble"
+										>
+											🔒
+										</button>
+										<div class="security-bubble" id="payment-security-bubble">
+										<strong>Secure checkout</strong>
+											Your payment is encrypted and processed by Stripe — the same payment
+											platform trusted by Booking.com, Hopper, Lyft, Instacart, and Shopify.
+											Your card details never touch our servers, and future options like
+											PayPal and GCash will follow the same security standards.
+										</div>
+									</div>
               </div>
             </div>
           </div>
