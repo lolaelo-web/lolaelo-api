@@ -4462,11 +4462,27 @@
         payload.active = activeVal;
       }
 
-      if (!Object.keys(payload).length) { m.classList.remove('open'); return; }
+      // Only send fields the backend currently accepts.
+      const serverPayloadKeys = ["name", "basePrice", "occupancy", "maxGuests", "active"];
+      const serverPayload = {};
+      for (const k of serverPayloadKeys) {
+        if (Object.prototype.hasOwnProperty.call(payload, k)) {
+          serverPayload[k] = payload[k];
+        }
+      }
 
-      pendingRoomUpdates.set(rt.id, payload);
+      if (!Object.keys(serverPayload).length) {
+        // Only metadata (summary/details/inclusions/size) changed.
+        // Those are already stored in roomInfoById/localStorage, no backend call needed.
+        m.classList.remove('open');
+        updateDirtyUI();
+        return;
+      }
+
+      pendingRoomUpdates.set(rt.id, serverPayload);
       updateDirtyUI();
       setStatus("Room changes queued — click Save changes to apply.", "warn");
+
       m.classList.remove('open');
       el('edit-save').removeEventListener('click', onSave);
       m.removeEventListener('keydown', onKey);

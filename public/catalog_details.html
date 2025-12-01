@@ -347,6 +347,7 @@
       flex-wrap: wrap;
       gap: 10px;
       align-items: stretch;
+      justify-content: center;  /* center the three bubbles */
     }
 
     /* Horizontal plan pills */
@@ -374,8 +375,32 @@
     }
 
     .room-modal-plan-pill-btn{
-      margin-top: 4px;
-      align-self: flex-start; /* uses global .btn-select styles for orange bubble */
+      margin-top: 8px;
+      align-self: flex-start;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      padding: 6px 16px;
+      border-radius: 999px;
+      border: none;
+      text-decoration: none;
+      font-size: 13px;
+      font-weight: 600;
+      color: #fff;
+      background: linear-gradient(135deg, #ff7a3c, #ff5a2a);
+      box-shadow: 0 6px 16px rgba(255,106,61,0.45);
+      cursor: pointer;
+      transition: transform 0.08s ease, box-shadow 0.08s ease, opacity 0.08s ease;
+    }
+    .room-modal-plan-pill-btn:hover{
+      transform: translateY(-1px);
+      box-shadow: 0 8px 20px rgba(255,106,61,0.55);
+      opacity: 0.96;
+    }
+    .room-modal-plan-pill-btn:active{
+      transform: translateY(0);
+      box-shadow: 0 4px 10px rgba(255,106,61,0.35);
+      opacity: 0.9;
     }
 
     /* Slightly larger body text inside the modal only */
