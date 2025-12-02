@@ -447,13 +447,14 @@
     justify-content: center;
   }
 
-  /* BIGGER logos – ~5x original */
-  .card-logos img,
-  .pill img {
-    height: 60px;
-    display: block;
-    object-fit: contain;
-  }
+	/* BIGGER logos – ~5x original */
+	.card-logos img,
+	.pill img,
+	.card-logo-ticker {
+		height: 60px;
+		display: block;
+		object-fit: contain;
+	}
 
   /* Tidy spacing between the three payment pills */
   .payment-options-row {
@@ -823,10 +824,11 @@
                       <div class="pill">
                         <div class="pill-main">
                           <div class="card-logos">
-                            <img
-                              src="https://www.lolaelo.com/assets/card_logos.png"
-                              alt="Visa, Mastercard, Apple Pay, Discover, Amex"
-                            >
+														<img
+															src="https://www.lolaelo.com/assets/card_visa.png"
+															alt="Visa, Mastercard, Apple Pay, Discover, Amex"
+															class="card-logo-ticker"
+														/>
                           </div>
                         </div>
                       </div>
@@ -968,13 +970,10 @@
       <div class="sticky-footer">
         <div class="sticky-inner">
           <div>
-            <div class="sticky-label">Total (test amount)</div>
-            <div class="sticky-amount" id="stickyAmount">
-              $50.00
-            </div>
+
           </div>
           <button class="sticky-button" id="confirmAndPayButton" disabled>
-            Confirm booking and continue to payment
+            Continue to secure payment
           </button>
         </div>
       </div>
