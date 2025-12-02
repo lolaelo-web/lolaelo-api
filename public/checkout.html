@@ -789,115 +789,143 @@
             </div>
           </div>
 
-						<!-- Section 4 - Payment method -->
-						<div class="card" data-section="4">
-							<div class="card-header">
-								<div class="card-title">
-									<div class="card-step" data-step-indicator="4">4</div>
-									Payment method
-								</div>
-								<div class="card-status" data-step-status="4">
-									Locked until previous step
-								</div>
-							</div>
-							<div class="section-body hidden" data-section-body="4">
-								<div class="field-row">
-									<div class="field-label">How would you like to pay</div>
-									<div class="field-inline payment-options-row">
-										<!-- CARD / STRIPE -->
-										<label class="pill-wrap">
-											<div class="pill-caption">Card with Stripe Checkout</div>
-											<input
-												type="radio"
-												name="paymentMethod"
-												value="card"
-												class="payment-pill-input"
-												checked
-											/>
-											<div class="pill" data-method="card">
-												<div class="card-logos">
-													<img
-														src="https://www.lolaelo.com/assets/card_visa.png"
-														alt="Visa, Mastercard, Apple Pay, Discover, Amex"
-														class="card-logo-img card-logo-ticker"
-													>
-												</div>
-											</div>
-										</label>
-
-										<!-- PAYPAL (COMING SOON) -->
-										<label class="pill-wrap">
-											<div class="pill-caption">PayPal (coming soon)</div>
-											<input
-												type="radio"
-												name="paymentMethod"
-												value="paypal"
-												class="payment-pill-input"
-												disabled
-											/>
-											<div class="pill" data-method="paypal">
-												<div class="card-logos">
-													<img
-														src="https://www.lolaelo.com/assets/paypal.png"
-														alt="PayPal"
-														class="card-logo-img"
-													>
-												</div>
-											</div>
-										</label>
-
-										<!-- GCASH (COMING SOON) -->
-										<label class="pill-wrap">
-											<div class="pill-caption">GCash (coming soon)</div>
-											<input
-												type="radio"
-												name="paymentMethod"
-												value="gcash"
-												class="payment-pill-input"
-												disabled
-											/>
-											<div class="pill" data-method="gcash">
-												<div class="card-logos">
-													<img
-														src="https://www.lolaelo.com/assets/gcash.png"
-														alt="GCash"
-														class="card-logo-img"
-													>
-												</div>
-											</div>
-										</label>
-									</div>
-								</div>
-
-								<p class="muted" style="margin-top: 10px;">
-									For now, payments are processed securely by Stripe Checkout
-									using your card or wallet.
-								</p>
-
-								<!-- Security icon + helper bubble -->
-								<div class="payment-security">
-									<div class="security-badge" aria-label="Secure checkout">
-										🔒
-									</div>
-									<div class="security-bubble">
-										<strong>Secure checkout</strong>
-										Your payment is encrypted and processed by Stripe, which also
-										powers secure checkout for companies like Lyft, Instacart, and
-										Shopify. Future options like PayPal and GCash will follow the
-										same security standards so your card details never touch our
-										servers.
-									</div>
-								</div>
-	              <button class="btn-primary" type="button" data-confirm="4">
-                Confirm payment method
-              </button>
+          <!-- Section 4 - Payment method -->
+          <div class="card" data-section="4">
+            <div class="card-header">
+              <div class="card-title">
+                <div class="card-step" data-step-indicator="4">4</div>
+                Payment method
+              </div>
+              <div class="card-status" data-step-status="4">
+                Locked until previous step
               </div>
             </div>
+
+            <div class="section-body hidden" data-section-body="4">
+              <div class="field-row">
+                <div class="field-label">Please select a payment method</div>
+
+                <!-- TOP ROW: PAYMENT PILLS -->
+                <div class="field-inline payment-options-row">
+                  <!-- CARD / STRIPE -->
+                  <div class="pill-wrap">
+                    <div class="pill-caption">
+                      Stripe – Major CCs
+                    </div>
+                    <label class="pill-wrap-label">
+                      <input
+                        type="radio"
+                        name="paymentMethod"
+                        value="card"
+                        class="payment-pill-input"
+                        checked
+                      />
+                      <div class="pill">
+                        <div class="pill-main">
+                          <div class="card-logos">
+                            <img
+                              src="https://www.lolaelo.com/assets/card_logos.png"
+                              alt="Visa, Mastercard, Apple Pay, Discover, Amex"
+                            >
+                          </div>
+                        </div>
+                      </div>
+                    </label>
+                  </div>
+
+                  <!-- PAYPAL -->
+                  <div class="pill-wrap">
+                    <div class="pill-caption">
+                      (coming soon)
+                    </div>
+                    <label class="pill-wrap-label">
+                      <input
+                        type="radio"
+                        name="paymentMethod"
+                        value="paypal"
+                        class="payment-pill-input"
+                        disabled
+                      />
+                      <div class="pill">
+                        <div class="pill-main">
+                          <img
+                            src="https://www.lolaelo.com/assets/paypal.png"
+                            alt="PayPal"
+                          >
+                        </div>
+                      </div>
+                    </label>
+                  </div>
+
+                  <!-- GCASH -->
+                  <div class="pill-wrap">
+                    <div class="pill-caption">
+                      (coming soon)
+                    </div>
+                    <label class="pill-wrap-label">
+                      <input
+                        type="radio"
+                        name="paymentMethod"
+                        value="gcash"
+                        class="payment-pill-input"
+                        disabled
+                      />
+                      <div class="pill">
+                        <div class="pill-main">
+                          <img
+                            src="https://www.lolaelo.com/assets/gcash.png"
+                            alt="GCash"
+                          >
+                        </div>
+                      </div>
+                    </label>
+                  </div>
+                </div>
+
+                <!-- BOTTOM ROW: TEXT CAPTIONS UNDER PILLS -->
+                <div class="field-inline payment-options-row" style="margin-top: 6px;">
+                  <div style="min-width:190px;text-align:center;font-size:12px;color:#6b7280;">
+                    Visa – MasterCard – AMEX – ApplePay – Discover
+                  </div>
+                  <div style="min-width:190px;text-align:center;font-size:12px;color:#6b7280;">
+                    PayPal
+                  </div>
+                  <div style="min-width:190px;text-align:center;font-size:12px;color:#6b7280;">
+                    GCash
+                  </div>
+                </div>
+              </div>
+
+              <!-- SECURITY ICON BOTTOM-RIGHT -->
+              <div class="payment-security">
+                <button
+                  class="security-icon-btn"
+                  type="button"
+                  aria-label="Security and payments"
+                >
+                  🔒
+                </button>
+                <div class="security-bubble">
+                  <strong>Secure checkout</strong>
+                  Your payment is encrypted and processed by Stripe, the same
+                  provider trusted by companies like Lyft and Airbnb. Future
+                  options like PayPal and GCash will follow the same security
+                  standards so your card details never touch our servers.
+                </div>
+              </div>
+
+              <button class="btn-primary" type="button" data-confirm="4">
+                Confirm payment method
+              </button>
+            </div>
           </div>
-        </div>
+            </div> <!-- /section-body -->
+          </div>   <!-- /card -->
+        </div>     <!-- /left column -->
 
         <!-- Right side: booking summary -->
         <aside>
+
           <div class="card">
             <div class="summary-card-title">Your stay</div>
             <div class="summary-line">
