@@ -137,12 +137,23 @@
     cursor: pointer;
   }
 
-  .card-logos {
-    display: inline-flex;
-    gap: 6px;
-    margin-left: 8px;
-    align-items: center;
-  }
+	.card-logos {
+		display: inline-flex;
+		align-items: center;
+		justify-content: center;
+	}
+
+	/* Larger logos inside pills */
+	.card-logos img {
+		height: 40px; /* visibly larger */
+		display: block;
+		object-fit: contain;
+	}
+	
+	/* Tidy spacing between the three payment pills */
+	.payment-options-row {
+		gap: 16px;
+	}
 
   .card-title {
     font-size: 15px;
@@ -440,27 +451,45 @@
 
   /* Payment pills */
 
-  .pill-wrap {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    gap: 6px;
-    min-width: 180px;
-  }
+	.pill-wrap {
+		position: relative;
+		display: flex;
+		flex-direction: column;
+		align-items: center;
+		gap: 6px;
+		min-width: 190px;
+	}
 
-  .pill {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    padding: 12px 18px;
-    border-radius: 999px;
-    font-size: 11px;
-    font-weight: 500;
-    border: 1px solid var(--border);
-    color: var(--muted);
-    background: #f9fafb;
-    gap: 10px;
-  }
+	.pill {
+		display: flex;
+		align-items: center;
+		justify-content: center;
+		padding: 16px 22px;
+		border-radius: 999px;
+		font-size: 11px;
+		font-weight: 500;
+		border: 1px solid var(--border);
+		color: var(--muted);
+		background: #f9fafb;
+		gap: 10px;
+		transition:
+			border-color 0.16s ease-out,
+			box-shadow 0.16s ease-out,
+			background 0.16s ease-out,
+			transform 0.12s ease-out;
+	}
+	
+	/* Selected pill: orange outline + soft gradient */
+	.payment-pill-input:checked + .pill {
+		border-color: var(--accent);
+		box-shadow: 0 0 0 2px rgba(255, 106, 61, 0.35);
+		background: linear-gradient(
+			135deg,
+			rgba(255, 247, 237, 1),
+			#ffffff
+		);
+		transform: translateY(-1px);
+	}
 
   .pill-main {
     display: flex;
@@ -468,19 +497,27 @@
     gap: 10px;
   }
 
-  .pill-caption {
-    font-size: 11px;
-    color: var(--muted);
-    text-align: center;
-    line-height: 1.3;
-  }
+	/* Caption now ABOVE the pill */
+	.pill-caption {
+		font-size: 11px;
+		color: var(--muted);
+		text-align: center;
+		line-height: 1.3;
+		margin-bottom: 2px;
+	}
 
-  .pill-dot {
-    width: 7px;
-    height: 7px;
-    border-radius: 999px;
-    background: var(--teal);
-  }
+	/* Invisible radio that sits over the pill */
+	.payment-pill-input {
+		position: absolute;
+		inset: 20px 0 0 0; /* start roughly at top of pill */
+		opacity: 0;
+		cursor: pointer;
+	}
+
+	/* Remove old colored dot entirely */
+	.pill-dot {
+		display: none;
+	}
 
   /* BIGGER logos – ~5x original */
   .card-logos img,
@@ -493,15 +530,28 @@
     gap: 16px;
   }
 
-  /* Security helper bottom-right */
+	/* Security helper: badge + bubble in bottom right of section */
+	.payment-security {
+		margin-top: 10px;
+		display: flex;
+		justify-content: flex-end;
+		position: relative;
+	}
 
-  .payment-security {
-    margin-top: 10px;
-    display: flex;
-    justify-content: flex-end;
-    position: relative;
-  }
-
+	.security-badge {
+		width: 32px;
+		height: 32px;
+		border-radius: 999px;
+		background: #dbeafe;
+		display: flex;
+		align-items: center;
+		justify-content: center;
+		color: #0f766e;
+		font-size: 16px;
+		box-shadow: 0 8px 20px rgba(15, 23, 42, 0.15);
+		cursor: default;
+	}
+	
   .security-icon-btn {
     width: 32px;
     height: 32px;
@@ -522,39 +572,40 @@
     outline-offset: 2px;
   }
 
-  .security-bubble {
-    position: absolute;
-    right: 0;
-    bottom: 130%;
-    background: #020617;
-    color: #e5e7eb;
-    padding: 10px 12px;
-    border-radius: 12px;
-    width: 260px;
-    box-shadow: 0 18px 40px rgba(15, 23, 42, 0.35);
-    font-size: 12px;
-    line-height: 1.4;
-    opacity: 0;
-    pointer-events: none;
-    transform: translateY(4px);
-    transition: opacity 0.18s ease-out, transform 0.18s ease-out;
-    z-index: 20;
-  }
+	.security-bubble {
+		position: absolute;
+		right: 0;
+		bottom: 130%;
+		background: #020617;
+		color: #e5e7eb;
+		padding: 10px 12px;
+		border-radius: 12px;
+		width: 260px;
+		box-shadow: 0 18px 40px rgba(15, 23, 42, 0.35);
+		font-size: 12px;
+		line-height: 1.4;
+		opacity: 0;
+		pointer-events: none;
+		transform: translateY(4px);
+		transition:
+			opacity 0.18s ease-out,
+			transform 0.18s ease-out;
+		z-index: 20;
+	}
 
-  .security-bubble strong {
-    display: block;
-    margin-bottom: 4px;
-    color: #f9fafb;
-  }
+	.security-bubble strong {
+		display: block;
+		margin-bottom: 4px;
+		color: #f9fafb;
+	}
 
-  .payment-security:hover .security-bubble,
-  .payment-security:focus-within .security-bubble {
-    opacity: 1;
-    pointer-events: auto;
-    transform: translateY(0);
-  }
+	.payment-security:hover .security-bubble,
+	.payment-security:focus-within .security-bubble {
+		opacity: 1;
+		pointer-events: auto;
+		transform: translateY(0);
+	}
 </style>
-
 
 </head>
 <body>
@@ -743,115 +794,108 @@
             </div>
           </div>
 
-          <!-- Section 4 - Payment method -->
-          <div class="card" data-section="4">
-            <div class="card-header">
-              <div class="card-title">
-                <div class="card-step" data-step-indicator="4">4</div>
-                Payment method
-              </div>
-              <div class="card-status" data-step-status="4">
-                Locked until previous step
-              </div>
-            </div>
+						<!-- Section 4 - Payment method -->
+						<div class="card" data-section="4">
+							<div class="card-header">
+								<div class="card-title">
+									<div class="card-step" data-step-indicator="4">4</div>
+									Payment method
+								</div>
+								<div class="card-status" data-step-status="4">
+									Locked until previous step
+								</div>
+							</div>
+							<div class="section-body hidden" data-section-body="4">
+								<div class="field-row">
+									<div class="field-label">How would you like to pay</div>
+									<div class="field-inline payment-options-row">
+										<!-- CARD / STRIPE -->
+										<label class="pill-wrap">
+											<div class="pill-caption">Card with Stripe Checkout</div>
+											<input
+												type="radio"
+												name="paymentMethod"
+												value="card"
+												class="payment-pill-input"
+												checked
+											/>
+											<div class="pill" data-method="card">
+												<div class="card-logos">
+													<img
+														src="https://www.lolaelo.com/assets/card_visa.png"
+														alt="Visa, Mastercard, Apple Pay, Discover, Amex"
+														class="card-logo-img card-logo-ticker"
+													>
+												</div>
+											</div>
+										</label>
 
-            <div class="section-body hidden" data-section-body="4">
-              <div class="field-row">
-                <div class="field-label">How would you like to pay</div>
+										<!-- PAYPAL (COMING SOON) -->
+										<label class="pill-wrap">
+											<div class="pill-caption">PayPal (coming soon)</div>
+											<input
+												type="radio"
+												name="paymentMethod"
+												value="paypal"
+												class="payment-pill-input"
+												disabled
+											/>
+											<div class="pill" data-method="paypal">
+												<div class="card-logos">
+													<img
+														src="https://www.lolaelo.com/assets/paypal.png"
+														alt="PayPal"
+														class="card-logo-img"
+													>
+												</div>
+											</div>
+										</label>
 
-                <div class="field-inline payment-options-row">
-                  <label class="pill-wrap">
-                    <div class="pill">
-                      <div class="pill-main">
-                        <input
-                          type="radio"
-                          name="paymentMethod"
-                          value="card"
-                          checked
-                          style="margin-right: 4px;"
-                        />
-                        <span class="card-logos">
-                          <img
-                            src="https://www.lolaelo.com/assets/card_logos.png"
-                            alt="Supported cards"
-                            class="card-logo-img"
-                          >
-                        </span>
-                      </div>
-                    </div>
-                    <div class="pill-caption">
-                      Card with Stripe Checkout
-                    </div>
-                  </label>
-
-                  <label class="pill-wrap">
-                    <div class="pill">
-                      <div class="pill-main">
-                        <input
-                          type="radio"
-                          name="paymentMethod"
-                          value="paypal"
-                          disabled
-                          style="margin-right: 4px;"
-                        />
-                        <img
-                          src="https://www.lolaelo.com/assets/paypal.png"
-                          alt="PayPal"
-                        >
-                      </div>
-                    </div>
-                    <div class="pill-caption">
-                      PayPal (coming soon)
-                    </div>
-                  </label>
-
-                  <label class="pill-wrap">
-                    <div class="pill">
-                      <div class="pill-main">
-                        <input
-                          type="radio"
-                          name="paymentMethod"
-                          value="gcash"
-                          disabled
-                          style="margin-right: 4px;"
-                        />
-                        <img
-                          src="https://www.lolaelo.com/assets/gcash.png"
-                          alt="GCash"
-                        >
-                      </div>
-                    </div>
-                    <div class="pill-caption">
-                      GCash (coming soon)
-                    </div>
-                  </label>
-                </div>
-              </div>
-
-              <p class="muted" style="margin-top: 10px;">
-                For now, payments are processed securely by Stripe Checkout using your card or wallet.
-              </p>
-
-              <div class="payment-footer">
-                <button class="btn-primary" type="button" data-confirm="4">
-                  Confirm payment method
-                </button>
-									<div class="payment-security" aria-label="Payment security details">
-										<button
-											type="button"
-											class="security-icon-btn"
-											aria-describedby="payment-security-bubble"
-										>
-											🔒
-										</button>
-										<div class="security-bubble" id="payment-security-bubble">
-										<strong>Secure checkout</strong>
-											Your payment is encrypted and processed by Stripe — the same payment
-											platform trusted by Booking.com, Hopper, Lyft, Instacart, and Shopify.
-											Your card details never touch our servers, and future options like
-											PayPal and GCash will follow the same security standards.
-										</div>
+										<!-- GCASH (COMING SOON) -->
+										<label class="pill-wrap">
+											<div class="pill-caption">GCash (coming soon)</div>
+											<input
+												type="radio"
+												name="paymentMethod"
+												value="gcash"
+												class="payment-pill-input"
+												disabled
+											/>
+											<div class="pill" data-method="gcash">
+												<div class="card-logos">
+													<img
+														src="https://www.lolaelo.com/assets/gcash.png"
+														alt="GCash"
+														class="card-logo-img"
+													>
+												</div>
+											</div>
+										</label>
 									</div>
+								</div>
+
+								<p class="muted" style="margin-top: 10px;">
+									For now, payments are processed securely by Stripe Checkout
+									using your card or wallet.
+								</p>
+
+								<!-- Security icon + helper bubble -->
+								<div class="payment-security">
+									<div class="security-badge" aria-label="Secure checkout">
+										🔒
+									</div>
+									<div class="security-bubble">
+										<strong>Secure checkout</strong>
+										Your payment is encrypted and processed by Stripe, which also
+										powers secure checkout for companies like Lyft, Instacart, and
+										Shopify. Future options like PayPal and GCash will follow the
+										same security standards so your card details never touch our
+										servers.
+									</div>
+								</div>
+	              <button class="btn-primary" type="button" data-confirm="4">
+                Confirm payment method
+              </button>
               </div>
             </div>
           </div>
@@ -1161,5 +1205,28 @@
 
     document.addEventListener("DOMContentLoaded", initCheckout);
   </script>
+
+	  <script>
+    (function () {
+      const tickerImg = document.querySelector(".card-logo-ticker");
+      if (!tickerImg) return;
+
+      // TODO: make sure these 5 files exist in /assets on lolaelo.com
+      const logos = [
+        "https://www.lolaelo.com/assets/card_visa.png",
+        "https://www.lolaelo.com/assets/card_mastercard.png",
+        "https://www.lolaelo.com/assets/card_applepay.png",
+        "https://www.lolaelo.com/assets/card_discover.png",
+        "https://www.lolaelo.com/assets/card_amex.png",
+      ];
+
+      let index = 0;
+      setInterval(() => {
+        index = (index + 1) % logos.length;
+        tickerImg.src = logos[index];
+      }, 1500);
+    })();
+  </script>
+
 </body>
 </html>
