@@ -50,6 +50,7 @@
     color: var(--text);
   }
 
+  /* ANCHOR: LAYOUT_SHELL */
   .page {
     min-height: 100vh;
     display: flex;
@@ -120,6 +121,7 @@
     }
   }
 
+  /* ANCHOR: CARD_FRAME */
   .card {
     background: var(--card-bg);
     border-radius: var(--radius-lg);
@@ -136,24 +138,6 @@
     margin-bottom: 10px;
     cursor: pointer;
   }
-
-	.card-logos {
-		display: inline-flex;
-		align-items: center;
-		justify-content: center;
-	}
-
-	/* Larger logos inside pills */
-	.card-logos img {
-		height: 40px; /* visibly larger */
-		display: block;
-		object-fit: contain;
-	}
-	
-	/* Tidy spacing between the three payment pills */
-	.payment-options-row {
-		gap: 16px;
-	}
 
   .card-title {
     font-size: 15px;
@@ -208,6 +192,7 @@
     display: none;
   }
 
+  /* ANCHOR: FIELDS_AND_FORM */
   .field-row {
     margin-top: 12px;
     display: flex;
@@ -338,6 +323,13 @@
     resize: vertical;
   }
 
+  .error-text {
+    color: #b91c1c;
+    font-size: 13px;
+    margin-top: 6px;
+  }
+
+  /* ANCHOR: SUMMARY_CARD */
   .summary-card-title {
     font-size: 15px;
     font-weight: 600;
@@ -398,11 +390,16 @@
     display: block;
   }
 
+  /* ANCHOR: STICKY_FOOTER */
   .sticky-footer {
     position: sticky;
     bottom: 0;
     margin-top: 16px;
-    background: linear-gradient(to top, rgba(249, 250, 251, 0.96), rgba(249, 250, 251, 0.9));
+    background: linear-gradient(
+      to top,
+      rgba(249, 250, 251, 0.96),
+      rgba(249, 250, 251, 0.9)
+    );
     padding-top: 8px;
   }
 
@@ -443,53 +440,61 @@
     cursor: default;
   }
 
-  .error-text {
-    color: #b91c1c;
-    font-size: 13px;
-    margin-top: 6px;
+  /* ANCHOR: PAYMENT_PILLS */
+  .card-logos {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
   }
 
-  /* Payment pills */
+  /* BIGGER logos – ~5x original */
+  .card-logos img,
+  .pill img {
+    height: 60px;
+    display: block;
+    object-fit: contain;
+  }
 
-	.pill-wrap {
-		position: relative;
-		display: flex;
-		flex-direction: column;
-		align-items: center;
-		gap: 6px;
-		min-width: 190px;
-	}
+  /* Tidy spacing between the three payment pills */
+  .payment-options-row {
+    gap: 16px;
+  }
 
-	.pill {
-		display: flex;
-		align-items: center;
-		justify-content: center;
-		padding: 16px 22px;
-		border-radius: 999px;
-		font-size: 11px;
-		font-weight: 500;
-		border: 1px solid var(--border);
-		color: var(--muted);
-		background: #f9fafb;
-		gap: 10px;
-		transition:
-			border-color 0.16s ease-out,
-			box-shadow 0.16s ease-out,
-			background 0.16s ease-out,
-			transform 0.12s ease-out;
-	}
-	
-	/* Selected pill: orange outline + soft gradient */
-	.payment-pill-input:checked + .pill {
-		border-color: var(--accent);
-		box-shadow: 0 0 0 2px rgba(255, 106, 61, 0.35);
-		background: linear-gradient(
-			135deg,
-			rgba(255, 247, 237, 1),
-			#ffffff
-		);
-		transform: translateY(-1px);
-	}
+  .pill-wrap {
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 6px;
+    min-width: 190px;
+  }
+
+  .pill-caption {
+    font-size: 11px;
+    color: var(--muted);
+    text-align: center;
+    line-height: 1.3;
+    margin-bottom: 2px; /* caption ABOVE the pill */
+  }
+
+  .pill {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 16px 22px;
+    border-radius: 999px;
+    font-size: 11px;
+    font-weight: 500;
+    border: 1px solid var(--border);
+    color: var(--muted);
+    background: #f9fafb;
+    gap: 10px;
+    transition:
+      border-color 0.16s ease-out,
+      box-shadow 0.16s ease-out,
+      background 0.16s ease-out,
+      transform 0.12s ease-out;
+  }
 
   .pill-main {
     display: flex;
@@ -497,61 +502,50 @@
     gap: 10px;
   }
 
-	/* Caption now ABOVE the pill */
-	.pill-caption {
-		font-size: 11px;
-		color: var(--muted);
-		text-align: center;
-		line-height: 1.3;
-		margin-bottom: 2px;
-	}
-
-	/* Invisible radio that sits over the pill */
-	.payment-pill-input {
-		position: absolute;
-		inset: 20px 0 0 0; /* start roughly at top of pill */
-		opacity: 0;
-		cursor: pointer;
-	}
-
-	/* Remove old colored dot entirely */
-	.pill-dot {
-		display: none;
-	}
-
-  /* BIGGER logos – ~5x original */
-  .card-logos img,
-  .pill img {
-    height: 60px;
-    display: block;
+  /* Invisible radio that sits over the pill */
+  .payment-pill-input {
+    position: absolute;
+    inset: 20px 0 0 0; /* start roughly at top of pill */
+    opacity: 0;
+    cursor: pointer;
   }
 
-  .payment-options-row {
-    gap: 16px;
+  /* Selected pill: orange outline + soft gradient */
+  .payment-pill-input:checked + .pill {
+    border-color: var(--accent);
+    box-shadow: 0 0 0 2px rgba(255, 106, 61, 0.35);
+    background: linear-gradient(135deg, rgba(255, 247, 237, 1), #ffffff);
+    transform: translateY(-1px);
   }
 
-	/* Security helper: badge + bubble in bottom right of section */
-	.payment-security {
-		margin-top: 10px;
-		display: flex;
-		justify-content: flex-end;
-		position: relative;
-	}
+  /* Remove old colored dot entirely */
+  .pill-dot {
+    display: none;
+  }
 
-	.security-badge {
-		width: 32px;
-		height: 32px;
-		border-radius: 999px;
-		background: #dbeafe;
-		display: flex;
-		align-items: center;
-		justify-content: center;
-		color: #0f766e;
-		font-size: 16px;
-		box-shadow: 0 8px 20px rgba(15, 23, 42, 0.15);
-		cursor: default;
-	}
-	
+  /* ANCHOR: SECURITY_HELPER */
+  .payment-security {
+    margin-top: 10px;
+    display: flex;
+    justify-content: flex-end;
+    position: relative;
+  }
+
+  /* circular icon version – used with the badge-style helper */
+  .security-badge {
+    width: 32px;
+    height: 32px;
+    border-radius: 999px;
+    background: #dbeafe;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: #0f766e;
+    font-size: 16px;
+    box-shadow: 0 8px 20px rgba(15, 23, 42, 0.15);
+    cursor: default;
+  }
+
   .security-icon-btn {
     width: 32px;
     height: 32px;
@@ -572,39 +566,40 @@
     outline-offset: 2px;
   }
 
-	.security-bubble {
-		position: absolute;
-		right: 0;
-		bottom: 130%;
-		background: #020617;
-		color: #e5e7eb;
-		padding: 10px 12px;
-		border-radius: 12px;
-		width: 260px;
-		box-shadow: 0 18px 40px rgba(15, 23, 42, 0.35);
-		font-size: 12px;
-		line-height: 1.4;
-		opacity: 0;
-		pointer-events: none;
-		transform: translateY(4px);
-		transition:
-			opacity 0.18s ease-out,
-			transform 0.18s ease-out;
-		z-index: 20;
-	}
+  .security-bubble {
+    position: absolute;
+    right: 0;
+    bottom: 130%;
+    background: #020617;
+    color: #e5e7eb;
+    padding: 10px 12px;
+    border-radius: 12px;
+    width: 260px;
+    box-shadow: 0 18px 40px rgba(15, 23, 42, 0.35);
+    font-size: 12px;
+    line-height: 1.4;
+    opacity: 0;
+    pointer-events: none;
+    transform: translateY(4px);
+    transition:
+      opacity 0.18s ease-out,
+      transform 0.18s ease-out;
+    z-index: 20;
+  }
 
-	.security-bubble strong {
-		display: block;
-		margin-bottom: 4px;
-		color: #f9fafb;
-	}
+  .security-bubble strong {
+    display: block;
+    margin-bottom: 4px;
+    color: #f9fafb;
+  }
 
-	.payment-security:hover .security-bubble,
-	.payment-security:focus-within .security-bubble {
-		opacity: 1;
-		pointer-events: auto;
-		transform: translateY(0);
-	}
+  .payment-security:hover .security-bubble,
+  .payment-security:focus-within .security-bubble {
+    opacity: 1;
+    pointer-events: auto;
+    transform: translateY(0);
+  }
+
 </style>
 
 </head>
