@@ -899,32 +899,39 @@
                 </div>
               </div>
 
-              <!-- SECURITY ICON BOTTOM-RIGHT -->
-              <div class="payment-security">
-                <button
-                  class="security-icon-btn"
-                  type="button"
-                  aria-label="Security and payments"
-                >
-                  🔒
-                </button>
-                <div class="security-bubble">
-                  <strong>Secure checkout</strong>
-                  Your payment is encrypted and processed by Stripe, the same
-                  provider trusted by companies like Lyft and Airbnb. Future
-                  options like PayPal and GCash will follow the same security
-                  standards so your card details never touch our servers.
-                </div>
-              </div>
-              <button class="btn-primary" type="button" data-confirm="4">
-                Confirm payment method
-              </button>
-              </div>
-            </div>
-          </div>
+							<!-- SECURITY ICON + CONFIRM BUTTON (SIDE BY SIDE) -->
+							<div style="display:flex; align-items:center; justify-content:flex-start; gap:14px; margin-top:16px; position:relative;">
 
-        <!-- Right side: booking summary -->
-        <aside>
+								<!-- Confirm button -->
+								<button class="btn-primary" type="button" data-confirm="4">
+									Confirm Payment Method
+								</button>
+
+								<!-- Security icon + bubble -->
+								<div class="payment-security" style="position:relative;">
+									<button
+										class="security-icon-btn"
+										type="button"
+										aria-label="Security and payments"
+									>
+										🔒
+									</button>
+
+									<div class="security-bubble">
+										<strong>Secure checkout</strong>
+										Your payment is encrypted and processed by Stripe, the same
+										provider trusted by companies like Lyft and Airbnb.
+										Future options like PayPal and GCash will follow the same
+										security standards so your card details never touch our servers.
+									</div>
+								</div>
+							</div>
+						</div>
+					</div>
+				</div>
+
+				<!-- Right side: booking summary -->
+				<aside>
 
           <div class="card">
             <div class="summary-card-title">Your stay</div>
@@ -973,7 +980,7 @@
 
           </div>
           <button class="sticky-button" id="confirmAndPayButton" disabled>
-            Continue to secure payment
+            Continue to Secure Payment
           </button>
         </div>
       </div>
