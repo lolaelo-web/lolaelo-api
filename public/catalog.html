@@ -285,6 +285,84 @@
       transform:translateY(-1px);
     }
 
+    /* === ANCHOR: CATALOG_CUSTOM_SELECT_CSS (match landing) ================== */
+
+    .custom-select{
+      position:relative;
+      width:100%;
+    }
+
+    .custom-select-toggle{
+      width:100%;
+      padding:0;
+      margin:0;
+      border:none;
+      background:transparent;
+      text-align:left;
+      font:inherit;
+      color:#111827;
+      cursor:pointer;
+      display:flex;
+      align-items:center;
+      justify-content:space-between;
+    }
+
+    .custom-select-label{
+      white-space:nowrap;
+      overflow:hidden;
+      text-overflow:ellipsis;
+    }
+
+    .custom-select-menu{
+      list-style:none;
+      margin:4px 0 0 0;
+      padding:4px 0;
+      position:absolute;
+      top:100%;
+      left:-12px;
+      right:-12px;
+      background:#ffffff;
+      border-radius:12px;
+      border:1px solid #e5e7eb;
+      box-shadow:0 14px 30px rgba(15,23,42,0.12);
+      max-height:260px;
+      overflow-y:auto;
+      display:none;
+      z-index:30;
+    }
+
+    .custom-select-menu.is-open{
+      display:block;
+    }
+
+    .custom-select-menu li{
+      padding:8px 12px;
+      font-size:14px;
+      font-weight:400;
+      cursor:pointer;
+      color:#111827;
+      text-align:left;
+    }
+
+    .custom-select-menu li:hover{
+      background:#e0f2f1;
+      color:#064e3b;
+    }
+
+    .custom-select-menu li[aria-selected="true"]{
+      background:#e0f2f1;
+      color:#064e3b;
+    }
+
+    /* arrow icon inside the field */
+    .field .custom-select-toggle::after{
+      content:"▾";
+      font-size:12px;
+      color:#6b7280;
+      margin-left:8px;
+      flex-shrink:0;
+    }
+
     .subhead{
       color:var(--muted);
       font-size:14px;
@@ -520,15 +598,29 @@
       <div class="controls-row">
         <label class="field" aria-label="Destination">
           <span>📍</span>
-          <select id="dest">
-            <option value="">All destinations</option>
-            <option value="SIARGAO">Siargao</option>
-            <option value="EL NIDO">El Nido</option>
-            <option value="CORON">Coron</option>
-            <option value="BORACAY">Boracay</option>
-            <option value="MANILA">Manila</option>
-            <option value="CEBU">Cebu</option>
-          </select>
+          <div class="custom-select" data-target="dest">
+            <button
+              type="button"
+              class="custom-select-toggle"
+              aria-haspopup="listbox"
+              aria-expanded="false"
+            >
+              <span class="custom-select-label">All destinations</span>
+            </button>
+
+            <ul class="custom-select-menu" role="listbox">
+              <li data-value="" aria-selected="true">All destinations</li>
+              <li data-value="SIARGAO">Siargao</li>
+              <li data-value="EL NIDO">El Nido</li>
+              <li data-value="CORON">Coron</li>
+              <li data-value="BORACAY">Boracay</li>
+              <li data-value="MANILA">Manila</li>
+              <li data-value="CEBU">Cebu</li>
+            </ul>
+
+            <!-- used by existing JS (selectedCityCode, hydration, qs, etc.) -->
+            <input id="dest" type="hidden" value="">
+          </div>
         </label>
         <label class="field" aria-label="Check-in">
           <span>📅</span>
@@ -897,6 +989,97 @@
       }
     });
   })();
+
+  /* === ANCHOR: CUSTOM_SELECT_INIT (match landing) ========================= */
+
+  function initCustomSelect(wrapper){
+    const button = wrapper.querySelector(".custom-select-toggle");
+    const labelEl = wrapper.querySelector(".custom-select-label");
+    const menu = wrapper.querySelector(".custom-select-menu");
+    const options = menu.querySelectorAll("li[data-value]");
+    const hidden = document.getElementById(wrapper.dataset.target);
+
+    function openMenu(){
+      menu.classList.add("is-open");
+      button.setAttribute("aria-expanded","true");
+    }
+
+    function closeMenu(){
+      menu.classList.remove("is-open");
+      button.setAttribute("aria-expanded","false");
+    }
+
+    function selectOption(li){
+      const value = li.getAttribute("data-value") || "";
+      const text = (li.textContent || "").trim();
+
+      hidden.value = value;
+      labelEl.textContent = text;
+
+      options.forEach(o => o.removeAttribute("aria-selected"));
+      li.setAttribute("aria-selected","true");
+
+      closeMenu();
+    }
+
+    button.addEventListener("click", function(){
+      if(menu.classList.contains("is-open")){
+        closeMenu();
+      } else {
+        openMenu();
+      }
+    });
+
+    options.forEach(li => {
+      li.addEventListener("click", () => selectOption(li));
+    });
+
+    document.addEventListener("click", function(evt){
+      if(!wrapper.contains(evt.target)){
+        closeMenu();
+      }
+    });
+  }
+
+  // Initialize ALL custom-select instances on this page
+  document.querySelectorAll(".custom-select").forEach(initCustomSelect);
+
+  /* === ANCHOR: CUSTOM_SELECT_SYNC (match landing) ========================= */
+
+  // On page load, sync dropdown label to query param (?city=...)
+  (function syncDestination(){
+    const url = new URL(location.href);
+    const cityParam =
+      url.searchParams.get("city") ||
+      url.searchParams.get("q") ||
+      url.searchParams.get("destination") ||
+      "";
+
+    if (!cityParam) return;
+
+    const destHidden = document.getElementById("dest");
+    const wrapper = destHidden.closest(".custom-select");
+    if (!wrapper) return;
+
+    const labelEl = wrapper.querySelector(".custom-select-label");
+    const options = wrapper.querySelectorAll(".custom-select-menu li[data-value]");
+
+    // Normalize for comparison
+    const normalized = cityParam.trim().toUpperCase();
+
+    options.forEach(li => {
+      const val = (li.getAttribute("data-value") || "").trim().toUpperCase();
+      if (val === normalized) {
+        destHidden.value = li.getAttribute("data-value");
+        labelEl.textContent = li.textContent.trim();
+
+        // update aria-selected
+        options.forEach(o => o.removeAttribute("aria-selected"));
+        li.setAttribute("aria-selected", "true");
+      }
+    });
+  })();
+
   </script>
 </body>
 </html>
