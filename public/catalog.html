@@ -945,24 +945,30 @@
         if (typeof detailsEl !== 'undefined' && detailsEl) detailsEl.open = false;
       }
     }
+
     // Update URL with city/start/end/guests (+ optional plan), then run
-      document.getElementById('search').addEventListener('click', () => {
-        const city   = selectedCityCode();
-        const start  = startInp.value || todayISO();
-        const end    = endInp.value   || start;
-        const guests = Number(guestsInp.value || 2) || 2;
+    document.getElementById('search').addEventListener('click', () => {
+      const city  = selectedCityCode();
+      const start = startInp.value || todayISO();
+      const end   = endInp.value   || start;
 
-        const params = new URLSearchParams();
-        params.set('start', start);
-        params.set('end', end);
-        params.set('guests', String(guests));
-        if (city) params.set('city', city);
-        if (window.ratePlanId) params.set('ratePlanId', String(window.ratePlanId));
+      // NEW: read from hidden field used by custom-select
+      const guestsHiddenEl = document.getElementById('guestsHidden');
+      const guests = Number((guestsHiddenEl && guestsHiddenEl.value) || 2) || 2;
 
-        history.replaceState(null, '', location.pathname + '?' + params.toString());
-        run();
-      });
+      const params = new URLSearchParams();
+      params.set('start', start);
+      params.set('end', end);
+      params.set('guests', String(guests));
+      if (city) params.set('city', city);
+      if (window.ratePlanId) params.set('ratePlanId', String(window.ratePlanId));
 
+      history.replaceState(null, '', location.pathname + '?' + params.toString());
+      run();
+    });
+
+    // Destination dropdown now custom-select, so we trigger run() manually if needed
+    // (leaving this line harmlessly in place, no conflict)
     S('dest')?.addEventListener('change', run);
 
     /* ANCHOR: AMENITY_AUTO_FILTER */
