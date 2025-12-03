@@ -287,80 +287,97 @@
 
     /* === ANCHOR: CATALOG_CUSTOM_SELECT_CSS (match landing) ================== */
 
-    .custom-select{
-      position:relative;
-      width:100%;
+    /* Container behaves same as landing page */
+    .custom-select {
+      position: relative;
+      width: 100%;
     }
 
-    .custom-select-toggle{
-      width:100%;
-      padding:0;
-      margin:0;
-      border:none;
-      background:transparent;
-      text-align:left;
-      font:inherit;
-      color:#111827;
-      cursor:pointer;
-      display:flex;
-      align-items:center;
-      justify-content:space-between;
+    /* Toggle → widened, landing-page style */
+    .custom-select-toggle {
+      width: 100%;
+      padding: 0;
+      margin: 0;
+      border: none;
+      background: transparent;
+      text-align: left;
+      font: inherit;
+      color: #111827;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+
+      /* widen to match landing page proportions */
+      min-width: 200px;
     }
 
-    .custom-select-label{
-      white-space:nowrap;
-      overflow:hidden;
-      text-overflow:ellipsis;
+    /* Label text handling */
+    .custom-select-label {
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
     }
 
-    .custom-select-menu{
-      list-style:none;
-      margin:4px 0 0 0;
-      padding:4px 0;
-      position:absolute;
-      top:100%;
-      left:-12px;
-      right:-12px;
-      background:#ffffff;
-      border-radius:12px;
-      border:1px solid #e5e7eb;
-      box-shadow:0 14px 30px rgba(15,23,42,0.12);
-      max-height:260px;
-      overflow-y:auto;
-      display:none;
-      z-index:30;
+    /* Dropdown menu → widened, no-scroll, landing-style */
+    .custom-select-menu {
+      list-style: none;
+      margin: 4px 0 0 0;
+      padding: 4px 0;
+      position: absolute;
+      top: 100%;
+      left: -12px;
+      right: -12px;
+      background: #ffffff;
+      border-radius: 12px;
+      border: 1px solid #e5e7eb;
+      box-shadow: 0 14px 30px rgba(15, 23, 42, 0.12);
+
+      /* remove scroll completely */
+      max-height: none !important;
+      overflow-y: visible !important;
+
+      display: none;
+      z-index: 30;
     }
 
-    .custom-select-menu.is-open{
-      display:block;
+    .custom-select-menu.is-open {
+      display: block;
     }
 
-    .custom-select-menu li{
-      padding:8px 12px;
-      font-size:14px;
-      font-weight:400;
-      cursor:pointer;
-      color:#111827;
-      text-align:left;
+    /* Dropdown list items */
+    .custom-select-menu li {
+      padding: 8px 12px;
+      font-size: 14px;
+      font-weight: 400;
+      cursor: pointer;
+      color: #111827;
+      text-align: left;
     }
 
-    .custom-select-menu li:hover{
-      background:#e0f2f1;
-      color:#064e3b;
+    .custom-select-menu li:hover {
+      background: #e0f2f1;
+      color: #064e3b;
     }
 
-    .custom-select-menu li[aria-selected="true"]{
-      background:#e0f2f1;
-      color:#064e3b;
+    .custom-select-menu li[aria-selected="true"] {
+      background: #e0f2f1;
+      color: #064e3b;
     }
 
-    /* arrow icon inside the field */
-    .field .custom-select-toggle::after{
-      content:"▾";
-      font-size:12px;
-      color:#6b7280;
-      margin-left:8px;
-      flex-shrink:0;
+    /* Arrow icon */
+    .field .custom-select-toggle::after {
+      content: "▾";
+      font-size: 12px;
+      color: #6b7280;
+      margin-left: 8px;
+      flex-shrink: 0;
+    }
+
+    /* Widen the entire shell (destination + guests) */
+    .field .search-input-shell {
+      min-width: 240px;    /* 1.3× wider than current */
+      padding-right: 10px;
     }
 
     .subhead{
@@ -634,13 +651,28 @@
 
         <label class="field" aria-label="Guests">
           <span>👤</span>
-          <select id="guests">
-            <option value="1">1 guest</option>
-            <option value="2" selected>2 guests</option>
-            <option value="3">3 guests</option>
-            <option value="4">4 guests</option>
-            <option value="5">5+ guests</option>
-          </select>
+
+          <div class="custom-select" data-target="cat-guests">
+            <button
+              type="button"
+              class="custom-select-toggle"
+              aria-haspopup="listbox"
+              aria-expanded="false"
+            >
+              <span class="custom-select-label">2 guests</span>
+            </button>
+
+            <ul class="custom-select-menu" role="listbox">
+              <li data-value="1">1 guest</li>
+              <li data-value="2" aria-selected="true">2 guests</li>
+              <li data-value="3">3 guests</li>
+              <li data-value="4">4 guests</li>
+              <li data-value="5">5+ guests</li>
+            </ul>
+
+            <!-- Hidden actual value used by JS -->
+            <input id="cat-guests" type="hidden" value="2">
+          </div>
         </label>
 
         <button id="search" class="search-btn" type="button">Search</button>
