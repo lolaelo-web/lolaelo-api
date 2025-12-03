@@ -465,18 +465,25 @@
 <body>
   <div class="paper">
     <!-- ANCHOR: CATALOG_HEADER_HTML -->
-    <header class="nav">
-      <div class="nav-left">
-        <a href="/index.html" aria-label="Lolaelo home">
-          <img src="/logo.png" alt="Lolaelo" class="logo-img" />
-        </a>
-      </div>
-      <nav class="nav-right" aria-label="Primary">
-        <a class="nav-link nav-link-back" href="/index.html" aria-label="Back to main page">
-          <span class="nav-back-arrow">←</span>
-          <span>Back to main</span>
-        </a>
-      </nav>
+    <header>
+      <a class="logo" href="/index.html" aria-label="Lolaelo home">
+        <img
+          src="/logo.png"
+          alt="Lolaelo"
+          class="logo-img"
+          decoding="async"
+          loading="eager"
+        >
+      </a>
+
+      <a
+        class="nav-link nav-link-back"
+        href="/index.html"
+        aria-label="Back to main page"
+      >
+        <span class="nav-back-arrow">←</span>
+        <span>Back to main</span>
+      </a>
     </header>
 
     <!-- ANCHOR: SEARCHBAR -->
@@ -651,7 +658,7 @@
             ? `&city=${encodeURIComponent(city)}&cityCode=${encodeURIComponent(city)}`
             : '';
         const r = await fetch(
-          `/catalog/search?start=${encodeURIComponent(start)}&end=${encodeURIComponent(end)}&guests=${guests}${planQS}${cityQS}`
+          `/catalog/search?start=${encodeURIComponent(start)}&end=${encodeURIComponent(end)}&guests=${encodeURIComponent(guests)}${planQS}${cityQS}`
         );
         const j = await r.json();
         const all = Array.isArray(j.properties) ? j.properties : [];
