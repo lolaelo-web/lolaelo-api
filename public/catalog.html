@@ -324,23 +324,25 @@
       text-overflow: ellipsis;
     }
 
-    /* Dropdown menu → widened, no-scroll, landing-style */
+    /* Dropdown menu → match landing behavior and field width */
     .custom-select-menu {
       list-style: none;
       margin: 4px 0 0 0;
       padding: 4px 0;
       position: absolute;
       top: 100%;
-      left: 0;
-      right: 0;
+
+      /* extend to cover the field padding, same trick as index.html */
+      left: -12px;
+      right: -12px;
+
       background: #ffffff;
       border-radius: 12px;
       border: 1px solid #e5e7eb;
       box-shadow: 0 14px 30px rgba(15, 23, 42, 0.12);
 
-      /* remove scroll completely */
-      max-height: none !important;
-      overflow-y: visible !important;
+      max-height: 260px;
+      overflow-y: auto;
 
       display: none;
       z-index: 30;
@@ -586,17 +588,6 @@
       color:#ff6a3d;
       text-decoration:none;
     }
-
-    /* === ANCHOR: CATALOG_DROPDOWN_WIDTH_FIX ====================== */
-
-    /* Force dropdown menu to match the width of the field */
-    .field .custom-select-menu {
-      width: 100% !important;
-      left: 0 !important;
-      right: 0 !important;
-      min-width: 100% !important;
-    }
-
   </style>
 </head>
 <body>
@@ -721,7 +712,12 @@
     // === ANCHOR: CATALOG_SCRIPT ============================================
     const qs   = new URLSearchParams(location.search);
     const S    = (id)=>document.getElementById(id);
-    const startInp=S('start'), endInp=S('end'), guestsInp=S('guests'), grid=S('grid'), found=S('found');
+
+    // no more legacy #guests select; we now use #cat-guests (hidden)
+    const startInp = S('start');
+    const endInp   = S('end');
+    const grid     = S('grid');
+    const found    = S('found');
 
     // Bind destination input and hydrate from ?q=
     const destInp = S('dest');
@@ -749,7 +745,14 @@
 
     const s0 = qs.get('start') || todayISO();
     const e0 = qs.get('end')   || addDaysISO(s0, 3);
-    startInp.value = s0; endInp.value = e0; guestsInp.value = qs.get('guests') || "2";
+    startInp.value = s0;
+    endInp.value   = e0;
+
+    // initialize hidden guests field used by the custom-select
+    const guestsHiddenInit = document.getElementById('cat-guests');
+    if (guestsHiddenInit) {
+      guestsHiddenInit.value = qs.get('guests') || "2";
+    }
     // INIT CITY SELECT FROM ?city= (fallback to SIARGAO)
     (function initCity(){
       const sel = document.getElementById('dest');
