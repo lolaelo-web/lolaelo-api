@@ -86,9 +86,10 @@
     }
 
     .logo-img{
-      height:32px;   /* matches landing page visual scale */
-      width:auto;
+      height:28px !important;
+      width:auto !important;
       display:block;
+      object-fit:contain;
     }
 
     /* Optional text wordmark if used */
@@ -202,42 +203,50 @@
       accent-color:#064e3b; /* brand green */
     }
 
-    /* Always-visible search bar wrapper */
+    /* === ANCHOR: CATALOG_SEARCH_BAR_CSS (mirror landing) ================ */
+
+    /* Outer search card: match index.html search-card */
     .searchbar{
-      border:1px solid rgba(6, 78, 59, 0.20); /* soft brand-teal outline */
-      border-radius:16px;
-      padding:10px 12px;
+      border-radius:18px;
+      padding:14px 16px;
+      margin-bottom:12px;
       background:#ffffff;
-      box-shadow:
-        0 0 0 1px rgba(6, 78, 59, 0.05),
-        0 8px 24px rgba(15,23,42,0.08);
-      margin-bottom:10px;
+      border:1px solid #e5e7eb;
+      box-shadow:0 18px 45px rgba(15,23,42,0.08);
     }
 
-    /* Search row + inputs */
+    /* Grid layout: 4 fields + Search button, like search-row */
     .controls-row{
       display:grid;
-      gap:10px;
-      align-items:center;
-      grid-template-columns:1.2fr 1fr 1fr .8fr auto;
-      padding:4px;
+      grid-template-columns:1.4fr 1.3fr 1fr 1fr auto;
+      gap:8px;
+      align-items:stretch;
     }
 
+    /* Field shell: match search-input-shell */
     .field{
       display:flex;
       align-items:center;
       gap:8px;
-      background:#ffffff;
-      border:1px solid #e5e7eb;        /* soft border */
-      border-radius:14px;              /* cleaner rounded style */
-      padding:12px 14px;               /* more breathing room */
+      background:#f9fafb;
+      border:1px solid #e5e7eb;
+      border-radius:12px;
+      padding:8px 12px;
+      position:relative;
       transition:
         border-color .15s ease-out,
-        box-shadow .15s ease-out;
+        box-shadow .15s ease-out,
+        background .15s ease-out;
     }
 
     .field:hover{
       border-color:#d1d5db;
+      background:#ffffff;
+      box-shadow:0 2px 8px rgba(15,23,42,0.12);
+    }
+
+    .field span{
+      font-size:14px;
     }
 
     .field input,
@@ -247,26 +256,33 @@
       background:transparent;
       outline:none;
       font:inherit;
+      font-size:14px;
       color:var(--fg);
     }
 
+    /* Search button: match landing search-btn */
     .search-btn{
       border:none;
       background:#ff6a3d;
-      color:#fff;
+      color:#ffffff;
       font-weight:600;
+      font-size:13px;
       border-radius:999px;
-      padding:12px 20px;
+      padding:0 18px;
+      min-height:32px;
       cursor:pointer;
-      box-shadow:0 4px 12px rgba(255,106,61,0.25);
-      transition:
-        filter .15s ease-out,
-        box-shadow .15s ease-out;
+      display:inline-flex;
+      align-items:center;
+      justify-content:center;
+      white-space:nowrap;
+      box-shadow:0 10px 22px rgba(248,113,73,0.45);
+      transition:filter .15s ease-out, box-shadow .15s ease-out, transform .12s ease-out;
     }
 
     .search-btn:hover{
-      filter:brightness(.96);
-      box-shadow:0 6px 16px rgba(255,106,61,0.35);
+      filter:brightness(0.97);
+      box-shadow:0 12px 26px rgba(248,113,73,0.55);
+      transform:translateY(-1px);
     }
 
     .subhead{
@@ -361,10 +377,10 @@
     }
 
     .card .body{
-      padding:14px 14px 16px;
+      padding:16px 16px 18px;
       display:flex;
       flex-direction:column;
-      gap:8px;
+      gap:6px; /* tighter vertical spacing */
     }
 
     .name{
@@ -388,6 +404,16 @@
       flex-wrap:wrap;
     }
 
+    /* Tighter spacing between name → location → chips */
+    .meta{
+      margin-top:2px;
+    }
+
+    .chips{
+      margin-top:4px;
+      margin-bottom:2px;
+    }
+
     .chip{
       font-size:11px;
       padding:4px 8px;
@@ -401,7 +427,8 @@
       display:flex;
       align-items:center;
       justify-content:space-between;
-      margin-top:6px;
+      margin-top:4px;   /* slightly tighter */
+      min-height:28px;  /* ensures consistent alignment across cards */
     }
 
     .price{
@@ -488,7 +515,6 @@
         <span>Back to main</span>
       </a>
     </header>
-
     <!-- ANCHOR: SEARCHBAR -->
     <div class="searchbar">
       <div class="controls-row">
@@ -776,14 +802,14 @@
 
         window.__catalogProps = list;
 
-        // 1) amenity filter first
+        // 1) amenity filter on top of existing list
         const sel = selectedAmenities();
-        list = sel.length
-          ? list.filter(p => {
-              const am = (p.amenities || []).map(a => String(a).toLowerCase());
-              return sel.every(a => am.includes(a));
-            })
-          : all;
+        if (sel.length) {
+          list = list.filter(p => {
+            const am = (p.amenities || []).map(a => String(a).toLowerCase());
+            return sel.every(a => am.includes(a));
+          });
+        }
 
         found.textContent = `Found ${list.length} propert${list.length===1?"y":"ies"} — ${list.filter(p=>p.availableNights>0).length} with availability.`;
         grid.innerHTML = list.map(p => cardHTML(p, start, end)).join("") || "<div>No results.</div>";
