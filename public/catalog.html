@@ -8,50 +8,62 @@
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
 
   <style>
-    /* === ANCHOR: CATALOG_LIGHT_SKIN (collapsed filters) =================== */
-  :root{
-        --bg:#ffffff;
-        --fg:#111827;
-        --muted:#6b7280;
-        --line:#e5e7eb;
-        --brand:#064e3b;          /* deep teal, same as new pages */
-        --bubble:#ff6a3d;         /* orange accent for Search/CTAs */
-        --paper:#ffffff;
-        --radius:20px;
-        --shadow:0 12px 40px rgba(15,23,42,.10);
-        --maxw:960px;             /* tighter, like the new homepage card */
-      }
+    /* === ANCHOR: CATALOG_LIGHT_SKIN (theme tokens) ======================== */
+    :root{
+      --bg:#ffffff;
+      --fg:#111827;
+      --muted:#6b7280;
+      --line:#e5e7eb;
+      --brand:#064e3b;          /* deep teal, same as new pages */
+      --bubble:#ff6a3d;         /* orange accent for Search/CTAs */
+      --paper:#ffffff;
+      --radius:20px;
+      --shadow:0 12px 40px rgba(15,23,42,.10);
+      --maxw:960px;             /* tighter, like the new homepage card */
+    }
 
-    *{ box-sizing:border-box; }
-    html,body{ height:100%; margin:0; }
+    /* === ANCHOR: CATALOG_BASE_LAYOUT ===================================== */
+    *{
+      box-sizing:border-box;
+    }
+
+    html,
+    body{
+      height:100%;
+      margin:0;
+    }
 
     /* Standardize base type across customer UIs */
-    html { font-size: 16px; }
+    html{
+      font-size:16px;
+    }
+
     body{
-      font: 15px/1.5 Inter, ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial;
-      color: var(--fg);
+      font:15px/1.5 Inter, ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial;
+      color:var(--fg);
       /* very light teal-at-top → white gradient, keeps it minimalist */
       background:
         linear-gradient(to bottom, rgba(6, 78, 59, 0.06), #ffffff 42%);
-      display: flex;
-      flex-direction: column;
-      align-items: center;
+      display:flex;
+      flex-direction:column;
+      align-items:center;
     }
 
     .paper{
       width:100%;
       max-width:var(--maxw);
-      margin: 24px 20px;
-      background: var(--paper);
-      border-radius: var(--radius);
-      box-shadow: var(--shadow);
-      padding: 22px 22px 30px;
+      margin:24px 20px;
+      background:var(--paper);
+      border-radius:var(--radius);
+      box-shadow:var(--shadow);
+      padding:22px 22px 30px;
     }
 
-    /* ANCHOR: CATALOG_HEADER_GRID */
+    /* === ANCHOR: CATALOG_HEADER_CSS ====================================== */
+    /* Grid header: logo on left, back link on right */
     header{
       display:grid;
-      grid-template-columns: auto 1fr auto;
+      grid-template-columns:auto 1fr auto;
       align-items:center;
       gap:12px;
       margin-bottom:8px;
@@ -60,10 +72,11 @@
     header h1{
       margin:6px 0 0;
       text-align:center;
-      font-size:clamp(22px,3.4vw,26px);
+      font-size:clamp(22px, 3.4vw, 26px);
       font-weight:600;
     }
 
+    /* Standardized logo container (kept for layout compatibility) */
     .logo{
       display:flex;
       align-items:center;
@@ -72,61 +85,59 @@
       color:inherit;
     }
 
-    .logo img{
-      height:28px;
-      width:auto;
-    }
-
-    .logo img{
-      height:22px;
+    /* Unified logo image class matching landing page */
+    .logo-img{
+      height:32px;   /* matches landing page visual scale */
       width:auto;
       display:block;
     }
 
-    .logo .wordmark{
+    /* Optional text wordmark if used */
+    .wordmark{
       font-weight:700;
       font-size:18px;
       letter-spacing:.2px;
     }
 
-        /* Back link (top-right), matching destinations page behavior */
+    /* Back link (top-right), matching destinations page behavior */
     .nav-link{
-      color: var(--brand);
-      padding: 4px 0;
-      font-weight: 500;
-      text-decoration: none; /* no underline by default */
-      justify-self: end;
+      color:var(--brand);
+      padding:4px 0;
+      font-weight:500;
+      text-decoration:none; /* no underline by default */
+      justify-self:end;
     }
 
     .nav-link-back{
-      display: inline-flex;
-      align-items: center;
-      gap: 6px;
-      text-decoration: none; /* no underline on full link */
+      display:inline-flex;
+      align-items:center;
+      gap:6px;
+      text-decoration:none; /* no underline on full link */
     }
 
     .nav-back-arrow{
-      font-size: 16px;
-      line-height: 1;
-      transform: translateY(1px);
-      text-decoration: none !important;
+      font-size:16px;
+      line-height:1;
+      transform:translateY(1px);
+      text-decoration:none !important;
     }
 
     /* text span is the second span inside .nav-link-back */
     .nav-link-back span:last-child{
-      text-decoration: none;
+      text-decoration:none;
     }
 
     /* Hover: underline text only, arrow stays clean */
     .nav-link-back:hover span:last-child{
-      text-decoration: underline;
+      text-decoration:underline;
     }
 
     .nav-link-back:hover .nav-back-arrow{
-      transform: translate(-2px, 1px);
-      transition: transform 0.15s ease-out;
+      transform:translate(-2px, 1px);
+      transition:transform 0.15s ease-out;
     }
 
+    /* === ANCHOR: CATALOG_FILTERS_SEARCH ================================== */
     /* Collapsible filters (amenities only) */
     details.filters{
       border:1px solid var(--line);
@@ -147,17 +158,10 @@
       align-items:center;
     }
 
-    .filters[open] summary{ border-bottom:1px solid var(--line); }
-    .filters-body{
-      padding:12px 14px 10px;
-      display:flex;
-      gap:10px 16px;
-      flex-wrap:wrap;
-      font-size:13px;
-      color:var(--muted);
+    .filters[open] summary{
+      border-bottom:1px solid var(--line);
     }
 
-    /* ANCHOR: FILTERS_BAR_CSS (INSERT) */
     .filters{
       width:100%;
     }
@@ -165,13 +169,27 @@
     .filters .summary-pill{
       display:block;
       width:100%;
-      background:#f9fafb;
-      border:1px solid var(--line);
-      border-radius:12px;
-      padding:10px 12px;
-      font-weight:500;
+      background:
+        linear-gradient(90deg,
+          rgba(255,106,61,0.08),
+          #f9fafb);
+      border:1px solid rgba(255,106,61,0.55); /* stronger orange outline */
+      border-radius:999px;                     /* more “pill” like */
+      padding:10px 14px;
+      font-weight:600;
       font-size:13px;
-      color:#374151;
+      letter-spacing:0.03em;
+      color:#1f2933;
+      box-shadow:0 2px 8px rgba(15,23,42,0.10);
+    }
+
+    .filters-body{
+      padding:12px 14px 10px;
+      display:flex;
+      gap:10px 16px;
+      flex-wrap:wrap;
+      font-size:13px;
+      color:var(--muted);
     }
 
     .filters-body label{
@@ -188,7 +206,7 @@
 
     /* Always-visible search bar wrapper */
     .searchbar{
-      border: 1px solid rgba(6, 78, 59, 0.20); /* soft brand-teal outline */
+      border:1px solid rgba(6, 78, 59, 0.20); /* soft brand-teal outline */
       border-radius:16px;
       padding:10px 12px;
       background:#ffffff;
@@ -200,91 +218,94 @@
 
     /* Search row + inputs */
     .controls-row{
-      display: grid;
-      gap: 10px;
-      align-items: center;
-      grid-template-columns: 1.2fr 1fr 1fr .8fr auto;
-      padding: 4px;
+      display:grid;
+      gap:10px;
+      align-items:center;
+      grid-template-columns:1.2fr 1fr 1fr .8fr auto;
+      padding:4px;
     }
 
     .field{
-      display: flex;
-      align-items: center;
-      gap: 8px;
-      background: #ffffff;
-      border: 1px solid #e5e7eb;        /* soft border */
-      border-radius: 14px;              /* cleaner rounded style */
-      padding: 12px 14px;               /* more breathing room */
-      transition: border-color .15s ease-out,
-                  box-shadow .15s ease-out;
+      display:flex;
+      align-items:center;
+      gap:8px;
+      background:#ffffff;
+      border:1px solid #e5e7eb;        /* soft border */
+      border-radius:14px;              /* cleaner rounded style */
+      padding:12px 14px;               /* more breathing room */
+      transition:
+        border-color .15s ease-out,
+        box-shadow .15s ease-out;
     }
 
     .field:hover{
-      border-color: #d1d5db;
+      border-color:#d1d5db;
     }
 
     .field input,
     .field select{
-      width: 100%;
-      border: none;
-      background: transparent;
-      outline: none;
-      font: inherit;
-      color: var(--fg);
+      width:100%;
+      border:none;
+      background:transparent;
+      outline:none;
+      font:inherit;
+      color:var(--fg);
     }
 
     .search-btn{
-      border: none;
-      background: #ff6a3d;
-      color: #fff;
-      font-weight: 600;
-      border-radius: 999px;
-      padding: 12px 20px;
-      cursor: pointer;
-      box-shadow: 0 4px 12px rgba(255,106,61,0.25);
-      transition: filter .15s ease-out, box-shadow .15s ease-out;
+      border:none;
+      background:#ff6a3d;
+      color:#fff;
+      font-weight:600;
+      border-radius:999px;
+      padding:12px 20px;
+      cursor:pointer;
+      box-shadow:0 4px 12px rgba(255,106,61,0.25);
+      transition:
+        filter .15s ease-out,
+        box-shadow .15s ease-out;
     }
 
     .search-btn:hover{
-      filter: brightness(.96);
-      box-shadow: 0 6px 16px rgba(255,106,61,0.35);
+      filter:brightness(.96);
+      box-shadow:0 6px 16px rgba(255,106,61,0.35);
     }
 
     .subhead{
-      color: var(--muted);
-      font-size: 14px;
-      letter-spacing: 0.1px;
-      margin: 14px 2px 6px; /* add bottom spacing */
-      font-weight: 500;
+      color:var(--muted);
+      font-size:14px;
+      letter-spacing:0.1px;
+      margin:14px 2px 6px; /* add bottom spacing */
+      font-weight:500;
     }
 
-    /* Grid */
+    /* === ANCHOR: CATALOG_GRID_CARDS ====================================== */
     .grid{
       display:grid;
-      grid-template-columns: repeat(3, 1fr);
-      gap: 20px;
-      margin-top: 20px;
+      grid-template-columns:repeat(3, 1fr);
+      gap:20px;
+      margin-top:20px;
     }
 
-    @media (max-width: 980px){
+    @media (max-width:980px){
       .grid{
-        grid-template-columns: repeat(2, 1fr);
-        gap: 18px;                /* tighter and more balanced for tablets */
+        grid-template-columns:repeat(2, 1fr);
+        gap:18px;                /* tighter and more balanced for tablets */
       }
     }
 
-    @media (max-width: 640px){
+    @media (max-width:640px){
       .controls-row{
-        grid-template-columns: 1fr 1fr;
+        grid-template-columns:1fr 1fr;
       }
 
       .grid{
-        grid-template-columns: 1fr;
-        gap: 16px;                /* clean and consistent spacing on mobile */
+        grid-template-columns:1fr;
+        gap:16px;                /* clean and consistent spacing on mobile */
       }
 
       .paper{
-        padding: 18px 18px 24px;  /* reduce padding slightly on mobile */
+        padding:18px 18px 24px;  /* reduce padding slightly on mobile */
       }
     }
 
@@ -296,13 +317,16 @@
       display:flex;
       flex-direction:column;
       box-shadow:0 10px 28px rgba(15,23,42,0.10);
-      transition:transform .18s ease-out, box-shadow .18s ease-out;
+      transition:
+        transform .18s ease-out,
+        box-shadow .18s ease-out;
     }
 
     .card:hover{
       transform:translateY(-3px);
       box-shadow:0 16px 40px rgba(15,23,42,0.15);
     }
+
     .card .img{
       position:relative;
       width:100%;
@@ -317,7 +341,9 @@
       width:100%;
       height:100%;
       object-fit:cover;
-      transition:transform .25s ease-out, filter .25s ease-out;
+      transition:
+        transform .25s ease-out,
+        filter .25s ease-out;
       filter:brightness(0.92);
     }
 
@@ -332,6 +358,7 @@
       flex-direction:column;
       gap:8px;
     }
+
     .name{
       display:flex;
       align-items:center;
@@ -346,6 +373,7 @@
       color:#6b7280;
       font-size:12px;
     }
+
     .chips{
       display:flex;
       gap:6px;
@@ -360,13 +388,26 @@
       border:1px solid #e5e7eb;
       color:#374151;
     }
-    .foot{ display:flex; align-items:center; justify-content:space-between; margin-top:6px; }
+
+    .foot{
+      display:flex;
+      align-items:center;
+      justify-content:space-between;
+      margin-top:6px;
+    }
+
     .price{
       font-weight:700;
       font-size:14px;
       color:#064e3b;  /* matches brand */
     }
 
+    .stars{
+      font-size:13px;
+      color:#ffb84d;
+    }
+
+    /* === ANCHOR: CATALOG_BUTTONS_CTA ===================================== */
     .btn{
       border:1px solid #d1d5db;
       background:#ffffff;
@@ -375,16 +416,40 @@
       font-weight:600;
       font-size:13px;
       cursor:pointer;
-      transition:border-color .15s ease-out, background .15s ease-out;
+      transition:
+        border-color .15s ease-out,
+        background .15s ease-out;
     }
 
     .btn:hover{
       border-color:#9ca3af;
       background:#f9fafb;
     }
-    .stars{
-      font-size:13px;
-      color:#ffb84d;
+
+    /* Catalog: standardized "Details" outline button */
+    .details-btn{
+      display:inline-flex;
+      align-items:center;
+      justify-content:center;
+      padding:8px 14px;
+      margin-top:10px;
+      border:1px solid #ff6a3d;
+      border-radius:6px;
+      color:#ff6a3d;
+      text-decoration:none;
+      font-size:14px;
+      font-weight:600;
+      background:transparent;
+      cursor:pointer;
+      transition:
+        background 0.15s ease,
+        color 0.15s ease;
+    }
+
+    .details-btn:hover{
+      background:rgba(255,106,61,0.08);
+      color:#ff6a3d;
+      text-decoration:none;
     }
   </style>
 </head>
@@ -392,18 +457,19 @@
   <div class="paper">
     <!-- ANCHOR: CATALOG_HEADER_HTML -->
     <header>
-      <a class="logo" href="https://www.lolaelo.com/">
+      <a class="logo" href="/index.html" aria-label="Lolaelo home">
         <img
-          src="https://www.lolaelo.com/logo.png?cb=logo-5x"
+          src="/logo.png"
           alt="Lolaelo"
+          class="logo-img"
           decoding="async"
           loading="eager"
-        >
+        />
       </a>
 
       <a
         class="nav-link nav-link-back"
-        href="https://www.lolaelo.com/index.html"
+        href="/index.html"
         aria-label="Back to main page"
       >
         <span class="nav-back-arrow">←</span>
@@ -529,15 +595,18 @@
       const a = (p.amenities || []).slice(0,3).map(a=>`<span class="chip">${a}</span>`).join("");
       const price = p.fromPriceStr ? `From ${p.fromPriceStr}` : ''; // show only when present
       const hasRollup = Number.isFinite(p?.availableNights) && Number.isFinite(p?.nightsTotal);
-      const nights = hasRollup ? `${p.availableNights}/${p.nightsTotal} nights` : '';
+      const nights = (hasRollup && Number(p.availableNights) < Number(p.nightsTotal))
+        ? `${p.availableNights} nights available`
+        : '';
       const availBadge = hasRollup
       ? (Number(p.availableNights) > 0 ? '' : '<span class="chip" title="No rooms available in selected window">sold out</span>')
       : '';
       const link = `/catalog_details.html?propertyId=${encodeURIComponent(p.propertyId)}&start=${encodeURIComponent(start)}&end=${encodeURIComponent(end)}${window.ratePlanId ? `&ratePlanId=${encodeURIComponent(window.ratePlanId)}` : ''}`;
       const srcBadge = (p.detail && p.detail._roomsSource === 'db')
-        ? '<span class="chip" title="Prices from database">db</span>' : '';
+        ? '<span class="chip" title="Live rate sourced directly from our partners">live</span>'
+        : '';
 
-      return `
+        return `
       <article class="card">
         <a class="img" href="${link}" aria-label="View ${p.name}">
           <img src="${img}" alt="${p.name}">
@@ -554,7 +623,7 @@
             <div class="price">${price} ${srcBadge}</div>
           </div>
           <div class="foot">
-            <a class="btn" href="${link}">Details</a>
+            <a class="details-btn" href="${link}">Details</a>
             <div class="meta">#${p.propertyId}</div>
           </div>
         </div>
