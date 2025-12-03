@@ -466,11 +466,10 @@
   <div class="paper">
     <!-- ANCHOR: CATALOG_HEADER_HTML -->
     <header>
-      <a class="logo" href="/index.html" aria-label="Lolaelo home">
+      <a class="logo" href="https://www.lolaelo.com/">
         <img
-          src="/logo.png"
+          src="https://www.lolaelo.com/logo.png?cb=logo-5x"
           alt="Lolaelo"
-          class="logo-img"
           decoding="async"
           loading="eager"
         >
@@ -478,7 +477,7 @@
 
       <a
         class="nav-link nav-link-back"
-        href="/index.html"
+        href="https://www.lolaelo.com/index.html"
         aria-label="Back to main page"
       >
         <span class="nav-back-arrow">←</span>
@@ -597,23 +596,47 @@
       const firstUrl =
         typeof imgs[0] === 'string'
           ? imgs[0]
-          : (imgs[0] && typeof imgs[0] === 'object' && imgs[0].url ? String(imgs[0].url) : '');
-      const baseImg = firstUrl || "/logo.png";
+          : (imgs[0] && typeof imgs[0] === 'object' && imgs[0].url
+              ? String(imgs[0].url)
+              : '');
+      const baseImg = firstUrl || "https://www.lolaelo.com/logo.png?cb=logo-5x";
       const img = baseImg + (baseImg.includes("?") ? "&" : "?") + "cb=" + Date.now();
       // ANCHOR: CARDIMAGE_COVER_PICKER (REPLACE)
-      const a = (p.amenities || []).slice(0,3).map(a=>`<span class="chip">${a}</span>`).join("");
-      const price = p.fromPriceStr ? `From ${p.fromPriceStr}` : ''; // show only when present
-      const hasRollup = Number.isFinite(p?.availableNights) && Number.isFinite(p?.nightsTotal);
+
+      // Chips source: prefer p.chips, fall back to amenities
+      const chipsSource =
+        Array.isArray(p.chips) && p.chips.length
+          ? p.chips
+          : (p.amenities || []);
+
+      const chipsHtml = chipsSource
+        .slice(0, 3)
+        .map(label => `<span class="chip">${label}</span>`)
+        .join("");
+
+      const price = p.fromPriceStr ? `From ${p.fromPriceStr}` : '';
+
+      const hasRollup =
+        Number.isFinite(p?.availableNights) &&
+        Number.isFinite(p?.nightsTotal);
+
       const nights = (hasRollup && Number(p.availableNights) < Number(p.nightsTotal))
         ? `${p.availableNights} nights available`
         : '';
-      const availBadge = hasRollup
-      ? (Number(p.availableNights) > 0 ? '' : '<span class="chip" title="No rooms available in selected window">sold out</span>')
-      : '';
-      const link = `/catalog_details.html?propertyId=${encodeURIComponent(p.propertyId)}&start=${encodeURIComponent(start)}&end=${encodeURIComponent(end)}${window.ratePlanId ? `&ratePlanId=${encodeURIComponent(window.ratePlanId)}` : ''}`;
-      const srcBadge = (p.detail && p.detail._roomsSource === 'db')
-        ? '<span class="chip" title="Live rate sourced directly from our partners">live</span>'
-        : '';
+
+      const availBadge =
+        hasRollup && Number(p.availableNights) <= 0
+          ? '<span class="chip" title="No rooms available in selected window">sold out</span>'
+          : '';
+
+      const baseLink = `/catalog_details.html?propertyId=${encodeURIComponent(p.propertyId)}`;
+      const link = window.ratePlanId
+        ? `${baseLink}&ratePlanId=${encodeURIComponent(window.ratePlanId)}`
+        : baseLink;
+
+      const locationLabel =
+        p.location ||
+        [p.city, p.country].filter(Boolean).join(", ");
 
       return `
       <article class="card">
@@ -621,16 +644,19 @@
           <img src="${img}" alt="${p.name}">
         </a>
         <div class="body">
-          <div class="name">${p.name}</div>
-          <div class="meta">${p.location}</div>  <!-- removed comma -->
-          ${chips}
+          <div class="name">
+            <div>${p.name}</div>
+            <div class="stars" aria-label="${p.starRating} stars">${stars(p.starRating)}</div>
+          </div>
+          <div class="meta">${locationLabel}</div>
+          <div class="chips">${chipsHtml}${availBadge}</div>
           <div class="foot">
             <div class="meta">${nights}</div>
-            <div class="price">${price}</div>     <!-- removed live chip -->
+            <div class="price">${price}</div>
           </div>
           <div class="foot">
             <a class="details-btn" href="${link}">Details</a>
-          </div>                                  <!-- removed property ID -->
+          </div>
         </div>
       </article>
       `;
