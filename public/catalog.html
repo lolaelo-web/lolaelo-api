@@ -309,7 +309,12 @@
       justify-content: space-between;
 
       /* widen to match landing page proportions */
-      min-width: 200px;
+      min-width: 260px;   /* was 200px → now 1.2x wider */
+    }
+
+    /* === ANCHOR: GUEST_FIELD_WIDTH_FIX =================== */
+    .field-guests .custom-select-toggle {
+      min-width: 120px !important;   /* half the current ~240px width */
     }
 
     /* Label text handling */
@@ -649,7 +654,7 @@
           <input id="end" type="date" />
         </label>
 
-        <label class="field" aria-label="Guests">
+        <label class="field field-guests" aria-label="Guests">
           <span>👤</span>
 
           <div class="custom-select" data-target="cat-guests">
@@ -952,8 +957,8 @@
       const start = startInp.value || todayISO();
       const end   = endInp.value   || start;
 
-      // NEW: read from hidden field used by custom-select
-      const guestsHiddenEl = document.getElementById('guestsHidden');
+      // Read from hidden field used by custom-select for guests
+      const guestsHiddenEl = document.getElementById('cat-guests');
       const guests = Number((guestsHiddenEl && guestsHiddenEl.value) || 2) || 2;
 
       const params = new URLSearchParams();
@@ -968,7 +973,6 @@
     });
 
     // Destination dropdown now custom-select, so we trigger run() manually if needed
-    // (leaving this line harmlessly in place, no conflict)
     S('dest')?.addEventListener('change', run);
 
     /* ANCHOR: AMENITY_AUTO_FILTER */
@@ -1096,6 +1100,8 @@
     if (!cityParam) return;
 
     const destHidden = document.getElementById("dest");
+    if (!destHidden) return;
+
     const wrapper = destHidden.closest(".custom-select");
     if (!wrapper) return;
 
@@ -1117,7 +1123,6 @@
       }
     });
   })();
-
   </script>
 </body>
 </html>
