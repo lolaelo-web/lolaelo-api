@@ -1369,11 +1369,37 @@
         updateInputs(pos);
       });
 
-      // Search box: plain text for now.
-      // Google has disabled legacy Autocomplete for new projects (LegacyApiNotActivatedMapError),
-      // so we avoid calling it here to prevent the overlay error.
+      // Search box: simple "press Enter to geocode" behavior
       if (searchInput) {
-        console.warn('Places Autocomplete disabled for this project; search box is plain text for now.');
+        const geocoder = new google.maps.Geocoder();
+
+        searchInput.addEventListener('keydown', function (e) {
+          if (e.key !== 'Enter') return;
+          e.preventDefault();
+
+          const query = searchInput.value.trim();
+          if (!query) return;
+
+          geocoder.geocode(
+            {
+              address: query,
+              // Bias to Philippines; adjust/remove if needed
+              componentRestrictions: { country: 'PH' }
+            },
+            function (results, status) {
+              if (status !== 'OK' || !results || !results.length) {
+                console.warn('Geocode failed:', status);
+                return;
+              }
+
+              const loc = results[0].geometry.location;
+              map.setCenter(loc);
+              map.setZoom(15);
+              marker.setPosition(loc);
+              updateInputs(loc);
+            }
+          );
+        });
       }
     }
 

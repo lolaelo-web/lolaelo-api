@@ -872,6 +872,24 @@
       color: var(--muted);
     }
 
+    .summary-location{
+      margin-top: 2px;
+      font-size: 12px;
+      color: var(--muted);
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    .summary-desc{
+      margin-top: 4px;
+      font-size: 13px;
+      line-height: 1.4;
+      color: var(--fg);
+      max-height: 4.2em; /* ~3 lines */
+      overflow: hidden;
+    }
+
     .summary .chips{
       margin-top: 4px;
       flex-wrap: wrap;
@@ -1754,7 +1772,7 @@
               : '';
 
             const url =
-              `/room_details.html?propertyId=${encodeURIComponent(propertyId)}` +
+              `/checkout.html?propertyId=${encodeURIComponent(propertyId)}` +
               `&roomId=${encodeURIComponent(roomId)}` +
               `&start=${encodeURIComponent(start)}` +
               `&end=${encodeURIComponent(end)}` +
@@ -1862,7 +1880,7 @@
             </div>
 
             <a class="btn-select"
-              href="/room_details.html?propertyId=${encodeURIComponent(String(propertyId))}&start=${encodeURIComponent(start)}&end=${encodeURIComponent(end)}&ratePlanId=${
+              href="/checkout.html?propertyId=${encodeURIComponent(String(propertyId))}&start=${encodeURIComponent(start)}&end=${encodeURIComponent(end)}&ratePlanId=${
                 encodeURIComponent((() => { try {
                   const u = new URL(location.href);
                   const p = u.searchParams.get('ratePlanId') || u.searchParams.get('plan');
@@ -2033,7 +2051,7 @@
                   : '';
 
                 const url =
-                  `/room_details.html?propertyId=${encodeURIComponent(propertyId)}` +
+                  `/checkout.html?propertyId=${encodeURIComponent(propertyId)}` +
                   `&roomId=${encodeURIComponent(roomId)}` +
                   `&start=${encodeURIComponent(start)}` +
                   `&end=${encodeURIComponent(end)}` +
@@ -2140,7 +2158,7 @@
 
             const topLink = cat.querySelector('.btn-select');
             if (topLink){
-              const href = `/room_details.html?propertyId=${encodeURIComponent(propertyId)}&roomId=${encodeURIComponent(rid)}&start=${encodeURIComponent(start)}&end=${encodeURIComponent(end)}&ratePlanId=${encodeURIComponent(primary.id)}${plansQS}`;
+              const href = `/checkout.html?propertyId=${encodeURIComponent(propertyId)}&roomId=${encodeURIComponent(rid)}&start=${encodeURIComponent(start)}&end=${encodeURIComponent(end)}&ratePlanId=${encodeURIComponent(primary.id)}${plansQS}`;
               topLink.setAttribute('href', href);
             }
 
