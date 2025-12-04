@@ -569,23 +569,23 @@
 
   .security-bubble {
     position: absolute;
-    right: 0;
-    bottom: 130%;
-    background: #020617;
-    color: #e5e7eb;
+    top: 130%;                     /* push BELOW the icon */
+    left: 50%;                     /* center horizontally */
+    transform: translate(-50%, 4px); /* center + slight slide on show */
+    background: #e0fdf4;
+    color: #0f172a;
     padding: 10px 12px;
     border-radius: 12px;
     width: 260px;
-    box-shadow: 0 18px 40px rgba(15, 23, 42, 0.35);
+    box-shadow: 0 16px 35px rgba(15, 23, 42, 0.2);
     font-size: 12px;
     line-height: 1.4;
     opacity: 0;
     pointer-events: none;
-    transform: translateY(4px);
     transition:
       opacity 0.18s ease-out,
       transform 0.18s ease-out;
-    z-index: 20;
+    z-index: 30;
   }
 
   .security-bubble strong {
@@ -957,8 +957,7 @@
             </div>
             <div class="summary-total">
               <div>
-                <div class="summary-total-label">Total (test amount)</div>
-                <div class="muted">Final amount is calculated at server side</div>
+                <div class="summary-total-label">Total</div>
               </div>
               <div class="summary-total-amount" id="summaryTotal">
                 $50.00
@@ -968,7 +967,6 @@
               View nightly breakdown
             </div>
             <div class="breakdown" id="breakdownDetails">
-              For now this uses a flat test amount. Later we will show per night pricing from the backend.
             </div>
           </div>
         </aside>

@@ -103,7 +103,7 @@
     background:var(--card);
     border-radius:16px;
     border:1px solid var(--line);
-    max-width:720px;
+    max-width:1080px;
     width:96%;
     max-height:90vh;
     overflow:auto;
@@ -129,7 +129,8 @@
   }
   .addons-modal .addons-actions{
     display:flex;
-    justify-content:flex-end;
+    justify-content:space-between;
+    align-items:center;
     gap:8px;
     margin-top:14px;
   }
@@ -958,24 +959,8 @@
           Configure activities and extras for your property. Each add-on will appear as an optional extra during checkout.
         </p>
 
-        <div style="display:flex; justify-content:space-between; align-items:center; margin-top:8px; margin-bottom:6px; gap:8px;">
-          <div class="muted" style="font-size:12px;">
-            Start by adding rows for things like airport transfers, tours, or equipment rentals.
-          </div>
-          <button type="button"
-                  id="addonsAddRowBtn"
-                  onclick="addAddonRow()"
-                  class="btn small"
-                  style="
-                    background:#020617;
-                    border-radius:999px;
-                    border:1px solid #3b82f6;
-                    color:#e5e7eb;
-                    padding:6px 14px;
-                    font-size:12px;
-                  ">
-            Add row
-          </button>
+        <div style="margin-top:8px; margin-bottom:6px; font-size:12px;" class="muted">
+          Start by adding rows for things like airport transfers, tours, or equipment rentals.
         </div>
 
         <div class="table-wrapper" style="border:1px solid var(--line); border-radius:10px; overflow:hidden;">
@@ -997,18 +982,36 @@
       </div>
 
       <div class="addons-actions">
-        <button type="button"
-                class="btn secondary"
-                id="addonsDiscardBtn"
-                onclick="discardAddonsModal()">
-          Discard
-        </button>
-        <button type="button"
-                class="btn"
-                id="addonsSaveBtn"
-                onclick="saveAddonsModal()">
-          Save
-        </button>
+        <div>
+          <button type="button"
+                  id="addonsAddRowBtn"
+                  onclick="addAddonRow()"
+                  class="btn small"
+                  style="
+                    background:var(--card);
+                    border-radius:999px;
+                    border:1px solid #3b82f6;
+                    color:#e5e7eb;
+                    padding:6px 14px;
+                    font-size:12px;
+                  ">
+            Add row
+          </button>
+        </div>
+        <div>
+          <button type="button"
+                  class="btn secondary"
+                  id="addonsDiscardBtn"
+                  onclick="discardAddonsModal()">
+            Discard
+          </button>
+          <button type="button"
+                  class="btn"
+                  id="addonsSaveBtn"
+                  onclick="saveAddonsModal()">
+            Save
+          </button>
+        </div>
       </div>
 
 <script>
@@ -1094,7 +1097,7 @@
     // UoM
     const uomTd = document.createElement('td');
     const uomSel = document.createElement('select');
-    uomSel.style.width = '100%';
+    uomSel.style.width = '140%';        // ~1.4x current width
     uomSel.style.fontSize = '12px';
 
     ADDON_UOM_PRESETS.forEach((name) => {
@@ -1116,6 +1119,7 @@
     priceWrap.style.display = 'flex';
     priceWrap.style.alignItems = 'center';
     priceWrap.style.gap = '4px';
+    priceWrap.style.maxWidth = '140px';   // narrower overall
 
     const usdSpan = document.createElement('span');
     usdSpan.textContent = '$';
@@ -1126,8 +1130,11 @@
     priceInput.min = '0';
     priceInput.step = '0.01';
     priceInput.placeholder = '0.00';
-    priceInput.style.width = '100%';
+    priceInput.style.width = '75%';       // about 75% of previous width
     priceInput.style.fontSize = '12px';
+    priceInput.addEventListener('wheel', function (e) {
+      e.preventDefault();                 // prevent scroll-wheel changing value
+    });
 
     if (initial && typeof initial.price === 'number') {
       priceInput.value = initial.price.toFixed(2);
@@ -1140,8 +1147,9 @@
     // Notes (small textarea)
     const notesTd = document.createElement('td');
     const notesArea = document.createElement('textarea');
-    notesArea.rows = 1;
-    notesArea.style.width = '100%';
+    notesArea.rows = 2;                               // ~2x height
+    notesArea.style.width = '250%';                  // ~2.5x width
+    notesArea.style.minHeight = '48px';
     notesArea.style.fontSize = '12px';
     notesArea.style.resize = 'vertical';
     notesArea.placeholder = 'Optional notes';
