@@ -977,13 +977,14 @@
 
         <div class="table-wrapper" style="border:1px solid var(--line); border-radius:10px; overflow:hidden;">
           <table>
+          <table>
             <thead>
               <tr>
-                <th style="text-align:center; padding:8px 10px; font-size:12px;">Activity</th>
-                <th style="text-align:center; padding:8px 10px; font-size:12px; position:relative; left:-18px;">UoM</th>
-                <th style="text-align:center; padding:8px 10px; font-size:12px; position:relative; left:-18px;">Price (USD)</th>
-                <th style="text-align:center; padding:8px 10px; font-size:12px; position:relative; left:-18px;">Notes</th>
-                <th style="text-align:center; padding:8px 10px; font-size:12px;">Actions</th>
+                <th style="text-align:left; padding:8px 10px; font-size:12px;">Activity</th>
+                <th style="text-align:left; padding:8px 10px; font-size:12px;">UoM</th>
+                <th style="text-align:left; padding:8px 10px; font-size:12px;">Price (USD)</th>
+                <th style="text-align:left; padding:8px 10px; font-size:12px;">Notes</th>
+                <th style="text-align:right; padding:8px 10px; font-size:12px;">Actions</th>
               </tr>
             </thead>
             <tbody id="addonsTableBody">
@@ -1080,7 +1081,7 @@
     // Activity
     const activityTd = document.createElement('td');
     const activitySel = document.createElement('select');
-    activitySel.style.width = '75%';      // reduced to ~75% of previous
+    activitySel.style.width = '100%';
     activitySel.style.fontSize = '12px';
 
     const actPlaceholder = document.createElement('option');
@@ -1108,11 +1109,8 @@
 
     // UoM
     const uomTd = document.createElement('td');
-    uomTd.style.position = 'relative';
-    uomTd.style.left = '-18px';
-
     const uomSel = document.createElement('select');
-    uomSel.style.width = '70%';
+    uomSel.style.width = '100%';
     uomSel.style.fontSize = '12px';
 
     ADDON_UOM_PRESETS.forEach((name) => {
@@ -1130,14 +1128,10 @@
 
     // Price (USD)
     const priceTd = document.createElement('td');
-    priceTd.style.position = 'relative';
-    priceTd.style.left = '-18px';
-
     const priceWrap = document.createElement('div');
     priceWrap.style.display = 'flex';
     priceWrap.style.alignItems = 'center';
     priceWrap.style.gap = '4px';
-    priceWrap.style.maxWidth = '140px';   // narrower overall
 
     const usdSpan = document.createElement('span');
     usdSpan.textContent = '$';
@@ -1148,10 +1142,10 @@
     priceInput.min = '0';
     priceInput.step = '0.01';
     priceInput.placeholder = '0.00';
-    priceInput.style.width = '75%';       // about 75% of previous width
+    priceInput.style.width = '100%';
     priceInput.style.fontSize = '12px';
     priceInput.addEventListener('wheel', function (e) {
-      e.preventDefault();                 // prevent scroll-wheel changing value
+      e.preventDefault();                 // keep scroll from changing value
     });
 
     if (initial && typeof initial.price === 'number') {
@@ -1164,17 +1158,13 @@
 
     // Notes (small textarea)
     const notesTd = document.createElement('td');
-    notesTd.style.position = 'relative';
-    notesTd.style.left = '-18px';
-
     const notesArea = document.createElement('textarea');
     notesArea.rows = 2;
-    notesArea.style.width = '180%';
+    notesArea.style.width = '100%';
     notesArea.style.minHeight = '48px';
     notesArea.style.fontSize = '12px';
     notesArea.style.resize = 'vertical';
     notesArea.placeholder = 'Optional notes';
-
     if (initial && initial.notes) {
       notesArea.value = initial.notes;
     }

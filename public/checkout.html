@@ -210,16 +210,72 @@
     color: var(--text);
   }
 
-  .field-inline {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 8px 20px;
-    align-items: center;
-    margin-top: 8px;
+  .addons-block {
+    margin-top: 16px;
+    padding-top: 12px;
+    border-top: 1px dashed var(--border-soft);
   }
 
-  .muted {
+  .addons-header {
+    margin-bottom: 6px;
+  }
+
+  .addons-title {
+    font-size: 14px;
+    font-weight: 500;
+  }
+
+  .addons-subtitle {
+    font-size: 12px;
     color: var(--muted);
+  }
+
+  .addons-list {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    margin-top: 4px;
+  }
+
+  .addon-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+    font-size: 13px;
+  }
+
+  .addon-main {
+    display: flex;
+    flex-direction: column;
+  }
+
+  .addon-title {
+    font-weight: 500;
+  }
+
+  .addon-meta {
+    font-size: 12px;
+    color: var(--muted);
+  }
+
+  .addon-qty {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  }
+
+  .addon-qty label {
+    font-size: 12px;
+    color: var(--muted);
+  }
+
+  .addon-qty input {
+    width: 64px;
+    padding: 4px 6px;
+    border-radius: 6px;
+    border: 1px solid var(--border-soft);
+    text-align: right;
     font-size: 13px;
   }
 
@@ -721,15 +777,33 @@
                 <div class="field-label">Stay dates</div>
                 <div class="field-value" id="stayDatesText">Dates from URL</div>
               </div>
+
               <div class="field-row">
                 <div class="field-label">Nights</div>
                 <div class="field-value" id="nightsCountText">n nights</div>
               </div>
+
               <div class="field-inline">
                 <button class="btn-link" id="editDatesLink" type="button">
                   Edit dates
                 </button>
               </div>
+
+              <!-- Add-ons block (traveler view; data to be wired in next steps) -->
+              <div class="addons-block">
+                <div class="addons-header">
+                  <div class="addons-title">Add-ons</div>
+                  <div class="addons-subtitle">
+                    Optional activities and extras selected by your hotel.
+                  </div>
+                </div>
+                <div id="addonsList" class="addons-list">
+                  <div class="muted" id="addonsEmptyMessage">
+                    No add-ons are available for this stay.
+                  </div>
+                </div>
+              </div>
+
               <button class="btn-primary" type="button" data-confirm="2">
                 Confirm dates and price
               </button>
@@ -810,7 +884,6 @@
 
             <div class="section-body hidden" data-section-body="4">
               <div class="field-row">
-                <div class="field-label">Please select a payment method</div>
 
                 <!-- TOP ROW: PAYMENT PILLS -->
                 <div class="field-inline payment-options-row">
