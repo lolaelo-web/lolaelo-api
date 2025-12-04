@@ -203,6 +203,32 @@
   }
 
   table{ width:100%; border-collapse:collapse; }
+
+  /* Add-ons modal column sizing */
+  .addons-modal table{
+    table-layout:fixed;
+  }
+  .addons-modal table th:nth-child(1),
+  .addons-modal table td:nth-child(1){
+    width:26%;  /* Activity / Excursion */
+  }
+  .addons-modal table th:nth-child(2),
+  .addons-modal table td:nth-child(2){
+    width:14%;  /* UoM */
+  }
+  .addons-modal table th:nth-child(3),
+  .addons-modal table td:nth-child(3){
+    width:14%;  /* Price */
+  }
+  .addons-modal table th:nth-child(4),
+  .addons-modal table td:nth-child(4){
+    width:36%;  /* Notes */
+  }
+  .addons-modal table th:nth-child(5),
+  .addons-modal table td:nth-child(5){
+    width:10%;  /* Actions */
+  }
+
   th, td{ padding:8px 10px; border-bottom:1px solid #203150; font-size:13px }
   th{ text-align:left; color:#bcd3ff }
   .muted{ color:var(--muted) }
@@ -1045,7 +1071,7 @@
   });
 })();
 </script>
-
+<script src="https://maps.googleapis.com/maps/api/js?key=AIzaSyB3S03x_g_worh7dj4dk-lHYPFJ3RMknVc&libraries=places"></script>
 <script>
   // Simple in-memory state for the current session
   let addonsSessionRows = [];
@@ -1065,9 +1091,6 @@
   const ADDON_UOM_PRESETS = [
     'Persons',
     'Qty',
-    'Night',
-    'Day',
-    'Tour',
     'Hour'
   ];
 
@@ -1160,7 +1183,7 @@
     const notesTd = document.createElement('td');
     const notesArea = document.createElement('textarea');
     notesArea.rows = 4;                        // ~2x height
-    notesArea.style.width = '150%';           // 1.5x current width
+    notesArea.style.width = '100%';           // fill its column, no overflow
     notesArea.style.minHeight = '96px';       // 2x min height
     notesArea.style.fontSize = '12px';
     notesArea.style.resize = 'vertical';
@@ -1279,7 +1302,108 @@
     resetAddonsTableFromState();
     closeAddonsModal();
   }
-</script>
 
+  // --- Company Profile Map wiring (Google Maps + Places) -------------------
+  (function () {
+    const mapEl      = document.getElementById('pp_map');
+    const latInp     = document.getElementById('pp_lat');
+    const lngInp     = document.getElementById('pp_lng');
+    const searchInput = document.getElementById('pp_map_search');
+
+    if (!mapEl || !latInp || !lngInp) return;
+
+    function parseCoord(v) {
+      const n = parseFloat(v);
+      return Number.isFinite(n) ? n : null;
+    }
+
+    function initProfileMap() {
+      if (!window.google || !google.maps) {
+        console.warn('Google Maps not loaded; profile map staying in placeholder mode.');
+        return;
+      }
+
+      const defaultCenter = { lat: 12.8797, lng: 121.7740 }; // Philippines center
+      const latVal = parseCoord(latInp.value);
+      const lngVal = parseCoord(lngInp.value);
+      const hasSaved = latVal !== null && lngVal !== null;
+
+      const center = hasSaved ? { lat: latVal, lng: lngVal } : defaultCenter;
+      const zoom   = hasSaved ? 15 : 5;
+
+      const map = new google.maps.Map(mapEl, {
+        center,
+        zoom,
+        mapTypeControl: false,
+        streetViewControl: false,
+        fullscreenControl: false,
+      });
+
+      const marker = new google.maps.Marker({
+        position: center,
+        map,
+        draggable: true,
+      });
+
+      function updateInputs(pos) {
+        // pos can be a LatLng or plain object
+        const lat = typeof pos.lat === 'function' ? pos.lat() : pos.lat;
+        const lng = typeof pos.lng === 'function' ? pos.lng() : pos.lng;
+        latInp.value = lat.toFixed(6);
+        lngInp.value = lng.toFixed(6);
+      }
+
+      if (!hasSaved) {
+        updateInputs(marker.getPosition());
+      }
+
+      // Click on map updates marker + inputs
+      map.addListener('click', (e) => {
+        marker.setPosition(e.latLng);
+        updateInputs(e.latLng);
+      });
+
+      // Dragging marker updates inputs
+      marker.addListener('dragend', () => {
+        const pos = marker.getPosition();
+        updateInputs(pos);
+      });
+
+      // Attach Places Autocomplete to search input, if available
+      if (searchInput && google.maps.places && google.maps.places.Autocomplete) {
+        const autocomplete = new google.maps.places.Autocomplete(searchInput, {
+          fields: ['geometry', 'name', 'formatted_address'],
+          componentRestrictions: { country: ['ph'] } // bias to Philippines
+        });
+
+        autocomplete.addListener('place_changed', () => {
+          const place = autocomplete.getPlace();
+          if (!place || !place.geometry || !place.geometry.location) {
+            console.warn('Selected place has no geometry.');
+            return;
+          }
+
+          const loc = place.geometry.location;
+          map.panTo(loc);
+          map.setZoom(15);
+          marker.setPosition(loc);
+          updateInputs(loc);
+        });
+      } else if (searchInput) {
+        console.warn('Google Places library not available; search box will act as plain text.');
+      }
+    }
+
+    // Try to init after page load; safe even if Maps is not present
+    window.addEventListener('load', function () {
+      try {
+        initProfileMap();
+      } catch (e) {
+        console.warn('Profile map init failed:', e);
+      }
+    });
+  })();
+
+</script>
 </body>
 </html>
