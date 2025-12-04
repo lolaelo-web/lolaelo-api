@@ -745,221 +745,6 @@
       saveProfile();
     };
 
-        // --- Add-ons modal wiring (UI only for now) -----------------------------
-    (function () {
-      const backdrop   = $('addonsModalBackdrop');
-      const openBtn    = $('btnAddons');
-      const closeBtn   = $('addonsModalClose');
-      const cancelBtn  = $('addonsModalCancel');
-      const addRowBtn  = $('addonsAddRowBtn');
-      const tableBody  = $('addonsTableBody');
-
-      if (!backdrop || !openBtn) return;
-
-      const hasTable = !!tableBody;
-
-      // Preset activity list (can be overridden globally later)
-      const presetActivities = (window.LOLA_ADDON_ACTIVITY_PRESETS || [
-        'Airport transfer',
-        'Island hopping tour',
-        'Motorbike / scooter rental',
-        'Breakfast add-on',
-        'Late checkout',
-        'Guided tour'
-      ]);
-
-      const openModal = () => {
-        backdrop.classList.add('is-open');
-        backdrop.setAttribute('aria-hidden', 'false');
-      };
-
-      const closeModal = () => {
-        backdrop.classList.remove('is-open');
-        backdrop.setAttribute('aria-hidden', 'true');
-      };
-
-      // Table helpers – only active if table exists
-      let createRow = null;
-      let clearEmptyStateRow = null;
-      let ensureEmptyStateRow = null;
-
-      if (hasTable) {
-        createRow = () => {
-          const tr = document.createElement('tr');
-
-          const activityTd = document.createElement('td');
-          const unitTd     = document.createElement('td');
-          const priceTd    = document.createElement('td');
-          const notesTd    = document.createElement('td');
-          const statusTd   = document.createElement('td');
-          const actionsTd  = document.createElement('td');
-
-          // Activity select
-          const select = document.createElement('select');
-          select.style.width = '100%';
-          select.style.fontSize = '12px';
-
-          const placeholderOpt = document.createElement('option');
-          placeholderOpt.value = '';
-          placeholderOpt.textContent = 'Select activity';
-          placeholderOpt.disabled = true;
-          placeholderOpt.selected = true;
-          select.appendChild(placeholderOpt);
-
-          presetActivities.forEach((name) => {
-            const opt = document.createElement('option');
-            opt.value = name;
-            opt.textContent = name;
-            select.appendChild(opt);
-          });
-
-          activityTd.appendChild(select);
-
-          // Unit input
-          const unitInput = document.createElement('input');
-          unitInput.type = 'text';
-          unitInput.placeholder = 'person / night / tour';
-          unitInput.style.width = '100%';
-          unitInput.style.fontSize = '12px';
-          unitTd.appendChild(unitInput);
-
-          // Price input
-          const priceInput = document.createElement('input');
-          priceInput.type = 'number';
-          priceInput.min = '0';
-          priceInput.step = '0.01';
-          priceInput.placeholder = '0.00';
-          priceInput.style.width = '100%';
-          priceInput.style.fontSize = '12px';
-          priceTd.appendChild(priceInput);
-
-          // Notes
-          const notesInput = document.createElement('input');
-          notesInput.type = 'text';
-          notesInput.placeholder = 'Optional notes';
-          notesInput.style.width = '100%';
-          notesInput.style.fontSize = '12px';
-          notesTd.appendChild(notesInput);
-
-          // Status select
-          const statusSelect = document.createElement('select');
-          statusSelect.style.width = '100%';
-          statusSelect.style.fontSize = '12px';
-
-          ['ACTIVE', 'INACTIVE'].forEach((st) => {
-            const opt = document.createElement('option');
-            opt.value = st;
-            opt.textContent = (st === 'ACTIVE' ? 'Active' : 'Inactive');
-            statusSelect.appendChild(opt);
-          });
-
-          statusTd.appendChild(statusSelect);
-
-          // Actions (delete)
-          actionsTd.style.textAlign = 'right';
-          const delBtn = document.createElement('button');
-          delBtn.type = 'button';
-          delBtn.textContent = 'Remove';
-          delBtn.className = 'btn secondary';
-          delBtn.style.fontSize = '11px';
-          delBtn.style.padding = '4px 8px';
-
-          delBtn.addEventListener('click', (e) => {
-            e.preventDefault();
-            tr.remove();
-            if (ensureEmptyStateRow) ensureEmptyStateRow();
-          });
-
-          actionsTd.appendChild(delBtn);
-
-          tr.appendChild(activityTd);
-          tr.appendChild(unitTd);
-          tr.appendChild(priceTd);
-          tr.appendChild(notesTd);
-          tr.appendChild(statusTd);
-          tr.appendChild(actionsTd);
-
-          return tr;
-        };
-
-        clearEmptyStateRow = () => {
-          if (!tableBody) return;
-          const rows = Array.from(tableBody.querySelectorAll('tr'));
-          rows.forEach((r) => {
-            if (r.dataset && r.dataset.emptyRow === '1') {
-              r.remove();
-            }
-          });
-        };
-
-        ensureEmptyStateRow = () => {
-          if (!tableBody) return;
-          const rows = tableBody.querySelectorAll('tr');
-          if (rows.length === 0) {
-            const tr = document.createElement('tr');
-            tr.dataset.emptyRow = '1';
-            const td = document.createElement('td');
-            td.colSpan = 6;
-            td.style.textAlign = 'center';
-            td.style.padding = '10px';
-            td.className = 'muted';
-            td.textContent = 'No add-ons yet. Click "Add row" to get started.';
-            tr.appendChild(td);
-            tableBody.appendChild(tr);
-          }
-        };
-
-        // Initial empty-row tagging
-        (() => {
-          if (!tableBody) return;
-          const rows = tableBody.querySelectorAll('tr');
-          if (rows.length === 1) {
-            const onlyRow = rows[0];
-            const onlyTd  = onlyRow.querySelector('td');
-            if (onlyTd && /No add-ons yet/i.test(onlyTd.textContent || '')) {
-              onlyRow.dataset.emptyRow = '1';
-            }
-          }
-        })();
-      }
-
-      // Wire open / close
-      openBtn.addEventListener('click', (e) => {
-        e.preventDefault();
-        openModal();
-      });
-
-      [closeBtn, cancelBtn].forEach((btn) => {
-        if (btn) {
-          btn.addEventListener('click', (e) => {
-            e.preventDefault();
-            closeModal();
-          });
-        }
-      });
-
-      backdrop.addEventListener('click', (e) => {
-        if (e.target === backdrop) {
-          closeModal();
-        }
-      });
-
-      window.addEventListener('keydown', (e) => {
-        if (e.key === 'Escape' && backdrop.classList.contains('is-open')) {
-          closeModal();
-        }
-      });
-
-      // Wire "Add row" button only if table exists
-      if (hasTable && addRowBtn && createRow && clearEmptyStateRow) {
-        addRowBtn.addEventListener('click', (e) => {
-          e.preventDefault();
-          clearEmptyStateRow();
-          tableBody.appendChild(createRow());
-        });
-      }
-    })();
-
     // --- PMS Connections / Mappings ------------------------------------------
     const connTbody = $('connTbody');
     const connLogs  = $('connLogs');
@@ -1177,7 +962,18 @@
           <div class="muted" style="font-size:12px;">
             Start by adding rows for things like airport transfers, tours, or equipment rentals.
           </div>
-          <button type="button" id="addonsAddRowBtn" class="btn small">
+          <button type="button"
+                  id="addonsAddRowBtn"
+                  onclick="addAddonRow()"
+                  class="btn small"
+                  style="
+                    background:#020617;
+                    border-radius:999px;
+                    border:1px solid #3b82f6;
+                    color:#e5e7eb;
+                    padding:6px 14px;
+                    font-size:12px;
+                  ">
             Add row
           </button>
         </div>
@@ -1187,32 +983,33 @@
             <thead>
               <tr>
                 <th style="text-align:left; padding:8px 10px; font-size:12px;">Activity</th>
-                <th style="text-align:left; padding:8px 10px; font-size:12px;">Unit</th>
-                <th style="text-align:left; padding:8px 10px; font-size:12px;">Price</th>
+                <th style="text-align:left; padding:8px 10px; font-size:12px;">UoM</th>
+                <th style="text-align:left; padding:8px 10px; font-size:12px;">Price (USD)</th>
                 <th style="text-align:left; padding:8px 10px; font-size:12px;">Notes</th>
-                <th style="text-align:left; padding:8px 10px; font-size:12px;">Status</th>
                 <th style="text-align:right; padding:8px 10px; font-size:12px;">Actions</th>
               </tr>
             </thead>
             <tbody id="addonsTableBody">
-              <tr>
-                <td colspan="6" style="text-align:center; padding:10px;" class="muted">
-                  No add-ons yet. Click "Add row" to get started.
-                </td>
-              </tr>
+              <!-- rows will be injected by JS -->
             </tbody>
           </table>
         </div>
       </div>
 
       <div class="addons-actions">
-        <button type="button" class="btn secondary" id="addonsModalCancel"
-                onclick="closeAddonsModal()">
-          Close
+        <button type="button"
+                class="btn secondary"
+                id="addonsDiscardBtn"
+                onclick="discardAddonsModal()">
+          Discard
+        </button>
+        <button type="button"
+                class="btn"
+                id="addonsSaveBtn"
+                onclick="saveAddonsModal()">
+          Save
         </button>
       </div>
-    </div>
-  </div>
 
 <script>
 // Make the Photos tile open the API-hosted page, passing the token
@@ -1234,9 +1031,181 @@
 </script>
 
 <script>
+  // Simple in-memory state for the current session
+  let addonsSessionRows = [];
+
+  const ADDON_ACTIVITY_PRESETS = [
+    'Island hopping tour',
+    'Scuba diving',
+    'Snorkeling tour',
+    'Pub crawl',
+    'Guided hike',
+    'Airport transfer',
+    'Motorbike / scooter rental',
+    'Breakfast add-on',
+    'Late checkout'
+  ];
+
+  const ADDON_UOM_PRESETS = [
+    'Persons',
+    'Qty',
+    'Night',
+    'Day',
+    'Tour',
+    'Hour'
+  ];
+
+  function getAddonsTableBody() {
+    return document.getElementById('addonsTableBody');
+  }
+
+  function createAddonRow(initial) {
+    const tr = document.createElement('tr');
+
+    // Activity
+    const activityTd = document.createElement('td');
+    const activitySel = document.createElement('select');
+    activitySel.style.width = '100%';
+    activitySel.style.fontSize = '12px';
+
+    const actPlaceholder = document.createElement('option');
+    actPlaceholder.value = '';
+    actPlaceholder.textContent = 'Select activity';
+    actPlaceholder.disabled = true;
+    actPlaceholder.selected = true;
+    activitySel.appendChild(actPlaceholder);
+
+    ADDON_ACTIVITY_PRESETS.forEach((name) => {
+      const opt = document.createElement('option');
+      opt.value = name;
+      opt.textContent = name;
+      activitySel.appendChild(opt);
+    });
+
+    if (initial && initial.activity) {
+      activitySel.value = initial.activity;
+      if (!activitySel.value) {
+        activitySel.value = '';
+      }
+    }
+
+    activityTd.appendChild(activitySel);
+
+    // UoM
+    const uomTd = document.createElement('td');
+    const uomSel = document.createElement('select');
+    uomSel.style.width = '100%';
+    uomSel.style.fontSize = '12px';
+
+    ADDON_UOM_PRESETS.forEach((name) => {
+      const opt = document.createElement('option');
+      opt.value = name;
+      opt.textContent = name;
+      uomSel.appendChild(opt);
+    });
+
+    if (initial && initial.uom) {
+      uomSel.value = initial.uom;
+    }
+
+    uomTd.appendChild(uomSel);
+
+    // Price (USD)
+    const priceTd = document.createElement('td');
+    const priceWrap = document.createElement('div');
+    priceWrap.style.display = 'flex';
+    priceWrap.style.alignItems = 'center';
+    priceWrap.style.gap = '4px';
+
+    const usdSpan = document.createElement('span');
+    usdSpan.textContent = '$';
+    usdSpan.style.fontSize = '12px';
+
+    const priceInput = document.createElement('input');
+    priceInput.type = 'number';
+    priceInput.min = '0';
+    priceInput.step = '0.01';
+    priceInput.placeholder = '0.00';
+    priceInput.style.width = '100%';
+    priceInput.style.fontSize = '12px';
+
+    if (initial && typeof initial.price === 'number') {
+      priceInput.value = initial.price.toFixed(2);
+    }
+
+    priceWrap.appendChild(usdSpan);
+    priceWrap.appendChild(priceInput);
+    priceTd.appendChild(priceWrap);
+
+    // Notes (small textarea)
+    const notesTd = document.createElement('td');
+    const notesArea = document.createElement('textarea');
+    notesArea.rows = 1;
+    notesArea.style.width = '100%';
+    notesArea.style.fontSize = '12px';
+    notesArea.style.resize = 'vertical';
+    notesArea.placeholder = 'Optional notes';
+    if (initial && initial.notes) {
+      notesArea.value = initial.notes;
+    }
+    notesTd.appendChild(notesArea);
+
+    // Actions
+    const actionsTd = document.createElement('td');
+    actionsTd.style.textAlign = 'right';
+
+    const delBtn = document.createElement('button');
+    delBtn.type = 'button';
+    delBtn.textContent = 'Remove';
+    delBtn.className = 'btn secondary';
+    delBtn.style.fontSize = '11px';
+    delBtn.style.padding = '4px 8px';
+
+    delBtn.addEventListener('click', function (e) {
+      e.preventDefault();
+      tr.remove();
+    });
+
+    actionsTd.appendChild(delBtn);
+
+    tr.appendChild(activityTd);
+    tr.appendChild(uomTd);
+    tr.appendChild(priceTd);
+    tr.appendChild(notesTd);
+    tr.appendChild(actionsTd);
+
+    return tr;
+  }
+
+  function resetAddonsTableFromState() {
+    const tbody = getAddonsTableBody();
+    if (!tbody) return;
+    tbody.innerHTML = '';
+
+    if (!Array.isArray(addonsSessionRows) || addonsSessionRows.length === 0) {
+      // At least one empty row
+      tbody.appendChild(createAddonRow(null));
+      return;
+    }
+
+    addonsSessionRows.forEach((row) => {
+      tbody.appendChild(createAddonRow(row));
+    });
+  }
+
+  function addAddonRow() {
+    const tbody = getAddonsTableBody();
+    if (!tbody) return;
+    tbody.appendChild(createAddonRow(null));
+  }
+
   function openAddonsModal() {
     var bd = document.getElementById('addonsModalBackdrop');
     if (!bd) return;
+
+    // Build rows from current session state
+    resetAddonsTableFromState();
+
     bd.classList.add('is-open');
     bd.setAttribute('aria-hidden', 'false');
   }
@@ -1246,6 +1215,49 @@
     if (!bd) return;
     bd.classList.remove('is-open');
     bd.setAttribute('aria-hidden', 'true');
+  }
+
+  function saveAddonsModal() {
+    const tbody = getAddonsTableBody();
+    if (!tbody) {
+      closeAddonsModal();
+      return;
+    }
+
+    const rows = Array.from(tbody.querySelectorAll('tr'));
+    addonsSessionRows = rows.map((tr) => {
+      const cells = tr.querySelectorAll('td');
+      if (cells.length < 4) return null;
+
+      const activitySel = cells[0].querySelector('select');
+      const uomSel      = cells[1].querySelector('select');
+      const priceInput  = cells[2].querySelector('input[type="number"]');
+      const notesArea   = cells[3].querySelector('textarea');
+
+      const activity = activitySel ? activitySel.value.trim() : '';
+      const uom      = uomSel ? uomSel.value.trim() : '';
+      const priceVal = priceInput && priceInput.value ? parseFloat(priceInput.value) : null;
+      const notes    = notesArea ? notesArea.value.trim() : '';
+
+      return {
+        activity,
+        uom,
+        price: isNaN(priceVal) ? null : priceVal,
+        notes
+      };
+    }).filter(Boolean);
+
+    // TODO: backend POST/PUT will go here
+    console.log('Add-ons saved (session only for now):', addonsSessionRows);
+
+    closeAddonsModal();
+  }
+
+  function discardAddonsModal() {
+    // Throw away all in-memory rows for this session
+    addonsSessionRows = [];
+    resetAddonsTableFromState();
+    closeAddonsModal();
   }
 </script>
 
