@@ -143,6 +143,52 @@
     padding:0 4px;
   }
 
+    /* Company Profile – map section */
+  .pp-map-section{
+    margin-top:12px;
+  }
+  .pp-map-header{
+    display:flex;
+    align-items:center;
+    justify-content:space-between;
+    gap:8px;
+  }
+  .pp-map-header small{
+    font-size:11px;
+  }
+  .pp-map-search{
+    margin-top:6px;
+  }
+  .pp-map-container{
+    margin-top:6px;
+    border-radius:10px;
+    border:1px solid var(--line);
+    background:#020617;
+    height:260px;
+    position:relative;
+    overflow:hidden;
+  }
+  .pp-map-placeholder{
+    position:absolute;
+    inset:0;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    text-align:center;
+    padding:10px;
+    font-size:13px;
+    color:var(--muted);
+  }
+  .pp-map-coords{
+    display:flex;
+    gap:8px;
+    margin-top:8px;
+    flex-wrap:wrap;
+  }
+  .pp-map-coords .field{
+    flex:1 1 150px;
+  }
+
   table{ width:100%; border-collapse:collapse; }
   th, td{ padding:8px 10px; border-bottom:1px solid #203150; font-size:13px }
   th{ text-align:left; color:#bcd3ff }
@@ -302,6 +348,43 @@
           </div>
         </div>
 
+        <div class="pp-map-section">
+          <div class="pp-map-header">
+            <label for="pp_map_search">Location on map</label>
+            <small class="muted">
+              Set your exact location so travelers can find you on the map.
+            </small>
+          </div>
+
+          <input id="pp_map_search"
+                 class="pp-map-search"
+                 type="text"
+                 placeholder="Search address or place">
+
+          <div id="pp_map" class="pp-map-container">
+            <div class="pp-map-placeholder">
+              Map will appear here once Google Maps is connected. You’ll be able to drag the pin or search for your exact spot.
+            </div>
+          </div>
+
+          <div class="pp-map-coords">
+            <div class="field">
+              <label for="pp_lat">Latitude</label>
+              <input id="pp_lat"
+                     type="text"
+                     placeholder="Auto-filled"
+                     readonly>
+            </div>
+            <div class="field">
+              <label for="pp_lng">Longitude</label>
+              <input id="pp_lng"
+                     type="text"
+                     placeholder="Auto-filled"
+                     readonly>
+            </div>
+          </div>
+        </div>
+
         <!-- Description (only non-required field) -->
         <label for="pp_desc">Description</label>
         <textarea id="pp_desc"
@@ -309,6 +392,7 @@
 
         <button id="btnAddons"
                 type="button"
+                onclick="openAddonsModal()"
                 style="
                   margin-top:12px;
                   padding:9px 18px;
@@ -320,7 +404,7 @@
                   cursor:pointer;
                   line-height:1.2;
                 ">
-          Manage add-ons
+          Manage ADD-ONs
         </button>
 
         <div style="display:flex; gap:8px; margin-top:14px; flex-wrap:wrap">
@@ -1072,11 +1156,17 @@
   </script>
 
   <!-- ANCHOR: ADDONS_MODAL -->
-  <div id="addonsModalBackdrop" class="addons-modal-backdrop" aria-hidden="true">
+  <div id="addonsModalBackdrop" class="addons-modal-backdrop"
+      aria-hidden="true"
+      onclick="if (event.target === this) closeAddonsModal()">
     <div class="addons-modal" role="dialog" aria-modal="true" aria-labelledby="addonsModalTitle">
       <header>
         <h3 id="addonsModalTitle">Manage Add-ons</h3>
-        <button type="button" class="close-btn" id="addonsModalClose" aria-label="Close add-ons">×</button>
+        <button type="button" class="close-btn" id="addonsModalClose"
+                aria-label="Close add-ons"
+                onclick="closeAddonsModal()">
+          ×
+        </button>
       </header>
       <div class="addons-body">
         <p style="margin:0; color:var(--muted);">
@@ -1116,7 +1206,10 @@
       </div>
 
       <div class="addons-actions">
-        <button type="button" class="btn secondary" id="addonsModalCancel">Close</button>
+        <button type="button" class="btn secondary" id="addonsModalCancel"
+                onclick="closeAddonsModal()">
+          Close
+        </button>
       </div>
     </div>
   </div>
@@ -1138,6 +1231,22 @@
     location.href = url;
   });
 })();
+</script>
+
+<script>
+  function openAddonsModal() {
+    var bd = document.getElementById('addonsModalBackdrop');
+    if (!bd) return;
+    bd.classList.add('is-open');
+    bd.setAttribute('aria-hidden', 'false');
+  }
+
+  function closeAddonsModal() {
+    var bd = document.getElementById('addonsModalBackdrop');
+    if (!bd) return;
+    bd.classList.remove('is-open');
+    bd.setAttribute('aria-hidden', 'true');
+  }
 </script>
 
 </body>

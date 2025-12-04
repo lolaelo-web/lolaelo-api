@@ -421,8 +421,24 @@
         justify-self: flex-start;
       }
 
+      /* Mobile: stack search fields in a single column to avoid overflow */
       .controls-row{
-        grid-template-columns: 1fr 1fr;
+        grid-template-columns: 1fr;
+        gap: 8px;
+      }
+
+      .controls-row .field,
+      .controls-row .search-btn{
+        width: 100%;
+      }
+
+      .controls-row .search-btn{
+        justify-self: stretch;
+      }
+
+      /* Let dropdown buttons shrink on small screens */
+      .controls-row .custom-select-toggle{
+        min-width: 0;
       }
 
       .grid{
