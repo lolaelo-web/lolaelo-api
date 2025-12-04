@@ -4,7 +4,7 @@
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>Lolaelo · Catalog</title>
-  <link rel="icon" href="logo2.png" />
+  <link rel="icon" href="https://www.lolaelo.com/logo2.png" />
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
 
   <style>
@@ -324,7 +324,7 @@
       text-overflow: ellipsis;
     }
 
-    /* Dropdown menu → match landing behavior and field width */
+    /* Dropdown menu → perfectly match the field width */
     .custom-select-menu {
       list-style: none;
       margin: 4px 0 0 0;
@@ -332,17 +332,18 @@
       position: absolute;
       top: 100%;
 
-      /* extend to cover the field padding, same trick as index.html */
-      left: -12px;
-      right: -12px;
+      /* align directly under the toggle */
+      left: 0;
+      width: 100%;
 
       background: #ffffff;
       border-radius: 12px;
       border: 1px solid #e5e7eb;
       box-shadow: 0 14px 30px rgba(15, 23, 42, 0.12);
 
-      max-height: 260px;
-      overflow-y: auto;
+      /* no inner scroll; let the menu grow with its content */
+      max-height: none;
+      overflow-y: visible;
 
       display: none;
       z-index: 30;
@@ -837,9 +838,12 @@
 
     /* ANCHOR: CATALOG_RUN (REPLACED) */
     async function run(){
-      const start  = startInp.value || new Date().toISOString().slice(0,10);
-      const end    = endInp.value   || start;
-      const guests = Number(guestsInp.value || 2) || 2;
+      const start = startInp.value || todayISO();
+      const end   = endInp.value   || start;
+
+      // use the hidden guests field driven by the custom-select
+      const guestsHiddenEl = document.getElementById('cat-guests');
+      const guests = Number((guestsHiddenEl && guestsHiddenEl.value) || 2) || 2;
 
       found.textContent = "Searching…";
 
@@ -861,44 +865,27 @@
         );
         const j = await r.json();
         const all = Array.isArray(j.properties) ? j.properties : [];
+
         // ANCHOR: CITY_CLIENT_FILTER
         const citySel = selectedCityCode();
         const byCity = (list, code) => {
           if (!code) return list;
           const norm  = s => String(s || '').trim().toUpperCase();
-          const strip = s => norm(s).replace(/[^A-Z0-9]/g, ''); // remove spaces/punct for tolerant compares
+          const strip = s => norm(s).replace(/[^A-Z0-9]/g, ''); // remove spaces/punct
           return list.filter(p => {
-            const sel   = norm(code);           // e.g., "SIARGAO"
-            const cCode = norm(p.cityCode);     // exact code
-            const cLab  = norm(p.city);         // label e.g., "GENERAL LUNA, SIARGAO"
+            const sel   = norm(code);       // e.g., "SIARGAO"
+            const cCode = norm(p.cityCode); // exact code
+            const cLab  = norm(p.city);     // label
 
-            if (cCode === sel) return true;                 // exact code match
-            if (cLab === sel) return true;                  // exact label equals selection
-            if (cLab.includes(sel)) return true;            // label contains selection (… SIARGAO)
-            if (strip(cLab) === strip(sel)) return true;    // EL NIDO vs ELNIDO
+            if (cCode === sel) return true;
+            if (cLab === sel) return true;
+            if (cLab.includes(sel)) return true;
+            if (strip(cLab) === strip(sel)) return true;
             return false;
           });
         };
         let list = byCity(all, citySel);
         // ANCHOR: CITY_CLIENT_FILTER END
-
-        // ANCHOR: CITY_CLIENT_FILTER_DIAG
-        console.log('[catalog] totals:', {
-          all: all.length,
-          afterCity: list.length,
-          citySel
-        });
-        console.table(
-          list.map(p => ({
-            id: p.propertyId,
-            name: p.name,
-            city: p.city,
-            cityCode: p.cityCode,
-            availableNights: p.availableNights,
-            fromPriceStr: p.fromPriceStr
-          }))
-        );
-        // ANCHOR: CITY_CLIENT_FILTER_DIAG END
 
         // ANCHOR: CITY_CLIENT_FILTER_DIAG
         console.log('[catalog] totals:', {
@@ -945,7 +932,7 @@
 
         window.__catalogProps = list;
 
-        // 1) amenity filter on top of existing list
+        // amenity filter layered on top
         const sel = selectedAmenities();
         if (sel.length) {
           list = list.filter(p => {
