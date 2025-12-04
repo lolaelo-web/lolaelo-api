@@ -980,11 +980,11 @@
           <table>
             <thead>
               <tr>
-                <th style="text-align:left; padding:8px 10px; font-size:12px;">Activity</th>
-                <th style="text-align:left; padding:8px 10px; font-size:12px;">UoM</th>
-                <th style="text-align:left; padding:8px 10px; font-size:12px;">Price (USD)</th>
-                <th style="text-align:left; padding:8px 10px; font-size:12px;">Notes</th>
-                <th style="text-align:right; padding:8px 10px; font-size:12px;">Actions</th>
+                <th style="text-align:center; padding:8px 10px; font-size:12px;">Activity/Excursion</th>
+                <th style="text-align:center; padding:8px 10px; font-size:12px;">UoM</th>
+                <th style="text-align:center; padding:8px 10px; font-size:12px;">Price (USD)</th>
+                <th style="text-align:center; padding:8px 10px; font-size:12px;">Notes</th>
+                <th style="text-align:center; padding:8px 10px; font-size:12px;">Actions</th>
               </tr>
             </thead>
             <tbody id="addonsTableBody">
@@ -1008,7 +1008,7 @@
                     padding:6px 14px;
                     font-size:12px;
                   ">
-            Add row
+            Add Row
           </button>
         </div>
         <div>
@@ -1142,7 +1142,7 @@
     priceInput.min = '0';
     priceInput.step = '0.01';
     priceInput.placeholder = '0.00';
-    priceInput.style.width = '100%';
+    priceInput.style.width = '40%';      // 40% of previous size
     priceInput.style.fontSize = '12px';
     priceInput.addEventListener('wheel', function (e) {
       e.preventDefault();                 // keep scroll from changing value
@@ -1159,9 +1159,9 @@
     // Notes (small textarea)
     const notesTd = document.createElement('td');
     const notesArea = document.createElement('textarea');
-    notesArea.rows = 2;
-    notesArea.style.width = '100%';
-    notesArea.style.minHeight = '48px';
+    notesArea.rows = 4;                        // ~2x height
+    notesArea.style.width = '150%';           // 1.5x current width
+    notesArea.style.minHeight = '96px';       // 2x min height
     notesArea.style.fontSize = '12px';
     notesArea.style.resize = 'vertical';
     notesArea.placeholder = 'Optional notes';
