@@ -1374,13 +1374,28 @@
 
         const mp = j?.meta?.property || {};
 
-        // Build a simple location line from whatever is available
-        const parts = [
-          mp.area || mp.district || '',
-          mp.city || mp.town || '',
-          mp.island || '',
-          mp.country || ''
-        ]
+        // Prefer meta.property, then fall back to top-level fields
+        const area =
+          mp.area
+          || mp.district
+          || '';
+
+        const city =
+          mp.city
+          || mp.town
+          || j?.city
+          || '';
+
+        const island =
+          mp.island
+          || '';
+
+        const country =
+          mp.country
+          || j?.country
+          || '';
+
+        const parts = [area, city, island, country]
           .map(x => String(x || '').trim())
           .filter(Boolean);
 
@@ -1692,13 +1707,17 @@
         const openRooms = rooms
           .map(r => {
             const daily = Array.isArray(r.daily) ? r.daily : [];
-            const openNights = daily.filter(d => !d.closed && Number(d.inventory ?? d.open ?? 0) > 0);
+            const openNights = daily.filter(
+              d => !d.closed && Number(d.inventory ?? d.open ?? 0) > 0
+            );
             const minPrice = openNights.length
               ? Math.min(...openNights.map(d => Number(d.price ?? Infinity)))
               : null;
             return { room: r, openNights, minPrice };
           })
           .filter(x => x.openNights.length > 0);
+
+        const hadRooms = Array.isArray(payload.rooms) && payload.rooms.length > 0;
 
         // Update the big right-hand "From" price to the lowest across all open rooms
         try {
@@ -1713,9 +1732,13 @@
         } catch (_) {}
 
         if (!openRooms.length){
+          const msg = hadRooms
+            ? 'No room categories with open inventory for these dates.'
+            : 'Online booking is not yet available for this property. Please check back soon.';
+
           listEl.innerHTML = `
             <div class="small" style="color:var(--muted); padding:4px 0;">
-              No room categories with open inventory for these dates.
+              ${msg}
             </div>`;
           return;
         }
