@@ -23,6 +23,11 @@ function shape(p: any, fallbackEmail = "") {
     addressLine: p.addressLine ?? null,
     city: p.city ?? null,
     description: p.description ?? null,
+
+    // New: coordinates exposed to the UI
+    latitude: p.latitude ?? null,
+    longitude: p.longitude ?? null,
+
     createdAt: p.createdAt ?? null,
     updatedAt: p.updatedAt ?? null,
   };

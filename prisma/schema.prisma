@@ -98,6 +98,11 @@ model PropertyProfile {
   contactEmail String?
   phone        String?
   description  String?
+
+  // NEW: coordinates from partners_app map
+  latitude     Float?
+  longitude    Float?
+
   createdAt    DateTime @default(now())
   updatedAt    DateTime @updatedAt
   partner      Partner  @relation(fields: [partnerId], references: [id], onDelete: Cascade)
