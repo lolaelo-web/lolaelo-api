@@ -661,7 +661,7 @@
       saveProfile();
     };
 
-    // --- Add-ons modal wiring (UI only for now) -----------------------------
+        // --- Add-ons modal wiring (UI only for now) -----------------------------
     (function () {
       const backdrop   = $('addonsModalBackdrop');
       const openBtn    = $('btnAddons');
@@ -672,6 +672,8 @@
 
       if (!backdrop || !openBtn) return;
 
+      const hasTable = !!tableBody;
+
       // Preset activity list (can be overridden globally later)
       const presetActivities = (window.LOLA_ADDON_ACTIVITY_PRESETS || [
         'Airport transfer',
@@ -679,7 +681,7 @@
         'Motorbike / scooter rental',
         'Breakfast add-on',
         'Late checkout',
-        'Guided tour',
+        'Guided tour'
       ]);
 
       const openModal = () => {
@@ -692,142 +694,150 @@
         backdrop.setAttribute('aria-hidden', 'true');
       };
 
-      // Basic row factory
-      const createRow = () => {
-        const tr = document.createElement('tr');
+      // Table helpers – only active if table exists
+      let createRow = null;
+      let clearEmptyStateRow = null;
+      let ensureEmptyStateRow = null;
 
-        const activityTd = document.createElement('td');
-        const unitTd     = document.createElement('td');
-        const priceTd    = document.createElement('td');
-        const notesTd    = document.createElement('td');
-        const statusTd   = document.createElement('td');
-        const actionsTd  = document.createElement('td');
-
-        // Activity select
-        const select = document.createElement('select');
-        select.style.width = '100%';
-        select.style.fontSize = '12px';
-
-        const placeholderOpt = document.createElement('option');
-        placeholderOpt.value = '';
-        placeholderOpt.textContent = 'Select activity';
-        placeholderOpt.disabled = true;
-        placeholderOpt.selected = true;
-        select.appendChild(placeholderOpt);
-
-        presetActivities.forEach((name) => {
-          const opt = document.createElement('option');
-          opt.value = name;
-          opt.textContent = name;
-          select.appendChild(opt);
-        });
-
-        activityTd.appendChild(select);
-
-        // Unit input
-        const unitInput = document.createElement('input');
-        unitInput.type = 'text';
-        unitInput.placeholder = 'person / night / tour';
-        unitInput.style.width = '100%';
-        unitInput.style.fontSize = '12px';
-        unitTd.appendChild(unitInput);
-
-        // Price input
-        const priceInput = document.createElement('input');
-        priceInput.type = 'number';
-        priceInput.min = '0';
-        priceInput.step = '0.01';
-        priceInput.placeholder = '0.00';
-        priceInput.style.width = '100%';
-        priceInput.style.fontSize = '12px';
-        priceTd.appendChild(priceInput);
-
-        // Notes
-        const notesInput = document.createElement('input');
-        notesInput.type = 'text';
-        notesInput.placeholder = 'Optional notes';
-        notesInput.style.width = '100%';
-        notesInput.style.fontSize = '12px';
-        notesTd.appendChild(notesInput);
-
-        // Status select
-        const statusSelect = document.createElement('select');
-        statusSelect.style.width = '100%';
-        statusSelect.style.fontSize = '12px';
-
-        ['ACTIVE', 'INACTIVE'].forEach((st) => {
-          const opt = document.createElement('option');
-          opt.value = st;
-          opt.textContent = (st === 'ACTIVE' ? 'Active' : 'Inactive');
-          statusSelect.appendChild(opt);
-        });
-
-        statusTd.appendChild(statusSelect);
-
-        // Actions (delete)
-        actionsTd.style.textAlign = 'right';
-        const delBtn = document.createElement('button');
-        delBtn.type = 'button';
-        delBtn.textContent = 'Remove';
-        delBtn.className = 'btn secondary';
-        delBtn.style.fontSize = '11px';
-        delBtn.style.padding = '4px 8px';
-
-        delBtn.addEventListener('click', (e) => {
-          e.preventDefault();
-          tr.remove();
-          ensureEmptyStateRow();
-        });
-
-        actionsTd.appendChild(delBtn);
-
-        tr.appendChild(activityTd);
-        tr.appendChild(unitTd);
-        tr.appendChild(priceTd);
-        tr.appendChild(notesTd);
-        tr.appendChild(statusTd);
-        tr.appendChild(actionsTd);
-
-        return tr;
-      };
-
-      // Empty-state helper
-      const clearEmptyStateRow = () => {
-        const rows = Array.from(tableBody.querySelectorAll('tr'));
-        rows.forEach((r) => {
-          if (r.dataset && r.dataset.emptyRow === '1') {
-            r.remove();
-          }
-        });
-      };
-
-      const ensureEmptyStateRow = () => {
-        const rows = tableBody.querySelectorAll('tr');
-        if (rows.length === 0) {
+      if (hasTable) {
+        createRow = () => {
           const tr = document.createElement('tr');
-          tr.dataset.emptyRow = '1';
-          const td = document.createElement('td');
-          td.colSpan = 6;
-          td.style.textAlign = 'center';
-          td.style.padding = '10px';
-          td.className = 'muted';
-          td.textContent = 'No add-ons yet. Click "Add row" to get started.';
-          tr.appendChild(td);
-          tableBody.appendChild(tr);
-        }
-      };
 
-      // Initial state: if there is the default placeholder row, tag it
-      (() => {
-        const rows = tableBody.querySelectorAll('tr');
-        if (rows.length === 1) {
-          const onlyRow = rows[0];
-          const onlyTd  = onlyRow.querySelector('td');
-          if (onlyTd && /No add-ons yet/i.test(onlyTd.textContent || '')) {
-            onlyRow.dataset.emptyRow = '1';
+          const activityTd = document.createElement('td');
+          const unitTd     = document.createElement('td');
+          const priceTd    = document.createElement('td');
+          const notesTd    = document.createElement('td');
+          const statusTd   = document.createElement('td');
+          const actionsTd  = document.createElement('td');
+
+          // Activity select
+          const select = document.createElement('select');
+          select.style.width = '100%';
+          select.style.fontSize = '12px';
+
+          const placeholderOpt = document.createElement('option');
+          placeholderOpt.value = '';
+          placeholderOpt.textContent = 'Select activity';
+          placeholderOpt.disabled = true;
+          placeholderOpt.selected = true;
+          select.appendChild(placeholderOpt);
+
+          presetActivities.forEach((name) => {
+            const opt = document.createElement('option');
+            opt.value = name;
+            opt.textContent = name;
+            select.appendChild(opt);
+          });
+
+          activityTd.appendChild(select);
+
+          // Unit input
+          const unitInput = document.createElement('input');
+          unitInput.type = 'text';
+          unitInput.placeholder = 'person / night / tour';
+          unitInput.style.width = '100%';
+          unitInput.style.fontSize = '12px';
+          unitTd.appendChild(unitInput);
+
+          // Price input
+          const priceInput = document.createElement('input');
+          priceInput.type = 'number';
+          priceInput.min = '0';
+          priceInput.step = '0.01';
+          priceInput.placeholder = '0.00';
+          priceInput.style.width = '100%';
+          priceInput.style.fontSize = '12px';
+          priceTd.appendChild(priceInput);
+
+          // Notes
+          const notesInput = document.createElement('input');
+          notesInput.type = 'text';
+          notesInput.placeholder = 'Optional notes';
+          notesInput.style.width = '100%';
+          notesInput.style.fontSize = '12px';
+          notesTd.appendChild(notesInput);
+
+          // Status select
+          const statusSelect = document.createElement('select');
+          statusSelect.style.width = '100%';
+          statusSelect.style.fontSize = '12px';
+
+          ['ACTIVE', 'INACTIVE'].forEach((st) => {
+            const opt = document.createElement('option');
+            opt.value = st;
+            opt.textContent = (st === 'ACTIVE' ? 'Active' : 'Inactive');
+            statusSelect.appendChild(opt);
+          });
+
+          statusTd.appendChild(statusSelect);
+
+          // Actions (delete)
+          actionsTd.style.textAlign = 'right';
+          const delBtn = document.createElement('button');
+          delBtn.type = 'button';
+          delBtn.textContent = 'Remove';
+          delBtn.className = 'btn secondary';
+          delBtn.style.fontSize = '11px';
+          delBtn.style.padding = '4px 8px';
+
+          delBtn.addEventListener('click', (e) => {
+            e.preventDefault();
+            tr.remove();
+            if (ensureEmptyStateRow) ensureEmptyStateRow();
+          });
+
+          actionsTd.appendChild(delBtn);
+
+          tr.appendChild(activityTd);
+          tr.appendChild(unitTd);
+          tr.appendChild(priceTd);
+          tr.appendChild(notesTd);
+          tr.appendChild(statusTd);
+          tr.appendChild(actionsTd);
+
+          return tr;
+        };
+
+        clearEmptyStateRow = () => {
+          if (!tableBody) return;
+          const rows = Array.from(tableBody.querySelectorAll('tr'));
+          rows.forEach((r) => {
+            if (r.dataset && r.dataset.emptyRow === '1') {
+              r.remove();
+            }
+          });
+        };
+
+        ensureEmptyStateRow = () => {
+          if (!tableBody) return;
+          const rows = tableBody.querySelectorAll('tr');
+          if (rows.length === 0) {
+            const tr = document.createElement('tr');
+            tr.dataset.emptyRow = '1';
+            const td = document.createElement('td');
+            td.colSpan = 6;
+            td.style.textAlign = 'center';
+            td.style.padding = '10px';
+            td.className = 'muted';
+            td.textContent = 'No add-ons yet. Click "Add row" to get started.';
+            tr.appendChild(td);
+            tableBody.appendChild(tr);
           }
-        }
-      })();
+        };
+
+        // Initial empty-row tagging
+        (() => {
+          if (!tableBody) return;
+          const rows = tableBody.querySelectorAll('tr');
+          if (rows.length === 1) {
+            const onlyRow = rows[0];
+            const onlyTd  = onlyRow.querySelector('td');
+            if (onlyTd && /No add-ons yet/i.test(onlyTd.textContent || '')) {
+              onlyRow.dataset.emptyRow = '1';
+            }
+          }
+        })();
+      }
 
       // Wire open / close
       openBtn.addEventListener('click', (e) => {
@@ -856,8 +866,8 @@
         }
       });
 
-      // Wire "Add row" button
-      if (addRowBtn) {
+      // Wire "Add row" button only if table exists
+      if (hasTable && addRowBtn && createRow && clearEmptyStateRow) {
         addRowBtn.addEventListener('click', (e) => {
           e.preventDefault();
           clearEmptyStateRow();
