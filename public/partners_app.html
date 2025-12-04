@@ -1369,24 +1369,30 @@
         updateInputs(pos);
       });
 
-      // Search box: simple "press Enter to geocode" behavior
+      // Search box: simple "press Enter to geocode" behavior (with debug logging)
       if (searchInput) {
+        console.log('[MAP] Wiring search input for Enter-to-geocode');
         const geocoder = new google.maps.Geocoder();
 
         searchInput.addEventListener('keydown', function (e) {
+          console.log('[MAP] search keydown:', e.key);
           if (e.key !== 'Enter') return;
           e.preventDefault();
 
           const query = searchInput.value.trim();
-          if (!query) return;
+          console.log('[MAP] Enter pressed, query =', query);
+          if (!query) {
+            console.log('[MAP] Empty query, skipping geocode');
+            return;
+          }
 
           geocoder.geocode(
             {
               address: query,
-              // Bias to Philippines; adjust/remove if needed
               componentRestrictions: { country: 'PH' }
             },
             function (results, status) {
+              console.log('[MAP] geocode result status =', status, 'results =', results);
               if (status !== 'OK' || !results || !results.length) {
                 console.warn('Geocode failed:', status);
                 return;
