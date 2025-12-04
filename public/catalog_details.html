@@ -1052,10 +1052,18 @@
   <script>
     // === ANCHOR: DETAILS_SCRIPT ============================================
     const qs = new URLSearchParams(location.search);
-    const propertyId = qs.get('propertyId');
-    const start = qs.get('start') || new Date().toISOString().slice(0,10);
-    const end   = qs.get('end')   || start;
-    const plan  = qs.get('ratePlanId') || qs.get('plan');
+    const propertyId = qs.get("propertyId");
+    const start = qs.get("start") || new Date().toISOString().slice(0, 10);
+    const end =
+      qs.get("end") ||
+      (() => {
+        // Default end to start + 1 night if missing
+        const d = new Date(start);
+        if (Number.isNaN(d.getTime())) return start;
+        d.setDate(d.getDate() + 1);
+        return d.toISOString().slice(0, 10);
+      })();
+    const plan = qs.get("ratePlanId") || qs.get("plan") || null;
 
     // ANCHOR: DETAILS_PLAN_PARAM_DEF
     const planParam = (qs.get('ratePlanId') || qs.get('plan') || '').trim();

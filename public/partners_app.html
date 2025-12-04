@@ -442,8 +442,13 @@
                   font-size:13px;
                   cursor:pointer;
                   line-height:1.2;
+                  display:inline-flex;
+                  align-items:center;
+                  gap:6px;
                 ">
-          Manage ADD-ONs
+          <span>Manage ADD-ONs</span>
+          <span id="addonsCountLabel"
+                style="font-size:11px; color:#cbd5f5;"></span>
         </button>
 
         <div style="display:flex; gap:8px; margin-top:14px; flex-wrap:wrap">
@@ -675,12 +680,23 @@
 
         $('pp_desc').value         = p.description ?? '';
 
+        // Hydrate map lat / lng if the backend has them
+        const latInp = document.getElementById('pp_lat');
+        const lngInp = document.getElementById('pp_lng');
+        if (latInp && typeof p.latitude === 'number') {
+          latInp.value = String(p.latitude);
+        }
+        if (lngInp && typeof p.longitude === 'number') {
+          lngInp.value = String(p.longitude);
+        }
+
         $('profileStatus').textContent = p.name ? 'Complete' : 'Missing info';
         $('profileStatus').className   = p.name ? 'ok' : 'todo';
 
         $('pp_partnerId').value = (p.id ?? p.partnerId ?? me.partnerId ?? '') + '';
         if (p.name) company = p.name;
       } else {
+
         $('profileStatus').textContent = 'Missing info';
         $('profileStatus').className   = 'todo';
         $('pp_name').value             = company ?? '';
@@ -690,9 +706,17 @@
       $('brandTitle').textContent = company;
       $('welcomeH1').textContent  = `Welcome, ${company}`;
     }
-    async function saveProfile() {
+  async function saveProfile() {
     const cityCode  = normalizeCityCode($('pp_city').value);
     const cityLabel = CITY_LABELS[cityCode] || '';
+
+    // Read current coordinates from the map fields
+    const latRaw = $('pp_lat') ? $('pp_lat').value : '';
+    const lngRaw = $('pp_lng') ? $('pp_lng').value : '';
+    const latVal = parseFloat(latRaw);
+    const lngVal = parseFloat(lngRaw);
+    const hasLat = Number.isFinite(latVal);
+    const hasLng = Number.isFinite(lngVal);
 
     // PATCH = send only provided fields
     const patchPayload = {
@@ -703,7 +727,9 @@
       country:      nz($('pp_country').value),
       description:  nz($('pp_desc').value),
       cityCode:     cityCode || null,
-      city:         cityLabel || null
+      city:         cityLabel || null,
+      latitude:     hasLat ? latVal : null,
+      longitude:    hasLng ? lngVal : null
     };
     Object.keys(patchPayload).forEach(k => (patchPayload[k] == null) && delete patchPayload[k]);
 
@@ -715,7 +741,9 @@
       country:      ($('pp_country').value || '').trim(),
       addressLine:  ($('pp_address').value || '').trim(),
       city:         cityLabel,
-      description:  ($('pp_desc').value || '').trim()
+      description:  ($('pp_desc').value || '').trim(),
+      latitude:     hasLat ? latVal : null,
+      longitude:    hasLng ? lngVal : null
     };
 
     const btn = $('btnSave'); btn.disabled = true;
@@ -1076,6 +1104,17 @@
   // Simple in-memory state for the current session
   let addonsSessionRows = [];
 
+  function updateAddonsButtonLabel() {
+    const lbl = document.getElementById('addonsCountLabel');
+    if (!lbl) return;
+
+    const count = Array.isArray(addonsSessionRows)
+      ? addonsSessionRows.length
+      : 0;
+
+    lbl.textContent = count > 0 ? `(${count} configured)` : '';
+  }
+
   const ADDON_ACTIVITY_PRESETS = [
     'Island hopping tour',
     'Scuba diving',
@@ -1293,6 +1332,7 @@
     // TODO: backend POST/PUT will go here
     console.log('Add-ons saved (session only for now):', addonsSessionRows);
 
+    updateAddonsButtonLabel();
     closeAddonsModal();
   }
 
@@ -1300,8 +1340,12 @@
     // Throw away all in-memory rows for this session
     addonsSessionRows = [];
     resetAddonsTableFromState();
+    updateAddonsButtonLabel();
     closeAddonsModal();
   }
+
+  // Initialize add-ons label on first load
+  updateAddonsButtonLabel();
 
   // --- Company Profile Map wiring (Google Maps + Places) -------------------
   (function () {
@@ -1418,7 +1462,6 @@
       }
     });
   })();
-
 </script>
 </body>
 </html>
