@@ -149,6 +149,20 @@
   .muted{ color:var(--muted) }
 
   @media (max-width: 700px){ .row, .row3{ grid-template-columns:1fr } }
+  /* === ANCHOR: CATALOG_DROPDOWN_WIDTH_FINAL ==================== */
+  /* Match dropdown width to its parent search field */
+
+  .field .custom-select {
+    width: 100%;               /* container always matches field */
+  }
+
+  .field .custom-select-menu {
+    width: 100% !important;    /* dropdown exactly matches field width */
+    left: 0 !important;        /* align perfectly under field */
+    right: 0 !important;       /* remove narrow offset */
+    box-sizing: border-box;    /* ensure borders included */
+  }
+
   </style>
 
   <!-- Early token capture BEFORE any other scripts -->
@@ -662,14 +676,26 @@
       saveProfile();
     };
 
-    // --- Add-ons modal wiring (skeleton) ------------------------------------
+    // --- Add-ons modal wiring (UI only for now) -----------------------------
     (function () {
-      const backdrop  = $('addonsModalBackdrop');
-      const openBtn   = $('btnAddons');
-      const closeBtn  = $('addonsModalClose');
-      const cancelBtn = $('addonsModalCancel');
+      const backdrop   = $('addonsModalBackdrop');
+      const openBtn    = $('btnAddons');
+      const closeBtn   = $('addonsModalClose');
+      const cancelBtn  = $('addonsModalCancel');
+      const addRowBtn  = $('addonsAddRowBtn');
+      const tableBody  = $('addonsTableBody');
 
-      if (!backdrop || !openBtn) return;
+      if (!backdrop || !openBtn || !tableBody) return;
+
+      // Preset activity list (can be overridden globally later)
+      const presetActivities = (window.LOLA_ADDON_ACTIVITY_PRESETS || [
+        'Airport transfer',
+        'Island hopping tour',
+        'Motorbike / scooter rental',
+        'Breakfast add-on',
+        'Late checkout',
+        'Guided tour',
+      ]);
 
       const openModal = () => {
         backdrop.classList.add('is-open');
@@ -681,6 +707,144 @@
         backdrop.setAttribute('aria-hidden', 'true');
       };
 
+      // Basic row factory
+      const createRow = () => {
+        const tr = document.createElement('tr');
+
+        const activityTd = document.createElement('td');
+        const unitTd     = document.createElement('td');
+        const priceTd    = document.createElement('td');
+        const notesTd    = document.createElement('td');
+        const statusTd   = document.createElement('td');
+        const actionsTd  = document.createElement('td');
+
+        // Activity select
+        const select = document.createElement('select');
+        select.style.width = '100%';
+        select.style.fontSize = '12px';
+
+        const placeholderOpt = document.createElement('option');
+        placeholderOpt.value = '';
+        placeholderOpt.textContent = 'Select activity';
+        placeholderOpt.disabled = true;
+        placeholderOpt.selected = true;
+        select.appendChild(placeholderOpt);
+
+        presetActivities.forEach((name) => {
+          const opt = document.createElement('option');
+          opt.value = name;
+          opt.textContent = name;
+          select.appendChild(opt);
+        });
+
+        activityTd.appendChild(select);
+
+        // Unit input
+        const unitInput = document.createElement('input');
+        unitInput.type = 'text';
+        unitInput.placeholder = 'person / night / tour';
+        unitInput.style.width = '100%';
+        unitInput.style.fontSize = '12px';
+        unitTd.appendChild(unitInput);
+
+        // Price input
+        const priceInput = document.createElement('input');
+        priceInput.type = 'number';
+        priceInput.min = '0';
+        priceInput.step = '0.01';
+        priceInput.placeholder = '0.00';
+        priceInput.style.width = '100%';
+        priceInput.style.fontSize = '12px';
+        priceTd.appendChild(priceInput);
+
+        // Notes
+        const notesInput = document.createElement('input');
+        notesInput.type = 'text';
+        notesInput.placeholder = 'Optional notes';
+        notesInput.style.width = '100%';
+        notesInput.style.fontSize = '12px';
+        notesTd.appendChild(notesInput);
+
+        // Status select
+        const statusSelect = document.createElement('select');
+        statusSelect.style.width = '100%';
+        statusSelect.style.fontSize = '12px';
+
+        ['ACTIVE', 'INACTIVE'].forEach((st) => {
+          const opt = document.createElement('option');
+          opt.value = st;
+          opt.textContent = (st === 'ACTIVE' ? 'Active' : 'Inactive');
+          statusSelect.appendChild(opt);
+        });
+
+        statusTd.appendChild(statusSelect);
+
+        // Actions (delete)
+        actionsTd.style.textAlign = 'right';
+        const delBtn = document.createElement('button');
+        delBtn.type = 'button';
+        delBtn.textContent = 'Remove';
+        delBtn.className = 'btn secondary';
+        delBtn.style.fontSize = '11px';
+        delBtn.style.padding = '4px 8px';
+
+        delBtn.addEventListener('click', (e) => {
+          e.preventDefault();
+          tr.remove();
+          ensureEmptyStateRow();
+        });
+
+        actionsTd.appendChild(delBtn);
+
+        tr.appendChild(activityTd);
+        tr.appendChild(unitTd);
+        tr.appendChild(priceTd);
+        tr.appendChild(notesTd);
+        tr.appendChild(statusTd);
+        tr.appendChild(actionsTd);
+
+        return tr;
+      };
+
+      // Empty-state helper
+      const clearEmptyStateRow = () => {
+        const rows = Array.from(tableBody.querySelectorAll('tr'));
+        rows.forEach((r) => {
+          if (r.dataset && r.dataset.emptyRow === '1') {
+            r.remove();
+          }
+        });
+      };
+
+      const ensureEmptyStateRow = () => {
+        const rows = tableBody.querySelectorAll('tr');
+        if (rows.length === 0) {
+          const tr = document.createElement('tr');
+          tr.dataset.emptyRow = '1';
+          const td = document.createElement('td');
+          td.colSpan = 6;
+          td.style.textAlign = 'center';
+          td.style.padding = '10px';
+          td.className = 'muted';
+          td.textContent = 'No add-ons yet. Click "Add row" to get started.';
+          tr.appendChild(td);
+          tableBody.appendChild(tr);
+        }
+      };
+
+      // Initial state: if there is the default placeholder row, tag it
+      (() => {
+        const rows = tableBody.querySelectorAll('tr');
+        if (rows.length === 1) {
+          const onlyRow = rows[0];
+          const onlyTd  = onlyRow.querySelector('td');
+          if (onlyTd && /No add-ons yet/i.test(onlyTd.textContent || '')) {
+            onlyRow.dataset.emptyRow = '1';
+          }
+        }
+      })();
+
+      // Wire open / close
       openBtn.addEventListener('click', (e) => {
         e.preventDefault();
         openModal();
@@ -706,6 +870,15 @@
           closeModal();
         }
       });
+
+      // Wire "Add row" button
+      if (addRowBtn) {
+        addRowBtn.addEventListener('click', (e) => {
+          e.preventDefault();
+          clearEmptyStateRow();
+          tableBody.appendChild(createRow());
+        });
+      }
     })();
 
     // --- PMS Connections / Mappings ------------------------------------------
@@ -912,10 +1085,41 @@
       </header>
       <div class="addons-body">
         <p style="margin:0; color:var(--muted);">
-          Configure activities and extras for your property. We will wire this to checkout in a later step.
+          Configure activities and extras for your property. Each add-on will appear as an optional extra during checkout.
         </p>
-        <!-- TODO: add-ons table and form fields will be added in later steps -->
+
+        <div style="display:flex; justify-content:space-between; align-items:center; margin-top:8px; margin-bottom:6px; gap:8px;">
+          <div class="muted" style="font-size:12px;">
+            Start by adding rows for things like airport transfers, tours, or equipment rentals.
+          </div>
+          <button type="button" id="addonsAddRowBtn" class="btn small">
+            Add row
+          </button>
+        </div>
+
+        <div class="table-wrapper" style="border:1px solid var(--line); border-radius:10px; overflow:hidden;">
+          <table>
+            <thead>
+              <tr>
+                <th style="text-align:left; padding:8px 10px; font-size:12px;">Activity</th>
+                <th style="text-align:left; padding:8px 10px; font-size:12px;">Unit</th>
+                <th style="text-align:left; padding:8px 10px; font-size:12px;">Price</th>
+                <th style="text-align:left; padding:8px 10px; font-size:12px;">Notes</th>
+                <th style="text-align:left; padding:8px 10px; font-size:12px;">Status</th>
+                <th style="text-align:right; padding:8px 10px; font-size:12px;">Actions</th>
+              </tr>
+            </thead>
+            <tbody id="addonsTableBody">
+              <tr>
+                <td colspan="6" style="text-align:center; padding:10px;" class="muted">
+                  No add-ons yet. Click "Add row" to get started.
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
       </div>
+
       <div class="addons-actions">
         <button type="button" class="btn secondary" id="addonsModalCancel">Close</button>
       </div>

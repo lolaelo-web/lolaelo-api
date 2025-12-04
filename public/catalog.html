@@ -589,6 +589,20 @@
       color:#ff6a3d;
       text-decoration:none;
     }
+  /* === ANCHOR: CATALOG_DROPDOWN_WIDTH_FINAL ==================== */
+  /* Match dropdown width to its parent search field */
+
+  .field .custom-select {
+    width: 100%;               /* container always matches field */
+  }
+
+  .field .custom-select-menu {
+    width: 100% !important;    /* dropdown exactly matches field width */
+    left: 0 !important;        /* align perfectly under field */
+    right: 0 !important;       /* remove narrow offset */
+    box-sizing: border-box;    /* ensure borders included */
+  }
+
   </style>
 </head>
 <body>
