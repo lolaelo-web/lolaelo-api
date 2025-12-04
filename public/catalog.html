@@ -324,7 +324,7 @@
       text-overflow: ellipsis;
     }
 
-    /* Dropdown menu → perfectly match the field width */
+    /* Dropdown menu → match landing behavior and field width */
     .custom-select-menu {
       list-style: none;
       margin: 4px 0 0 0;
@@ -332,17 +332,16 @@
       position: absolute;
       top: 100%;
 
-      /* align directly under the toggle */
-      left: 0;
-      width: 100%;
+      /* extend slightly past inner content so it visually matches the field */
+      left: -12px;
+      right: -12px;
 
       background: #ffffff;
       border-radius: 12px;
       border: 1px solid #e5e7eb;
       box-shadow: 0 14px 30px rgba(15, 23, 42, 0.12);
 
-      /* no inner scroll; let the menu grow with its content */
-      max-height: none;
+      max-height: none;        /* no scroll bar */
       overflow-y: visible;
 
       display: none;
@@ -589,20 +588,6 @@
       color:#ff6a3d;
       text-decoration:none;
     }
-  /* === ANCHOR: CATALOG_DROPDOWN_WIDTH_FINAL ==================== */
-  /* Match dropdown width to its parent search field */
-
-  .field .custom-select {
-    width: 100%;               /* container always matches field */
-  }
-
-  .field .custom-select-menu {
-    width: 100% !important;    /* dropdown exactly matches field width */
-    left: 0 !important;        /* align perfectly under field */
-    right: 0 !important;       /* remove narrow offset */
-    box-sizing: border-box;    /* ensure borders included */
-  }
-
   </style>
 </head>
 <body>

@@ -149,20 +149,6 @@
   .muted{ color:var(--muted) }
 
   @media (max-width: 700px){ .row, .row3{ grid-template-columns:1fr } }
-  /* === ANCHOR: CATALOG_DROPDOWN_WIDTH_FINAL ==================== */
-  /* Match dropdown width to its parent search field */
-
-  .field .custom-select {
-    width: 100%;               /* container always matches field */
-  }
-
-  .field .custom-select-menu {
-    width: 100% !important;    /* dropdown exactly matches field width */
-    left: 0 !important;        /* align perfectly under field */
-    right: 0 !important;       /* remove narrow offset */
-    box-sizing: border-box;    /* ensure borders included */
-  }
-
   </style>
 
   <!-- Early token capture BEFORE any other scripts -->
@@ -321,19 +307,18 @@
         <textarea id="pp_desc"
                   placeholder="Short description of your company, amenities, and any partner notes."></textarea>
 
-        <!-- Manage Add-ons button -->
         <button id="btnAddons"
                 type="button"
                 style="
                   margin-top:12px;
-                  padding:10px 16px;
-                  border-radius:6px;
-                  background:#ff6a3d33;
-                  color:white;
+                  padding:9px 18px;
+                  border-radius:999px;
+                  background:#0f172a;
                   border:1px solid #ff6a3d;
+                  color:white;
                   font-size:13px;
                   cursor:pointer;
-                  width:fit-content;
+                  line-height:1.2;
                 ">
           Manage add-ons
         </button>
@@ -685,7 +670,7 @@
       const addRowBtn  = $('addonsAddRowBtn');
       const tableBody  = $('addonsTableBody');
 
-      if (!backdrop || !openBtn || !tableBody) return;
+      if (!backdrop || !openBtn) return;
 
       // Preset activity list (can be overridden globally later)
       const presetActivities = (window.LOLA_ADDON_ACTIVITY_PRESETS || [
