@@ -672,20 +672,24 @@
             <div class="section-body" data-section-body="1">
               <div class="field-row">
                 <div class="field-label">Property</div>
-                <div class="field-value" id="propertyName">
-                  Property for ID <span id="propertyIdValue"></span>
+                <div class="field-value">
+                  <div id="propertyName"></div>
+                  <div class="muted" id="propertyMeta"></div>
+                  <span id="propertyIdValue" style="display:none;"></span>
                 </div>
               </div>
               <div class="field-row">
                 <div class="field-label">Room</div>
-                <div class="field-value" id="roomName">
-                  Room for ID <span id="roomIdValue"></span>
+                <div class="field-value">
+                  <div id="roomName"></div>
+                  <span id="roomIdValue" style="display:none;"></span>
                 </div>
               </div>
               <div class="field-row">
                 <div class="field-label">Rate plan</div>
-                <div class="field-value" id="ratePlanName">
-                  Plan for ID <span id="ratePlanIdValue"></span>
+                <div class="field-value">
+                  <div id="ratePlanName"></div>
+                  <span id="ratePlanIdValue" style="display:none;"></span>
                 </div>
               </div>
               <div class="field-inline">
@@ -993,7 +997,11 @@
         roomId: params.get("roomId") || "",
         start: params.get("start") || "",
         end: params.get("end") || "",
-        ratePlanId: params.get("ratePlanId") || ""
+        ratePlanId: params.get("ratePlanId") || "",
+        propertyName: params.get("propertyName") || "",
+        propertyLocation: params.get("propertyLocation") || "",
+        roomName: params.get("roomName") || "",
+        ratePlanName: params.get("ratePlanName") || ""
       };
     }
 
@@ -1024,18 +1032,42 @@
       start: "",
       end: "",
       ratePlanId: "",
+      propertyName: "",
+      propertyLocation: "",
+      roomName: "",
+      ratePlanName: "",
       sectionConfirmed: { 1: false, 2: false, 3: false, 4: false }
     };
 
     function updateSummaries() {
-      const propertyText = state.propertyId || "Property";
-      const roomText = state.roomId || "Room";
-      const planText = state.ratePlanId || "Rate plan";
+      const propertyText =
+        state.propertyName || state.propertyId || "Property";
+      const propertyMeta = state.propertyLocation || "";
+      const roomText =
+        state.roomName || state.roomId || "Room";
+      const planText =
+        state.ratePlanName || state.ratePlanId || "Rate plan";
 
-      document.getElementById("propertyIdValue").textContent = state.propertyId;
-      document.getElementById("roomIdValue").textContent = state.roomId;
-      document.getElementById("ratePlanIdValue").textContent = state.ratePlanId;
+      // Hidden IDs (for debugging / future logic)
+      const propIdEl = document.getElementById("propertyIdValue");
+      if (propIdEl) propIdEl.textContent = state.propertyId;
+      const roomIdEl = document.getElementById("roomIdValue");
+      if (roomIdEl) roomIdEl.textContent = state.roomId;
+      const planIdEl = document.getElementById("ratePlanIdValue");
+      if (planIdEl) planIdEl.textContent = state.ratePlanId;
 
+      // Visible labels in Section 1
+      const propNameEl = document.getElementById("propertyName");
+      if (propNameEl) propNameEl.textContent = propertyText;
+      const propMetaEl = document.getElementById("propertyMeta");
+      if (propMetaEl) propMetaEl.textContent = propertyMeta;
+
+      const roomNameEl = document.getElementById("roomName");
+      if (roomNameEl) roomNameEl.textContent = roomText;
+      const planNameEl = document.getElementById("ratePlanName");
+      if (planNameEl) planNameEl.textContent = planText;
+
+      // Summary card on the right
       document.getElementById("summaryProperty").textContent = propertyText;
       document.getElementById("summaryRoom").textContent = roomText;
       document.getElementById("summaryPlan").textContent = planText;
@@ -1130,6 +1162,10 @@
       state.start = q.start;
       state.end = q.end;
       state.ratePlanId = q.ratePlanId;
+      state.propertyName = q.propertyName;
+      state.propertyLocation = q.propertyLocation;
+      state.roomName = q.roomName;
+      state.ratePlanName = q.ratePlanName;
 
       updateSummaries();
       refreshSections();
