@@ -84,6 +84,65 @@
   .photos .meta{ font-size:11px; color:#a9bbde; margin-top:6px; word-break:break-all }
   .photos .photo-actions{ display:flex; gap:6px; flex-wrap:wrap; margin-top:8px; }
 
+    .photos .photo-actions{ display:flex; gap:6px; flex-wrap:wrap; margin-top:8px; }
+
+  /* Add-ons modal */
+  .addons-modal-backdrop{
+    position:fixed;
+    inset:0;
+    background:rgba(0,0,0,0.6);
+    display:none;
+    align-items:center;
+    justify-content:center;
+    z-index:2000;
+  }
+  .addons-modal-backdrop.is-open{
+    display:flex;
+  }
+  .addons-modal{
+    background:var(--card);
+    border-radius:16px;
+    border:1px solid var(--line);
+    max-width:720px;
+    width:96%;
+    max-height:90vh;
+    overflow:auto;
+    padding:18px 20px;
+    box-shadow:0 18px 45px rgba(0,0,0,0.6);
+  }
+  .addons-modal header{
+    display:flex;
+    align-items:center;
+    justify-content:space-between;
+    gap:12px;
+    margin-bottom:12px;
+  }
+  .addons-modal h3{
+    margin:0;
+    font-size:16px;
+  }
+  .addons-modal .addons-body{
+    font-size:13px;
+    display:flex;
+    flex-direction:column;
+    gap:10px;
+  }
+  .addons-modal .addons-actions{
+    display:flex;
+    justify-content:flex-end;
+    gap:8px;
+    margin-top:14px;
+  }
+  .addons-modal .close-btn{
+    background:none;
+    border:none;
+    color:var(--muted);
+    cursor:pointer;
+    font-size:20px;
+    line-height:1;
+    padding:0 4px;
+  }
+
   table{ width:100%; border-collapse:collapse; }
   th, td{ padding:8px 10px; border-bottom:1px solid #203150; font-size:13px }
   th{ text-align:left; color:#bcd3ff }
@@ -231,6 +290,7 @@
               <option value="SIARGAO">Siargao</option>
               <option value="BORACAY">Boracay</option>
               <option value="ELNIDO">El Nido</option>
+              <option value="CORON">Coron</option>
               <option value="CEBU">Cebu</option>
               <option value="MANILA">Manila</option>
             </select>
@@ -247,12 +307,28 @@
         <textarea id="pp_desc"
                   placeholder="Short description of your company, amenities, and any partner notes."></textarea>
 
-        <div style="display:flex; gap:8px; margin-top:14px">
+        <!-- Manage Add-ons button -->
+        <button id="btnAddons"
+                type="button"
+                style="
+                  margin-top:12px;
+                  padding:10px 16px;
+                  border-radius:6px;
+                  background:#ff6a3d33;
+                  color:white;
+                  border:1px solid #ff6a3d;
+                  font-size:13px;
+                  cursor:pointer;
+                  width:fit-content;
+                ">
+          Manage add-ons
+        </button>
+
+        <div style="display:flex; gap:8px; margin-top:14px; flex-wrap:wrap">
           <button id="btnSave" class="btn">Save changes</button>
           <button id="btnBack" class="btn secondary" type="button">Back to menu</button>
         </div>
-      </div>
-
+        </div>
 
       <!-- PMS CONNECTIONS PANEL -->
       <div id="pmsConnectionsPanel" class="card section hidden" aria-label="PMS Connections">
@@ -586,6 +662,52 @@
       saveProfile();
     };
 
+    // --- Add-ons modal wiring (skeleton) ------------------------------------
+    (function () {
+      const backdrop  = $('addonsModalBackdrop');
+      const openBtn   = $('btnAddons');
+      const closeBtn  = $('addonsModalClose');
+      const cancelBtn = $('addonsModalCancel');
+
+      if (!backdrop || !openBtn) return;
+
+      const openModal = () => {
+        backdrop.classList.add('is-open');
+        backdrop.setAttribute('aria-hidden', 'false');
+      };
+
+      const closeModal = () => {
+        backdrop.classList.remove('is-open');
+        backdrop.setAttribute('aria-hidden', 'true');
+      };
+
+      openBtn.addEventListener('click', (e) => {
+        e.preventDefault();
+        openModal();
+      });
+
+      [closeBtn, cancelBtn].forEach((btn) => {
+        if (btn) {
+          btn.addEventListener('click', (e) => {
+            e.preventDefault();
+            closeModal();
+          });
+        }
+      });
+
+      backdrop.addEventListener('click', (e) => {
+        if (e.target === backdrop) {
+          closeModal();
+        }
+      });
+
+      window.addEventListener('keydown', (e) => {
+        if (e.key === 'Escape' && backdrop.classList.contains('is-open')) {
+          closeModal();
+        }
+      });
+    })();
+
     // --- PMS Connections / Mappings ------------------------------------------
     const connTbody = $('connTbody');
     const connLogs  = $('connLogs');
@@ -781,7 +903,26 @@
     });
   </script>
 
-  <script>
+  <!-- ANCHOR: ADDONS_MODAL -->
+  <div id="addonsModalBackdrop" class="addons-modal-backdrop" aria-hidden="true">
+    <div class="addons-modal" role="dialog" aria-modal="true" aria-labelledby="addonsModalTitle">
+      <header>
+        <h3 id="addonsModalTitle">Manage Add-ons</h3>
+        <button type="button" class="close-btn" id="addonsModalClose" aria-label="Close add-ons">×</button>
+      </header>
+      <div class="addons-body">
+        <p style="margin:0; color:var(--muted);">
+          Configure activities and extras for your property. We will wire this to checkout in a later step.
+        </p>
+        <!-- TODO: add-ons table and form fields will be added in later steps -->
+      </div>
+      <div class="addons-actions">
+        <button type="button" class="btn secondary" id="addonsModalCancel">Close</button>
+      </div>
+    </div>
+  </div>
+
+<script>
 // Make the Photos tile open the API-hosted page, passing the token
 (function () {
   var a = document.getElementById('tilePhotos');
