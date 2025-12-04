@@ -826,7 +826,58 @@
       box-shadow: 0 6px 18px rgba(255,106,61,0.35);
       transform: translateY(-1px);
     }
-    
+
+    /* ANCHOR: DETAILS_SUMMARY_CSS */
+    .summary{
+      margin: 12px 16px 4px;
+      padding: 10px 14px;
+      border-radius: 12px;
+      border: 1px solid var(--border);
+      background: var(--panel);
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      gap: 6px 16px;
+    }
+
+    .summary-main{
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+      flex: 1 1 auto;
+      min-width: 0;
+    }
+
+    .summary-price-line{
+      display: flex;
+      align-items: baseline;
+      gap: 6px;
+      flex-wrap: wrap;
+    }
+
+    .summary-label{
+      font-size: 11px;
+      text-transform: uppercase;
+      letter-spacing: .08em;
+      color: var(--muted);
+    }
+
+    .summary .price{
+      font-size: 18px;
+      font-weight: 600;
+    }
+
+    #nights-note{
+      font-size: 12px;
+      color: var(--muted);
+    }
+
+    .summary .chips{
+      margin-top: 4px;
+      flex-wrap: wrap;
+      row-gap: 6px;
+    }
+
     /* ANCHOR: ROOM_DIALOG_LAYOUT */
     /* Wider edit-room dialog */
     .dialog{
@@ -898,6 +949,20 @@
 
     <div class="layout">
       <section>
+        <!-- ANCHOR: DETAILS_SUMMARY_BLOCK -->
+        <div class="summary">
+          <div class="summary-main">
+            <div class="summary-price-line">
+              <span class="summary-label">From</span>
+              <span id="from" class="price">—</span>
+              <span id="nights-note" class="meta" style="margin-left:8px;"></span>
+            </div>
+            <div id="prop-location" class="summary-location"></div>
+            <p id="prop-desc" class="summary-desc"></p>
+            <div id="amenities" class="chips" style="display:none;"></div>
+          </div>
+        </div>
+
         <!-- ANCHOR: ROOMCAT_LIST_HTML -->
         <div id="roomCats" class="roomcats" aria-label="Available room categories (open only)"></div>
       </section>
@@ -1000,7 +1065,8 @@
     const nightsNote = document.getElementById('nights-note'); // may not exist
 
     let images = [];
-    let heroIndex = 0;
+    // Start at -1 so the first setHero(0) does not early-return
+    let heroIndex = -1;
 
     /* ANCHOR: IMAGE_PLACEHOLDER_HELPER */
     function getPlaceholderSVG(label = 'Photo not available'){
@@ -1281,6 +1347,45 @@
         rangeEl.textContent = (start === end)
           ? fs
           : `${fs} to ${fe}`;
+      }
+
+      // ANCHOR: DETAILS_LOCATION_DESC_RENDER
+      {
+        const locEl = document.getElementById('prop-location');
+        const descEl = document.getElementById('prop-desc');
+
+        const mp = j?.meta?.property || {};
+
+        // Build a simple location line from whatever is available
+        const parts = [
+          mp.area || mp.district || '',
+          mp.city || mp.town || '',
+          mp.island || '',
+          mp.country || ''
+        ]
+          .map(x => String(x || '').trim())
+          .filter(Boolean);
+
+        if (locEl) {
+          if (parts.length) {
+            locEl.textContent = parts.join(' · ');
+          } else if (j?.location && typeof j.location === 'string') {
+            locEl.textContent = j.location;
+          } else {
+            locEl.textContent = '';
+          }
+        }
+
+        if (descEl) {
+          const desc =
+            j?.description
+            || mp.description
+            || mp.longDescription
+            || '';
+
+          descEl.textContent = desc || '';
+          descEl.style.display = desc ? 'block' : 'none';
+        }
       }
 
       // Compute fromPrice from daily rows (first room) if available

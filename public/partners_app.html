@@ -1369,28 +1369,11 @@
         updateInputs(pos);
       });
 
-      // Attach Places Autocomplete to search input, if available
-      if (searchInput && google.maps.places && google.maps.places.Autocomplete) {
-        const autocomplete = new google.maps.places.Autocomplete(searchInput, {
-          fields: ['geometry', 'name', 'formatted_address'],
-          componentRestrictions: { country: ['ph'] } // bias to Philippines
-        });
-
-        autocomplete.addListener('place_changed', () => {
-          const place = autocomplete.getPlace();
-          if (!place || !place.geometry || !place.geometry.location) {
-            console.warn('Selected place has no geometry.');
-            return;
-          }
-
-          const loc = place.geometry.location;
-          map.panTo(loc);
-          map.setZoom(15);
-          marker.setPosition(loc);
-          updateInputs(loc);
-        });
-      } else if (searchInput) {
-        console.warn('Google Places library not available; search box will act as plain text.');
+      // Search box: plain text for now.
+      // Google has disabled legacy Autocomplete for new projects (LegacyApiNotActivatedMapError),
+      // so we avoid calling it here to prevent the overlay error.
+      if (searchInput) {
+        console.warn('Places Autocomplete disabled for this project; search box is plain text for now.');
       }
     }
 
