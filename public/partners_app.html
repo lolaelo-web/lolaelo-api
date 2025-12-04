@@ -144,7 +144,19 @@
     padding:0 4px;
   }
 
-    /* Company Profile – map section */
+  /* Add-ons price field: hide browser spin buttons */
+  .addons-modal input[type="number"]::-webkit-outer-spin-button,
+  .addons-modal input[type="number"]::-webkit-inner-spin-button{
+    -webkit-appearance:none;
+    margin:0;
+  }
+  .addons-modal input[type="number"]{
+      appearance: textfield;
+      -moz-appearance: textfield;
+      -webkit-appearance: none;
+  }
+
+  /* Company Profile – map section */
   .pp-map-section{
     margin-top:12px;
   }
@@ -967,11 +979,11 @@
           <table>
             <thead>
               <tr>
-                <th style="text-align:left; padding:8px 10px; font-size:12px;">Activity</th>
-                <th style="text-align:left; padding:8px 10px; font-size:12px;">UoM</th>
-                <th style="text-align:left; padding:8px 10px; font-size:12px;">Price (USD)</th>
-                <th style="text-align:left; padding:8px 10px; font-size:12px; position:relative; left:-20px;">Notes</th>
-                <th style="text-align:right; padding:8px 10px; font-size:12px;">Actions</th>
+                <th style="text-align:center; padding:8px 10px; font-size:12px;">Activity</th>
+                <th style="text-align:center; padding:8px 10px; font-size:12px; position:relative; left:-18px;">UoM</th>
+                <th style="text-align:center; padding:8px 10px; font-size:12px; position:relative; left:-18px;">Price (USD)</th>
+                <th style="text-align:center; padding:8px 10px; font-size:12px; position:relative; left:-18px;">Notes</th>
+                <th style="text-align:center; padding:8px 10px; font-size:12px;">Actions</th>
               </tr>
             </thead>
             <tbody id="addonsTableBody">
@@ -1096,8 +1108,11 @@
 
     // UoM
     const uomTd = document.createElement('td');
+    uomTd.style.position = 'relative';
+    uomTd.style.left = '-18px';
+
     const uomSel = document.createElement('select');
-    uomSel.style.width = '70%';         // ~50% of prior 140%
+    uomSel.style.width = '70%';
     uomSel.style.fontSize = '12px';
 
     ADDON_UOM_PRESETS.forEach((name) => {
@@ -1115,6 +1130,9 @@
 
     // Price (USD)
     const priceTd = document.createElement('td');
+    priceTd.style.position = 'relative';
+    priceTd.style.left = '-18px';
+
     const priceWrap = document.createElement('div');
     priceWrap.style.display = 'flex';
     priceWrap.style.alignItems = 'center';
@@ -1147,11 +1165,11 @@
     // Notes (small textarea)
     const notesTd = document.createElement('td');
     notesTd.style.position = 'relative';
-    notesTd.style.left = '-20px';                    // shift cell ~20px left
+    notesTd.style.left = '-18px';
 
     const notesArea = document.createElement('textarea');
-    notesArea.rows = 2;                               // ~2x height
-    notesArea.style.width = '180%';                  // narrower than before to reduce overlap
+    notesArea.rows = 2;
+    notesArea.style.width = '180%';
     notesArea.style.minHeight = '48px';
     notesArea.style.fontSize = '12px';
     notesArea.style.resize = 'vertical';

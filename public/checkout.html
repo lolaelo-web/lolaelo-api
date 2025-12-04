@@ -433,6 +433,7 @@
     font-weight: 600;
     border: none;
     white-space: nowrap;
+    margin-left: -65px; /* shift button ~10 characters to the left */
   }
 
   .sticky-button[disabled] {
@@ -589,9 +590,10 @@
   }
 
   .security-bubble strong {
+    color: #0f172a;   /* match bubble body text */
+    font-weight: 700;
     display: block;
-    margin-bottom: 4px;
-    color: #f9fafb;
+    margin-bottom: 6px;
   }
 
   .payment-security:hover .security-bubble,
@@ -906,10 +908,10 @@
 							<!-- SECURITY ICON + CONFIRM BUTTON (SIDE BY SIDE) -->
 							<div style="display:flex; align-items:center; justify-content:flex-start; gap:14px; margin-top:16px; position:relative;">
 
-								<!-- Confirm button -->
-								<button class="btn-primary" type="button" data-confirm="4">
-									Confirm Secure Payment
-								</button>
+                <!-- Confirm button -->
+                <button class="btn-primary" type="button" data-confirm="4">
+                  Proceed to secure payment
+                </button>
 
 								<!-- Security icon + bubble -->
 								<div class="payment-security" style="position:relative;">
@@ -935,30 +937,36 @@
 				</div>
 
 				<!-- Right side: booking summary -->
-				<aside>
+        <aside>
 
           <div class="card">
             <div class="summary-card-title">Your stay</div>
+
             <div class="summary-line">
               <span>Property</span>
               <strong id="summaryProperty">Property</strong>
             </div>
+
             <div class="summary-line">
-              <span>Room</span>
+              <span>Room type</span>
               <strong id="summaryRoom">Room</strong>
             </div>
+
             <div class="summary-line">
               <span>Rate plan</span>
               <strong id="summaryPlan">Rate plan</strong>
             </div>
+
             <div class="summary-line">
               <span>Dates</span>
               <strong id="summaryDates">Dates</strong>
             </div>
+
             <div class="summary-line">
               <span>Nights</span>
               <strong id="summaryNights">n</strong>
             </div>
+
             <div class="summary-total">
               <div>
                 <div class="summary-total-label">Total</div>
@@ -967,23 +975,25 @@
                 $50.00
               </div>
             </div>
+
             <div class="breakdown-toggle" id="breakdownToggle">
               View nightly breakdown
             </div>
             <div class="breakdown" id="breakdownDetails">
             </div>
+
           </div>
+
         </aside>
-      </div>
 
       <div class="sticky-footer">
         <div class="sticky-inner">
           <div>
 
           </div>
-          <button class="sticky-button" id="confirmAndPayButton" disabled>
-            Continue to Secure Payment
-          </button>
+            <button class="sticky-button" id="confirmAndPayButton" disabled>
+              Proceed to secure payment
+            </button>
         </div>
       </div>
     </main>
@@ -1243,7 +1253,7 @@
           } catch (err) {
             console.error("Error starting Stripe Checkout", err);
             confirmAndPayButton.disabled = false;
-            confirmAndPayButton.textContent = "Confirm booking and continue to payment";
+            confirmAndPayButton.textContent = "Proceed to secure payment";
             alert("Could not start payment. Please try again.");
           }
         });
