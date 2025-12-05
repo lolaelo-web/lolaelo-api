@@ -3037,13 +3037,44 @@
             const propertyId = payload.propertyId ?? payload.id ?? "";
             const roomId     = room.roomTypeId ?? room.typeId ?? room.id ?? room.roomId ?? room.code ?? "";
 
-            let start = "";
-            let end   = "";
-            try {
-              const qs = new URLSearchParams(location.search || "");
-              start = qs.get("start") || "";
-              end   = qs.get("end")   || "";
-            } catch {}
+            // Reuse same helpers as inline plan rows
+            const { propertyName, propertyLocation } = getCheckoutMeta();
+            const roomName = getRoomNameForCheckout(roomId);
+
+            const ids = getModalSelectedPlanIds();
+            const plansQS = ids.length ? `&plans=${encodeURIComponent(ids.join(','))}` : '';
+
+            ids.forEach(id => {
+              if (!Number.isFinite(id)) return;
+
+              const label = getModalPlanLabel(id);        // Standard / With Breakfast / Non-Refundable
+              const desc  = getModalPlanDescription(id);
+
+              const url =
+                `/checkout.html?propertyId=${encodeURIComponent(propertyId)}` +
+                `&propertyName=${encodeURIComponent(propertyName)}` +
+                (propertyLocation ? `&propertyLocation=${encodeURIComponent(propertyLocation)}` : '') +
+                `&roomId=${encodeURIComponent(roomId)}` +
+                `&roomName=${encodeURIComponent(roomName)}` +
+                `&start=${encodeURIComponent(start)}` +
+                `&end=${encodeURIComponent(end)}` +
+                `&ratePlanId=${encodeURIComponent(id)}` +
+                `&planLabel=${encodeURIComponent(label)}` +
+                plansQS;
+
+              const pill = document.createElement("div");
+              pill.className = "room-modal-plan-pill";
+              pill.innerHTML =
+                `<div class="room-modal-plan-pill-title">${label}</div>
+                <div class="room-modal-plan-pill-desc">${desc}</div>
+                <a class="room-modal-plan-pill-btn"
+                    href="${url}"
+                    aria-label="Book ${label} now">
+                    Book now
+                </a>`;
+
+              plansWrap.appendChild(pill);
+            });
           }
         } catch (_) {}
 

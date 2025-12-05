@@ -1413,73 +1413,141 @@
   // Initialize add-ons label on first load
   updateAddonsButtonLabel();
 
-  // --- Company Profile Map wiring (Google Maps + Places) -------------------
+    // --- Company Profile Map wiring (Google Maps + Places) -------------------
   (function () {
-    const mapEl      = document.getElementById('pp_map');
-    const latInp     = document.getElementById('pp_lat');
-    const lngInp     = document.getElementById('pp_lng');
+    const mapEl       = document.getElementById('pp_map');
+    const latInp      = document.getElementById('pp_lat');
+    const lngInp      = document.getElementById('pp_lng');
     const searchInput = document.getElementById('pp_map_search');
 
-      // Search box: Enter-to-geocode behavior + shared handler for Search button
-      if (searchInput) {
-        console.log('[MAP] Wiring search input for Enter-to-geocode');
-        const geocoder = new google.maps.Geocoder();
+    let map   = null;
+    let marker = null;
 
-        function runGeocode() {
-          const query = searchInput.value.trim();
-          console.log('[MAP] Search trigger, query =', query);
-          if (!query) {
-            console.log('[MAP] Empty query, skipping geocode');
-            return;
-          }
+    function updateInputs(pos) {
+      if (!latInp || !lngInp || !pos) return;
+      const lat = typeof pos.lat === 'function' ? pos.lat() : pos.lat;
+      const lng = typeof pos.lng === 'function' ? pos.lng() : pos.lng;
+      if (typeof lat === 'number' && !Number.isNaN(lat)) {
+        latInp.value = lat.toFixed(6);
+      }
+      if (typeof lng === 'number' && !Number.isNaN(lng)) {
+        lngInp.value = lng.toFixed(6);
+      }
+    }
 
-          geocoder.geocode(
-            {
-              address: query,
-              componentRestrictions: { country: 'PH' }
-            },
-            function (results, status) {
-              console.log('[MAP] geocode result status =', status, 'results =', results);
-              if (status !== 'OK' || !results || !results.length) {
-                console.warn('Geocode failed:', status);
-                return;
-              }
+    function clearMapLabel() {
+      const labelInp  = document.getElementById('pp_map_label');
+      const labelView = document.getElementById('pp_map_label_view');
+      if (labelInp)  labelInp.value = '';
+      if (labelView) labelView.textContent = 'Not set';
+    }
 
-              const loc = results[0].geometry.location;
+    // Exposed map initializer (used by loadPropertyIntoForm + onload)
+    function initProfileMap() {
+      if (!mapEl || !window.google || !google.maps) {
+        console.warn('[MAP] Google Maps not available or mapEl missing');
+        return;
+      }
+
+      const defaultCenter = {
+        lat: parseFloat(latInp && latInp.value) || 9.7894,
+        lng: parseFloat(lngInp && lngInp.value) || 126.165
+      };
+
+      map = new google.maps.Map(mapEl, {
+        center: defaultCenter,
+        zoom: 13,
+        mapTypeControl: false,
+        streetViewControl: false,
+        fullscreenControl: false
+      });
+
+      marker = new google.maps.Marker({
+        position: defaultCenter,
+        map,
+        draggable: true
+      });
+
+      // Click on map updates marker + inputs
+      map.addListener('click', (e) => {
+        marker.setPosition(e.latLng);
+        updateInputs(e.latLng);
+        clearMapLabel();
+      });
+
+      // Dragging marker updates inputs as well
+      marker.addListener('dragend', (e) => {
+        updateInputs(e.latLng);
+        clearMapLabel();
+      });
+
+      // Stash context so loadPropertyIntoForm can recenter on saved coords
+      window.profileMapCtx = { map, marker };
+    }
+
+    // Search box: Enter-to-geocode behavior + shared handler for Search button
+    if (searchInput) {
+      console.log('[MAP] Wiring search input for Enter-to-geocode');
+      const geocoder = new google.maps.Geocoder();
+
+      function runGeocode() {
+        const query = searchInput.value.trim();
+        console.log('[MAP] Search trigger, query =', query);
+        if (!query) {
+          console.log('[MAP] Empty query, skipping geocode');
+          return;
+        }
+
+        geocoder.geocode(
+          {
+            address: query,
+            componentRestrictions: { country: 'PH' }
+          },
+          function (results, status) {
+            console.log('[MAP] geocode result status =', status, 'results =', results);
+            if (status !== 'OK' || !results || !results.length) {
+              console.warn('Geocode failed:', status);
+              return;
+            }
+
+            const loc = results[0].geometry.location;
+
+            if (map && marker) {
               map.setCenter(loc);
               map.setZoom(15);
               marker.setPosition(loc);
-              updateInputs(loc);
-
-              // Update map label (hidden field + UI)
-              const labelInp  = document.getElementById('pp_map_label');
-              const labelView = document.getElementById('pp_map_label_view');
-              const label =
-                (results[0].formatted_address || results[0].name || query || '').trim();
-
-              if (labelInp) {
-                labelInp.value = label;
-              }
-              if (labelView) {
-                labelView.textContent = label || 'Not set';
-              }
             }
-          );
-        }
+            updateInputs(loc);
 
-        // Enter key triggers geocode
-        searchInput.addEventListener('keydown', function (e) {
-          console.log('[MAP] search keydown:', e.key);
-          if (e.key !== 'Enter') return;
-          e.preventDefault();
-          runGeocode();
-        });
+            // Update map label (hidden field + UI)
+            const labelInp  = document.getElementById('pp_map_label');
+            const labelView = document.getElementById('pp_map_label_view');
+            const label =
+              (results[0].formatted_address || results[0].name || query || '').trim();
 
-        // Expose handler for the "Search" button
-        window.__ppMapSearch = runGeocode;
+            if (labelInp) {
+              labelInp.value = label;
+            }
+            if (labelView) {
+              labelView.textContent = label || 'Not set';
+            }
+          }
+        );
       }
 
-    // Try to init after page load; safe even if Maps is not present
+      // Enter key triggers geocode
+      searchInput.addEventListener('keydown', function (e) {
+        console.log('[MAP] search keydown:', e.key);
+        if (e.key !== 'Enter') return;
+        e.preventDefault();
+        runGeocode();
+      });
+
+      // Expose handler for the "Search" button
+      window.__ppMapSearch = runGeocode;
+    }
+
+    // Initialize map after page load
     window.addEventListener('load', function () {
       try {
         initProfileMap();
@@ -1487,6 +1555,9 @@
         console.warn('Profile map init failed:', e);
       }
     });
+
+    // Also expose init for any other callers, defensively
+    window.initProfileMap = initProfileMap;
   })();
 </script>
 </body>
