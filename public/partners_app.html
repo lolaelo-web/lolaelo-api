@@ -395,10 +395,34 @@
             </small>
           </div>
 
-          <input id="pp_map_search"
-                 class="pp-map-search"
-                 type="text"
-                 placeholder="Search address or place">
+          <div style="display:flex; gap:8px; align-items:center; max-width:520px;">
+            <input id="pp_map_search"
+                   class="pp-map-search"
+                   type="text"
+                   placeholder="Search address or place"
+                   style="flex:0 0 75%;">
+
+            <button
+              type="button"
+              id="pp_map_search_btn"
+              onclick="window.__ppMapSearch && window.__ppMapSearch()"
+              style="
+                padding:9px 18px;
+                border-radius:999px;
+                background:#0f172a;
+                border:1px solid #ff6a3d;
+                color:white;
+                font-size:13px;
+                cursor:pointer;
+                line-height:1.2;
+                display:inline-flex;
+                align-items:center;
+                gap:6px;
+                white-space:nowrap;
+              ">
+              Search
+            </button>
+          </div>
 
           <div id="pp_map" class="pp-map-container">
             <div class="pp-map-placeholder">
@@ -1434,18 +1458,14 @@
         updateInputs(pos);
       });
 
-      // Search box: simple "press Enter to geocode" behavior (with debug logging)
+            // Search box: Enter-to-geocode behavior + shared handler for Search button
       if (searchInput) {
         console.log('[MAP] Wiring search input for Enter-to-geocode');
         const geocoder = new google.maps.Geocoder();
 
-        searchInput.addEventListener('keydown', function (e) {
-          console.log('[MAP] search keydown:', e.key);
-          if (e.key !== 'Enter') return;
-          e.preventDefault();
-
+        function runGeocode() {
           const query = searchInput.value.trim();
-          console.log('[MAP] Enter pressed, query =', query);
+          console.log('[MAP] Search trigger, query =', query);
           if (!query) {
             console.log('[MAP] Empty query, skipping geocode');
             return;
@@ -1470,7 +1490,18 @@
               updateInputs(loc);
             }
           );
+        }
+
+        // Enter key triggers geocode
+        searchInput.addEventListener('keydown', function (e) {
+          console.log('[MAP] search keydown:', e.key);
+          if (e.key !== 'Enter') return;
+          e.preventDefault();
+          runGeocode();
         });
+
+        // Expose handler for the "Search" button
+        window.__ppMapSearch = runGeocode;
       }
     }
 

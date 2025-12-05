@@ -1415,7 +1415,33 @@
       }
 
       // Safe DOM writes
-      if (nameEl) nameEl.textContent = j?.name || j?.meta?.property?.name || 'Stay';
+      if (nameEl) {
+        const mp = j?.meta?.property || {};
+
+        // Preferred name order – avoids using "Stay"
+        const candidates = [
+          mp.displayName,
+          mp.name,
+          mp.title,
+          j?.displayName,
+          j?.title,
+          j?.name
+        ];
+
+        let displayName = "";
+
+        for (const c of candidates) {
+          const v = (c ?? "").toString().trim();
+          if (v && v.toLowerCase() !== "stay") {
+            displayName = v;
+            break;
+          }
+        }
+
+        if (!displayName) displayName = "Property";
+
+        nameEl.textContent = displayName;
+      }
       {
         const srcBadgeEl = document.getElementById('src-badge');
         if (srcBadgeEl) srcBadgeEl.style.display = (j?._roomsSource === 'db') ? 'inline-block' : 'none';
@@ -2249,7 +2275,8 @@
             const topLink = cat.querySelector('.btn-select');
             if (topLink){
               const { propertyName, propertyLocation } = getCheckoutMeta();
-              const roomName = getRoomNameForCheckout(rid);
+              const roomName  = getRoomNameForCheckout(rid);
+              const planLabel = primary && (primary.name || primary.code || '');
 
               const href =
                 `/checkout.html?propertyId=${encodeURIComponent(propertyId)}` +
@@ -2260,6 +2287,7 @@
                 `&start=${encodeURIComponent(start)}` +
                 `&end=${encodeURIComponent(end)}` +
                 `&ratePlanId=${encodeURIComponent(primary.id)}` +
+                (planLabel ? `&planLabel=${encodeURIComponent(planLabel)}` : '') +
                 `${plansQS}`;
 
               topLink.setAttribute('href', href);
@@ -2300,63 +2328,6 @@
           if (!e) return;
           if (e.key === 'rateplan.selectedIds' || e.key === 'rateplan.customLabels') {
             (async () => { try { await (async function(){ await hydratePlansFromPartners?.(); })(); } catch(_){} })();
-          }
-        });
-
-        // ANCHOR: ROOM_MODAL_CLICK_WIRE
-        listEl.addEventListener('click', (e) => {
-          const btn = e.target.closest('.planrow .btn-select, .roomcat > .btn-select');
-          if (!btn) return;
-
-          // Let keyboard / accessibility still focus the element
-          e.preventDefault();
-
-          const cat = btn.closest('.roomcat');
-          if (!cat) return;
-
-          const rid = cat.getAttribute('data-room-id') || '';
-          const payload = window.__detailsPayload || {};
-          const rooms = Array.isArray(payload.rooms) ? payload.rooms : [];
-
-          // Match room by same id mapping used elsewhere
-          const room = rooms.find(r => {
-            const cand =
-              r.roomTypeId ?? r.typeId ?? r.id ?? r.roomId ?? r.code ?? '';
-            return String(cand) === String(rid);
-          }) || null;
-
-          // Pull plan info if this is inside a planrow
-          let planId = null;
-          let planLabel = null;
-
-          const row = btn.closest('.planrow');
-          if (row) {
-            const pid = Number(row.getAttribute('data-plan-id'));
-            if (Number.isFinite(pid)) planId = pid;
-
-            const nameEl = row.querySelector('.planname');
-            if (nameEl) planLabel = String(nameEl.textContent || '').trim() || null;
-          }
-
-          // Fallback: derive planId from href if not on a planrow
-          if (!planId && btn.href) {
-            try {
-              const u = new URL(btn.href, location.href);
-              const p = Number(u.searchParams.get('ratePlanId'));
-              if (Number.isFinite(p)) planId = p;
-            } catch {}
-          }
-
-          if (!planLabel && planId) {
-            planLabel = `Plan ${planId}`;
-          }
-
-          const ctx = { room, roomId: rid, planId, planLabel };
-
-          if (typeof window.openRoomModal === 'function') {
-            window.openRoomModal(ctx);
-          } else {
-            console.log('[room-modal] handler: openRoomModal missing, ctx=', ctx);
           }
         });
 
