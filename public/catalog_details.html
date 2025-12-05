@@ -1415,8 +1415,36 @@
       }
 
       // Safe DOM writes
-      if (nameEl) nameEl.textContent = j?.name || j?.meta?.property?.name || 'Stay';
+      if (nameEl) {
+        const mp = j?.meta?.property || {};
+
+        // Prefer real property display fields and avoid the generic "Stay" placeholder
+        const candidates = [
+          mp.displayName,
+          mp.name,
+          mp.title,
+          j?.displayName,
+          j?.title,
+          j?.name
+        ];
+
+        let displayName = "";
+        for (const c of candidates) {
+          const v = (c ?? "").toString().trim();
+          if (v && v.toLowerCase() !== "stay") {
+            displayName = v;
+            break;
+          }
+        }
+
+        if (!displayName) displayName = "Property";
+
+        nameEl.textContent = displayName;
+      }
       {
+        const srcBadgeEl = document.getElementById('src-badge');
+        if (srcBadgeEl) srcBadgeEl.style.display = (j?._roomsSource === 'db') ? 'inline-block' : 'none';
+      }
         const srcBadgeEl = document.getElementById('src-badge');
         if (srcBadgeEl) srcBadgeEl.style.display = (j?._roomsSource === 'db') ? 'inline-block' : 'none';
       }
@@ -2590,7 +2618,6 @@
           }
         });
       })();
-    }
 
     // ANCHOR: ROOM_MODAL_STUB
     window.openRoomModal = function openRoomModal(ctx) {
@@ -3033,12 +3060,28 @@
             const propertyId = payload.propertyId ?? payload.id ?? "";
             const roomId     = room.roomTypeId ?? room.typeId ?? room.id ?? room.roomId ?? room.code ?? "";
 
-            let start = "";
-            let end   = "";
+            // Use shared helpers to keep checkout URLs consistent with inline buttons
+            const meta = (typeof getCheckoutMeta === "function")
+              ? getCheckoutMeta()
+              : { propertyName: "", propertyLocation: "" };
+
+            const propertyName     = meta.propertyName || "";
+            const propertyLocation = meta.propertyLocation || "";
+
+            const roomName =
+              (room && (room.name || room.title || room.roomName)) ||
+              (typeof getRoomNameForCheckout === "function"
+                ? getRoomNameForCheckout(roomId)
+                : "") ||
+              "";
+
+            // Derive start/end from query string, falling back to top-level start/end if available
+            let startYmd = "";
+            let endYmd   = "";
             try {
-              const qs = new URLSearchParams(location.search || "");
-              start = qs.get("start") || "";
-              end   = qs.get("end")   || "";
+              const qs2 = new URLSearchParams(location.search || "");
+              startYmd = qs2.get("start") || (typeof start !== "undefined" ? start : "");
+              endYmd   = qs2.get("end")   || (typeof end   !== "undefined" ? end   : "");
             } catch {}
 
             const ids = getModalSelectedPlanIds();
@@ -3051,9 +3094,22 @@
 
               const url =
                 `/checkout.html?propertyId=${encodeURIComponent(propertyId)}` +
+                (propertyName
+                  ? `&propertyName=${encodeURIComponent(propertyName)}`
+                  : "") +
+                (propertyLocation
+                  ? `&propertyLocation=${encodeURIComponent(propertyLocation)}`
+                  : "") +
                 `&roomId=${encodeURIComponent(roomId)}` +
-                (start ? `&start=${encodeURIComponent(start)}` : "") +
-                (end   ? `&end=${encodeURIComponent(end)}`   : "") +
+                (roomName
+                  ? `&roomName=${encodeURIComponent(roomName)}`
+                  : "") +
+                (startYmd
+                  ? `&start=${encodeURIComponent(startYmd)}`
+                  : "") +
+                (endYmd
+                  ? `&end=${encodeURIComponent(endYmd)}`
+                  : "") +
                 `&ratePlanId=${encodeURIComponent(id)}` +
                 `&planLabel=${encodeURIComponent(label)}`;
 
