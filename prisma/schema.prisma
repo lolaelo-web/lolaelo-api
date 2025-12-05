@@ -51,7 +51,6 @@ model Partner {
   PmsConnection public_PmsConnection[]
   documents     PropertyDocument[]
   photos        PropertyPhoto[]
-  profile       PropertyProfile?
   ratePlans     RatePlan[]
   roomInventory RoomInventory[]
   roomPrices    RoomPrice[]
@@ -94,27 +93,24 @@ model PropertyProfile {
   name         String
   addressLine  String?
   city         String?
-  cityCode     String?    // NEW: city code we derive from the dropdown
+  cityCode     String?
   country      String?
   contactEmail String?
   phone        String?
   description  String?
-  latitude     Float?     // NEW: stored latitude
-  longitude    Float?     // NEW: stored longitude
-  createdAt    DateTime   @default(now())
-  updatedAt    DateTime   @updatedAt
 
-  partner      Partner    @relation(
-    fields:     [partnerId],
-    references: [id],
-    onDelete:   Cascade,
-    onUpdate:   Cascade
-  )
+  // Coordinates from partners_app map
+  latitude     Float?
+  longitude    Float?
 
-  @@map("PropertyProfile")
-  @@schema("public")
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  // Canonical relation to extranet_Partner
+  partner      extranet_Partner @relation(fields: [partnerId], references: [id], onDelete: Cascade)
+
+  @@schema("extranet")
 }
-
 
 model PropertyPhoto {
   id         Int       @id @default(autoincrement())
@@ -282,7 +278,7 @@ model extranet_Partner {
   PmsConnection                extranet_PmsConnection[]
   PropertyDocument             extranet_PropertyDocument[]
   PropertyPhoto                extranet_PropertyPhoto[]
-  PropertyProfile              extranet_PropertyProfile?
+  PropertyProfile              PropertyProfile?
   RatePlan                     extranet_RatePlan[]
   RoomInventory                extranet_RoomInventory[]
   RoomPrice                    extranet_RoomPrice[]
@@ -392,24 +388,6 @@ model extranet_PropertyPhoto {
   @@index([partnerId, sortOrder])
   @@index([partnerId, roomTypeId, sortOrder]) // NEW helper index
   @@map("PropertyPhoto")
-  @@schema("extranet")
-}
-
-model extranet_PropertyProfile {
-  id           Int              @id @default(autoincrement())
-  partnerId    Int              @unique
-  name         String
-  addressLine  String?
-  city         String?
-  country      String?
-  contactEmail String?
-  phone        String?
-  description  String?
-  createdAt    DateTime         @default(now())
-  updatedAt    DateTime
-  Partner      extranet_Partner @relation(fields: [partnerId], references: [id], onDelete: Cascade)
-
-  @@map("PropertyProfile")
   @@schema("extranet")
 }
 
