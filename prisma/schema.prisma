@@ -98,7 +98,7 @@ model PropertyProfile {
   contactEmail String?
   phone        String?
   description  String?
-
+  mapLabel     String?
   // Coordinates from partners_app map
   latitude     Float?
   longitude    Float?

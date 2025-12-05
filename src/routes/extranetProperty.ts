@@ -342,7 +342,7 @@ r.get("/", async (req, res) => {
     const { rows } = await pool.query(
       `SELECT "partnerId","name","contactEmail","phone","country",
               "addressLine","city","cityCode","latitude","longitude",
-              "description","updatedAt","createdAt"
+              "description","mapLabel","updatedAt","createdAt"
          FROM ${TBL_PROFILE}
         WHERE "partnerId" = $1`,
       [partnerId]
@@ -361,6 +361,7 @@ r.get("/", async (req, res) => {
         latitude: null,
         longitude: null,
         description: null,
+        mapLabel: null,
         createdAt: null,
         updatedAt: null,
       });
@@ -395,6 +396,7 @@ r.put("/", async (req, res) => {
     "latitude",
     "longitude",
     "description",
+    "mapLabel",
   ];
 
   if (!hasAllKeys(payload, KEYS)) {
@@ -412,6 +414,7 @@ r.put("/", async (req, res) => {
     latitude:     payload.latitude,
     longitude:    payload.longitude,
     description:  payload.description,
+    mapLabel:     payload.mapLabel,
   });
 
   if (!data.name || typeof data.name !== "string") {
@@ -423,7 +426,7 @@ r.put("/", async (req, res) => {
     const { rows: wasRows } = await pool.query(
       `SELECT "partnerId","name","contactEmail","phone","country",
               "addressLine","city","cityCode","latitude","longitude",
-              "description","updatedAt","createdAt"
+              "description","mapLabel","updatedAt","createdAt"
          FROM ${TBL_PROFILE}
         WHERE "partnerId" = $1
         LIMIT 1`,
@@ -434,8 +437,8 @@ r.put("/", async (req, res) => {
       `INSERT INTO ${TBL_PROFILE}
          ("partnerId","name","contactEmail","phone","country",
           "addressLine","city","cityCode","latitude","longitude",
-          "description","createdAt","updatedAt")
-       VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11, NOW(), NOW())
+          "description","mapLabel","createdAt","updatedAt")
+       VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12, NOW(), NOW())
        ON CONFLICT ("partnerId") DO UPDATE
            SET "name"         = EXCLUDED."name",
                "contactEmail" = EXCLUDED."contactEmail",
@@ -447,10 +450,11 @@ r.put("/", async (req, res) => {
                "latitude"     = EXCLUDED."latitude",
                "longitude"    = EXCLUDED."longitude",
                "description"  = EXCLUDED."description",
+               "mapLabel"     = EXCLUDED."mapLabel",
                "updatedAt"    = NOW()
        RETURNING "partnerId","name","contactEmail","phone","country",
                  "addressLine","city","cityCode","latitude","longitude",
-                 "description","updatedAt","createdAt"`,
+                 "description","mapLabel","updatedAt","createdAt"`,
       [
         partnerId,
         data.name,
@@ -463,6 +467,7 @@ r.put("/", async (req, res) => {
         data.latitude,
         data.longitude,
         data.description,
+        data.mapLabel,
       ]
     );
 
@@ -511,6 +516,7 @@ r.patch("/", async (req, res) => {
     "latitude",
     "longitude",
     "description",
+    "mapLabel",
   ]);
   const incoming: Record<string, any> = {};
   for (const [k, v] of Object.entries(req.body ?? {})) {
@@ -524,7 +530,7 @@ r.patch("/", async (req, res) => {
     const { rows: curRows } = await pool.query(
       `SELECT "partnerId","name","contactEmail","phone","country",
               "addressLine","city","cityCode","latitude","longitude",
-              "description","updatedAt","createdAt"
+              "description","mapLabel","updatedAt","createdAt"
          FROM ${TBL_PROFILE}
         WHERE "partnerId" = $1
         LIMIT 1`,
@@ -544,6 +550,7 @@ r.patch("/", async (req, res) => {
           latitude: number | null;
           longitude: number | null;
           description: string | null;
+          mapLabel: string | null;
           createdAt: Date | null;
           updatedAt: Date | null;
         }
@@ -566,6 +573,7 @@ r.patch("/", async (req, res) => {
       latitude:     Object.prototype.hasOwnProperty.call(patchData, "latitude") ? patchData.latitude : (curr?.latitude ?? null),
       longitude:    Object.prototype.hasOwnProperty.call(patchData, "longitude") ? patchData.longitude : (curr?.longitude ?? null),
       description:  Object.prototype.hasOwnProperty.call(patchData, "description") ? patchData.description : (curr?.description ?? null),
+      mapLabel:     Object.prototype.hasOwnProperty.call(patchData, "mapLabel") ? patchData.mapLabel : (curr?.mapLabel ?? null),
     };
 
     // Upsert merged state
@@ -573,8 +581,8 @@ r.patch("/", async (req, res) => {
       `INSERT INTO ${TBL_PROFILE}
          ("partnerId","name","contactEmail","phone","country",
           "addressLine","city","cityCode","latitude","longitude",
-          "description","createdAt","updatedAt")
-       VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11, NOW(), NOW())
+          "description","mapLabel","createdAt","updatedAt")
+       VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12, NOW(), NOW())
        ON CONFLICT ("partnerId") DO UPDATE
            SET "name"         = EXCLUDED."name",
                "contactEmail" = EXCLUDED."contactEmail",
@@ -586,10 +594,11 @@ r.patch("/", async (req, res) => {
                "latitude"     = EXCLUDED."latitude",
                "longitude"    = EXCLUDED."longitude",
                "description"  = EXCLUDED."description",
+               "mapLabel"     = EXCLUDED."mapLabel",
                "updatedAt"    = NOW()
        RETURNING "partnerId","name","contactEmail","phone","country",
                  "addressLine","city","cityCode","latitude","longitude",
-                 "description","updatedAt","createdAt"`,
+                 "description","mapLabel","updatedAt","createdAt"`,
       [
         partnerId,
         next.name,
@@ -602,6 +611,7 @@ r.patch("/", async (req, res) => {
         next.latitude,
         next.longitude,
         next.description,
+        next.mapLabel,
       ]
     );
 
