@@ -1420,69 +1420,7 @@
     const lngInp     = document.getElementById('pp_lng');
     const searchInput = document.getElementById('pp_map_search');
 
-    if (!mapEl || !latInp || !lngInp) return;
-
-    function parseCoord(v) {
-      const n = parseFloat(v);
-      return Number.isFinite(n) ? n : null;
-    }
-
-    function initProfileMap() {
-      if (!window.google || !google.maps) {
-        console.warn('Google Maps not loaded; profile map staying in placeholder mode.');
-        return;
-      }
-
-      const defaultCenter = { lat: 12.8797, lng: 121.7740 }; // Philippines center
-      const latVal = parseCoord(latInp.value);
-      const lngVal = parseCoord(lngInp.value);
-      const hasSaved = latVal !== null && lngVal !== null;
-
-      const center = hasSaved ? { lat: latVal, lng: lngVal } : defaultCenter;
-      const zoom   = hasSaved ? 15 : 5;
-
-      const map = new google.maps.Map(mapEl, {
-        center,
-        zoom,
-        mapTypeControl: false,
-        streetViewControl: false,
-        fullscreenControl: false,
-      });
-
-      const marker = new google.maps.Marker({
-        position: center,
-        map,
-        draggable: true,
-      });
-
-      function updateInputs(pos) {
-        // pos can be a LatLng or plain object
-        const lat = typeof pos.lat === 'function' ? pos.lat() : pos.lat;
-        const lng = typeof pos.lng === 'function' ? pos.lng() : pos.lng;
-        latInp.value = lat.toFixed(6);
-        lngInp.value = lng.toFixed(6);
-      }
-
-      // Expose map context so profile loader can sync marker/center after data load
-      window.profileMapCtx = {
-        map,
-        marker,
-        updateInputs
-      };
-
-      // Click on map updates marker + inputs
-      map.addListener('click', (e) => {
-        marker.setPosition(e.latLng);
-        updateInputs(e.latLng);
-      });
-
-      // Dragging marker updates inputs
-      marker.addListener('dragend', () => {
-        const pos = marker.getPosition();
-        updateInputs(pos);
-      });
-
-            // Search box: Enter-to-geocode behavior + shared handler for Search button
+      // Search box: Enter-to-geocode behavior + shared handler for Search button
       if (searchInput) {
         console.log('[MAP] Wiring search input for Enter-to-geocode');
         const geocoder = new google.maps.Geocoder();
@@ -1512,6 +1450,19 @@
               map.setZoom(15);
               marker.setPosition(loc);
               updateInputs(loc);
+
+              // Update map label (hidden field + UI)
+              const labelInp  = document.getElementById('pp_map_label');
+              const labelView = document.getElementById('pp_map_label_view');
+              const label =
+                (results[0].formatted_address || results[0].name || query || '').trim();
+
+              if (labelInp) {
+                labelInp.value = label;
+              }
+              if (labelView) {
+                labelView.textContent = label || 'Not set';
+              }
             }
           );
         }
@@ -1527,7 +1478,6 @@
         // Expose handler for the "Search" button
         window.__ppMapSearch = runGeocode;
       }
-    }
 
     // Try to init after page load; safe even if Maps is not present
     window.addEventListener('load', function () {

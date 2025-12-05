@@ -1414,39 +1414,63 @@
         throw e;
       }
 
-      // Safe DOM writes
+      // Safe DOM writes + property card fallback from /catalog/search
+      let propertyCard = null;
+      try {
+        const q = `start=${encodeURIComponent(start)}&end=${encodeURIComponent(end)}&partnerId=${encodeURIComponent(propertyId)}&limit=1`;
+        const sr = await fetch(`/catalog/search?${q}`, { cache: 'no-store' });
+        if (sr.ok) {
+          const sj = await sr.json();
+          const pidStr = String(propertyId);
+          const props = Array.isArray(sj?.properties) ? sj.properties : (Array.isArray(sj) ? sj : []);
+          propertyCard =
+            props.find(it => String(it.partnerId ?? it.propertyId ?? it.id) === pidStr) ||
+            props[0] ||
+            null;
+        }
+      } catch (e) {
+        console.warn('[details] propertyCard search fallback failed', e);
+      }
+
       if (nameEl) {
         const mp = j?.meta?.property || {};
+        const cp = propertyCard || {};
 
-        // Preferred name order – avoids using "Stay"
         const candidates = [
           mp.displayName,
           mp.name,
           mp.title,
           j?.displayName,
           j?.title,
-          j?.name
+          j?.name,
+          cp.displayName,
+          cp.name,
+          cp.title,
+          cp.propertyName
         ];
 
-        let displayName = "";
-
+        let displayName = '';
         for (const c of candidates) {
-          const v = (c ?? "").toString().trim();
-          if (v && v.toLowerCase() !== "stay") {
+          const v = (c ?? '').toString().trim();
+          if (v && v.toLowerCase() !== 'stay') {
             displayName = v;
             break;
           }
         }
 
-        if (!displayName) displayName = "Property";
-
+        if (!displayName) displayName = 'Property';
         nameEl.textContent = displayName;
       }
+
       {
         const srcBadgeEl = document.getElementById('src-badge');
-        if (srcBadgeEl) srcBadgeEl.style.display = (j?._roomsSource === 'db') ? 'inline-block' : 'none';
+        if (srcBadgeEl) {
+          srcBadgeEl.style.display =
+            (j?._roomsSource === 'db') ? 'inline-block' : 'none';
+        }
       }
-      if (rangeEl){
+
+      if (rangeEl) {
         const fs = formatYMD(start);
         const fe = formatYMD(end);
         rangeEl.textContent = (start === end)
@@ -1460,27 +1484,32 @@
         const descEl = document.getElementById('prop-desc');
 
         const mp = j?.meta?.property || {};
+        const cp = propertyCard || {};
 
-        // Prefer meta.property, then fall back to top-level fields
+        // Prefer meta.property, then fall back to card fields, then top-level
         const area =
-          mp.area
-          || mp.district
-          || '';
+          mp.area ||
+          cp.area ||
+          cp.district ||
+          '';
 
         const city =
-          mp.city
-          || mp.town
-          || j?.city
-          || '';
+          mp.city ||
+          cp.city ||
+          cp.town ||
+          j?.city ||
+          '';
 
         const island =
-          mp.island
-          || '';
+          mp.island ||
+          cp.island ||
+          '';
 
         const country =
-          mp.country
-          || j?.country
-          || '';
+          mp.country ||
+          cp.country ||
+          j?.country ||
+          '';
 
         const parts = [area, city, island, country]
           .map(x => String(x || '').trim())
@@ -1491,6 +1520,8 @@
             locEl.textContent = parts.join(' · ');
           } else if (j?.location && typeof j.location === 'string') {
             locEl.textContent = j.location;
+          } else if (cp.location && typeof cp.location === 'string') {
+            locEl.textContent = cp.location;
           } else {
             locEl.textContent = '';
           }
@@ -1498,10 +1529,12 @@
 
         if (descEl) {
           const desc =
-            j?.description
-            || mp.description
-            || mp.longDescription
-            || '';
+            j?.description ||
+            mp.description ||
+            mp.longDescription ||
+            cp.description ||
+            cp.summary ||
+            '';
 
           descEl.textContent = desc || '';
           descEl.style.display = desc ? 'block' : 'none';
