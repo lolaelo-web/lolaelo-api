@@ -1075,16 +1075,26 @@
   <script>
     function parseQuery() {
       const params = new URLSearchParams(window.location.search);
+
       return {
         propertyId: params.get("propertyId") || "",
         roomId: params.get("roomId") || "",
         start: params.get("start") || "",
         end: params.get("end") || "",
-        ratePlanId: params.get("ratePlanId") || "",
+
+        // IDs
+        ratePlanId: params.get("ratePlanId") || params.get("plan") || "",
+
+        // Optional name fields (can be populated from catalog_details)
         propertyName: params.get("propertyName") || "",
         propertyLocation: params.get("propertyLocation") || "",
         roomName: params.get("roomName") || "",
-        ratePlanName: params.get("ratePlanName") || ""
+
+        // Rate plan display name – prefer explicit name, fall back to planLabel
+        ratePlanName:
+          params.get("ratePlanName") ||
+          params.get("planLabel") ||
+          ""
       };
     }
 

@@ -94,21 +94,27 @@ model PropertyProfile {
   name         String
   addressLine  String?
   city         String?
+  cityCode     String?    // NEW: city code we derive from the dropdown
   country      String?
   contactEmail String?
   phone        String?
   description  String?
+  latitude     Float?     // NEW: stored latitude
+  longitude    Float?     // NEW: stored longitude
+  createdAt    DateTime   @default(now())
+  updatedAt    DateTime   @updatedAt
 
-  // NEW: coordinates from partners_app map
-  latitude     Float?
-  longitude    Float?
+  partner      Partner    @relation(
+    fields:     [partnerId],
+    references: [id],
+    onDelete:   Cascade,
+    onUpdate:   Cascade
+  )
 
-  createdAt    DateTime @default(now())
-  updatedAt    DateTime @updatedAt
-  partner      Partner  @relation(fields: [partnerId], references: [id], onDelete: Cascade)
-
+  @@map("PropertyProfile")
   @@schema("public")
 }
+
 
 model PropertyPhoto {
   id         Int       @id @default(autoincrement())
