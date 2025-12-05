@@ -1415,35 +1415,12 @@
       }
 
       // Safe DOM writes
-      if (nameEl) {
-        const mp = j?.meta?.property || {};
-
-        // Prefer real property display fields and avoid the generic "Stay" placeholder
-        const candidates = [
-          mp.displayName,
-          mp.name,
-          mp.title,
-          j?.displayName,
-          j?.title,
-          j?.name
-        ];
-
-        let displayName = "";
-        for (const c of candidates) {
-          const v = (c ?? "").toString().trim();
-          if (v && v.toLowerCase() !== "stay") {
-            displayName = v;
-            break;
-          }
-        }
-
-        if (!displayName) displayName = "Property";
-
-        nameEl.textContent = displayName;
+      if (nameEl) nameEl.textContent = j?.name || j?.meta?.property?.name || 'Stay';
+      {
+        const srcBadgeEl = document.getElementById('src-badge');
+        if (srcBadgeEl) srcBadgeEl.style.display = (j?._roomsSource === 'db') ? 'inline-block' : 'none';
       }
-     }
-
-      if (rangeEl) {
+      if (rangeEl){
         const fs = formatYMD(start);
         const fe = formatYMD(end);
         rangeEl.textContent = (start === end)
@@ -2613,6 +2590,7 @@
           }
         });
       })();
+    }
 
     // ANCHOR: ROOM_MODAL_STUB
     window.openRoomModal = function openRoomModal(ctx) {
@@ -3055,28 +3033,12 @@
             const propertyId = payload.propertyId ?? payload.id ?? "";
             const roomId     = room.roomTypeId ?? room.typeId ?? room.id ?? room.roomId ?? room.code ?? "";
 
-            // Use shared helpers to keep checkout URLs consistent with inline buttons
-            const meta = (typeof getCheckoutMeta === "function")
-              ? getCheckoutMeta()
-              : { propertyName: "", propertyLocation: "" };
-
-            const propertyName     = meta.propertyName || "";
-            const propertyLocation = meta.propertyLocation || "";
-
-            const roomName =
-              (room && (room.name || room.title || room.roomName)) ||
-              (typeof getRoomNameForCheckout === "function"
-                ? getRoomNameForCheckout(roomId)
-                : "") ||
-              "";
-
-            // Derive start/end from query string, falling back to top-level start/end if available
-            let startYmd = "";
-            let endYmd   = "";
+            let start = "";
+            let end   = "";
             try {
-              const qs2 = new URLSearchParams(location.search || "");
-              startYmd = qs2.get("start") || (typeof start !== "undefined" ? start : "");
-              endYmd   = qs2.get("end")   || (typeof end   !== "undefined" ? end   : "");
+              const qs = new URLSearchParams(location.search || "");
+              start = qs.get("start") || "";
+              end   = qs.get("end")   || "";
             } catch {}
 
             const ids = getModalSelectedPlanIds();
@@ -3089,22 +3051,9 @@
 
               const url =
                 `/checkout.html?propertyId=${encodeURIComponent(propertyId)}` +
-                (propertyName
-                  ? `&propertyName=${encodeURIComponent(propertyName)}`
-                  : "") +
-                (propertyLocation
-                  ? `&propertyLocation=${encodeURIComponent(propertyLocation)}`
-                  : "") +
                 `&roomId=${encodeURIComponent(roomId)}` +
-                (roomName
-                  ? `&roomName=${encodeURIComponent(roomName)}`
-                  : "") +
-                (startYmd
-                  ? `&start=${encodeURIComponent(startYmd)}`
-                  : "") +
-                (endYmd
-                  ? `&end=${encodeURIComponent(endYmd)}`
-                  : "") +
+                (start ? `&start=${encodeURIComponent(start)}` : "") +
+                (end   ? `&end=${encodeURIComponent(end)}`   : "") +
                 `&ratePlanId=${encodeURIComponent(id)}` +
                 `&planLabel=${encodeURIComponent(label)}`;
 
@@ -3196,57 +3145,18 @@
       }
     });
     // ANCHOR: ROOM_INFO_EXPORT
-    function exportRoomInfoMock() {
-      try {
-        // Build a simple roomInfoById map from the current payload
-        const payload = window.__detailsPayload || {};
-        const rooms   = Array.isArray(payload.rooms) ? payload.rooms : [];
-        const roomInfoById = {};
-
-        rooms.forEach(r => {
-          const id =
-            r.roomTypeId ?? r.typeId ?? r.id ?? r.roomId ?? r.code ?? null;
-          if (!id) return;
-
-          roomInfoById[id] = {
-            name: r.name || "",
-            sizeSqm:  r.size_sqm ?? r.areaM2 ?? r.areaSqm ?? null,
-            sizeSqft: r.size_sqft ?? r.areaFt2 ?? null,
-            summary: (r.summary || "").trim()
-          };
+    async function exportRoomInfoMock(){
+      try{
+        const blob = new Blob([JSON.stringify(roomInfoById, null, 2)], {type: 'application/json'});
+        const fileHandle = await window.showSaveFilePicker({
+          suggestedName: '_room_info_mock.json',
+          types: [{ description: 'JSON', accept: {'application/json': ['.json']} }]
         });
-
-        const blob = new Blob(
-          [JSON.stringify(roomInfoById, null, 2)],
-          { type: "application/json" }
-        );
-
-        // If File System Access API is not available, fall back to a download link
-        if (typeof window.showSaveFilePicker !== "function") {
-          const url = URL.createObjectURL(blob);
-          const a = document.createElement("a");
-          a.href = url;
-          a.download = "_room_info_mock.json";
-          document.body.appendChild(a);
-          a.click();
-          document.body.removeChild(a);
-          URL.revokeObjectURL(url);
-          alert("Downloaded _room_info_mock.json — upload this to /public/_mock/ in lolaelo-api.");
-          return;
-        }
-
-        // Use the picker when available (no top-level await)
-        window.showSaveFilePicker({
-          suggestedName: "_room_info_mock.json",
-          types: [{ description: "JSON", accept: { "application/json": [".json"] } }]
-        })
-        .then(fileHandle => fileHandle.createWritable())
-        .then(writable => writable.write(blob).then(() => writable.close()))
-        .then(() => {
-          alert("Saved _room_info_mock.json — upload this to /public/_mock/ in lolaelo-api.");
-        })
-        .catch(() => {});
-      } catch (_) {}
+        const writable = await fileHandle.createWritable();
+        await writable.write(blob);
+        await writable.close();
+        alert("Saved _room_info_mock.json — upload this to /public/_mock/ in lolaelo-api.");
+      }catch(_){}
     }
 
     // Simple UI to export manually (kept hidden)
