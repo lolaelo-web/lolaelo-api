@@ -134,20 +134,21 @@
     }
     .scrolltop-btn.show { display: flex; }
 
-        /* ANCHOR: DETAILS_TOPBAR_CSS */
+    /* ANCHOR: DETAILS_TOPBAR_CSS */
     .topbar{
       display:flex;
       align-items:center;
-      gap:10px;
+      justify-content:space-between;  /* pushes title block to the right */
       padding:12px 16px 8px;
       border-bottom:1px solid var(--line);
     }
+
     .topbar .logo{
       display:inline-flex;
       align-items:center;
     }
     .topbar .logo img{
-      height:24px;          /* match checkout / other pages */
+      height: 30px;          /* match checkout / other pages */
       width:auto;
       display:block;
     }
@@ -1092,6 +1093,55 @@
     const nameEl = document.getElementById('prop-name');
     const amenities = document.getElementById('amenities'); // may not exist on this page
     const nightsNote = document.getElementById('nights-note'); // may not exist
+
+        const locationEl =
+      document.getElementById('prop-location') ||
+      document.querySelector('[data-prop-location]') ||
+      null;
+
+    // Helpers for checkout URL meta
+    function getCheckoutMeta() {
+      const payload = window.__detailsPayload || {};
+
+      const propertyName =
+        (nameEl && nameEl.textContent ? nameEl.textContent.trim() : '') ||
+        String(
+          (payload && (payload.name || payload.title || payload.propertyName)) ||
+          (payload &&
+            payload.meta &&
+            payload.meta.property &&
+            payload.meta.property.name) ||
+          ''
+        ).trim() ||
+        'Property';
+
+      const propertyLocation =
+        (locationEl && locationEl.textContent
+          ? locationEl.textContent.trim()
+          : '') || '';
+
+      return { propertyName, propertyLocation };
+    }
+
+    function getRoomNameForCheckout(roomId) {
+      const payload = window.__detailsPayload || {};
+      const rooms = Array.isArray(payload.rooms) ? payload.rooms : [];
+      const room = rooms.find(r => {
+        const cand =
+          r.roomTypeId ??
+          r.typeId ??
+          r.id ??
+          r.roomId ??
+          r.code ??
+          '';
+        return String(cand) === String(roomId);
+      });
+      return (
+        (room &&
+          String(room.name || room.title || room.roomName).trim()) ||
+        'Room'
+      );
+    }
 
     let images = [];
     // Start at -1 so the first setHero(0) does not early-return
@@ -2065,18 +2115,20 @@
             }
           }
 
-          function renderPlanRows(roomId, plans){
+                    function renderPlanRows(roomId, plans){
             const sel = selectedIds();
             const plansQS = sel.length ? `&plans=${encodeURIComponent(sel.join(','))}` : '';
-            // If partners selected specific plans, filter to those; otherwise keep all
             const inScope = sel.length ? plans.filter(p => sel.includes(p.id)) : plans.slice();
-            // Ensure Standard (id:1) shows when nothing selected
-            const rows = (inScope.length ? inScope : [{ id:1, code:'STD', name:'Standard' }])
+            const rowsSource = inScope.length ? inScope : [{ id:1, code:'STD', name:'Standard' }];
+
+            const { propertyName, propertyLocation } = getCheckoutMeta();
+            const roomName = getRoomNameForCheckout(roomId);
+
+            const rows = rowsSource
               .map(p => {
                 const name = labelFor(p);
                 const desc = describePlan(p);
 
-                // NEW: pull per-plan price for this room+plan from /catalog/details payload
                 const rawPrice = getPlanPriceForRoom(roomId, p.id);
                 const hasPrice = rawPrice != null && Number.isFinite(Number(rawPrice));
                 const priceLabel = hasPrice ? money(rawPrice) : null;
@@ -2086,7 +2138,10 @@
 
                 const url =
                   `/checkout.html?propertyId=${encodeURIComponent(propertyId)}` +
+                  `&propertyName=${encodeURIComponent(propertyName)}` +
+                  (propertyLocation ? `&propertyLocation=${encodeURIComponent(propertyLocation)}` : '') +
                   `&roomId=${encodeURIComponent(roomId)}` +
+                  `&roomName=${encodeURIComponent(roomName)}` +
                   `&start=${encodeURIComponent(start)}` +
                   `&end=${encodeURIComponent(end)}` +
                   `&ratePlanId=${encodeURIComponent(p.id)}` +
@@ -2108,6 +2163,7 @@
                       </a>
                   </div>`;
               }).join('');
+
             return rows;
           }
 
@@ -2192,7 +2248,20 @@
 
             const topLink = cat.querySelector('.btn-select');
             if (topLink){
-              const href = `/checkout.html?propertyId=${encodeURIComponent(propertyId)}&roomId=${encodeURIComponent(rid)}&start=${encodeURIComponent(start)}&end=${encodeURIComponent(end)}&ratePlanId=${encodeURIComponent(primary.id)}${plansQS}`;
+              const { propertyName, propertyLocation } = getCheckoutMeta();
+              const roomName = getRoomNameForCheckout(rid);
+
+              const href =
+                `/checkout.html?propertyId=${encodeURIComponent(propertyId)}` +
+                `&propertyName=${encodeURIComponent(propertyName)}` +
+                (propertyLocation ? `&propertyLocation=${encodeURIComponent(propertyLocation)}` : '') +
+                `&roomId=${encodeURIComponent(rid)}` +
+                `&roomName=${encodeURIComponent(roomName)}` +
+                `&start=${encodeURIComponent(start)}` +
+                `&end=${encodeURIComponent(end)}` +
+                `&ratePlanId=${encodeURIComponent(primary.id)}` +
+                `${plansQS}`;
+
               topLink.setAttribute('href', href);
             }
 
