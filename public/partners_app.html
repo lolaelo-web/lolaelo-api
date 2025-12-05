@@ -690,6 +690,24 @@
           lngInp.value = String(p.longitude);
         }
 
+        // If map is already initialized, sync marker + center to saved coords
+        try {
+          const ctx = window.profileMapCtx;
+          if (
+            ctx &&
+            typeof p.latitude === 'number' &&
+            typeof p.longitude === 'number' &&
+            !Number.isNaN(p.latitude) &&
+            !Number.isNaN(p.longitude)
+          ) {
+            const pos = { lat: p.latitude, lng: p.longitude };
+            ctx.marker.setPosition(pos);
+            ctx.map.setCenter(pos);
+          }
+        } catch (err) {
+          console.error('[MAP] failed to sync marker from profile', err);
+        }
+
         $('profileStatus').textContent = p.name ? 'Complete' : 'Missing info';
         $('profileStatus').className   = p.name ? 'ok' : 'todo';
 
@@ -1397,9 +1415,12 @@
         lngInp.value = lng.toFixed(6);
       }
 
-      if (!hasSaved) {
-        updateInputs(marker.getPosition());
-      }
+      // Expose map context so profile loader can sync marker/center after data load
+      window.profileMapCtx = {
+        map,
+        marker,
+        updateInputs
+      };
 
       // Click on map updates marker + inputs
       map.addListener('click', (e) => {
