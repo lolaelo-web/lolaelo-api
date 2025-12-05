@@ -301,30 +301,41 @@ export async function getRoomsDailyFromDb(
 export async function getSearchListFromDb(_params: {
   start: string; end: string; ratePlanId?: number | undefined;
 }): Promise<{ properties: Array<any> }> {
-  // Partners with optional profile + photos
-   const partners = await prisma.partner.findMany({
+  // Load partners with photos
+  const partners = await prisma.partner.findMany({
     where: { id: { in: [2] } }, // keep only propertyId=2
     include: {
-      profile: true,
       photos: { orderBy: { sortOrder: "asc" } },
     },
     orderBy: { id: "asc" },
   });
 
+  // Load profiles from extranet.PropertyProfile and map by partnerId
+  const partnerIds = partners.map((p) => p.id);
+  const profiles = await prisma.propertyProfile.findMany({
+    where: { partnerId: { in: partnerIds } },
+  });
+
+  const profileByPartnerId = new Map<number, (typeof profiles)[number]>();
+  for (const pr of profiles) {
+    profileByPartnerId.set(pr.partnerId, pr);
+  }
+
   const properties = partners.map((p) => {
-    const images = (p.photos ?? []).map((ph) => ({
+    const profile = profileByPartnerId.get(p.id);
+
+    const images = (p.photos ?? []).map((ph: any) => ({
       url: ph.url,
+      alt: ph.alt ?? "",
       isCover: !!ph.isCover,
-      sortOrder: ph.sortOrder ?? 0,
-      width: ph.width ?? undefined,
-      height: ph.height ?? undefined,
     }));
 
     return {
       propertyId: p.id,
-      name: p.profile?.name ?? "",
-      city: p.profile?.city ?? "",
-      country: p.profile?.country ?? "",
+      // Prefer PropertyProfile.name/city/country, fall back to Partner.name
+      name: profile?.name ?? p.name ?? "",
+      city: profile?.city ?? "",
+      country: profile?.country ?? "",
       images,
       detail: {}, // rooms will be merged by the route
     };
