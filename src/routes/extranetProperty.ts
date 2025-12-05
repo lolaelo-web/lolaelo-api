@@ -341,7 +341,8 @@ r.get("/", async (req, res) => {
   try {
     const { rows } = await pool.query(
       `SELECT "partnerId","name","contactEmail","phone","country",
-              "addressLine","city","description","updatedAt","createdAt"
+              "addressLine","city","cityCode","latitude","longitude",
+              "description","updatedAt","createdAt"
          FROM ${TBL_PROFILE}
         WHERE "partnerId" = $1`,
       [partnerId]
@@ -350,9 +351,18 @@ r.get("/", async (req, res) => {
     if (!rows.length) {
       return res.json({
         partnerId,
-        name: null, contactEmail: null, phone: null, country: null,
-        addressLine: null, city: null, description: null,
-        createdAt: null, updatedAt: null,
+        name: null,
+        contactEmail: null,
+        phone: null,
+        country: null,
+        addressLine: null,
+        city: null,
+        cityCode: null,
+        latitude: null,
+        longitude: null,
+        description: null,
+        createdAt: null,
+        updatedAt: null,
       });
     }
     return res.json(rows[0]);
@@ -374,7 +384,18 @@ r.put("/", async (req, res) => {
   res.set("Cache-Control", "no-store, no-cache, must-revalidate");
 
   const payload = req.body ?? {};
-  const KEYS = ["name","contactEmail","phone","country","addressLine","city","description"];
+  const KEYS = [
+    "name",
+    "contactEmail",
+    "phone",
+    "country",
+    "addressLine",
+    "city",
+    "cityCode",
+    "latitude",
+    "longitude",
+    "description",
+  ];
 
   if (!hasAllKeys(payload, KEYS)) {
     return res.status(400).json({ error: "PUT requires full object: " + KEYS.join(", ") });
@@ -387,6 +408,9 @@ r.put("/", async (req, res) => {
     country:      payload.country,
     addressLine:  payload.addressLine,
     city:         payload.city,
+    cityCode:     payload.cityCode,
+    latitude:     payload.latitude,
+    longitude:    payload.longitude,
     description:  payload.description,
   });
 
@@ -398,7 +422,8 @@ r.put("/", async (req, res) => {
     // Pre-image for audit
     const { rows: wasRows } = await pool.query(
       `SELECT "partnerId","name","contactEmail","phone","country",
-              "addressLine","city","description","updatedAt","createdAt"
+              "addressLine","city","cityCode","latitude","longitude",
+              "description","updatedAt","createdAt"
          FROM ${TBL_PROFILE}
         WHERE "partnerId" = $1
         LIMIT 1`,
@@ -408,8 +433,9 @@ r.put("/", async (req, res) => {
     const { rows } = await pool.query(
       `INSERT INTO ${TBL_PROFILE}
          ("partnerId","name","contactEmail","phone","country",
-          "addressLine","city","description","createdAt","updatedAt")
-       VALUES ($1,$2,$3,$4,$5,$6,$7,$8, NOW(), NOW())
+          "addressLine","city","cityCode","latitude","longitude",
+          "description","createdAt","updatedAt")
+       VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11, NOW(), NOW())
        ON CONFLICT ("partnerId") DO UPDATE
            SET "name"         = EXCLUDED."name",
                "contactEmail" = EXCLUDED."contactEmail",
@@ -417,10 +443,14 @@ r.put("/", async (req, res) => {
                "country"      = EXCLUDED."country",
                "addressLine"  = EXCLUDED."addressLine",
                "city"         = EXCLUDED."city",
+               "cityCode"     = EXCLUDED."cityCode",
+               "latitude"     = EXCLUDED."latitude",
+               "longitude"    = EXCLUDED."longitude",
                "description"  = EXCLUDED."description",
                "updatedAt"    = NOW()
        RETURNING "partnerId","name","contactEmail","phone","country",
-                 "addressLine","city","description","updatedAt","createdAt"`,
+                 "addressLine","city","cityCode","latitude","longitude",
+                 "description","updatedAt","createdAt"`,
       [
         partnerId,
         data.name,
@@ -429,6 +459,9 @@ r.put("/", async (req, res) => {
         data.country,
         data.addressLine,
         data.city,
+        data.cityCode,
+        data.latitude,
+        data.longitude,
         data.description,
       ]
     );
@@ -467,7 +500,18 @@ r.patch("/", async (req, res) => {
   res.set("Cache-Control", "no-store, no-cache, must-revalidate");
 
   // Filter allowed keys only
-  const allowed = new Set(["name","contactEmail","phone","country","addressLine","city","description"]);
+  const allowed = new Set([
+    "name",
+    "contactEmail",
+    "phone",
+    "country",
+    "addressLine",
+    "city",
+    "cityCode",
+    "latitude",
+    "longitude",
+    "description",
+  ]);
   const incoming: Record<string, any> = {};
   for (const [k, v] of Object.entries(req.body ?? {})) {
     if (allowed.has(k)) incoming[k] = v;
@@ -479,14 +523,15 @@ r.patch("/", async (req, res) => {
     // Read current (if any) — also used as audit pre-image
     const { rows: curRows } = await pool.query(
       `SELECT "partnerId","name","contactEmail","phone","country",
-              "addressLine","city","description","updatedAt","createdAt"
+              "addressLine","city","cityCode","latitude","longitude",
+              "description","updatedAt","createdAt"
          FROM ${TBL_PROFILE}
         WHERE "partnerId" = $1
         LIMIT 1`,
       [partnerId]
     );
 
-    const curr = curRows[0] as
+    const curr:
       | {
           partnerId: number;
           name: string | null;
@@ -495,9 +540,14 @@ r.patch("/", async (req, res) => {
           country: string | null;
           addressLine: string | null;
           city: string | null;
+          cityCode: string | null;
+          latitude: number | null;
+          longitude: number | null;
           description: string | null;
+          createdAt: Date | null;
+          updatedAt: Date | null;
         }
-      | undefined;
+      | undefined = curRows[0];
 
     // If creating via PATCH, require name
     if (!curr && (patchData.name == null || patchData.name === "")) {
@@ -512,6 +562,9 @@ r.patch("/", async (req, res) => {
       country:      Object.prototype.hasOwnProperty.call(patchData, "country") ? patchData.country : (curr?.country ?? null),
       addressLine:  Object.prototype.hasOwnProperty.call(patchData, "addressLine") ? patchData.addressLine : (curr?.addressLine ?? null),
       city:         Object.prototype.hasOwnProperty.call(patchData, "city") ? patchData.city : (curr?.city ?? null),
+      cityCode:     Object.prototype.hasOwnProperty.call(patchData, "cityCode") ? patchData.cityCode : (curr?.cityCode ?? null),
+      latitude:     Object.prototype.hasOwnProperty.call(patchData, "latitude") ? patchData.latitude : (curr?.latitude ?? null),
+      longitude:    Object.prototype.hasOwnProperty.call(patchData, "longitude") ? patchData.longitude : (curr?.longitude ?? null),
       description:  Object.prototype.hasOwnProperty.call(patchData, "description") ? patchData.description : (curr?.description ?? null),
     };
 
@@ -519,8 +572,9 @@ r.patch("/", async (req, res) => {
     const { rows } = await pool.query(
       `INSERT INTO ${TBL_PROFILE}
          ("partnerId","name","contactEmail","phone","country",
-          "addressLine","city","description","createdAt","updatedAt")
-       VALUES ($1,$2,$3,$4,$5,$6,$7,$8, NOW(), NOW())
+          "addressLine","city","cityCode","latitude","longitude",
+          "description","createdAt","updatedAt")
+       VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11, NOW(), NOW())
        ON CONFLICT ("partnerId") DO UPDATE
            SET "name"         = EXCLUDED."name",
                "contactEmail" = EXCLUDED."contactEmail",
@@ -528,10 +582,14 @@ r.patch("/", async (req, res) => {
                "country"      = EXCLUDED."country",
                "addressLine"  = EXCLUDED."addressLine",
                "city"         = EXCLUDED."city",
+               "cityCode"     = EXCLUDED."cityCode",
+               "latitude"     = EXCLUDED."latitude",
+               "longitude"    = EXCLUDED."longitude",
                "description"  = EXCLUDED."description",
                "updatedAt"    = NOW()
        RETURNING "partnerId","name","contactEmail","phone","country",
-                 "addressLine","city","description","updatedAt","createdAt"`,
+                 "addressLine","city","cityCode","latitude","longitude",
+                 "description","updatedAt","createdAt"`,
       [
         partnerId,
         next.name,
@@ -540,6 +598,9 @@ r.patch("/", async (req, res) => {
         next.country,
         next.addressLine,
         next.city,
+        next.cityCode,
+        next.latitude,
+        next.longitude,
         next.description,
       ]
     );
@@ -561,7 +622,7 @@ r.patch("/", async (req, res) => {
     return res.json(rows[0]);
   } catch (e) {
     console.error("[property:patch] db error", e);
-    return res.status(500).json({ error: "Property patch failed" });
+    return res.status(500).json({ error: "Property save failed" });
   }
 });
 
