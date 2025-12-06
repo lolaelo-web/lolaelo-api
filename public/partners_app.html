@@ -333,7 +333,7 @@
         <!-- Row 1: Name + Contact Email (required) -->
         <div class="row">
           <div>
-            <label for="pp_name">Hotel Name *</label>
+            <label for="pp_name">Hotel/Property Name *</label>
             <input id="pp_name" type="text" placeholder="Coco Cabana" required />
           </div>
           <div>
@@ -345,7 +345,7 @@
         <!-- Row 2: Partner ID (read-only) stays where it is -->
         <div class="row">
           <div>
-            <label for="pp_partnerId">Partner ID (read only)</label>
+            <label for="pp_partnerId">Partner ID</label>
             <input id="pp_partnerId" type="text" value="" disabled aria-readonly="true"
                   title="System-generated (not editable)" maxlength="5"
                   style="text-align:center; max-width:120px" />
@@ -456,7 +456,7 @@
             </div>
           </div>
         </div>
-
+ 
         <!-- Description (required field) -->
         <label for="pp_desc">
           Description <span style="color:#ff6a3d">*</span>
@@ -467,7 +467,6 @@
 
         <textarea id="pp_desc"
           required
-          style="height: 180px;"
           placeholder="Write a short personal message that tells travelers what makes your property unique."></textarea>
 
         <button id="btnAddons"

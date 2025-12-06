@@ -932,6 +932,79 @@
       overflow: hidden;
     }
 
+    .summary-actions{
+      display:flex;
+      flex-wrap:wrap;
+      align-items:center;
+      gap:8px 16px;
+      margin-bottom:4px;
+    }
+
+    .summary-icon-wrap{
+      position:relative;
+      display:inline-flex;
+      align-items:center;
+      justify-content:center;
+    }
+
+    .summary-icon-btn{
+      width:32px;
+      height:32px;
+      border-radius:999px;
+      border:1px solid var(--border-subtle);
+      background:var(--surface-subtle);
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      font-size:16px;
+      cursor:pointer;
+    }
+
+    .summary-bubble{
+      position:absolute;
+      top:115%;
+      left:0;
+      z-index:30;
+      min-width:220px;
+      max-width:320px;
+      padding:10px 12px;
+      border-radius:12px;
+      background:#ffffff;
+      box-shadow:0 10px 30px rgba(15,23,42,0.18);
+      font-size:12px;
+      line-height:1.4;
+      color:var(--fg);
+      display:none;
+    }
+
+    .summary-bubble strong{
+      display:block;
+      margin-bottom:4px;
+      font-size:12px;
+    }
+
+    .summary-icon-wrap:hover .summary-bubble{
+      display:block;
+    }
+
+    .summary-dates{
+      display:flex;
+      flex-direction:column;
+      gap:2px;
+    }
+
+    .summary-nights{
+      font-size:11px;
+      color:var(--muted);
+    }
+
+    @media (max-width: 640px){
+      .summary-bubble{
+        left:auto;
+        right:0;
+      }
+    }
+
     .summary .chips{
       margin-top: 4px;
       flex-wrap: wrap;
@@ -975,7 +1048,7 @@
 <body>
   <div class="paper">
     <header>
-      <!-- ANCHOR: DETAILS_TOPBAR -->
+           <!-- ANCHOR: DETAILS_TOPBAR -->
       <div class="topbar">
         <a class="logo" href="https://www.lolaelo.com/">
           <img
@@ -990,22 +1063,7 @@
             <span id="prop-name">Loading…</span>
             <span id="src-badge" class="chip" style="display:none; margin-left:8px;">db</span>
           </span>
-          <div id="stay-range" class="stay-range"></div>
-
-          <!-- ANCHOR: DETAILS_DATE_BAR_HTML -->
-          <div id="details-date-bar" class="detail-date-bar">
-            <label class="detail-date-field">
-              <span>Check in</span>
-              <input type="date" id="detail-checkin">
-            </label>
-            <label class="detail-date-field">
-              <span>Check out</span>
-              <input type="date" id="detail-checkout">
-            </label>
-            <button type="button" id="detail-dates-apply">
-              Update dates
-            </button>
-          </div>
+          <div id="stay-range" class="stay-range" style="display:none;"></div>
         </h1>
       </div>
       <!-- /ANCHOR: DETAILS_TOPBAR -->
@@ -1026,14 +1084,58 @@
         <!-- ANCHOR: DETAILS_SUMMARY_BLOCK -->
         <div class="summary">
           <div class="summary-main">
-            <div class="summary-price-line">
-              <span class="summary-label">From</span>
-              <span id="from" class="price">—</span>
-              <span id="nights-note" class="meta" style="margin-left:8px;"></span>
+            <div class="summary-actions">
+              <!-- Owner / manager letter -->
+              <div class="summary-icon-wrap">
+                <button
+                  type="button"
+                  class="summary-icon-btn"
+                  aria-label="Message from the owner"
+                >
+                  ✉️
+                </button>
+                <div class="summary-bubble summary-bubble-owner">
+                  <strong>Message from the owner</strong>
+                  <p id="prop-desc" class="summary-desc"></p>
+                </div>
+              </div>
+
+              <!-- Amenities bubble -->
+              <div class="summary-icon-wrap">
+                <button
+                  type="button"
+                  class="summary-icon-btn"
+                  aria-label="Amenities"
+                >
+                  ☑️
+                </button>
+                <div class="summary-bubble summary-bubble-amenities">
+                  <strong>Amenities</strong>
+                  <div id="amenities" class="chips" style="display:none;"></div>
+                </div>
+              </div>
+
+              <!-- Date selector moved here -->
+              <div class="summary-dates">
+                <!-- ANCHOR: DETAILS_DATE_BAR_HTML -->
+                <div id="details-date-bar" class="detail-date-bar">
+                  <label class="detail-date-field">
+                    <span>Check in</span>
+                    <input type="date" id="detail-checkin">
+                  </label>
+                  <label class="detail-date-field">
+                    <span>Check out</span>
+                    <input type="date" id="detail-checkout">
+                  </label>
+                  <button type="button" id="detail-dates-apply">
+                    Update dates
+                  </button>
+                </div>
+                <div id="nights-note" class="meta summary-nights"></div>
+              </div>
             </div>
+
             <div id="prop-location" class="summary-location"></div>
-            <p id="prop-desc" class="summary-desc"></p>
-            <div id="amenities" class="chips" style="display:none;"></div>
           </div>
         </div>
 
@@ -1135,7 +1237,7 @@
       const checkOutInput = document.getElementById('detail-checkout');
       const applyBtn = document.getElementById('detail-dates-apply');
       if (!checkInInput || !checkOutInput || !applyBtn) return;
-      
+
       // Initialize inputs from current URL dates
       try {
         checkInInput.value = start;
