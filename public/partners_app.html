@@ -425,15 +425,14 @@
             </button>
 
             <!-- Selected place label inline -->
-            <div style="font-size:12px; white-space:nowrap;">
+            <div style="font-size:12px; max-width:260px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">
               <span class="muted">Selected place: </span>
               <span id="pp_map_label_view" style="color:#e5e7eb;">Not set</span>
               <input id="pp_map_label" type="hidden" />
             </div>
-
           </div>
 
-          <div id="pp_map" class="pp-map-container">
+          <div id="pp_map" class="pp-map-container" style="margin-top:10px;">
             <div class="pp-map-placeholder">
               Map will appear here once Google Maps is connected. You’ll be able to drag the pin or search for your exact spot.
             </div>
@@ -732,6 +731,12 @@
         }
         if (labelView) {
           labelView.textContent = labelVal || 'Not set';
+        }
+
+        // Also hydrate the search box from the saved label so it survives refresh
+        const searchInp = document.getElementById('pp_map_search');
+        if (searchInp && labelVal.trim().length > 0) {
+          searchInp.value = labelVal;
         }
 
         // If map is already initialized, sync marker + center to saved coords
@@ -1499,7 +1504,7 @@
           return;
         }
 
-        geocoder.geocode(
+                geocoder.geocode(
           {
             address: query,
             componentRestrictions: { country: 'PH' }
@@ -1531,6 +1536,11 @@
             }
             if (labelView) {
               labelView.textContent = label || 'Not set';
+            }
+
+            // Keep the resolved label in the search box as well
+            if (searchInput && label) {
+              searchInput.value = label;
             }
           }
         );

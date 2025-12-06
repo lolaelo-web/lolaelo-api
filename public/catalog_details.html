@@ -170,6 +170,43 @@
       margin-top:2px;
     }
 
+    /* ANCHOR: DETAILS_DATE_BAR_CSS */
+    .detail-date-bar{
+      display:flex;
+      flex-wrap:wrap;
+      align-items:center;
+      gap:8px;
+      margin-top:6px;
+      font-size:12px;
+    }
+    .detail-date-bar label{
+      display:flex;
+      flex-direction:column;
+      gap:2px;
+    }
+    .detail-date-bar label span{
+      font-size:11px;
+      color:var(--muted);
+    }
+    .detail-date-bar input[type="date"]{
+      font-size:12px;
+      padding:4px 6px;
+      border-radius:8px;
+      border:1px solid var(--border-subtle);
+      background:var(--surface-subtle);
+      color:var(--fg);
+    }
+    .detail-date-bar button{
+      padding:6px 10px;
+      border-radius:999px;
+      border:1px solid var(--accent);
+      background:transparent;
+      font-size:12px;
+      font-weight:500;
+      cursor:pointer;
+      white-space:nowrap;
+    }
+
     /* ANCHOR: DETAILS_LAYOUT_COLS */
     .layout{
       display:grid;
@@ -954,6 +991,21 @@
             <span id="src-badge" class="chip" style="display:none; margin-left:8px;">db</span>
           </span>
           <div id="stay-range" class="stay-range"></div>
+
+          <!-- ANCHOR: DETAILS_DATE_BAR_HTML -->
+          <div id="details-date-bar" class="detail-date-bar">
+            <label class="detail-date-field">
+              <span>Check in</span>
+              <input type="date" id="detail-checkin">
+            </label>
+            <label class="detail-date-field">
+              <span>Check out</span>
+              <input type="date" id="detail-checkout">
+            </label>
+            <button type="button" id="detail-dates-apply">
+              Update dates
+            </button>
+          </div>
         </h1>
       </div>
       <!-- /ANCHOR: DETAILS_TOPBAR -->
@@ -1054,20 +1106,44 @@
   </div>
 
   <script>
-    // === ANCHOR: DETAILS_SCRIPT ============================================
-    const qs = new URLSearchParams(location.search);
-    const propertyId = qs.get("propertyId");
-    const start = qs.get("start") || new Date().toISOString().slice(0, 10);
-    const end =
-      qs.get("end") ||
-      (() => {
-        // Default end to start + 1 night if missing
-        const d = new Date(start);
-        if (Number.isNaN(d.getTime())) return start;
-        d.setDate(d.getDate() + 1);
-        return d.toISOString().slice(0, 10);
-      })();
-    const plan = qs.get("ratePlanId") || qs.get("plan") || null;
+    // ANCHOR: DETAILS_DATE_BAR_SETUP
+    (function setupDetailsDateBar() {
+      const checkInInput = document.getElementById('detail-checkin');
+      const checkOutInput = document.getElementById('detail-checkout');
+      const applyBtn = document.getElementById('detail-dates-apply');
+      if (!checkInInput || !checkOutInput || !applyBtn) return;
+
+      // Initialize inputs from current URL dates
+      try {
+        checkInInput.value = start;
+        checkOutInput.value = end;
+      } catch (_) {
+        // ignore
+      }
+
+      applyBtn.addEventListener('click', () => {
+        const ci = checkInInput.value || start;
+        const co = checkOutInput.value || end;
+        if (!ci || !co) return;
+
+        // Simple guard: ensure end is after start
+        const ciDate = new Date(ci);
+        const coDate = new Date(co);
+        if (!Number.isNaN(ciDate) && !Number.isNaN(coDate) && coDate <= ciDate) {
+          coDate.setDate(ciDate.getDate() + 1);
+        }
+
+        const finalStart = !Number.isNaN(ciDate) ? ciDate.toISOString().slice(0, 10) : ci;
+        const finalEnd   = !Number.isNaN(coDate) ? coDate.toISOString().slice(0, 10) : co;
+
+        const qsNext = new URLSearchParams(location.search);
+        qsNext.set('start', finalStart);
+        qsNext.set('end', finalEnd);
+
+        const nextUrl = `${location.pathname}?${qsNext.toString()}`;
+        location.assign(nextUrl);
+      });
+    })();
 
     // ANCHOR: DETAILS_PLAN_PARAM_DEF
     const planParam = (qs.get('ratePlanId') || qs.get('plan') || '').trim();
@@ -1714,6 +1790,17 @@
       // NOTE: we intentionally skip /extranet/property/photos (auth) and
       // /catalog/property/photos|/catalog/photos (non-existent) to avoid 401/404 noise.
       // ===== DETAILS_IMG_FALLBACKS (end) =====
+
+      // Final safety: de-duplicate images while preserving order
+      if (Array.isArray(images) && images.length > 1) {
+        const seen = new Set();
+        images = images.filter((url) => {
+          if (!url) return false;
+          if (seen.has(url)) return false;
+          seen.add(url);
+          return true;
+        });
+      }
 
       const placeholder = 'data:image/svg+xml;utf8,' +
         encodeURIComponent(
