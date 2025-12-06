@@ -14,6 +14,7 @@ const pool = new Pool({
 const TBL_PROFILE = `extranet."PropertyProfile"`;
 const TBL_DOC     = `public."PropertyDocument"`;
 const TBL_PHOTO   = `public."PropertyPhoto"`;
+const TBL_ADDON   = `extranet."AddOn"`;
 
 // --- S3 helpers (for document/photo hard-delete) ---
 const s3Region =
@@ -633,6 +634,119 @@ r.patch("/", async (req, res) => {
   } catch (e) {
     console.error("[property:patch] db error", e);
     return res.status(500).json({ error: "Property save failed" });
+  }
+});
+
+/** GET /extranet/property/addons -> list add-ons for current partner */
+r.get("/addons", async (req, res) => {
+  const partnerId = (req as any)?.partner?.id;
+  if (!partnerId) return res.status(401).json({ error: "unauthorized" });
+
+  res.set("Cache-Control", "no-store, no-cache, must-revalidate");
+
+  try {
+    const { rows } = await pool.query(
+      `SELECT "id","partnerId","activity","uom","price","notes",
+              "active","sortOrder","maxQty","createdAt","updatedAt"
+         FROM ${TBL_ADDON}
+        WHERE "partnerId" = $1
+        ORDER BY COALESCE("sortOrder", 9999), "id"`,
+      [partnerId]
+    );
+    return res.json(rows);
+  } catch (e) {
+    console.error("[addons:list] db error", e);
+    return res.status(500).json({ error: "Add-ons list failed" });
+  }
+});
+
+/**
+ * PUT /extranet/property/addons
+ * Bulk-replace all add-ons for the current partner.
+ * Body: { items: [{ activity, uom, price, notes }] }
+ */
+r.put("/addons", async (req, res) => {
+  const partnerId = (req as any)?.partner?.id;
+  if (!partnerId) return res.status(401).json({ error: "unauthorized" });
+
+  const body = (req.body ?? {}) as any;
+  const items = Array.isArray(body.items) ? body.items : [];
+
+  // Normalize and validate incoming rows
+  const cleaned = items
+    .map((raw: any, idx: number) => {
+      const activity = String(raw.activity ?? "").trim();
+      const uom      = raw.uom != null ? String(raw.uom).trim() : "";
+      const notes    = raw.notes != null ? String(raw.notes).trim() : "";
+      const priceNum = typeof raw.price === "number"
+        ? raw.price
+        : Number(raw.price ?? NaN);
+
+      if (!activity) return null;
+
+      const price =
+        Number.isFinite(priceNum) && priceNum >= 0 ? priceNum : null;
+
+      return {
+        activity,
+        uom: uom || null,
+        price,
+        notes: notes || null,
+        sortOrder: idx + 1,
+      };
+    })
+    .filter(Boolean) as {
+      activity: string;
+      uom: string | null;
+      price: number | null;
+      notes: string | null;
+      sortOrder: number;
+    }[];
+
+  try {
+    await pool.query("BEGIN");
+
+    // Wipe existing add-ons for this partner
+    await pool.query(
+      `DELETE FROM ${TBL_ADDON} WHERE "partnerId" = $1`,
+      [partnerId]
+    );
+
+    // Insert new set (if any)
+    for (const row of cleaned) {
+      await pool.query(
+        `INSERT INTO ${TBL_ADDON}
+           ("partnerId","activity","uom","price","notes",
+            "active","sortOrder","maxQty","createdAt","updatedAt")
+         VALUES ($1,$2,$3,$4,$5,true,$6,NULL,NOW(),NOW())`,
+        [
+          partnerId,
+          row.activity,
+          row.uom,
+          row.price,
+          row.notes,
+          row.sortOrder,
+        ]
+      );
+    }
+
+    await pool.query("COMMIT");
+
+    // Return fresh list
+    const { rows } = await pool.query(
+      `SELECT "id","partnerId","activity","uom","price","notes",
+              "active","sortOrder","maxQty","createdAt","updatedAt"
+         FROM ${TBL_ADDON}
+        WHERE "partnerId" = $1
+        ORDER BY COALESCE("sortOrder", 9999), "id"`,
+      [partnerId]
+    );
+
+    return res.json(rows);
+  } catch (e) {
+    await pool.query("ROLLBACK").catch(() => {});
+    console.error("[addons:put] db error", e);
+    return res.status(500).json({ error: "Add-ons save failed" });
   }
 });
 

@@ -1069,6 +1069,11 @@
               <strong id="summaryNights">n</strong>
             </div>
 
+            <div class="summary-line">
+              <span>Add-ons</span>
+              <strong id="summaryAddons">None selected</strong>
+            </div>
+
             <div class="summary-total">
               <div>
                 <div class="summary-total-label">Total</div>
@@ -1148,6 +1153,176 @@
       return nights > 0 ? nights : "";
     }
 
+    function renderAddons(addons) {
+      const listEl = document.getElementById("addonsList");
+      const emptyEl = document.getElementById("addonsEmptyMessage");
+      if (!listEl) return;
+
+      // Clear existing content
+      listEl.innerHTML = "";
+
+      const rows = Array.isArray(addons) ? addons : [];
+      if (!rows.length) {
+        // Show empty message if no add-ons
+        if (emptyEl) {
+          emptyEl.textContent = "No add-ons are available for this stay.";
+          listEl.appendChild(emptyEl);
+        }
+        return;
+      }
+
+      // We have add-ons; remove any old empty message
+      if (emptyEl && emptyEl.parentNode === listEl) {
+        emptyEl.remove();
+      }
+
+      rows.forEach(function (item, idx) {
+        const activity = (item.activity || "").toString().trim() || "Add-on";
+        const uom = (item.uom || "").toString().trim();
+        const rawPrice = item.price;
+        const price =
+          typeof rawPrice === "number"
+            ? rawPrice
+            : (rawPrice != null ? Number(rawPrice) : NaN);
+        const notes = (item.notes || "").toString().trim();
+
+        var priceText = "";
+        if (!Number.isNaN(price) && Number.isFinite(price)) {
+          try {
+            priceText = price.toLocaleString(undefined, {
+              style: "currency",
+              currency: "USD"
+            });
+          } catch (e) {
+            priceText = "$" + price.toFixed(2);
+          }
+        }
+
+        var metaParts = [];
+        if (priceText) metaParts.push(priceText);
+        if (uom) metaParts.push(uom);
+        if (notes) metaParts.push(notes);
+        const metaText = metaParts.join(" · ");
+
+        const row = document.createElement("div");
+        row.className = "addon-row";
+
+        const main = document.createElement("div");
+        main.className = "addon-main";
+
+        const titleEl = document.createElement("div");
+        titleEl.className = "addon-title";
+        titleEl.textContent = activity;
+
+        const metaEl = document.createElement("div");
+        metaEl.className = "addon-meta";
+        metaEl.textContent = metaText;
+
+        main.appendChild(titleEl);
+        main.appendChild(metaEl);
+
+        const qtyWrap = document.createElement("div");
+        qtyWrap.className = "addon-qty";
+
+        const label = document.createElement("label");
+        label.textContent = "Qty";
+
+        const input = document.createElement("input");
+        input.type = "number";
+        input.min = "0";
+        input.step = "1";
+        input.value = "0";
+        input.setAttribute("data-addon-index", String(idx));
+
+        qtyWrap.appendChild(label);
+        qtyWrap.appendChild(input);
+
+        row.appendChild(main);
+        row.appendChild(qtyWrap);
+
+        listEl.appendChild(row);
+      });
+    }
+
+    async function loadAddonsForProperty() {
+      if (!state.propertyId) return;
+
+      try {
+        const params = new URLSearchParams();
+        params.set("propertyId", state.propertyId);
+        if (state.start) params.set("start", state.start);
+        if (state.end) params.set("end", state.end);
+
+        const resp = await fetch("/catalog/details?" + params.toString(), {
+          method: "GET",
+          headers: { "Accept": "application/json" }
+        });
+
+        if (!resp.ok) {
+          throw new Error("Failed to load add-ons for property " + state.propertyId);
+        }
+
+        const data = await resp.json();
+        const addons = Array.isArray(data.addons) ? data.addons : [];
+        state.addonsConfig = addons;
+        renderAddons(addons);
+      } catch (err) {
+        console.error("Error loading add-ons", err);
+        state.addonsConfig = [];
+        renderAddons([]);
+      }
+    }
+
+        function recomputeSelectedAddons() {
+      const listEl = document.getElementById("addonsList");
+      if (!listEl) return;
+
+      const inputs = listEl.querySelectorAll(
+        'input[type="number"][data-addon-index]'
+      );
+
+      const selections = [];
+
+      inputs.forEach(function (input) {
+        const idxAttr = input.getAttribute("data-addon-index");
+        const idx = Number(idxAttr);
+        if (!Number.isFinite(idx) || idx < 0) return;
+
+        const qty = Number(input.value || "0");
+        if (!Number.isFinite(qty) || qty <= 0) return;
+
+        const cfg = Array.isArray(state.addonsConfig)
+          ? state.addonsConfig[idx]
+          : null;
+        if (!cfg) return;
+
+        const rawPrice = cfg.price;
+        const price =
+          typeof rawPrice === "number"
+            ? rawPrice
+            : (rawPrice != null ? Number(rawPrice) : NaN);
+
+        const lineTotal =
+          !Number.isNaN(price) && Number.isFinite(price)
+            ? price * qty
+            : null;
+
+        selections.push({
+          index: idx,
+          quantity: qty,
+          activity: (cfg.activity || "").toString().trim(),
+          uom: (cfg.uom || "").toString().trim(),
+          price: !Number.isNaN(price) && Number.isFinite(price)
+            ? price
+            : null,
+          lineTotal
+        });
+      });
+
+      state.selectedAddons = selections;
+      updateSummaries();
+    }
+
     const state = {
       propertyId: "",
       roomId: "",
@@ -1158,6 +1333,8 @@
       propertyLocation: "",
       roomName: "",
       ratePlanName: "",
+      addonsConfig: [],
+      selectedAddons: [],
       sectionConfirmed: { 1: false, 2: false, 3: false, 4: false, 5: false }
     };
 
@@ -1206,6 +1383,23 @@
       const nightsText = nights ? nights + " night" + (nights > 1 ? "s" : "") : "";
       document.getElementById("nightsCountText").textContent = nightsText || "nights";
       document.getElementById("summaryNights").textContent = nightsText || "n";
+
+      // Add-ons summary
+      var addonsLabel = "None selected";
+      if (Array.isArray(state.selectedAddons) && state.selectedAddons.length) {
+        var totalQty = state.selectedAddons.reduce(function (sum, item) {
+          var q = Number(item.quantity || 0);
+          return sum + (Number.isFinite(q) && q > 0 ? q : 0);
+        }, 0);
+        if (totalQty > 0) {
+          addonsLabel =
+            totalQty +
+            " add-on" +
+            (totalQty === 1 ? "" : "s");
+        }
+      }
+      var addonsEl = document.getElementById("summaryAddons");
+      if (addonsEl) addonsEl.textContent = addonsLabel;
     }
 
     function setSectionState(section, status) {
@@ -1292,6 +1486,9 @@
 
       updateSummaries();
       refreshSections();
+      loadAddonsForProperty();
+
+      // Allow clicking headers to reopen a section, but keep only one open
 
       // Allow clicking headers to reopen a section, but keep only one open
       document.querySelectorAll(".card-header").forEach(function (header) {
@@ -1352,7 +1549,10 @@
                 roomId: state.roomId,
                 start: state.start,
                 end: state.end,
-                ratePlanId: state.ratePlanId
+                ratePlanId: state.ratePlanId,
+                addons: Array.isArray(state.selectedAddons)
+                  ? state.selectedAddons
+                  : []
               })
             });
 
@@ -1386,7 +1586,20 @@
         });
       }
     }
-    document.addEventListener("DOMContentLoaded", initCheckout);
+    document.addEventListener("DOMContentLoaded", function () {
+      initCheckout();
+
+      const addonsList = document.getElementById("addonsList");
+      if (addonsList) {
+        addonsList.addEventListener("input", function (ev) {
+          const target = ev.target;
+          if (!target || target.tagName !== "INPUT") return;
+          if (target.getAttribute("type") !== "number") return;
+          if (target.getAttribute("data-addon-index") == null) return;
+          recomputeSelectedAddons();
+        });
+      }
+    });
   </script>
 
 	  <script>

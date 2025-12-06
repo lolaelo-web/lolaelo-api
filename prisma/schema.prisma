@@ -283,6 +283,7 @@ model extranet_Partner {
   RoomInventory                extranet_RoomInventory[]
   RoomPrice                    extranet_RoomPrice[]
   RoomType                     extranet_RoomType[]
+  AddOns                       extranet_AddOn[]               @relation("extranet_Partner_AddOns")
 
   @@map("Partner")
   @@schema("extranet")
@@ -506,6 +507,26 @@ model extranet_SyncLog {
 
   @@index([pmsConnectionId, startedAt(sort: Desc)], map: "SyncLog_conn_started_idx")
   @@map("SyncLog")
+  @@schema("extranet")
+}
+
+model extranet_AddOn {
+  id         Int               @id @default(autoincrement())
+  partnerId  Int
+  activity   String
+  uom        String?
+  price      Decimal?          @db.Decimal(10, 2)
+  notes      String?
+  active     Boolean           @default(true)
+  sortOrder  Int?
+  maxQty     Int?
+  createdAt  DateTime          @default(now())
+  updatedAt  DateTime          @updatedAt
+
+  Partner    extranet_Partner  @relation("extranet_Partner_AddOns", fields: [partnerId], references: [id], onDelete: Cascade)
+
+  @@index([partnerId])
+  @@map("AddOn")
   @@schema("extranet")
 }
 

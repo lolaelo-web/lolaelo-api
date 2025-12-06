@@ -1107,10 +1107,15 @@
         setTimeout(() => location.replace(LOGIN_PAGE), 600);
         return;
       }
-      try { await loadPropertyIntoForm(); }
-      catch (e) { console.error(e); toast('Could not load your profile.'); }
+      try {
+        await loadPropertyIntoForm();
+        await loadAddonsFromBackend();
+      } catch (e) {
+        console.error(e);
+        toast('Could not load your profile.', false);
+      }
     }
-
+    
     // Kick things off after DOM is ready
     if (document.readyState === 'loading') {
       document.addEventListener('DOMContentLoaded', init);
@@ -1220,7 +1225,31 @@
 <script>
   // Simple in-memory state for the current session
   let addonsSessionRows = [];
+    async function loadAddonsFromBackend() {
+      try {
+        const rows = await getJSON('/extranet/property/addons');
+        if (Array.isArray(rows)) {
+          addonsSessionRows = rows.map((r) => ({
+            activity: r.activity || '',
+            uom: r.uom || '',
+            price:
+              typeof r.price === 'number'
+                ? r.price
+                : (r.price != null ? Number(r.price) : null),
+            notes: r.notes || ''
+          }));
+        } else {
+          addonsSessionRows = [];
+        }
+      } catch (e) {
+        console.error('[addons] failed to load from backend', e);
+        addonsSessionRows = [];
+      }
 
+      resetAddonsTableFromState();
+      updateAddonsButtonLabel();
+    }
+  
   function updateAddonsButtonLabel() {
     const lbl = document.getElementById('addonsCountLabel');
     if (!lbl) return;
@@ -1435,7 +1464,9 @@
 
       const activity = activitySel ? activitySel.value.trim() : '';
       const uom      = uomSel ? uomSel.value.trim() : '';
-      const priceVal = priceInput && priceInput.value ? parseFloat(priceInput.value) : null;
+      const priceVal = priceInput && priceInput.value
+        ? parseFloat(priceInput.value)
+        : null;
       const notes    = notesArea ? notesArea.value.trim() : '';
 
       return {
@@ -1446,14 +1477,33 @@
       };
     }).filter(Boolean);
 
-    // TODO: backend POST/PUT will go here
-    console.log('Add-ons saved (session only for now):', addonsSessionRows);
+    (async () => {
+      try {
+        const r = await authed('/extranet/property/addons', {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ items: addonsSessionRows })
+        });
 
-    updateAddonsButtonLabel();
-    closeAddonsModal();
+        if (!r.ok) {
+          const txt = await r.text().catch(() => '');
+          console.error('[addons] save failed', r.status, txt);
+          toast('Could not save add-ons. Please try again.', false);
+        } else {
+          toast('Add-ons saved.', true);
+        }
+      } catch (err) {
+        console.error('[addons] save error', err);
+        toast('Could not save add-ons. Please try again.', false);
+      } finally {
+        updateAddonsButtonLabel();
+        closeAddonsModal();
+      }
+    })();
   }
 
   function discardAddonsModal() {
+
     // Throw away all in-memory rows for this session
     addonsSessionRows = [];
     resetAddonsTableFromState();

@@ -773,6 +773,46 @@ router.get("/details", async (req: Request, res: Response) => {
       req.app?.get("logger")?.warn?.({ err, propertyId }, "details.profiles-db-direct failed");
     }
 
+        // Add-ons from DB — property-level extras (activity/uom/price/notes)
+    try {
+      const partnerId = Number.isFinite(propertyId) ? propertyId : NaN;
+      if (!Number.isFinite(partnerId)) throw new Error("invalid partnerId for addons");
+
+      const cs = process.env.DATABASE_URL || "";
+      if (!cs) throw new Error("DATABASE_URL missing");
+
+      const wantsSSL = /\bsslmode=require\b/i.test(cs) || /render\.com/i.test(cs);
+      const pg = new PgClient({
+        connectionString: cs,
+        ssl: wantsSSL ? { rejectUnauthorized: false } : undefined,
+      });
+      await pg.connect();
+
+      const sql = `
+        SELECT "activity","uom","price","notes"
+        FROM extranet."AddOn"
+        WHERE "partnerId" = $1
+          AND COALESCE("active", TRUE) = TRUE
+        ORDER BY COALESCE("sortOrder", 9999), "id"
+      `;
+
+      const { rows } = await pg.query(sql, [partnerId]);
+      await pg.end();
+
+      const addons = Array.isArray(rows) ? rows : [];
+      (base as any).addons = addons.map((r: any) => ({
+        activity: (r.activity ?? "").toString().trim(),
+        uom: (r.uom ?? "").toString().trim(),
+        price:
+          r.price === null || r.price === undefined
+            ? null
+            : Number(r.price),
+        notes: (r.notes ?? "").toString().trim(),
+      }));
+    } catch (err) {
+      req.app?.get("logger")?.warn?.({ err, propertyId }, "details.addons-db failed");
+    }
+
     // Rooms from DB (overlay) — DIRECT SQL (bypass adapter) using Partner.id
     try {
       const partnerId = Number.isFinite(propertyId) ? propertyId : NaN;
