@@ -823,6 +823,15 @@
       }
     }
 
+    // Resolve current session once for payloads
+    const session =
+      (window && (window.__session || window.currentPartnerSession)) || null;
+
+    if (!session || !session.partnerId) {
+      alert('Your session is missing or expired. Please sign out and sign back in.');
+      return;
+    }
+
     // PATCH = send only provided fields
     const patchPayload = {
       name:         nz($('pp_name').value),

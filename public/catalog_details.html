@@ -974,12 +974,12 @@
     /* ANCHOR: DETAILS_SUMMARY_ICONS_CSS */
     .summary-actions{
       display:flex;
-      flex-wrap:wrap;
-      align-items:center;
+      align-items:flex-start;
       justify-content:space-between;
+      flex-wrap:nowrap;       /* force a single horizontal row on desktop */
       column-gap:24px;
-      row-gap:8px;
       margin-bottom:4px;
+      width:100%;
     }
 
     .summary-icon-wrap{
@@ -993,8 +993,8 @@
 
     .summary-actions > .summary-icon-wrap,
     .summary-actions > .summary-dates{
-      flex:1 1 0;
-      min-width:140px;
+      flex:0 1 25%;      /* four horizontal slots */
+      min-width:120px;
     }
 
     .summary-icon-btn{
@@ -1062,6 +1062,17 @@
     .summary-nights{
       font-size:11px;
       color:var(--muted);
+    }
+
+    @media (max-width: 640px){
+      .summary-actions{
+        flex-wrap:wrap;
+      }
+      .summary-actions > .summary-icon-wrap,
+      .summary-actions > .summary-dates{
+        flex:1 1 45%;
+        min-width:140px;
+      }
     }
 
     @media (max-width: 640px){
