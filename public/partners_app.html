@@ -389,11 +389,12 @@
 
                 <div class="pp-map-section">
           <div class="pp-map-header">
-            <label for="pp_map_search">Location on map</label>
-            <small class="muted">
-              Set your exact location so travelers can find you on the map.
-            </small>
-          </div>
+            <label class="section-label" style="font-weight:600;">
+              Location on map
+              <span style="font-weight:400; opacity:0.8;">
+                (Set your exact location so travelers can find you on the map.)
+              </span>
+            </label>
 
           <!-- Search row: input + Search + Selected place -->
           <div style="display:flex; align-items:center; gap:12px; flex-wrap:wrap; max-width:100%; padding-right:12px;">
@@ -456,10 +457,18 @@
           </div>
         </div>
 
-        <!-- Description (only non-required field) -->
-        <label for="pp_desc">Description</label>
+        <!-- Description (required field) -->
+        <label for="pp_desc">
+          Description <span style="color:#ff6a3d">*</span>
+          <span style="font-weight:400; opacity:0.8;">
+            (Write a brief personal note explaining what makes your property unique.)
+          </span>
+        </label>
+
         <textarea id="pp_desc"
-                  placeholder="Short description of your company, amenities, and any partner notes."></textarea>
+          required
+          style="height: 180px;"
+          placeholder="Write a short personal message that tells travelers what makes your property unique."></textarea>
 
         <button id="btnAddons"
                 type="button"
@@ -788,6 +797,14 @@
     // Read the human-readable place label
     const mapLabelVal = $('pp_map_label') ? $('pp_map_label').value.trim() : '';
 
+    // Enforce required Description field
+    const descVal = $('pp_desc').value.trim();
+    if (!descVal) {
+      alert('Description is required.');
+      $('pp_desc').focus();
+      return;
+    }
+
     // PATCH = send only provided fields
     const patchPayload = {
       name:         nz($('pp_name').value),
@@ -795,7 +812,7 @@
       phone:        nz($('pp_phone').value),
       addressLine:  nz($('pp_address').value),
       country:      nz($('pp_country').value),
-      description:  nz($('pp_desc').value),
+      description:  descVal,
       cityCode:     cityCode || null,
       city:         cityLabel || null,
       latitude:     hasLat ? latVal : null,
@@ -804,15 +821,16 @@
     };
     Object.keys(patchPayload).forEach(k => (patchPayload[k] == null) && delete patchPayload[k]);
 
-    // PUT = full object with exact keys the API accepts
     const putPayload = {
-      name:         ($('pp_name').value || '').trim(),
-      contactEmail: ($('pp_contactEmail').value || '').trim(),
-      phone:        ($('pp_phone').value || '').trim(),
-      country:      ($('pp_country').value || '').trim(),
-      addressLine:  ($('pp_address').value || '').trim(),
-      city:         cityLabel,
-      description:  ($('pp_desc').value || '').trim(),
+      partnerId:    session.partnerId,
+      name:         nz($('pp_name').value),
+      contactEmail: nz($('pp_contactEmail').value),
+      phone:        nz($('pp_phone').value),
+      addressLine:  nz($('pp_address').value),
+      country:      nz($('pp_country').value),
+      description:  descVal,
+      cityCode:     cityCode || null,
+      city:         cityLabel || null,
       latitude:     hasLat ? latVal : null,
       longitude:    hasLng ? lngVal : null,
       mapLabel:     mapLabelVal || null

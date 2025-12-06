@@ -1106,13 +1106,36 @@
   </div>
 
   <script>
+    // ANCHOR: DETAILS_QUERY_PARAMS
+    const qs = new URLSearchParams(location.search || '');
+
+    // Shared params for this page
+    const propertyId =
+      Number(qs.get('propertyId') || qs.get('partnerId') || '') || '';
+
+    let start = qs.get('start') || '';
+    let end   = qs.get('end') || '';
+
+    // Fallback if dates are missing
+    if (!start || !end) {
+      const today = new Date();
+      const tomorrow = new Date(today);
+      tomorrow.setDate(today.getDate() + 1);
+      const fmt = d => d.toISOString().slice(0, 10);
+      if (!start) start = fmt(today);
+      if (!end)   end   = fmt(tomorrow);
+    }
+
+    const plan =
+      (qs.get('ratePlanId') || qs.get('plan') || '').trim();
+
     // ANCHOR: DETAILS_DATE_BAR_SETUP
     (function setupDetailsDateBar() {
       const checkInInput = document.getElementById('detail-checkin');
       const checkOutInput = document.getElementById('detail-checkout');
       const applyBtn = document.getElementById('detail-dates-apply');
       if (!checkInInput || !checkOutInput || !applyBtn) return;
-
+      
       // Initialize inputs from current URL dates
       try {
         checkInInput.value = start;
