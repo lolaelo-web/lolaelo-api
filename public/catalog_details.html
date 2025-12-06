@@ -998,7 +998,7 @@
     /* Force 4-column row: [✉️][🛎️][📍][date card] */
     .summary-main > .summary-actions{
       display:grid;
-      grid-template-columns:20% 20% 20% 40%;
+      grid-template-columns:13% 13% 13% 61%;
       column-gap:24px;
       align-items:flex-start;
       width:100%;
@@ -1872,72 +1872,88 @@
           descEl.style.display = finalDesc ? 'block' : 'none';
         }
 
-      // Map icon wiring: prefer lat/lng from Company Profile (partners_app)
-      const mapBtn = document.getElementById('summary-map-btn');
-      if (mapBtn) {
-        const latRaw =
-          mp.lat ||
-          mp.latitude ||
-          mp.geoLat ||
-          mp.mapLat ||
-          cp.lat ||
-          cp.latitude ||
-          cp.geoLat ||
-          cp.mapLat ||
-          null;
+        // Map icon wiring: prefer lat/lng from Company Profile (partners_app)
+        const mapBtn = document.getElementById('summary-map-btn');
+        if (mapBtn) {
+          const latRaw =
+            mp.lat ||
+            mp.latitude ||
+            mp.geoLat ||
+            mp.mapLat ||
+            cp.lat ||
+            cp.latitude ||
+            cp.geoLat ||
+            cp.mapLat ||
+            null;
 
-        const lngRaw =
-          mp.lng ||
-          mp.longitude ||
-          mp.geoLng ||
-          mp.mapLng ||
-          cp.lng ||
-          cp.longitude ||
-          cp.geoLng ||
-          cp.mapLng ||
-          null;
+          const lngRaw =
+            mp.lng ||
+            mp.longitude ||
+            mp.geoLng ||
+            mp.mapLng ||
+            cp.lng ||
+            cp.longitude ||
+            cp.geoLng ||
+            cp.mapLng ||
+            null;
 
-        let mapQuery = '';
+          let mapQuery = '';
 
-        // 1) Primary: explicit lat/lng from Company Profile / card
-        if (latRaw != null && lngRaw != null) {
-          const lat = Number(latRaw);
-          const lng = Number(lngRaw);
-          if (Number.isFinite(lat) && Number.isFinite(lng)) {
-            mapQuery = `${lat},${lng}`;
+          // 1) Primary: explicit lat/lng from Company Profile / card
+          if (latRaw != null && lngRaw != null) {
+            const lat = Number(latRaw);
+            const lng = Number(lngRaw);
+            if (Number.isFinite(lat) && Number.isFinite(lng)) {
+              mapQuery = `${lat},${lng}`;
+            }
           }
-        }
 
-        // 2) Fallback: best-effort address string
-        if (!mapQuery) {
-          const addrParts = [
-            mp.addressLine1,
-            mp.addressLine2,
-            mp.barangay,
-            mp.area,
-            mp.city,
-            mp.island,
-            mp.region,
-            mp.postalCode,
-            mp.country,
-            cp.address,
-            cp.location,
-            j?.location
-          ]
-            .map(x => String(x || '').trim())
-            .filter(Boolean);
+          // 2) Fallback: best-effort address string
+          if (!mapQuery) {
+            const addrParts = [
+              mp.addressLine1,
+              mp.addressLine2,
+              mp.barangay,
+              mp.area,
+              mp.city,
+              mp.island,
+              mp.region,
+              mp.postalCode,
+              mp.country,
+              cp.address,
+              cp.location,
+              j?.location
+            ]
+              .map(x => String(x || '').trim())
+              .filter(Boolean);
 
-          mapQuery = addrParts.join(', ');
-        }
+            mapQuery = addrParts.join(', ');
+          }
 
-        if (mapQuery) {
-          mapBtn.dataset.mapQuery = mapQuery;
+          // Store query if available, but always show the icon
+          if (mapQuery) {
+            mapBtn.dataset.mapQuery = mapQuery;
+          } else {
+            delete mapBtn.dataset.mapQuery;
+          }
           mapBtn.style.display = 'inline-flex';
 
           // Bind click once
           if (!mapBtn.dataset.bound) {
             mapBtn.addEventListener('click', () => {
-              const q = (mapBtn.dataset.mapQuery || '').trim();
+              // Prefer precomputed query
+              let q = (mapBtn.dataset.mapQuery || '').trim();
+
+              // Last-chance fallback: use visible location text
+              if (!q) {
+                const locEl = document.getElementById('prop-location');
+                const locText =
+                  locEl && typeof locEl.textContent === 'string'
+                    ? locEl.textContent.trim()
+                    : '';
+                if (locText) q = locText;
+              }
+
               if (!q) return;
 
               const isLatLng =
@@ -1951,12 +1967,8 @@
             });
             mapBtn.dataset.bound = '1';
           }
-        } else {
-          mapBtn.style.display = 'none';
-          delete mapBtn.dataset.mapQuery;
         }
       }
-    }
 
       // Compute fromPrice from daily rows (first room) if available
       const daily0  = (j?.rooms?.[0]?.daily || []);
@@ -1984,20 +1996,67 @@
         pushArr(cp.inclusions);
         pushArr(cp.features);
 
-        // 2) Details-level aggregated amenities
+        // 2) Details-level aggregated amenities (if API exposes any)
         pushArr(j?.amenities);
         pushArr(j?.inclusions);
         pushArr(j?.features);
 
-        // 3) Room-level amenities from room metadata (partners_rooms → modal)
+        // 3) Room-level amenities using the SAME style of wiring as the room modal:
+        //    key-based flags + free-text fields + meta containers
+        const DETAIL_LABELS = {
+          city_view:       "City view",
+          sea_view:        "Sea / ocean view",
+          garden_view:     "Garden view",
+          pool_view:       "Pool view",
+          high_floor:      "High floor",
+          ground_floor:    "Ground floor",
+          connecting:      "Connecting rooms available",
+          accessible:      "Accessible room",
+          kitchenette:     "Kitchenette",
+          separate_living: "Separate living area",
+        };
+
+        const INCLUSION_LABELS = {
+          breakfast:        "Breakfast included",
+          half_board:       "Half board",
+          full_board:       "Full board",
+          all_inclusive:    "All inclusive",
+          free_parking:     "Free parking",
+          airport_shuttle:  "Airport shuttle",
+          late_checkout:    "Late checkout (subject to availability)",
+          early_checkin:    "Early check-in (subject to availability)",
+          pool_access:      "Pool access",
+          spa_access:       "Spa / wellness access",
+        };
+
         if (Array.isArray(j?.rooms)) {
           for (const r of j.rooms) {
             if (!r) continue;
 
-            // direct lists on rooms
+            // direct arrays on the room
             pushArr(r.amenities);
             pushArr(r.inclusions);
             pushArr(r.features);
+
+            // key-based flags (mirrors room modal logic)
+            const detailKeys =
+              Array.isArray(r.details_keys) ? r.details_keys : [];
+            const inclusionKeys =
+              Array.isArray(r.inclusion_keys) ? r.inclusion_keys : [];
+
+            detailKeys.forEach((k) => {
+              const lbl = DETAIL_LABELS[k];
+              if (lbl) collected.push(lbl);
+            });
+
+            inclusionKeys.forEach((k) => {
+              const lbl = INCLUSION_LABELS[k];
+              if (lbl) collected.push(lbl);
+            });
+
+            // free-text from the modal
+            if (r.details_text) collected.push(r.details_text);
+            if (r.inclusion_text) collected.push(r.inclusion_text);
 
             // meta containers (common from edit-room modal)
             if (r.meta && typeof r.meta === "object") {
@@ -2018,7 +2077,7 @@
               return String(a).trim();
             })
             .filter(Boolean)
-        )].slice(0, 12); // increased limit slightly for better coverage
+        )].slice(0, 12);
 
         if (chips.length) {
           const amenitiesEl = document.getElementById("amenities");
