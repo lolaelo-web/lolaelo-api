@@ -1562,37 +1562,98 @@
         }
       }
 
-      // Prefer details.images (DB-backed) with cover support; fallback to first room images
-      const rawImages =
-        Array.isArray(j?.images) ? j.images
-        : (Array.isArray(j?.rooms?.[0]?.images) ? j.rooms[0].images : []);
+      // Prefer PROPERTY-LEVEL photos (same as catalog cards), then details/room images
+      const pickUrl = (it) =>
+        typeof it === "string"
+          ? it
+          : (it?.url || it?.photoUrl || it?.imageUrl || it?.src || it?.href || "");
 
-      // Try to detect the designated cover across common key names / flags
-      const coverObj = Array.isArray(j?.images)
-        ? j.images.find(it =>
-            typeof it === 'object' &&
-            (it?.isCover === true || it?.is_cover === true || it?.isPrimary === true || it?.is_primary === true)
-          )
-        : null;
-      const coverUrl = coverObj
-        ? (coverObj.url || coverObj.photoUrl || coverObj.imageUrl || coverObj.src || coverObj.href || null)
-        : null;
+      const pickList = (arr) =>
+        (Array.isArray(arr) ? arr : [])
+          .map(pickUrl)
+          .filter(Boolean);
 
-      // Normalize to plain URL strings across common key names
-      images = rawImages
-        .map(it => {
-          if (typeof it === 'string') return it;
-          return it?.url || it?.photoUrl || it?.imageUrl || it?.src || it?.href || "";
-        })
-        .filter(Boolean);
+      // 1) Primary: propertyCard photos (same source as catalog cards)
+      let rawImages = [];
+      let coverUrl = null;
+
+      if (propertyCard) {
+        // Try images/photos directly on the card
+        rawImages = pickList(propertyCard.images || propertyCard.photos);
+
+        // If a cover is defined, remember it so we can push it to front
+        if (!coverUrl && propertyCard.cover) {
+          const c = pickUrl(propertyCard.cover.url ? propertyCard.cover : propertyCard.coverUrl || propertyCard.cover);
+          if (c) coverUrl = c;
+        }
+        if (!coverUrl && propertyCard.coverUrl) {
+          const c = pickUrl(propertyCard.coverUrl);
+          if (c) coverUrl = c;
+        }
+        if (!coverUrl && typeof propertyCard.image === "string") {
+          coverUrl = propertyCard.image;
+        }
+      }
+
+      // 2) Secondary: details.images from /catalog/details
+      if (!rawImages.length && Array.isArray(j?.images)) {
+        rawImages = pickList(j.images);
+
+        // Try to detect designated cover inside j.images
+        if (!coverUrl) {
+          const coverObj = j.images.find(
+            (it) =>
+              it &&
+              typeof it === "object" &&
+              (it.isCover === true ||
+                it.is_cover === true ||
+                it.isPrimary === true ||
+                it.is_primary === true)
+          );
+          if (coverObj) {
+            const c = pickUrl(coverObj);
+            if (c) coverUrl = c;
+          }
+        }
+      }
+
+      // 3) Tertiary: first room's images as a strict fallback
+      if (
+        !rawImages.length &&
+        Array.isArray(j?.rooms?.[0]?.images)
+      ) {
+        rawImages = pickList(j.rooms[0].images);
+      }
+
+      // Normalize to plain URL strings
+      images = rawImages.slice();
 
       // If we found a coverUrl, move it to the front
       if (coverUrl) {
         const idx = images.indexOf(coverUrl);
-        if (idx > 0) images.splice(0, 0, ...images.splice(idx, 1));
+        if (idx > 0) {
+          images.splice(0, 0, ...images.splice(idx, 1));
+        }
       }
-      
+
       // ===== DETAILS_IMG_FALLBACKS (streamlined) =====
+      // 1) Try alternates in the details payload
+      if (!images.length) {
+        const pickFrom = (arr) =>
+          (Array.isArray(arr) ? arr : [])
+            .map(pickUrl)
+            .filter(Boolean);
+
+        images = pickFrom(j?.meta?.property?.photos);
+        if (!images.length) images = pickFrom(j?.meta?.photos);
+        if (!images.length) images = pickFrom(j?.rooms?.[0]?.photos);
+      }
+
+      // 2) We intentionally do NOT call extranet (auth) here; any additional
+      //    property-level photos should be wired via the catalog/search card
+      //    (propertyCard) or meta above.
+      // ===== DETAILS_IMG_FALLBACKS (end) =====
+
       // 1) Try alternates in the details payload
       if (!images.length) {
         const pick = (arr) => (Array.isArray(arr) ? arr : [])

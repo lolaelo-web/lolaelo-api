@@ -395,14 +395,17 @@
             </small>
           </div>
 
-          <!-- Search row (75% width input + Search pill) -->
-          <div style="display:flex; gap:8px; align-items:center; max-width:520px;">
-            <input id="pp_map_search"
-                   class="pp-map-search"
-                   type="text"
-                   placeholder="Search address or place"
-                   style="flex:0 0 75%;">
+          <!-- Search row: input + Search + Selected place -->
+          <div style="display:flex; align-items:center; gap:12px; flex-wrap:wrap; max-width:100%; padding-right:12px;">
 
+            <!-- Search input (75% width) -->
+            <input id="pp_map_search"
+                  class="pp-map-search"
+                  type="text"
+                  placeholder="Search address or place"
+                  style="flex:1 1 300px; max-width:420px;">
+
+            <!-- Search button -->
             <button
               type="button"
               id="pp_map_search_btn"
@@ -416,20 +419,18 @@
                 font-size:13px;
                 cursor:pointer;
                 line-height:1.2;
-                display:inline-flex;
-                align-items:center;
-                gap:6px;
                 white-space:nowrap;
               ">
               Search
             </button>
-          </div>
 
-          <!-- Selected place label + hidden input tied to DB -->
-          <div style="margin-top:6px; font-size:12px;">
-            <span class="muted">Selected place: </span>
-            <span id="pp_map_label_view" style="color:#e5e7eb;">Not set</span>
-            <input id="pp_map_label" type="hidden" />
+            <!-- Selected place label inline -->
+            <div style="font-size:12px; white-space:nowrap;">
+              <span class="muted">Selected place: </span>
+              <span id="pp_map_label_view" style="color:#e5e7eb;">Not set</span>
+              <input id="pp_map_label" type="hidden" />
+            </div>
+
           </div>
 
           <div id="pp_map" class="pp-map-container">
