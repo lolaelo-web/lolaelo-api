@@ -932,79 +932,6 @@
       overflow: hidden;
     }
 
-    .summary-actions{
-      display:flex;
-      flex-wrap:wrap;
-      align-items:center;
-      gap:8px 16px;
-      margin-bottom:4px;
-    }
-
-    .summary-icon-wrap{
-      position:relative;
-      display:inline-flex;
-      align-items:center;
-      justify-content:center;
-    }
-
-    .summary-icon-btn{
-      width:32px;
-      height:32px;
-      border-radius:999px;
-      border:1px solid var(--border-subtle);
-      background:var(--surface-subtle);
-      display:flex;
-      align-items:center;
-      justify-content:center;
-      font-size:16px;
-      cursor:pointer;
-    }
-
-    .summary-bubble{
-      position:absolute;
-      top:115%;
-      left:0;
-      z-index:30;
-      min-width:220px;
-      max-width:320px;
-      padding:10px 12px;
-      border-radius:12px;
-      background:#ffffff;
-      box-shadow:0 10px 30px rgba(15,23,42,0.18);
-      font-size:12px;
-      line-height:1.4;
-      color:var(--fg);
-      display:none;
-    }
-
-    .summary-bubble strong{
-      display:block;
-      margin-bottom:4px;
-      font-size:12px;
-    }
-
-    .summary-icon-wrap:hover .summary-bubble{
-      display:block;
-    }
-
-    .summary-dates{
-      display:flex;
-      flex-direction:column;
-      gap:2px;
-    }
-
-    .summary-nights{
-      font-size:11px;
-      color:var(--muted);
-    }
-
-    @media (max-width: 640px){
-      .summary-bubble{
-        left:auto;
-        right:0;
-      }
-    }
-
     .summary .chips{
       margin-top: 4px;
       flex-wrap: wrap;
@@ -1041,6 +968,139 @@
       width: 100%;
       resize: vertical;
       min-height: 60px;
+    }
+
+    /* ANCHOR: DETAILS_SUMMARY_ICONS_CSS */
+    .summary-actions{
+      display:flex;
+      flex-wrap:wrap;
+      align-items:center;
+      gap:8px 16px;
+      margin-bottom:4px;
+    }
+
+    .summary-icon-wrap{
+      position:relative;
+      display:inline-flex;
+      align-items:center;
+      justify-content:center;
+    }
+
+    .summary-icon-btn{
+      width:48px;
+      height:48px;
+      border-radius:999px;
+      border:1px solid var(--border-subtle);
+      background:var(--surface-subtle);
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      font-size:28px;
+      cursor:pointer;
+    }
+
+    .summary-bubble{
+      position:absolute;
+      top:115%;
+      left:50%;
+      transform:translateX(-50%);
+      z-index:30;
+      min-width:220px;
+      max-width:320px;
+      padding:12px 14px;
+      border-radius:14px;
+
+      background:#E6F7F9;        /* teal-tinted panel */
+      color:#0F1C2E;             /* deep navy text */
+
+      box-shadow:0 10px 30px rgba(15,23,42,0.12);
+      font-size:13px;
+      line-height:1.45;
+      display:none;
+    }
+    .summary-bubble strong{
+      display:block;
+      margin-bottom:6px;
+      font-size:13px;
+      color:#0F1C2E;
+    }
+    .summary-icon-wrap:hover .summary-bubble{
+      display:block;
+    }
+
+    .summary-icon-label{
+      margin-top:4px;
+      font-size:12px;
+      font-weight:500;
+      color:#0F1C2E;
+      text-align:center;
+      width:100%;
+    }
+
+    .summary-dates{
+      display:flex;
+      flex-direction:column;
+      gap:2px;
+    }
+
+    .summary-nights{
+      font-size:11px;
+      color:var(--muted);
+    }
+
+    @media (max-width: 640px){
+      .summary-bubble{
+        left:auto;
+        right:0;
+      }
+    }
+
+    /* ANCHOR: DETAILS_MAP_MODAL_CSS */
+    .details-map-backdrop{
+      position:fixed;
+      inset:0;
+      background:rgba(15,23,42,0.45);
+      display:none;
+      align-items:center;
+      justify-content:center;
+      z-index:60;
+    }
+    .details-map-backdrop.is-open{
+      display:flex;
+    }
+    .details-map-inner{
+      width:min(900px,94vw);
+      height:min(540px,80vh);
+      background:#ffffff;
+      border-radius:18px;
+      box-shadow:0 20px 60px rgba(15,23,42,0.35);
+      position:relative;
+      overflow:hidden;
+      display:flex;
+      flex-direction:column;
+    }
+    .details-map-header{
+      padding:10px 14px;
+      font-size:13px;
+      font-weight:600;
+      border-bottom:1px solid rgba(148,163,184,0.35);
+      display:flex;
+      align-items:center;
+      justify-content:space-between;
+      gap:12px;
+    }
+    .details-map-close{
+      border:none;
+      border-radius:999px;
+      padding:4px 10px;
+      font-size:12px;
+      cursor:pointer;
+      background:rgba(15,23,42,0.06);
+    }
+    .details-map-frame{
+      flex:1;
+      width:100%;
+      border:0;
     }
 
   </style>
@@ -1107,7 +1167,7 @@
                   class="summary-icon-btn"
                   aria-label="Amenities"
                 >
-                  ☑️
+                  🛎️
                 </button>
                 <div class="summary-bubble summary-bubble-amenities">
                   <strong>Amenities</strong>
@@ -1115,7 +1175,20 @@
                 </div>
               </div>
 
-              <!-- Date selector moved here -->
+              <!-- Map icon -->
+              <div class="summary-icon-wrap">
+                <button
+                  type="button"
+                  class="summary-icon-btn"
+                  aria-label="View on map"
+                  id="summary-map-btn"
+                >
+                  📍
+                </button>
+                <div class="summary-icon-label">Map</div>
+              </div>
+
+              <!-- Date selector -->
               <div class="summary-dates">
                 <!-- ANCHOR: DETAILS_DATE_BAR_HTML -->
                 <div id="details-date-bar" class="detail-date-bar">
@@ -1739,6 +1812,46 @@
 
           descEl.textContent = desc || '';
           descEl.style.display = desc ? 'block' : 'none';
+        }
+
+        // Wire map button with best-effort query using stored metadata
+        const mapBtn = document.getElementById('summary-map-btn');
+        if (mapBtn) {
+          const lat =
+            mp.lat || mp.latitude || mp.geoLat || mp.mapLat ||
+            cp.lat || cp.latitude || null;
+          const lng =
+            mp.lng || mp.longitude || mp.geoLng || mp.mapLng ||
+            cp.lng || cp.longitude || null;
+
+          let mapQuery = '';
+          if (lat && lng) {
+            mapQuery = `${lat},${lng}`;
+          } else {
+            const addrParts = [
+              mp.addressLine1,
+              mp.addressLine2,
+              mp.barangay,
+              area,
+              city,
+              island,
+              country,
+              cp.address,
+              cp.location,
+              j?.location
+            ]
+              .map(x => String(x || '').trim())
+              .filter(Boolean);
+
+            mapQuery = addrParts.join(', ');
+          }
+
+          if (mapQuery) {
+            mapBtn.dataset.mapQuery = mapQuery;
+            mapBtn.style.display = 'inline-flex';
+          } else {
+            mapBtn.style.display = 'none';
+          }
         }
       }
 
@@ -3492,7 +3605,25 @@
 
       onScroll();
     })();
-  </script>
+</script>
+
+  <!-- ANCHOR: DETAILS_MAP_MODAL_HTML -->
+  <div id="details-map-modal" class="details-map-backdrop">
+    <div class="details-map-inner" role="dialog" aria-modal="true" aria-label="Location map">
+      <div class="details-map-header">
+        <span>Location map</span>
+        <button type="button" id="details-map-close" class="details-map-close">Close</button>
+      </div>
+      <iframe
+        id="details-map-frame"
+        class="details-map-frame"
+        loading="lazy"
+        allowfullscreen
+        referrerpolicy="no-referrer-when-downgrade">
+      </iframe>
+    </div>
+  </div>
+
   <!-- PARTNER BADGE & IMAGE FALLBACK (insert above </body>) -->
   <script>
   (function () {
