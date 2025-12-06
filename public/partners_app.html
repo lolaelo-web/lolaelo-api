@@ -721,7 +721,7 @@
 
         $('pp_desc').value         = p.description ?? '';
 
-        // Hydrate map lat / lng if the backend has them
+                // Hydrate map lat / lng if the backend has them
         const latInp = document.getElementById('pp_lat');
         const lngInp = document.getElementById('pp_lng');
         if (latInp && typeof p.latitude === 'number') {
@@ -731,21 +731,21 @@
           lngInp.value = String(p.longitude);
         }
 
-        // Hydrate map label (human-readable place)
-        const labelInp  = document.getElementById('pp_map_label');
-        const labelView = document.getElementById('pp_map_label_view');
-        const labelVal  = p.mapLabel || '';
+        // Hydrate map label (human-readable place) + search box
+        const labelInp    = document.getElementById('pp_map_label');
+        const labelView   = document.getElementById('pp_map_label_view');
+        const searchInput = document.getElementById('pp_map_search');
+        const labelVal    = p.mapLabel || '';
+
         if (labelInp) {
           labelInp.value = labelVal;
         }
         if (labelView) {
           labelView.textContent = labelVal || 'Not set';
         }
-
-        // Also hydrate the search box from the saved label so it survives refresh
-        const searchInp = document.getElementById('pp_map_search');
-        if (searchInp && labelVal.trim().length > 0) {
-          searchInp.value = labelVal;
+        // A1: textbox always shows last saved place label
+        if (searchInput) {
+          searchInput.value = labelVal;
         }
 
         // If map is already initialized, sync marker + center to saved coords
@@ -797,12 +797,30 @@
     // Read the human-readable place label
     const mapLabelVal = $('pp_map_label') ? $('pp_map_label').value.trim() : '';
 
-    // Enforce required Description field
-    const descVal = $('pp_desc').value.trim();
-    if (!descVal) {
-      alert('Description is required.');
-      $('pp_desc').focus();
-      return;
+    // D9: unified required-field validation
+    const requiredFields = [
+      { id: 'pp_name',         label: 'Hotel / Property Name' },
+      { id: 'pp_contactEmail', label: 'Contact E-mail' },
+      { id: 'pp_phone',        label: 'Phone' },
+      { id: 'pp_address',      label: 'Address' },
+      { id: 'pp_city',         label: 'City' },
+      { id: 'pp_country',      label: 'Country' },
+      { id: 'pp_desc',         label: 'Description' }
+    ];
+
+    let descVal = '';
+    for (const field of requiredFields) {
+      const el = $(field.id);
+      if (!el) continue;
+      const value = (el.value || '').trim();
+      if (!value) {
+        alert(`${field.label} is required.`);
+        el.focus();
+        return;
+      }
+      if (field.id === 'pp_desc') {
+        descVal = value;
+      }
     }
 
     // PATCH = send only provided fields

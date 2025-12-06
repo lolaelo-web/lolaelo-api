@@ -175,8 +175,9 @@
       display:flex;
       flex-wrap:wrap;
       align-items:center;
+      justify-content:space-between;
       gap:8px;
-      margin-top:6px;
+      margin-top:2px;
       font-size:12px;
     }
     .detail-date-bar label{
@@ -975,27 +976,37 @@
       display:flex;
       flex-wrap:wrap;
       align-items:center;
-      gap:8px 16px;
+      justify-content:space-between;
+      column-gap:24px;
+      row-gap:8px;
       margin-bottom:4px;
     }
 
     .summary-icon-wrap{
       position:relative;
-      display:inline-flex;
+      display:flex;
+      flex-direction:column;
       align-items:center;
-      justify-content:center;
+      justify-content:flex-start;
+      text-align:center;
+    }
+
+    .summary-actions > .summary-icon-wrap,
+    .summary-actions > .summary-dates{
+      flex:1 1 0;
+      min-width:140px;
     }
 
     .summary-icon-btn{
-      width:48px;
-      height:48px;
+      width:58px;    /* ~1.2x 48px */
+      height:58px;   /* ~1.2x 48px */
       border-radius:999px;
       border:1px solid var(--border-subtle);
       background:var(--surface-subtle);
       display:flex;
       align-items:center;
       justify-content:center;
-      font-size:28px;
+      font-size:34px;  /* ~1.2x 28px */
       cursor:pointer;
     }
 
@@ -1029,10 +1040,10 @@
     }
 
     .summary-icon-label{
-      margin-top:4px;
+      margin-top:6px;
       font-size:12px;
       font-weight:500;
-      color:#0F1C2E;
+      color:#0F1C2E;   /* same deep navy as bubbles */
       text-align:center;
       width:100%;
     }
@@ -1040,7 +1051,12 @@
     .summary-dates{
       display:flex;
       flex-direction:column;
-      gap:2px;
+      gap:4px;
+      padding:8px 10px;
+      border-radius:14px;
+      border:1px solid var(--line);
+      background:#ffffff;
+      box-shadow:0 4px 12px rgba(15,23,42,0.05); /* match roomcat */
     }
 
     .summary-nights{
@@ -1141,52 +1157,52 @@
 
     <div class="layout">
       <section>
-        <!-- ANCHOR: DETAILS_SUMMARY_BLOCK -->
-        <div class="summary">
-          <div class="summary-main">
-            <div class="summary-actions">
-              <!-- Owner / manager letter -->
-              <div class="summary-icon-wrap">
-                <button
-                  type="button"
-                  class="summary-icon-btn"
-                  aria-label="Message from the owner"
-                >
-                  ✉️
-                </button>
-                <div class="summary-bubble summary-bubble-owner">
-                  <strong>Message from the owner</strong>
-                  <p id="prop-desc" class="summary-desc"></p>
-                </div>
-              </div>
+            <!-- Owner / manager letter -->
+            <div class="summary-icon-wrap">
+              <button
+                type="button"
+                class="summary-icon-btn"
+                aria-label="Message from the owner"
+              >
+                ✉️
+              </button>
+              <div class="summary-icon-label">Description</div>
 
-              <!-- Amenities bubble -->
-              <div class="summary-icon-wrap">
-                <button
-                  type="button"
-                  class="summary-icon-btn"
-                  aria-label="Amenities"
-                >
-                  🛎️
-                </button>
-                <div class="summary-bubble summary-bubble-amenities">
-                  <strong>Amenities</strong>
-                  <div id="amenities" class="chips" style="display:none;"></div>
-                </div>
+              <div class="summary-bubble summary-bubble-owner">
+                <strong>Description</strong>
+                <p id="prop-desc" class="summary-desc"></p>
               </div>
+            </div>
 
-              <!-- Map icon -->
-              <div class="summary-icon-wrap">
-                <button
-                  type="button"
-                  class="summary-icon-btn"
-                  aria-label="View on map"
-                  id="summary-map-btn"
-                >
-                  📍
-                </button>
-                <div class="summary-icon-label">Map</div>
+            <!-- Amenities bubble -->
+            <div class="summary-icon-wrap">
+              <button
+                type="button"
+                class="summary-icon-btn"
+                aria-label="Amenities"
+              >
+                🛎️
+              </button>
+              <div class="summary-icon-label">Amenities</div>
+
+              <div class="summary-bubble summary-bubble-amenities">
+                <strong>Amenities</strong>
+                <div id="amenities" class="chips" style="display:none;"></div>
               </div>
+            </div>
+
+            <!-- Map icon -->
+            <div class="summary-icon-wrap">
+              <button
+                type="button"
+                class="summary-icon-btn"
+                aria-label="View on map"
+                id="summary-map-btn"
+              >
+                📍
+              </button>
+              <div class="summary-icon-label">Map</div>
+            </div>
 
               <!-- Date selector -->
               <div class="summary-dates">
@@ -1752,7 +1768,7 @@
           : `${fs} to ${fe}`;
       }
 
-      // ANCHOR: DETAILS_LOCATION_DESC_RENDER
+            // ANCHOR: DETAILS_LOCATION_DESC_RENDER
       {
         const locEl = document.getElementById('prop-location');
         const descEl = document.getElementById('prop-desc');
@@ -1760,7 +1776,7 @@
         const mp = j?.meta?.property || {};
         const cp = propertyCard || {};
 
-        // Prefer meta.property, then fall back to card fields, then top-level
+        // Prefer meta.property, then card fields, then top-level
         const area =
           mp.area ||
           cp.area ||
@@ -1801,33 +1817,58 @@
           }
         }
 
+        // Description bubble: prefer Company Profile description
         if (descEl) {
           const desc =
-            j?.description ||
-            mp.description ||
-            mp.longDescription ||
-            cp.description ||
-            cp.summary ||
+            mp.description ||        // Company profile (partners_app)
+            cp.description ||        // Card description (same source)
+            j?.description ||        // Any details-level description
+            mp.longDescription ||    // Optional long form
+            cp.summary ||            // Card summary last
             '';
 
           descEl.textContent = desc || '';
           descEl.style.display = desc ? 'block' : 'none';
         }
 
-        // Wire map button with best-effort query using stored metadata
+        // Map icon wiring: prefer lat/lng from Company Profile (partners_app)
         const mapBtn = document.getElementById('summary-map-btn');
         if (mapBtn) {
-          const lat =
-            mp.lat || mp.latitude || mp.geoLat || mp.mapLat ||
-            cp.lat || cp.latitude || null;
-          const lng =
-            mp.lng || mp.longitude || mp.geoLng || mp.mapLng ||
-            cp.lng || cp.longitude || null;
+          const latRaw =
+            mp.lat ||
+            mp.latitude ||
+            mp.geoLat ||
+            mp.mapLat ||
+            cp.lat ||
+            cp.latitude ||
+            cp.geoLat ||
+            cp.mapLat ||
+            null;
+
+          const lngRaw =
+            mp.lng ||
+            mp.longitude ||
+            mp.geoLng ||
+            mp.mapLng ||
+            cp.lng ||
+            cp.longitude ||
+            cp.geoLng ||
+            cp.mapLng ||
+            null;
 
           let mapQuery = '';
-          if (lat && lng) {
-            mapQuery = `${lat},${lng}`;
-          } else {
+
+          // 1) Primary: explicit lat/lng from Company Profile
+          if (latRaw != null && lngRaw != null) {
+            const lat = Number(latRaw);
+            const lng = Number(lngRaw);
+            if (Number.isFinite(lat) && Number.isFinite(lng)) {
+              mapQuery = `${lat},${lng}`;
+            }
+          }
+
+          // 2) Fallback: address-style string
+          if (!mapQuery) {
             const addrParts = [
               mp.addressLine1,
               mp.addressLine2,
@@ -1863,15 +1904,54 @@
 
       /* ANCHOR: DETAILS_AMENITIES_RENDER (optional chips if present elsewhere) */
       {
-        const raw = Array.isArray(j?.amenities)
-          ? j.amenities
-          : (Array.isArray(j?.meta?.property?.amenities) ? j.meta.property.amenities : []);
-        const chips = [...new Set(raw.map(a => String(a).trim()).filter(Boolean))].slice(0, 8);
+        const mp = j?.meta?.property || {};
+        const cp = propertyCard || {};
+
+        const collected = [];
+
+        const pushArr = (arr) => {
+          if (!Array.isArray(arr)) return;
+          for (const v of arr) collected.push(v);
+        };
+
+        // 1) Property-level amenities (Company Profile / partners_app)
+        pushArr(mp.amenities);
+        pushArr(cp.amenities);
+
+        // 2) Details-level aggregated amenities (if API gives a flat list)
+        pushArr(j?.amenities);
+
+        // 3) Room-level amenities from room metadata (partners_rooms → modal)
+        if (Array.isArray(j?.rooms)) {
+          for (const r of j.rooms) {
+            if (!r) continue;
+            pushArr(r.amenities);
+            pushArr(r.inclusions);
+            pushArr(r.features);
+            if (r.meta && Array.isArray(r.meta.amenities)) {
+              pushArr(r.meta.amenities);
+            }
+          }
+        }
+
+        const chips = [...new Set(
+          collected
+            .map((a) => {
+              if (!a) return "";
+              if (typeof a === "string") return a.trim();
+              if (a.name && typeof a.name === "string") return a.name.trim();
+              return String(a || "").trim();
+            })
+            .filter(Boolean)
+        )].slice(0, 8);
+
         if (chips.length) {
           const amenities = document.getElementById('amenities');
           if (amenities) {
             amenities.style.display = 'flex';
-            amenities.innerHTML = chips.map(a => `<span class="chip">${a}</span>`).join("");
+            amenities.innerHTML = chips
+              .map(a => `<span class="chip">${a}</span>`)
+              .join("");
           }
         }
       }
