@@ -823,15 +823,6 @@
       }
     }
 
-    // Resolve current session once for payloads
-    const session =
-      (window && (window.__session || window.currentPartnerSession)) || null;
-
-    if (!session || !session.partnerId) {
-      alert('Your session is missing or expired. Please sign out and sign back in.');
-      return;
-    }
-
     // PATCH = send only provided fields
     const patchPayload = {
       name:         nz($('pp_name').value),
@@ -848,8 +839,17 @@
     };
     Object.keys(patchPayload).forEach(k => (patchPayload[k] == null) && delete patchPayload[k]);
 
+    // Extract partnerId directly from DOM (no session usage)
+    const partnerIdText =
+      (($('pp_partnerId') && $('pp_partnerId').textContent) ||
+      ($('pp_partnerId') && $('pp_partnerId').value) ||
+      '').trim();
+
+    const partnerIdNum = partnerIdText ? Number(partnerIdText) : null;
+
+    // PUT payload
     const putPayload = {
-      partnerId:    session.partnerId,
+      partnerId:    partnerIdNum,
       name:         nz($('pp_name').value),
       contactEmail: nz($('pp_contactEmail').value),
       phone:        nz($('pp_phone').value),

@@ -991,6 +991,15 @@
       text-align:center;
     }
 
+    /* Force 4-column row: [✉️][🛎️][📍][date card] */
+    .summary-main > .summary-actions{
+      display:grid;
+      grid-template-columns:repeat(4, minmax(120px, 1fr));
+      column-gap:24px;
+      align-items:flex-start;
+      width:100%;
+    }
+
     .summary-actions > .summary-icon-wrap,
     .summary-actions > .summary-dates{
       flex:0 1 25%;      /* four horizontal slots */
@@ -1168,52 +1177,58 @@
 
     <div class="layout">
       <section>
-            <!-- Owner / manager letter -->
-            <div class="summary-icon-wrap">
-              <button
-                type="button"
-                class="summary-icon-btn"
-                aria-label="Message from the owner"
-              >
-                ✉️
-              </button>
-              <div class="summary-icon-label">Description</div>
+        <!-- ANCHOR: DETAILS_SUMMARY_BLOCK -->
+        <div class="summary">
+          <div class="summary-main">
 
-              <div class="summary-bubble summary-bubble-owner">
-                <strong>Description</strong>
-                <p id="prop-desc" class="summary-desc"></p>
+            <div class="summary-actions">
+
+              <!-- Owner / manager letter -->
+              <div class="summary-icon-wrap">
+                <button
+                  type="button"
+                  class="summary-icon-btn"
+                  aria-label="Message from the owner"
+                >
+                  ✉️
+                </button>
+                <div class="summary-icon-label">Description</div>
+
+                <div class="summary-bubble summary-bubble-owner">
+                  <strong>Description</strong>
+                  <p id="prop-desc" class="summary-desc"></p>
+                </div>
               </div>
-            </div>
 
-            <!-- Amenities bubble -->
-            <div class="summary-icon-wrap">
-              <button
-                type="button"
-                class="summary-icon-btn"
-                aria-label="Amenities"
-              >
-                🛎️
-              </button>
-              <div class="summary-icon-label">Amenities</div>
+              <!-- Amenities bubble -->
+              <div class="summary-icon-wrap">
+                <button
+                  type="button"
+                  class="summary-icon-btn"
+                  aria-label="Amenities"
+                >
+                  🛎️
+                </button>
+                <div class="summary-icon-label">Amenities</div>
 
-              <div class="summary-bubble summary-bubble-amenities">
-                <strong>Amenities</strong>
-                <div id="amenities" class="chips" style="display:none;"></div>
+                <div class="summary-bubble summary-bubble-amenities">
+                  <strong>Amenities</strong>
+                  <div id="amenities" class="chips" style="display:none;"></div>
+                </div>
               </div>
-            </div>
 
-            <!-- Map icon -->
-            <div class="summary-icon-wrap">
-              <button
-                type="button"
-                class="summary-icon-btn"
-                aria-label="View on map"
-                id="summary-map-btn"
-              >
-                📍
-              </button>
-              <div class="summary-icon-label">Map</div>
-            </div>
+              <!-- Map icon -->
+              <div class="summary-icon-wrap">
+                <button
+                  type="button"
+                  class="summary-icon-btn"
+                  aria-label="View on map"
+                  id="summary-map-btn"
+                >
+                  📍
+                </button>
+                <div class="summary-icon-label">Map</div>
+              </div>
 
               <!-- Date selector -->
               <div class="summary-dates">
@@ -1233,11 +1248,12 @@
                 </div>
                 <div id="nights-note" class="meta summary-nights"></div>
               </div>
-            </div>
+
+            </div> <!-- /.summary-actions -->
 
             <div id="prop-location" class="summary-location"></div>
-          </div>
-        </div>
+          </div> <!-- /.summary-main -->
+        </div> <!-- /.summary -->
 
         <!-- ANCHOR: ROOMCAT_LIST_HTML -->
         <div id="roomCats" class="roomcats" aria-label="Available room categories (open only)"></div>
