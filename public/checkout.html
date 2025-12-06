@@ -761,7 +761,7 @@
             </div>
           </div>
 
-          <!-- Section 2 - Dates and pricing -->
+<!-- Section 2 - Dates and pricing -->
           <div class="card" data-section="2">
             <div class="card-header">
               <div class="card-title">
@@ -789,6 +789,24 @@
                 </button>
               </div>
 
+              <button class="btn-primary" type="button" data-confirm="2">
+                Confirm dates and price
+              </button>
+            </div>
+          </div>
+
+          <!-- Section 3 - Add-ons -->
+          <div class="card" data-section="3">
+            <div class="card-header">
+              <div class="card-title">
+                <div class="card-step" data-step-indicator="3">3</div>
+                Add-ons
+              </div>
+              <div class="card-status" data-step-status="3">
+                Locked until previous step
+              </div>
+            </div>
+            <div class="section-body hidden" data-section-body="3">
               <!-- Add-ons block (traveler view; data to be wired in next steps) -->
               <div class="addons-block">
                 <div class="addons-header">
@@ -804,24 +822,24 @@
                 </div>
               </div>
 
-              <button class="btn-primary" type="button" data-confirm="2">
-                Confirm dates and price
+              <button class="btn-primary" type="button" data-confirm="3">
+                Confirm add-ons
               </button>
             </div>
           </div>
 
-          <!-- Section 3 - Guest details -->
-          <div class="card" data-section="3">
+          <!-- Section 4 - Guest details -->
+          <div class="card" data-section="4">
             <div class="card-header">
               <div class="card-title">
-                <div class="card-step" data-step-indicator="3">3</div>
+                <div class="card-step" data-step-indicator="4">4</div>
                 Guest details
               </div>
-              <div class="card-status" data-step-status="3">
+              <div class="card-status" data-step-status="4">
                 Locked until previous step
               </div>
             </div>
-            <div class="section-body hidden" data-section-body="3">
+            <div class="section-body hidden" data-section-body="4">
               <div class="guest-form-grid">
                 <div>
                   <label for="firstName">First name</label>
@@ -835,46 +853,57 @@
                   <label for="email">Email</label>
                   <input id="email" type="email" autocomplete="email" />
                 </div>
-									<div>
-										<label for="phone">Mobile number</label>
-										<div class="phone-row">
-											<select id="phoneCountry" class="phone-country">
-												<option value="+1">🇺🇸 +1 (United States)</option>
-												<option value="+63">🇵🇭 +63 (Philippines)</option>
-												<option value="+44">+44 (United Kingdom)</option>
-												<option value="+61">+61 (Australia)</option>
-												<option value="+65">+65 (Singapore)</option>
-												<option value="+81">+81 (Japan)</option>
-												<option value="+82">+82 (South Korea)</option>
-												<option value="+49">+49 (Germany)</option>
-												<option value="+33">+33 (France)</option>
-												<option value="+34">+34 (Spain)</option>
-												<option value="+39">+39 (Italy)</option>
-												<option value="+31">+31 (Netherlands)</option>
-												<option value="+63-other">Other</option>
-											</select>
-											<input id="phone" type="tel" autocomplete="tel" placeholder="9-digit mobile" class="phone-input" />
-										</div>
-									</div>
+                <div>
+                  <label for="phone">Mobile number</label>
+                  <div class="phone-row">
+                    <select id="phoneCountry" class="phone-country">
+                      <option value="+1">🇺🇸 +1 (United States)</option>
+                      <option value="+63">🇵🇭 +63 (Philippines)</option>
+                      <option value="+44">+44 (United Kingdom)</option>
+                      <option value="+61">+61 (Australia)</option>
+                      <option value="+65">+65 (Singapore)</option>
+                      <option value="+81">+81 (Japan)</option>
+                      <option value="+82">+82 (South Korea)</option>
+                      <option value="+49">+49 (Germany)</option>
+                      <option value="+33">+33 (France)</option>
+                      <option value="+34">+34 (Spain)</option>
+                      <option value="+39">+39 (Italy)</option>
+                      <option value="+31">+31 (Netherlands)</option>
+                      <option value="+63-other">Other</option>
+                    </select>
+                    <input
+                      id="phone"
+                      type="tel"
+                      autocomplete="tel"
+                      placeholder="9-digit mobile"
+                      class="phone-input"
+                    />
+                  </div>
+                </div>
               </div>
+
               <div style="margin-top: 10px;">
-                <label for="specialRequests">Special request to hotel management (optional)</label>
+                <label for="specialRequests">
+                  Special request to hotel management (optional)
+                </label>
                 <textarea id="specialRequests"></textarea>
               </div>
+
               <div class="error-text" id="guestError" style="display: none;">
-                Please fill in first name, last name, email and mobile number.
+                Please fill in all guest details and contact information.
               </div>
-              <button class="btn-primary" type="button" data-confirm="3">
+
+              <button class="btn-primary" type="button" data-confirm="4">
                 Confirm guest details
               </button>
             </div>
           </div>
 
-          <!-- Section 4 - Payment method -->
-          <div class="card" data-section="4">
+          <!-- Section 5 - Payment method -->
+          <div class="card" data-section="5">
             <div class="card-header">
               <div class="card-title">
-                <div class="card-step" data-step-indicator="4">4</div>
+                <div class="card-step" data-step-indicator="5">5</div>
                 Payment method
               </div>
               <div class="card-status" data-step-status="4">
@@ -982,7 +1011,7 @@
 							<div style="display:flex; align-items:center; justify-content:flex-start; gap:14px; margin-top:16px; position:relative;">
 
                 <!-- Confirm button -->
-                <button class="btn-primary" type="button" data-confirm="4">
+                <button class="btn-primary" type="button" data-confirm="5">
                   Proceed to secure payment
                 </button>
 
@@ -1129,7 +1158,7 @@
       propertyLocation: "",
       roomName: "",
       ratePlanName: "",
-      sectionConfirmed: { 1: false, 2: false, 3: false, 4: false }
+      sectionConfirmed: { 1: false, 2: false, 3: false, 4: false, 5: false }
     };
 
     function updateSummaries() {
@@ -1207,7 +1236,7 @@
     }
 
     function refreshSections() {
-      for (let i = 1; i <= 4; i++) {
+      for (let i = 1; i <= 5; i++) {
         const isConfirmed = state.sectionConfirmed[i];
         if (i === 1) {
           setSectionState(1, isConfirmed ? "completed" : "active");
@@ -1224,12 +1253,13 @@
         state.sectionConfirmed[1] &&
         state.sectionConfirmed[2] &&
         state.sectionConfirmed[3] &&
-        state.sectionConfirmed[4];
+        state.sectionConfirmed[4] &&
+        state.sectionConfirmed[5];
       document.getElementById("confirmAndPayButton").disabled = !allConfirmed;
     }
 
     function handleConfirmClick(section) {
-      if (section === 3) {
+      if (section === 4) {
         const firstName = document.getElementById("firstName").value.trim();
         const lastName = document.getElementById("lastName").value.trim();
         const email = document.getElementById("email").value.trim();

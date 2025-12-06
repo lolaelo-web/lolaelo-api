@@ -172,14 +172,14 @@
 
     /* ANCHOR: DETAILS_DATE_BAR_CSS */
     .detail-date-bar{
-      display:flex;
-      flex-wrap:wrap;
-      align-items:center;
-      justify-content:space-between;
-      gap:8px;
+      display:grid;
+      grid-template-columns:1fr 1fr;
+      grid-auto-rows:auto;
+      column-gap:8px;
+      row-gap:6px;
       margin-top:2px;
       font-size:12px;
-    }
+    }    
     .detail-date-bar label{
       display:flex;
       flex-direction:column;
@@ -206,6 +206,10 @@
       font-weight:500;
       cursor:pointer;
       white-space:nowrap;
+
+      /* New layout behavior */
+      grid-column:1 / -1;      /* button spans both columns */
+      justify-self:flex-end;   /* aligned to the right within the card */
     }
 
     /* ANCHOR: DETAILS_LAYOUT_COLS */
@@ -994,7 +998,7 @@
     /* Force 4-column row: [✉️][🛎️][📍][date card] */
     .summary-main > .summary-actions{
       display:grid;
-      grid-template-columns:repeat(4, minmax(120px, 1fr));
+      grid-template-columns:20% 20% 20% 40%;
       column-gap:24px;
       align-items:flex-start;
       width:100%;
@@ -1846,82 +1850,113 @@
 
         // Description bubble: prefer Company Profile description
         if (descEl) {
-          const desc =
-            mp.description ||        // Company profile (partners_app)
-            cp.description ||        // Card description (same source)
-            j?.description ||        // Any details-level description
-            mp.longDescription ||    // Optional long form
-            cp.summary ||            // Card summary last
+          // Normalize all possible Company Profile description fields
+          const profileDesc =
+            mp.description ||
+            mp.desc ||
+            mp.profileDescription ||
+            mp.longDescription ||
+            cp.description ||
+            cp.summary ||
             '';
 
-          descEl.textContent = desc || '';
-          descEl.style.display = desc ? 'block' : 'none';
+          // Fallbacks from details payload
+          const detailsDesc =
+            j?.description ||
+            j?.desc ||
+            '';
+
+          const finalDesc = profileDesc || detailsDesc || '';
+
+          descEl.textContent = finalDesc || '';
+          descEl.style.display = finalDesc ? 'block' : 'none';
         }
 
-        // Map icon wiring: prefer lat/lng from Company Profile (partners_app)
-        const mapBtn = document.getElementById('summary-map-btn');
-        if (mapBtn) {
-          const latRaw =
-            mp.lat ||
-            mp.latitude ||
-            mp.geoLat ||
-            mp.mapLat ||
-            cp.lat ||
-            cp.latitude ||
-            cp.geoLat ||
-            cp.mapLat ||
-            null;
+      // Map icon wiring: prefer lat/lng from Company Profile (partners_app)
+      const mapBtn = document.getElementById('summary-map-btn');
+      if (mapBtn) {
+        const latRaw =
+          mp.lat ||
+          mp.latitude ||
+          mp.geoLat ||
+          mp.mapLat ||
+          cp.lat ||
+          cp.latitude ||
+          cp.geoLat ||
+          cp.mapLat ||
+          null;
 
-          const lngRaw =
-            mp.lng ||
-            mp.longitude ||
-            mp.geoLng ||
-            mp.mapLng ||
-            cp.lng ||
-            cp.longitude ||
-            cp.geoLng ||
-            cp.mapLng ||
-            null;
+        const lngRaw =
+          mp.lng ||
+          mp.longitude ||
+          mp.geoLng ||
+          mp.mapLng ||
+          cp.lng ||
+          cp.longitude ||
+          cp.geoLng ||
+          cp.mapLng ||
+          null;
 
-          let mapQuery = '';
+        let mapQuery = '';
 
-          // 1) Primary: explicit lat/lng from Company Profile
-          if (latRaw != null && lngRaw != null) {
-            const lat = Number(latRaw);
-            const lng = Number(lngRaw);
-            if (Number.isFinite(lat) && Number.isFinite(lng)) {
-              mapQuery = `${lat},${lng}`;
-            }
+        // 1) Primary: explicit lat/lng from Company Profile / card
+        if (latRaw != null && lngRaw != null) {
+          const lat = Number(latRaw);
+          const lng = Number(lngRaw);
+          if (Number.isFinite(lat) && Number.isFinite(lng)) {
+            mapQuery = `${lat},${lng}`;
           }
+        }
 
-          // 2) Fallback: address-style string
-          if (!mapQuery) {
-            const addrParts = [
-              mp.addressLine1,
-              mp.addressLine2,
-              mp.barangay,
-              area,
-              city,
-              island,
-              country,
-              cp.address,
-              cp.location,
-              j?.location
-            ]
-              .map(x => String(x || '').trim())
-              .filter(Boolean);
+        // 2) Fallback: best-effort address string
+        if (!mapQuery) {
+          const addrParts = [
+            mp.addressLine1,
+            mp.addressLine2,
+            mp.barangay,
+            mp.area,
+            mp.city,
+            mp.island,
+            mp.region,
+            mp.postalCode,
+            mp.country,
+            cp.address,
+            cp.location,
+            j?.location
+          ]
+            .map(x => String(x || '').trim())
+            .filter(Boolean);
 
-            mapQuery = addrParts.join(', ');
+          mapQuery = addrParts.join(', ');
+        }
+
+        if (mapQuery) {
+          mapBtn.dataset.mapQuery = mapQuery;
+          mapBtn.style.display = 'inline-flex';
+
+          // Bind click once
+          if (!mapBtn.dataset.bound) {
+            mapBtn.addEventListener('click', () => {
+              const q = (mapBtn.dataset.mapQuery || '').trim();
+              if (!q) return;
+
+              const isLatLng =
+                /^-?\d+(\.\d+)?,-?\d+(\.\d+)?$/.test(q);
+
+              const url = isLatLng
+                ? `https://www.google.com/maps/@?api=1&map_action=map&center=${encodeURIComponent(q)}&zoom=15`
+                : `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(q)}`;
+
+              window.open(url, '_blank', 'noopener');
+            });
+            mapBtn.dataset.bound = '1';
           }
-
-          if (mapQuery) {
-            mapBtn.dataset.mapQuery = mapQuery;
-            mapBtn.style.display = 'inline-flex';
-          } else {
-            mapBtn.style.display = 'none';
-          }
+        } else {
+          mapBtn.style.display = 'none';
+          delete mapBtn.dataset.mapQuery;
         }
       }
+    }
 
       // Compute fromPrice from daily rows (first room) if available
       const daily0  = (j?.rooms?.[0]?.daily || []);
@@ -1943,41 +1978,54 @@
 
         // 1) Property-level amenities (Company Profile / partners_app)
         pushArr(mp.amenities);
+        pushArr(mp.inclusions);
+        pushArr(mp.features);
         pushArr(cp.amenities);
+        pushArr(cp.inclusions);
+        pushArr(cp.features);
 
-        // 2) Details-level aggregated amenities (if API gives a flat list)
+        // 2) Details-level aggregated amenities
         pushArr(j?.amenities);
+        pushArr(j?.inclusions);
+        pushArr(j?.features);
 
         // 3) Room-level amenities from room metadata (partners_rooms → modal)
         if (Array.isArray(j?.rooms)) {
           for (const r of j.rooms) {
             if (!r) continue;
+
+            // direct lists on rooms
             pushArr(r.amenities);
             pushArr(r.inclusions);
             pushArr(r.features);
-            if (r.meta && Array.isArray(r.meta.amenities)) {
+
+            // meta containers (common from edit-room modal)
+            if (r.meta && typeof r.meta === "object") {
               pushArr(r.meta.amenities);
+              pushArr(r.meta.inclusions);
+              pushArr(r.meta.features);
             }
           }
         }
 
+        // Normalize → dedupe → trim list
         const chips = [...new Set(
           collected
             .map((a) => {
               if (!a) return "";
               if (typeof a === "string") return a.trim();
-              if (a.name && typeof a.name === "string") return a.name.trim();
-              return String(a || "").trim();
+              if (typeof a === "object" && a.name) return String(a.name).trim();
+              return String(a).trim();
             })
             .filter(Boolean)
-        )].slice(0, 8);
+        )].slice(0, 12); // increased limit slightly for better coverage
 
         if (chips.length) {
-          const amenities = document.getElementById('amenities');
-          if (amenities) {
-            amenities.style.display = 'flex';
-            amenities.innerHTML = chips
-              .map(a => `<span class="chip">${a}</span>`)
+          const amenitiesEl = document.getElementById("amenities");
+          if (amenitiesEl) {
+            amenitiesEl.style.display = "flex";
+            amenitiesEl.innerHTML = chips
+              .map((a) => `<span class="chip">${a}</span>`)
               .join("");
           }
         }
