@@ -900,56 +900,79 @@
             </div>
           </div>
 
-<div class="section-body hidden" data-section-body="2">
-  <div class="dates-grid">
-    
-    <!-- LEFT COLUMN -->
-    <div class="dates-left">
-      <div class="field-row">
-        <div class="field-label">Stay dates</div>
-        <div class="field-value" id="stayDatesText">Dates from URL</div>
-      </div>
+          <!-- Section 2 - Dates and pricing -->
+          <div class="card" data-section="2">
+            <div class="card-header">
+              <div class="card-title">
+                <div class="card-step" data-step-indicator="2">2</div>
+                Dates and pricing
+              </div>
 
-      <div class="field-row">
-        <div class="field-label">Nights</div>
-        <div class="field-value" id="nightsCountText">n nights</div>
-      </div>
+              <div class="card-header-actions">
+                <div class="card-status" data-step-status="2">Waiting for confirmation</div>
+                <button class="card-header-link" id="editDatesLink" type="button">
+                  Edit dates
+                </button>
+              </div>
+            </div>
 
-      <div class="field-row">
-        <div class="field-label">Price per night</div>
-        <div class="field-value" id="nightlyPriceText">-</div>
-      </div>
+            <!-- Body -->
+            <div class="section-body hidden" data-section-body="2">
 
-      <button class="btn-primary" type="button" data-confirm="2">
-        Confirm dates and price
-      </button>
-    </div>
+              <!-- TWO COLUMN GRID -->
+              <div class="dates-grid">
 
-    <!-- RIGHT COLUMN -->
-    <div class="dates-right">
-      <button class="card-header-link" id="editDatesLink" type="button">
-        Edit dates
-      </button>
+                <!-- LEFT COLUMN -->
+                <div class="dates-left">
+                  <div class="field-row">
+                    <div class="field-label">Stay dates</div>
+                    <div class="field-value" id="stayDatesText">Dates from URL</div>
+                  </div>
 
-      <div id="checkoutDatesCardWrapper" class="checkout-dates-card-wrapper">
-        <div id="checkout-date-bar" class="detail-date-bar">
-          <label class="detail-date-field">
-            <span>Check in</span>
-            <input type="date" id="checkout-checkin" />
-          </label>
-          <label class="detail-date-field">
-            <span>Check out</span>
-            <input type="date" id="checkout-checkout" />
-          </label>
-          <button type="button" id="checkout-dates-apply">
-            Update dates
-          </button>
-        </div>
-      </div>
-    </div>
+                  <div class="field-row">
+                    <div class="field-label">Nights</div>
+                    <div class="field-value" id="nightsCountText">n nights</div>
+                  </div>
 
-  </div>
-</div>
+                  <div class="field-row">
+                    <div class="field-label">Price per night</div>
+                    <div class="field-value" id="nightlyPriceText">-</div>
+                  </div>
+
+                  <button class="btn-primary" type="button" data-confirm="2">
+                    Confirm dates and price
+                  </button>
+                </div>
+
+                <!-- RIGHT COLUMN: DATE CARD -->
+                <div class="dates-right">
+                  <div id="checkoutDatesCardWrapper" class="checkout-dates-card-wrapper hidden">
+
+                    <div id="checkout-date-bar" class="detail-date-bar">
+
+                      <label class="detail-date-field">
+                        <span>Check in</span>
+                        <input type="date" id="checkout-checkin" />
+                      </label>
+
+                      <label class="detail-date-field">
+                        <span>Check out</span>
+                        <input type="date" id="checkout-checkout" />
+                      </label>
+
+                      <button type="button" id="checkout-dates-apply">
+                        Update dates
+                      </button>
+
+                    </div>
+                  </div>
+                </div>
+
+              </div>
+              <!-- END GRID -->
+
+            </div>
+          </div>
 
           <!-- Section 3 - Add-ons -->
           <div class="card" data-section="3">
