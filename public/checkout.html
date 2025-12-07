@@ -513,9 +513,11 @@
 		object-fit: contain;
 	}
 
-  /* Tidy spacing between the three payment pills */
   .payment-options-row {
+    display: flex;
+    flex-wrap: wrap;
     gap: 16px;
+    align-items: stretch;
   }
 
   .pill-wrap {
@@ -1379,9 +1381,9 @@
       propertyLocation: "",
       roomName: "",
       ratePlanName: "",
+      sectionConfirmed: { 1: false, 2: false, 3: false, 4: false },
       addonsConfig: [],
-      selectedAddons: [],
-      sectionConfirmed: { 1: false, 2: false, 3: false, 4: false }
+      addonsSelections: {}
     };
 
     function updateSummaries() {
@@ -1448,6 +1450,189 @@
       if (addonsEl) addonsEl.textContent = addonsLabel;
     }
 
+        function updateAddonsSummary() {
+      // Count how many distinct add-ons have qty > 0
+      const selections = state.addonsSelections || {};
+      const selectedCount = Object.values(selections).reduce((acc, qty) => {
+        const n = typeof qty === "number" ? qty : parseInt(qty, 10);
+        return acc + (n > 0 ? 1 : 0);
+      }, 0);
+
+      const summaryEl = document.getElementById("summaryAddons");
+      if (summaryEl) {
+        summaryEl.textContent =
+          selectedCount > 0
+            ? selectedCount + " add-on" + (selectedCount > 1 ? "s" : "") + " selected"
+            : "None selected";
+      }
+    }
+
+    function renderAddons(addons) {
+      const listEl = document.getElementById("addonsList");
+      const emptyEl = document.getElementById("addonsEmptyMessage");
+      if (!listEl) return;
+
+      state.addonsConfig = Array.isArray(addons) ? addons : [];
+      if (!state.addonsSelections) state.addonsSelections = {};
+
+      // Reset list
+      listEl.innerHTML = "";
+
+      const rows = state.addonsConfig;
+      if (!rows || rows.length === 0) {
+        if (emptyEl) {
+          emptyEl.style.display = "block";
+          listEl.appendChild(emptyEl);
+        }
+        updateAddonsSummary();
+        return;
+      }
+
+      if (emptyEl) {
+        emptyEl.style.display = "none";
+      }
+
+      rows.forEach((addon, index) => {
+        const key = addon.id != null ? String(addon.id) : "idx-" + index;
+        const currentQty = state.addonsSelections[key] || 0;
+
+        const row = document.createElement("div");
+        row.className = "addon-row";
+
+        const main = document.createElement("div");
+        main.className = "addon-main";
+
+        const nameEl = document.createElement("div");
+        nameEl.className = "addon-name";
+        nameEl.textContent = addon.activity || "Activity";
+
+        const metaEl = document.createElement("div");
+        metaEl.className = "addon-meta";
+
+        const parts = [];
+        if (addon.uom) parts.push(String(addon.uom));
+        if (typeof addon.price === "number") {
+          parts.push(
+            "$" + addon.price.toFixed(2) +
+            (addon.uom ? " per " + String(addon.uom).toLowerCase() : "")
+          );
+        }
+        metaEl.textContent = parts.join(" • ");
+
+        if (addon.notes) {
+          const notesEl = document.createElement("div");
+          notesEl.className = "addon-notes";
+          notesEl.textContent = addon.notes;
+          main.appendChild(notesEl);
+        }
+
+        main.appendChild(nameEl);
+        main.appendChild(metaEl);
+
+        const qtyWrap = document.createElement("div");
+        qtyWrap.className = "addon-qty";
+
+        const qtyLabel = document.createElement("label");
+        qtyLabel.textContent = "Qty";
+
+        const qtyInput = document.createElement("input");
+        qtyInput.type = "number";
+        qtyInput.min = "0";
+        qtyInput.step = "1";
+        qtyInput.value =
+          typeof currentQty === "number" && currentQty > 0 ? String(currentQty) : "0";
+
+        qtyInput.addEventListener("input", function () {
+          const val = parseInt(qtyInput.value, 10);
+          if (isNaN(val) || val <= 0) {
+            delete state.addonsSelections[key];
+          } else {
+            state.addonsSelections[key] = val;
+          }
+          updateAddonsSummary();
+        });
+
+        qtyWrap.appendChild(qtyLabel);
+        qtyWrap.appendChild(qtyInput);
+
+        row.appendChild(main);
+        row.appendChild(qtyWrap);
+
+        listEl.appendChild(row);
+      });
+
+      updateAddonsSummary();
+    }
+
+    async function loadAddonsForProperty() {
+      if (!state.propertyId) {
+        console.log("[checkout] loadAddonsForProperty skipped – no propertyId");
+        return;
+      }
+
+      try {
+        const params = new URLSearchParams();
+        params.set("propertyId", state.propertyId);
+        if (state.start) params.set("start", state.start);
+        if (state.end) params.set("end", state.end);
+
+        const resp = await fetch("/catalog/details?" + params.toString(), {
+          headers: { Accept: "application/json" }
+        });
+
+        if (!resp.ok) {
+          console.warn(
+            "[checkout] /catalog/details for addons failed",
+            resp.status
+          );
+          return;
+        }
+
+        const data = await resp.json();
+        const addons = Array.isArray(data.addons) ? data.addons : [];
+        console.log("[checkout] addons from details", addons);
+        renderAddons(addons);
+      } catch (err) {
+        console.error("[checkout] loadAddonsForProperty error", err);
+      }
+    }
+
+    async function loadAddonsConfig() {
+      if (!state.propertyId || !state.start || !state.end) {
+        console.log("[checkout] loadAddonsConfig skipped (missing ids/dates)", {
+          propertyId: state.propertyId,
+          start: state.start,
+          end: state.end
+        });
+        return;
+      }
+
+      try {
+        const params = new URLSearchParams();
+        params.set("propertyId", state.propertyId);
+        params.set("start", state.start);
+        params.set("end", state.end);
+        if (state.ratePlanId) params.set("ratePlanId", state.ratePlanId);
+
+        const resp = await fetch("/catalog/details?" + params.toString(), {
+          headers: { Accept: "application/json" }
+        });
+
+        if (!resp.ok) {
+          console.warn("[checkout] /catalog/details for addons failed", resp.status);
+          return;
+        }
+
+        const data = await resp.json();
+        const addons = Array.isArray(data.addons) ? data.addons : [];
+        state.addonsConfig = addons;
+        console.log("[checkout] addons config from details", addons);
+        // UI wiring for traveler selections will be added in the next step.
+      } catch (err) {
+        console.error("[checkout] loadAddonsConfig error", err);
+      }
+    }
+
     function setSectionState(section, status) {
       const stepCircle = document.querySelector('[data-step-indicator="' + section + '"]');
       const statusLabel = document.querySelector('[data-step-status="' + section + '"]');
@@ -1499,6 +1684,7 @@
     }
 
     function handleConfirmClick(section) {
+      // Guest details validation now lives on section 4
       if (section === 4) {
         const firstName = document.getElementById("firstName").value.trim();
         const lastName = document.getElementById("lastName").value.trim();

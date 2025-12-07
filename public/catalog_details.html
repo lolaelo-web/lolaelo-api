@@ -987,7 +987,7 @@
     .summary-actions{
       /* Single 4-column grid: [✉️][🛎️][📍][date card] */
       display:grid;
-      grid-template-columns: 15% 15% 15% 35%;
+      grid-template-columns: 15% 15% 15% 47%;
       column-gap:24px;
       align-items:flex-start;
       margin-bottom:4px;
@@ -2016,7 +2016,7 @@
       const minPrice = priced.length ? Math.min(...priced.map(d => Number(d.price))) : null;
       if (fromEl) fromEl.textContent = (minPrice != null) ? money(minPrice) : '—';
 
-            /* ANCHOR: DETAILS_AMENITIES_RENDER (property + room metadata) */
+      /* ANCHOR: DETAILS_AMENITIES_RENDER (property + room metadata) */
       {
         const mp = j?.meta?.property || {};
         const cp = propertyCard || {};
