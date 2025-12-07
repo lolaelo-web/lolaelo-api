@@ -2940,10 +2940,20 @@
               const roomName  = getRoomNameForCheckout(rid);
               const planLabel = primary && (primary.name || primary.code || '');
 
+              // Stronger source of truth for propertyId:
+              // 1) prefer backend payload.id/partnerId/propertyId
+              // 2) fall back to query-derived propertyId (existing var)
+              const payload = window.__detailsPayload || {};
+              const payloadPid =
+                (payload && (payload.partnerId ?? payload.propertyId ?? payload.id)) || "";
+              const checkoutPropertyId = payloadPid || propertyId || "";
+
               const href =
-                `/checkout.html?propertyId=${encodeURIComponent(propertyId)}` +
+                `/checkout.html?propertyId=${encodeURIComponent(checkoutPropertyId)}` +
                 `&propertyName=${encodeURIComponent(propertyName)}` +
-                (propertyLocation ? `&propertyLocation=${encodeURIComponent(propertyLocation)}` : '') +
+                (propertyLocation
+                  ? `&propertyLocation=${encodeURIComponent(propertyLocation)}`
+                  : '') +
                 `&roomId=${encodeURIComponent(rid)}` +
                 `&roomName=${encodeURIComponent(roomName)}` +
                 `&start=${encodeURIComponent(start)}` +
