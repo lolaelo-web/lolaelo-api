@@ -1158,12 +1158,10 @@
       const emptyEl = document.getElementById("addonsEmptyMessage");
       if (!listEl) return;
 
-      // Clear existing content
       listEl.innerHTML = "";
 
       const rows = Array.isArray(addons) ? addons : [];
       if (!rows.length) {
-        // Show empty message if no add-ons
         if (emptyEl) {
           emptyEl.textContent = "No add-ons are available for this stay.";
           listEl.appendChild(emptyEl);
@@ -1171,22 +1169,45 @@
         return;
       }
 
-      // We have add-ons; remove any old empty message
-      if (emptyEl && emptyEl.parentNode === listEl) {
-        emptyEl.remove();
-      }
+      // header row
+      const header = document.createElement("div");
+      header.className = "addon-row";
+      header.style.fontWeight = "600";
+
+      const hMain = document.createElement("div");
+      hMain.className = "addon-main";
+      const hTitle = document.createElement("div");
+      hTitle.className = "addon-title";
+      hTitle.textContent = "Activity";
+      const hMeta = document.createElement("div");
+      hMeta.className = "addon-meta";
+      hMeta.textContent = "Price · Unit · Hotel notes";
+      hMain.appendChild(hTitle);
+      hMain.appendChild(hMeta);
+
+      const hQty = document.createElement("div");
+      hQty.className = "addon-qty";
+      const hQtyLabel = document.createElement("span");
+      hQtyLabel.textContent = "Qty";
+      hQty.appendChild(hQtyLabel);
+
+      header.appendChild(hMain);
+      header.appendChild(hQty);
+
+      listEl.appendChild(header);
 
       rows.forEach(function (item, idx) {
         const activity = (item.activity || "").toString().trim() || "Add-on";
         const uom = (item.uom || "").toString().trim();
         const rawPrice = item.price;
+        const notes = (item.notes || "").toString().trim();
+
         const price =
           typeof rawPrice === "number"
             ? rawPrice
             : (rawPrice != null ? Number(rawPrice) : NaN);
-        const notes = (item.notes || "").toString().trim();
 
-        var priceText = "";
+        let priceText = "";
         if (!Number.isNaN(price) && Number.isFinite(price)) {
           try {
             priceText = price.toLocaleString(undefined, {
@@ -1198,7 +1219,7 @@
           }
         }
 
-        var metaParts = [];
+        const metaParts = [];
         if (priceText) metaParts.push(priceText);
         if (uom) metaParts.push(uom);
         if (notes) metaParts.push(notes);
@@ -1224,23 +1245,38 @@
         const qtyWrap = document.createElement("div");
         qtyWrap.className = "addon-qty";
 
-        const label = document.createElement("label");
-        label.textContent = "Qty";
+        const qtyLabel = document.createElement("label");
+        qtyLabel.textContent = "Qty";
 
-        const input = document.createElement("input");
-        input.type = "number";
-        input.min = "0";
-        input.step = "1";
-        input.value = "0";
-        input.setAttribute("data-addon-index", String(idx));
+        const qtyInput = document.createElement("input");
+        qtyInput.type = "number";
+        qtyInput.min = "0";
+        qtyInput.step = "1";
+        qtyInput.value = "0";
+        qtyInput.setAttribute("data-addon-index", String(idx));
 
-        qtyWrap.appendChild(label);
-        qtyWrap.appendChild(input);
+        qtyWrap.appendChild(qtyLabel);
+        qtyWrap.appendChild(qtyInput);
 
         row.appendChild(main);
         row.appendChild(qtyWrap);
 
-        listEl.appendChild(row);
+        // Traveler comment field under each row
+        const comment = document.createElement("textarea");
+        comment.rows = 2;
+        comment.placeholder = "Comments for hotel (optional)";
+        comment.className = "addon-comment";
+        comment.setAttribute("data-addon-index", String(idx));
+
+        const wrapper = document.createElement("div");
+        wrapper.style.display = "flex";
+        wrapper.style.flexDirection = "column";
+        wrapper.style.gap = "4px";
+
+        wrapper.appendChild(row);
+        wrapper.appendChild(comment);
+
+        listEl.appendChild(wrapper);
       });
     }
 
@@ -1255,7 +1291,7 @@
 
         const resp = await fetch("/catalog/details?" + params.toString(), {
           method: "GET",
-          headers: { "Accept": "application/json" }
+          headers: { Accept: "application/json" }
         });
 
         if (!resp.ok) {
@@ -1273,17 +1309,28 @@
       }
     }
 
-        function recomputeSelectedAddons() {
+    function recomputeSelectedAddons() {
       const listEl = document.getElementById("addonsList");
       if (!listEl) return;
 
-      const inputs = listEl.querySelectorAll(
+      const qtyInputs = listEl.querySelectorAll(
         'input[type="number"][data-addon-index]'
       );
+      const commentAreas = listEl.querySelectorAll(
+        'textarea.addon-comment[data-addon-index]'
+      );
+
+      const commentsByIndex = {};
+      commentAreas.forEach(function (ta) {
+        const idxAttr = ta.getAttribute("data-addon-index");
+        const idx = Number(idxAttr);
+        if (!Number.isFinite(idx) || idx < 0) return;
+        commentsByIndex[idx] = ta.value || "";
+      });
 
       const selections = [];
 
-      inputs.forEach(function (input) {
+      qtyInputs.forEach(function (input) {
         const idxAttr = input.getAttribute("data-addon-index");
         const idx = Number(idxAttr);
         if (!Number.isFinite(idx) || idx < 0) return;
@@ -1312,10 +1359,9 @@
           quantity: qty,
           activity: (cfg.activity || "").toString().trim(),
           uom: (cfg.uom || "").toString().trim(),
-          price: !Number.isNaN(price) && Number.isFinite(price)
-            ? price
-            : null,
-          lineTotal
+          price: !Number.isNaN(price) && Number.isFinite(price) ? price : null,
+          lineTotal,
+          travelerComment: commentsByIndex[idx] || ""
         });
       });
 
@@ -1335,7 +1381,7 @@
       ratePlanName: "",
       addonsConfig: [],
       selectedAddons: [],
-      sectionConfirmed: { 1: false, 2: false, 3: false, 4: false, 5: false }
+      sectionConfirmed: { 1: false, 2: false, 3: false, 4: false }
     };
 
     function updateSummaries() {
@@ -1374,7 +1420,7 @@
       const startFormatted = formatDate(state.start);
       const endFormatted = formatDate(state.end);
       const nights = diffNights(state.start, state.end);
-      const datesText =
+            const datesText =
         startFormatted && endFormatted
           ? startFormatted + " to " + endFormatted
           : "Dates";
@@ -1593,14 +1639,26 @@
       if (addonsList) {
         addonsList.addEventListener("input", function (ev) {
           const target = ev.target;
-          if (!target || target.tagName !== "INPUT") return;
-          if (target.getAttribute("type") !== "number") return;
-          if (target.getAttribute("data-addon-index") == null) return;
+          if (!target) return;
+
+          const isQty =
+            target.tagName === "INPUT" &&
+            target.getAttribute("type") === "number" &&
+            target.getAttribute("data-addon-index") != null;
+
+          const isComment =
+            target.tagName === "TEXTAREA" &&
+            target.classList.contains("addon-comment") &&
+            target.getAttribute("data-addon-index") != null;
+
+          if (!isQty && !isComment) return;
+
           recomputeSelectedAddons();
         });
       }
     });
   </script>
+
 
 	  <script>
     (function () {

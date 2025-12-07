@@ -758,9 +758,66 @@ app.get("/extranet/pms/uis/search", async (req: Request, res: Response) => {
 
 // /ANCHOR: UIS_MOCK_SEARCH
 
-// Simple test endpoint: creates a Stripe Checkout Session with a fixed amount
+// Simple test endpoint: creates a Stripe Checkout Session with booking metadata
 app.post("/api/payments/create-checkout-session", async (req: Request, res: Response) => {
   try {
+    const body: any = req.body ?? {};
+
+    const propertyId = body.propertyId ?? null;
+    const roomId     = body.roomId ?? null;
+    const start      = body.start ?? null;
+    const end        = body.end ?? null;
+    const ratePlanId = body.ratePlanId ?? null;
+    const rawAddons  = Array.isArray(body.addons) ? body.addons : [];
+
+    // Light sanitization of add-ons so we can safely attach to metadata / logs
+    const addons = rawAddons.map((a: any) => ({
+      index: typeof a.index === "number" ? a.index : null,
+      quantity:
+        typeof a.quantity === "number"
+          ? a.quantity
+          : Number(a.quantity ?? 0),
+      activity: (a.activity ?? "").toString().slice(0, 120),
+      uom: (a.uom ?? "").toString().slice(0, 40),
+      price:
+        typeof a.price === "number"
+          ? a.price
+          : (a.price != null ? Number(a.price) : null),
+      travelerComment: (a.travelerComment ?? "").toString().slice(0, 500),
+      lineTotal:
+        typeof a.lineTotal === "number"
+          ? a.lineTotal
+          : null,
+    }));
+
+    if (addons.length) {
+      console.log("[checkout] received addons:", {
+        propertyId,
+        roomId,
+        start,
+        end,
+        ratePlanId,
+        addonsCount: addons.length,
+      });
+    }
+
+    const metadata: Record<string, string> = {
+      propertyId: propertyId != null ? String(propertyId) : "",
+      roomId: roomId != null ? String(roomId) : "",
+      start: start != null ? String(start) : "",
+      end: end != null ? String(end) : "",
+      ratePlanId: ratePlanId != null ? String(ratePlanId) : "",
+    };
+
+    try {
+      const addonsJson = JSON.stringify(addons);
+      if (addonsJson && addonsJson.length <= 5000) {
+        metadata["addons"] = addonsJson;
+      }
+    } catch {
+      // ignore metadata serialization errors
+    }
+
     const session = await stripe.checkout.sessions.create({
       mode: "payment",
       payment_method_types: ["card"],
@@ -776,8 +833,11 @@ app.post("/api/payments/create-checkout-session", async (req: Request, res: Resp
           quantity: 1,
         },
       ],
-      success_url: "https://lolaelo-api.onrender.com/checkout_success.html?session_id={CHECKOUT_SESSION_ID}",
-      cancel_url: "https://lolaelo-api.onrender.com/checkout_cancelled.html",
+      success_url:
+        "https://lolaelo-api.onrender.com/checkout_success.html?session_id={CHECKOUT_SESSION_ID}",
+      cancel_url:
+        "https://lolaelo-api.onrender.com/checkout_cancelled.html",
+      metadata,
     });
 
     return res.json({ url: session.url });
