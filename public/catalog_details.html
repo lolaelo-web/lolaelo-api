@@ -172,14 +172,23 @@
 
     /* ANCHOR: DETAILS_DATE_BAR_CSS */
     .detail-date-bar{
-      display:grid;
-      grid-template-columns:1fr 1fr;
-      grid-auto-rows:auto;
-      column-gap:8px;
-      row-gap:6px;
-      margin-top:2px;
-      font-size:12px;
-    }    
+      /* 2-column grid for Check-in / Check-out */
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      grid-auto-rows: auto;
+      column-gap: 8px;
+      row-gap: 6px;
+
+      /* tighten spacing vs header */
+      margin-top: 2px;
+      font-size: 12px;
+
+      /* NEW: keep the card narrower and inside the outline */
+      max-width: 360px;   /* adjust to taste (320–380) */
+      width: 100%;
+      margin-left: auto;  /* push it inward so it doesn’t spill past the card */
+    }
+   
     .detail-date-bar label{
       display:flex;
       flex-direction:column;
@@ -1850,31 +1859,48 @@
 
         // Description bubble: prefer Company Profile description
         if (descEl) {
-          // Normalize all possible Company Profile description fields
-          const profileDesc =
-            mp.description ||
-            mp.desc ||
-            mp.profileDescription ||
-            mp.longDescription ||
-            cp.description ||
-            cp.summary ||
+          // Description priority:
+          // 1) Company Profile (partners_app) – meta.property / card description
+          // 2) Any long-form description from meta
+          // 3) Card summary
+          // 4) Details-level description fields
+          const desc =
+            (mp && typeof mp.description === 'string' && mp.description.trim()) ||
+            (cp && typeof cp.description === 'string' && cp.description.trim()) ||
+            (mp && typeof mp.longDescription === 'string' && mp.longDescription.trim()) ||
+            (cp && typeof cp.summary === 'string' && cp.summary.trim()) ||
+            (j && typeof j.description === 'string' && j.description.trim()) ||
+            (j && j.meta && typeof j.meta.description === 'string' && j.meta.description.trim()) ||
             '';
 
-          // Fallbacks from details payload
-          const detailsDesc =
-            j?.description ||
-            j?.desc ||
-            '';
+          descEl.textContent = desc || '';
+          descEl.style.display = desc ? 'block' : 'none';
 
-          const finalDesc = profileDesc || detailsDesc || '';
-
-          descEl.textContent = finalDesc || '';
-          descEl.style.display = finalDesc ? 'block' : 'none';
+          // TEMP: one-time debug so we can see what the API is actually sending
+          if (!window.__detailsDescDebugged) {
+            try {
+              console.log('DETAILS DESC DEBUG', {
+                fromMeta: mp && mp.description,
+                fromCard: cp && cp.description,
+                fromMetaLong: mp && mp.longDescription,
+                fromCardSummary: cp && cp.summary,
+                fromJ: j && j.description,
+                fromJMeta: j && j.meta && j.meta.description,
+                finalDesc: desc
+              });
+            } catch (_) {}
+            window.__detailsDescDebugged = true;
+          }
         }
 
         // Map icon wiring: prefer lat/lng from Company Profile (partners_app)
-        const mapBtn = document.getElementById('summary-map-btn');
+        const mapBtn       = document.getElementById('summary-map-btn');
+        const mapBackdrop  = document.getElementById('details-map-modal');
+        const mapFrame     = document.getElementById('details-map-frame');
+        const mapClose     = document.getElementById('details-map-close');
+
         if (mapBtn) {
+          // Try to get coordinates from meta, card, or top-level payload
           const latRaw =
             mp.lat ||
             mp.latitude ||
@@ -1884,6 +1910,9 @@
             cp.latitude ||
             cp.geoLat ||
             cp.mapLat ||
+            j?.lat ||
+            j?.latitude ||
+            j?.geoLat ||
             null;
 
           const lngRaw =
@@ -1895,11 +1924,14 @@
             cp.longitude ||
             cp.geoLng ||
             cp.mapLng ||
+            j?.lng ||
+            j?.longitude ||
+            j?.geoLng ||
             null;
 
-          let mapQuery = '';
+          let mapQuery = "";
 
-          // 1) Primary: explicit lat/lng from Company Profile / card
+          // 1) Primary: explicit lat/lng from Company Profile / payload
           if (latRaw != null && lngRaw != null) {
             const lat = Number(latRaw);
             const lng = Number(lngRaw);
@@ -1908,64 +1940,83 @@
             }
           }
 
-          // 2) Fallback: best-effort address string
+          // 2) Fallback: address-style string (including any map label)
           if (!mapQuery) {
             const addrParts = [
+              mp.mapLabel,
+              j?.mapLabel,
               mp.addressLine1,
               mp.addressLine2,
               mp.barangay,
-              mp.area,
-              mp.city,
-              mp.island,
-              mp.region,
-              mp.postalCode,
-              mp.country,
+              area,
+              city,
+              island,
+              country,
               cp.address,
               cp.location,
               j?.location
             ]
-              .map(x => String(x || '').trim())
+              .map(x => String(x || "").trim())
               .filter(Boolean);
 
-            mapQuery = addrParts.join(', ');
+            mapQuery = addrParts.join(", ");
           }
 
-          // Store query if available, but always show the icon
+          // Store query if available
           if (mapQuery) {
             mapBtn.dataset.mapQuery = mapQuery;
           } else {
             delete mapBtn.dataset.mapQuery;
           }
-          mapBtn.style.display = 'inline-flex';
 
-          // Bind click once
+          // Always show the icon in the layout
+          mapBtn.style.display = "inline-flex";
+
+          // Bind click → open inline modal map (once)
           if (!mapBtn.dataset.bound) {
-            mapBtn.addEventListener('click', () => {
-              // Prefer precomputed query
-              let q = (mapBtn.dataset.mapQuery || '').trim();
+            const closeModal = () => {
+              if (!mapBackdrop) return;
+              mapBackdrop.style.display = "none";
+              mapBackdrop.setAttribute("aria-hidden", "true");
+            };
 
-              // Last-chance fallback: use visible location text
+            if (mapClose) {
+              mapClose.addEventListener("click", closeModal);
+            }
+            if (mapBackdrop) {
+              mapBackdrop.addEventListener("click", (ev) => {
+                if (ev.target === mapBackdrop) closeModal();
+              });
+            }
+
+            mapBtn.addEventListener("click", () => {
+              if (!mapBackdrop || !mapFrame) return;
+
+              // Prefer stored query, fallback to visible location text
+              let q = (mapBtn.dataset.mapQuery || "").trim();
               if (!q) {
-                const locEl = document.getElementById('prop-location');
+                const locEl = document.getElementById("prop-location");
                 const locText =
-                  locEl && typeof locEl.textContent === 'string'
+                  locEl && typeof locEl.textContent === "string"
                     ? locEl.textContent.trim()
-                    : '';
+                    : "";
                 if (locText) q = locText;
               }
-
               if (!q) return;
 
               const isLatLng =
                 /^-?\d+(\.\d+)?,-?\d+(\.\d+)?$/.test(q);
 
-              const url = isLatLng
-                ? `https://www.google.com/maps/@?api=1&map_action=map&center=${encodeURIComponent(q)}&zoom=15`
-                : `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(q)}`;
+              const embedUrl = isLatLng
+                ? `https://www.google.com/maps?q=${encodeURIComponent(q)}&z=15&output=embed`
+                : `https://www.google.com/maps?q=${encodeURIComponent(q)}&output=embed`;
 
-              window.open(url, '_blank', 'noopener');
+              mapFrame.src = embedUrl;
+              mapBackdrop.style.display = "flex";
+              mapBackdrop.setAttribute("aria-hidden", "false");
             });
-            mapBtn.dataset.bound = '1';
+
+            mapBtn.dataset.bound = "1";
           }
         }
       }
@@ -1976,7 +2027,7 @@
       const minPrice = priced.length ? Math.min(...priced.map(d => Number(d.price))) : null;
       if (fromEl) fromEl.textContent = (minPrice != null) ? money(minPrice) : '—';
 
-      /* ANCHOR: DETAILS_AMENITIES_RENDER (optional chips if present elsewhere) */
+            /* ANCHOR: DETAILS_AMENITIES_RENDER (property + room metadata) */
       {
         const mp = j?.meta?.property || {};
         const cp = propertyCard || {};
@@ -1985,10 +2036,24 @@
 
         const pushArr = (arr) => {
           if (!Array.isArray(arr)) return;
-          for (const v of arr) collected.push(v);
+          for (const v of arr) {
+            if (v == null) continue;
+            if (typeof v === "string") {
+              const s = v.trim();
+              if (s) collected.push(s);
+              continue;
+            }
+            if (typeof v === "object" && v.name) {
+              const s = String(v.name).trim();
+              if (s) collected.push(s);
+              continue;
+            }
+            const s = String(v).trim();
+            if (s) collected.push(s);
+          }
         };
 
-        // 1) Property-level amenities (Company Profile / partners_app)
+        // 1) Property-level lists (Company Profile / partners_app + card)
         pushArr(mp.amenities);
         pushArr(mp.inclusions);
         pushArr(mp.features);
@@ -1996,96 +2061,60 @@
         pushArr(cp.inclusions);
         pushArr(cp.features);
 
-        // 2) Details-level aggregated amenities (if API exposes any)
+        // 2) Details-level flat lists from /catalog/details, if present
         pushArr(j?.amenities);
         pushArr(j?.inclusions);
         pushArr(j?.features);
 
-        // 3) Room-level amenities using the SAME style of wiring as the room modal:
-        //    key-based flags + free-text fields + meta containers
-        const DETAIL_LABELS = {
-          city_view:       "City view",
-          sea_view:        "Sea / ocean view",
-          garden_view:     "Garden view",
-          pool_view:       "Pool view",
-          high_floor:      "High floor",
-          ground_floor:    "Ground floor",
-          connecting:      "Connecting rooms available",
-          accessible:      "Accessible room",
-          kitchenette:     "Kitchenette",
-          separate_living: "Separate living area",
-        };
-
-        const INCLUSION_LABELS = {
-          breakfast:        "Breakfast included",
-          half_board:       "Half board",
-          full_board:       "Full board",
-          all_inclusive:    "All inclusive",
-          free_parking:     "Free parking",
-          airport_shuttle:  "Airport shuttle",
-          late_checkout:    "Late checkout (subject to availability)",
-          early_checkin:    "Early check-in (subject to availability)",
-          pool_access:      "Pool access",
-          spa_access:       "Spa / wellness access",
-        };
-
+        // 3) Room-level metadata (mirroring modal logic from room details)
         if (Array.isArray(j?.rooms)) {
-          for (const r of j.rooms) {
-            if (!r) continue;
+          for (const room of j.rooms) {
+            if (!room) continue;
 
-            // direct arrays on the room
-            pushArr(r.amenities);
-            pushArr(r.inclusions);
-            pushArr(r.features);
+            // Direct arrays on the room object
+            pushArr(room.amenities);
+            pushArr(room.inclusions);
+            pushArr(room.features);
 
-            // key-based flags (mirrors room modal logic)
+            // Meta containers (partners_rooms → edit room modal)
+            if (room.meta && typeof room.meta === "object") {
+              pushArr(room.meta.amenities);
+              pushArr(room.meta.inclusions);
+              pushArr(room.meta.features);
+            }
+
+            // Checkbox-based details/inclusions → use same label maps as modal
             const detailKeys =
-              Array.isArray(r.details_keys) ? r.details_keys : [];
+              Array.isArray(room.details_keys) ? room.details_keys : [];
             const inclusionKeys =
-              Array.isArray(r.inclusion_keys) ? r.inclusion_keys : [];
+              Array.isArray(room.inclusion_keys) ? room.inclusion_keys : [];
 
-            detailKeys.forEach((k) => {
-              const lbl = DETAIL_LABELS[k];
-              if (lbl) collected.push(lbl);
-            });
-
-            inclusionKeys.forEach((k) => {
-              const lbl = INCLUSION_LABELS[k];
-              if (lbl) collected.push(lbl);
-            });
-
-            // free-text from the modal
-            if (r.details_text) collected.push(r.details_text);
-            if (r.inclusion_text) collected.push(r.inclusion_text);
-
-            // meta containers (common from edit-room modal)
-            if (r.meta && typeof r.meta === "object") {
-              pushArr(r.meta.amenities);
-              pushArr(r.meta.inclusions);
-              pushArr(r.meta.features);
+            if (typeof DETAIL_LABELS === "object") {
+              pushArr(detailKeys.map(k => DETAIL_LABELS[k]).filter(Boolean));
+            }
+            if (typeof INCLUSION_LABELS === "object") {
+              pushArr(inclusionKeys.map(k => INCLUSION_LABELS[k]).filter(Boolean));
             }
           }
         }
 
-        // Normalize → dedupe → trim list
+        // Normalize, dedupe, trim list
         const chips = [...new Set(
           collected
-            .map((a) => {
-              if (!a) return "";
-              if (typeof a === "string") return a.trim();
-              if (typeof a === "object" && a.name) return String(a.name).trim();
-              return String(a).trim();
-            })
+            .map(s => String(s || "").trim())
             .filter(Boolean)
         )].slice(0, 12);
 
-        if (chips.length) {
-          const amenitiesEl = document.getElementById("amenities");
-          if (amenitiesEl) {
+        const amenitiesEl = document.getElementById("amenities");
+        if (amenitiesEl) {
+          if (chips.length) {
             amenitiesEl.style.display = "flex";
             amenitiesEl.innerHTML = chips
-              .map((a) => `<span class="chip">${a}</span>`)
+              .map(a => `<span class="chip">${a}</span>`)
               .join("");
+          } else {
+            amenitiesEl.style.display = "none";
+            amenitiesEl.innerHTML = "";
           }
         }
       }
@@ -3822,19 +3851,63 @@
 </script>
 
   <!-- ANCHOR: DETAILS_MAP_MODAL_HTML -->
-  <div id="details-map-modal" class="details-map-backdrop">
-    <div class="details-map-inner" role="dialog" aria-modal="true" aria-label="Location map">
-      <div class="details-map-header">
-        <span>Location map</span>
-        <button type="button" id="details-map-close" class="details-map-close">Close</button>
-      </div>
+  <div
+    id="details-map-modal"
+    aria-hidden="true"
+    style="
+      position: fixed;
+      inset: 0;
+      display: none;
+      align-items: center;
+      justify-content: center;
+      background: rgba(15,23,42,0.55);
+      z-index: 70;
+    "
+  >
+    <div
+      class="details-map-inner"
+      role="dialog"
+      aria-modal="true"
+      aria-label="Map view"
+      style="
+        background: #ffffff;
+        border-radius: 18px;
+        box-shadow: 0 18px 45px rgba(15,23,42,0.32);
+        width: min(900px, calc(100vw - 32px));
+        height: min(540px, calc(100vh - 80px));
+        position: relative;
+        overflow: hidden;
+      "
+    >
+      <button
+        type="button"
+        id="details-map-close"
+        aria-label="Close map"
+        style="
+          position: absolute;
+          top: 10px;
+          right: 10px;
+          width: 32px;
+          height: 32px;
+          border-radius: 999px;
+          border: 1px solid rgba(148,163,184,0.5);
+          background: #ffffff;
+          cursor: pointer;
+          font-size: 18px;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+        "
+      >
+        Close
+      </button>
+
       <iframe
         id="details-map-frame"
-        class="details-map-frame"
         loading="lazy"
-        allowfullscreen
-        referrerpolicy="no-referrer-when-downgrade">
-      </iframe>
+        referrerpolicy="no-referrer-when-downgrade"
+        style="border:0;width:100%;height:100%;"
+      ></iframe>
     </div>
   </div>
 
