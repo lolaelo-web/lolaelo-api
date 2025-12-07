@@ -741,6 +741,63 @@
     transform: translateY(0);
   }
 
+  /* === CHECKOUT SECTION 2 GRID LAYOUT ================================== */
+
+  .dates-grid {
+    display: grid;
+    grid-template-columns: 1fr 260px;  /* left flexible, right fixed */
+    gap: 32px;
+    align-items: flex-start;
+  }
+
+  .dates-left .field-row {
+    margin-bottom: 12px;
+  }
+
+  .dates-right .card-header-link {
+    border: 0;
+    background: transparent;
+    color: var(--bubble);
+    font-size: 12px;
+    font-weight: 500;
+    cursor: pointer;
+  }
+
+  .checkout-dates-card-wrapper .detail-date-bar {
+    width: 100%;
+    padding: 14px;
+    border-radius: 18px;
+    border: 1px solid var(--line);
+    background: white;
+    box-shadow: 0 4px 12px rgba(15,23,42,0.06);
+
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+  }
+
+  #checkout-dates-apply {
+    align-self: flex-end;
+    padding: 6px 12px;
+    border-radius: 999px;
+    border: 1px solid var(--bubble);
+    background: transparent;
+    font-size: 12px;
+    font-weight: 500;
+    cursor: pointer;
+  }
+
+  /* collapse into 1 column on small screens */
+  @media (max-width: 760px) {
+    .dates-grid {
+      grid-template-columns: 1fr;
+    }
+
+    .dates-right {
+      align-items: flex-start;
+    }
+  }
+
 </style>
 
 </head>
@@ -843,71 +900,56 @@
             </div>
           </div>
 
-          <!-- Section 2 - Dates and pricing -->
-          <div class="card" data-section="2">
-            <div class="card-header">
-              <div class="card-title">
-                <div class="card-step" data-step-indicator="2">2</div>
-                Dates and pricing
-              </div>
+<div class="section-body hidden" data-section-body="2">
+  <div class="dates-grid">
+    
+    <!-- LEFT COLUMN -->
+    <div class="dates-left">
+      <div class="field-row">
+        <div class="field-label">Stay dates</div>
+        <div class="field-value" id="stayDatesText">Dates from URL</div>
+      </div>
 
-              <!-- RIGHT SIDE: status + edit + date card stacked -->
-              <div class="card-header-right">
-                <div class="card-header-actions">
-                  <div class="card-status" data-step-status="2">
-                    Locked until previous step
-                  </div>
-                  <button
-                    class="card-header-link"
-                    id="editDatesLink"
-                    type="button"
-                  >
-                    Edit dates
-                  </button>
-                </div>
+      <div class="field-row">
+        <div class="field-label">Nights</div>
+        <div class="field-value" id="nightsCountText">n nights</div>
+      </div>
 
-                <div
-                  id="checkoutDatesCardWrapper"
-                  class="checkout-dates-card-wrapper"
-                >
-                  <div id="checkout-date-bar" class="detail-date-bar">
-                    <label class="detail-date-field">
-                      <span>Check in</span>
-                      <input type="date" id="checkout-checkin" />
-                    </label>
-                    <label class="detail-date-field">
-                      <span>Check out</span>
-                      <input type="date" id="checkout-checkout" />
-                    </label>
-                    <button type="button" id="checkout-dates-apply">
-                      Update dates
-                    </button>
-                  </div>
-                </div>
-              </div>
-            </div>
+      <div class="field-row">
+        <div class="field-label">Price per night</div>
+        <div class="field-value" id="nightlyPriceText">-</div>
+      </div>
 
-            <div class="section-body hidden" data-section-body="2">
-              <div class="field-row">
-                <div class="field-label">Stay dates</div>
-                <div class="field-value" id="stayDatesText">Dates from URL</div>
-              </div>
+      <button class="btn-primary" type="button" data-confirm="2">
+        Confirm dates and price
+      </button>
+    </div>
 
-              <div class="field-row">
-                <div class="field-label">Nights</div>
-                <div class="field-value" id="nightsCountText">n nights</div>
-              </div>
+    <!-- RIGHT COLUMN -->
+    <div class="dates-right">
+      <button class="card-header-link" id="editDatesLink" type="button">
+        Edit dates
+      </button>
 
-              <div class="field-row">
-                <div class="field-label">Price per night</div>
-                <div class="field-value" id="nightlyPriceText">-</div>
-              </div>
+      <div id="checkoutDatesCardWrapper" class="checkout-dates-card-wrapper">
+        <div id="checkout-date-bar" class="detail-date-bar">
+          <label class="detail-date-field">
+            <span>Check in</span>
+            <input type="date" id="checkout-checkin" />
+          </label>
+          <label class="detail-date-field">
+            <span>Check out</span>
+            <input type="date" id="checkout-checkout" />
+          </label>
+          <button type="button" id="checkout-dates-apply">
+            Update dates
+          </button>
+        </div>
+      </div>
+    </div>
 
-              <button class="btn-primary" type="button" data-confirm="2">
-                Confirm dates and price
-              </button>
-            </div>
-          </div>
+  </div>
+</div>
 
           <!-- Section 3 - Add-ons -->
           <div class="card" data-section="3">
