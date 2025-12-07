@@ -904,6 +904,105 @@ router.get("/details", async (req: Request, res: Response) => {
         daily: v.daily,
       })) as any;
 
+      // Attach RoomType metadata (summary/details/inclusions/sizes/keys)
+      try {
+        const roomTypeIds = Array.from(
+          new Set(
+            Array.isArray(dbRooms)
+              ? (dbRooms as any[])
+                  .map((r) => Number((r as any).roomTypeId))
+                  .filter((n) => Number.isFinite(n))
+              : []
+          )
+        );
+
+        if (roomTypeIds.length) {
+          const cs = process.env.DATABASE_URL || "";
+          if (!cs) throw new Error("DATABASE_URL missing");
+
+          const wantsSSL =
+            /\bsslmode=require\b/i.test(cs) || /render\.com/i.test(cs);
+          const pgMeta = new PgClient({
+            connectionString: cs,
+            ssl: wantsSSL ? { rejectUnauthorized: false } : undefined,
+          });
+          await pgMeta.connect();
+
+          const metaSql = `
+            SELECT
+              id,
+              summary,
+              details_text,
+              inclusion_text,
+              size_sqm,
+              size_sqft,
+              details_keys,
+              inclusion_keys
+            FROM extranet."RoomType"
+            WHERE id = ANY($1::int[])
+          `;
+          const { rows: metaRows } = await pgMeta.query(metaSql, [roomTypeIds]);
+          await pgMeta.end();
+
+          const metaById = new Map<number, any>();
+          for (const r of metaRows || []) {
+            const id = Number((r as any).id);
+            if (!Number.isFinite(id)) continue;
+
+            const detailsKeys = Array.isArray((r as any).details_keys)
+              ? (r as any).details_keys
+              : [];
+            const inclusionKeys = Array.isArray((r as any).inclusion_keys)
+              ? (r as any).inclusion_keys
+              : [];
+
+            metaById.set(id, {
+              summary:
+                (r as any).summary != null ? String((r as any).summary) : "",
+              details_text:
+                (r as any).details_text != null
+                  ? String((r as any).details_text)
+                  : "",
+              inclusion_text:
+                (r as any).inclusion_text != null
+                  ? String((r as any).inclusion_text)
+                  : "",
+              size_sqm:
+                (r as any).size_sqm != null
+                  ? Number((r as any).size_sqm)
+                  : null,
+              size_sqft:
+                (r as any).size_sqft != null
+                  ? Number((r as any).size_sqft)
+                  : null,
+              details_keys: detailsKeys,
+              inclusion_keys: inclusionKeys,
+            });
+          }
+
+          for (const room of dbRooms as any[]) {
+            const rid = Number((room as any).roomTypeId);
+            if (!Number.isFinite(rid)) continue;
+
+            const info = metaById.get(rid);
+            if (!info) continue;
+
+            (room as any).summary = info.summary;
+            (room as any).details_text = info.details_text;
+            (room as any).inclusion_text = info.inclusion_text;
+            (room as any).size_sqm = info.size_sqm;
+            (room as any).size_sqft = info.size_sqft;
+            (room as any).details_keys = info.details_keys;
+            (room as any).inclusion_keys = info.inclusion_keys;
+          }
+        }
+      } catch (err) {
+        req
+          .app
+          ?.get("logger")
+          ?.warn?.({ err, propertyId }, "details.roomMeta-db failed");
+      }
+
       // Build per–rate-plan "from" price summaries for each room
       const planSummaryByRoom = new Map<number, { ratePlanId: number; priceFrom: number | null; currency: string }[]>();
       try {

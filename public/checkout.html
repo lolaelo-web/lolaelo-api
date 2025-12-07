@@ -218,7 +218,7 @@
 
   .checkout-dates-card-wrapper {
     margin-top: 12px;
-    display: none;        /* hidden until user clicks Edit dates */
+    display: none;            /* hidden until Edit dates is clicked */
     justify-content: flex-end;
   }
 
@@ -791,7 +791,7 @@
                 <div class="field-value" id="nightsCountText">n nights</div>
               </div>
 
-              <!-- NEW: price per night row -->
+              <!-- NEW: price per night -->
               <div class="field-row">
                 <div class="field-label">Price per night</div>
                 <div class="field-value" id="nightlyPriceText">-</div>
@@ -803,7 +803,7 @@
                 </button>
               </div>
 
-              <!-- NEW: checkout date card (hidden by default, toggled by Edit dates) -->
+              <!-- NEW: date card on right side -->
               <div id="checkoutDatesCardWrapper" class="checkout-dates-card-wrapper">
                 <div id="checkout-date-bar" class="detail-date-bar">
                   <label class="detail-date-field">
@@ -817,21 +817,6 @@
                   <button type="button" id="checkout-dates-apply">
                     Update dates
                   </button>
-                </div>
-              </div>
-
-              <!-- Add-ons block -->
-              <div class="addons-block">
-                <div class="addons-header">
-                  <div class="addons-title">Add-ons</div>
-                  <div class="addons-subtitle">
-                    Optional activities and extras selected by your hotel.
-                  </div>
-                </div>
-                <div id="addonsList" class="addons-list">
-                  <div class="muted" id="addonsEmptyMessage">
-                    No add-ons are available for this stay.
-                  </div>
                 </div>
               </div>
 
@@ -1482,7 +1467,7 @@
       document.getElementById("summaryNights").textContent =
         nightsText || "n";
 
-      // NEW: derive average price per night from the summary total
+      // Price per night in Section 2
       const nightlyEl = document.getElementById("nightlyPriceText");
       if (nightlyEl) {
         const totalEl = document.getElementById("summaryTotal");
@@ -1876,13 +1861,13 @@
         });
       }
 
-      // Checkout date card wiring
+      // Date card wiring for Section 2
       const datesCardWrapper = document.getElementById("checkoutDatesCardWrapper");
       const checkInInput = document.getElementById("checkout-checkin");
       const checkOutInput = document.getElementById("checkout-checkout");
       const applyBtn = document.getElementById("checkout-dates-apply");
 
-      // Initialize date inputs from current state/query
+      // Initialize inputs from state/query
       if (checkInInput && checkOutInput) {
         try {
           checkInInput.value = state.start || "";
@@ -1908,6 +1893,7 @@
 
           const ciDate = new Date(ci);
           const coDate = new Date(co);
+
           if (!Number.isNaN(ciDate) && !Number.isNaN(coDate) && coDate <= ciDate) {
             coDate.setDate(ciDate.getDate() + 1);
           }
@@ -1952,7 +1938,6 @@
         });
       }
   </script>
-
 
 	  <script>
     (function () {
