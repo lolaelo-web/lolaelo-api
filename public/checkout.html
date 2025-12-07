@@ -1876,15 +1876,59 @@
         });
       }
 
+      // Checkout date card wiring
+      const datesCardWrapper = document.getElementById("checkoutDatesCardWrapper");
+      const checkInInput = document.getElementById("checkout-checkin");
+      const checkOutInput = document.getElementById("checkout-checkout");
+      const applyBtn = document.getElementById("checkout-dates-apply");
+
+      // Initialize date inputs from current state/query
+      if (checkInInput && checkOutInput) {
+        try {
+          checkInInput.value = state.start || "";
+          checkOutInput.value = state.end || "";
+        } catch (_) {
+          // ignore
+        }
+      }
+
       const editDatesLink = document.getElementById("editDatesLink");
-      if (editDatesLink) {
+      if (editDatesLink && datesCardWrapper) {
         editDatesLink.addEventListener("click", function () {
-          window.history.back();
+          const visible = datesCardWrapper.style.display === "flex";
+          datesCardWrapper.style.display = visible ? "none" : "flex";
+        });
+      }
+
+      if (applyBtn && checkInInput && checkOutInput) {
+        applyBtn.addEventListener("click", function () {
+          const ci = checkInInput.value || state.start;
+          const co = checkOutInput.value || state.end;
+          if (!ci || !co) return;
+
+          const ciDate = new Date(ci);
+          const coDate = new Date(co);
+          if (!Number.isNaN(ciDate) && !Number.isNaN(coDate) && coDate <= ciDate) {
+            coDate.setDate(ciDate.getDate() + 1);
+          }
+
+          const finalStart = !Number.isNaN(ciDate)
+            ? ciDate.toISOString().slice(0, 10)
+            : ci;
+          const finalEnd = !Number.isNaN(coDate)
+            ? coDate.toISOString().slice(0, 10)
+            : co;
+
+          const qsNext = new URLSearchParams(location.search);
+          qsNext.set("start", finalStart);
+          qsNext.set("end", finalEnd);
+
+          const nextUrl = `${location.pathname}?${qsNext.toString()}`;
+          location.assign(nextUrl);
         });
       }
     }
-    document.addEventListener("DOMContentLoaded", function () {
-      initCheckout();
+    document.addEventListener("DOMContentLoaded", initCheckout);
 
       const addonsList = document.getElementById("addonsList");
       if (addonsList) {
@@ -1907,7 +1951,6 @@
           recomputeSelectedAddons();
         });
       }
-    });
   </script>
 
 
