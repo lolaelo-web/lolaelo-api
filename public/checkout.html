@@ -216,6 +216,12 @@
     border-top: 1px dashed var(--border-soft);
   }
 
+  .checkout-dates-card-wrapper {
+    margin-top: 12px;
+    display: none;        /* hidden until user clicks Edit dates */
+    justify-content: flex-end;
+  }
+
   .addons-header {
     margin-bottom: 6px;
   }
@@ -763,7 +769,7 @@
             </div>
           </div>
 
-<!-- Section 2 - Dates and pricing -->
+          <!-- Section 2 - Dates and pricing -->
           <div class="card" data-section="2">
             <div class="card-header">
               <div class="card-title">
@@ -785,10 +791,48 @@
                 <div class="field-value" id="nightsCountText">n nights</div>
               </div>
 
+              <!-- NEW: price per night row -->
+              <div class="field-row">
+                <div class="field-label">Price per night</div>
+                <div class="field-value" id="nightlyPriceText">-</div>
+              </div>
+
               <div class="field-inline">
                 <button class="btn-link" id="editDatesLink" type="button">
                   Edit dates
                 </button>
+              </div>
+
+              <!-- NEW: checkout date card (hidden by default, toggled by Edit dates) -->
+              <div id="checkoutDatesCardWrapper" class="checkout-dates-card-wrapper">
+                <div id="checkout-date-bar" class="detail-date-bar">
+                  <label class="detail-date-field">
+                    <span>Check in</span>
+                    <input type="date" id="checkout-checkin" />
+                  </label>
+                  <label class="detail-date-field">
+                    <span>Check out</span>
+                    <input type="date" id="checkout-checkout" />
+                  </label>
+                  <button type="button" id="checkout-dates-apply">
+                    Update dates
+                  </button>
+                </div>
+              </div>
+
+              <!-- Add-ons block -->
+              <div class="addons-block">
+                <div class="addons-header">
+                  <div class="addons-title">Add-ons</div>
+                  <div class="addons-subtitle">
+                    Optional activities and extras selected by your hotel.
+                  </div>
+                </div>
+                <div id="addonsList" class="addons-list">
+                  <div class="muted" id="addonsEmptyMessage">
+                    No add-ons are available for this stay.
+                  </div>
+                </div>
               </div>
 
               <button class="btn-primary" type="button" data-confirm="2">
@@ -1428,9 +1472,30 @@
           : "Dates";
       document.getElementById("stayDatesText").textContent = datesText;
       document.getElementById("summaryDates").textContent = datesText;
-      const nightsText = nights ? nights + " night" + (nights > 1 ? "s" : "") : "";
-      document.getElementById("nightsCountText").textContent = nightsText || "nights";
-      document.getElementById("summaryNights").textContent = nightsText || "n";
+      const nightsText =
+        nights ? nights + " night" + (nights > 1 ? "s" : "") : "";
+      const nightsNum =
+        typeof nights === "number" ? nights : Number(nights) || 0;
+
+      document.getElementById("nightsCountText").textContent =
+        nightsText || "nights";
+      document.getElementById("summaryNights").textContent =
+        nightsText || "n";
+
+      // NEW: derive average price per night from the summary total
+      const nightlyEl = document.getElementById("nightlyPriceText");
+      if (nightlyEl) {
+        const totalEl = document.getElementById("summaryTotal");
+        const raw = totalEl ? totalEl.textContent || "" : "";
+        const num = Number(String(raw).replace(/[^0-9.]/g, ""));
+
+        if (!Number.isNaN(num) && nightsNum > 0) {
+          const perNight = num / nightsNum;
+          nightlyEl.textContent = "$" + perNight.toFixed(2);
+        } else {
+          nightlyEl.textContent = "-";
+        }
+      }
 
       // Add-ons summary
       var addonsLabel = "None selected";

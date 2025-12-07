@@ -1035,17 +1035,46 @@ router.get("/details", async (req: Request, res: Response) => {
         ratePlanId,
       });
 
-      if (Array.isArray(dbRooms) && dbRooms.length > 0) {
-        if (base?.rooms && Array.isArray(base.rooms)) {
-          base.rooms = dbRooms;
-        } else if (base) {
-          base.rooms = dbRooms;
+      if (Array.isArray(dbRooms) && dbRooms.length > 0 && base) {
+        // Keep original meta from getDetails(), just add pricing + rate plans
+        const existingRoomsArr = Array.isArray((base as any).rooms)
+          ? ((base as any).rooms as any[])
+          : [];
+
+        const byId = new Map<number, any>();
+        const byName = new Map<string, any>();
+
+        for (const r of existingRoomsArr) {
+          if (!r) continue;
+          const idNum = Number((r as any).roomTypeId ?? (r as any).id);
+          if (Number.isFinite(idNum)) {
+            byId.set(idNum, r);
+          }
+          const nm = String((r as any).name || "").trim().toLowerCase();
+          if (nm) {
+            byName.set(nm, r);
+          }
         }
+
+        const mergedRooms = (dbRooms as any[]).map((dr) => {
+          const rid = Number(dr.roomTypeId);
+          const nm = String(dr.name || "").trim().toLowerCase();
+
+          const baseMeta =
+            (Number.isFinite(rid) && byId.get(rid)) ||
+            (nm && byName.get(nm)) ||
+            {};
+
+          // DB room (daily, etc.) wins for pricing fields; baseMeta keeps summary/meta/keys
+          return { ...baseMeta, ...dr };
+        });
+
+        (base as any).rooms = mergedRooms;
         (base as any)._roomsSource = "db-direct";
 
         // Attach per–rate-plan summaries into each room for the front end
         try {
-          const roomsArr = Array.isArray((base as any).rooms) ? (base as any).rooms : [];
+          const roomsArr = mergedRooms;
           for (const room of roomsArr) {
             const ridNum = Number((room as any).roomTypeId);
             if (!Number.isFinite(ridNum)) continue;
@@ -1053,7 +1082,10 @@ router.get("/details", async (req: Request, res: Response) => {
             (room as any).ratePlanSummaries = summaries;
           }
         } catch (e) {
-          req.app?.get("logger")?.warn?.({ e, propertyId }, "details.ratePlanSummaries-attach failed");
+          req
+            .app
+            ?.get("logger")
+            ?.warn?.({ e, propertyId }, "details.ratePlanSummaries-attach failed");
         }
       }
 
