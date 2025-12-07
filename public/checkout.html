@@ -139,6 +139,28 @@
     cursor: pointer;
   }
 
+    .card-header-actions {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-end;
+    gap: 4px;
+  }
+
+  .card-header-link {
+    border: none;
+    background: none;
+    padding: 0;
+    font-size: 12px;
+    font-weight: 500;
+    color: var(--accent);
+    cursor: pointer;
+    text-decoration: none;
+  }
+
+  .card-header-link:hover {
+    text-decoration: underline;
+  }
+
   .card-title {
     font-size: 15px;
     font-weight: 600;
@@ -220,6 +242,66 @@
     margin-top: 12px;
     display: none;            /* hidden until Edit dates is clicked */
     justify-content: flex-end;
+  }
+
+  .detail-date-bar {
+    /* 2-column grid for Check-in / Check-out */
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    grid-auto-rows: auto;
+    column-gap: 8px;
+    row-gap: 6px;
+
+    /* tighten spacing vs header */
+    margin-top: 2px;
+    font-size: 12px;
+
+    /* keep the card narrower and inside the outline */
+    max-width: 360px;   /* adjust to taste (320–380) */
+    width: 100%;
+    margin-left: auto;  /* push it inward so it doesn’t spill past the card */
+
+    /* bubble look */
+    padding: 8px 12px;
+    border-radius: 999px;
+    background: var(--surface);
+    box-shadow: 0 8px 30px rgba(15, 23, 42, 0.08);
+    border: 1px solid var(--border-soft);
+  }
+
+  .detail-date-bar label {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+  }
+
+  .detail-date-bar label span {
+    font-size: 11px;
+    color: var(--muted);
+  }
+
+  .detail-date-bar input[type="date"] {
+    font-size: 12px;
+    padding: 4px 6px;
+    border-radius: 8px;
+    border: 1px solid var(--border-subtle);
+    background: var(--surface-subtle);
+    color: var(--fg);
+  }
+
+  .detail-date-bar button {
+    padding: 6px 10px;
+    border-radius: 999px;
+    border: 1px solid var(--accent);
+    background: transparent;
+    font-size: 12px;
+    font-weight: 500;
+    cursor: pointer;
+    white-space: nowrap;
+
+    /* Button spans both columns, aligned right */
+    grid-column: 1 / -1;
+    justify-self: flex-end;
   }
 
   .addons-header {
@@ -776,8 +858,13 @@
                 <div class="card-step" data-step-indicator="2">2</div>
                 Dates and pricing
               </div>
-              <div class="card-status" data-step-status="2">
-                Locked until previous step
+              <div class="card-header-actions">
+                <div class="card-status" data-step-status="2">
+                  Locked until previous step
+                </div>
+                <button class="card-header-link" id="editDatesLink" type="button">
+                  Edit dates
+                </button>
               </div>
             </div>
             <div class="section-body hidden" data-section-body="2">
@@ -795,12 +882,6 @@
               <div class="field-row">
                 <div class="field-label">Price per night</div>
                 <div class="field-value" id="nightlyPriceText">-</div>
-              </div>
-
-              <div class="field-inline">
-                <button class="btn-link" id="editDatesLink" type="button">
-                  Edit dates
-                </button>
               </div>
 
               <!-- NEW: date card on right side -->
