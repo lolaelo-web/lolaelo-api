@@ -939,6 +939,95 @@ router.get("/details", async (req: Request, res: Response) => {
         req.app?.get("logger")?.warn?.({ e, propertyId }, "details.ratePlanSummaries-build failed");
       }
 
+            // Room metadata from RoomType (summary, details, inclusions, keys, sizes)
+      try {
+        const roomTypeIds = Array.from(
+          new Set(
+            Array.isArray(dbRooms)
+              ? dbRooms
+                  .map((r: any) => Number(r.roomTypeId))
+                  .filter((n) => Number.isFinite(n))
+              : []
+          )
+        );
+
+        if (roomTypeIds.length) {
+          const cs = process.env.DATABASE_URL || "";
+          if (!cs) throw new Error("DATABASE_URL missing");
+
+          const wantsSSL = /\bsslmode=require\b/i.test(cs) || /render\.com/i.test(cs);
+          const pgMeta = new PgClient({
+            connectionString: cs,
+            ssl: wantsSSL ? { rejectUnauthorized: false } : undefined,
+          });
+          await pgMeta.connect();
+
+          const metaSql = `
+            SELECT
+              id,
+              summary,
+              details_text,
+              inclusion_text,
+              size_sqm,
+              size_sqft,
+              details_keys,
+              inclusion_keys
+            FROM extranet."RoomType"
+            WHERE id = ANY($1::int[])
+          `;
+          const { rows: metaRows } = await pgMeta.query(metaSql, [roomTypeIds]);
+          await pgMeta.end();
+
+          const metaById = new Map<number, any>();
+          for (const r of metaRows || []) {
+            const id = Number(r.id);
+            if (!Number.isFinite(id)) continue;
+
+            const detailsKeys =
+              Array.isArray(r.details_keys) ? r.details_keys : [];
+            const inclusionKeys =
+              Array.isArray(r.inclusion_keys) ? r.inclusion_keys : [];
+
+            metaById.set(id, {
+              summary:
+                r.summary != null ? String(r.summary) : "",
+              details_text:
+                r.details_text != null ? String(r.details_text) : "",
+              inclusion_text:
+                r.inclusion_text != null ? String(r.inclusion_text) : "",
+              size_sqm:
+                r.size_sqm != null ? Number(r.size_sqm) : null,
+              size_sqft:
+                r.size_sqft != null ? Number(r.size_sqft) : null,
+              details_keys: detailsKeys,
+              inclusion_keys: inclusionKeys,
+            });
+          }
+
+          // Attach metadata into each room record
+          for (const room of dbRooms as any[]) {
+            const rid = Number(room.roomTypeId);
+            if (!Number.isFinite(rid)) continue;
+
+            const info = metaById.get(rid);
+            if (!info) continue;
+
+            room.summary = info.summary;
+            room.details_text = info.details_text;
+            room.inclusion_text = info.inclusion_text;
+            room.size_sqm = info.size_sqm;
+            room.size_sqft = info.size_sqft;
+            room.details_keys = info.details_keys;
+            room.inclusion_keys = info.inclusion_keys;
+          }
+        }
+      } catch (err) {
+        req
+          .app
+          ?.get("logger")
+          ?.warn?.({ err, propertyId }, "details.roomMeta-db failed");
+      }
+
       console.log("[details] rooms-db-direct", {
         partnerId,
         count: dbRooms.length,
