@@ -51,7 +51,7 @@ r.get("/", async (req, res) => {
       `
       SELECT
         "id","name","code","description","occupancy","maxGuests","basePrice","active",
-        "summary","size_sqm","size_sqft",
+        "size_sqm","size_sqft",
         "details_keys","details_text",
         "inclusion_keys","inclusion_text"
       FROM ${T.rooms}

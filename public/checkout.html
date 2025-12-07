@@ -851,15 +851,43 @@
                 <div class="card-step" data-step-indicator="2">2</div>
                 Dates and pricing
               </div>
-              <div class="card-header-actions">
-                <div class="card-status" data-step-status="2">
-                  Locked until previous step
+
+              <!-- RIGHT SIDE: status + edit + date card stacked -->
+              <div class="card-header-right">
+                <div class="card-header-actions">
+                  <div class="card-status" data-step-status="2">
+                    Locked until previous step
+                  </div>
+                  <button
+                    class="card-header-link"
+                    id="editDatesLink"
+                    type="button"
+                  >
+                    Edit dates
+                  </button>
                 </div>
-                <button class="card-header-link" id="editDatesLink" type="button">
-                  Edit dates
-                </button>
+
+                <div
+                  id="checkoutDatesCardWrapper"
+                  class="checkout-dates-card-wrapper"
+                >
+                  <div id="checkout-date-bar" class="detail-date-bar">
+                    <label class="detail-date-field">
+                      <span>Check in</span>
+                      <input type="date" id="checkout-checkin" />
+                    </label>
+                    <label class="detail-date-field">
+                      <span>Check out</span>
+                      <input type="date" id="checkout-checkout" />
+                    </label>
+                    <button type="button" id="checkout-dates-apply">
+                      Update dates
+                    </button>
+                  </div>
+                </div>
               </div>
             </div>
+
             <div class="section-body hidden" data-section-body="2">
               <div class="field-row">
                 <div class="field-label">Stay dates</div>
@@ -871,27 +899,9 @@
                 <div class="field-value" id="nightsCountText">n nights</div>
               </div>
 
-              <!-- NEW: price per night -->
               <div class="field-row">
                 <div class="field-label">Price per night</div>
                 <div class="field-value" id="nightlyPriceText">-</div>
-              </div>
-
-              <!-- NEW: date card on right side -->
-              <div id="checkoutDatesCardWrapper" class="checkout-dates-card-wrapper">
-                <div id="checkout-date-bar" class="detail-date-bar">
-                  <label class="detail-date-field">
-                    <span>Check in</span>
-                    <input type="date" id="checkout-checkin" />
-                  </label>
-                  <label class="detail-date-field">
-                    <span>Check out</span>
-                    <input type="date" id="checkout-checkout" />
-                  </label>
-                  <button type="button" id="checkout-dates-apply">
-                    Update dates
-                  </button>
-                </div>
               </div>
 
               <button class="btn-primary" type="button" data-confirm="2">
