@@ -49,7 +49,7 @@ router.get("/", async (req: any, res) => {
     });
 
     // Also read partner to fall back contact email / name
-    const partner = await prisma.partner.findUnique({ where: { id: partnerId } });
+    const partner = await prisma.extranet_Partner.findUnique({ where: { id: partnerId } });
 
     if (!profile) {
       // Return an empty shell; UI will show "Missing info" until saved

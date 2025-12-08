@@ -32,7 +32,7 @@ export async function requireExtranetSession(req: Request, res: Response, next: 
     if (session.revokedAt) return res.status(401).json({ message: "Session revoked" });
     if (session.expiresAt && session.expiresAt < new Date()) return res.status(401).json({ message: "Session expired" });
 
-    const partner = await prisma.partner.findUnique({ where: { id: session.partnerId } });
+    const partner = await prisma.extranet_Partner.findUnique({ where: { id: session.partnerId } });
     if (!partner) return res.status(401).json({ message: "Partner not found" });
 
     req.extranet = {

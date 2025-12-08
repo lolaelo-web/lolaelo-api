@@ -33,12 +33,17 @@ function nameFromEmail(email: string): string {
 }
 async function ensurePartnerByEmail(e: string) {
   const email = e.trim().toLowerCase();
-  return prisma.partner.upsert({
-    where:  { email },
-    update: { updatedAt: new Date() },
+  const displayName = email.split("@")[0];
+
+  return prisma.extranet_Partner.upsert({
+    where: { email },
+    update: {
+      name: displayName,
+      updatedAt: new Date(),
+    },
     create: {
       email,
-      name: nameFromEmail(email),
+      name: displayName,
       createdAt: new Date(),
       updatedAt: new Date(),
     },

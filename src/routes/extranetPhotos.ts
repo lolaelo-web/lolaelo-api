@@ -22,7 +22,7 @@ async function getOrCreatePartnerId(req: any): Promise<number> {
   // If we have a partner row by id AND it matches the email (when provided),
   // accept that id. Otherwise fall back to the email path.
   if (Number.isFinite(pid) && pid > 0) {
-    const byId = await prisma.partner.findUnique({ where: { id: Number(pid) } });
+    const byId = await prisma.extranet_Partner.findUnique({ where: { id: Number(pid) } });
     if (byId && (!email || byId.email === email)) {
       return byId.id;
     }
@@ -34,11 +34,11 @@ async function getOrCreatePartnerId(req: any): Promise<number> {
     throw err;
   }
 
-  const byEmail = await prisma.partner.findUnique({ where: { email } });
+  const byEmail = await prisma.extranet_Partner.findUnique({ where: { email } });
   if (byEmail) return byEmail.id;
 
   const name = (req.partner?.name as string | undefined) ?? email.split("@")[0];
-  const created = await prisma.partner.create({ data: { email, name } });
+  const created = await prisma.extranet_Partner.create({ data: { email, name, updatedAt: new Date() } });
   return created.id;
 }
 
@@ -60,7 +60,7 @@ router.get("/", requirePartner, async (req: any, res: Response) => {
   }
 
   try {
-    const photos = await prisma.propertyPhoto.findMany({
+    const photos = await prisma.extranet_PropertyPhoto.findMany({
       where,
       orderBy: [{ sortOrder: "asc" }, { createdAt: "asc" }],
       select: {
@@ -111,7 +111,7 @@ router.post("/", requirePartner, async (req: any, res: Response) => {
   }
 
   try {
-    const count = await prisma.propertyPhoto.count({ where: { partnerId } });
+    const count = await prisma.extranet_PropertyPhoto.count({ where: { partnerId } });
     if (count >= MAX_COUNT) {
       return res.status(400).json({ error: "Too many photos" });
     }
@@ -129,7 +129,7 @@ router.post("/", requirePartner, async (req: any, res: Response) => {
     if (typeof isCover !== "undefined") data.isCover = !!isCover;
     if (Number.isFinite(Number(roomTypeId))) data.roomTypeId = Number(roomTypeId);
 
-    const created = await prisma.propertyPhoto.create({ data });
+    const created = await prisma.extranet_PropertyPhoto.create({ data });
     return res.json(created);
   } catch (err: any) {
     console.error("[photos.create] error", {
@@ -154,7 +154,7 @@ router.put("/:id", requirePartner, async (req: any, res: Response) => {
     return res.status(400).json({ error: "id required" });
   }
 
-  const row = await prisma.propertyPhoto.findUnique({ where: { id } });
+  const row = await prisma.extranet_PropertyPhoto.findUnique({ where: { id } });
   if (!row) return res.status(404).json({ error: "Not found" });
   if (row.partnerId !== partnerId) {
     return res.status(403).json({ error: "Forbidden: not your photo" });
@@ -188,7 +188,7 @@ router.put("/:id", requirePartner, async (req: any, res: Response) => {
 
   console.log("[photos.update] data:", data);
 
-  const updated = await prisma.propertyPhoto.update({
+  const updated = await prisma.extranet_PropertyPhoto.update({
     where: { id },
     data,
   });
@@ -205,7 +205,7 @@ router.patch("/:id", requirePartner, async (req: any, res: Response) => {
     return res.status(400).json({ error: "id required" });
   }
 
-  const row = await prisma.propertyPhoto.findUnique({ where: { id } });
+  const row = await prisma.extranet_PropertyPhoto.findUnique({ where: { id } });
   if (!row) return res.status(404).json({ error: "Not found" });
   if (row.partnerId !== partnerId) {
     return res.status(403).json({ error: "Forbidden: not your photo" });
@@ -239,7 +239,7 @@ router.patch("/:id", requirePartner, async (req: any, res: Response) => {
 
   console.log("[photos.patch] data:", data);
 
-  const updated = await prisma.propertyPhoto.update({
+  const updated = await prisma.extranet_PropertyPhoto.update({
     where: { id },
     data,
   });
@@ -260,10 +260,10 @@ router.delete("/:id", requirePartner, async (req: any, res: Response) => {
   const id = Number(req.params.id || 0);
   if (!Number.isFinite(id) || id <= 0) return res.status(400).json({ error: "id required" });
 
-  const row = await prisma.propertyPhoto.findFirst({ where: { id, partnerId } });
+  const row = await prisma.extranet_PropertyPhoto.findFirst({ where: { id, partnerId } });
   if (!row) return res.status(404).json({ error: "Not found" });
 
-  await prisma.propertyPhoto.delete({ where: { id } });
+  await prisma.extranet_PropertyPhoto.delete({ where: { id } });
   res.json({ ok: true });
 });
 
@@ -274,12 +274,14 @@ router.post("/reorder", requirePartner, async (req: any, res: Response) => {
   if (!items.length) return res.status(400).json({ error: "no_items" });
 
   const ids = items.map((i) => Number(i.id)).filter((n) => Number.isFinite(n));
-  const records = await prisma.propertyPhoto.findMany({ where: { id: { in: ids } } });
-  if (records.some((r) => r.partnerId !== partnerId)) return res.status(403).json({ error: "forbidden_some_items" });
+  const records = await prisma.extranet_PropertyPhoto.findMany({ where: { id: { in: ids } } });
+  if (records.some((r: { partnerId: number }) => r.partnerId !== partnerId)) {
+    return res.status(403).json({ error: "forbidden_some_items" });
+  }
 
   await prisma.$transaction(
     items.map((i) =>
-      prisma.propertyPhoto.update({
+      prisma.extranet_PropertyPhoto.update({
         where: { id: Number(i.id) },
         data: { sortOrder: Number(i.sortOrder) },
       })

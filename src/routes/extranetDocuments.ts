@@ -1,8 +1,7 @@
 import { Router } from "express";
-import { PrismaClient } from "@prisma/client";
+import { prisma } from "../prisma.js";
 import { authPartnerFromHeader } from "../extranetAuth.js";
 
-const prisma = new PrismaClient();
 const router = Router();
 
 /** Allowed enums (mirror prisma schema) */
@@ -51,7 +50,7 @@ router.use((req: any, res, next) => {
 /** GET /extranet/property/documents */
 router.get("/", async (req: any, res) => {
   const partnerId = req.__pid as number;
-  const rows = await prisma.propertyDocument.findMany({
+  const rows = await prisma.extranet_PropertyDocument.findMany({
     where: { partnerId },
     orderBy: [{ type: "asc" }, { uploadedAt: "desc" }],
   });
@@ -71,23 +70,24 @@ router.post("/", async (req: any, res) => {
     return res.status(400).json({ error: "invalid_document_type", got: type, allowed: ALLOWED_TYPES });
   }
 
- // Enforce one-per-type per partner
-const existing = await prisma.propertyDocument.findFirst({ where: { partnerId, type: normalizedType } });
+  // Enforce one-per-type per partner
+  const existing = await prisma.extranet_PropertyDocument.findFirst({ where: { partnerId, type: normalizedType } });
 
-await prisma.partner.upsert({
-  where: { id: partnerId },
-  update: {}, // no-op if it already exists
-  create: {
-    id: partnerId, // allow explicit id on Postgres
-    // best-effort email; replace if you have the real one in res.locals
-    email: `partner${partnerId}@lolaelo.com`,
-    name: `Partner ${partnerId}`,
-  },
-});
+  await prisma.extranet_Partner.upsert({
+    where: { id: partnerId },
+    update: {}, // no-op if it already exists
+    create: {
+      id: partnerId, // allow explicit id on Postgres
+      // best-effort email; replace if you have the real one in res.locals
+      email: `partner${partnerId}@lolaelo.com`,
+      name: `Partner ${partnerId}`,
+      updatedAt: new Date(),
+    },
+  });
 
   try {
     if (existing) {
-      const row = await prisma.propertyDocument.update({
+    const row = await prisma.extranet_PropertyDocument.update({
         where: { id: existing.id },
         data: {
           key,
@@ -103,9 +103,9 @@ await prisma.partner.upsert({
     }
 
     // Primary path: correct relation by Partner FK
-    const row = await prisma.propertyDocument.create({
+    const row = await prisma.extranet_PropertyDocument.create({
       data: {
-        partner: { connect: { id: partnerId } },
+        Partner: { connect: { id: partnerId } },
         type: normalizedType,
         key,
         url,
@@ -115,6 +115,7 @@ await prisma.partner.upsert({
         uploadedAt: new Date(),
       },
     });
+
     return res.status(201).json(row);
   } catch (e: any) {
     // If FK fails, try legacy/wrong FK (likely pointing to PropertyProfile.id)
@@ -132,7 +133,7 @@ await prisma.partner.upsert({
           });
         }
         // Fallback write using the profile.id (temporary workaround)
-        const row = await prisma.propertyDocument.create({
+        const row = await prisma.extranet_PropertyDocument.create({
           data: {
             partnerId: profile.id as unknown as number, // satisfies wrong FK target if DB expects PropertyProfile(id)
             type: normalizedType,
@@ -191,11 +192,11 @@ router.put("/:id", async (req: any, res) => {
     normalizedType = t;
   }
 
-  const existing = await prisma.propertyDocument.findFirst({ where: { id, partnerId } });
+  const existing = await prisma.extranet_PropertyDocument.findFirst({ where: { id, partnerId } });
   if (!existing) return res.status(404).json({ error: "not_found" });
 
   try {
-    const updated = await prisma.propertyDocument.update({
+    const updated = await prisma.extranet_PropertyDocument.update({
       where: { id },
       data: {
         status: normalizedStatus ?? undefined,
@@ -218,10 +219,10 @@ router.delete("/:id", async (req: any, res) => {
   const id = Number(req.params.id);
   if (!id) return res.status(400).json({ error: "bad_id" });
 
-  const existing = await prisma.propertyDocument.findFirst({ where: { id, partnerId } });
+  const existing = await prisma.extranet_PropertyDocument.findFirst({ where: { id, partnerId } });
   if (!existing) return res.status(404).json({ error: "not_found" });
 
-  await prisma.propertyDocument.delete({ where: { id } });
+  await prisma.extranet_PropertyDocument.delete({ where: { id } });
   return res.status(204).end();
 });
 

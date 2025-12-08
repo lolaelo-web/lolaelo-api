@@ -111,7 +111,7 @@ export async function getProfilesFromDb(propertyIds: number[]): Promise<Record<n
   }
 
   // 2) Photos from extranet.PropertyPhoto (cover first, then sortOrder, then id)
-  const photos = await prisma.propertyPhoto.findMany({
+  const photos = await prisma.extranet_PropertyPhoto.findMany({
     where: { partnerId: { in: propertyIds } },
     select: { partnerId: true, url: true, isCover: true, sortOrder: true, id: true },
     orderBy: [{ isCover: "desc" }, { sortOrder: "asc" }, { id: "asc" }],
@@ -171,7 +171,7 @@ export async function getRoomsDailyFromDb(
   if (dates.length === 0) return [];
 
   // 1) Room masters for this partner (do not filter by `active` to avoid schema drift)
-  const roomTypes = await prisma.roomType.findMany({
+  const roomTypes = await prisma.extranet_RoomType.findMany({
     where: { partnerId: propertyId }, // REMOVED: active: true
     select: { id: true, name: true, basePrice: true },
     orderBy: { id: "asc" },
@@ -183,22 +183,44 @@ export async function getRoomsDailyFromDb(
 
   // 2) Determine preferred rate plan per roomType if none provided
   const preferredPlanByRoom: Record<number, number | null> = {};
+
   if (typeof ratePlanId === "number") {
-    for (const rt of roomTypes) preferredPlanByRoom[rt.id] = ratePlanId;
+    // If caller specified a ratePlanId, use it for every room
+    for (const rt of roomTypes) {
+      preferredPlanByRoom[rt.id] = ratePlanId;
+    }
   } else {
-    const plans = await prisma.ratePlan.findMany({
-      where: { partnerId: propertyId, roomTypeId: { in: roomTypeIds }, exposeToUis: true },
-      select: { id: true, roomTypeId: true, uisPriority: true },
-      orderBy: [{ roomTypeId: "asc" }, { uisPriority: "asc" }, { id: "asc" }],
+    // In the extranet schema, RatePlan does NOT have exposeToUis / uisPriority.
+    // We just pick the first plan per roomType (sorted by id).
+    const plans = await prisma.extranet_RatePlan.findMany({
+      where: {
+        partnerId: propertyId,
+        roomTypeId: { in: roomTypeIds },
+      },
+      select: {
+        id: true,
+        roomTypeId: true,
+      },
+      orderBy: [
+        { roomTypeId: "asc" },
+        { id: "asc" },
+      ],
     });
-    for (const rt of roomTypes) preferredPlanByRoom[rt.id] = null;
+
+    // init with null
+    for (const rt of roomTypes) {
+      preferredPlanByRoom[rt.id] = null;
+    }
+    // first plan per roomType wins
     for (const p of plans) {
-      if (preferredPlanByRoom[p.roomTypeId] == null) preferredPlanByRoom[p.roomTypeId] = p.id;
+      if (preferredPlanByRoom[p.roomTypeId] == null) {
+        preferredPlanByRoom[p.roomTypeId] = p.id;
+      }
     }
   }
 
   // 3) Pull inventory rows in range (include minStay)
-  const invRows = await prisma.roomInventory.findMany({
+  const invRows = await prisma.extranet_RoomInventory.findMany({
     where: {
       roomTypeId: { in: roomTypeIds },
       date: { gte: new Date(startISO + "T00:00:00Z"), lt: new Date(endISO + "T00:00:00Z") },
@@ -227,13 +249,18 @@ export async function getRoomsDailyFromDb(
   const planIds = Array.from(
     new Set(Object.values(preferredPlanByRoom).filter((v): v is number => typeof v === "number"))
   );
-  const priceRows = await prisma.roomPrice.findMany({
+  const priceRows = await prisma.extranet_RoomPrice.findMany({
     where: {
       roomTypeId: { in: roomTypeIds },
-      date: { gte: new Date(startISO + "T00:00:00Z"), lt: new Date(endISO + "T00:00:00Z") },
-      OR: planIds.length
-        ? [{ ratePlanId: { in: planIds } }, { ratePlanId: null }]
-        : [{ ratePlanId: null }],
+      date: {
+        gte: new Date(startISO + "T00:00:00Z"),
+        lt: new Date(endISO + "T00:00:00Z"),
+      },
+      // In extranet_RoomPrice, ratePlanId is NOT nullable.
+      // If we have preferred planIds, filter by those; otherwise, allow all.
+      ...(planIds.length
+        ? { ratePlanId: { in: planIds } }
+        : {}),
     },
     select: { roomTypeId: true, ratePlanId: true, date: true, price: true },
   });
@@ -302,10 +329,10 @@ export async function getSearchListFromDb(_params: {
   start: string; end: string; ratePlanId?: number | undefined;
 }): Promise<{ properties: Array<any> }> {
   // Load partners with photos
-  const partners = await prisma.partner.findMany({
+  const partners = await prisma.extranet_Partner.findMany({
     where: { id: { in: [2] } }, // keep only propertyId=2
     include: {
-      photos: { orderBy: { sortOrder: "asc" } },
+      PropertyPhoto: { orderBy: { sortOrder: "asc" } },
     },
     orderBy: { id: "asc" },
   });
@@ -324,7 +351,7 @@ export async function getSearchListFromDb(_params: {
   const properties = partners.map((p) => {
     const profile = profileByPartnerId.get(p.id);
 
-    const images = (p.photos ?? []).map((ph: any) => ({
+    const images = (p.PropertyPhoto ?? []).map((ph: any) => ({
       url: ph.url,
       alt: ph.alt ?? "",
       isCover: !!ph.isCover,
