@@ -159,34 +159,43 @@ transform: translateY(-1px);
 
       <div class="spacer"></div>
 
-      <!-- Upload + assign row -->
-      <div id="photos-toolbar" class="row photo-upload-row">
-        <!-- Left: file chooser -->
-        <div class="photo-upload-file">
+      <!-- Upload + assign + upload button row -->
+      <div id="photos-toolbar" class="row photo-upload-row" style="align-items:flex-start; gap:20px;">
+
+        <!-- LEFT: Choose File -->
+        <div class="photo-upload-file" style="flex:1;">
           <input
             id="file"
             type="file"
             accept="image/jpeg,image/png,image/webp"
             class="input"
+            style="height:44px;"
           />
         </div>
 
-        <!-- Right: assign-to select + helper text -->
-        <div class="photo-upload-assign">
-          <label for="roomSelect" class="photo-assign-label muted">
-            Assign to:
-          </label>
-          <select id="roomSelect" class="input">
+        <!-- MIDDLE: Assign-to -->
+        <div class="photo-upload-assign" style="flex:1; display:flex; flex-direction:column;">
+          <label for="roomSelect" class="muted" style="margin-bottom:4px;">Assign to:</label>
+
+          <select id="roomSelect" class="input" style="height:44px;">
             <option value="">Property (no room)</option>
           </select>
-          <span class="muted">New uploads will be assigned here.</span>
-        </div>
-      </div>
 
-      <!-- Second row: upload button + auth hint -->
-      <div class="row photo-upload-actions">
-        <button id="uploadBtn" class="btn">Upload Photo</button>
-        <span class="muted">Your current session is used for auth.</span>
+          <span class="muted" style="margin-top:4px; font-size:12px;">
+            New uploads will be assigned here.
+          </span>
+        </div>
+
+        <!-- RIGHT: Upload button -->
+        <div class="photo-upload-btn" style="display:flex; flex-direction:column; justify-content:flex-start;">
+          <button id="uploadBtn" class="btn" style="height:44px; white-space:nowrap;">
+            Upload Photo
+          </button>
+          <span class="muted" style="margin-top:4px; font-size:12px;">
+            Your current session is used for auth.
+          </span>
+        </div>
+
       </div>
 
       <div class="spacer"></div>
