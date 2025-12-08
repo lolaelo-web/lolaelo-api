@@ -14,7 +14,7 @@ import { Client as PgClient } from "pg";
 
 const router = Router();
 
-/** Helper: map PropertyProfile.id -> Partner.id (prefer extranet over public) */
+/** Helper: map PropertyProfile.id -> Partner.id (prefer extranet, no more public as an option) */
 async function mapProfileToPartner(ids: number[]): Promise<Map<number, number>> {
   const out = new Map<number, number>();
   if (!ids.length) return out;
@@ -32,11 +32,9 @@ async function mapProfileToPartner(ids: number[]): Promise<Map<number, number>> 
   const { rows } = await pg.query(
     `
     WITH ids AS (SELECT unnest($1::bigint[]) AS id)
-    SELECT 'extranet' AS schema, pp.id AS profile_id, pp."partnerId" AS partner_id
-    FROM extranet."PropertyProfile" pp JOIN ids ON ids.id = pp.id
-    UNION ALL
-    SELECT 'public' AS schema, pp.id AS profile_id, pp."partnerId" AS partner_id
-    FROM public."PropertyProfile"   pp JOIN ids ON ids.id = pp.id
+    SELECT pp.id AS profile_id, pp."partnerId" AS partner_id
+    FROM extranet."PropertyProfile" pp
+    JOIN ids ON ids.id = pp.id
     `,
     [Array.from(new Set(ids))]
   );
@@ -46,8 +44,7 @@ async function mapProfileToPartner(ids: number[]): Promise<Map<number, number>> 
     const from = Number(r.profile_id);
     const to = Number(r.partner_id);
     if (!Number.isFinite(from) || !Number.isFinite(to)) continue;
-    const existing = out.get(from);
-    if (existing == null || String(r.schema) === "extranet") out.set(from, to);
+    if (!out.has(from)) out.set(from, to);
   }
 
   await pg.end();
@@ -201,17 +198,18 @@ router.get("/search", async (req: Request, res: Response) => {
 
         const { rows: ph } = await pgp.query(
           `
-          SELECT pid, url, is_cover, "createdAt", id, src
-          FROM (
-            SELECT "partnerId" AS pid, url, COALESCE("isCover", FALSE) AS is_cover, "createdAt", id, 'public'   AS src
-            FROM public."PropertyPhoto"
-            WHERE "partnerId" = ANY($1::bigint[])
-            UNION ALL
-            SELECT "partnerId" AS pid, url, COALESCE("isCover", FALSE) AS is_cover, "createdAt", id, 'extranet' AS src
-            FROM public."PropertyPhoto"
-            WHERE "partnerId" = ANY($1::bigint[])
-          ) u
-          ORDER BY is_cover DESC NULLS LAST, "createdAt" DESC NULLS LAST, id DESC
+          SELECT 
+            "partnerId" AS pid,
+            url,
+            COALESCE("isCover", FALSE) AS is_cover,
+            "createdAt",
+            id
+          FROM extranet."PropertyPhoto"
+          WHERE "partnerId" = ANY($1::bigint[])
+          ORDER BY 
+            is_cover DESC NULLS LAST,
+            "createdAt" DESC NULLS LAST,
+            id DESC
           `,
           [pidList]
         );
@@ -274,7 +272,7 @@ router.get("/search", async (req: Request, res: Response) => {
               SELECT DISTINCT ON (p."partnerId")
                     p."partnerId" AS pid,
                     p.url
-              FROM public."PropertyPhoto" p
+              FROM extranet."PropertyPhoto" p
               WHERE p."partnerId" = ANY($1::bigint[])
               ORDER BY p."partnerId", p."isCover" DESC NULLS LAST, p."createdAt" DESC NULLS LAST, p.id DESC
               `,
@@ -413,17 +411,18 @@ router.get("/search", async (req: Request, res: Response) => {
 
         const { rows: ph2 } = await pgp.query(
           `
-          SELECT pid, url, is_cover
-          FROM (
-            SELECT "partnerId" AS pid, url, COALESCE("isCover", FALSE) AS is_cover, "createdAt", id
-            FROM public."PropertyPhoto"
-            WHERE "partnerId" = ANY($1::bigint[])
-            UNION ALL
-            SELECT "partnerId" AS pid, url, COALESCE("isCover", FALSE) AS is_cover, "createdAt", id
-            FROM public."PropertyPhoto"
-            WHERE "partnerId" = ANY($1::bigint[])
-          ) u
-          ORDER BY is_cover DESC NULLS LAST, "createdAt" DESC NULLS LAST, id DESC
+          SELECT 
+            "partnerId" AS pid,
+            url,
+            COALESCE("isCover", FALSE) AS is_cover,
+            "createdAt",
+            id
+          FROM extranet."PropertyPhoto"
+          WHERE "partnerId" = ANY($1::bigint[])
+          ORDER BY 
+            is_cover DESC NULLS LAST,
+            "createdAt" DESC NULLS LAST,
+            id DESC
           `,
           [pidList2]
         );
@@ -699,19 +698,19 @@ router.get("/details", async (req: Request, res: Response) => {
       });
       await pg.connect();
 
-      // Prefer extranet profile; fallback to public.
+      // Prefer extranet profile; no more fallback. 
       // Photos: all property-level photos (roomTypeId IS NULL), cover first.
       const q = `
         WITH prof AS (
-          SELECT id, name, city, country FROM extranet."PropertyProfile" WHERE "partnerId" = $1
-          UNION ALL
-          SELECT id, name, city, country FROM public."PropertyProfile"   WHERE "partnerId" = $1
+          SELECT id, name, city, country
+          FROM extranet."PropertyProfile"
+          WHERE "partnerId" = $1
           LIMIT 1
         ),
         -- Property-level photos (no room) for cover choice
         phot AS (
           SELECT url
-          FROM public."PropertyPhoto"
+          FROM extranet."PropertyPhoto"
           WHERE "partnerId" = $1
             AND "roomTypeId" IS NULL
           ORDER BY "isCover" DESC NULLS LAST, "createdAt" DESC NULLS LAST, id DESC
@@ -719,7 +718,7 @@ router.get("/details", async (req: Request, res: Response) => {
         -- All photos (property + room-level) for the main carousel
         phot_all AS (
           SELECT url
-          FROM public."PropertyPhoto"
+          FROM extranet."PropertyPhoto"
           WHERE "partnerId" = $1
           ORDER BY "isCover" DESC NULLS LAST, "createdAt" DESC NULLS LAST, id DESC
         )
@@ -1226,7 +1225,7 @@ router.get("/details", async (req: Request, res: Response) => {
             "width",
             "height",
             "key"
-          FROM public."PropertyPhoto"
+          FROM extranet."PropertyPhoto"
           WHERE "partnerId" = $1
             AND "roomTypeId" = ANY($2::int[])
           ORDER BY 

@@ -10,10 +10,10 @@ const pool = new Pool({
   ssl: { rejectUnauthorized: false },
 });
 
-// --- DB objects ---
+// --- DB objects --- no more public schema ---
 const TBL_PROFILE = `extranet."PropertyProfile"`;
-const TBL_DOC     = `public."PropertyDocument"`;
-const TBL_PHOTO   = `public."PropertyPhoto"`;
+const TBL_DOC     = `extranet."PropertyDocument"`;
+const TBL_PHOTO   = `extranet."PropertyPhoto"`;
 const TBL_ADDON   = `extranet."AddOn"`;
 
 // --- S3 helpers (for document/photo hard-delete) ---
@@ -280,7 +280,7 @@ if (process.env.NODE_ENV !== "production") {
     }
   });
 
-  // Dual-table auth probe for quick diagnosis
+  // Auth probe for quick diagnosis (extranet-only)
   r.get("/__probe_auth", async (req, res) => {
     try {
       const auth = String(req.headers["authorization"] || "");
@@ -289,27 +289,18 @@ if (process.env.NODE_ENV !== "production") {
       const token = m[1].trim();
       const tok8 = token.slice(0, 8);
 
-      const qPub = `SELECT "id","partnerId","token","expiresAt","revokedAt"
-                    FROM public."ExtranetSession" WHERE "token" = $1 LIMIT 1`;
-      const r1 = await pool.query(qPub, [token]);
-
-      let tbl = `public."ExtranetSession"`;
-      let row: any = r1.rows?.[0];
-
-      if (!row) {
-        const qExt = `SELECT "id","partnerId","token","expiresAt","revokedAt"
-                      FROM extranet."ExtranetSession" WHERE "token" = $1 LIMIT 1`;
-        const r2 = await pool.query(qExt, [token]);
-        row = r2.rows?.[0];
-        tbl = `extranet."ExtranetSession"`;
-      }
+      const sessionTbl = `extranet."ExtranetSession"`;
+      const qExt = `SELECT "id","partnerId","token","expiresAt","revokedAt"
+                    FROM extranet."ExtranetSession" WHERE "token" = $1 LIMIT 1`;
+      const r1 = await pool.query(qExt, [token]);
+      const row: any = r1.rows?.[0];
 
       if (!row) {
         return res.status(200).json({
           ok: false,
           why: "no-row",
           tokenPreview: tok8,
-          checked: [`public."ExtranetSession"`, `extranet."ExtranetSession"`],
+          checked: [sessionTbl],
         });
       }
 
@@ -319,7 +310,7 @@ if (process.env.NODE_ENV !== "production") {
       return res.status(200).json({
         ok: !expired && !revoked,
         tokenPreview: tok8,
-        sessionTbl: tbl,
+        sessionTbl,
         row,
         checks: { expired, revoked },
       });
@@ -1058,7 +1049,7 @@ r.get("/documents/types", async (_req, res) => {
       FROM pg_type t
       JOIN pg_enum e ON t.oid = e.enumtypid
       JOIN pg_namespace n ON n.oid = t.typnamespace
-      WHERE n.nspname = 'public' AND t.typname = 'DocumentType'
+      WHERE n.nspname = 'extranet' AND t.typname = 'DocumentType'
       ORDER BY e.enumsortorder
     `);
     const values = rows.map(r => r.value);

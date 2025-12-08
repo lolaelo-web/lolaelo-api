@@ -94,7 +94,7 @@ export async function getProfilesFromDb(propertyIds: number[]): Promise<Record<n
 
   const out: Record<number, { name?: string; city?: string; country?: string; images: string[] }> = {};
 
-  // 1) Profiles from public.PropertyProfile (keyed by partnerId)
+  // 1) Profiles from extranet.PropertyProfile (keyed by partnerId)
   const profiles = await prisma.propertyProfile.findMany({
     where: { partnerId: { in: propertyIds } },
     select: { partnerId: true, name: true, city: true, country: true },
@@ -110,7 +110,7 @@ export async function getProfilesFromDb(propertyIds: number[]): Promise<Record<n
     };
   }
 
-  // 2) Photos from public.PropertyPhoto (cover first, then sortOrder, then id)
+  // 2) Photos from extranet.PropertyPhoto (cover first, then sortOrder, then id)
   const photos = await prisma.propertyPhoto.findMany({
     where: { partnerId: { in: propertyIds } },
     select: { partnerId: true, url: true, isCover: true, sortOrder: true, id: true },
