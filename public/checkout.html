@@ -985,21 +985,22 @@
                 Locked until previous step
               </div>
             </div>
+
             <div class="section-body hidden" data-section-body="3">
-              <!-- Add-ons block (traveler view; data to be wired in next steps) -->
-              <div class="addons-block">
-                <div class="addons-header">
-                  <div class="addons-title">Add-ons</div>
-                  <div class="addons-subtitle">
-                    Optional activities and extras selected by your hotel.
-                  </div>
-                </div>
-                <div id="addonsList" class="addons-list">
-                  <div class="muted" id="addonsEmptyMessage">
-                    No add-ons are available for this stay.
-                  </div>
+              <div class="field-row">
+                <div class="field-label">Add-ons</div>
+                <div class="field-value">
+                  Optional activities and extras selected by your hotel.
                 </div>
               </div>
+
+              <!-- Hook for dynamic rows -->
+              <div id="addonsList" class="addons-list"></div>
+
+              <!-- Default empty message; JS may move/override this -->
+              <p id="addonsEmptyMessage" class="muted">
+                No add-ons are available for this stay.
+              </p>
 
               <button class="btn-primary" type="button" data-confirm="3">
                 Confirm add-ons
@@ -1480,6 +1481,8 @@
         const data = await resp.json();
         const addons = Array.isArray(data.addons) ? data.addons : [];
         state.addonsConfig = addons;
+
+        console.log("[checkout] loadAddonsForProperty got addons", addons);
         renderAddons(addons);
       } catch (err) {
         console.error("Error loading add-ons", err);
