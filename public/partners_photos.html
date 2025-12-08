@@ -162,46 +162,62 @@ transform: translateY(-1px);
       <!-- Upload + assign + upload button row (single line) -->
       <div id="photos-toolbar"
           class="row photo-upload-row"
-          style="display:flex; align-items:center; gap:20px; flex-wrap:wrap;">
+          style="display:flex; align-items:flex-start; gap:20px; flex-wrap:wrap;">
 
         <!-- LEFT: Choose File -->
-        <div class="photo-upload-file" style="flex:0 0 auto;">
+        <div class="photo-upload-file"
+            style="flex:0 0 auto; display:flex; flex-direction:column;">
           <input
             id="file"
             type="file"
             accept="image/jpeg,image/png,image/webp"
             class="input"
-            style="height:44px; font-size:85%; padding-inline:10px;"
+            style="
+              height:44px;
+              font-size:85%;
+              padding-inline:10px;
+              display:flex;
+              align-items:center;
+            "
           />
         </div>
 
-        <!-- MIDDLE: Assign-to + hint, all on one line -->
+        <!-- MIDDLE: Assign-to block -->
         <div class="photo-upload-assign"
-            style="flex:1; display:flex; align-items:center; gap:8px; min-width:0;">
-          <label for="roomSelect"
-                class="muted"
-                style="margin:0; white-space:nowrap;">
-            Assign to:
-          </label>
-          <select id="roomSelect"
-                  class="input"
-                  style="height:44px; flex:1; min-width:0;">
-            <option value="">Property (no room)</option>
-          </select>
+            style="flex:1; display:flex; flex-direction:column; min-width:260px;">
+            
+          <!-- Row: label + dropdown -->
+          <div style="display:flex; align-items:center; gap:8px;">
+            <label for="roomSelect"
+                  class="muted"
+                  style="margin:0; white-space:nowrap;">
+              Assign to:
+            </label>
+            <select id="roomSelect"
+                    class="input"
+                    style="height:44px; flex:1; min-width:0;">
+              <option value="">Property (no room)</option>
+            </select>
+          </div>
+
+          <!-- Hint UNDER the dropdown -->
           <span class="muted"
-                style="font-size:12px; white-space:nowrap;">
+                style="font-size:12px; margin-top:4px; white-space:nowrap;">
             New uploads will be assigned here.
           </span>
         </div>
 
-        <!-- RIGHT: Upload button + hint, on same line -->
+        <!-- RIGHT: Upload button block -->
         <div class="photo-upload-btn"
-            style="display:flex; align-items:center; gap:8px; flex:0 0 auto;">
+            style="display:flex; flex-direction:column; align-items:flex-start; flex:0 0 auto;">
+          
           <button id="uploadBtn"
                   class="btn"
-                  style="height:44px; white-space:nowrap;">
+                  style="height:44px; white-space:nowrap; margin-bottom:4px;">
             Upload Photo
           </button>
+
+          <!-- Hint UNDER the button -->
           <span class="muted"
                 style="font-size:12px; white-space:nowrap;">
             Your current session is used for auth.
