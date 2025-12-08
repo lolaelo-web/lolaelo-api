@@ -2923,35 +2923,43 @@
 
             const primary = sortedTop[0] || { id:1 };
 
-            const topLink = cat.querySelector('.btn-select');
-            if (topLink){
+            const topLink = cat.querySelector(".btn-select");
+            if (topLink) {
               const { propertyName, propertyLocation } = getCheckoutMeta();
               const roomName  = getRoomNameForCheckout(rid);
-              const planLabel = primary && (primary.name || primary.code || '');
+              const planLabel = primary && (primary.name || primary.code || "");
 
-              // Stronger source of truth for propertyId:
-              // 1) prefer backend payload.id/partnerId/propertyId
-              // 2) fall back to query-derived propertyId (existing var)
-              const payload = window.__detailsPayload || {};
-              const payloadPid =
+              // Use backend payload as the canonical source for partner/property id
+              const payload   = window.__detailsPayload || {};
+              const payloadId =
                 (payload && (payload.partnerId ?? payload.propertyId ?? payload.id)) || "";
-              const checkoutPropertyId = payloadPid || propertyId || "";
+
+              // Fallback to the query-derived propertyId variable if needed
+              const checkoutPropertyId = String(payloadId || propertyId || "").trim();
+
+              console.log("[details→checkout] building href", {
+                payload,
+                propertyIdFromQuery: propertyId,
+                checkoutPropertyId,
+                roomId: rid,
+                ratePlanId: primary && primary.id
+              });
 
               const href =
                 `/checkout.html?propertyId=${encodeURIComponent(checkoutPropertyId)}` +
                 `&propertyName=${encodeURIComponent(propertyName)}` +
                 (propertyLocation
                   ? `&propertyLocation=${encodeURIComponent(propertyLocation)}`
-                  : '') +
+                  : "") +
                 `&roomId=${encodeURIComponent(rid)}` +
                 `&roomName=${encodeURIComponent(roomName)}` +
                 `&start=${encodeURIComponent(start)}` +
                 `&end=${encodeURIComponent(end)}` +
                 `&ratePlanId=${encodeURIComponent(primary.id)}` +
-                (planLabel ? `&planLabel=${encodeURIComponent(planLabel)}` : '') +
+                (planLabel ? `&planLabel=${encodeURIComponent(planLabel)}` : "") +
                 `${plansQS}`;
 
-              topLink.setAttribute('href', href);
+              topLink.setAttribute("href", href);
             }
 
             // Keep the toggle visible on details page as long as there is at least one plan.
