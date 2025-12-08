@@ -3236,9 +3236,22 @@
               payload.id ??
               "";
 
-            const checkoutPropertyId = String(
-              payloadPid || propertyIdFromQuery || ""
-            ).trim();
+            const checkoutPropertyId =
+              (Number.isFinite(propertyIdFromQuery) && propertyIdFromQuery > 0
+                ? String(propertyIdFromQuery)
+                : "") ||
+              (Number.isFinite(partnerId) && partnerId > 0
+                ? String(partnerId)
+                : "");
+
+            // NEW: remember last propertyId for checkout fallback
+            if (checkoutPropertyId) {
+              try {
+                localStorage.setItem("rateplan.lastPropertyId", checkoutPropertyId);
+              } catch (_) {
+                // no-op
+              }
+            }
 
             const cat = a.closest(".roomcat");
             const rid = cat ? cat.getAttribute("data-room-id") || "" : "";

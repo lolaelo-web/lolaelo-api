@@ -1290,8 +1290,21 @@
     function parseQuery() {
       const params = new URLSearchParams(window.location.search);
 
+      // Raw URL value
+      const fromUrl = params.get("propertyId") || "";
+
+      // Fallback from localStorage
+      let fromStorage = "";
+      try {
+        fromStorage = localStorage.getItem("rateplan.lastPropertyId") || "";
+      } catch (_) {
+        fromStorage = "";
+      }
+
+      const propertyId = fromUrl || fromStorage;
+
       return {
-        propertyId: params.get("propertyId") || "",
+        propertyId,
         roomId: params.get("roomId") || "",
         start: params.get("start") || "",
         end: params.get("end") || "",
@@ -1299,12 +1312,12 @@
         // IDs
         ratePlanId: params.get("ratePlanId") || params.get("plan") || "",
 
-        // Optional name fields (can be populated from catalog_details)
+        // Optional name fields
         propertyName: params.get("propertyName") || "",
         propertyLocation: params.get("propertyLocation") || "",
         roomName: params.get("roomName") || "",
 
-        // Rate plan display name – prefer explicit name, fall back to planLabel
+        // Rate plan display name
         ratePlanName:
           params.get("ratePlanName") ||
           params.get("planLabel") ||
