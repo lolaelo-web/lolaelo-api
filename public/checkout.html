@@ -1735,63 +1735,65 @@
     }
 
     async function loadAddonsForProperty() {
-    // Try to recover propertyId from localStorage if missing/empty
-    if (!state.propertyId) {
+      // Always read from the URL first, then fall back to state
+      const urlParams = new URLSearchParams(location.search);
+      const pidFromUrl = urlParams.get("propertyId") || "";
+      const startFromUrl = urlParams.get("start") || "";
+      const endFromUrl = urlParams.get("end") || "";
+
+      const propertyId = pidFromUrl || state.propertyId || "";
+      const start = startFromUrl || state.start || "";
+      const end = endFromUrl || state.end || "";
+
+      if (!propertyId) {
+        console.log(
+          "[checkout] loadAddonsForProperty skipped – no propertyId in URL or state",
+          location.search
+        );
+        state.addonsConfig = [];
+        renderAddons([]);
+        return;
+      }
+
+      // Keep state in sync so other code can rely on it
+      state.propertyId = propertyId;
+
       try {
-        const stored = window.localStorage.getItem("lolaelo_checkout_propertyId");
-        if (stored && stored.trim()) {
-          state.propertyId = stored.trim();
-          console.log(
-            "[checkout] loadAddonsForProperty recovered propertyId from storage",
-            state.propertyId
+        const params = new URLSearchParams();
+        params.set("propertyId", propertyId);
+        if (start) params.set("start", start);
+        if (end) params.set("end", end);
+
+        const url = "/catalog/details?" + params.toString();
+        console.log("[checkout] loadAddonsForProperty fetching", url);
+
+        const resp = await fetch(url, {
+          method: "GET",
+          headers: { Accept: "application/json" }
+        });
+
+        if (!resp.ok) {
+          console.warn(
+            "[checkout] /catalog/details for addons failed",
+            resp.status
           );
+          state.addonsConfig = [];
+          renderAddons([]);
+          return;
         }
-      } catch (e) {
-        console.warn(
-          "[checkout] loadAddonsForProperty localStorage read failed",
-          e
-        );
+
+        const data = await resp.json();
+        const addons = Array.isArray(data.addons) ? data.addons : [];
+        state.addonsConfig = addons;
+
+        console.log("[checkout] loadAddonsForProperty got addons", addons);
+        renderAddons(addons);
+      } catch (err) {
+        console.error("[checkout] loadAddonsForProperty error", err);
+        state.addonsConfig = [];
+        renderAddons([]);
       }
     }
-
-    if (!state.propertyId) {
-      console.log(
-        "[checkout] loadAddonsForProperty skipped – still no propertyId"
-      );
-      state.addonsConfig = [];
-      renderAddons([]);
-      return;
-    }
-
-    try {
-      const params = new URLSearchParams();
-      params.set("propertyId", state.propertyId);
-      if (state.start) params.set("start", state.start);
-      if (state.end) params.set("end", state.end);
-
-      const resp = await fetch("/catalog/details?" + params.toString(), {
-        method: "GET",
-        headers: { Accept: "application/json" }
-      });
-
-      if (!resp.ok) {
-        throw new Error(
-          "Failed to load add-ons for property " + state.propertyId
-        );
-      }
-
-      const data = await resp.json();
-      const addons = Array.isArray(data.addons) ? data.addons : [];
-      state.addonsConfig = addons;
-
-      console.log("[checkout] loadAddonsForProperty got addons", addons);
-      renderAddons(addons);
-    } catch (err) {
-      console.error("Error loading add-ons", err);
-      state.addonsConfig = [];
-      renderAddons([]);
-    }
-  }
 
     async function loadAddonsConfig() {
       if (!state.propertyId || !state.start || !state.end) {
