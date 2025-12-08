@@ -2923,23 +2923,23 @@
 
             const primary = sortedTop[0] || { id:1 };
 
-            const topLink = cat.querySelector(".btn-select");
+          const topLink = cat.querySelector('.btn-select');
             if (topLink) {
               const { propertyName, propertyLocation } = getCheckoutMeta();
               const roomName  = getRoomNameForCheckout(rid);
               const planLabel = primary && (primary.name || primary.code || "");
 
-              // Use backend payload as the canonical source for partner/property id
-              const payload   = window.__detailsPayload || {};
-              const payloadId =
+              // Prefer the canonical partnerId from the details payload,
+              // fall back to the propertyId from the query string.
+              const payload = window.__detailsPayload || {};
+              const payloadPid =
                 (payload && (payload.partnerId ?? payload.propertyId ?? payload.id)) || "";
-
-              // Fallback to the query-derived propertyId variable if needed
-              const checkoutPropertyId = String(payloadId || propertyId || "").trim();
+              const propertyIdFromQuery = propertyId;
+              const checkoutPropertyId = payloadPid || propertyIdFromQuery || "";
 
               console.log("[details→checkout] building href", {
                 payload,
-                propertyIdFromQuery: propertyId,
+                propertyIdFromQuery,
                 checkoutPropertyId,
                 roomId: rid,
                 ratePlanId: primary && primary.id
@@ -2947,12 +2947,12 @@
 
               const href =
                 `/checkout.html?propertyId=${encodeURIComponent(checkoutPropertyId)}` +
-                `&propertyName=${encodeURIComponent(propertyName)}` +
+                `&propertyName=${encodeURIComponent(propertyName || "")}` +
                 (propertyLocation
                   ? `&propertyLocation=${encodeURIComponent(propertyLocation)}`
                   : "") +
                 `&roomId=${encodeURIComponent(rid)}` +
-                `&roomName=${encodeURIComponent(roomName)}` +
+                `&roomName=${encodeURIComponent(roomName || "")}` +
                 `&start=${encodeURIComponent(start)}` +
                 `&end=${encodeURIComponent(end)}` +
                 `&ratePlanId=${encodeURIComponent(primary.id)}` +
