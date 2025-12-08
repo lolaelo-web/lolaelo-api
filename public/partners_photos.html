@@ -159,22 +159,34 @@ transform: translateY(-1px);
 
       <div class="spacer"></div>
 
-      <!-- Upload row -->
-      <div id="photos-toolbar" class="row">
-        <input id="file" type="file" accept="image/jpeg,image/png,image/webp" class="input" />
-        <button id="uploadBtn" class="btn">Upload Photo</button>
-        <span class="muted">Your current session is used for auth.</span>
+      <!-- Upload + assign row -->
+      <div id="photos-toolbar" class="row photo-upload-row">
+        <!-- Left: file chooser -->
+        <div class="photo-upload-file">
+          <input
+            id="file"
+            type="file"
+            accept="image/jpeg,image/png,image/webp"
+            class="input"
+          />
+        </div>
+
+        <!-- Right: assign-to select + helper text -->
+        <div class="photo-upload-assign">
+          <label for="roomSelect" class="photo-assign-label muted">
+            Assign to:
+          </label>
+          <select id="roomSelect" class="input">
+            <option value="">Property (no room)</option>
+          </select>
+          <span class="muted">New uploads will be assigned here.</span>
+        </div>
       </div>
 
-      <div class="spacer"></div>
-
-      <!-- Room filter -->
-      <div id="room-filter" class="row">
-        <label for="roomSelect" class="muted">Assign to:</label>
-        <select id="roomSelect" class="input">
-          <option value="">Property (no room)</option>
-        </select>
-        <span class="muted">New uploads will be assigned here.</span>
+      <!-- Second row: upload button + auth hint -->
+      <div class="row photo-upload-actions">
+        <button id="uploadBtn" class="btn">Upload Photo</button>
+        <span class="muted">Your current session is used for auth.</span>
       </div>
 
       <div class="spacer"></div>
@@ -183,6 +195,7 @@ transform: translateY(-1px);
       <div id="grid" class="grid" aria-live="polite"></div>
     </div>
   </div>
+</body>
 
 <script>
 const BASE = 'https://lolaelo-api.onrender.com';
