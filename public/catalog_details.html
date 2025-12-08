@@ -3188,7 +3188,7 @@
           }
         });
 
-        // Persist chosen plan and ensure &plans= follows the link
+        // Persist chosen plan and ensure href has canonical params (+ &plans=)
         listEl.addEventListener('click', (e) => {
           const a = e.target.closest('.planrow .btn-select, .roomcat > .btn-select');
           if (!a) return;
@@ -3196,26 +3196,109 @@
           try {
             // 1) Persist last clicked plan id (for top "Select" and subrows)
             const row = e.target.closest('.planrow');
-            const pid = row ? Number(row.getAttribute('data-plan-id')) : null;
-            if (Number.isFinite(pid)) {
-              localStorage.setItem('rateplan.lastPlanId', String(pid));
+            let pid = row ? Number(row.getAttribute('data-plan-id')) : NaN;
+
+            if (!Number.isFinite(pid)) {
+              // Fallback: read from existing href if present
+              try {
+                const u = new URL(a.href || "/checkout.html", location.href);
+                pid = Number(u.searchParams.get("ratePlanId"));
+              } catch (_) {}
             }
 
-            // 2) Append &plans=<csv> from localStorage if present
+            if (Number.isFinite(pid)) {
+              localStorage.setItem("rateplan.lastPlanId", String(pid));
+            }
+
+            // 2) Read selectedIds so we can preserve &plans=<csv>
             const sel = (() => {
               try {
-                const arr = JSON.parse(localStorage.getItem('rateplan.selectedIds') || '[]');
+                const raw = localStorage.getItem("rateplan.selectedIds") || "[]";
+                const arr = JSON.parse(raw);
                 return Array.isArray(arr)
                   ? [...new Set(arr.map(Number).filter(Number.isFinite))]
                   : [];
-              } catch { return []; }
+              } catch {
+                return [];
+              }
             })();
 
-            if (sel.length) {
-              const u = new URL(a.href, location.origin);
-              u.searchParams.set('plans', sel.join(','));
-              a.setAttribute('href', u.toString());
+            // 3) Build authoritative propertyId + other params
+            const payload = window.__detailsPayload || {};
+            const searchParams = new URLSearchParams(location.search);
+
+            const propertyIdFromQuery = Number(
+              searchParams.get("propertyId") || searchParams.get("id") || 0
+            );
+            const partnerId = Number(
+              payload.partnerId ?? payload.propertyId ?? payload.id ?? 0
+            );
+
+            const checkoutPropertyId =
+              (Number.isFinite(propertyIdFromQuery) && propertyIdFromQuery > 0
+                ? String(propertyIdFromQuery)
+                : "") ||
+              (Number.isFinite(partnerId) && partnerId > 0
+                ? String(partnerId)
+                : "");
+
+            const cat = a.closest(".roomcat");
+            const rid = cat ? cat.getAttribute("data-room-id") || "" : "";
+
+            const meta =
+              typeof getCheckoutMeta === "function"
+                ? getCheckoutMeta()
+                : { propertyName: "", propertyLocation: "" };
+            const propertyName = meta.propertyName || "";
+            const propertyLocation = meta.propertyLocation || "";
+
+            const roomName =
+              typeof getRoomNameForCheckout === "function"
+                ? getRoomNameForCheckout(rid)
+                : "";
+
+            let planLabel = "";
+            if (row) {
+              const nameEl = row.querySelector(".planname");
+              if (nameEl && nameEl.textContent) {
+                planLabel = nameEl.textContent.trim();
+              }
             }
+
+            // 4) Rewrite the link href just before navigation
+            const url = new URL(a.href || "/checkout.html", location.href);
+
+            if (checkoutPropertyId) {
+              url.searchParams.set("propertyId", checkoutPropertyId);
+            }
+            if (propertyName) {
+              url.searchParams.set("propertyName", propertyName);
+            }
+            if (propertyLocation) {
+              url.searchParams.set("propertyLocation", propertyLocation);
+            }
+            if (rid) {
+              url.searchParams.set("roomId", rid);
+            }
+            if (roomName) {
+              url.searchParams.set("roomName", roomName);
+            }
+            if (Number.isFinite(pid)) {
+              url.searchParams.set("ratePlanId", String(pid));
+            }
+            if (planLabel) {
+              url.searchParams.set("planLabel", planLabel);
+            }
+            if (sel.length) {
+              url.searchParams.set("plans", sel.join(","));
+            }
+
+            a.setAttribute("href", url.toString());
+
+            console.log("[details→checkout] click rewrite", {
+              checkoutPropertyId,
+              href: url.toString()
+            });
           } catch (_) {}
         });
 
