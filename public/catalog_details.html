@@ -3188,7 +3188,7 @@
           }
         });
 
-        // Persist chosen plan and ensure href has canonical params (+ &plans=)
+        // Persist chosen plan and ensure href has canonical params (+ propertyId + &plans=)
         listEl.addEventListener('click', (e) => {
           const a = e.target.closest('.planrow .btn-select, .roomcat > .btn-select');
           if (!a) return;
@@ -3227,20 +3227,18 @@
             const payload = window.__detailsPayload || {};
             const searchParams = new URLSearchParams(location.search);
 
-            const propertyIdFromQuery = Number(
-              searchParams.get("propertyId") || searchParams.get("id") || 0
-            );
-            const partnerId = Number(
-              payload.partnerId ?? payload.propertyId ?? payload.id ?? 0
-            );
+            const propertyIdFromQuery =
+              searchParams.get("propertyId") || searchParams.get("id") || "";
 
-            const checkoutPropertyId =
-              (Number.isFinite(propertyIdFromQuery) && propertyIdFromQuery > 0
-                ? String(propertyIdFromQuery)
-                : "") ||
-              (Number.isFinite(partnerId) && partnerId > 0
-                ? String(partnerId)
-                : "");
+            const payloadPid =
+              payload.partnerId ??
+              payload.propertyId ??
+              payload.id ??
+              "";
+
+            const checkoutPropertyId = String(
+              payloadPid || propertyIdFromQuery || ""
+            ).trim();
 
             const cat = a.closest(".roomcat");
             const rid = cat ? cat.getAttribute("data-room-id") || "" : "";
@@ -3296,10 +3294,14 @@
             a.setAttribute("href", url.toString());
 
             console.log("[details→checkout] click rewrite", {
+              payload,
+              propertyIdFromQuery,
               checkoutPropertyId,
-              href: url.toString()
+              href: url.toString(),
             });
-          } catch (_) {}
+          } catch (err) {
+            console.warn("[details→checkout] click handler failed", err);
+          }
         });
 
         /* Repaint sub-rows if plans changed while away (hub -> back) — delegate to partner hydration */

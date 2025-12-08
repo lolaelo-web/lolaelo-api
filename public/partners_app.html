@@ -1192,7 +1192,7 @@
                   class="btn secondary"
                   id="addonsDiscardBtn"
                   onclick="discardAddonsModal()">
-            Discard
+            Cancel
           </button>
           <button type="button"
                   class="btn"
@@ -1502,14 +1502,12 @@
     })();
   }
 
-  function discardAddonsModal() {
-
-    // Throw away all in-memory rows for this session
-    addonsSessionRows = [];
-    resetAddonsTableFromState();
-    updateAddonsButtonLabel();
-    closeAddonsModal();
-  }
+function discardAddonsModal() {
+  // Do NOT touch addonsSessionRows.
+  // Just restore the table to the last saved snapshot and close.
+  resetAddonsTableFromState();
+  closeAddonsModal();
+}
 
   // Initialize add-ons label on first load
   updateAddonsButtonLabel();
