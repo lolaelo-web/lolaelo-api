@@ -340,20 +340,35 @@
       flex-direction: column;
     }
 
-    .room-modal-close{
-      position: absolute;
-      top: 10px;
-      right: 16px;
-      border-radius: 999px;
-      padding: 4px 14px;
-      border: 1px solid rgba(148,163,184,0.55);
-      background: linear-gradient(135deg, #ffffff, #f3f4f6);
-      color: #111827;
-      font-size: 12px;
-      font-weight: 500;
-      line-height: 1.2;
-      cursor: pointer;
-      box-shadow: 0 2px 8px rgba(15,23,42,0.25);
+    .room-modal-close {
+        position: absolute;
+        top: 12px;
+        right: 12px;
+
+        /* Make the background match the date-card outline style */
+        background: #FFFFFF;
+        border: 1px solid #E5E7EB;
+
+        /* Proper sizing for text instead of the tiny X-circle */
+        padding: 6px 14px; 
+        border-radius: 8px;
+
+        font-size: 14px;
+        color: #0F1C2E;
+
+        cursor: pointer;
+        z-index: 50;
+
+        display: flex;
+        align-items: center;
+        justify-content: center;
+
+        box-shadow: 0 4px 12px rgba(0,0,0,0.10);
+        transition: background 0.15s ease;
+    }
+
+    .room-modal-close:hover {
+        background: #F3F4F6; /* subtle gray hover */
     }
 
     .room-modal-body{
@@ -1035,7 +1050,7 @@
       border-radius:14px;
 
       background:#FFFFFF;              /* white panel */
-      border:1px solid var(--accent);  /* teal outline */
+      border:1px solid #E5E7EB;
       color:#0F1C2E;                   /* deep navy text */
 
       box-shadow:0 10px 30px rgba(15,23,42,0.12);

@@ -1339,6 +1339,86 @@ router.get("/details", async (req: Request, res: Response) => {
       req.app?.get("logger")?.warn?.({ err }, "details.currency-backfill failed");
     }
 
+    // Build checkoutQuote (total + nightly breakdown) for checkout.html
+    try {
+      const roomsArr = Array.isArray(base?.rooms) ? (base.rooms as any[]) : [];
+      if (roomsArr.length) {
+        // Try to honor an explicit roomId if the caller provides one
+        const roomIdParam = req.query.roomId ? Number(req.query.roomId) : undefined;
+        let chosen: any = null;
+
+        if (Number.isFinite(roomIdParam as any)) {
+          const rid = Number(roomIdParam);
+          chosen =
+            roomsArr.find((r: any) => {
+              const rtId = Number(
+                (r as any).roomTypeId ?? (r as any).id
+              );
+              return Number.isFinite(rtId) && rtId === rid;
+            }) || null;
+        }
+
+        // Fallback: first room in the list
+        if (!chosen) {
+          chosen = roomsArr[0];
+        }
+
+        const daily = Array.isArray((chosen as any)?.daily)
+          ? ((chosen as any).daily as any[])
+          : [];
+
+        const msPerDay = 24 * 60 * 60 * 1000;
+        const startDate = new Date(`${start}T00:00:00Z`);
+        const endDate = new Date(`${end}T00:00:00Z`);
+        const nights: { date: string; amount: number }[] = [];
+
+        for (
+          let t = startDate.getTime();
+          t < endDate.getTime();
+          t += msPerDay
+        ) {
+          const iso = new Date(t).toISOString().slice(0, 10);
+          const rec = daily.find((d: any) => d && d.date === iso);
+          if (!rec) continue;
+
+          const val = rec.price != null ? Number(rec.price) : NaN;
+          if (!Number.isFinite(val) || val <= 0) continue;
+
+          nights.push({ date: iso, amount: val });
+        }
+
+        const total = nights.reduce((sum, n) => sum + n.amount, 0);
+
+        if (nights.length && Number.isFinite(total) && total > 0) {
+          // Pick currency from daily rows when available, otherwise fall back
+          let curCode: string | null = null;
+          const withCur = daily.find(
+            (d: any) => d && typeof d.currency === "string" && d.currency
+          );
+          if (withCur) {
+            curCode = String(withCur.currency);
+          } else {
+            try {
+              curCode = await getCurrency();
+            } catch {
+              curCode = "USD";
+            }
+          }
+
+          (base as any).checkoutQuote = {
+            currency: curCode || "USD",
+            total,
+            nights,
+          };
+        }
+      }
+    } catch (e) {
+      req
+        .app
+        ?.get("logger")
+        ?.warn?.({ e, propertyId }, "details.checkoutQuote-build failed");
+    }
+
     console.log("[details] final", {
       propertyId,
       hasImages: Array.isArray(base?.images) && base.images.length > 0,
