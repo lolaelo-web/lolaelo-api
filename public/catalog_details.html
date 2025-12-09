@@ -2091,7 +2091,76 @@
 
         // 3) Room-level metadata (mirroring modal logic from room details)
         if (Array.isArray(j?.rooms)) {
-          for (const room of j.rooms) {
+          // Load room-info overrides from localStorage (same key used by room modal)
+          const ROOM_INFO_LS_KEY = "extranet_roomInfo_v1";
+          let roomInfoMap = {};
+          try {
+            const raw = localStorage.getItem(ROOM_INFO_LS_KEY);
+            if (raw) {
+              const obj = JSON.parse(raw);
+              if (obj && typeof obj === "object") {
+                roomInfoMap = obj;
+              }
+            }
+          } catch (_) {}
+
+          const enrichRoom = (room) => {
+            if (!room) return room;
+            try {
+              const rid = String(
+                room.roomTypeId ?? room.typeId ?? room.id ?? room.roomId ?? room.code ?? ""
+              );
+              if (!rid) return room;
+              const local = roomInfoMap && roomInfoMap[rid];
+              if (!local || typeof local !== "object") return room;
+
+              const overrides = {};
+
+              // Text fields
+              if (local.summary && String(local.summary).trim()) {
+                overrides.summary = String(local.summary).trim();
+              }
+              if (local.details && String(local.details).trim()) {
+                overrides.details_text = String(local.details).trim();
+              }
+              if (local.inclusions && String(local.inclusions).trim()) {
+                overrides.inclusion_text = String(local.inclusions).trim();
+              }
+
+              // Size fields (kept for consistency, may not be used by bubble)
+              if (local.sizeSqm) {
+                const v = Number(local.sizeSqm);
+                overrides.size_sqm = Number.isFinite(v) ? v : local.sizeSqm;
+              }
+              if (local.sizeSqft) {
+                const v = Number(local.sizeSqft);
+                overrides.size_sqft = Number.isFinite(v) ? v : local.sizeSqft;
+              }
+
+              // Checkbox selections
+              if (Array.isArray(local.detailsKeys) && local.detailsKeys.length) {
+                overrides.details_keys = local.detailsKeys;
+              }
+              if (Array.isArray(local.inclusionKeys) && local.inclusionKeys.length) {
+                overrides.inclusion_keys = local.inclusionKeys;
+              }
+
+              return Object.assign({}, room, overrides);
+            } catch (_) {
+              return room;
+            }
+          };
+
+          const splitText = (txt) => {
+            if (!txt || typeof txt !== "string") return [];
+            return txt
+              .split(/[•\n;]/)
+              .map((s) => s.trim())
+              .filter(Boolean);
+          };
+
+          for (const baseRoom of j.rooms) {
+            const room = enrichRoom(baseRoom);
             if (!room) continue;
 
             // Direct arrays on the room object
@@ -2106,33 +2175,21 @@
               pushArr(room.meta.features);
             }
 
-            // Free-text details / inclusions (same fields the modal uses)
-            const detailsText = room.details_text;
-            const inclusionsText = room.inclusion_text;
+            // Free-text details / inclusions (same source the modal uses)
+            pushArr(splitText(room.details_text));
+            pushArr(splitText(room.inclusion_text));
 
-            const splitText = (txt) => {
-              if (!txt || typeof txt !== "string") return [];
-              // Split on bullets / newlines / semicolons
-              return txt
-                .split(/[•\n;]/)
-                .map(s => s.trim())
-                .filter(Boolean);
-            };
-
-            pushArr(splitText(detailsText));
-            pushArr(splitText(inclusionsText));
-
-            // Checkbox-based details/inclusions → use same label maps as modal
+            // If keys are present and label maps exist, use them too
             const detailKeys =
               Array.isArray(room.details_keys) ? room.details_keys : [];
             const inclusionKeys =
               Array.isArray(room.inclusion_keys) ? room.inclusion_keys : [];
 
             if (typeof DETAIL_LABELS === "object") {
-              pushArr(detailKeys.map(k => DETAIL_LABELS[k]).filter(Boolean));
+              pushArr(detailKeys.map((k) => DETAIL_LABELS[k]).filter(Boolean));
             }
             if (typeof INCLUSION_LABELS === "object") {
-              pushArr(inclusionKeys.map(k => INCLUSION_LABELS[k]).filter(Boolean));
+              pushArr(inclusionKeys.map((k) => INCLUSION_LABELS[k]).filter(Boolean));
             }
           }
         }
@@ -3788,7 +3845,7 @@
               const pill = document.createElement("div");
               pill.className = "room-modal-plan-pill";
 
-              // Reuse same helper as inline plan rows
+              // Reuse same helper as inline rate plan rows
               let priceHtml = "";
               try {
                 const rawPrice = getPlanPriceForRoom(roomId, id);
@@ -3797,8 +3854,8 @@
                   priceHtml =
                     `<div class="room-modal-plan-pill-price">${money(numPrice)} / night</div>`;
                 }
-              } catch (_) {
-                // ignore pricing errors, still show plan
+              } catch (e) {
+                console.warn("[room-modal] price lookup failed", e);
               }
 
               pill.innerHTML =
