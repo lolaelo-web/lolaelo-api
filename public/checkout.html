@@ -2056,6 +2056,11 @@
         }
 
         const data = await resp.json();
+
+        // Debug tap: inspect the full details payload in checkout
+        console.log("[checkout] details raw", data);
+        window.__checkoutDetailsPayload = data;
+
         const addons = Array.isArray(data.addons) ? data.addons : [];
         console.log("[checkout] loadAddonsConfig got addons", addons);
 
