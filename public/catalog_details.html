@@ -3244,14 +3244,13 @@
                 ? String(partnerId)
                 : "");
 
-            // NEW: remember last propertyId for checkout fallback
-            if (checkoutPropertyId) {
-              try {
-                localStorage.setItem("rateplan.lastPropertyId", checkoutPropertyId);
-              } catch (_) {
-                // no-op
+            // Fallback bridge for checkout: remember the last propertyId we
+            // navigated with, in case the query string loses it.
+            try {
+              if (checkoutPropertyId) {
+                localStorage.setItem("checkout.lastPropertyId", checkoutPropertyId);
               }
-            }
+            } catch (_) {}
 
             const cat = a.closest(".roomcat");
             const rid = cat ? cat.getAttribute("data-room-id") || "" : "";

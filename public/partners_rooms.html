@@ -1154,6 +1154,12 @@
 
     /* ANCHOR: PLAN_SCOPE_WATCHER */
     (function planScopeWatcher(){
+      // On extranet Rooms & Availability, disable scope watcher to prevent rate plans auto clearing.
+      const path = (location && location.pathname) ? location.pathname : '';
+      if (path.includes('partners_rooms')) {
+        return;
+      }
+
       // Must come after PLAN_CACHE_SCOPE so getScope logic matches
       function getScope(){
         const prop = Number(window.currentPropertyId) || Number(new URLSearchParams(location.search).get('propertyId')) || 0;

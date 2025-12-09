@@ -1290,21 +1290,8 @@
     function parseQuery() {
       const params = new URLSearchParams(window.location.search);
 
-      // Raw URL value
-      const fromUrl = params.get("propertyId") || "";
-
-      // Fallback from localStorage
-      let fromStorage = "";
-      try {
-        fromStorage = localStorage.getItem("rateplan.lastPropertyId") || "";
-      } catch (_) {
-        fromStorage = "";
-      }
-
-      const propertyId = fromUrl || fromStorage;
-
-      return {
-        propertyId,
+      const result = {
+        propertyId: params.get("propertyId") || "",
         roomId: params.get("roomId") || "",
         start: params.get("start") || "",
         end: params.get("end") || "",
@@ -1312,17 +1299,32 @@
         // IDs
         ratePlanId: params.get("ratePlanId") || params.get("plan") || "",
 
-        // Optional name fields
+        // Optional name fields (can be populated from catalog_details)
         propertyName: params.get("propertyName") || "",
         propertyLocation: params.get("propertyLocation") || "",
         roomName: params.get("roomName") || "",
 
-        // Rate plan display name
+        // Rate plan display name – prefer explicit name, fall back to planLabel
         ratePlanName:
           params.get("ratePlanName") ||
           params.get("planLabel") ||
           ""
       };
+
+      // Fallback: if propertyId is blank, use the last one we saved from
+      // catalog_details (checkout.lastPropertyId).
+      if (!result.propertyId) {
+        try {
+          const stored = localStorage.getItem("checkout.lastPropertyId");
+          if (stored) {
+            result.propertyId = stored;
+          }
+        } catch (_) {
+          // ignore storage issues
+        }
+      }
+
+      return result;
     }
 
     function formatDate(dateStr) {
@@ -1764,46 +1766,40 @@
     }
 
     async function loadAddonsForProperty() {
-      // Derive everything from the URL, not just state
-      const qs = new URLSearchParams(location.search);
+      const q = parseQuery();
 
-      const urlPropertyId = Number(qs.get("propertyId") || "0");
-      const urlStart = (qs.get("start") || "").trim();
-      const urlEnd   = (qs.get("end")   || "").trim();
-      const urlRatePlanId = qs.get("ratePlanId") || "";
+      // Prefer state.propertyId if we’ve already set it, otherwise fall back
+      // to whatever parseQuery resolved (query string + localStorage bridge).
+      const propertyId = Number(
+        (state.propertyId && String(state.propertyId)) ||
+        (q.propertyId && String(q.propertyId)) ||
+        "0"
+      );
 
-      // Fallback to state.propertyId only if URL is bad
-      let propertyId = Number.isFinite(urlPropertyId) && urlPropertyId > 0
-        ? urlPropertyId
-        : 0;
+      // Dates: prefer the current state, fall back to query
+      const start = state.start || q.start || "";
+      const end   = state.end   || q.end   || "";
 
-      if (!propertyId && window.state && Number.isFinite(Number(window.state.propertyId))) {
-        propertyId = Number(window.state.propertyId);
-      }
-
-      if (!propertyId || !urlStart || !urlEnd) {
-        console.warn("[checkout] loadAddonsForProperty missing params", {
-          propertyIdFromUrl: urlPropertyId,
-          propertyIdFromState: window.state && window.state.propertyId,
-          start: urlStart,
-          end: urlEnd
+      if (!Number.isFinite(propertyId) || propertyId <= 0 || !start || !end) {
+        console.log("[checkout] loadAddonsForProperty missing params", {
+          propertyId,
+          start,
+          end
         });
-        // Clear UI if something is off
-        renderAddons([]);
         return;
       }
 
-      const params = new URLSearchParams();
-      params.set("propertyId", String(propertyId));
-      params.set("start", urlStart);
-      params.set("end", urlEnd);
-      if (urlRatePlanId) params.set("ratePlanId", urlRatePlanId);
+      // Keep state in sync once we have a solid id
+      state.propertyId = String(propertyId);
 
       try {
-        const url = "/catalog/details?" + params.toString();
-        console.log("[checkout] loadAddonsForProperty → GET", url);
+        const params = new URLSearchParams();
+        params.set("propertyId", String(propertyId));
+        params.set("start", start);
+        params.set("end", end);
 
-        const resp = await fetch(url, {
+        const resp = await fetch("/catalog/details?" + params.toString(), {
+          method: "GET",
           headers: { Accept: "application/json" }
         });
 
@@ -1812,25 +1808,23 @@
             "[checkout] /catalog/details for addons failed",
             resp.status
           );
-          renderAddons([]);
           return;
         }
 
         const data = await resp.json();
         const addons = Array.isArray(data.addons) ? data.addons : [];
-
+        state.addonsConfig = addons;
         console.log("[checkout] addons from details", {
-          params: Object.fromEntries(params.entries()),
+          propertyId,
+          start,
+          end,
+          count: addons.length,
           addons
         });
-
-        if (window.state) {
-          window.state.addonsConfig = addons;
-        }
-
         renderAddons(addons);
       } catch (err) {
         console.error("[checkout] loadAddonsForProperty error", err);
+        state.addonsConfig = [];
         renderAddons([]);
       }
     }
