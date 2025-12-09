@@ -1034,8 +1034,9 @@
       padding:12px 14px;
       border-radius:14px;
 
-      background:#E6F7F9;        /* teal-tinted panel */
-      color:#0F1C2E;             /* deep navy text */
+      background:#FFFFFF;              /* white panel */
+      border:1px solid var(--accent);  /* teal outline */
+      color:#0F1C2E;                   /* deep navy text */
 
       box-shadow:0 10px 30px rgba(15,23,42,0.12);
       font-size:13px;
@@ -2150,6 +2151,28 @@
               return room;
             }
           };
+
+          /* ANCHOR: DESCRIPTION_BUBBLE_RENDER */
+          {
+            const propDescEl = document.getElementById("prop-desc");
+
+            if (propDescEl) {
+              // 1. Get description from meta.property first (canonical extranet source)
+              const pDesc =
+                (j?.meta?.property?.description && String(j.meta.property.description).trim()) ||
+                (j?.card?.property?.description && String(j.card.property.description).trim()) ||
+                "";
+
+              if (pDesc) {
+                propDescEl.style.display = "";
+                propDescEl.textContent = pDesc;
+              } else {
+                // No description – hide bubble text area only (keep bubble structure)
+                propDescEl.style.display = "none";
+                propDescEl.textContent = "";
+              }
+            }
+          }
 
           const splitText = (txt) => {
             if (!txt || typeof txt !== "string") return [];
@@ -3827,7 +3850,7 @@
             ids.forEach(id => {
               if (!Number.isFinite(id)) return;
 
-              const label = getModalPlanLabel(id);        // Standard / With Breakfast / Non-Refundable
+              const label = getModalPlanLabel(id);
               const desc  = getModalPlanDescription(id);
 
               const url =
@@ -3845,17 +3868,29 @@
               const pill = document.createElement("div");
               pill.className = "room-modal-plan-pill";
 
-              // Reuse same helper as inline rate plan rows
+              // Price probe + fallback so we ALWAYS render a price line
               let priceHtml = "";
               try {
                 const rawPrice = getPlanPriceForRoom(roomId, id);
+                console.log("[room-modal] price probe", {
+                  roomId,
+                  ratePlanId: id,
+                  rawPrice
+                });
+
                 const numPrice = rawPrice != null ? Number(rawPrice) : NaN;
                 if (Number.isFinite(numPrice)) {
                   priceHtml =
                     `<div class="room-modal-plan-pill-price">${money(numPrice)} / night</div>`;
+                } else {
+                  // Explicit placeholder so we KNOW the slot is there
+                  priceHtml =
+                    `<div class="room-modal-plan-pill-price">$123.45 / night (placeholder)</div>`;
                 }
-              } catch (e) {
-                console.warn("[room-modal] price lookup failed", e);
+              } catch (err) {
+                console.warn("[room-modal] price lookup failed", err);
+                priceHtml =
+                  `<div class="room-modal-plan-pill-price">Price unavailable</div>`;
               }
 
               pill.innerHTML =
