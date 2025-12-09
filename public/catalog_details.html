@@ -2023,8 +2023,8 @@
       const minPrice = priced.length ? Math.min(...priced.map(d => Number(d.price))) : null;
       if (fromEl) fromEl.textContent = (minPrice != null) ? money(minPrice) : '—';
 
-      // Shared label maps for amenities bubble (matches room modal mappings)
-      const AMENITY_DETAIL_LABELS = {
+      // Global label maps for amenities bubble (same mapping as room modal)
+      const DETAIL_LABELS = {
         city_view:        "City view",
         sea_view:         "Sea / ocean view",
         garden_view:      "Garden view",
@@ -2037,7 +2037,7 @@
         separate_living:  "Separate living area",
       };
 
-      const AMENITY_INCLUSION_LABELS = {
+      const INCLUSION_LABELS = {
         breakfast:       "Breakfast included",
         half_board:      "Half board",
         full_board:      "Full board",
@@ -2112,11 +2112,11 @@
             const inclusionKeys =
               Array.isArray(room.inclusion_keys) ? room.inclusion_keys : [];
 
-            if (AMENITY_DETAIL_LABELS) {
-              pushArr(detailKeys.map(k => AMENITY_DETAIL_LABELS[k]).filter(Boolean));
+            if (typeof DETAIL_LABELS === "object") {
+              pushArr(detailKeys.map(k => DETAIL_LABELS[k]).filter(Boolean));
             }
-            if (AMENITY_INCLUSION_LABELS) {
-              pushArr(inclusionKeys.map(k => AMENITY_INCLUSION_LABELS[k]).filter(Boolean));
+            if (typeof INCLUSION_LABELS === "object") {
+              pushArr(inclusionKeys.map(k => INCLUSION_LABELS[k]).filter(Boolean));
             }
           }
         }
@@ -3772,14 +3772,17 @@
               const pill = document.createElement("div");
               pill.className = "room-modal-plan-pill";
 
-              // Look up per-plan nightly price using the same helper as inline rows
-              const rawPrice  = getPlanPriceForRoom(roomId, id);
-              const numPrice  = rawPrice != null ? Number(rawPrice) : null;
-              const hasPrice  = numPrice != null && Number.isFinite(numPrice);
-              const priceText = hasPrice ? money(numPrice) : null;
-              const priceHtml = hasPrice
-                ? `<div class="room-modal-plan-pill-price">${priceText} / night</div>`
-                : '';
+              // Safely look up per-plan nightly price using the same helper as inline rows
+              let priceHtml = "";
+              try {
+                const rawPrice = getPlanPriceForRoom(roomId, id);
+                const numPrice = rawPrice != null ? Number(rawPrice) : NaN;
+                if (Number.isFinite(numPrice)) {
+                  priceHtml = `<div class="room-modal-plan-pill-price">${money(numPrice)} / night</div>`;
+                }
+              } catch (_) {
+                // Ignore pricing errors so plans still render
+              }
 
               pill.innerHTML =
                 `<div class="room-modal-plan-pill-title">${label}</div>
