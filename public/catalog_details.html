@@ -3275,12 +3275,32 @@
               }
             }
 
-            // 4) Rewrite the link href just before navigation
+            // =======================================================
+            // Rewrite href with guaranteed propertyId
+            // =======================================================
+
             const url = new URL(a.href || "/checkout.html", location.href);
 
-            if (checkoutPropertyId) {
-              url.searchParams.set("propertyId", checkoutPropertyId);
+            url.searchParams.set("propertyId", authoritativePropertyId || ""); // <- FIXED
+            url.searchParams.set("propertyName", propertyName || "");
+            url.searchParams.set("propertyLocation", propertyLocation || "");
+            url.searchParams.set("roomId", rid || "");
+            url.searchParams.set("roomName", roomName || "");
+            url.searchParams.set("ratePlanId", String(pid));
+            if (planLabel) url.searchParams.set("planLabel", planLabel);
+
+            // preserve &plans=<csv> if exists
+            if (sel.length) {
+              url.searchParams.set("plans", sel.join(","));
             }
+
+            a.setAttribute("href", url.toString());
+
+            console.log("[details→checkout] click rewrite (FIXED)", {
+              authoritativePropertyId,
+              href: url.toString()
+            });
+
             if (propertyName) {
               url.searchParams.set("propertyName", propertyName);
             }
