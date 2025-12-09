@@ -466,6 +466,49 @@
   }
 
   /* ANCHOR: SUMMARY_CARD */
+  /* ANCHOR: PRICE_SUMMARY */
+  .price-summary-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 10px;
+    margin-top: 2px;
+  }
+
+  .price-main-info {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+  }
+
+  .price-per-night {
+    font-size: 16px;
+    font-weight: 600;
+    color: var(--text);
+  }
+
+  .price-per-night-caption {
+    font-size: 12px;
+    color: var(--muted);
+  }
+
+  .price-total-pill {
+    padding: 6px 12px;
+    border-radius: 999px;
+    border: 1px solid var(--border);
+    background: #f9fafb;
+    font-size: 13px;
+    white-space: nowrap;
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+  }
+
+  .price-total-pill span {
+    font-weight: 600;
+    color: var(--text);
+  }
+
   .summary-card-title {
     font-size: 15px;
     font-weight: 600;
@@ -935,8 +978,27 @@
                   </div>
 
                   <div class="field-row">
-                    <div class="field-label">Price per night</div>
-                    <div class="field-value" id="nightlyPriceText">-</div>
+                    <div class="field-label">Price</div>
+                    <div class="price-summary-row">
+                      <div class="price-main-info">
+                        <div
+                          class="price-per-night"
+                          id="nightlyPriceText"
+                        >
+                          -
+                        </div>
+                        <div
+                          class="price-per-night-caption"
+                          id="nightlyPriceCaption"
+                        >
+                          <!-- will show “for X nights” -->
+                        </div>
+                      </div>
+                      <div class="price-total-pill" id="priceTotalPill">
+                        Total:
+                        <span id="priceTotalText">$0.00</span>
+                      </div>
+                    </div>
                   </div>
 
                   <button class="btn-primary" type="button" data-confirm="2">
@@ -1602,19 +1664,37 @@
       document.getElementById("summaryNights").textContent =
         nightsText || "n";
 
-      // Price per night in Section 2
+      // Price per night in Section 2 + total pill
       const nightlyEl = document.getElementById("nightlyPriceText");
-      if (nightlyEl) {
-        const totalEl = document.getElementById("summaryTotal");
-        const raw = totalEl ? totalEl.textContent || "" : "";
-        const num = Number(String(raw).replace(/[^0-9.]/g, ""));
+      const nightlyCaptionEl = document.getElementById("nightlyPriceCaption");
+      const totalPillSpan = document.getElementById("priceTotalText");
 
-        if (!Number.isNaN(num) && nightsNum > 0) {
-          const perNight = num / nightsNum;
+      // Read the current total from the summary card
+      const totalEl = document.getElementById("summaryTotal");
+      const rawTotalText = totalEl ? (totalEl.textContent || "") : "";
+      const totalNumeric = Number(String(rawTotalText).replace(/[^0-9.]/g, ""));
+
+      // Update the total pill text (mirrors summaryTotal display)
+      if (totalPillSpan && rawTotalText.trim()) {
+        totalPillSpan.textContent = rawTotalText.trim();
+      }
+
+      // Compute and show price per night when possible
+      if (nightlyEl) {
+        if (!Number.isNaN(totalNumeric) && nightsNum > 0) {
+          const perNight = totalNumeric / nightsNum;
           nightlyEl.textContent = "$" + perNight.toFixed(2);
         } else {
           nightlyEl.textContent = "-";
         }
+      }
+
+      // Caption: "for X night(s)"
+      if (nightlyCaptionEl) {
+        nightlyCaptionEl.textContent =
+          nightsNum > 0
+            ? "for " + nightsNum + " night" + (nightsNum > 1 ? "s" : "")
+            : "";
       }
 
       // Add-ons summary
