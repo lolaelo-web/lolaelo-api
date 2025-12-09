@@ -2152,28 +2152,6 @@
             }
           };
 
-          /* ANCHOR: DESCRIPTION_BUBBLE_RENDER */
-          {
-            const propDescEl = document.getElementById("prop-desc");
-
-            if (propDescEl) {
-              // 1. Get description from meta.property first (canonical extranet source)
-              const pDesc =
-                (j?.meta?.property?.description && String(j.meta.property.description).trim()) ||
-                (j?.card?.property?.description && String(j.card.property.description).trim()) ||
-                "";
-
-              if (pDesc) {
-                propDescEl.style.display = "";
-                propDescEl.textContent = pDesc;
-              } else {
-                // No description – hide bubble text area only (keep bubble structure)
-                propDescEl.style.display = "none";
-                propDescEl.textContent = "";
-              }
-            }
-          }
-
           const splitText = (txt) => {
             if (!txt || typeof txt !== "string") return [];
             return txt
@@ -2234,6 +2212,28 @@
           } else {
             amenitiesEl.style.display = "none";
             amenitiesEl.innerHTML = "";
+          }
+        }
+      }
+
+      /* ANCHOR: DESCRIPTION_BUBBLE_RENDER */
+      {
+        const propDescEl = document.getElementById("prop-desc");
+
+        if (propDescEl) {
+          const pDesc =
+            (j?.meta?.property?.description &&
+              String(j.meta.property.description).trim()) ||
+            (j?.card?.property?.description &&
+              String(j.card.property.description).trim()) ||
+            "";
+
+          if (pDesc) {
+            propDescEl.style.display = "";
+            propDescEl.textContent = pDesc;
+          } else {
+            propDescEl.style.display = "none";
+            propDescEl.textContent = "";
           }
         }
       }
@@ -2571,6 +2571,9 @@
             return null;
           }
         }
+
+        // Ensure helper is available globally
+        window.getPlanPriceForRoom = getPlanPriceForRoom;
 
         const openRooms = rooms
           .map(r => {

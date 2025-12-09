@@ -698,18 +698,26 @@ router.get("/details", async (req: Request, res: Response) => {
       });
       await pg.connect();
 
-      // Prefer extranet profile; no more fallback. 
+      // Prefer extranet profile; no more fallback.
       // Photos: all property-level photos (roomTypeId IS NULL), cover first.
       const q = `
         WITH prof AS (
-          SELECT id, name, city, country
+          SELECT
+            id,
+            name,
+            city,
+            country,
+            description,
+            latitude,
+            longitude,
+            "mapLabel"
           FROM extranet."PropertyProfile"
           WHERE "partnerId" = $1
           LIMIT 1
         ),
         -- Property-level photos (no room) for cover choice
         phot AS (
-          SELECT url
+          SELECT url, "isCover", "createdAt", id
           FROM extranet."PropertyPhoto"
           WHERE "partnerId" = $1
             AND "roomTypeId" IS NULL
@@ -717,18 +725,22 @@ router.get("/details", async (req: Request, res: Response) => {
         ),
         -- All photos (property + room-level) for the main carousel
         phot_all AS (
-          SELECT url
+          SELECT url, "isCover", "createdAt", id
           FROM extranet."PropertyPhoto"
           WHERE "partnerId" = $1
           ORDER BY "isCover" DESC NULLS LAST, "createdAt" DESC NULLS LAST, id DESC
         )
         SELECT
-          (SELECT id      FROM prof)    AS profile_id,
-          (SELECT name    FROM prof)    AS name,
-          (SELECT city    FROM prof)    AS city,
-          (SELECT country FROM prof)    AS country,
-          (SELECT url     FROM phot LIMIT 1)              AS cover_url,
-          (SELECT json_agg(url) FROM phot_all)            AS photos
+          (SELECT id          FROM prof) AS profile_id,
+          (SELECT name        FROM prof) AS name,
+          (SELECT city        FROM prof) AS city,
+          (SELECT country     FROM prof) AS country,
+          (SELECT description FROM prof) AS description,
+          (SELECT latitude    FROM prof) AS latitude,
+          (SELECT longitude   FROM prof) AS longitude,
+          (SELECT "mapLabel"  FROM prof) AS "mapLabel",
+          (SELECT url         FROM phot     LIMIT 1) AS cover_url,
+          (SELECT json_agg(url) FROM phot_all)       AS photos
       `;
 
       const { rows } = await pg.query(q, [partnerId]);
@@ -739,6 +751,38 @@ router.get("/details", async (req: Request, res: Response) => {
         if (r.name)    base.name    = r.name;
         if (r.city)    base.city    = r.city;
         if (r.country) base.country = r.country;
+
+      // Property-level meta (description + map) → base.meta.property
+        if (
+          r.description !== undefined ||
+          r.latitude    !== undefined ||
+          r.longitude   !== undefined ||
+          r.mapLabel    !== undefined
+        ) {
+          const meta: any = (base as any).meta || {};
+          const prop: any = meta.property || {};
+
+          if (r.description && String(r.description).trim()) {
+            prop.description = String(r.description).trim();
+          }
+
+          if (r.latitude !== null && r.latitude !== undefined) {
+            const v = Number(r.latitude);
+            prop.latitude = Number.isFinite(v) ? v : r.latitude;
+          }
+
+          if (r.longitude !== null && r.longitude !== undefined) {
+            const v = Number(r.longitude);
+            prop.longitude = Number.isFinite(v) ? v : r.longitude;
+          }
+
+          if (r.mapLabel && String(r.mapLabel).trim()) {
+            prop.mapLabel = String(r.mapLabel).trim();
+          }
+
+          meta.property = prop;
+          (base as any).meta = meta;
+        }
 
         // Merge property-level photos (cover first) with any existing images, deduped
         const existing = Array.isArray(base.images) ? base.images.slice() : [];
