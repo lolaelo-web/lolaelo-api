@@ -470,8 +470,8 @@
   .price-summary-row {
     display: flex;
     align-items: center;
-    justify-content: space-between;
-    gap: 10px;
+    justify-content: flex-start;
+    gap: 16px; /* a bit more deliberate spacing */
     margin-top: 2px;
   }
 
@@ -483,7 +483,7 @@
 
   .price-per-night {
     font-size: 16px;
-    font-weight: 600;
+    font-weight: 400; /* remove bold */
     color: var(--text);
   }
 
@@ -493,21 +493,24 @@
   }
 
   .price-total-pill {
-    padding: 6px 12px;
+    padding: 10px 18px;       /* bigger pill overall */
     border-radius: 999px;
     border: 1px solid var(--border);
     background: #f9fafb;
-    font-size: 13px;
+    font-size: 15px;          /* bigger font */
+    font-weight: 500;         /* slight emphasis but not bold */
     white-space: nowrap;
     display: inline-flex;
     align-items: center;
-    gap: 4px;
+    gap: 6px;
+    transform: translateY(2px); /* minor vertical centering polish */
   }
 
   .price-total-pill span {
     font-weight: 600;
+    font-size: 15px; /* match pill font size */
     color: var(--text);
-  }
+   }
 
   .summary-card-title {
     font-size: 15px;
