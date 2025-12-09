@@ -481,12 +481,11 @@
     gap: 2px;
   }
 
-  .price-per-night {
-    font-size: 16px;
-    font-weight: 400; /* remove bold */
-    color: var(--text);
-  }
-
+.price-per-night {
+  font-size: 14px;      /* closer to dates / nights */
+  font-weight: 400;
+  color: var(--text);
+}
   .price-per-night-caption {
     font-size: 12px;
     color: var(--muted);
@@ -497,7 +496,7 @@
     border-radius: 999px;
     border: 1px solid var(--border);
     background: #f9fafb;
-    font-size: 15px;          /* bigger font */
+    font-size: 17px;          /* bigger font */
     font-weight: 500;         /* slight emphasis but not bold */
     white-space: nowrap;
     display: inline-flex;
@@ -508,7 +507,7 @@
 
   .price-total-pill span {
     font-weight: 600;
-    font-size: 15px; /* match pill font size */
+    font-size: 17px; /* match pill font size */
     color: var(--text);
    }
 
@@ -570,6 +569,12 @@
 
   .breakdown.visible {
     display: block;
+  }
+
+  .breakdown-line {
+    display: flex;
+    justify-content: space-between;
+    margin-bottom: 2px;
   }
 
   /* ANCHOR: STICKY_FOOTER */
@@ -981,7 +986,7 @@
                   </div>
 
                   <div class="field-row">
-                    <div class="field-label">Price</div>
+                    <div class="field-label">Avg. Price</div>
                     <div class="price-summary-row">
                       <div class="price-main-info">
                         <div
@@ -1413,6 +1418,56 @@
       return nights > 0 ? nights : "";
     }
 
+    function formatCurrency(amount, currency) {
+      const num = Number(amount);
+      if (!Number.isFinite(num)) return "";
+
+      const cur = currency || "USD";
+      try {
+        return new Intl.NumberFormat("en-US", {
+          style: "currency",
+          currency: cur,
+          minimumFractionDigits: 2,
+          maximumFractionDigits: 2
+        }).format(num);
+      } catch (_) {
+        return "$" + num.toFixed(2);
+      }
+    }
+
+    function renderNightlyBreakdown(nightsArr, currency) {
+      const container = document.getElementById("breakdownDetails");
+      if (!container) return;
+
+      if (!Array.isArray(nightsArr) || nightsArr.length === 0) {
+        container.innerHTML = "";
+        return;
+      }
+
+      const cur = currency || "USD";
+
+      const rows = nightsArr.map(function (n) {
+        const dateStr = n.date || n.dt || n.day || "";
+        const label = formatDate(dateStr) || dateStr;
+
+        const amtNum = Number(
+          n.amount !== undefined ? n.amount :
+          n.price  !== undefined ? n.price  :
+          n.value  !== undefined ? n.value  : 0
+        );
+        const amtText = formatCurrency(amtNum, cur);
+
+        return (
+          '<div class="breakdown-line">' +
+            '<span>' + label + '</span>' +
+            '<span>' + amtText + '</span>' +
+          '</div>'
+        );
+      });
+
+      container.innerHTML = rows.join("");
+    }
+
     function renderAddons(addons) {
       const listEl = document.getElementById("addonsList");
       const emptyEl = document.getElementById("addonsEmptyMessage");
@@ -1612,7 +1667,12 @@
       ratePlanName: "",
       sectionConfirmed: { 1: false, 2: false, 3: false, 4: false },
       addonsConfig: [],
-      addonsSelections: {}
+      addonsSelections: {},
+
+      // Pricing / quote from /catalog/details
+      pricingTotal: 0,
+      pricingCurrency: "USD",
+      pricingNights: [] // [{ date, amount }, ...]
     };
 
     function updateSummaries() {
@@ -1667,25 +1727,37 @@
       document.getElementById("summaryNights").textContent =
         nightsText || "n";
 
-      // Price per night in Section 2 + total pill
+      // Avg. price per night in Section 2 + total pill
       const nightlyEl = document.getElementById("nightlyPriceText");
       const nightlyCaptionEl = document.getElementById("nightlyPriceCaption");
       const totalPillSpan = document.getElementById("priceTotalText");
 
-      // Read the current total from the summary card
-      const totalEl = document.getElementById("summaryTotal");
-      const rawTotalText = totalEl ? (totalEl.textContent || "") : "";
-      const totalNumeric = Number(String(rawTotalText).replace(/[^0-9.]/g, ""));
+      // Read current Total text from summary card
+      const summaryTotalEl = document.getElementById("summaryTotal");
+      const rawSummaryText = summaryTotalEl
+        ? (summaryTotalEl.textContent || "")
+        : "";
+      const parsedFromSummary = Number(
+        String(rawSummaryText).replace(/[^0-9.]/g, "")
+      );
 
-      // Update the total pill text (mirrors summaryTotal display)
-      if (totalPillSpan && rawTotalText.trim()) {
-        totalPillSpan.textContent = rawTotalText.trim();
+      // Prefer total from quote, fall back to parsed summary total
+      let effectiveTotal = 0;
+      if (typeof state.pricingTotal === "number" && state.pricingTotal > 0) {
+        effectiveTotal = state.pricingTotal;
+      } else if (!Number.isNaN(parsedFromSummary) && parsedFromSummary > 0) {
+        effectiveTotal = parsedFromSummary;
       }
 
-      // Compute and show price per night when possible
+      // Keep pill text in sync with summary total display
+      if (totalPillSpan && rawSummaryText.trim()) {
+        totalPillSpan.textContent = rawSummaryText.trim();
+      }
+
+      // Compute and show *average* price per night
       if (nightlyEl) {
-        if (!Number.isNaN(totalNumeric) && nightsNum > 0) {
-          const perNight = totalNumeric / nightsNum;
+        if (effectiveTotal > 0 && nightsNum > 0) {
+          const perNight = effectiveTotal / nightsNum;
           nightlyEl.textContent = "$" + perNight.toFixed(2);
         } else {
           nightlyEl.textContent = "-";
@@ -1912,6 +1984,49 @@
       }
     }
 
+    function applyCheckoutQuote(quote) {
+      if (!quote || typeof quote !== "object") return;
+
+      const nightsArr = Array.isArray(quote.nights) ? quote.nights : [];
+
+      var totalNumeric = 0;
+      if (typeof quote.total === "number" && Number.isFinite(quote.total)) {
+        totalNumeric = quote.total;
+      } else if (nightsArr.length) {
+        totalNumeric = nightsArr.reduce(function (sum, n) {
+          var v = Number(
+            n.amount !== undefined ? n.amount :
+            n.price  !== undefined ? n.price  :
+            n.value  !== undefined ? n.value  : 0
+          );
+          return sum + (Number.isFinite(v) ? v : 0);
+        }, 0);
+      }
+
+      if (!Number.isFinite(totalNumeric) || totalNumeric <= 0) {
+        // No valid total – keep existing placeholder
+        return;
+      }
+
+      var currency = quote.currency || "USD";
+
+      state.pricingTotal = totalNumeric;
+      state.pricingCurrency = currency;
+      state.pricingNights = nightsArr;
+
+      // Update summary total amount
+      var totalEl = document.getElementById("summaryTotal");
+      if (totalEl) {
+        totalEl.textContent = formatCurrency(totalNumeric, currency);
+      }
+
+      // Update nightly breakdown
+      renderNightlyBreakdown(nightsArr, currency);
+
+      // Recompute per-night average and caption based on new total
+      updateSummaries();
+    }
+
     async function loadAddonsConfig() {
       const ids = getCheckoutIdsFromQuery();
       const propertyId = ids.propertyId;
@@ -1948,6 +2063,11 @@
 
         if (typeof state === "object") {
           state.addonsConfig = addons;
+        }
+
+        // Optional pricing quote from /catalog/details
+        if (data && typeof data === "object" && data.checkoutQuote) {
+          applyCheckoutQuote(data.checkoutQuote);
         }
       } catch (err) {
         console.error("[checkout] loadAddonsConfig error", err);

@@ -2923,19 +2923,43 @@
 
             const primary = sortedTop[0] || { id:1 };
 
-          const topLink = cat.querySelector('.btn-select');
+            const topLink = cat.querySelector(".btn-select");
             if (topLink) {
-              const { propertyName, propertyLocation } = getCheckoutMeta();
-              const roomName  = getRoomNameForCheckout(rid);
+              const meta = typeof getCheckoutMeta === "function"
+                ? getCheckoutMeta()
+                : { propertyName: "", propertyLocation: "" };
+
+              const propertyName = meta.propertyName || "";
+              const propertyLocation = meta.propertyLocation || "";
+
+              const roomName = typeof getRoomNameForCheckout === "function"
+                ? getRoomNameForCheckout(rid)
+                : "";
+
               const planLabel = primary && (primary.name || primary.code || "");
 
               // Prefer the canonical partnerId from the details payload,
               // fall back to the propertyId from the query string.
               const payload = window.__detailsPayload || {};
               const payloadPid =
-                (payload && (payload.partnerId ?? payload.propertyId ?? payload.id)) || "";
-              const propertyIdFromQuery = propertyId;
+                (payload &&
+                  (payload.partnerId ?? payload.propertyId ?? payload.id)) ||
+                "";
+
+              const propertyIdFromQuery = propertyId; // existing page-level var
               const checkoutPropertyId = payloadPid || propertyIdFromQuery || "";
+
+              // Persist for checkout fallback
+              if (checkoutPropertyId) {
+                try {
+                  localStorage.setItem(
+                    "checkout.lastPropertyId",
+                    String(checkoutPropertyId)
+                  );
+                } catch (_) {
+                  // ignore storage errors
+                }
+              }
 
               console.log("[details→checkout] building href", {
                 payload,
@@ -2946,7 +2970,9 @@
               });
 
               const href =
-                `/checkout.html?propertyId=${encodeURIComponent(checkoutPropertyId)}` +
+                `/checkout.html?propertyId=${encodeURIComponent(
+                  checkoutPropertyId
+                )}` +
                 `&propertyName=${encodeURIComponent(propertyName || "")}` +
                 (propertyLocation
                   ? `&propertyLocation=${encodeURIComponent(propertyLocation)}`
@@ -2956,7 +2982,9 @@
                 `&start=${encodeURIComponent(start)}` +
                 `&end=${encodeURIComponent(end)}` +
                 `&ratePlanId=${encodeURIComponent(primary.id)}` +
-                (planLabel ? `&planLabel=${encodeURIComponent(planLabel)}` : "") +
+                (planLabel
+                  ? `&planLabel=${encodeURIComponent(planLabel)}`
+                  : "") +
                 `${plansQS}`;
 
               topLink.setAttribute("href", href);
@@ -3189,14 +3217,16 @@
         });
 
         // Persist chosen plan and ensure href has canonical params (+ propertyId + &plans=)
-        listEl.addEventListener('click', (e) => {
-          const a = e.target.closest('.planrow .btn-select, .roomcat > .btn-select');
+        listEl.addEventListener("click", (e) => {
+          const a = e.target.closest(
+            ".planrow .btn-select, .roomcat > .btn-select"
+          );
           if (!a) return;
 
           try {
             // 1) Persist last clicked plan id (for top "Select" and subrows)
-            const row = e.target.closest('.planrow');
-            let pid = row ? Number(row.getAttribute('data-plan-id')) : NaN;
+            const row = e.target.closest(".planrow");
+            let pid = row ? Number(row.getAttribute("data-plan-id")) : NaN;
 
             if (!Number.isFinite(pid)) {
               // Fallback: read from existing href if present
@@ -3213,7 +3243,8 @@
             // 2) Read selectedIds so we can preserve &plans=<csv>
             const sel = (() => {
               try {
-                const raw = localStorage.getItem("rateplan.selectedIds") || "[]";
+                const raw =
+                  localStorage.getItem("rateplan.selectedIds") || "[]";
                 const arr = JSON.parse(raw);
                 return Array.isArray(arr)
                   ? [...new Set(arr.map(Number).filter(Number.isFinite))]
@@ -3227,17 +3258,21 @@
             const payload = window.__detailsPayload || {};
             const searchParams = new URLSearchParams(location.search);
 
-            const propertyIdFromQuery =
-              searchParams.get("propertyId") || searchParams.get("id") || "";
-
-            const payloadPid =
+            const propertyIdFromQuery = Number(
+              searchParams.get("propertyId") ||
+                searchParams.get("id") ||
+                0
+            );
+            const partnerId = Number(
               payload.partnerId ??
-              payload.propertyId ??
-              payload.id ??
-              "";
+                payload.propertyId ??
+                payload.id ??
+                0
+            );
 
             const checkoutPropertyId =
-              (Number.isFinite(propertyIdFromQuery) && propertyIdFromQuery > 0
+              (Number.isFinite(propertyIdFromQuery) &&
+              propertyIdFromQuery > 0
                 ? String(propertyIdFromQuery)
                 : "") ||
               (Number.isFinite(partnerId) && partnerId > 0
@@ -3246,11 +3281,16 @@
 
             // Fallback bridge for checkout: remember the last propertyId we
             // navigated with, in case the query string loses it.
-            try {
-              if (checkoutPropertyId) {
-                localStorage.setItem("checkout.lastPropertyId", checkoutPropertyId);
+            if (checkoutPropertyId) {
+              try {
+                localStorage.setItem(
+                  "checkout.lastPropertyId",
+                  checkoutPropertyId
+                );
+              } catch (_) {
+                // ignore storage errors
               }
-            } catch (_) {}
+            }
 
             const cat = a.closest(".roomcat");
             const rid = cat ? cat.getAttribute("data-room-id") || "" : "";
@@ -3275,32 +3315,12 @@
               }
             }
 
-            // =======================================================
             // Rewrite href with guaranteed propertyId
-            // =======================================================
-
             const url = new URL(a.href || "/checkout.html", location.href);
 
-            url.searchParams.set("propertyId", authoritativePropertyId || ""); // <- FIXED
-            url.searchParams.set("propertyName", propertyName || "");
-            url.searchParams.set("propertyLocation", propertyLocation || "");
-            url.searchParams.set("roomId", rid || "");
-            url.searchParams.set("roomName", roomName || "");
-            url.searchParams.set("ratePlanId", String(pid));
-            if (planLabel) url.searchParams.set("planLabel", planLabel);
-
-            // preserve &plans=<csv> if exists
-            if (sel.length) {
-              url.searchParams.set("plans", sel.join(","));
+            if (checkoutPropertyId) {
+              url.searchParams.set("propertyId", checkoutPropertyId);
             }
-
-            a.setAttribute("href", url.toString());
-
-            console.log("[details→checkout] click rewrite (FIXED)", {
-              authoritativePropertyId,
-              href: url.toString()
-            });
-
             if (propertyName) {
               url.searchParams.set("propertyName", propertyName);
             }
@@ -3326,10 +3346,8 @@
             a.setAttribute("href", url.toString());
 
             console.log("[details→checkout] click rewrite", {
-              payload,
-              propertyIdFromQuery,
               checkoutPropertyId,
-              href: url.toString(),
+              href: url.toString()
             });
           } catch (err) {
             console.warn("[details→checkout] click handler failed", err);
