@@ -1951,20 +1951,12 @@
         params.set("start", start);
         params.set("end", end);
 
-        const resp = await fetch("/catalog/details?" + params.toString(), {
-          method: "GET",
-          headers: { Accept: "application/json" }
-        });
-
-        if (!resp.ok) {
-          console.warn(
-            "[checkout] /catalog/details for addons failed",
-            resp.status
-          );
-          return;
-        }
-
         const data = await resp.json();
+
+        // Debug: full /catalog/details payload used by checkout
+        console.log("[checkout] details raw", data);
+        window.__checkoutDetailsPayload = data;
+
         const addons = Array.isArray(data.addons) ? data.addons : [];
         state.addonsConfig = addons;
         console.log("[checkout] addons from details", {
@@ -1975,6 +1967,12 @@
           addons
         });
         renderAddons(addons);
+
+        // New: apply backend pricing quote if present
+        if (data && typeof data === "object" && data.checkoutQuote) {
+          console.log("[checkout] applying checkoutQuote", data.checkoutQuote);
+          applyCheckoutQuote(data.checkoutQuote);
+        }
       } catch (err) {
         console.error("[checkout] loadAddonsForProperty error", err);
         state.addonsConfig = [];
