@@ -2106,6 +2106,22 @@
               pushArr(room.meta.features);
             }
 
+            // Free-text details / inclusions (same fields the modal uses)
+            const detailsText = room.details_text;
+            const inclusionsText = room.inclusion_text;
+
+            const splitText = (txt) => {
+              if (!txt || typeof txt !== "string") return [];
+              // Split on bullets / newlines / semicolons
+              return txt
+                .split(/[•\n;]/)
+                .map(s => s.trim())
+                .filter(Boolean);
+            };
+
+            pushArr(splitText(detailsText));
+            pushArr(splitText(inclusionsText));
+
             // Checkbox-based details/inclusions → use same label maps as modal
             const detailKeys =
               Array.isArray(room.details_keys) ? room.details_keys : [];
@@ -3772,16 +3788,17 @@
               const pill = document.createElement("div");
               pill.className = "room-modal-plan-pill";
 
-              // Safely look up per-plan nightly price using the same helper as inline rows
+              // Reuse same helper as inline plan rows
               let priceHtml = "";
               try {
                 const rawPrice = getPlanPriceForRoom(roomId, id);
                 const numPrice = rawPrice != null ? Number(rawPrice) : NaN;
                 if (Number.isFinite(numPrice)) {
-                  priceHtml = `<div class="room-modal-plan-pill-price">${money(numPrice)} / night</div>`;
+                  priceHtml =
+                    `<div class="room-modal-plan-pill-price">${money(numPrice)} / night</div>`;
                 }
               } catch (_) {
-                // Ignore pricing errors so plans still render
+                // ignore pricing errors, still show plan
               }
 
               pill.innerHTML =
