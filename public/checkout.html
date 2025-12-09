@@ -1360,8 +1360,21 @@
     function parseQuery() {
       const params = new URLSearchParams(window.location.search);
 
-      const result = {
-        propertyId: params.get("propertyId") || "",
+      // Raw value from URL
+      const fromUrl = params.get("propertyId") || "";
+
+      // Fallback from localStorage if URL is missing it
+      let fromStorage = "";
+      try {
+        fromStorage = localStorage.getItem("checkout.lastPropertyId") || "";
+      } catch (_) {
+        fromStorage = "";
+      }
+
+      const propertyId = fromUrl || fromStorage;
+
+      return {
+        propertyId,
         roomId: params.get("roomId") || "",
         start: params.get("start") || "",
         end: params.get("end") || "",
@@ -1380,21 +1393,6 @@
           params.get("planLabel") ||
           ""
       };
-
-      // Fallback: if propertyId is blank, use the last one we saved from
-      // catalog_details (checkout.lastPropertyId).
-      if (!result.propertyId) {
-        try {
-          const stored = localStorage.getItem("checkout.lastPropertyId");
-          if (stored) {
-            result.propertyId = stored;
-          }
-        } catch (_) {
-          // ignore storage issues
-        }
-      }
-
-      return result;
     }
 
     function formatDate(dateStr) {

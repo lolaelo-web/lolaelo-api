@@ -2925,69 +2925,57 @@
 
             const topLink = cat.querySelector(".btn-select");
             if (topLink) {
-              const meta = typeof getCheckoutMeta === "function"
-                ? getCheckoutMeta()
-                : { propertyName: "", propertyLocation: "" };
-
-              const propertyName = meta.propertyName || "";
-              const propertyLocation = meta.propertyLocation || "";
-
-              const roomName = typeof getRoomNameForCheckout === "function"
-                ? getRoomNameForCheckout(rid)
-                : "";
-
+              const { propertyName, propertyLocation } = getCheckoutMeta();
+              const roomName  = getRoomNameForCheckout(rid);
               const planLabel = primary && (primary.name || primary.code || "");
 
-              // Prefer the canonical partnerId from the details payload,
-              // fall back to the propertyId from the query string.
+              // Look at the server payload first, fall back to the query param
               const payload = window.__detailsPayload || {};
-              const payloadPid =
-                (payload &&
-                  (payload.partnerId ?? payload.propertyId ?? payload.id)) ||
-                "";
+              const pidRaw =
+                payload && (payload.partnerId ?? payload.propertyId ?? payload.id ?? null);
 
-              const propertyIdFromQuery = propertyId; // existing page-level var
-              const checkoutPropertyId = payloadPid || propertyIdFromQuery || "";
+              const checkoutPropertyId =
+                pidRaw != null && pidRaw !== ""
+                  ? String(pidRaw)
+                  : (propertyId || "");
 
-              // Persist for checkout fallback
-              if (checkoutPropertyId) {
-                try {
-                  localStorage.setItem(
-                    "checkout.lastPropertyId",
-                    String(checkoutPropertyId)
-                  );
-                } catch (_) {
-                  // ignore storage errors
+              // Build the checkout URL with a guaranteed propertyId
+              const url = new URL("/checkout.html", location.origin);
+              url.searchParams.set("propertyId", checkoutPropertyId);
+              url.searchParams.set("propertyName", propertyName || "");
+              if (propertyLocation) {
+                url.searchParams.set("propertyLocation", propertyLocation);
+              }
+              url.searchParams.set("roomId", rid);
+              url.searchParams.set("roomName", roomName || "");
+              url.searchParams.set("start", start);
+              url.searchParams.set("end", end);
+              url.searchParams.set("ratePlanId", String(primary.id));
+              if (planLabel) {
+                url.searchParams.set("planLabel", planLabel);
+              }
+
+              // Keep your selected plan CSV if it exists
+              if (plansQS && plansQS.startsWith("&plans=")) {
+                const csv = plansQS.slice("&plans=".length);
+                if (csv) {
+                  url.searchParams.set("plans", csv);
                 }
               }
 
-              console.log("[details→checkout] building href", {
-                payload,
-                propertyIdFromQuery,
+              // Fallback bridge for checkout: remember last good propertyId
+              try {
+                if (checkoutPropertyId) {
+                  localStorage.setItem("checkout.lastPropertyId", checkoutPropertyId);
+                }
+              } catch (_) {}
+
+              topLink.setAttribute("href", url.toString());
+
+              console.log("[details→checkout] building href (final)", {
                 checkoutPropertyId,
-                roomId: rid,
-                ratePlanId: primary && primary.id
+                href: url.toString()
               });
-
-              const href =
-                `/checkout.html?propertyId=${encodeURIComponent(
-                  checkoutPropertyId
-                )}` +
-                `&propertyName=${encodeURIComponent(propertyName || "")}` +
-                (propertyLocation
-                  ? `&propertyLocation=${encodeURIComponent(propertyLocation)}`
-                  : "") +
-                `&roomId=${encodeURIComponent(rid)}` +
-                `&roomName=${encodeURIComponent(roomName || "")}` +
-                `&start=${encodeURIComponent(start)}` +
-                `&end=${encodeURIComponent(end)}` +
-                `&ratePlanId=${encodeURIComponent(primary.id)}` +
-                (planLabel
-                  ? `&planLabel=${encodeURIComponent(planLabel)}`
-                  : "") +
-                `${plansQS}`;
-
-              topLink.setAttribute("href", href);
             }
 
             // Keep the toggle visible on details page as long as there is at least one plan.
@@ -3218,9 +3206,7 @@
 
         // Persist chosen plan and ensure href has canonical params (+ propertyId + &plans=)
         listEl.addEventListener("click", (e) => {
-          const a = e.target.closest(
-            ".planrow .btn-select, .roomcat > .btn-select"
-          );
+          const a = e.target.closest(".planrow .btn-select, .roomcat > .btn-select");
           if (!a) return;
 
           try {
@@ -3243,8 +3229,7 @@
             // 2) Read selectedIds so we can preserve &plans=<csv>
             const sel = (() => {
               try {
-                const raw =
-                  localStorage.getItem("rateplan.selectedIds") || "[]";
+                const raw = localStorage.getItem("rateplan.selectedIds") || "[]";
                 const arr = JSON.parse(raw);
                 return Array.isArray(arr)
                   ? [...new Set(arr.map(Number).filter(Number.isFinite))]
@@ -3254,99 +3239,16 @@
               }
             })();
 
-            // 3) Build authoritative propertyId + other params
-            const payload = window.__detailsPayload || {};
-            const searchParams = new URLSearchParams(location.search);
-
-            const propertyIdFromQuery = Number(
-              searchParams.get("propertyId") ||
-                searchParams.get("id") ||
-                0
-            );
-            const partnerId = Number(
-              payload.partnerId ??
-                payload.propertyId ??
-                payload.id ??
-                0
-            );
-
-            const checkoutPropertyId =
-              (Number.isFinite(propertyIdFromQuery) &&
-              propertyIdFromQuery > 0
-                ? String(propertyIdFromQuery)
-                : "") ||
-              (Number.isFinite(partnerId) && partnerId > 0
-                ? String(partnerId)
-                : "");
-
-            // Fallback bridge for checkout: remember the last propertyId we
-            // navigated with, in case the query string loses it.
-            if (checkoutPropertyId) {
-              try {
-                localStorage.setItem(
-                  "checkout.lastPropertyId",
-                  checkoutPropertyId
-                );
-              } catch (_) {
-                // ignore storage errors
-              }
-            }
-
-            const cat = a.closest(".roomcat");
-            const rid = cat ? cat.getAttribute("data-room-id") || "" : "";
-
-            const meta =
-              typeof getCheckoutMeta === "function"
-                ? getCheckoutMeta()
-                : { propertyName: "", propertyLocation: "" };
-            const propertyName = meta.propertyName || "";
-            const propertyLocation = meta.propertyLocation || "";
-
-            const roomName =
-              typeof getRoomNameForCheckout === "function"
-                ? getRoomNameForCheckout(rid)
-                : "";
-
-            let planLabel = "";
-            if (row) {
-              const nameEl = row.querySelector(".planname");
-              if (nameEl && nameEl.textContent) {
-                planLabel = nameEl.textContent.trim();
-              }
-            }
-
-            // Rewrite href with guaranteed propertyId
+            // 3) Only tweak the plans param. Do NOT touch propertyId here.
             const url = new URL(a.href || "/checkout.html", location.href);
 
-            if (checkoutPropertyId) {
-              url.searchParams.set("propertyId", checkoutPropertyId);
-            }
-            if (propertyName) {
-              url.searchParams.set("propertyName", propertyName);
-            }
-            if (propertyLocation) {
-              url.searchParams.set("propertyLocation", propertyLocation);
-            }
-            if (rid) {
-              url.searchParams.set("roomId", rid);
-            }
-            if (roomName) {
-              url.searchParams.set("roomName", roomName);
-            }
-            if (Number.isFinite(pid)) {
-              url.searchParams.set("ratePlanId", String(pid));
-            }
-            if (planLabel) {
-              url.searchParams.set("planLabel", planLabel);
-            }
             if (sel.length) {
               url.searchParams.set("plans", sel.join(","));
             }
 
             a.setAttribute("href", url.toString());
 
-            console.log("[details→checkout] click rewrite", {
-              checkoutPropertyId,
+            console.log("[details→checkout] click rewrite (plans only)", {
               href: url.toString()
             });
           } catch (err) {
