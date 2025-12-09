@@ -1950,6 +1950,22 @@
         params.set("propertyId", String(propertyId));
         params.set("start", start);
         params.set("end", end);
+        if (q.ratePlanId) params.set("ratePlanId", q.ratePlanId);
+
+        const resp = await fetch("/catalog/details?" + params.toString(), {
+          method: "GET",
+          headers: { Accept: "application/json" }
+        });
+
+        if (!resp.ok) {
+          console.warn(
+            "[checkout] /catalog/details for addons failed",
+            resp.status
+          );
+          state.addonsConfig = [];
+          renderAddons([]);
+          return;
+        }
 
         const data = await resp.json();
 
@@ -1968,7 +1984,7 @@
         });
         renderAddons(addons);
 
-        // New: apply backend pricing quote if present
+        // Apply backend pricing quote if present
         if (data && typeof data === "object" && data.checkoutQuote) {
           console.log("[checkout] applying checkoutQuote", data.checkoutQuote);
           applyCheckoutQuote(data.checkoutQuote);
