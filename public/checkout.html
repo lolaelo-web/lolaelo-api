@@ -1049,7 +1049,7 @@
             <div class="card-header">
               <div class="card-title">
                 <div class="card-step" data-step-indicator="3">3</div>
-                Add-ons
+                ADD-ONs
               </div>
               <div class="card-status" data-step-status="3">
                 Locked until previous step
@@ -1060,14 +1060,11 @@
               <p class="section-intro">
                 Optional activities and extras selected by your hotel.
               </p>
-
-              <button
-                class="addons-explore-pill"
-                type="button"
-                data-open-addons-modal
-              >
-                Explore add-ons
+            <div style="text-align: center; margin-bottom: 12px;">
+              <button class="btn-secondary" type="button" data-open-addons-modal>
+                Explore ADD-ONs
               </button>
+            </div>
 
               <!-- Hook for dynamic rows (read-only summary / fallback) -->
               <div id="addonsList" class="addons-list"></div>
@@ -1472,7 +1469,9 @@
     }
 
     function renderAddons(addons) {
-      const listEl = document.getElementById("addonsList");
+      const listEl =
+        document.getElementById("addonsModalList") ||
+        document.getElementById("addonsList");
       const modalBody = document.getElementById("addonsModalBody");
       const emptyEl = document.getElementById("addonsEmptyMessage");
 
@@ -2024,6 +2023,40 @@
         target.appendChild(wrapper);
       });
     }
+
+    function openAddonsModal() {
+      const backdrop = document.getElementById("addonsModalBackdrop");
+      if (!backdrop) return;
+      backdrop.classList.add("is-open");
+      backdrop.setAttribute("aria-hidden", "false");
+    }
+
+    function closeAddonsModal() {
+      const backdrop = document.getElementById("addonsModalBackdrop");
+      if (!backdrop) return;
+      backdrop.classList.remove("is-open");
+      backdrop.setAttribute("aria-hidden", "true");
+    }
+
+    // Delegate clicks for open/close triggers
+    document.addEventListener("click", function (evt) {
+      const target = evt.target;
+      if (!(target instanceof HTMLElement)) return;
+
+      if (target.matches("[data-open-addons-modal]")) {
+        evt.preventDefault();
+        openAddonsModal();
+        return;
+      }
+
+      if (
+        target.matches("[data-close-addons-modal]") ||
+        target.id === "addonsModalBackdrop"
+      ) {
+        evt.preventDefault();
+        closeAddonsModal();
+      }
+    });
 
     // Helper: read IDs/dates from the URL so add-ons do not depend on state wiring
     function getCheckoutIdsFromQuery() {
@@ -2800,8 +2833,124 @@
       box-shadow: 0 2px 5px rgba(15, 118, 110, 0.2);
     }
 
+    .addons-modal-backdrop {
+      position: fixed;
+      inset: 0;
+      display: none;
+      align-items: center;
+      justify-content: center;
+      background: rgba(15, 23, 42, 0.35);
+      z-index: 50;
+    }
+
+    .addons-modal-backdrop.is-open {
+      display: flex;
+    }
+
+    .addons-modal {
+      width: 100%;
+      max-width: 720px;
+      max-height: 80vh;
+      background: #ffffff;
+      border-radius: 16px;
+      box-shadow: 0 20px 40px rgba(15, 23, 42, 0.25);
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+    }
+
+    .addons-modal-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 16px 20px;
+      border-bottom: 1px solid #e5e7eb;
+    }
+
+    .addons-modal-header h2 {
+      margin: 0;
+      font-size: 1rem;
+      font-weight: 600;
+    }
+
+    .addons-modal-close {
+      border: none;
+      background: transparent;
+      font-size: 0.9rem;
+      font-weight: 500;
+      cursor: pointer;
+      color: #6b7280;
+    }
+
+    .addons-modal-close:hover {
+      color: #111827;
+    }
+
+    .addons-modal-body {
+      padding: 16px 20px;
+      overflow-y: auto;
+    }
+
+    .addons-modal-intro {
+      margin: 0 0 12px;
+      font-size: 0.9rem;
+      color: #4b5563;
+    }
+
+    .addons-modal-footer {
+      padding: 12px 20px 16px;
+      border-top: 1px solid #e5e7eb;
+      display: flex;
+      justify-content: flex-end;
+    }
+
   </style>
   <!-- END ANCHOR: ADDONS_MODAL -->
+
+  <!-- Add-ons Modal -->
+<div
+  id="addonsModalBackdrop"
+  class="addons-modal-backdrop"
+  aria-hidden="true"
+>
+  <div
+    class="addons-modal"
+    role="dialog"
+    aria-modal="true"
+    aria-labelledby="addonsModalTitle"
+  >
+    <div class="addons-modal-header">
+      <h2 id="addonsModalTitle">ADD-ONs</h2>
+      <button
+        type="button"
+        class="addons-modal-close"
+        data-close-addons-modal
+      >
+        Close
+      </button>
+    </div>
+
+    <div class="addons-modal-body">
+      <p class="addons-modal-intro">
+        Choose optional activities and extras for your stay. Quantities and notes
+        will update your total automatically.
+      </p>
+
+      <!-- Main interactive list lives here -->
+      <div id="addonsModalList" class="addons-list"></div>
+    </div>
+
+    <div class="addons-modal-footer">
+      <button
+        type="button"
+        class="btn-secondary"
+        data-close-addons-modal
+      >
+        Done
+      </button>
+    </div>
+  </div>
+</div>
 
 </body>
 </html>
