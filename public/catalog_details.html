@@ -444,29 +444,8 @@
     }
 
     .room-modal-info{
-      display: grid;
-      grid-template-columns: minmax(0, 1.4fr) minmax(0, 1fr);
-      column-gap: 32px;
-      row-gap: 10px;
-      align-items: flex-start;
-    }
-
-    .room-modal-info > #roomModalSummary,
-    .room-modal-info > #roomModalSpecs{
-      grid-column: 1 / -1;  /* summary + size span both columns */
-    }
-
-    #roomModalDetailsSection{
-      grid-column: 1;
-    }
-
-    #roomModalInclusionsSection{
-      grid-column: 2;
-    }
-
-        .room-modal-info{
       margin-top: 12px;
-      padding: 0 36px 4px;  /* indent left/right for text area */
+      padding: 0 72px 4px;  /* doubled indent left & right */
       display: grid;
       grid-template-columns: minmax(0, 1.2fr) minmax(0, 1fr);
       column-gap: 40px;
@@ -1069,6 +1048,11 @@
       text-align:center;
     }
 
+    /* Make the Property Inclusions icon (2nd) about 1.5x wider */
+    .summary-actions > .summary-icon-wrap:nth-child(2){
+      min-width: 130px;  /* widen its footprint */
+    }
+
     .summary-icon-btn{
       width:58px;    /* ~1.2x 48px */
       height:58px;   /* ~1.2x 48px */
@@ -1103,6 +1087,9 @@
       font-size:13px;
       line-height:1.45;
       display:none;
+    }
+    .summary-actions > .summary-icon-wrap:first-child .summary-bubble{
+      transform: translateX(-30%);
     }
     .summary-bubble strong{
       display:block;
