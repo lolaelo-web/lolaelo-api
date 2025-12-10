@@ -2056,13 +2056,17 @@
     function applyCheckoutQuote(quote) {
       if (!quote || typeof quote !== "object") return;
 
-      const nightsArr = Array.isArray(quote.nights) ? quote.nights : [];
+      // Start from backend quote
+      var nightsArr = Array.isArray(quote.nights)
+        ? quote.nights.map(function (n) { return Object.assign({}, n); })
+        : [];
 
-      var totalNumeric = 0;
+      // 1) Base total from backend (before plan adjustments)
+      var baseTotal = 0;
       if (typeof quote.total === "number" && Number.isFinite(quote.total)) {
-        totalNumeric = quote.total;
+        baseTotal = quote.total;
       } else if (nightsArr.length) {
-        totalNumeric = nightsArr.reduce(function (sum, n) {
+        baseTotal = nightsArr.reduce(function (sum, n) {
           var v = Number(
             n.amount !== undefined ? n.amount :
             n.price  !== undefined ? n.price  :
@@ -2072,16 +2076,66 @@
         }, 0);
       }
 
-      if (!Number.isFinite(totalNumeric) || totalNumeric <= 0) {
+      if (!Number.isFinite(baseTotal) || baseTotal <= 0) {
         // No valid total – keep existing placeholder
         return;
+      }
+
+      // 2) Adjust for selected rate plan (mirror catalog_details helper)
+      var adjustedNights = nightsArr;
+      var totalNumeric = baseTotal;
+
+      try {
+        var q = parseQuery();
+        var rpId = q && q.ratePlanId ? Number(q.ratePlanId) : NaN;
+
+        function adjustNightAmount(amount, planId) {
+          var base = Number(amount);
+          if (!Number.isFinite(base)) return amount;
+
+          // Keep these rules in sync with getPlanPriceForRoom in catalog_details.html
+          if (planId === 1) {
+            // Standard
+            return base;
+          }
+          if (planId === 2) {
+            // Non-refundable: -10%
+            return Math.round(base * 0.9 * 100) / 100;
+          }
+          if (planId === 3) {
+            // With Breakfast: +10
+            return base + 10;
+          }
+          return base;
+        }
+
+        if (Number.isFinite(rpId) && nightsArr.length) {
+          adjustedNights = nightsArr.map(function (n) {
+            var raw = n.amount !== undefined ? n.amount :
+                      n.price  !== undefined ? n.price  :
+                      n.value  !== undefined ? n.value  : 0;
+            var adj = adjustNightAmount(raw, rpId);
+            var clone = Object.assign({}, n);
+            clone.amount = adj;
+            return clone;
+          });
+
+          totalNumeric = adjustedNights.reduce(function (sum, n) {
+            var v = Number(n.amount);
+            return sum + (Number.isFinite(v) ? v : 0);
+          }, 0);
+        }
+      } catch (e) {
+        console.warn("[checkout] ratePlan adjustment failed", e);
+        adjustedNights = nightsArr;
+        totalNumeric = baseTotal;
       }
 
       var currency = quote.currency || "USD";
 
       state.pricingTotal = totalNumeric;
       state.pricingCurrency = currency;
-      state.pricingNights = nightsArr;
+      state.pricingNights = adjustedNights;
 
       // Update summary total amount
       var totalEl = document.getElementById("summaryTotal");
@@ -2089,8 +2143,8 @@
         totalEl.textContent = formatCurrency(totalNumeric, currency);
       }
 
-      // Update nightly breakdown
-      renderNightlyBreakdown(nightsArr, currency);
+      // Update nightly breakdown using adjusted nights
+      renderNightlyBreakdown(adjustedNights, currency);
 
       // Recompute per-night average and caption based on new total
       updateSummaries();
