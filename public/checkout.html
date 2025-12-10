@@ -848,7 +848,7 @@
       align-items: flex-start;
     }
   }
-
+  
 </style>
 
 </head>
@@ -1950,9 +1950,17 @@
         params.set("propertyId", String(propertyId));
         params.set("start", start);
         params.set("end", end);
-        if (q.ratePlanId) params.set("ratePlanId", q.ratePlanId);
 
-        const resp = await fetch("/catalog/details?" + params.toString(), {
+        // IMPORTANT: do not filter by ratePlanId here.
+        // The DB uses its own internal rate plan IDs (8,11,12,...) which
+        // don't match the front-end ids (1,2,3). Filtering here was
+        // stripping out all room/price data.
+        // if (q.ratePlanId) params.set("ratePlanId", q.ratePlanId);
+
+        const url = "/catalog/details?" + params.toString();
+        console.log("[checkout] details URL", url);
+
+        const resp = await fetch(url, {
           method: "GET",
           headers: { Accept: "application/json" }
         });
