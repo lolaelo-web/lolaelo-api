@@ -300,26 +300,76 @@
     .month-select{ display:none; }
 
     /* Modal (Edit Room) */
+    .modal{
+      position: fixed;
+      inset: 0;
+      display: none;
+      place-items: center;
+      background: rgba(0,0,0,.45);
+      z-index: 50;
+    }
+    .modal.open{
+      display: grid;
+    }
+    .dialog{
+      width: min(1200px, calc(100vw - 48px));
+      max-height: calc(100vh - 48px);
+      display: flex;
+      flex-direction: column;
+      background: var(--panel-2);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      box-shadow: 0 12px 26px rgba(0,0,0,.45);
+    }
+    .dialog header{
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 12px 14px;
+      border-bottom: 1px solid var(--border);
+      background: var(--panel);
+    }
+    .dialog header h3{
+      margin: 0;
+      font-size: 15px;
+    }
     .dialog .body{
-      padding:14px;
-      display:grid;
-      gap:12px;
-      overflow-y:auto;    /* vertical scroll if needed */
-      overflow-x:hidden;  /* no horizontal scroll */
+      padding: 14px;
+      display: grid;
+      gap: 12px;
+      overflow-y: auto;    /* vertical scroll when needed */
+      overflow-x: hidden;  /* no horizontal scroll */
     }
-    .dialog .row{ display:grid; grid-template-columns:140px 1fr; gap:10px; align-items:center; }
-    .ri-section{
-      border:1px solid var(--border);
-      border-radius:12px;
-      padding:12px 16px 16px;
-      margin-bottom:16px;
-      background:var(--panel-2);
+    .dialog .row{
+      display: grid;
+      grid-template-columns: 140px 1fr;
+      gap: 10px;
+      align-items: center;
     }
-
-    .dialog input:not(.input){ background:var(--chip); border:1px solid var(--border); color:var(--text); padding:9px 10px; border-radius:8px; width:100%; }
-    .dialog footer{ display:flex; gap:8px; justify-content:flex-end; padding:12px 14px; border-top:1px solid var(--border); background:var(--panel); }
-    .muted{ color:var(--muted); font-size:12px; }
-    .warn-msg{ color:var(--warn); font-size:12px; }
+    .dialog input:not(.input){
+      background: var(--chip);
+      border: 1px solid var(--chip);
+      color: var(--text);
+      padding: 9px 10px;
+      border-radius: 8px;
+      width: 100%;
+    }
+    .dialog footer{
+      display: flex;
+      gap: 8px;
+      justify-content: flex-end;
+      padding: 10px 14px;
+      border-top: 1px solid var(--border);
+      background: var(--panel);
+    }
+    .muted{
+      color: var(--muted);
+      font-size: 12px;
+    }
+    .warn-msg{
+      color: var(--warn);
+      font-size: 12px;
+    }
 
     /* ANCHOR: EDIT_ROOM_CLOSE_BTN */
     .edit-room-header{
@@ -461,7 +511,6 @@
     padding-top:6px;
   }
 
-  /* Each label's children (span + input) occupy grid cells directly */
   .ri-details-grid label,
   .ri-inclusions-grid label{
     display:contents;
@@ -472,12 +521,12 @@
   .ri-details-grid label span,
   .ri-inclusions-grid label span{
     align-self:center;
-    white-space:normal;   /* allow wrapping in the text column */
+    white-space:normal;
   }
 
   .ri-details-grid input[type="checkbox"],
   .ri-inclusions-grid input[type="checkbox"]{
-    justify-self:flex-start;  /* checkbox sits in its own narrow column */
+    justify-self:flex-start;
     align-self:center;
     margin:0;
     transform:scale(1.1);

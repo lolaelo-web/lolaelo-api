@@ -1060,11 +1060,26 @@
               <p class="section-intro">
                 Optional activities and extras selected by your hotel.
               </p>
-            <div style="text-align: center; margin-bottom: 12px;">
-              <button class="btn-secondary" type="button" data-open-addons-modal>
-                Explore ADD-ONs
-              </button>
-            </div>
+              <div class="addons-explore-row" style="text-align: center; margin-bottom: 12px;">
+                <button
+                  type="button"
+                  class="addons-explore-pill"
+                  data-open-addons-modal
+                  style="
+                    padding: 8px 24px;
+                    border-radius: 9999px;
+                    border: 2px solid #0a8a85;
+                    background: #ffffff;
+                    color: #0a8a85;
+                    font-weight: 600;
+                    font-size: 14px;
+                    cursor: pointer;
+                    display: inline-block;
+                  "
+                >
+                  Explore ADD-ONs
+                </button>
+              </div>
 
               <!-- Hook for dynamic rows (read-only summary / fallback) -->
               <div id="addonsList" class="addons-list"></div>
