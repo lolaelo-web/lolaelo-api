@@ -346,6 +346,13 @@
       gap: 10px;
       align-items: center;
     }
+    .dialog .row.ri-section{
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 12px 16px 16px;
+      margin-top: 4px;
+      background: var(--panel-2);
+    }
     .dialog input:not(.input){
       background: var(--chip);
       border: 1px solid var(--chip);
@@ -379,17 +386,15 @@
     }
 
     .dialog-close{
-      background: transparent;
-      border: none;
-      color: var(--muted);
-      font-size: 22px;
       cursor: pointer;
-      padding: 0 6px;
+      padding: 4px 10px;
+      border-radius: 999px;   /* pill / circle feel */
+      font-size: 13px;
       line-height: 1;
     }
 
     .dialog-close:hover{
-      color: var(--text);
+      filter: brightness(1.05);
     }
 
     /* RATE_PLAN_FILTER (moved under Price group) */
@@ -695,14 +700,12 @@
     <div class="dialog">
       <header class="edit-room-header">
         <h3 id="edit-title">Edit room</h3>
-
-        <!-- Close button replaces old #id text -->
-        <button type="button"
-                id="edit-room-close"
-                class="dialog-close"
-                aria-label="Close">
-          ×
-        </button>
+      <button type="button"
+              id="edit-room-close"
+              class="dialog-close secondary btn btn-secondary-outline"
+              aria-label="Close">
+        ×
+      </button>
       </header>
       <div class="body">
         <div class="row">
@@ -4689,7 +4692,7 @@
     document.body.style.overflow = '';
   });
   /* ANCHOR: EDIT_ROOM_CLOSE_WIRE */
-  const closeBtn = document.getElementById('edit-close-btn');
+  const closeBtn = document.getElementById('edit-room-close');
   if (closeBtn) {
     closeBtn.addEventListener('click', () => {
       el('edit-cancel').click();

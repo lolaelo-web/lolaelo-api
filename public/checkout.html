@@ -2041,16 +2041,28 @@
 
     function openAddonsModal() {
       const backdrop = document.getElementById("addonsModalBackdrop");
-      if (!backdrop) return;
+      if (!backdrop) {
+        console.warn("[addonsModal] backdrop not found");
+        return;
+      }
+
+      // Make sure it is visible even if CSS is missing
+      backdrop.style.display = "flex";
       backdrop.classList.add("is-open");
       backdrop.setAttribute("aria-hidden", "false");
+
+      console.log("[addonsModal] open");
     }
 
     function closeAddonsModal() {
       const backdrop = document.getElementById("addonsModalBackdrop");
       if (!backdrop) return;
+
       backdrop.classList.remove("is-open");
       backdrop.setAttribute("aria-hidden", "true");
+      backdrop.style.display = "none";
+
+      console.log("[addonsModal] close");
     }
 
     // Delegate clicks for open/close triggers
@@ -2058,12 +2070,14 @@
       const target = evt.target;
       if (!(target instanceof HTMLElement)) return;
 
+      // Open trigger (our pill button)
       if (target.matches("[data-open-addons-modal]")) {
         evt.preventDefault();
         openAddonsModal();
         return;
       }
 
+      // Close triggers: explicit close button or clicking on backdrop
       if (
         target.matches("[data-close-addons-modal]") ||
         target.id === "addonsModalBackdrop"
