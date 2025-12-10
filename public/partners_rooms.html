@@ -300,32 +300,12 @@
     .month-select{ display:none; }
 
     /* Modal (Edit Room) */
-    .modal{ position:fixed; inset:0; display:none; place-items:center; background:rgba(0,0,0,.45); z-index:50; }
-    .modal.open{ display:grid; }
-    .dialog{
-      width:min(1200px, calc(100vw - 48px));
-      max-height:calc(100vh - 48px);
-      display:flex;
-      flex-direction:column;
-      background:var(--panel-2);
-      border:1px solid var(--border);
-      border-radius:12px;
-      box-shadow:0 12px 26px rgba(0,0,0,.45);
-    }
-    .dialog header{
-      display:flex;
-      align-items:center;
-      justify-content:space-between;
-      padding:12px 14px;
-      border-bottom:1px solid var(--border);
-      background:var(--panel);
-    }
-    .dialog header h3{ margin:0; font-size:15px; }
     .dialog .body{
       padding:14px;
       display:grid;
       gap:12px;
-      overflow-y:auto;
+      overflow-y:auto;    /* vertical scroll if needed */
+      overflow-x:hidden;  /* no horizontal scroll */
     }
     .dialog .row{ display:grid; grid-template-columns:140px 1fr; gap:10px; align-items:center; }
     .ri-section{
@@ -470,35 +450,35 @@
     padding-right: 6px;
   }
 
-  /* Room details / inclusions grid */
+  /* Room details / inclusions: 5 fixed pairs (text + checkbox) per row */
   .ri-details-grid,
   .ri-inclusions-grid{
     display:grid;
-    grid-template-columns: repeat(5, minmax(0, 1fr));  /* 5 label columns */
-    column-gap:32px;                                   /* clear gap between columns */
+    /* 5 pairs: [text][box] repeated; text wide, box narrow */
+    grid-template-columns: repeat(5, minmax(0, 1.6fr) minmax(0, 0.2fr));
+    column-gap:24px;
     row-gap:10px;
     padding-top:6px;
   }
 
+  /* Each label's children (span + input) occupy grid cells directly */
   .ri-details-grid label,
   .ri-inclusions-grid label{
-    display:flex;              /* text + checkbox in one column */
-    align-items:center;
-    justify-content:space-between;
-    gap:8px;                   /* small gap between text and checkbox */
+    display:contents;
     font-size:13px;
     color:var(--text);
   }
 
   .ri-details-grid label span,
   .ri-inclusions-grid label span{
-    flex:1;
-    white-space:nowrap;        /* keep "City view" etc on one line */
+    align-self:center;
+    white-space:normal;   /* allow wrapping in the text column */
   }
 
   .ri-details-grid input[type="checkbox"],
   .ri-inclusions-grid input[type="checkbox"]{
-    flex:0 0 auto;             /* checkbox stays narrow vs text */
+    justify-self:flex-start;  /* checkbox sits in its own narrow column */
+    align-self:center;
     margin:0;
     transform:scale(1.1);
   }
