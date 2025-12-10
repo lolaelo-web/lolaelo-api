@@ -1057,31 +1057,23 @@
             </div>
 
             <div class="section-body hidden" data-section-body="3">
-              <div class="field-row">
-                <div class="field-label">Add-ons</div>
-                <div class="field-value">
-                  Optional activities and extras selected by your hotel.
-                </div>
-              </div>
+              <p class="section-intro">
+                Optional activities and extras selected by your hotel.
+              </p>
 
-              <div class="field-row" style="margin-top: 14px;">
-                <button
-                  class="btn-primary"
-                  type="button"
-                  id="openAddonsModalBtn"
-                >
-                  Explore add-ons
-                </button>
-              </div>
-
-              <!-- Hidden hooks so existing JS keeps working for now -->
-              <div id="addonsList" class="addons-list" style="display:none;"></div>
-
-              <p
-                id="addonsEmptyMessage"
-                class="muted"
-                style="display:none;"
+              <button
+                class="addons-explore-pill"
+                type="button"
+                data-open-addons-modal
               >
+                Explore add-ons
+              </button>
+
+              <!-- Hook for dynamic rows (read-only summary / fallback) -->
+              <div id="addonsList" class="addons-list"></div>
+
+              <!-- Default empty message; JS may move/override this -->
+              <p id="addonsEmptyMessage" class="muted">
                 No add-ons are available for this stay.
               </p>
 
@@ -1885,23 +1877,23 @@
     }
 
     function renderAddons(addons) {
-      const listEl = document.getElementById("addonsList");
-      const emptyEl = document.getElementById("addonsEmptyMessage");
-      if (!listEl) return;
+      const listEl    = document.getElementById("addonsList");
+      const modalBody = document.getElementById("addonsModalBody");
+      const emptyEl   = document.getElementById("addonsEmptyMessage");
 
-      state.addonsConfig = Array.isArray(addons) ? addons : [];
-      if (!state.addonsSelections) state.addonsSelections = {};
+      // If neither container exists, nothing to do
+      if (!listEl && !modalBody) return;
 
-      // Reset list
-      listEl.innerHTML = "";
+      // Clear both containers (we'll primarily use the modal)
+      if (listEl) listEl.innerHTML = "";
+      if (modalBody) modalBody.innerHTML = "";
 
-      const rows = state.addonsConfig;
-      if (!rows || rows.length === 0) {
+      const rows = Array.isArray(addons) ? addons : [];
+      if (!rows.length) {
         if (emptyEl) {
+          emptyEl.textContent = "No add-ons are available for this stay.";
           emptyEl.style.display = "block";
-          listEl.appendChild(emptyEl);
         }
-        updateAddonsSummary();
         return;
       }
 
@@ -1909,41 +1901,74 @@
         emptyEl.style.display = "none";
       }
 
-      rows.forEach((addon, index) => {
-        const key = addon.id != null ? String(addon.id) : "idx-" + index;
-        const currentQty = state.addonsSelections[key] || 0;
+      // Prefer modal body; fall back to inline list if modal not present
+      const target = modalBody || listEl;
 
+      // ---------- Header row ----------
+      const header = document.createElement("div");
+      header.className = "addon-row addon-row-header";
+
+      const hMain = document.createElement("div");
+      hMain.className = "addon-main";
+      const hTitle = document.createElement("div");
+      hTitle.className = "addon-title";
+      hTitle.textContent = "Activity";
+      const hMeta = document.createElement("div");
+      hMeta.className = "addon-meta";
+      hMeta.textContent = "Price · Unit · Hotel notes";
+      hMain.appendChild(hTitle);
+      hMain.appendChild(hMeta);
+
+      const hQty = document.createElement("div");
+      hQty.className = "addon-qty";
+      const hQtyLabel = document.createElement("span");
+      hQtyLabel.textContent = "Qty";
+      hQty.appendChild(hQtyLabel);
+
+      header.appendChild(hMain);
+      header.appendChild(hQty);
+
+      target.appendChild(header);
+
+      // ---------- Data rows ----------
+      rows.forEach(function (item, idx) {
+        const activity = (item.activity || "").toString().trim() || "Add-on";
+        const uom      = (item.uom || "").toString().trim();
+        const rawPrice = item.price;
+        const notes    = (item.notes || "").toString().trim();
+
+        const price =
+          typeof rawPrice === "number"
+            ? rawPrice
+            : rawPrice != null
+            ? Number(rawPrice)
+            : NaN;
+
+        const hasNumericPrice = !Number.isNaN(price) && Number.isFinite(price);
+        const priceText = hasNumericPrice ? "$" + price.toFixed(2) : "Price TBD";
+
+        const metaParts = [];
+        if (priceText) metaParts.push(priceText);
+        if (uom) metaParts.push(uom);
+        if (notes) metaParts.push(notes);
+        const metaText = metaParts.join(" · ");
+
+        // Row layout
         const row = document.createElement("div");
         row.className = "addon-row";
 
         const main = document.createElement("div");
         main.className = "addon-main";
 
-        const nameEl = document.createElement("div");
-        nameEl.className = "addon-name";
-        nameEl.textContent = addon.activity || "Activity";
+        const titleEl = document.createElement("div");
+        titleEl.className = "addon-title";
+        titleEl.textContent = activity;
 
         const metaEl = document.createElement("div");
         metaEl.className = "addon-meta";
+        metaEl.textContent = metaText;
 
-        const parts = [];
-        if (addon.uom) parts.push(String(addon.uom));
-        if (typeof addon.price === "number") {
-          parts.push(
-            "$" + addon.price.toFixed(2) +
-            (addon.uom ? " per " + String(addon.uom).toLowerCase() : "")
-          );
-        }
-        metaEl.textContent = parts.join(" • ");
-
-        if (addon.notes) {
-          const notesEl = document.createElement("div");
-          notesEl.className = "addon-notes";
-          notesEl.textContent = addon.notes;
-          main.appendChild(notesEl);
-        }
-
-        main.appendChild(nameEl);
+        main.appendChild(titleEl);
         main.appendChild(metaEl);
 
         const qtyWrap = document.createElement("div");
@@ -1952,12 +1977,19 @@
         const qtyLabel = document.createElement("label");
         qtyLabel.textContent = "Qty";
 
+        const key = item.id != null ? String(item.id) : "idx-" + idx;
+        const currentQty = state.addonsSelections[key] || 0;
+
         const qtyInput = document.createElement("input");
         qtyInput.type = "number";
         qtyInput.min = "0";
         qtyInput.step = "1";
         qtyInput.value =
-          typeof currentQty === "number" && currentQty > 0 ? String(currentQty) : "0";
+          typeof currentQty === "number" && currentQty > 0
+            ? String(currentQty)
+            : "0";
+
+        qtyInput.setAttribute("data-addon-index", String(idx));
 
         qtyInput.addEventListener("input", function () {
           const val = parseInt(qtyInput.value, 10);
@@ -1975,10 +2007,22 @@
         row.appendChild(main);
         row.appendChild(qtyWrap);
 
-        listEl.appendChild(row);
-      });
+        // Optional traveler comment field, one per add-on
+        const comment = document.createElement("textarea");
+        comment.placeholder = "Add a note for this activity (optional)";
+        comment.className = "addon-comment";
+        comment.setAttribute("data-addon-index", String(idx));
 
-      updateAddonsSummary();
+        const wrapper = document.createElement("div");
+        wrapper.style.display = "flex";
+        wrapper.style.flexDirection = "column";
+        wrapper.style.gap = "4px";
+
+        wrapper.appendChild(row);
+        wrapper.appendChild(comment);
+
+        target.appendChild(wrapper);
+      });
     }
 
     // Helper: read IDs/dates from the URL so add-ons do not depend on state wiring
@@ -2718,6 +2762,44 @@
       background: white;
       cursor: pointer;
     }
+    .section-intro {
+      margin: 0 0 12px;
+      font-size: 0.9rem;
+      color: #4b5563; /* darker, readable, not fine-print gray */
+    }
+
+    .addons-explore-pill {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      padding: 10px 22px;
+      border-radius: 999px;
+      font-size: 0.95rem;
+      font-weight: 600;
+      cursor: pointer;
+      border: 2px solid transparent;
+      background:
+        linear-gradient(#ffffff, #ffffff) padding-box,
+        linear-gradient(135deg, #0f766e, #14b8a6) border-box;
+      color: #0f766e; /* strong teal text */
+      transition:
+        box-shadow 0.15s ease,
+        transform 0.05s ease,
+        background-color 0.15s ease,
+        color 0.15s ease;
+      margin-bottom: 16px;
+    }
+
+    .addons-explore-pill:hover {
+      box-shadow: 0 4px 10px rgba(15, 118, 110, 0.18);
+      transform: translateY(-1px);
+    }
+
+    .addons-explore-pill:active {
+      transform: translateY(0);
+      box-shadow: 0 2px 5px rgba(15, 118, 110, 0.2);
+    }
+
   </style>
   <!-- END ANCHOR: ADDONS_MODAL -->
 
