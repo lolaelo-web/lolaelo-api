@@ -538,6 +538,89 @@
   }
 
   </style>
+
+  <!-- ANCHOR: ADDONS_MODAL_TWEAKS -->
+  <style>
+    /* Wider modal */
+    #addonsModalBackdrop .addons-modal-dialog {
+      max-width: 900px;
+      width: min(900px, 95vw);
+    }
+
+    /* Slightly larger, more legible text */
+    #addonsModalBackdrop .addons-modal-body {
+      font-size: 14px;
+    }
+
+    /* Align column headers with row cells */
+    #addonsModalBackdrop .addons-modal-grid-header,
+    #addonsModalBackdrop .addons-modal-row {
+      display: grid;
+      grid-template-columns: 3fr 1.2fr 1.2fr 1.2fr 1.3fr; /* Activity | UoM | Price | Qty | Total */
+      column-gap: 16px;
+      align-items: center;
+    }
+
+    /* Hide "add a note" column / textareas */
+    #addonsModalBackdrop .addons-modal-col-notes,
+    #addonsModalBackdrop .addons-modal-comment-wrap {
+      display: none !important;
+    }
+
+    /* Footer: put "Add-ons total" directly above the buttons, right aligned */
+    #addonsModalBackdrop .addons-modal-footer {
+      display: flex;
+      flex-direction: column;
+      align-items: flex-end;
+      gap: 8px;
+    }
+
+    #addonsModalBackdrop .addons-modal-footer-summary {
+      text-align: right;
+      font-size: 14px;
+    }
+
+    #addonsModalBackdrop .addons-modal-total-label {
+      font-weight: 500;
+      margin-bottom: 2px;
+    }
+
+    #addonsModalBackdrop .addons-modal-total-amount {
+      font-weight: 600;
+    }
+
+    /* Buttons: same height, pill shape */
+    #addonsModalBackdrop .addons-modal-footer-actions {
+      display: flex;
+      gap: 12px;
+    }
+
+    #addonsModalBackdrop .addons-modal-footer-actions button {
+      min-height: 40px;
+      padding: 0 22px;
+      border-radius: 9999px;
+      font-size: 14px;
+    }
+
+    /* Gradient primary button */
+    #addonsModalBackdrop #applyAddonsButton {
+      background: linear-gradient(135deg, #ff6a3d, #ff914d);
+      border: none;
+      color: #ffffff;
+    }
+
+    #addonsModalBackdrop #applyAddonsButton:hover {
+      filter: brightness(1.05);
+    }
+
+    /* Cancel button: same height, neutral style */
+    #addonsModalBackdrop .addons-modal-footer-actions button[data-close-addons-modal] {
+      background: #ffffff;
+      border: 1px solid #e5e7eb;
+      color: #374151;
+    }
+  </style>
+
 </head>
 <body>
   <header>
@@ -757,7 +840,6 @@
           <textarea id="edit-room-summary"
                     class="input"
                     rows="2"
-                    maxlength="150"
                     placeholder="Short description shown to guests"></textarea>
         </div>
           <div class="row ri-section">

@@ -464,6 +464,29 @@
       grid-column: 2;
     }
 
+        .room-modal-info{
+      margin-top: 12px;
+      padding: 0 36px 4px;  /* indent left/right for text area */
+      display: grid;
+      grid-template-columns: minmax(0, 1.2fr) minmax(0, 1fr);
+      column-gap: 40px;
+      row-gap: 8px;
+      align-items: flex-start;
+    }
+
+    .room-modal-info > #roomModalSummary,
+    .room-modal-info > #roomModalSpecs{
+      grid-column: 1 / -1;   /* summary + size span both columns */
+    }
+
+    #roomModalDetailsSection{
+      grid-column: 1;        /* Room details on the left */
+    }
+
+    #roomModalInclusionsSection{
+      grid-column: 2;        /* Property Facilities & Inclusions on the right */
+    }
+
     .room-modal-plans{
       border-top: 1px solid #f3f4f6;
       padding-top: 10px;
@@ -1065,14 +1088,16 @@
       left:50%;
       transform:translateX(-50%);
       z-index:30;
-      min-width:220px;
-      max-width:320px;
-      padding:12px 14px;
+
+      /* widen the bubble so chips spread horizontally */
+      min-width:320px;
+      max-width:720px;                  /* ~2.25x previous max */
+      padding:12px 18px;
       border-radius:14px;
 
-      background:#FFFFFF;              /* white panel */
+      background:#FFFFFF;               /* white panel */
       border:1px solid #E5E7EB;
-      color:#0F1C2E;                   /* deep navy text */
+      color:#0F1C2E;                    /* deep navy text */
 
       box-shadow:0 10px 30px rgba(15,23,42,0.12);
       font-size:13px;
