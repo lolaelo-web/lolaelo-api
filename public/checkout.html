@@ -2937,49 +2937,71 @@
   <!-- END ANCHOR: ADDONS_MODAL -->
 
   <!-- Add-ons Modal -->
-<div
-  id="addonsModalBackdrop"
-  class="addons-modal-backdrop"
-  aria-hidden="true"
->
   <div
-    class="addons-modal"
-    role="dialog"
-    aria-modal="true"
-    aria-labelledby="addonsModalTitle"
+    id="addonsModalBackdrop"
+    class="addons-modal-backdrop"
+    aria-hidden="true"
   >
-    <div class="addons-modal-header">
-      <h2 id="addonsModalTitle">ADD-ONs</h2>
-      <button
-        type="button"
-        class="addons-modal-close"
-        data-close-addons-modal
+    <div class="addons-modal-dialog">
+      <div
+        class="addons-modal"
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="addonsModalTitle"
       >
-        Close
-      </button>
-    </div>
+        <div class="addons-modal-header">
+          <h2 id="addonsModalTitle">ADD-ONs</h2>
+          <button
+            type="button"
+            class="addons-modal-close"
+            data-close-addons-modal
+          >
+            Close
+          </button>
+        </div>
 
-    <div class="addons-modal-body">
-      <p class="addons-modal-intro">
-        Choose optional activities and extras for your stay. Quantities and notes
-        will update your total automatically.
-      </p>
+        <div class="addons-modal-body">
+          <p class="addons-modal-intro">
+            Choose optional activities and extras for your stay. Quantities will
+            update your add-ons total automatically.
+          </p>
 
-      <!-- Main interactive list lives here -->
-      <div id="addonsModalList" class="addons-list"></div>
-    </div>
+          <!-- Main interactive list lives here -->
+          <div id="addonsModalList" class="addons-list"></div>
+        </div>
 
-    <div class="addons-modal-footer">
-      <button
-        type="button"
-        class="btn-secondary"
-        data-close-addons-modal
-      >
-        Done
-      </button>
-    </div>
-  </div>
-</div>
+        <div class="addons-modal-footer">
+          <!-- Summary above the buttons -->
+          <div class="addons-modal-footer-summary">
+            <div class="addons-modal-total-label">Add-ons total</div>
+            <div
+              class="addons-modal-total-amount"
+              id="addonsModalTotal"
+            >
+              $0.00
+            </div>
+          </div>
+
+          <!-- Actions: Cancel + Apply, same height -->
+          <div class="addons-modal-footer-actions">
+            <button
+              type="button"
+              data-close-addons-modal
+            >
+              Cancel
+            </button>
+            <button
+              type="button"
+              id="applyAddonsButton"
+              data-close-addons-modal
+            >
+              Apply add-ons
+            </button>
+          </div>
+        </div>
+      </div> <!-- end .addons-modal -->
+    </div>   <!-- end .addons-modal-dialog -->
+  </div>     <!-- end backdrop -->
 
 </body>
 </html>

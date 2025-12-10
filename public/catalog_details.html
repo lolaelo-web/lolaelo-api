@@ -2076,29 +2076,88 @@
 
       // Global label maps for amenities bubble (same mapping as room modal)
       const DETAIL_LABELS = {
-        city_view:        "City view",
-        sea_view:         "Sea / ocean view",
-        garden_view:      "Garden view",
-        pool_view:        "Pool view",
-        high_floor:       "High floor",
-        ground_floor:     "Ground floor",
-        connecting:       "Connecting rooms available",
-        accessible:       "Accessible room",
-        kitchenette:      "Kitchenette",
-        separate_living:  "Separate living area",
+        // Views / position
+        city_view:            "City view",
+        sea_view:             "Sea / ocean view",
+        garden_view:          "Garden view",
+        pool_view:            "Pool view",
+        high_floor:           "High floor",
+
+        // Legacy position flags (kept so old data still renders)
+        ground_floor:         "Ground floor",
+        connecting:           "Connecting rooms available",
+        accessible:           "Accessible room",
+
+        // Beds
+        bed_king:             "King bed",
+        bed_queen:            "Queen bed",
+        bed_double:           "Double bed",
+        bed_single_twin:      "Single or twin bed",
+        bed_bunk:             "Bunk bed",
+        bed_sofa:             "Sofa bed",
+
+        // Layout / private spaces
+        balcony_terrace:      "Balcony or terrace",
+        separate_living:      "Separate living area",
+        kitchenette:          "Kitchenette",
+        full_kitchen:         "Full kitchen",
+        private_pool:         "Private pool",
+
+        // In-room amenities
+        air_conditioning:     "Air conditioning",
+        tv_streaming:         "TV with streaming",
+        refrigerator:         "Refrigerator",
+        work_desk:            "Work desk",
+        inroom_safe:          "In-room safe",
+
+        // Bathroom / family
+        bathtub:              "Bathtub",
+        bidet:                "Bidet",
+        crib_available:       "Crib or baby cot available",
+        handicap_accessible:  "Handicap accessible room",
       };
 
       const INCLUSION_LABELS = {
-        breakfast:       "Breakfast included",
-        half_board:      "Half board",
-        full_board:      "Full board",
-        all_inclusive:   "All inclusive",
-        free_parking:    "Free parking",
-        airport_shuttle: "Airport shuttle",
-        late_checkout:   "Late checkout (subject to availability)",
-        early_checkin:   "Early check-in (subject to availability)",
-        pool_access:     "Pool access",
-        spa_access:      "Spa / wellness access",
+        // New inclusions / facilities
+        breakfast_included:    "Breakfast included (no added cost)",
+        kids_free_under12:     "Kids stay free under 12",
+        free_wifi:             "Free Wi-Fi",
+        free_parking:          "Free parking",
+        airport_shuttle:       "Airport shuttle",
+        daily_housekeeping:    "Daily housekeeping",
+
+        facility_pool:         "Swimming pool",
+        facility_gym:          "Gym or fitness center",
+        facility_spa_sauna:    "Spa or sauna",
+        beachfront_access:     "Beachfront or direct beach access",
+        watersports_equipment: "Water sports equipment (kayak / paddleboard / snorkel)",
+
+        frontdesk_24h:         "24-hour front desk",
+        family_friendly:       "Family / child-friendly property",
+        nonsmoking_property:   "Non-smoking property",
+        smoking_area:          "Smoking area",
+        pets_allowed:          "Pets allowed",
+        disabled_facilities:   "Facilities for disabled guests",
+
+        business_center:       "Business center or meeting rooms",
+        shared_kitchen:        "Shared kitchen or guest pantry",
+        laundry:               "Laundry service or self-service laundry",
+        onsite_restaurant:     "On-site restaurant",
+
+        eco_cleaning:          "Eco-cleaning option (reduced housekeeping)",
+        quiet_hours:           "Quiet hours enforced",
+        crib_guaranteed:       "Guaranteed crib or baby cot",
+        flexible_self_checkin: "Flexible self check-in (lockbox / smart lock)",
+
+        // Legacy inclusion flags (kept so old data still renders)
+        breakfast:             "Breakfast included",
+        half_board:            "Half board",
+        full_board:            "Full board",
+        all_inclusive:         "All inclusive",
+        late_checkout:         "Late checkout (subject to availability)",
+        early_checkin:         "Early check-in (subject to availability)",
+        pool_access:           "Pool access",
+        spa_access:            "Spa / wellness access",
       };
 
       /* ANCHOR: DETAILS_AMENITIES_RENDER (property + room metadata) */
@@ -3589,30 +3648,90 @@
 
       if (!backdrop) return;
 
+      // Global label maps for amenities bubble (same mapping as room modal)
       const DETAIL_LABELS = {
-        city_view:        "City view",
-        sea_view:         "Sea / ocean view",
-        garden_view:      "Garden view",
-        pool_view:        "Pool view",
-        high_floor:       "High floor",
-        ground_floor:     "Ground floor",
-        connecting:       "Connecting rooms available",
-        accessible:       "Accessible room",
-        kitchenette:      "Kitchenette",
-        separate_living:  "Separate living area",
+        // Views / position
+        city_view:            "City view",
+        sea_view:             "Sea / ocean view",
+        garden_view:          "Garden view",
+        pool_view:            "Pool view",
+        high_floor:           "High floor",
+
+        // Legacy position flags (kept so old data still renders)
+        ground_floor:         "Ground floor",
+        connecting:           "Connecting rooms available",
+        accessible:           "Accessible room",
+
+        // Beds
+        bed_king:             "King bed",
+        bed_queen:            "Queen bed",
+        bed_double:           "Double bed",
+        bed_single_twin:      "Single or twin bed",
+        bed_bunk:             "Bunk bed",
+        bed_sofa:             "Sofa bed",
+
+        // Layout / private spaces
+        balcony_terrace:      "Balcony or terrace",
+        separate_living:      "Separate living area",
+        kitchenette:          "Kitchenette",
+        full_kitchen:         "Full kitchen",
+        private_pool:         "Private pool",
+
+        // In-room amenities
+        air_conditioning:     "Air conditioning",
+        tv_streaming:         "TV with streaming",
+        refrigerator:         "Refrigerator",
+        work_desk:            "Work desk",
+        inroom_safe:          "In-room safe",
+
+        // Bathroom / family
+        bathtub:              "Bathtub",
+        bidet:                "Bidet",
+        crib_available:       "Crib or baby cot available",
+        handicap_accessible:  "Handicap accessible room",
       };
 
       const INCLUSION_LABELS = {
-        breakfast:       "Breakfast included",
-        half_board:      "Half board",
-        full_board:      "Full board",
-        all_inclusive:   "All inclusive",
-        free_parking:    "Free parking",
-        airport_shuttle: "Airport shuttle",
-        late_checkout:   "Late checkout (subject to availability)",
-        early_checkin:   "Early check-in (subject to availability)",
-        pool_access:     "Pool access",
-        spa_access:      "Spa / wellness access",
+        // New inclusions / facilities
+        breakfast_included:    "Breakfast included (no added cost)",
+        kids_free_under12:     "Kids stay free under 12",
+        free_wifi:             "Free Wi-Fi",
+        free_parking:          "Free parking",
+        airport_shuttle:       "Airport shuttle",
+        daily_housekeeping:    "Daily housekeeping",
+
+        facility_pool:         "Swimming pool",
+        facility_gym:          "Gym or fitness center",
+        facility_spa_sauna:    "Spa or sauna",
+        beachfront_access:     "Beachfront or direct beach access",
+        watersports_equipment: "Water sports equipment (kayak / paddleboard / snorkel)",
+
+        frontdesk_24h:         "24-hour front desk",
+        family_friendly:       "Family / child-friendly property",
+        nonsmoking_property:   "Non-smoking property",
+        smoking_area:          "Smoking area",
+        pets_allowed:          "Pets allowed",
+        disabled_facilities:   "Facilities for disabled guests",
+
+        business_center:       "Business center or meeting rooms",
+        shared_kitchen:        "Shared kitchen or guest pantry",
+        laundry:               "Laundry service or self-service laundry",
+        onsite_restaurant:     "On-site restaurant",
+
+        eco_cleaning:          "Eco-cleaning option (reduced housekeeping)",
+        quiet_hours:           "Quiet hours enforced",
+        crib_guaranteed:       "Guaranteed crib or baby cot",
+        flexible_self_checkin: "Flexible self check-in (lockbox / smart lock)",
+
+        // Legacy inclusion flags (kept so old data still renders)
+        breakfast:             "Breakfast included",
+        half_board:            "Half board",
+        full_board:            "Full board",
+        all_inclusive:         "All inclusive",
+        late_checkout:         "Late checkout (subject to availability)",
+        early_checkin:         "Early check-in (subject to availability)",
+        pool_access:           "Pool access",
+        spa_access:            "Spa / wellness access",
       };
 
       // Canonical 3 plans only: 1 = Standard, 2 = With Breakfast, 3 = Non-Refundable
