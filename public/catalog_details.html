@@ -443,6 +443,27 @@
       box-shadow: 0 0 0 2px rgba(255,106,61,0.25) inset;
     }
 
+    .room-modal-info{
+      display: grid;
+      grid-template-columns: minmax(0, 1.4fr) minmax(0, 1fr);
+      column-gap: 32px;
+      row-gap: 10px;
+      align-items: flex-start;
+    }
+
+    .room-modal-info > #roomModalSummary,
+    .room-modal-info > #roomModalSpecs{
+      grid-column: 1 / -1;  /* summary + size span both columns */
+    }
+
+    #roomModalDetailsSection{
+      grid-column: 1;
+    }
+
+    #roomModalInclusionsSection{
+      grid-column: 2;
+    }
+
     .room-modal-plans{
       border-top: 1px solid #f3f4f6;
       padding-top: 10px;
@@ -1269,10 +1290,9 @@
                 >
                   🛎️
                 </button>
-                <div class="summary-icon-label">Amenities</div>
+                <div class="summary-icon-label">Property Inclusions</div>
 
                 <div class="summary-bubble summary-bubble-amenities">
-                  <strong>Amenities</strong>
                   <div id="amenities" class="chips" style="display:none;"></div>
                 </div>
               </div>
@@ -1346,18 +1366,18 @@
               aria-label="Room photos"
             ></div>
           </div>
-            <div class="room-modal-info">
+          <div class="room-modal-info">
             <p id="roomModalSummary" class="small"></p>
 
             <div id="roomModalSpecs" class="small muted"></div>
 
             <div class="room-modal-section" id="roomModalDetailsSection" style="display:none;">
-              <p class="room-modal-subtitle">Room details</p>
+              <p class="room-modal-subtitle">Room Details</p>
               <ul id="roomModalDetailsList" class="small"></ul>
             </div>
 
             <div class="room-modal-section" id="roomModalInclusionsSection" style="display:none;">
-              <p class="room-modal-subtitle">Inclusions</p>
+              <p class="room-modal-subtitle">Property Facilities & Inclusions</p>
               <ul id="roomModalInclusionsList" class="small"></ul>
             </div>
           </div>
@@ -1365,7 +1385,6 @@
             <p class="room-modal-subtitle">Available plans</p>
             <div id="roomModalPlans"></div>
           </div>
-        </div>
         <!-- ANCHOR: ROOM_MODAL_LIGHTBOX -->
         <div id="roomModalLightbox" class="room-modal-lightbox" aria-hidden="true">
           <div class="room-modal-lightbox-backdrop"></div>
@@ -2295,11 +2314,13 @@
             const inclusionKeys =
               Array.isArray(room.inclusion_keys) ? room.inclusion_keys : [];
 
-            if (typeof DETAIL_LABELS === "object") {
-              pushArr(detailKeys.map((k) => DETAIL_LABELS[k]).filter(Boolean));
-            }
+            // Amenities bubble: only Property Facilities & Inclusions
             if (typeof INCLUSION_LABELS === "object") {
-              pushArr(inclusionKeys.map((k) => INCLUSION_LABELS[k]).filter(Boolean));
+              pushArr(
+                inclusionKeys
+                  .map((k) => INCLUSION_LABELS[k])
+                  .filter(Boolean)
+              );
             }
           }
         }
