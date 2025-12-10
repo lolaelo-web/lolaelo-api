@@ -441,11 +441,11 @@
     padding-right: 6px;
   }
 
-  /* Room details / inclusions: 3 text columns + 3 checkbox columns */
+  /* Room details / inclusions: 5 text columns + 5 checkbox columns */
   .ri-details-grid,
   .ri-inclusions-grid{
     display: grid;
-    grid-template-columns: 1fr auto 1fr auto 1fr auto;  /* text, box, text, box, text, box */
+    grid-template-columns: 1fr auto 1fr auto 1fr auto 1fr auto 1fr auto;  /* text, box x5 */
     column-gap: 24px;
     row-gap: 10px;
     padding-top: 6px;
@@ -720,49 +720,107 @@
                 <span>High floor</span>
                 <input type="checkbox" class="ri-detail" value="high_floor">
               </label>
+
               <label class="ri-row">
-                <span>Ground floor</span>
-                <input type="checkbox" class="ri-detail" value="ground_floor">
+                <span>King bed</span>
+                <input type="checkbox" class="ri-detail" value="bed_king">
               </label>
               <label class="ri-row">
-                <span>Connecting rooms available</span>
-                <input type="checkbox" class="ri-detail" value="connecting">
+                <span>Queen bed</span>
+                <input type="checkbox" class="ri-detail" value="bed_queen">
               </label>
               <label class="ri-row">
-                <span>Accessible room</span>
-                <input type="checkbox" class="ri-detail" value="accessible">
+                <span>Double bed</span>
+                <input type="checkbox" class="ri-detail" value="bed_double">
+              </label>
+              <label class="ri-row">
+                <span>Single or twin bed</span>
+                <input type="checkbox" class="ri-detail" value="bed_single_twin">
+              </label>
+              <label class="ri-row">
+                <span>Bunk bed</span>
+                <input type="checkbox" class="ri-detail" value="bed_bunk">
+              </label>
+              <label class="ri-row">
+                <span>Sofa bed</span>
+                <input type="checkbox" class="ri-detail" value="bed_sofa">
+              </label>
+
+              <label class="ri-row">
+                <span>Balcony or terrace</span>
+                <input type="checkbox" class="ri-detail" value="balcony_terrace">
+              </label>
+              <label class="ri-row">
+                <span>Separate living area</span>
+                <input type="checkbox" class="ri-detail" value="separate_living">
               </label>
               <label class="ri-row">
                 <span>Kitchenette</span>
                 <input type="checkbox" class="ri-detail" value="kitchenette">
               </label>
               <label class="ri-row">
-                <span>Separate living area</span>
-                <input type="checkbox" class="ri-detail" value="separate_living">
+                <span>Full kitchen</span>
+                <input type="checkbox" class="ri-detail" value="full_kitchen">
+              </label>
+              <label class="ri-row">
+                <span>Private pool</span>
+                <input type="checkbox" class="ri-detail" value="private_pool">
+              </label>
+
+              <label class="ri-row">
+                <span>Air conditioning</span>
+                <input type="checkbox" class="ri-detail" value="air_conditioning">
+              </label>
+              <label class="ri-row">
+                <span>TV with streaming</span>
+                <input type="checkbox" class="ri-detail" value="tv_streaming">
+              </label>
+              <label class="ri-row">
+                <span>Refrigerator</span>
+                <input type="checkbox" class="ri-detail" value="refrigerator">
+              </label>
+              <label class="ri-row">
+                <span>Work desk</span>
+                <input type="checkbox" class="ri-detail" value="work_desk">
+              </label>
+              <label class="ri-row">
+                <span>In-room safe</span>
+                <input type="checkbox" class="ri-detail" value="inroom_safe">
+              </label>
+
+              <label class="ri-row">
+                <span>Bathtub</span>
+                <input type="checkbox" class="ri-detail" value="bathtub">
+              </label>
+              <label class="ri-row">
+                <span>Bidet</span>
+                <input type="checkbox" class="ri-detail" value="bidet">
+              </label>
+              <label class="ri-row">
+                <span>Crib or baby cot available</span>
+                <input type="checkbox" class="ri-detail" value="crib_available">
+              </label>
+              <label class="ri-row">
+                <span>Handicap accessible room</span>
+                <input type="checkbox" class="ri-detail" value="handicap_accessible">
               </label>
             </div>
-            <textarea id="edit-room-details" class="input" rows="2"
-              placeholder="Other room details (optional)"></textarea>
           </div>
 
           <div class="row">
             <label class="muted">Inclusions</label>
             <div class="ri-inclusions-grid">
               <label class="ri-row">
-                <span>Breakfast included</span>
-                <input type="checkbox" class="ri-inclusion" value="breakfast">
+                <span>Breakfast included (no added cost)</span>
+                <input type="checkbox" class="ri-inclusion" value="breakfast_included">
               </label>
               <label class="ri-row">
-                <span>Half board</span>
-                <input type="checkbox" class="ri-inclusion" value="half_board">
+                <span>Kids stay free under 12</span>
+                <input type="checkbox" class="ri-inclusion" value="kids_free_under12">
               </label>
               <label class="ri-row">
-                <span>Full board</span>
-                <input type="checkbox" class="ri-inclusion" value="full_board">
-              </label>
-              <label class="ri-row">
-                <span>All inclusive</span>
-                <input type="checkbox" class="ri-inclusion" value="all_inclusive">
+                <span>Free Wi-Fi</span>
+                <input type="checkbox" class="ri-inclusion" value="free_wifi">
               </label>
               <label class="ri-row">
                 <span>Free parking</span>
@@ -773,24 +831,90 @@
                 <input type="checkbox" class="ri-inclusion" value="airport_shuttle">
               </label>
               <label class="ri-row">
-                <span>Late checkout (subject to availability)</span>
-                <input type="checkbox" class="ri-inclusion" value="late_checkout">
+                <span>Daily housekeeping</span>
+                <input type="checkbox" class="ri-inclusion" value="daily_housekeeping">
+              </label>
+
+              <label class="ri-row">
+                <span>Swimming pool</span>
+                <input type="checkbox" class="ri-inclusion" value="facility_pool">
               </label>
               <label class="ri-row">
-                <span>Early check-in (subject to availability)</span>
-                <input type="checkbox" class="ri-inclusion" value="early_checkin">
+                <span>Gym or fitness center</span>
+                <input type="checkbox" class="ri-inclusion" value="facility_gym">
               </label>
               <label class="ri-row">
-                <span>Pool access</span>
-                <input type="checkbox" class="ri-inclusion" value="pool_access">
+                <span>Spa or sauna</span>
+                <input type="checkbox" class="ri-inclusion" value="facility_spa_sauna">
               </label>
               <label class="ri-row">
-                <span>Spa / wellness access</span>
-                <input type="checkbox" class="ri-inclusion" value="spa_access">
+                <span>Beachfront or direct beach access</span>
+                <input type="checkbox" class="ri-inclusion" value="beachfront_access">
+              </label>
+              <label class="ri-row">
+                <span>Water sports equipment (kayak / paddleboard / snorkel)</span>
+                <input type="checkbox" class="ri-inclusion" value="watersports_equipment">
+              </label>
+
+              <label class="ri-row">
+                <span>24-hour front desk</span>
+                <input type="checkbox" class="ri-inclusion" value="frontdesk_24h">
+              </label>
+              <label class="ri-row">
+                <span>Family / child-friendly property</span>
+                <input type="checkbox" class="ri-inclusion" value="family_friendly">
+              </label>
+              <label class="ri-row">
+                <span>Non-smoking property</span>
+                <input type="checkbox" class="ri-inclusion" value="nonsmoking_property">
+              </label>
+              <label class="ri-row">
+                <span>Smoking area</span>
+                <input type="checkbox" class="ri-inclusion" value="smoking_area">
+              </label>
+              <label class="ri-row">
+                <span>Pets allowed</span>
+                <input type="checkbox" class="ri-inclusion" value="pets_allowed">
+              </label>
+              <label class="ri-row">
+                <span>Facilities for disabled guests</span>
+                <input type="checkbox" class="ri-inclusion" value="disabled_facilities">
+              </label>
+
+              <label class="ri-row">
+                <span>Business center or meeting rooms</span>
+                <input type="checkbox" class="ri-inclusion" value="business_center">
+              </label>
+              <label class="ri-row">
+                <span>Shared kitchen or guest pantry</span>
+                <input type="checkbox" class="ri-inclusion" value="shared_kitchen">
+              </label>
+              <label class="ri-row">
+                <span>Laundry service or self-service laundry</span>
+                <input type="checkbox" class="ri-inclusion" value="laundry">
+              </label>
+              <label class="ri-row">
+                <span>On-site restaurant</span>
+                <input type="checkbox" class="ri-inclusion" value="onsite_restaurant">
+              </label>
+
+              <label class="ri-row">
+                <span>Eco-cleaning option (reduced housekeeping)</span>
+                <input type="checkbox" class="ri-inclusion" value="eco_cleaning">
+              </label>
+              <label class="ri-row">
+                <span>Quiet hours enforced</span>
+                <input type="checkbox" class="ri-inclusion" value="quiet_hours">
+              </label>
+              <label class="ri-row">
+                <span>Guaranteed crib or baby cot</span>
+                <input type="checkbox" class="ri-inclusion" value="crib_guaranteed">
+              </label>
+              <label class="ri-row">
+                <span>Flexible self check-in (lockbox / smart lock)</span>
+                <input type="checkbox" class="ri-inclusion" value="flexible_self_checkin">
               </label>
             </div>
-            <textarea id="edit-room-inclusions" class="input" rows="2"
-                      placeholder="Other inclusions (optional)"></textarea>
           </div>
 
         <!-- END ANCHOR: ROOM_INFO_FIELDS -->

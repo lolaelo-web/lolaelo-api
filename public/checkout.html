@@ -1064,11 +1064,24 @@
                 </div>
               </div>
 
-              <!-- Hook for dynamic rows -->
-              <div id="addonsList" class="addons-list"></div>
+              <div class="field-row" style="margin-top: 14px;">
+                <button
+                  class="btn-primary"
+                  type="button"
+                  id="openAddonsModalBtn"
+                >
+                  Explore add-ons
+                </button>
+              </div>
 
-              <!-- Default empty message; JS may move/override this -->
-              <p id="addonsEmptyMessage" class="muted">
+              <!-- Hidden hooks so existing JS keeps working for now -->
+              <div id="addonsList" class="addons-list" style="display:none;"></div>
+
+              <p
+                id="addonsEmptyMessage"
+                class="muted"
+                style="display:none;"
+              >
                 No add-ons are available for this stay.
               </p>
 
@@ -1329,12 +1342,12 @@
                 <div class="summary-total-label">Total</div>
               </div>
               <div class="summary-total-amount" id="summaryTotal">
-                $50.00
+                --
               </div>
             </div>
 
             <div class="breakdown-toggle" id="breakdownToggle">
-              View nightly breakdown
+              View detailed breakdown
             </div>
             <div class="breakdown" id="breakdownDetails">
             </div>
@@ -1468,18 +1481,29 @@
 
     function renderAddons(addons) {
       const listEl = document.getElementById("addonsList");
+      const modalBody = document.getElementById("addonsModalBody");
       const emptyEl = document.getElementById("addonsEmptyMessage");
-      if (!listEl) return;
 
-      listEl.innerHTML = "";
+      // Prefer the modal body as the primary container; fall back to the inline list
+      const root = modalBody || listEl;
+      if (!root) return;
+
+      // Clear all possible containers so we don’t have stale rows
+      root.innerHTML = "";
+      if (modalBody && modalBody !== root) modalBody.innerHTML = "";
+      if (listEl && listEl !== root) listEl.innerHTML = "";
 
       const rows = Array.isArray(addons) ? addons : [];
       if (!rows.length) {
         if (emptyEl) {
           emptyEl.textContent = "No add-ons are available for this stay.";
-          listEl.appendChild(emptyEl);
+          emptyEl.classList.remove("hidden");
         }
         return;
+      }
+
+      if (emptyEl) {
+        emptyEl.classList.add("hidden");
       }
 
       // header row
@@ -1498,45 +1522,30 @@
       hMain.appendChild(hTitle);
       hMain.appendChild(hMeta);
 
+      const hSide = document.createElement("div");
+      hSide.className = "addon-side";
       const hQty = document.createElement("div");
-      hQty.className = "addon-qty";
-      const hQtyLabel = document.createElement("span");
-      hQtyLabel.textContent = "Qty";
-      hQty.appendChild(hQtyLabel);
+      hQty.textContent = "Qty";
+      const hLine = document.createElement("div");
+      hLine.textContent = "Line total";
+      hSide.appendChild(hQty);
+      hSide.appendChild(hLine);
 
       header.appendChild(hMain);
-      header.appendChild(hQty);
+      header.appendChild(hSide);
+      root.appendChild(header);
 
-      listEl.appendChild(header);
+      // Ensure we have a selections map on state
+      if (!state.addonsSelections) state.addonsSelections = {};
 
-      rows.forEach(function (item, idx) {
-        const activity = (item.activity || "").toString().trim() || "Add-on";
-        const uom = (item.uom || "").toString().trim();
-        const rawPrice = item.price;
-        const notes = (item.notes || "").toString().trim();
-
+      rows.forEach(function (addon, idx) {
+        const activity = (addon.activity || "").toString().trim();
+        const uom = (addon.uom || "").toString().trim();
         const price =
-          typeof rawPrice === "number"
-            ? rawPrice
-            : (rawPrice != null ? Number(rawPrice) : NaN);
-
-        let priceText = "";
-        if (!Number.isNaN(price) && Number.isFinite(price)) {
-          try {
-            priceText = price.toLocaleString(undefined, {
-              style: "currency",
-              currency: "USD"
-            });
-          } catch (e) {
-            priceText = "$" + price.toFixed(2);
-          }
-        }
-
-        const metaParts = [];
-        if (priceText) metaParts.push(priceText);
-        if (uom) metaParts.push(uom);
-        if (notes) metaParts.push(notes);
-        const metaText = metaParts.join(" · ");
+          addon.price === null || addon.price === undefined
+            ? null
+            : Number(addon.price);
+        const notes = (addon.notes || "").toString().trim();
 
         const row = document.createElement("div");
         row.className = "addon-row";
@@ -1544,19 +1553,40 @@
         const main = document.createElement("div");
         main.className = "addon-main";
 
-        const titleEl = document.createElement("div");
-        titleEl.className = "addon-title";
-        titleEl.textContent = activity;
+        const title = document.createElement("div");
+        title.className = "addon-title";
+        title.textContent = activity || "Activity";
 
-        const metaEl = document.createElement("div");
-        metaEl.className = "addon-meta";
-        metaEl.textContent = metaText;
+        const meta = document.createElement("div");
+        meta.className = "addon-meta";
 
-        main.appendChild(titleEl);
-        main.appendChild(metaEl);
+        const priceStr =
+          price !== null && Number.isFinite(price)
+            ? new Intl.NumberFormat("en-US", {
+                style: "currency",
+                currency: "USD",
+              }).format(price)
+            : "Price on request";
+
+        const bits = [];
+        bits.push(priceStr);
+        if (uom) bits.push(uom);
+        if (notes) bits.push(notes);
+        meta.textContent = bits.join(" · ");
+
+        main.appendChild(title);
+        main.appendChild(meta);
+
+        const side = document.createElement("div");
+        side.className = "addon-side";
+
+        const key = String(idx);
+        const currentQty = state.addonsSelections[key] || 0;
 
         const qtyWrap = document.createElement("div");
-        qtyWrap.className = "addon-qty";
+        qtyWrap.style.display = "flex";
+        qtyWrap.style.flexDirection = "column";
+        qtyWrap.style.gap = "4px";
 
         const qtyLabel = document.createElement("label");
         qtyLabel.textContent = "Qty";
@@ -1565,16 +1595,51 @@
         qtyInput.type = "number";
         qtyInput.min = "0";
         qtyInput.step = "1";
-        qtyInput.value = "0";
+        qtyInput.value =
+          typeof currentQty === "number" && currentQty > 0
+            ? String(currentQty)
+            : "0";
         qtyInput.setAttribute("data-addon-index", String(idx));
+        qtyInput.className = "addon-qty-input";
+
+        const lineTotal = document.createElement("div");
+        lineTotal.className = "addon-line-total";
+
+        function updateLineTotal() {
+          const qtyVal = parseInt(qtyInput.value, 10);
+          if (isNaN(qtyVal) || qtyVal <= 0 || price === null || !Number.isFinite(price)) {
+            lineTotal.textContent = "";
+            return;
+          }
+          const total = qtyVal * price;
+          lineTotal.textContent = new Intl.NumberFormat("en-US", {
+            style: "currency",
+            currency: "USD",
+          }).format(total);
+        }
+
+        qtyInput.addEventListener("input", function () {
+          const val = parseInt(qtyInput.value, 10);
+          if (isNaN(val) || val <= 0) {
+            delete state.addonsSelections[key];
+          } else {
+            state.addonsSelections[key] = val;
+          }
+          updateLineTotal();
+          updateAddonsSummary();
+        });
+
+        updateLineTotal();
 
         qtyWrap.appendChild(qtyLabel);
         qtyWrap.appendChild(qtyInput);
 
-        row.appendChild(main);
-        row.appendChild(qtyWrap);
+        side.appendChild(qtyWrap);
+        side.appendChild(lineTotal);
 
-        // Traveler comment field under each row
+        row.appendChild(main);
+        row.appendChild(side);
+
         const comment = document.createElement("textarea");
         comment.rows = 2;
         comment.placeholder = "Comments for hotel (optional)";
@@ -1589,7 +1654,7 @@
         wrapper.appendChild(row);
         wrapper.appendChild(comment);
 
-        listEl.appendChild(wrapper);
+        root.appendChild(wrapper);
       });
     }
 
@@ -2273,6 +2338,38 @@
       refreshSections();
     }
 
+    // ANCHOR: ADDONS_MODAL_HANDLERS
+    (function setupAddonsModal() {
+      const backdrop = document.getElementById("addonsModalBackdrop");
+      const btnOpen = document.getElementById("openAddonsModalBtn");
+      const btnClose = document.getElementById("addonsModalCloseBtn");
+      const btnCancel = document.getElementById("addonsModalCancelBtn");
+      const btnApply = document.getElementById("addonsModalApplyBtn");
+
+      // Open modal
+      if (btnOpen) {
+        btnOpen.addEventListener("click", () => {
+          backdrop.style.display = "flex";
+        });
+      }
+
+      // Close logic shared
+      function closeModal() {
+        backdrop.style.display = "none";
+      }
+
+      if (btnClose) btnClose.addEventListener("click", closeModal);
+      if (btnCancel) btnCancel.addEventListener("click", closeModal);
+
+      // Apply button — we will wire functionality in later steps
+      if (btnApply) {
+        btnApply.addEventListener("click", () => {
+          // placeholder for future apply logic
+          backdrop.style.display = "none";
+        });
+      }
+    })();
+
     function initCheckout() {
       const q = parseQuery();
       state.propertyId = q.propertyId;
@@ -2479,6 +2576,115 @@
       }, 1500);
     })();
   </script>
+
+  <!-- ANCHOR: ADDONS_MODAL -->
+  <div id="addonsModalBackdrop" class="addons-modal-backdrop" style="display:none;">
+    <div class="addons-modal">
+      <div class="addons-modal-header">
+        <div class="addons-modal-title">Explore add-ons</div>
+        <button type="button" class="addons-modal-close" id="addonsModalCloseBtn">×</button>
+      </div>
+
+      <div class="addons-modal-body" id="addonsModalBody">
+        <!-- Rows will be injected here in later steps -->
+      </div>
+
+      <div class="addons-modal-footer">
+        <div class="addons-modal-subtotal">
+          Add-ons total: <span id="addonsModalSubtotal">--</span>
+        </div>
+        <div class="addons-modal-actions">
+          <button type="button" class="btn-secondary" id="addonsModalCancelBtn">Cancel</button>
+          <button type="button" class="btn-primary" id="addonsModalApplyBtn">Apply add-ons</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <style>
+    /* Very light modal skeleton — we improve visuals later */
+    .addons-modal-backdrop {
+      position: fixed;
+      inset: 0;
+      background: rgba(0,0,0,0.35);
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      z-index: 3000;
+    }
+
+    .addons-modal {
+      background: #ffffff;
+      width: 90%;
+      max-width: 780px;
+      max-height: 90vh;
+      border-radius: 14px;
+      padding: 20px;
+      display: flex;
+      flex-direction: column;
+      box-shadow: 0 8px 24px rgba(0,0,0,0.15);
+    }
+
+    .addons-modal-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 18px;
+    }
+
+    .addons-modal-title {
+      font-size: 20px;
+      font-weight: 600;
+    }
+
+    .addons-modal-close {
+      background: none;
+      border: none;
+      font-size: 22px;
+      cursor: pointer;
+    }
+
+    .addons-modal-body {
+      overflow-y: auto;
+      flex: 1;
+      padding-right: 4px;
+      margin-bottom: 18px;
+    }
+
+    .addons-modal-footer {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .addons-modal-subtotal {
+      font-weight: 600;
+      font-size: 16px;
+    }
+
+    .addons-modal-actions {
+      display: flex;
+      gap: 10px;
+    }
+
+    .btn-primary {
+      padding: 10px 18px;
+      border-radius: 6px;
+      background: #ff6a3d;
+      color: white;
+      border: none;
+      cursor: pointer;
+    }
+
+    .btn-secondary {
+      padding: 10px 18px;
+      border-radius: 6px;
+      border: 1px solid #ddd;
+      background: white;
+      cursor: pointer;
+    }
+  </style>
+  <!-- END ANCHOR: ADDONS_MODAL -->
 
 </body>
 </html>
