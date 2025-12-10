@@ -307,6 +307,14 @@
     .dialog header h3{ margin:0; font-size:15px; }
     .dialog .body{ padding:14px; display:grid; gap:12px; }
     .dialog .row{ display:grid; grid-template-columns:140px 1fr; gap:10px; align-items:center; }
+    .ri-section{
+      border:1px solid var(--border);
+      border-radius:12px;
+      padding:12px 16px 16px;
+      margin-bottom:16px;
+      background:var(--panel-2);
+    }
+
     .dialog input:not(.input){ background:var(--chip); border:1px solid var(--border); color:var(--text); padding:9px 10px; border-radius:8px; width:100%; }
     .dialog footer{ display:flex; gap:8px; justify-content:flex-end; padding:12px 14px; border-top:1px solid var(--border); background:var(--panel); }
     .muted{ color:var(--muted); font-size:12px; }
@@ -442,34 +450,29 @@
   }
 
   /* Room details / inclusions: 5 text columns + 5 checkbox columns */
+  /* Room details / inclusions: 5 columns of "label + checkbox" */
   .ri-details-grid,
   .ri-inclusions-grid{
-    display: grid;
-    grid-template-columns: 1fr auto 1fr auto 1fr auto 1fr auto 1fr auto;  /* text, box x5 */
-    column-gap: 24px;
-    row-gap: 10px;
-    padding-top: 6px;
+    display:grid;
+    grid-template-columns: repeat(5, minmax(0, 1fr));  /* 5 columns */
+    column-gap:32px;                                   /* big gap between columns */
+    row-gap:10px;
+    padding-top:6px;
   }
 
-  /* Let label's children (span + input) be the grid cells */
   .ri-details-grid label,
   .ri-inclusions-grid label{
-    display: contents;
-    font-size: 13px;
-    color: var(--text);
-  }
-
-  .ri-details-grid label span,
-  .ri-inclusions-grid label span{
-    align-self: center;
+    display:flex;              /* text + checkbox in one column */
+    align-items:center;
+    gap:8px;                   /* tight gap between text and checkbox */
+    font-size:13px;
+    color:var(--text);
   }
 
   .ri-details-grid input[type="checkbox"],
   .ri-inclusions-grid input[type="checkbox"]{
-    justify-self: flex-start;
-    align-self: center;
-    margin: 0;
-    transform: scale(1.1);
+    margin:0;
+    transform:scale(1.1);
   }
 
   </style>
@@ -697,7 +700,7 @@
                     maxlength="150"
                     placeholder="Short description shown to guests"></textarea>
         </div>
-          <div class="row">
+          <div class="row ri-section">
             <label class="muted">Room details</label>
             <div class="ri-details-grid">
               <label class="ri-row">
@@ -807,8 +810,8 @@
             </div>
           </div>
 
-          <div class="row">
-            <label class="muted">Inclusions</label>
+          <div class="row ri-section">
+            <label class="muted">Property Facilities & Inclusions</label>
             <div class="ri-inclusions-grid">
               <label class="ri-row">
                 <span>Breakfast included (no added cost)</span>

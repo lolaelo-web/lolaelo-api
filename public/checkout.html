@@ -1659,13 +1659,18 @@
     }
 
     function recomputeSelectedAddons() {
+      const modalBody = document.getElementById("addonsModalBody");
       const listEl = document.getElementById("addonsList");
-      if (!listEl) return;
 
-      const qtyInputs = listEl.querySelectorAll(
+      // Use the same root container as renderAddons:
+      // prefer modal body, fall back to inline list.
+      const root = modalBody || listEl;
+      if (!root) return;
+
+      const qtyInputs = root.querySelectorAll(
         'input[type="number"][data-addon-index]'
       );
-      const commentAreas = listEl.querySelectorAll(
+      const commentAreas = root.querySelectorAll(
         'textarea.addon-comment[data-addon-index]'
       );
 
@@ -1678,6 +1683,7 @@
       });
 
       const selections = [];
+      const selectionsMap = {};
 
       qtyInputs.forEach(function (input) {
         const idxAttr = input.getAttribute("data-addon-index");
@@ -1685,7 +1691,9 @@
         if (!Number.isFinite(idx) || idx < 0) return;
 
         const qty = Number(input.value || "0");
-        if (!Number.isFinite(qty) || qty <= 0) return;
+        if (!Number.isFinite(qty) || qty <= 0) {
+          return;
+        }
 
         const cfg = Array.isArray(state.addonsConfig)
           ? state.addonsConfig[idx]
@@ -1712,10 +1720,16 @@
           lineTotal,
           travelerComment: commentsByIndex[idx] || ""
         });
+
+        // Keep map for updateAddonsSummary()
+        selectionsMap[idx] = qty;
       });
 
       state.selectedAddons = selections;
+      state.addonsSelections = selectionsMap;
+
       updateSummaries();
+      updateAddonsSummary();
     }
 
     const state = {
@@ -2346,9 +2360,20 @@
       const btnCancel = document.getElementById("addonsModalCancelBtn");
       const btnApply = document.getElementById("addonsModalApplyBtn");
 
+      if (!backdrop) return;
+
       // Open modal
       if (btnOpen) {
         btnOpen.addEventListener("click", () => {
+          // If there are no configured add-ons, don't open the modal
+          const hasAddons =
+            Array.isArray(state.addonsConfig) && state.addonsConfig.length > 0;
+          if (!hasAddons) {
+            console.log("[checkout] addons modal open blocked — no addonsConfig");
+            alert("No add-ons are available for this stay.");
+            return;
+          }
+
           backdrop.style.display = "flex";
         });
       }
@@ -2361,11 +2386,21 @@
       if (btnClose) btnClose.addEventListener("click", closeModal);
       if (btnCancel) btnCancel.addEventListener("click", closeModal);
 
-      // Apply button — we will wire functionality in later steps
+      // Apply button — commit selections then close
       if (btnApply) {
         btnApply.addEventListener("click", () => {
-          // placeholder for future apply logic
-          backdrop.style.display = "none";
+          try {
+            // Re-scan inputs/comments inside the modal and update state
+            if (typeof recomputeSelectedAddons === "function") {
+              recomputeSelectedAddons();
+            } else {
+              console.warn(
+                "[checkout] recomputeSelectedAddons is not a function; cannot commit add-ons"
+              );
+            }
+          } finally {
+            closeModal();
+          }
         });
       }
     })();
