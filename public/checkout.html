@@ -1690,6 +1690,7 @@
 
       const selections = [];
       const selectionsMap = {};
+      let subtotal = 0;
 
       qtyInputs.forEach(function (input) {
         const idxAttr = input.getAttribute("data-addon-index");
@@ -1727,12 +1728,24 @@
           travelerComment: commentsByIndex[idx] || ""
         });
 
-        // Keep map for updateAddonsSummary()
         selectionsMap[idx] = qty;
+        if (lineTotal != null && Number.isFinite(lineTotal)) {
+          subtotal += lineTotal;
+        }
       });
 
       state.selectedAddons = selections;
       state.addonsSelections = selectionsMap;
+
+      const subtotalEl = document.getElementById("addonsModalSubtotal");
+      if (subtotalEl) {
+        if (subtotal > 0) {
+          const cur = state.pricingCurrency || "USD";
+          subtotalEl.textContent = formatCurrency(subtotal, cur);
+        } else {
+          subtotalEl.textContent = "--";
+        }
+      }
 
       updateSummaries();
       updateAddonsSummary();
@@ -1895,14 +1908,16 @@
       const modalBody = document.getElementById("addonsModalBody");
       const emptyEl   = document.getElementById("addonsEmptyMessage");
 
+      const rows = Array.isArray(addons) ? addons : [];
+      state.addonsConfig = rows;
+
       // If neither container exists, nothing to do
       if (!listEl && !modalBody) return;
 
-      // Clear both containers (we'll primarily use the modal)
+      // Clear both containers (we primarily use the modal body)
       if (listEl) listEl.innerHTML = "";
       if (modalBody) modalBody.innerHTML = "";
 
-      const rows = Array.isArray(addons) ? addons : [];
       if (!rows.length) {
         if (emptyEl) {
           emptyEl.textContent = "No add-ons are available for this stay.";
@@ -1924,12 +1939,15 @@
 
       const hMain = document.createElement("div");
       hMain.className = "addon-main";
+
       const hTitle = document.createElement("div");
       hTitle.className = "addon-title";
       hTitle.textContent = "Activity";
+
       const hMeta = document.createElement("div");
       hMeta.className = "addon-meta";
       hMeta.textContent = "Price · Unit · Hotel notes";
+
       hMain.appendChild(hTitle);
       hMain.appendChild(hMeta);
 
@@ -1941,7 +1959,6 @@
 
       header.appendChild(hMain);
       header.appendChild(hQty);
-
       target.appendChild(header);
 
       // ---------- Data rows ----------
@@ -1967,7 +1984,6 @@
         if (notes) metaParts.push(notes);
         const metaText = metaParts.join(" · ");
 
-        // Row layout
         const row = document.createElement("div");
         row.className = "addon-row";
 
@@ -1991,8 +2007,11 @@
         const qtyLabel = document.createElement("label");
         qtyLabel.textContent = "Qty";
 
-        const key = item.id != null ? String(item.id) : "idx-" + idx;
-        const currentQty = state.addonsSelections[key] || 0;
+        const key = String(idx);
+        const currentQty =
+          state.addonsSelections && state.addonsSelections[key]
+            ? state.addonsSelections[key]
+            : 0;
 
         const qtyInput = document.createElement("input");
         qtyInput.type = "number";
@@ -2005,6 +2024,22 @@
 
         qtyInput.setAttribute("data-addon-index", String(idx));
 
+        const lineTotalEl = document.createElement("div");
+        lineTotalEl.className = "addon-line-total";
+
+        function refreshLineTotal() {
+          const q = parseInt(qtyInput.value, 10);
+          if (!hasNumericPrice || isNaN(q) || q <= 0) {
+            lineTotalEl.textContent = "";
+            return;
+          }
+          const total = q * price;
+          lineTotalEl.textContent = formatCurrency(
+            total,
+            state.pricingCurrency || "USD"
+          );
+        }
+
         qtyInput.addEventListener("input", function () {
           const val = parseInt(qtyInput.value, 10);
           if (isNaN(val) || val <= 0) {
@@ -2012,31 +2047,25 @@
           } else {
             state.addonsSelections[key] = val;
           }
-          updateAddonsSummary();
+          refreshLineTotal();
+          recomputeSelectedAddons();
         });
+
+        // Initial line total
+        refreshLineTotal();
 
         qtyWrap.appendChild(qtyLabel);
         qtyWrap.appendChild(qtyInput);
+        qtyWrap.appendChild(lineTotalEl);
 
         row.appendChild(main);
         row.appendChild(qtyWrap);
 
-        // Optional traveler comment field, one per add-on
-        const comment = document.createElement("textarea");
-        comment.placeholder = "Add a note for this activity (optional)";
-        comment.className = "addon-comment";
-        comment.setAttribute("data-addon-index", String(idx));
-
-        const wrapper = document.createElement("div");
-        wrapper.style.display = "flex";
-        wrapper.style.flexDirection = "column";
-        wrapper.style.gap = "4px";
-
-        wrapper.appendChild(row);
-        wrapper.appendChild(comment);
-
-        target.appendChild(wrapper);
+        target.appendChild(row);
       });
+
+      // After initial render, compute subtotal + summary once
+      recomputeSelectedAddons();
     }
 
     function openAddonsModal() {
@@ -2065,24 +2094,34 @@
       console.log("[addonsModal] close");
     }
 
-    // Delegate clicks for open/close triggers
+    // Delegate clicks for add-ons modal (open / close / apply)
     document.addEventListener("click", function (evt) {
       const target = evt.target;
       if (!(target instanceof HTMLElement)) return;
 
-      // Open trigger (our pill button)
-      if (target.matches("[data-open-addons-modal]")) {
+      // Open trigger (pill in section 3)
+      if (target.closest("[data-open-addons-modal]")) {
         evt.preventDefault();
         openAddonsModal();
         return;
       }
 
-      // Close triggers: explicit close button or clicking on backdrop
+      // Close triggers: explicit close buttons or clicking backdrop
       if (
-        target.matches("[data-close-addons-modal]") ||
+        target.closest("[data-close-addons-modal]") ||
         target.id === "addonsModalBackdrop"
       ) {
         evt.preventDefault();
+        closeAddonsModal();
+        return;
+      }
+
+      // Apply: recompute selections + subtotal, then close
+      if (target.closest("[data-apply-addons-modal]")) {
+        evt.preventDefault();
+        if (typeof recomputeSelectedAddons === "function") {
+          recomputeSelectedAddons();
+        }
         closeAddonsModal();
       }
     });
@@ -2458,58 +2497,12 @@
       refreshSections();
     }
 
-    // ANCHOR: ADDONS_MODAL_HANDLERS
-    (function setupAddonsModal() {
-      const backdrop = document.getElementById("addonsModalBackdrop");
-      const btnOpen = document.getElementById("openAddonsModalBtn");
-      const btnClose = document.getElementById("addonsModalCloseBtn");
-      const btnCancel = document.getElementById("addonsModalCancelBtn");
-      const btnApply = document.getElementById("addonsModalApplyBtn");
-
-      if (!backdrop) return;
-
-      // Open modal
-      if (btnOpen) {
-        btnOpen.addEventListener("click", () => {
-          // If there are no configured add-ons, don't open the modal
-          const hasAddons =
-            Array.isArray(state.addonsConfig) && state.addonsConfig.length > 0;
-          if (!hasAddons) {
-            console.log("[checkout] addons modal open blocked — no addonsConfig");
-            alert("No add-ons are available for this stay.");
-            return;
-          }
-
-          backdrop.style.display = "flex";
-        });
-      }
-
-      // Close logic shared
-      function closeModal() {
-        backdrop.style.display = "none";
-      }
-
-      if (btnClose) btnClose.addEventListener("click", closeModal);
-      if (btnCancel) btnCancel.addEventListener("click", closeModal);
-
-      // Apply button — commit selections then close
-      if (btnApply) {
-        btnApply.addEventListener("click", () => {
-          try {
-            // Re-scan inputs/comments inside the modal and update state
-            if (typeof recomputeSelectedAddons === "function") {
-              recomputeSelectedAddons();
-            } else {
-              console.warn(
-                "[checkout] recomputeSelectedAddons is not a function; cannot commit add-ons"
-              );
-            }
-          } finally {
-            closeModal();
-          }
-        });
-      }
-    })();
+     // ANCHOR: ADDONS_MODAL_HANDLERS
+    // Modal open / close / apply is handled via the global click
+    // delegation above using:
+    //   [data-open-addons-modal]
+    //   [data-close-addons-modal]
+    //   [data-apply-addons-modal]
 
     function initCheckout() {
       const q = parseQuery();
@@ -2722,12 +2715,19 @@
   <div id="addonsModalBackdrop" class="addons-modal-backdrop" style="display:none;">
     <div class="addons-modal">
       <div class="addons-modal-header">
-        <div class="addons-modal-title">Explore add-ons</div>
-        <button type="button" class="addons-modal-close" id="addonsModalCloseBtn">×</button>
+        <h2 class="addons-modal-title">Explore add-ons</h2>
+        <button
+          type="button"
+          class="addons-modal-close"
+          id="addonsModalCloseBtn"
+          data-close-addons-modal
+        >
+          ×
+        </button>
       </div>
 
       <div class="addons-modal-body" id="addonsModalBody">
-        <!-- Rows will be injected here in later steps -->
+        <!-- Rows will be injected here -->
       </div>
 
       <div class="addons-modal-footer">
@@ -2735,99 +2735,32 @@
           Add-ons total: <span id="addonsModalSubtotal">--</span>
         </div>
         <div class="addons-modal-actions">
-          <button type="button" class="btn-secondary" id="addonsModalCancelBtn">Cancel</button>
-          <button type="button" class="btn-primary" id="addonsModalApplyBtn">Apply add-ons</button>
+          <button
+            type="button"
+            class="btn-secondary"
+            id="addonsModalCancelBtn"
+            data-close-addons-modal
+          >
+            Cancel
+          </button>
+          <button
+            type="button"
+            class="btn-primary"
+            id="addonsModalApplyBtn"
+            data-apply-addons-modal
+          >
+            Apply add-ons
+          </button>
         </div>
       </div>
     </div>
   </div>
 
   <style>
-    /* Very light modal skeleton — we improve visuals later */
-    .addons-modal-backdrop {
-      position: fixed;
-      inset: 0;
-      background: rgba(0,0,0,0.35);
-      display: flex;
-      justify-content: center;
-      align-items: center;
-      z-index: 3000;
-    }
-
-    .addons-modal {
-      background: #ffffff;
-      width: 90%;
-      max-width: 780px;
-      max-height: 90vh;
-      border-radius: 14px;
-      padding: 20px;
-      display: flex;
-      flex-direction: column;
-      box-shadow: 0 8px 24px rgba(0,0,0,0.15);
-    }
-
-    .addons-modal-header {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      margin-bottom: 18px;
-    }
-
-    .addons-modal-title {
-      font-size: 20px;
-      font-weight: 600;
-    }
-
-    .addons-modal-close {
-      background: none;
-      border: none;
-      font-size: 22px;
-      cursor: pointer;
-    }
-
-    .addons-modal-body {
-      overflow-y: auto;
-      flex: 1;
-      padding-right: 4px;
-      margin-bottom: 18px;
-    }
-
-    .addons-modal-footer {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-    }
-
-    .addons-modal-subtotal {
-      font-weight: 600;
-      font-size: 16px;
-    }
-
-    .addons-modal-actions {
-      display: flex;
-      gap: 10px;
-    }
-
-    .btn-primary {
-      padding: 10px 18px;
-      border-radius: 6px;
-      background: #ff6a3d;
-      color: white;
-      border: none;
-      cursor: pointer;
-    }
-
-    .btn-secondary {
-      padding: 10px 18px;
-      border-radius: 6px;
-      border: 1px solid #ddd;
-      background: white;
-      cursor: pointer;
-    }
     .section-intro {
       margin: 0 0 12px;
       font-size: 0.9rem;
-      color: #4b5563; /* darker, readable, not fine-print gray */
+      color: #4b5563; /* darker, readable */
     }
 
     .addons-explore-pill {
@@ -2843,12 +2776,10 @@
       background:
         linear-gradient(#ffffff, #ffffff) padding-box,
         linear-gradient(135deg, #0f766e, #14b8a6) border-box;
-      color: #0f766e; /* strong teal text */
+      color: #0f766e;
       transition:
         box-shadow 0.15s ease,
-        transform 0.05s ease,
-        background-color 0.15s ease,
-        color 0.15s ease;
+        transform 0.05s ease;
       margin-bottom: 16px;
     }
 
@@ -2862,6 +2793,7 @@
       box-shadow: 0 2px 5px rgba(15, 118, 110, 0.2);
     }
 
+    /* Modal backdrop */
     .addons-modal-backdrop {
       position: fixed;
       inset: 0;
@@ -2876,9 +2808,10 @@
       display: flex;
     }
 
+    /* Wider modal: ~1.5x previous width */
     .addons-modal {
       width: 100%;
-      max-width: 720px;
+      max-width: 1080px;
       max-height: 80vh;
       background: #ffffff;
       border-radius: 16px;
@@ -2892,11 +2825,11 @@
       display: flex;
       align-items: center;
       justify-content: space-between;
-      padding: 16px 20px;
+      padding: 16px 24px;
       border-bottom: 1px solid #e5e7eb;
     }
 
-    .addons-modal-header h2 {
+    .addons-modal-title {
       margin: 0;
       font-size: 1rem;
       font-weight: 600;
@@ -2916,8 +2849,9 @@
     }
 
     .addons-modal-body {
-      padding: 16px 20px;
+      padding: 16px 24px;
       overflow-y: auto;
+      font-size: 14px; /* slightly larger text */
     }
 
     .addons-modal-intro {
@@ -2927,13 +2861,106 @@
     }
 
     .addons-modal-footer {
-      padding: 12px 20px 16px;
+      padding: 12px 24px 16px;
       border-top: 1px solid #e5e7eb;
       display: flex;
-      justify-content: flex-end;
+      flex-direction: column;
+      align-items: flex-end;
+      gap: 8px; /* subtotal above buttons */
     }
 
+    .addons-modal-subtotal {
+      font-weight: 600;
+      font-size: 14px;
+    }
+
+    .addons-modal-actions {
+      display: flex;
+      gap: 10px;
+    }
+
+    /* Buttons inside modal only */
+    #addonsModalBackdrop .btn-primary {
+      padding: 10px 24px;
+      min-height: 40px;
+      border-radius: 999px;
+      background: linear-gradient(135deg, #ff6a3d, #ff8b5e, #ffb892);
+      color: #ffffff;
+      border: none;
+      cursor: pointer;
+      font-weight: 600;
+      font-size: 14px;
+    }
+
+    #addonsModalBackdrop .btn-secondary {
+      padding: 10px 24px;
+      min-height: 40px;
+      border-radius: 999px;
+      border: 1px solid #d1d5db;
+      background: #ffffff;
+      cursor: pointer;
+      font-size: 14px;
+    }
+
+    /* Column layout inside modal body */
+    #addonsModalBackdrop .addon-row {
+      display: grid;
+      grid-template-columns: minmax(0, 3fr) 140px; /* left text, right qty */
+      column-gap: 16px;
+      align-items: flex-start;
+      padding: 6px 0;
+      font-size: 14px;
+    }
+
+    #addonsModalBackdrop .addon-row-header {
+      font-weight: 600;
+      border-bottom: 1px solid #e5e7eb;
+      margin-bottom: 4px;
+      padding-bottom: 4px;
+    }
+
+    #addonsModalBackdrop .addon-main {
+      display: flex;
+      flex-direction: column;
+      gap: 2px;
+    }
+
+    #addonsModalBackdrop .addon-title {
+      font-weight: 500;
+    }
+
+    #addonsModalBackdrop .addon-meta {
+      font-size: 12px;
+      color: #6b7280;
+    }
+
+    #addonsModalBackdrop .addon-qty {
+      display: flex;
+      flex-direction: column;
+      align-items: flex-end;
+      gap: 4px;
+    }
+
+    #addonsModalBackdrop .addon-qty label {
+      font-size: 12px;
+      color: #6b7280;
+    }
+
+    #addonsModalBackdrop .addon-qty input {
+      width: 72px;
+      padding: 4px 6px;
+      border-radius: 8px;
+      border: 1px solid #d1d5db;
+      text-align: right;
+      font-size: 13px;
+    }
+
+    #addonsModalBackdrop .addon-line-total {
+      font-size: 12px;
+      color: #111827;
+    }
   </style>
+
   <!-- END ANCHOR: ADDONS_MODAL -->
 
 </body>

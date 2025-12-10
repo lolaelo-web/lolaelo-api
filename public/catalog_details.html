@@ -1073,15 +1073,20 @@
       transform:translateX(-50%);
       z-index:30;
 
-      /* widen the bubble so chips spread horizontally */
+      /* wider bubble so long text can breathe */
       min-width:320px;
-      max-width:720px;                  /* ~2.25x previous max */
+      max-width:720px;
+
+      /* allow long descriptions without cutting them off */
+      max-height:70vh;
+      overflow-y:auto;
+
       padding:12px 18px;
       border-radius:14px;
 
-      background:#FFFFFF;               /* white panel */
+      background:#FFFFFF;              /* white panel */
       border:1px solid #E5E7EB;
-      color:#0F1C2E;                    /* deep navy text */
+      color:#0F1C2E;                   /* deep navy text */
 
       box-shadow:0 10px 30px rgba(15,23,42,0.12);
       font-size:13px;
@@ -1355,7 +1360,7 @@
     <!-- ANCHOR: ROOM_MODAL_HTML -->
     <div id="roomModalBackdrop" class="room-modal-backdrop" aria-hidden="true">
       <div class="room-modal" role="dialog" aria-modal="true" aria-label="Room details">
-        <button type="button" class="room-modal-close" aria-label="Close">x</button>
+        <button type="button" class="room-modal-close" aria-label="Close">Close</button>
         <div class="room-modal-body">
           <div class="room-modal-top">
             <h2 id="roomModalTitle">Room</h2>
@@ -1402,7 +1407,7 @@
           <div class="room-modal-lightbox-backdrop"></div>
 
           <div class="room-modal-lightbox-inner">
-            <button class="room-modal-lightbox-close" aria-label="Close">Close</button>
+            <button class="room-modal-lightbox-close" aria-label="Close">X</button>
             <button class="room-modal-lightbox-prev" aria-label="Previous image">‹</button>
 
             <img class="room-modal-lightbox-img" src="" alt="Room photo" />
