@@ -140,7 +140,7 @@
     /* === ANCHOR: CATALOG_MAP_MODAL_CSS ============================= */
     .subhead-row{
       display:flex;
-      align-items:center;
+      align-items:flex-start;
       justify-content:space-between;
       gap:12px;
       margin-top:8px;
@@ -149,14 +149,15 @@
     .map-toggle-btn{
       display:inline-flex;
       align-items:center;
-      gap:6px;
-      padding:6px 10px;
+      gap:8px;
+      padding:10px 20px;              /* bigger pill */
       border-radius:999px;
       border:1px solid var(--line-soft);
       background:rgba(15,23,42,0.02);
       color:var(--muted);
-      font-size:13px;
+      font-size:16px;                  /* ~3x visual vs before */
       cursor:pointer;
+      margin-top:10px;                 /* drops pill into the gap (toward Filters row) */
     }
 
     .map-toggle-btn:hover{
@@ -164,12 +165,12 @@
     }
 
     .map-toggle-icon{
-      width:18px;
-      height:18px;
+      width:24px;
+      height:24px;
       border-radius:999px;
       display:block;
     }
-
+    
     .catalog-map-backdrop{
       position:fixed;
       inset:0;

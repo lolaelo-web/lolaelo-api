@@ -1280,10 +1280,9 @@
       background: #F3F4F6;
     }
 
-    /* ANCHOR: SUMMARY_MAP_ICON */
     .summary-map-icon {
-      width: 22px;
-      height: 22px;
+      width: 36px;      /* Matches visual size of surrounding icons */
+      height: 36px;
       object-fit: contain;
       display: block;
       margin: 0 auto;
@@ -1514,28 +1513,58 @@
         // ignore
       }
 
-      applyBtn.addEventListener('click', () => {
-        const ci = checkInInput.value || start;
-        const co = checkOutInput.value || end;
-        if (!ci || !co) return;
+      applyBtn.addEventListener('click', function () {
+        const ciRaw = checkInInput.value || start;
+        const coRaw = checkOutInput.value || end;
 
-        // Simple guard: ensure end is after start
-        const ciDate = new Date(ci);
-        const coDate = new Date(co);
-        if (!Number.isNaN(ciDate) && !Number.isNaN(coDate) && coDate <= ciDate) {
-          coDate.setDate(ciDate.getDate() + 1);
+        // We need at least a start date to do anything useful
+        if (!ciRaw) return;
+
+        // Local YYYY-MM-DD formatter (no timezone conversion)
+        function formatLocalYmd(d) {
+          const y  = d.getFullYear();
+          const m  = String(d.getMonth() + 1).padStart(2, '0');
+          const dd = String(d.getDate()).padStart(2, '0');
+          return y + '-' + m + '-' + dd;
         }
 
-        // Use the raw date strings from the inputs (no timezone conversion)
-        const finalStart = (ci || '').slice(0, 10);
-        const finalEnd   = (co || '').slice(0, 10);
+        const ciDate = new Date(ciRaw);
+        let finalStart = ciRaw.slice(0, 10);
+        let finalEnd;
 
-        const qsNext = new URLSearchParams(location.search);
-        qsNext.set('start', finalStart);
-        qsNext.set('end', finalEnd);
+        if (!Number.isNaN(ciDate.getTime())) {
+          let endDate = null;
 
-        const nextUrl = `${location.pathname}?${qsNext.toString()}`;
-        location.assign(nextUrl);
+          // If there is an end date and it is after the start, keep it.
+          if (coRaw) {
+            const parsedEnd = new Date(coRaw);
+            if (!Number.isNaN(parsedEnd.getTime()) && parsedEnd > ciDate) {
+              endDate = parsedEnd;
+            }
+          }
+
+          // Otherwise, default end date to start + 1 day
+          if (!endDate) {
+            endDate = new Date(ciDate.getTime());
+            endDate.setDate(ciDate.getDate() + 1);
+          }
+
+          finalEnd = formatLocalYmd(endDate);
+        } else {
+          // Fallback – invalid start date, just passthrough whatever end we had
+          finalEnd = (coRaw || '').slice(0, 10);
+        }
+
+        if (!finalStart || !finalEnd) return;
+
+        const params = new URLSearchParams(window.location.search);
+        params.set('start', finalStart);
+        params.set('end',   finalEnd);
+
+        const newUrl =
+          window.location.pathname + '?' + params.toString() + '#rateplans';
+
+        window.location.href = newUrl;
       });
     })();
 
