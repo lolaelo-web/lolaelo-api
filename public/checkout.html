@@ -1914,8 +1914,22 @@
       if (!totalEl) return;
 
       const currency = state.pricingCurrency || "USD";
-      const base     = Number(state.baseRoomTotal  || 0);
-      const addons   = Number(state.addonsSubtotal || 0);
+
+      // Prefer the rate-plan–adjusted total from applyCheckoutQuote,
+      // fall back to baseRoomTotal only if needed.
+      let base = 0;
+
+      if (typeof state.pricingTotal === "number" &&
+          Number.isFinite(state.pricingTotal) &&
+          state.pricingTotal > 0) {
+        base = state.pricingTotal;
+      } else if (typeof state.baseRoomTotal === "number" &&
+                 Number.isFinite(state.baseRoomTotal) &&
+                 state.baseRoomTotal > 0) {
+        base = state.baseRoomTotal;
+      }
+
+      const addons = Number(state.addonsSubtotal || 0);
 
       // If we don't yet have a meaningful base, don't overwrite placeholder
       if (!Number.isFinite(base) || base <= 0) return;
