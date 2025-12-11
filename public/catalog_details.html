@@ -1513,8 +1513,9 @@
           coDate.setDate(ciDate.getDate() + 1);
         }
 
-        const finalStart = !Number.isNaN(ciDate) ? ciDate.toISOString().slice(0, 10) : ci;
-        const finalEnd   = !Number.isNaN(coDate) ? coDate.toISOString().slice(0, 10) : co;
+        // Use the raw date strings from the inputs (no timezone conversion)
+        const finalStart = (ci || '').slice(0, 10);
+        const finalEnd   = (co || '').slice(0, 10);
 
         const qsNext = new URLSearchParams(location.search);
         qsNext.set('start', finalStart);
