@@ -1281,8 +1281,8 @@
     }
 
     .summary-map-icon {
-      width: 36px;      /* Matches visual size of surrounding icons */
-      height: 36px;
+      width: 43px;      /* Matches visual size of surrounding icons */
+      height: 43px;
       object-fit: contain;
       display: block;
       margin: 0 auto;
@@ -1500,36 +1500,64 @@
 
     // ANCHOR: DETAILS_DATE_BAR_SETUP
     (function setupDetailsDateBar() {
-      const checkInInput = document.getElementById('detail-checkin');
-      const checkOutInput = document.getElementById('detail-checkout');
-      const applyBtn = document.getElementById('detail-dates-apply');
+      const checkInInput  = document.getElementById("detail-checkin");
+      const checkOutInput = document.getElementById("detail-checkout");
+      const applyBtn      = document.getElementById("detail-dates-apply");
       if (!checkInInput || !checkOutInput || !applyBtn) return;
+
+      // Helper: local YYYY-MM-DD formatter (no timezone conversion)
+      function formatLocalYmd(d) {
+        const y  = d.getFullYear();
+        const m  = String(d.getMonth() + 1).padStart(2, "0");
+        const dd = String(d.getDate()).padStart(2, "0");
+        return y + "-" + m + "-" + dd;
+      }
 
       // Initialize inputs from current URL dates
       try {
-        checkInInput.value = start;
+        checkInInput.value  = start;
         checkOutInput.value = end;
       } catch (_) {
         // ignore
       }
 
-      applyBtn.addEventListener('click', function () {
+      // NEW: whenever check-in changes, auto-bump check-out to at least +1 day
+      checkInInput.addEventListener("change", function () {
+        const ciRaw = checkInInput.value;
+        if (!ciRaw) return;
+
+        const ciDate = new Date(ciRaw);
+        if (Number.isNaN(ciDate.getTime())) return;
+
+        const coRaw = checkOutInput.value;
+        let endDate = null;
+
+        if (coRaw) {
+          const parsedEnd = new Date(coRaw);
+          if (!Number.isNaN(parsedEnd.getTime()) && parsedEnd > ciDate) {
+            endDate = parsedEnd;
+          }
+        }
+
+        // If no valid end or end <= start, set end = start + 1 day
+        if (!endDate) {
+          endDate = new Date(ciDate.getTime());
+          endDate.setDate(ciDate.getDate() + 1);
+        }
+
+        checkOutInput.value = formatLocalYmd(endDate);
+      });
+
+      // Apply button: enforce end > start and push dates into URL
+      applyBtn.addEventListener("click", function () {
         const ciRaw = checkInInput.value || start;
         const coRaw = checkOutInput.value || end;
 
         // We need at least a start date to do anything useful
         if (!ciRaw) return;
 
-        // Local YYYY-MM-DD formatter (no timezone conversion)
-        function formatLocalYmd(d) {
-          const y  = d.getFullYear();
-          const m  = String(d.getMonth() + 1).padStart(2, '0');
-          const dd = String(d.getDate()).padStart(2, '0');
-          return y + '-' + m + '-' + dd;
-        }
-
         const ciDate = new Date(ciRaw);
-        let finalStart = ciRaw.slice(0, 10);
+        let finalStart = (ciRaw || "").slice(0, 10);
         let finalEnd;
 
         if (!Number.isNaN(ciDate.getTime())) {
@@ -1552,17 +1580,17 @@
           finalEnd = formatLocalYmd(endDate);
         } else {
           // Fallback – invalid start date, just passthrough whatever end we had
-          finalEnd = (coRaw || '').slice(0, 10);
+          finalEnd = (coRaw || "").slice(0, 10);
         }
 
         if (!finalStart || !finalEnd) return;
 
         const params = new URLSearchParams(window.location.search);
-        params.set('start', finalStart);
-        params.set('end',   finalEnd);
+        params.set("start", finalStart);
+        params.set("end",   finalEnd);
 
         const newUrl =
-          window.location.pathname + '?' + params.toString() + '#rateplans';
+          window.location.pathname + "?" + params.toString() + "#rateplans";
 
         window.location.href = newUrl;
       });

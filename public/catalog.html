@@ -170,7 +170,7 @@
       border-radius:999px;
       display:block;
     }
-    
+
     .catalog-map-backdrop{
       position:fixed;
       inset:0;
@@ -786,22 +786,30 @@
 
       <div class="subhead-row">
         <div class="subhead" id="found">Ready.</div>
-        <button
-          type="button"
-          id="catalog-map-open"
-          class="map-toggle-btn"
-          aria-label="View results on map"
-        >
-          <img
-            src="https://www.lolaelo.com/logo2.png?cb=fav-v1"
-            alt="Map"
-            class="map-toggle-icon"
-            decoding="async"
-            loading="lazy"
-          />
-          <span>Map</span>
-        </button>
       </div>
+    </div>
+
+    <!-- ANCHOR: CATALOG_MAP_ROW -->
+    <div class="map-row" style="
+      display:flex;
+      justify-content:flex-end;
+      padding:8px 0 6px 0;
+    ">
+      <button
+        type="button"
+        id="catalog-map-open"
+        class="map-toggle-btn"
+        aria-label="View results on map"
+      >
+        <img
+          src="https://www.lolaelo.com/logo2.png?cb=fav-v1"
+          alt="Map"
+          class="map-toggle-icon"
+          decoding="async"
+          loading="lazy"
+        />
+        <span>Map</span>
+      </button>
     </div>
 
     <!-- ANCHOR: FILTERS_DETAILS (amenities only) -->
