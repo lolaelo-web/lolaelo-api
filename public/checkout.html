@@ -1802,7 +1802,7 @@
 
     function recomputeSelectedAddons() {
       const modalBody = document.getElementById("addonsModalBody");
-      const listEl = document.getElementById("addonsList");
+      const listEl    = document.getElementById("addonsList");
 
       // Use the same root container as renderAddons:
       // prefer modal body, fall back to inline list.
@@ -1824,9 +1824,9 @@
         commentsByIndex[idx] = ta.value || "";
       });
 
-      const selections = [];
+      const selections    = [];
       const selectionsMap = {};
-      let subtotal = 0;
+      let subtotal        = 0;
 
       qtyInputs.forEach(function (input) {
         const idxAttr = input.getAttribute("data-addon-index");
@@ -1870,8 +1870,9 @@
         }
       });
 
-      state.selectedAddons = selections;
+      state.selectedAddons   = selections;
       state.addonsSelections = selectionsMap;
+      state.addonsSubtotal   = subtotal;          // <-- store add-ons subtotal
 
       const subtotalEl = document.getElementById("addonsModalSubtotal");
       if (subtotalEl) {
@@ -1886,8 +1887,26 @@
       // Inline summary under Section 3 (between Explore and Confirm)
       renderAddonsInlineSummary(subtotal);
 
+      // Update final grand total (base + add-ons)
+      updateGrandTotal();
+
       updateSummaries();
       updateAddonsSummary();
+    }
+
+    function updateGrandTotal() {
+      const totalEl = document.getElementById("summaryTotal");
+      if (!totalEl) return;
+
+      const currency = state.pricingCurrency || "USD";
+      const base     = Number(state.baseRoomTotal  || 0);
+      const addons   = Number(state.addonsSubtotal || 0);
+
+      // If we don't yet have a meaningful base, don't overwrite placeholder
+      if (!Number.isFinite(base) || base <= 0) return;
+
+      const grand = base + (Number.isFinite(addons) ? addons : 0);
+      totalEl.textContent = formatCurrency(grand, currency);
     }
 
     const state = {
@@ -2364,8 +2383,16 @@
 
         // Apply backend pricing quote if present, otherwise derive from rooms[].daily
         if (data && typeof data === "object" && data.checkoutQuote) {
-          console.log("[checkout] applying checkoutQuote", data.checkoutQuote);
-          applyCheckoutQuote(data.checkoutQuote);
+          const quote = data.checkoutQuote;
+          console.log("[checkout] applying checkoutQuote", quote);
+
+          // Remember the base room total (no add-ons yet)
+          const baseTotal = Number(quote && quote.total);
+          if (Number.isFinite(baseTotal)) {
+            state.baseRoomTotal = baseTotal;
+          }
+
+          applyCheckoutQuote(quote);
         } else {
           try {
             const roomsArr = Array.isArray(data.rooms) ? data.rooms : [];
@@ -2995,7 +3022,7 @@
     }
 
     #addonsModalBackdrop .addons-modal-body {
-      padding: 16px 40px;        /* wider left/right indent */
+      padding: 16px 80px;        /* wider left/right indent */
       overflow-y: auto;          /* scroll only vertically */
       overflow-x: hidden;        /* prevent sideways scrolling */
       font-size: 14px;           /* modal text slightly larger */
@@ -3046,10 +3073,10 @@
 
     /* Buttons inside modal only */
     #addonsModalBackdrop .btn-primary {
-      padding: 10px 24px;
+      padding: 7px 22px;
       min-height: 40px;
       border-radius: 999px;
-      background: linear-gradient(135deg, #ff6a3d, #ff8b5e, #ffb892);
+      background: linear-gradient(135deg, #ff6a3d, #ff7a4c);
       color: #ffffff;
       border: none;
       cursor: pointer;
