@@ -2956,22 +2956,26 @@
       }
 
       if (applyBtn && checkInInput && checkOutInput) {
+        // Mark as wired so the failsafe handler at the bottom does not double-attach
+        applyBtn.dataset.wiredDates = "1";
+
         applyBtn.addEventListener("click", function () {
-          const ciRaw = checkInInput.value || state.start;
-          const coRaw = checkOutInput.value || state.end;
+          const ciRaw = checkInInput.value || state.start || "";
+          const coRaw = checkOutInput.value || state.end   || "";
 
           // Need at least a start date
           if (!ciRaw) return;
 
-          const ciDate = new Date(ciRaw);
-          if (Number.isNaN(ciDate.getTime())) return;
+          // Use the same local-ymd parsing helper used elsewhere
+          const ciDate = parseLocalYMD(ciRaw);
+          if (!ciDate) return;
 
           let endDate = null;
 
           // If there is an end date and it is AFTER the start, keep it
           if (coRaw) {
-            const parsedEnd = new Date(coRaw);
-            if (!Number.isNaN(parsedEnd.getTime()) && parsedEnd > ciDate) {
+            const parsedEnd = parseLocalYMD(coRaw);
+            if (parsedEnd && parsedEnd > ciDate) {
               endDate = parsedEnd;
             }
           }
@@ -3005,8 +3009,10 @@
 
         if (!btn || !ciInput || !coInput) return;
 
-        // Avoid double-wiring if initCheckout already did it
+        // If initCheckout already wired this with the correct logic, do nothing
         if (btn.dataset.wiredDates === "1") return;
+
+        // Mark as wired in the fallback path
         btn.dataset.wiredDates = "1";
 
         btn.addEventListener("click", function () {
@@ -3015,6 +3021,10 @@
 
           if (!ciRaw) return;
 
+          // Use the same local parsing behavior as the main handler
+          const ciDate = parseLocalYMD(ciRaw);
+          if (!ciDate) return;
+
           function formatLocalYmd(d) {
             const y  = d.getFullYear();
             const m  = String(d.getMonth() + 1).padStart(2, "0");
@@ -3022,29 +3032,22 @@
             return y + "-" + m + "-" + dd;
           }
 
-          const ciDate = new Date(ciRaw);
-          let finalStart = ciRaw.slice(0, 10);
-          let finalEnd;
+          let endDate = null;
 
-          if (!Number.isNaN(ciDate.getTime())) {
-            let endDate = null;
-
-            if (coRaw) {
-              const parsedEnd = new Date(coRaw);
-              if (!Number.isNaN(parsedEnd.getTime()) && parsedEnd > ciDate) {
-                endDate = parsedEnd;
-              }
+          if (coRaw) {
+            const parsedEnd = parseLocalYMD(coRaw);
+            if (parsedEnd && parsedEnd > ciDate) {
+              endDate = parsedEnd;
             }
-
-            if (!endDate) {
-              endDate = new Date(ciDate.getTime());
-              endDate.setDate(ciDate.getDate() + 1);
-            }
-
-            finalEnd = formatLocalYmd(endDate);
-          } else {
-            finalEnd = (coRaw || "").slice(0, 10);
           }
+
+          if (!endDate) {
+            endDate = new Date(ciDate.getTime());
+            endDate.setDate(ciDate.getDate() + 1);
+          }
+
+          const finalStart = formatLocalYmd(ciDate);
+          const finalEnd   = formatLocalYmd(endDate);
 
           if (!finalStart || !finalEnd) return;
 
