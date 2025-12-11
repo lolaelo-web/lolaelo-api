@@ -218,6 +218,25 @@
     display: none;
   }
 
+  .addons-footer-row {
+    margin-top: 16px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    flex-wrap: wrap;
+  }
+
+  /* Keep the pill tight and aligned in Section 3 */
+  .addons-section-total-pill {
+    margin: 0;
+    white-space: nowrap;
+  }
+
+  .addons-section-total-pill span {
+    font-weight: 600;
+  }
+
   /* ANCHOR: FIELDS_AND_FORM */
   .field-row {
     margin-top: 12px;
@@ -1095,23 +1114,38 @@
 
               <div
                 class="addons-confirm-row"
-                style="margin-top:12px; display:flex; align-items:center; justify-content:space-between; gap:12px;"
+                style="
+                  margin-top:12px;
+                  display:flex;
+                  align-items:center;
+                  justify-content:space-between;
+                  gap:12px;
+                "
               >
+                <!-- Left: primary action -->
+                <button class="btn-primary" type="button" data-confirm="3">
+                  Confirm add-ons
+                </button>
+
+                <!-- Right: pill-style total -->
                 <div
                   id="addonsInlineTotalWrapper"
                   class="addons-inline-total"
                   style="display:none; font-size:13px; color:#374151;"
                 >
-                  Add-ons total:
-                  <span id="addonsInlineTotal">--</span>
+                  <span class="addons-inline-total-pill">
+                    <span class="addons-inline-total-label">
+                      Add-ons total:
+                    </span>
+                    <span
+                      id="addonsInlineTotal"
+                      class="addons-inline-total-amount"
+                    >
+                      --
+                    </span>
+                  </span>
                 </div>
-
-                <button class="btn-primary" type="button" data-confirm="3">
-                  Confirm add-ons
-                </button>
               </div>
-            </div>
-          </div>
 
           <!-- Section 4 - Guest details -->
           <div class="card" data-section="4">
@@ -2960,6 +2994,28 @@
       font-size: 14px; /* slightly larger text */
     }
 
+    #addonsModalBackdrop .addons-modal-body {
+      padding: 16px 16px 12px;
+      overflow-x: hidden; /* in case any rounding still pushes 1–2px */
+    }
+
+    /* Inline add-ons total pill under Section 3 */
+    #addonsInlineTotalWrapper .addons-inline-total-pill {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 6px 14px;
+      border-radius: 999px;
+      border: 1px solid #e5e7eb;
+      background: #f9fafb;
+      font-size: 13px;
+    }
+
+    #addonsInlineTotalWrapper .addons-inline-total-amount {
+      font-weight: 600;
+      color: #111827;
+    }
+
     .addons-modal-intro {
       margin: 0 0 12px;
       font-size: 0.9rem;
@@ -3009,16 +3065,18 @@
     }
 
     /* Column layout inside modal body – 5 columns:
-      Activity (35%) · UoM (15%) · Price (15%) · Qty (15%) · Total (20%) */
+       Activity · Unit · Price per unit · Qty · Total
+       (use fr units so everything contracts inside the modal width) */
     #addonsModalBackdrop .addon-row,
     #addonsModalBackdrop .addon-row-header {
       display: grid;
-      /* Pull Unit and Price closer to Activity, pull Total closer to Qty */
-      grid-template-columns: 40% 12% 13% 15% 20%;
-      column-gap: 6px;
+      grid-template-columns: 3fr 1.1fr 1.3fr 1fr 1.3fr; /* tighter Unit/Total */
+      column-gap: 6px;                                 /* smaller gaps */
       align-items: center;
       padding: 8px 0;
       font-size: 14px;
+      box-sizing: border-box;
+      width: 100%;
     }
 
     #addonsModalBackdrop .addon-row-header {
@@ -3049,17 +3107,17 @@
     #addonsModalBackdrop .addon-col-total {
       font-size: 13px;
       color: #111827;
+      white-space: nowrap;
     }
 
     #addonsModalBackdrop .addon-col-price {
       white-space: nowrap;
     }
 
-    /* Qty column: center the field and label, no scroll wheel feeling */
     #addonsModalBackdrop .addon-col-qty {
       display: flex;
       flex-direction: column;
-      align-items: center;
+      align-items: center; /* center Qty under header */
       gap: 4px;
     }
 
@@ -3075,18 +3133,8 @@
       border: 1px solid #d1d5db;
       text-align: center;
       font-size: 13px;
-    }
-
-    /* Remove the number input spin buttons to discourage scroll “increment” */
-    #addonsModalBackdrop .addon-col-qty input::-webkit-outer-spin-button,
-    #addonsModalBackdrop .addon-col-qty input::-webkit-inner-spin-button {
-      -webkit-appearance: none;
-      margin: 0;
-    }
-
-    #addonsModalBackdrop .addon-col-qty input[type="number"] {
-      appearance: textfield;      /* Standard */
-      -moz-appearance: textfield; /* Firefox */
+      -moz-appearance: textfield;
+      appearance: textfield;
     }
 
     #addonsModalBackdrop .addon-col-total {
