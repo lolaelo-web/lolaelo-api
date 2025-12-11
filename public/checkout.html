@@ -2929,7 +2929,7 @@
       const checkOutInput   = document.getElementById("checkout-checkout");
       const applyBtn        = document.getElementById("checkout-dates-apply");
 
-      // Initialize inputs from state/query (use raw strings, no timezone conversion)
+      // Initialize inputs from state/query (raw strings, no timezone conversion)
       if (checkInInput && checkOutInput) {
         try {
           if (state.start) checkInInput.value = state.start;
@@ -2939,7 +2939,6 @@
         }
       }
 
-      // Toggle the date card when clicking "Edit dates"
       const editDatesLink = document.getElementById("editDatesLink");
       if (editDatesLink && datesCardWrapper) {
         editDatesLink.addEventListener("click", function () {
@@ -2948,52 +2947,46 @@
         });
       }
 
-      // Auto-adjust end date when start date changes (same behavior as catalog_details)
-      if (checkInInput && checkOutInput) {
-        checkInInput.addEventListener("change", function () {
-          const ci = parseLocalYMD(checkInInput.value);
-          if (!ci) return;
-
-          const co = parseLocalYMD(checkOutInput.value);
-
-          // If end is missing or before/equals start → force start + 1 day
-          if (!co || co <= ci) {
-            const next = new Date(ci.getTime());
-            next.setDate(next.getDate() + 1);
-            checkOutInput.value = formatLocalYmd(next);
-          }
-        });
-      }
-
-      // Apply button → rebuild URL with validated start/end
       if (applyBtn && checkInInput && checkOutInput) {
         applyBtn.addEventListener("click", function () {
           const ciRaw = checkInInput.value || state.start;
           const coRaw = checkOutInput.value || state.end;
-          if (!ciRaw) return; // need at least a start
 
-          const ciDate = parseLocalYMD(ciRaw);
-          const coDate = coRaw ? parseLocalYMD(coRaw) : null;
+          // Need at least a start date
+          if (!ciRaw) return;
 
-          let finalStart;
+          function formatLocalYmd(d) {
+            const y  = d.getFullYear();
+            const m  = String(d.getMonth() + 1).padStart(2, "0");
+            const dd = String(d.getDate()).padStart(2, "0");
+            return y + "-" + m + "-" + dd;
+          }
+
+          const ciDate = new Date(ciRaw);
+          let finalStart = ciRaw.slice(0, 10);
           let finalEnd;
 
-          if (ciDate) {
-            finalStart = formatLocalYmd(ciDate);
-
+          if (!Number.isNaN(ciDate.getTime())) {
             let endDate = null;
-            if (coDate && coDate > ciDate) {
-              endDate = coDate;
-            } else {
+
+            // If user picked an end date after start, keep it
+            if (coRaw) {
+              const parsedEnd = new Date(coRaw);
+              if (!Number.isNaN(parsedEnd.getTime()) && parsedEnd > ciDate) {
+                endDate = parsedEnd;
+              }
+            }
+
+            // Otherwise force end = start + 1 day
+            if (!endDate) {
               endDate = new Date(ciDate.getTime());
               endDate.setDate(ciDate.getDate() + 1);
             }
 
             finalEnd = formatLocalYmd(endDate);
           } else {
-            // fallback if start is invalid for some reason
-            finalStart = (ciRaw || "").slice(0, 10);
-            finalEnd   = (coRaw || "").slice(0, 10);
+            // invalid start – just pass whatever end we had
+            finalEnd = (coRaw || "").slice(0, 10);
           }
 
           if (!finalStart || !finalEnd) return;

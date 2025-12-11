@@ -349,6 +349,40 @@
       color:var(--fg);
     }
 
+    /* Combined date field (Check-in – Check-out) */
+    .field-dates-combined{
+      position:relative;
+    }
+
+    .dates-display{
+      border:none;
+      background:transparent;
+      padding:0;
+      margin:0;
+      flex:1;
+      text-align:left;
+      font:inherit;
+      font-size:14px;
+      color:var(--fg);
+      cursor:pointer;
+    }
+
+    .dates-display-label{
+      opacity:0.7;
+    }
+
+    .field-dates-combined.has-dates .dates-display-label{
+      opacity:1;
+      font-weight:500;
+    }
+
+    .field-dates-combined input[type="date"]{
+      position:absolute;
+      inset:0;
+      opacity:0;
+      pointer-events:none;
+    }
+
     /* Search button: match landing search-btn */
     .search-btn{
       border:none;
@@ -755,13 +789,19 @@
             <input id="dest" type="hidden" value="">
           </div>
         </label>
-        <label class="field" aria-label="Check-in">
+        <label class="field field-dates-combined" aria-label="Dates">
           <span>📅</span>
+          <button
+            type="button"
+            id="dates-display"
+            class="dates-display"
+            aria-haspopup="dialog"
+          >
+            <span id="dates-display-label" class="dates-display-label">
+              Check-in – Check-out
+            </span>
+          </button>
           <input id="start" type="date" />
-        </label>
-
-        <label class="field" aria-label="Check-out">
-          <span>📅</span>
           <input id="end" type="date" />
         </label>
 
@@ -882,6 +922,52 @@
     const grid     = S('grid');
     const found    = S('found');
 
+    const datesDisplay      = S('dates-display');
+    const datesDisplayLabel = S('dates-display-label');
+
+    function formatDateLabel(iso){
+      if (!iso) return "";
+      const d = new Date(iso + "T00:00:00");
+      if (Number.isNaN(d.getTime())) return iso;
+
+      const mm = String(d.getMonth() + 1).padStart(2,'0');
+      const dd = String(d.getDate()).padStart(2,'0');
+      const yyyy = d.getFullYear();
+
+      return `${mm}/${dd}/${yyyy}`;
+    }
+
+    function syncDatesDisplay(){
+      if (!datesDisplay || !datesDisplayLabel || !startInp || !endInp) return;
+      const s = startInp.value;
+      const e = endInp.value;
+
+      if (!s && !e){
+        datesDisplayLabel.textContent = "Check-in – Check-out";
+        datesDisplay.parentElement?.classList.remove('has-dates');
+        return;
+      }
+
+      const sLbl = formatDateLabel(s);
+      const eLbl = formatDateLabel(e || s);
+
+      datesDisplayLabel.textContent = sLbl + " – " + eLbl;
+      datesDisplay.parentElement?.classList.add('has-dates');
+    }
+
+    if (datesDisplay){
+      datesDisplay.addEventListener('click', function(){
+        if (startInp && typeof startInp.showPicker === 'function'){
+          startInp.showPicker();
+        } else if (startInp){
+          startInp.focus();
+        }
+      });
+    }
+
+    if (startInp) startInp.addEventListener('change', syncDatesDisplay);
+    if (endInp)   endInp.addEventListener('change', syncDatesDisplay);
+
     // Bind destination input and hydrate from ?q=
     const destInp = S('dest');
     // ANCHOR: PLAN_PARAM_DEF
@@ -937,6 +1023,7 @@
 
     startInp.value = s0;
     endInp.value   = e0;
+    syncDatesDisplay();
 
     // When start date changes, ensure end is at least +1 day.
     if (startInp && endInp) {
