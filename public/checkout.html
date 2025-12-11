@@ -1572,12 +1572,12 @@
           }, 0)
         : 0;
 
-      parts.push(
-        '<div class="breakdown-line" style="margin-top:6px;font-weight:600;">' +
-          '<span>Stay total</span>' +
-          '<span>' + formatCurrency(stayTotalNum, cur) + '</span>' +
-        '</div>'
-      );
+        parts.push(
+          '<div class="breakdown-line" style="margin-top:6px;font-weight:700;font-size:1.05rem;">' +
+            '<span style="font-size:1.05rem;">Stay total</span>' +
+            '<span style="font-size:1.05rem;">' + formatCurrency(stayTotalNum, cur) + '</span>' +
+          '</div>'
+        );
 
         addons.forEach(function (item) {
           if (!item) return;
@@ -1600,9 +1600,9 @@
 
         // Add-ons total row
         parts.push(
-          '<div class="breakdown-line" style="font-weight:600;">' +
-            '<span>Add-ons total</span>' +
-            '<span>' + formatCurrency(addonsSubtotalNum, cur) + '</span>' +
+          '<div class="breakdown-line" style="font-weight:700;font-size:1.05rem;margin-top:4px;">' +
+            '<span style="font-size:1.05rem;">Add-ons total</span>' +
+            '<span style="font-size:1.05rem;">' + formatCurrency(addonsSubtotalNum, cur) + '</span>' +
           '</div>'
         );
       }
@@ -2883,15 +2883,15 @@
 
       // Date card wiring for Section 2
       const datesCardWrapper = document.getElementById("checkoutDatesCardWrapper");
-      const checkInInput = document.getElementById("checkout-checkin");
-      const checkOutInput = document.getElementById("checkout-checkout");
-      const applyBtn = document.getElementById("checkout-dates-apply");
+      const checkInInput    = document.getElementById("checkout-checkin");
+      const checkOutInput   = document.getElementById("checkout-checkout");
+      const applyBtn        = document.getElementById("checkout-dates-apply");
 
-      // Initialize inputs from state/query
+      // Initialize inputs from state/query (use raw strings, no timezone conversion)
       if (checkInInput && checkOutInput) {
         try {
-          checkInInput.value = state.start || "";
-          checkOutInput.value = state.end || "";
+          if (state.start) checkInInput.value = state.start;
+          if (state.end)   checkOutInput.value = state.end;
         } catch (_) {
           // ignore
         }
@@ -2913,25 +2913,25 @@
           // Need at least a start date
           if (!ciRaw) return;
 
-          // Local YYYY-MM-DD formatter (no timezone conversion)
+          // Local YYYY-MM-DD formatter (no timezone conversion in output)
           function formatLocalYmd(d) {
-            const y = d.getFullYear();
-            const m = String(d.getMonth() + 1).padStart(2, "0");
+            const y  = d.getFullYear();
+            const m  = String(d.getMonth() + 1).padStart(2, "0");
             const dd = String(d.getDate()).padStart(2, "0");
             return y + "-" + m + "-" + dd;
           }
 
-          const ciDate = parseLocalYMD(ciRaw);
-          let finalStart = ciRaw.slice(0, 10);
+          const ciDate = new Date(ciRaw);
+          let finalStart = (ciRaw || "").slice(0, 10);
           let finalEnd;
 
-          if (ciDate) {
+          if (!Number.isNaN(ciDate.getTime())) {
             let endDate = null;
 
-            // If there is an end date and it is AFTER the start, keep it
+            // If user picked an end date that is AFTER the start, keep it
             if (coRaw) {
-              const parsedEnd = parseLocalYMD(coRaw);
-              if (parsedEnd && parsedEnd > ciDate) {
+              const parsedEnd = new Date(coRaw);
+              if (!Number.isNaN(parsedEnd.getTime()) && parsedEnd > ciDate) {
                 endDate = parsedEnd;
               }
             }
@@ -2942,10 +2942,9 @@
               endDate.setDate(ciDate.getDate() + 1);
             }
 
-            finalStart = formatLocalYmd(ciDate);
             finalEnd = formatLocalYmd(endDate);
           } else {
-            // Fallback – invalid start, just passthrough end
+            // Fallback – invalid start: just pass through whatever end we had
             finalEnd = (coRaw || "").slice(0, 10);
           }
 
@@ -2953,7 +2952,7 @@
 
           const qsNext = new URLSearchParams(location.search);
           qsNext.set("start", finalStart);
-          qsNext.set("end", finalEnd);
+          qsNext.set("end",   finalEnd);
 
           const nextUrl = `${location.pathname}?${qsNext.toString()}`;
           location.assign(nextUrl);
