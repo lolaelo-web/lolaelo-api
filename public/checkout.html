@@ -1470,22 +1470,37 @@
       };
     }
 
+    // Treat YYYY-MM-DD as a plain calendar date (no timezone)
+    function parseLocalYMD(dateStr) {
+      if (!dateStr) return null;
+      const parts = dateStr.split("-");
+      if (parts.length !== 3) return null;
+
+      const year  = Number(parts[0]);
+      const month = Number(parts[1]); // 1–12
+      const day   = Number(parts[2]);
+
+      if (!year || !month || !day) return null;
+      const d = new Date(year, month - 1, day); // local midnight
+      if (Number.isNaN(d.getTime())) return null;
+      return d;
+    }
+
     function formatDate(dateStr) {
-      if (!dateStr) return "";
-      const dt = new Date(dateStr);
-      if (Number.isNaN(dt.getTime())) return dateStr;
-      return dt.toLocaleDateString(undefined, {
+      const d = parseLocalYMD(dateStr);
+      if (!d) return "";
+      return d.toLocaleDateString(undefined, {
+        year: "numeric",
         month: "short",
-        day: "numeric",
-        year: "numeric"
+        day: "numeric"
       });
     }
 
     function diffNights(startStr, endStr) {
-      if (!startStr || !endStr) return "";
-      const s = new Date(startStr);
-      const e = new Date(endStr);
-      if (Number.isNaN(s.getTime()) || Number.isNaN(e.getTime())) return "";
+      const s = parseLocalYMD(startStr);
+      const e = parseLocalYMD(endStr);
+      if (!s || !e) return "";
+
       const ms = e.getTime() - s.getTime();
       const nights = Math.round(ms / (1000 * 60 * 60 * 24));
       return nights > 0 ? nights : "";
