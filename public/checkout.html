@@ -1079,7 +1079,11 @@
               <p class="section-intro">
                 Optional activities and extras selected by your hotel.
               </p>
-              <div class="addons-explore-row" style="text-align: center; margin-bottom: 12px;">
+
+              <div
+                class="addons-explore-row"
+                style="text-align:center; margin-bottom:12px;"
+              >
                 <button
                   type="button"
                   class="addons-explore-pill"
@@ -1146,6 +1150,8 @@
                   </span>
                 </div>
               </div>
+            </div> <!-- end section-body 3 -->
+          </div>   <!-- end card (Section 3) -->
 
           <!-- Section 4 - Guest details -->
           <div class="card" data-section="4">
@@ -2988,15 +2994,12 @@
       color: #111827;
     }
 
-    .addons-modal-body {
-      padding: 16px 24px;
-      overflow-y: auto;
-      font-size: 14px; /* slightly larger text */
-    }
-
     #addonsModalBackdrop .addons-modal-body {
-      padding: 16px 16px 12px;
-      overflow-x: hidden; /* in case any rounding still pushes 1–2px */
+      padding: 16px 40px;        /* wider left/right indent */
+      overflow-y: auto;          /* scroll only vertically */
+      overflow-x: hidden;        /* prevent sideways scrolling */
+      font-size: 14px;           /* modal text slightly larger */
+      box-sizing: border-box;    /* padding stays consistent */
     }
 
     /* Inline add-ons total pill under Section 3 */
