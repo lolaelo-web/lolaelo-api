@@ -1081,17 +1081,35 @@
                 </button>
               </div>
 
-              <!-- Hook for dynamic rows (read-only summary / fallback) -->
-              <div id="addonsList" class="addons-list"></div>
+              <!-- Inline summary list (populated from selected add-ons) -->
+              <div
+                id="addonsList"
+                class="addons-inline-summary"
+                style="display:none; margin-top:12px;"
+              ></div>
 
-              <!-- Default empty message; JS may move/override this -->
-              <p id="addonsEmptyMessage" class="muted">
+              <!-- Default empty message if property has no activities configured -->
+              <p id="addonsEmptyMessage" class="muted" style="margin-top:12px;">
                 No add-ons are available for this stay.
               </p>
 
-              <button class="btn-primary" type="button" data-confirm="3">
-                Confirm add-ons
-              </button>
+              <div
+                class="addons-confirm-row"
+                style="margin-top:12px; display:flex; align-items:center; justify-content:space-between; gap:12px;"
+              >
+                <div
+                  id="addonsInlineTotalWrapper"
+                  class="addons-inline-total"
+                  style="display:none; font-size:13px; color:#374151;"
+                >
+                  Add-ons total:
+                  <span id="addonsInlineTotal">--</span>
+                </div>
+
+                <button class="btn-primary" type="button" data-confirm="3">
+                  Confirm add-ons
+                </button>
+              </div>
             </div>
           </div>
 
@@ -1664,6 +1682,84 @@
       });
     }
 
+    function renderAddonsInlineSummary(subtotalOverride) {
+      const listEl       = document.getElementById("addonsList");
+      const totalWrapper = document.getElementById("addonsInlineTotalWrapper");
+      const totalSpan    = document.getElementById("addonsInlineTotal");
+
+      if (!listEl) return;
+
+      const selections = Array.isArray(state.selectedAddons)
+        ? state.selectedAddons.filter(function (s) {
+            const q = Number(s.quantity || 0);
+            return q > 0;
+          })
+        : [];
+
+      const cur = state.pricingCurrency || "USD";
+
+      listEl.innerHTML = "";
+
+      if (!selections.length) {
+        listEl.style.display = "none";
+        if (totalWrapper) totalWrapper.style.display = "none";
+        if (totalSpan) totalSpan.textContent = "--";
+        return;
+      }
+
+      listEl.style.display = "block";
+
+      const ul = document.createElement("ul");
+      ul.style.listStyle = "none";
+      ul.style.padding = "0";
+      ul.style.margin = "0";
+
+      let subtotal = 0;
+
+      selections.forEach(function (sel) {
+        const li = document.createElement("li");
+        li.style.display = "flex";
+        li.style.justifyContent = "space-between";
+        li.style.alignItems = "baseline";
+        li.style.fontSize = "13px";
+        li.style.marginBottom = "4px";
+
+        const left = document.createElement("span");
+        left.textContent =
+          (sel.activity || "Add-on") +
+          " · Qty " +
+          (sel.quantity != null ? sel.quantity : 0);
+
+        const right = document.createElement("span");
+        const lt = Number(sel.lineTotal);
+        if (Number.isFinite(lt) && lt > 0) {
+          right.textContent = formatCurrency(lt, cur);
+          subtotal += lt;
+        } else {
+          right.textContent = "--";
+        }
+
+        li.appendChild(left);
+        li.appendChild(right);
+        ul.appendChild(li);
+      });
+
+      listEl.appendChild(ul);
+
+      const finalSubtotal =
+        typeof subtotalOverride === "number" && subtotalOverride > 0
+          ? subtotalOverride
+          : subtotal;
+
+      if (totalSpan) {
+        totalSpan.textContent =
+          finalSubtotal > 0 ? formatCurrency(finalSubtotal, cur) : "--";
+      }
+      if (totalWrapper) {
+        totalWrapper.style.display = finalSubtotal > 0 ? "block" : "none";
+      }
+    }
+
     function recomputeSelectedAddons() {
       const modalBody = document.getElementById("addonsModalBody");
       const listEl = document.getElementById("addonsList");
@@ -1746,6 +1842,9 @@
           subtotalEl.textContent = "--";
         }
       }
+
+      // Inline summary under Section 3 (between Explore and Confirm)
+      renderAddonsInlineSummary(subtotal);
 
       updateSummaries();
       updateAddonsSummary();
@@ -1912,17 +2011,22 @@
       state.addonsConfig = rows;
 
       // If neither container exists, nothing to do
-      if (!listEl && !modalBody) return;
+      if (!modalBody && !listEl) return;
 
-      // Clear both containers (we primarily use the modal body)
-      if (listEl) listEl.innerHTML = "";
+      // Clear containers: we use modal body for interactive grid,
+      // inline list is only for summary (handled separately).
       if (modalBody) modalBody.innerHTML = "";
+      if (listEl) listEl.innerHTML = "";
 
       if (!rows.length) {
         if (emptyEl) {
           emptyEl.textContent = "No add-ons are available for this stay.";
           emptyEl.style.display = "block";
         }
+        // No config: reset selections/summary
+        state.selectedAddons = [];
+        state.addonsSelections = {};
+        renderAddonsInlineSummary(0);
         return;
       }
 
@@ -1930,38 +2034,36 @@
         emptyEl.style.display = "none";
       }
 
-      // Prefer modal body; fall back to inline list if modal not present
       const target = modalBody || listEl;
 
-      // ---------- Header row ----------
+      // ----- Header row: Activity · UoM · Price · Qty · Total -----
       const header = document.createElement("div");
       header.className = "addon-row addon-row-header";
 
-      const hMain = document.createElement("div");
-      hMain.className = "addon-main";
+      const hActivity = document.createElement("div");
+      hActivity.textContent = "Activity";
 
-      const hTitle = document.createElement("div");
-      hTitle.className = "addon-title";
-      hTitle.textContent = "Activity";
+      const hUom = document.createElement("div");
+      hUom.textContent = "Unit";
 
-      const hMeta = document.createElement("div");
-      hMeta.className = "addon-meta";
-      hMeta.textContent = "Price · Unit · Hotel notes";
-
-      hMain.appendChild(hTitle);
-      hMain.appendChild(hMeta);
+      const hPrice = document.createElement("div");
+      hPrice.textContent = "Price / unit";
 
       const hQty = document.createElement("div");
-      hQty.className = "addon-qty";
-      const hQtyLabel = document.createElement("span");
-      hQtyLabel.textContent = "Qty";
-      hQty.appendChild(hQtyLabel);
+      hQty.textContent = "Qty";
 
-      header.appendChild(hMain);
+      const hTotal = document.createElement("div");
+      hTotal.textContent = "Total";
+
+      header.appendChild(hActivity);
+      header.appendChild(hUom);
+      header.appendChild(hPrice);
       header.appendChild(hQty);
+      header.appendChild(hTotal);
+
       target.appendChild(header);
 
-      // ---------- Data rows ----------
+      // ----- Data rows -----
       rows.forEach(function (item, idx) {
         const activity = (item.activity || "").toString().trim() || "Add-on";
         const uom      = (item.uom || "").toString().trim();
@@ -1975,34 +2077,44 @@
             ? Number(rawPrice)
             : NaN;
 
-        const hasNumericPrice = !Number.isNaN(price) && Number.isFinite(price);
-        const priceText = hasNumericPrice ? "$" + price.toFixed(2) : "Price TBD";
-
-        const metaParts = [];
-        if (priceText) metaParts.push(priceText);
-        if (uom) metaParts.push(uom);
-        if (notes) metaParts.push(notes);
-        const metaText = metaParts.join(" · ");
+        const hasNumericPrice = Number.isFinite(price) && price > 0;
+        const priceText = hasNumericPrice
+          ? formatCurrency(price, state.pricingCurrency || "USD")
+          : "Price TBD";
 
         const row = document.createElement("div");
         row.className = "addon-row";
 
-        const main = document.createElement("div");
-        main.className = "addon-main";
+        // Activity col (name + hotel notes)
+        const colActivity = document.createElement("div");
+        colActivity.className = "addon-col-activity";
 
         const titleEl = document.createElement("div");
         titleEl.className = "addon-title";
         titleEl.textContent = activity;
 
-        const metaEl = document.createElement("div");
-        metaEl.className = "addon-meta";
-        metaEl.textContent = metaText;
+        colActivity.appendChild(titleEl);
 
-        main.appendChild(titleEl);
-        main.appendChild(metaEl);
+        if (notes) {
+          const notesEl = document.createElement("div");
+          notesEl.className = "addon-meta";
+          notesEl.textContent = notes;
+          colActivity.appendChild(notesEl);
+        }
 
-        const qtyWrap = document.createElement("div");
-        qtyWrap.className = "addon-qty";
+        // UoM col
+        const colUom = document.createElement("div");
+        colUom.className = "addon-col-uom";
+        colUom.textContent = uom || "—";
+
+        // Price col
+        const colPrice = document.createElement("div");
+        colPrice.className = "addon-col-price";
+        colPrice.textContent = priceText;
+
+        // Qty col
+        const colQty = document.createElement("div");
+        colQty.className = "addon-col-qty";
 
         const qtyLabel = document.createElement("label");
         qtyLabel.textContent = "Qty";
@@ -2021,20 +2133,23 @@
           typeof currentQty === "number" && currentQty > 0
             ? String(currentQty)
             : "0";
-
         qtyInput.setAttribute("data-addon-index", String(idx));
 
-        const lineTotalEl = document.createElement("div");
-        lineTotalEl.className = "addon-line-total";
+        colQty.appendChild(qtyLabel);
+        colQty.appendChild(qtyInput);
+
+        // Total col
+        const colTotal = document.createElement("div");
+        colTotal.className = "addon-col-total";
 
         function refreshLineTotal() {
           const q = parseInt(qtyInput.value, 10);
           if (!hasNumericPrice || isNaN(q) || q <= 0) {
-            lineTotalEl.textContent = "";
+            colTotal.textContent = "";
             return;
           }
           const total = q * price;
-          lineTotalEl.textContent = formatCurrency(
+          colTotal.textContent = formatCurrency(
             total,
             state.pricingCurrency || "USD"
           );
@@ -2043,8 +2158,11 @@
         qtyInput.addEventListener("input", function () {
           const val = parseInt(qtyInput.value, 10);
           if (isNaN(val) || val <= 0) {
-            delete state.addonsSelections[key];
+            if (state.addonsSelections) {
+              delete state.addonsSelections[key];
+            }
           } else {
+            if (!state.addonsSelections) state.addonsSelections = {};
             state.addonsSelections[key] = val;
           }
           refreshLineTotal();
@@ -2054,17 +2172,17 @@
         // Initial line total
         refreshLineTotal();
 
-        qtyWrap.appendChild(qtyLabel);
-        qtyWrap.appendChild(qtyInput);
-        qtyWrap.appendChild(lineTotalEl);
-
-        row.appendChild(main);
-        row.appendChild(qtyWrap);
+        // Append columns to row in order
+        row.appendChild(colActivity);
+        row.appendChild(colUom);
+        row.appendChild(colPrice);
+        row.appendChild(colQty);
+        row.appendChild(colTotal);
 
         target.appendChild(row);
       });
 
-      // After initial render, compute subtotal + summary once
+      // Initial subtotal + inline summary
       recomputeSelectedAddons();
     }
 
@@ -2902,51 +3020,65 @@
       font-size: 14px;
     }
 
-    /* Column layout inside modal body */
-    #addonsModalBackdrop .addon-row {
+    /* Column layout inside modal body – 5 columns:
+       Activity (35%) · UoM (15%) · Price (15%) · Qty (15%) · Total (20%) */
+    #addonsModalBackdrop .addon-row,
+    #addonsModalBackdrop .addon-row-header {
       display: grid;
-      grid-template-columns: minmax(0, 3fr) 140px; /* left text, right qty */
-      column-gap: 16px;
-      align-items: flex-start;
-      padding: 6px 0;
+      grid-template-columns: 35% 15% 15% 15% 20%;
+      column-gap: 12px;
+      align-items: center;
+      padding: 8px 0;
       font-size: 14px;
     }
 
     #addonsModalBackdrop .addon-row-header {
-      font-weight: 600;
       border-bottom: 1px solid #e5e7eb;
       margin-bottom: 4px;
       padding-bottom: 4px;
+      font-weight: 600;
     }
 
-    #addonsModalBackdrop .addon-main {
+    #addonsModalBackdrop .addon-col-activity {
       display: flex;
       flex-direction: column;
       gap: 2px;
     }
 
-    #addonsModalBackdrop .addon-title {
+    #addonsModalBackdrop .addon-col-activity .addon-title {
       font-weight: 500;
     }
 
-    #addonsModalBackdrop .addon-meta {
+    #addonsModalBackdrop .addon-col-activity .addon-meta {
       font-size: 12px;
       color: #6b7280;
     }
 
-    #addonsModalBackdrop .addon-qty {
+    #addonsModalBackdrop .addon-col-uom,
+    #addonsModalBackdrop .addon-col-price,
+    #addonsModalBackdrop .addon-col-qty,
+    #addonsModalBackdrop .addon-col-total {
+      font-size: 13px;
+      color: #111827;
+    }
+
+    #addonsModalBackdrop .addon-col-price {
+      white-space: nowrap;
+    }
+
+    #addonsModalBackdrop .addon-col-qty {
       display: flex;
       flex-direction: column;
-      align-items: flex-end;
+      align-items: flex-start;
       gap: 4px;
     }
 
-    #addonsModalBackdrop .addon-qty label {
+    #addonsModalBackdrop .addon-col-qty label {
       font-size: 12px;
       color: #6b7280;
     }
 
-    #addonsModalBackdrop .addon-qty input {
+    #addonsModalBackdrop .addon-col-qty input {
       width: 72px;
       padding: 4px 6px;
       border-radius: 8px;
@@ -2955,10 +3087,12 @@
       font-size: 13px;
     }
 
-    #addonsModalBackdrop .addon-line-total {
-      font-size: 12px;
-      color: #111827;
+    #addonsModalBackdrop .addon-col-total {
+      text-align: right;
+      font-size: 13px;
+      font-weight: 500;
     }
+
   </style>
 
   <!-- END ANCHOR: ADDONS_MODAL -->
