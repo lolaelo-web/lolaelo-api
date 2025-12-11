@@ -997,6 +997,13 @@
       white-space: pre-line;  /* respect line breaks from backend text */
     }
 
+    /* Widen Description bubble specifically — allow long text to breathe */
+    .summary-actions > .summary-icon-wrap:first-child .summary-bubble{
+      max-width: 1200px;   /* 2× wider than before */
+      min-width: 600px;    /* ensure it starts wide */
+      transform: translateX(-25%);  /* keep bubble positioned visually under icon */
+    }
+
     .summary .chips{
       margin-top: 4px;
       flex-wrap: wrap;
@@ -4317,7 +4324,7 @@
           justify-content: center;
         "
       >
-        X
+        x
       </button>
 
       <iframe
