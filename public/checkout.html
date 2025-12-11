@@ -1527,33 +1527,80 @@
       const container = document.getElementById("breakdownDetails");
       if (!container) return;
 
-      if (!Array.isArray(nightsArr) || nightsArr.length === 0) {
+      const s = (typeof state === "object" && state) ? state : {};
+      const cur = currency || s.pricingCurrency || "USD";
+
+      const parts = [];
+
+      // 1) Nightly rows (existing behavior)
+      if (Array.isArray(nightsArr) && nightsArr.length > 0) {
+        nightsArr.forEach(function (n) {
+          const dateStr = n.date || n.dt || n.day || "";
+          const label = formatDate(dateStr) || dateStr;
+
+          const amtNum = Number(
+            n.amount !== undefined ? n.amount :
+            n.price  !== undefined ? n.price  :
+            n.value  !== undefined ? n.value  : 0
+          );
+          const amtText = formatCurrency(amtNum, cur);
+
+          parts.push(
+            '<div class="breakdown-line">' +
+              '<span>' + label + '</span>' +
+              '<span>' + amtText + '</span>' +
+            '</div>'
+          );
+        });
+      }
+
+      // 2) Add-ons section (if any)
+      const addons = Array.isArray(s.selectedAddons) ? s.selectedAddons : [];
+      const addonsSubtotalNum = Number(s.addonsSubtotal || 0);
+
+      if (addons.length && Number.isFinite(addonsSubtotalNum) && addonsSubtotalNum > 0) {
+        // Header row for add-ons
+        parts.push(
+          '<div class="breakdown-line" style="margin-top:4px;font-weight:600;">' +
+            '<span>Add-ons</span>' +
+            '<span></span>' +
+          '</div>'
+        );
+
+        addons.forEach(function (item) {
+          if (!item) return;
+
+          const qty = Number(item.quantity || item.qty || 0);
+          const lineTotalNum = Number(item.lineTotal || item.total || 0);
+          if (!qty || !Number.isFinite(lineTotalNum)) return;
+
+          const name = (item.activity || item.name || "Add-on").toString();
+          const label = name + " · Qty " + qty;
+          const amtText = formatCurrency(lineTotalNum, cur);
+
+          parts.push(
+            '<div class="breakdown-line">' +
+              '<span>' + label + '</span>' +
+              '<span>' + amtText + '</span>' +
+            '</div>'
+          );
+        });
+
+        // Add-ons total row
+        parts.push(
+          '<div class="breakdown-line" style="font-weight:600;">' +
+            '<span>Add-ons total</span>' +
+            '<span>' + formatCurrency(addonsSubtotalNum, cur) + '</span>' +
+          '</div>'
+        );
+      }
+
+      if (!parts.length) {
         container.innerHTML = "";
         return;
       }
 
-      const cur = currency || "USD";
-
-      const rows = nightsArr.map(function (n) {
-        const dateStr = n.date || n.dt || n.day || "";
-        const label = formatDate(dateStr) || dateStr;
-
-        const amtNum = Number(
-          n.amount !== undefined ? n.amount :
-          n.price  !== undefined ? n.price  :
-          n.value  !== undefined ? n.value  : 0
-        );
-        const amtText = formatCurrency(amtNum, cur);
-
-        return (
-          '<div class="breakdown-line">' +
-            '<span>' + label + '</span>' +
-            '<span>' + amtText + '</span>' +
-          '</div>'
-        );
-      });
-
-      container.innerHTML = rows.join("");
+      container.innerHTML = parts.join("");
     }
 
     function renderAddons(addons) {

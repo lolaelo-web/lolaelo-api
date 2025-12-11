@@ -150,18 +150,24 @@
       display:inline-flex;
       align-items:center;
       gap:8px;
-      padding:10px 20px;              /* bigger pill */
+      padding:10px 20px;
       border-radius:999px;
-      border:1px solid var(--line-soft);
-      background:rgba(15,23,42,0.02);
+      border:1px solid rgba(255,106,61,0.75); /* subtle orange outline */
+      background:#ffffff;
       color:var(--muted);
-      font-size:16px;                  /* ~3x visual vs before */
+      font-size:16px;
       cursor:pointer;
-      margin-top:10px;                 /* drops pill into the gap (toward Filters row) */
+      box-shadow:0 2px 4px rgba(15,23,42,0.06);
+      transition:
+        background 0.25s ease,
+        box-shadow 0.25s ease,
+        border-color 0.25s ease;
     }
 
     .map-toggle-btn:hover{
-      background:rgba(15,23,42,0.04);
+      background:linear-gradient(135deg, #ffffff 0%, #f1f5f9 100%);
+      box-shadow:0 4px 14px rgba(15,23,42,0.18);
+      border-color:rgba(255,106,61,0.95);
     }
 
     .map-toggle-icon{
@@ -800,13 +806,6 @@
         id="catalog-map-open"
         class="map-toggle-btn"
         aria-label="View results on map"
-        style="
-          background:white;
-          transition:background 0.25s ease, box-shadow 0.25s ease;
-          box-shadow:0 2px 4px rgba(0,0,0,0.04);
-        "
-        onmouseover="this.style.background='linear-gradient(135deg, #ffffff 0%, #f1f5f9 100%)'; this.style.boxShadow='0 4px 12px rgba(0,0,0,0.12)';"
-        onmouseout="this.style.background='white'; this.style.boxShadow='0 2px 4px rgba(0,0,0,0.04)';"
       >
         <img
           src="https://www.lolaelo.com/logo2.png?cb=fav-v1"
@@ -902,12 +901,60 @@
     const detailsEl = document.getElementById('amenities');
 
     const todayISO = ()=>new Date().toISOString().slice(0,10);
-    const addDaysISO=(iso,n)=>{ const d=new Date(iso+"T00:00:00Z"); d.setUTCDate(d.getUTCDate()+n); return d.toISOString().slice(0,10); };
+    const addDaysISO=(iso,n)=>{
+      const d = new Date(iso + "T00:00:00");
+      d.setDate(d.getDate() + n);
+      return d.toISOString().slice(0,10);
+    };
 
-    const s0 = qs.get('start') || todayISO();
-    const e0 = qs.get('end')   || addDaysISO(s0, 3);
+    // Helpers: parse and format YYYY-MM-DD without timezone surprises
+    function parseYmd(iso) {
+      if (!iso) return null;
+      const parts = iso.split("-");
+      if (parts.length !== 3) return null;
+      const y = Number(parts[0]);
+      const m = Number(parts[1]);
+      const d = Number(parts[2]);
+      if (!y || !m || !d) return null;
+      return new Date(y, m - 1, d);
+    }
+
+    function formatYmd(d) {
+      const y  = d.getFullYear();
+      const m  = String(d.getMonth() + 1).padStart(2, "0");
+      const dd = String(d.getDate()).padStart(2, "0");
+      return y + "-" + m + "-" + dd;
+    }
+
+    const s0Param = qs.get("start");
+    const e0Param = qs.get("end");
+
+    const s0 = s0Param || todayISO();
+    let   e0 = e0Param || addDaysISO(s0, 3);
+
     startInp.value = s0;
     endInp.value   = e0;
+
+    // When start date changes, ensure end is at least +1 day.
+    if (startInp && endInp) {
+      startInp.addEventListener("change", function () {
+        const rawStart = startInp.value;
+        if (!rawStart) return;
+
+        const startDate = parseYmd(rawStart);
+        if (!startDate) return;
+
+        const rawEnd = endInp.value;
+        let endDate = rawEnd ? parseYmd(rawEnd) : null;
+
+        if (!endDate || endDate <= startDate) {
+          endDate = new Date(startDate.getTime());
+          endDate.setDate(startDate.getDate() + 1);
+        }
+
+        endInp.value = formatYmd(endDate);
+      });
+    }
 
     // initialize hidden guests field used by the custom-select
     const guestsHiddenInit = document.getElementById('cat-guests');
@@ -1328,7 +1375,7 @@
     });
   })();
 
-  /* === ANCHOR: CATALOG_MAP_MODAL_WIRING (shell only) ===================== */
+  /* === ANCHOR: CATALOG_MAP_MODAL_WIRING (city-centered) ===================== */
   (function wireCatalogMapModal(){
     const openBtn  = document.getElementById("catalog-map-open");
     const backdrop = document.getElementById("catalog-map-modal");
@@ -1336,13 +1383,41 @@
     const frame    = document.getElementById("catalog-map-frame");
     if (!openBtn || !backdrop || !closeBtn || !frame) return;
 
+    function getMapQueryFromSearch(){
+      const destLabelEl = document.getElementById("dest-label");
+      const destHidden  = document.getElementById("dest");
+
+      const label = (destLabelEl && destLabelEl.textContent || "").trim();
+      const val   = (destHidden && destHidden.value || "").trim();
+
+      // Prefer the human label (e.g. "Siargao")
+      let q = label || val;
+
+      if (!q) {
+        // Fallback: whole country if somehow blank
+        return "Philippines";
+      }
+
+      // If the value is an all-caps code (e.g. "SIARGAO") and we have a label, use label
+      if (q.toUpperCase() === q && label) {
+        q = label;
+      }
+
+      // Bias to PH for now since all inventory is there
+      return q + ", Philippines";
+    }
+
+    function buildMapUrl(){
+      const q = encodeURIComponent(getMapQueryFromSearch());
+      // Same pattern as details page: Google Maps embed with a search query
+      return "https://www.google.com/maps?q=" + q + "&z=10&output=embed";
+    }
+
     function openModal(){
       backdrop.style.display = "flex";
-      backdrop.setAttribute("aria-hidden","false");
+      backdrop.setAttribute("aria-hidden", "false");
 
-      if (!frame.src) {
-        frame.src = "about:blank"; // placeholder; real map wiring comes next step
-      }
+      frame.src = buildMapUrl();
 
       document.documentElement.style.overflow = "hidden";
       document.body.style.overflow = "hidden";
@@ -1350,7 +1425,10 @@
 
     function closeModal(){
       backdrop.style.display = "none";
-      backdrop.setAttribute("aria-hidden","true");
+      backdrop.setAttribute("aria-hidden", "true");
+
+      // Clear src so a new city search will reload the correct map next time
+      frame.src = "";
 
       document.documentElement.style.overflow = "";
       document.body.style.overflow = "";
