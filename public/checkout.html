@@ -647,6 +647,11 @@
     cursor: default;
   }
 
+  /* Hide global sticky footer – Section 5 button now drives payment */
+  .sticky-footer {
+    display: none;
+  }
+
   /* ANCHOR: PAYMENT_PILLS */
   .card-logos {
     display: inline-flex;
@@ -1049,7 +1054,20 @@
                         <input type="date" id="checkout-checkout" />
                       </label>
 
-                      <button type="button" id="checkout-dates-apply">
+                      <button
+                        id="checkout-dates-apply"
+                        class="btn-outline"
+                        style="
+                          border: 2px solid #ff6a3d;
+                          color: #ff6a3d;
+                          padding: 6px 18px;
+                          border-radius: 9999px;
+                          background: #ffffff;
+                          font-weight: 600;
+                          font-size: 13px;
+                          cursor: pointer;
+                        "
+                      >
                         Update dates
                       </button>
 
@@ -1369,35 +1387,40 @@
           <div class="card">
             <div class="summary-card-title">Your stay</div>
 
-            <div class="summary-line">
+            <div class="summary-line" style="margin-bottom:12px;">
               <span>Property name</span>
               <strong id="summaryProperty">Property</strong>
             </div>
 
-            <div class="summary-line">
+            <!-- Room type hidden but intact for JS -->
+            <div class="summary-line" style="display:none;">
               <span>Room type</span>
               <strong id="summaryRoom">Room</strong>
             </div>
 
-            <div class="summary-line">
+            <!-- Rate plan hidden but intact for JS -->
+            <div class="summary-line" style="display:none;">
               <span>Rate plan</span>
               <strong id="summaryPlan">Rate plan</strong>
             </div>
 
-            <div class="summary-line">
+            <div class="summary-line" style="margin-bottom:12px;">
               <span>Dates</span>
               <strong id="summaryDates">Dates</strong>
             </div>
 
-            <div class="summary-line">
+            <!-- Nights hidden but intact for JS -->
+            <div class="summary-line" style="display:none;">
               <span>Nights</span>
               <strong id="summaryNights">n</strong>
             </div>
 
-            <div class="summary-line">
+            <div class="summary-line" style="margin-bottom:14px;">
               <span>Add-ons</span>
               <strong id="summaryAddons">None selected</strong>
             </div>
+
+            <hr style="border:0;border-top:1px solid #e5e5e5;margin:10px 0;">
 
             <div class="summary-total">
               <div>
@@ -2839,11 +2862,12 @@
 
       const confirmAndPayButton = document.getElementById("confirmAndPayButton");
       if (confirmAndPayButton) {
+        // Original Stripe Checkout handler (kept as-is)
         confirmAndPayButton.addEventListener("click", async function () {
           if (confirmAndPayButton.disabled) return;
 
           confirmAndPayButton.disabled = true;
-          confirmAndPayButton.textContent = "Redirecting to secure payment...";
+          confirmAndPayButton.textContent = "Redirecting to secure payment.";
 
           try {
             const response = await fetch("/api/payments/create-checkout-session", {
@@ -2875,6 +2899,21 @@
             alert("Could not start payment. Please try again.");
           }
         });
+
+        // NEW: Reuse the same Stripe handler when clicking the Section 5 button
+        const sectionFiveButton = document.querySelector('button[data-confirm="5"]');
+        if (sectionFiveButton) {
+          sectionFiveButton.addEventListener("click", function () {
+            // Let the generic [data-confirm] handler run first
+            // (it marks section 5 as confirmed and refreshes the UI),
+            // then trigger the Stripe button once everything is unlocked.
+            setTimeout(function () {
+              if (!confirmAndPayButton.disabled) {
+                confirmAndPayButton.click();
+              }
+            }, 0);
+          });
+        }
       }
 
       const changePlanLink = document.getElementById("changePlanLink");
@@ -2900,6 +2939,7 @@
         }
       }
 
+      // Toggle the date card when clicking "Edit dates"
       const editDatesLink = document.getElementById("editDatesLink");
       if (editDatesLink && datesCardWrapper) {
         editDatesLink.addEventListener("click", function () {
@@ -2908,52 +2948,55 @@
         });
       }
 
+      // Auto-adjust end date when start date changes (same behavior as catalog_details)
+      if (checkInInput && checkOutInput) {
+        checkInInput.addEventListener("change", function () {
+          const ci = parseLocalYMD(checkInInput.value);
+          if (!ci) return;
+
+          const co = parseLocalYMD(checkOutInput.value);
+
+          // If end is missing or before/equals start → force start + 1 day
+          if (!co || co <= ci) {
+            const next = new Date(ci.getTime());
+            next.setDate(next.getDate() + 1);
+            checkOutInput.value = formatLocalYmd(next);
+          }
+        });
+      }
+
+      // Apply button → rebuild URL with validated start/end
       if (applyBtn && checkInInput && checkOutInput) {
         applyBtn.addEventListener("click", function () {
-          const ciRaw = checkInInput.value || state.start || "";
-          const coRaw = checkOutInput.value || state.end   || "";
+          const ciRaw = checkInInput.value || state.start;
+          const coRaw = checkOutInput.value || state.end;
+          if (!ciRaw) return; // need at least a start
 
-          // Need at least a start date
-          if (!ciRaw) return;
-
-          // Local YYYY-MM-DD formatter (no timezone conversion in output)
-          function formatLocalYmd(d) {
-            const y  = d.getFullYear();
-            const m  = String(d.getMonth() + 1).padStart(2, "0");
-            const dd = String(d.getDate()).padStart(2, "0");
-            return y + "-" + m + "-" + dd;
-          }
-
-          // Use the shared helper so we treat YYYY-MM-DD as a plain calendar date
           const ciDate = parseLocalYMD(ciRaw);
-          let finalStart = ciDate ? formatLocalYmd(ciDate) : (ciRaw || "").slice(0, 10);
+          const coDate = coRaw ? parseLocalYMD(coRaw) : null;
+
+          let finalStart;
           let finalEnd;
 
           if (ciDate) {
+            finalStart = formatLocalYmd(ciDate);
+
             let endDate = null;
-
-            // If user picked an end date that is AFTER the start, keep it
-            const parsedEnd = coRaw ? parseLocalYMD(coRaw) : null;
-            if (parsedEnd && parsedEnd > ciDate) {
-              endDate = parsedEnd;
-            }
-
-            // Otherwise default end = start + 1 day
-            if (!endDate) {
+            if (coDate && coDate > ciDate) {
+              endDate = coDate;
+            } else {
               endDate = new Date(ciDate.getTime());
-              endDate.setDate(endDate.getDate() + 1);
+              endDate.setDate(ciDate.getDate() + 1);
             }
 
             finalEnd = formatLocalYmd(endDate);
           } else {
-            // Fallback – invalid start: just pass through whatever end we had
-            finalEnd = (coRaw || "").slice(0, 10);
+            // fallback if start is invalid for some reason
+            finalStart = (ciRaw || "").slice(0, 10);
+            finalEnd   = (coRaw || "").slice(0, 10);
           }
 
           if (!finalStart || !finalEnd) return;
-
-          // Update the visible end-date field immediately for UX
-          checkOutInput.value = finalEnd;
 
           const qsNext = new URLSearchParams(location.search);
           qsNext.set("start", finalStart);
