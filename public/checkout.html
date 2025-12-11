@@ -1952,8 +1952,17 @@
       // Update final grand total (base + add-ons)
       updateGrandTotal();
 
+      // Also refresh main summaries (Your stay)
       updateSummaries();
       updateAddonsSummary();
+
+      // Refresh right-hand breakdown so it includes add-ons
+      if (Array.isArray(state.pricingNights) && state.pricingNights.length) {
+        renderNightlyBreakdown(
+          state.pricingNights,
+          state.pricingCurrency || "USD"
+        );
+      }
     }
 
     function updateGrandTotal() {
