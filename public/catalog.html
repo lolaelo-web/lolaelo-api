@@ -1496,24 +1496,37 @@
     async function loadMissingCoords(props){
       const tasks = [];
 
+      // Read current dates from the search box so /catalog/details does not 400
+      const startInp = document.getElementById("start");
+      const endInp   = document.getElementById("end");
+      const startVal = (startInp && startInp.value) || "";
+      const endVal   = (endInp && endInp.value) || "";
+
       for (const p of props){
         const id = p.propertyId;
         if (!id) continue;
 
         const hasLat =
           coordCache[id] ||
-          Number.isFinite(parseFloat((p.latitude ?? "").toString())) &&
-          Number.isFinite(parseFloat((p.longitude ?? "").toString()));
+          (Number.isFinite(parseFloat(String(p.latitude ?? ""))) &&
+           Number.isFinite(parseFloat(String(p.longitude ?? ""))));
 
         if (hasLat) continue;
 
-        const url = `/catalog/details?propertyId=${encodeURIComponent(id)}`;
+        const params = new URLSearchParams();
+        params.set("propertyId", String(id));
+        if (startVal) params.set("start", startVal);
+        if (endVal)   params.set("end", endVal);
+
+        const url = `/catalog/details?${params.toString()}`;
+
         tasks.push(
           fetch(url)
             .then(r => (r.ok ? r.json() : null))
             .then(j => {
               if (!j || !j.meta || !j.meta.property) return;
               const mp = j.meta.property;
+
               let lat = mp.latitude ?? mp.lat ?? mp.geoLat ?? null;
               let lng = mp.longitude ?? mp.lng ?? mp.geoLng ?? null;
               if (typeof lat === "string") lat = parseFloat(lat);
