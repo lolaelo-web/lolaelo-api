@@ -990,6 +990,13 @@
       overflow: hidden;
     }
 
+    /* Inside the Description bubble, show the full text instead of clipping */
+    .summary-bubble-owner .summary-desc{
+      max-height: none;
+      overflow: visible;
+      white-space: pre-line;  /* respect line breaks from backend text */
+    }
+
     .summary .chips{
       margin-top: 4px;
       flex-wrap: wrap;
@@ -4310,7 +4317,7 @@
           justify-content: center;
         "
       >
-        Close
+        X
       </button>
 
       <iframe
