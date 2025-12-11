@@ -786,31 +786,36 @@
 
       <div class="subhead-row">
         <div class="subhead" id="found">Ready.</div>
-      </div>
-    </div>
 
-    <!-- ANCHOR: CATALOG_MAP_ROW -->
-    <div class="map-row" style="
-      display:flex;
-      justify-content:flex-end;
-      padding:8px 0 6px 0;
-    ">
-      <button
-        type="button"
-        id="catalog-map-open"
-        class="map-toggle-btn"
-        aria-label="View results on map"
-      >
-        <img
-          src="https://www.lolaelo.com/logo2.png?cb=fav-v1"
-          alt="Map"
-          class="map-toggle-icon"
-          decoding="async"
-          loading="lazy"
-        />
-        <span>Map</span>
-      </button>
-    </div>
+      <!-- ANCHOR: CATALOG_MAP_ROW -->
+      <div class="map-row" style="
+        display:flex;
+        justify-content:center;
+        padding:12px 0 10px 0;
+      ">
+        <button
+          type="button"
+          id="catalog-map-open"
+          class="map-toggle-btn"
+          aria-label="View results on map"
+          style="
+            background:white;
+            transition:background 0.25s ease, box-shadow 0.25s ease;
+            box-shadow:0 2px 4px rgba(0,0,0,0.04);
+          "
+          onmouseover="this.style.background='linear-gradient(135deg, #ffffff 0%, #f1f5f9 100%)'; this.style.boxShadow='0 4px 12px rgba(0,0,0,0.12)';"
+          onmouseout="this.style.background='white'; this.style.boxShadow='0 2px 4px rgba(0,0,0,0.04)';"
+        >
+          <img
+            src="https://www.lolaelo.com/logo2.png?cb=fav-v1"
+            alt="Map"
+            class="map-toggle-icon"
+            decoding="async"
+            loading="lazy"
+          />
+          <span>Map</span>
+        </button>
+      </div>
 
     <!-- ANCHOR: FILTERS_DETAILS (amenities only) -->
     <details id="amenities" class="filters">

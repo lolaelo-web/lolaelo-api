@@ -1513,6 +1513,18 @@
         return y + "-" + m + "-" + dd;
       }
 
+      // Helper: parse YYYY-MM-DD as a local Date (no UTC shift)
+      function parseLocalYmd(str) {
+        if (!str) return null;
+        const parts = str.split("-");
+        if (parts.length !== 3) return null;
+        const y = Number(parts[0]);
+        const m = Number(parts[1]);
+        const d = Number(parts[2]);
+        if (!y || !m || !d) return null;
+        return new Date(y, m - 1, d);
+      }
+
       // Initialize inputs from current URL dates
       try {
         checkInInput.value  = start;
@@ -1521,20 +1533,20 @@
         // ignore
       }
 
-      // NEW: whenever check-in changes, auto-bump check-out to at least +1 day
+      // Whenever check-in changes, auto-bump check-out to at least +1 day
       checkInInput.addEventListener("change", function () {
         const ciRaw = checkInInput.value;
         if (!ciRaw) return;
 
-        const ciDate = new Date(ciRaw);
-        if (Number.isNaN(ciDate.getTime())) return;
+        const ciDate = parseLocalYmd(ciRaw);
+        if (!ciDate) return;
 
         const coRaw = checkOutInput.value;
         let endDate = null;
 
         if (coRaw) {
-          const parsedEnd = new Date(coRaw);
-          if (!Number.isNaN(parsedEnd.getTime()) && parsedEnd > ciDate) {
+          const parsedEnd = parseLocalYmd(coRaw);
+          if (parsedEnd && parsedEnd > ciDate) {
             endDate = parsedEnd;
           }
         }
@@ -1556,17 +1568,17 @@
         // We need at least a start date to do anything useful
         if (!ciRaw) return;
 
-        const ciDate = new Date(ciRaw);
+        const ciDate = parseLocalYmd(ciRaw);
         let finalStart = (ciRaw || "").slice(0, 10);
         let finalEnd;
 
-        if (!Number.isNaN(ciDate.getTime())) {
+        if (ciDate) {
           let endDate = null;
 
           // If there is an end date and it is after the start, keep it.
           if (coRaw) {
-            const parsedEnd = new Date(coRaw);
-            if (!Number.isNaN(parsedEnd.getTime()) && parsedEnd > ciDate) {
+            const parsedEnd = parseLocalYmd(coRaw);
+            if (parsedEnd && parsedEnd > ciDate) {
               endDate = parsedEnd;
             }
           }
