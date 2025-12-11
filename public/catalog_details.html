@@ -995,13 +995,19 @@
       max-height: none;
       overflow: visible;
       white-space: pre-line;  /* respect line breaks from backend text */
+      text-align: left;
+    }
+
+    /* Match Amenities bubble text color to Description bubble (dark navy) */
+    .summary-bubble:not(.summary-bubble-owner){
+      color: #0F1C2E !important;
     }
 
     /* Widen Description bubble specifically — allow long text to breathe */
     .summary-actions > .summary-icon-wrap:first-child .summary-bubble{
       max-width: 1200px;   /* 2× wider than before */
       min-width: 600px;    /* ensure it starts wide */
-      transform: translateX(-25%);  /* keep bubble positioned visually under icon */
+      transform: translateX(-5%);   /* move bubble right so left edge is fully visible */
     }
 
     .summary .chips{
@@ -1106,6 +1112,10 @@
       font-size:13px;
       line-height:1.45;
       display:none;
+    }
+    /* Left-align all text inside the Description bubble */
+    .summary-bubble.summary-bubble-owner{
+      text-align: left;
     }
     .summary-actions > .summary-icon-wrap:first-child .summary-bubble{
       transform: translateX(-30%);
