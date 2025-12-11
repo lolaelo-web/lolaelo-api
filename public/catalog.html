@@ -668,6 +668,10 @@
       background:#f9fafb;
     }
 
+    .catalog-map-close{
+      z-index: 5000 !important;
+    }
+
     /* Catalog: standardized "Details" outline button */
     .details-btn{
       display:inline-flex;
@@ -1408,16 +1412,37 @@
     }
 
     function computeCenter(entries){
-      if (!entries.length){
-        // Philippines fallback
-        return { lat: 12.8797, lng: 121.7740 };
+      // 1) If properties have coordinates, use their center
+      if (entries.length){
+        let sumLat = 0, sumLng = 0;
+        for (const e of entries){
+          sumLat += e.pos.lat;
+          sumLng += e.pos.lng;
+        }
+        return { lat: sumLat / entries.length, lng: sumLng / entries.length };
       }
-      let sumLat = 0, sumLng = 0;
-      for (const e of entries){
-        sumLat += e.pos.lat;
-        sumLng += e.pos.lng;
-      }
-      return { lat: sumLat / entries.length, lng: sumLng / entries.length };
+
+      // 2) Otherwise center map at the destination city
+      const destLabelEl = document.getElementById("dest-label");
+      const raw = (destLabelEl && destLabelEl.textContent || "").trim();
+      const q = raw ? raw + ", Philippines" : "Philippines";
+
+      // Hard-coded known centers for major destinations
+      const PRESETS = {
+        "Siargao":        { lat: 9.8443, lng: 126.0450 },
+        "General Luna":   { lat: 9.7892, lng: 126.1654 },
+        "Cloud 9":        { lat: 9.8088, lng: 126.1713 },
+        "El Nido":        { lat: 11.2027, lng: 119.4150 },
+        "Coron":          { lat: 12.0000, lng: 120.2000 },
+        "Boracay":        { lat: 11.9622, lng: 121.9246 },
+        "Manila":         { lat: 14.5995, lng: 120.9842 },
+        "Cebu":           { lat: 10.3157, lng: 123.8854 }
+      };
+
+      if (PRESETS[raw]) return PRESETS[raw];
+
+      // 3) Fallback: PH center
+      return { lat: 12.8797, lng: 121.7740 };
     }
 
     function escapeHtml(str){
@@ -1548,7 +1573,10 @@
           center,
           zoom,
           mapTypeControl: false,
-          streetViewControl: false
+          streetViewControl: false,
+          fullscreenControl: false,   // <— removes conflicting control
+          zoomControl: true,
+          gestureHandling: "greedy"
         });
 
         map.addListener("zoom_changed", function(){

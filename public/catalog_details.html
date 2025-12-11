@@ -1081,20 +1081,14 @@
       text-align:center;
     }
 
-    /* Force Property Inclusions icons to render horizontally */
+    /* Property Inclusions icon – three emojis inline */
     .summary-actions > .summary-icon-wrap:nth-child(2) .summary-icon-btn {
       display: flex;
-      flex-direction: row !important;
-      gap: 6px;                /* small space between the icons */
+      flex-direction: row;
+      gap: 4px;                 /* spacing between emojis */
       justify-content: center;
       align-items: center;
-      font-size: 0;            /* remove emoji spacing quirks */
-    }
-
-    /* Ensure emojis/icons scale consistently */
-    .summary-actions > .summary-icon-wrap:nth-child(2) .summary-icon-btn span,
-    .summary-actions > .summary-icon-wrap:nth-child(2) .summary-icon-btn img {
-      font-size: 32px;         /* adjust to taste */
+      font-size: 32px;          /* size of the emojis */
     }
 
     /* Make the Property Inclusions icon (2nd) about 1.5x wider */
