@@ -2929,7 +2929,7 @@
       const checkOutInput   = document.getElementById("checkout-checkout");
       const applyBtn        = document.getElementById("checkout-dates-apply");
 
-      // Initialize inputs from state/query (raw strings, no timezone conversion)
+      // Initialize inputs from state/query (use raw strings, no timezone conversion)
       if (checkInInput && checkOutInput) {
         try {
           if (state.start) checkInInput.value = state.start;
@@ -2947,6 +2947,14 @@
         });
       }
 
+      // Helper: format a Date as local YYYY-MM-DD (no timezone shift)
+      function formatLocalYmd(d) {
+        const y  = d.getFullYear();
+        const m  = String(d.getMonth() + 1).padStart(2, "0");
+        const dd = String(d.getDate()).padStart(2, "0");
+        return `${y}-${m}-${dd}`;
+      }
+
       if (applyBtn && checkInInput && checkOutInput) {
         applyBtn.addEventListener("click", function () {
           const ciRaw = checkInInput.value || state.start;
@@ -2955,41 +2963,27 @@
           // Need at least a start date
           if (!ciRaw) return;
 
-          function formatLocalYmd(d) {
-            const y  = d.getFullYear();
-            const m  = String(d.getMonth() + 1).padStart(2, "0");
-            const dd = String(d.getDate()).padStart(2, "0");
-            return y + "-" + m + "-" + dd;
-          }
-
           const ciDate = new Date(ciRaw);
-          let finalStart = ciRaw.slice(0, 10);
-          let finalEnd;
+          if (Number.isNaN(ciDate.getTime())) return;
 
-          if (!Number.isNaN(ciDate.getTime())) {
-            let endDate = null;
+          let endDate = null;
 
-            // If user picked an end date after start, keep it
-            if (coRaw) {
-              const parsedEnd = new Date(coRaw);
-              if (!Number.isNaN(parsedEnd.getTime()) && parsedEnd > ciDate) {
-                endDate = parsedEnd;
-              }
+          // If there is an end date and it is AFTER the start, keep it
+          if (coRaw) {
+            const parsedEnd = new Date(coRaw);
+            if (!Number.isNaN(parsedEnd.getTime()) && parsedEnd > ciDate) {
+              endDate = parsedEnd;
             }
-
-            // Otherwise force end = start + 1 day
-            if (!endDate) {
-              endDate = new Date(ciDate.getTime());
-              endDate.setDate(ciDate.getDate() + 1);
-            }
-
-            finalEnd = formatLocalYmd(endDate);
-          } else {
-            // invalid start – just pass whatever end we had
-            finalEnd = (coRaw || "").slice(0, 10);
           }
 
-          if (!finalStart || !finalEnd) return;
+          // Otherwise default end date to start + 1 day
+          if (!endDate) {
+            endDate = new Date(ciDate.getTime());
+            endDate.setDate(ciDate.getDate() + 1);
+          }
+
+          const finalStart = formatLocalYmd(ciDate);
+          const finalEnd   = formatLocalYmd(endDate);
 
           const qsNext = new URLSearchParams(location.search);
           qsNext.set("start", finalStart);

@@ -6,6 +6,10 @@
   <title>Lolaelo · Catalog</title>
   <link rel="icon" href="https://www.lolaelo.com/logo2.png" />
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+  <link
+    rel="stylesheet"
+    href="https://cdn.jsdelivr.net/npm/flatpickr@4.6.13/dist/flatpickr.min.css"
+  />
 
   <style>
     /* === ANCHOR: CATALOG_LIGHT_SKIN (theme tokens) ======================== */
@@ -352,6 +356,13 @@
     /* Combined date field (Check-in – Check-out) */
     .field-dates-combined{
       position:relative;
+    }
+
+    .date-range-driver{
+      position:absolute;
+      inset:0;
+      opacity:0;
+      pointer-events:none;
     }
 
     .dates-display{
@@ -801,6 +812,16 @@
               Check-in – Check-out
             </span>
           </button>
+
+          <!-- Hidden Flatpickr driver for range calendar -->
+          <input
+            id="cat-dates"
+            type="text"
+            class="date-range-driver"
+            autocomplete="off"
+          />
+
+          <!-- Actual start/end values used by all existing JS -->
           <input id="start" type="date" />
           <input id="end" type="date" />
         </label>
@@ -925,6 +946,9 @@
     const datesDisplay      = S('dates-display');
     const datesDisplayLabel = S('dates-display-label');
 
+    const catDatesInput = S('cat-dates');
+    let catDatePicker = null;
+
     function formatDateLabel(iso){
       if (!iso) return "";
       const d = new Date(iso + "T00:00:00");
@@ -957,7 +981,9 @@
 
     if (datesDisplay){
       datesDisplay.addEventListener('click', function(){
-        if (startInp && typeof startInp.showPicker === 'function'){
+        if (catDatePicker) {
+          catDatePicker.open();
+        } else if (startInp && typeof startInp.showPicker === 'function'){
           startInp.showPicker();
         } else if (startInp){
           startInp.focus();
@@ -1024,6 +1050,33 @@
     startInp.value = s0;
     endInp.value   = e0;
     syncDatesDisplay();
+
+    if (catDatesInput && window.flatpickr) {
+      catDatePicker = flatpickr(catDatesInput, {
+        mode: "range",
+        dateFormat: "Y-m-d",
+        defaultDate: [s0, e0],
+        onChange(selectedDates, dateStr) {
+          if (!startInp || !endInp) return;
+
+          let start = selectedDates[0] || null;
+          let end   = selectedDates[1] || null;
+
+          // Enforce end >= start + 1 day
+          if (start && !end) {
+            const next = new Date(start.getTime());
+            next.setDate(next.getDate() + 1);
+            end = next;
+          }
+
+          if (start && end) {
+            startInp.value = formatYmd(start);
+            endInp.value   = formatYmd(end);
+            syncDatesDisplay();
+          }
+        }
+      });
+    }
 
     // When start date changes, ensure end is at least +1 day.
     if (startInp && endInp) {
@@ -1806,6 +1859,7 @@
 </script>
 
   <script src="https://maps.googleapis.com/maps/api/js?key=AIzaSyB3S03x_g_worh7dj4dk-lHYPFJ3RMknVc"></script>
+  <script src="https://cdn.jsdelivr.net/npm/flatpickr@4.6.13/dist/flatpickr.min.js"></script>
 
 </body>
 </html>
