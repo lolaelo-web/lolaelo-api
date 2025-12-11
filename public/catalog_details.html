@@ -1280,6 +1280,15 @@
       background: #F3F4F6;
     }
 
+    /* ANCHOR: SUMMARY_MAP_ICON */
+    .summary-map-icon {
+      width: 22px;
+      height: 22px;
+      object-fit: contain;
+      display: block;
+      margin: 0 auto;
+    }
+
   </style>
 </head>
 <body>
@@ -1365,7 +1374,11 @@
                   aria-label="View on map"
                   id="summary-map-btn"
                 >
-                  📍
+                  <img
+                    src="/logo2.png"
+                    alt="Map"
+                    class="summary-map-icon"
+                  />
                 </button>
                 <div class="summary-icon-label">Map</div>
               </div>
