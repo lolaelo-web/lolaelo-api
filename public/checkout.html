@@ -1579,6 +1579,9 @@
           '</div>'
         );
 
+        // Spacer between Stay total and first add-on line
+        parts.push('<div class="breakdown-line" style="height:6px;"></div>');
+
         addons.forEach(function (item) {
           if (!item) return;
 
@@ -2907,8 +2910,8 @@
 
       if (applyBtn && checkInInput && checkOutInput) {
         applyBtn.addEventListener("click", function () {
-          const ciRaw = checkInInput.value || state.start;
-          const coRaw = checkOutInput.value || state.end;
+          const ciRaw = checkInInput.value || state.start || "";
+          const coRaw = checkOutInput.value || state.end   || "";
 
           // Need at least a start date
           if (!ciRaw) return;
@@ -2921,25 +2924,24 @@
             return y + "-" + m + "-" + dd;
           }
 
-          const ciDate = new Date(ciRaw);
-          let finalStart = (ciRaw || "").slice(0, 10);
+          // Use the shared helper so we treat YYYY-MM-DD as a plain calendar date
+          const ciDate = parseLocalYMD(ciRaw);
+          let finalStart = ciDate ? formatLocalYmd(ciDate) : (ciRaw || "").slice(0, 10);
           let finalEnd;
 
-          if (!Number.isNaN(ciDate.getTime())) {
+          if (ciDate) {
             let endDate = null;
 
             // If user picked an end date that is AFTER the start, keep it
-            if (coRaw) {
-              const parsedEnd = new Date(coRaw);
-              if (!Number.isNaN(parsedEnd.getTime()) && parsedEnd > ciDate) {
-                endDate = parsedEnd;
-              }
+            const parsedEnd = coRaw ? parseLocalYMD(coRaw) : null;
+            if (parsedEnd && parsedEnd > ciDate) {
+              endDate = parsedEnd;
             }
 
             // Otherwise default end = start + 1 day
             if (!endDate) {
               endDate = new Date(ciDate.getTime());
-              endDate.setDate(ciDate.getDate() + 1);
+              endDate.setDate(endDate.getDate() + 1);
             }
 
             finalEnd = formatLocalYmd(endDate);
@@ -2949,6 +2951,9 @@
           }
 
           if (!finalStart || !finalEnd) return;
+
+          // Update the visible end-date field immediately for UX
+          checkOutInput.value = finalEnd;
 
           const qsNext = new URLSearchParams(location.search);
           qsNext.set("start", finalStart);

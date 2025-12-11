@@ -151,15 +151,48 @@ router.get("/search", async (req: Request, res: Response) => {
         const profMap = await getProfilesFromDb(ids);
         console.log("[catalog.search] ids for profMap:", ids);
         console.log("[catalog.search] profMap keys:", Object.keys(profMap || {}));
+
         for (const p of props) {
-          const pid = Number((p as any)?.propertyId);
+          const pid  = Number((p as any)?.propertyId);
           const prof = (profMap as any)?.[pid];
           if (!prof) continue;
 
           // prefer DB identity/location labels
-          (p as any).name = prof.name ?? (p as any).name ?? "";
-          (p as any).city = prof.city ?? (p as any).city ?? "";
+          (p as any).name    = prof.name    ?? (p as any).name    ?? "";
+          (p as any).city    = prof.city    ?? (p as any).city    ?? "";
           (p as any).country = prof.country ?? (p as any).country ?? "";
+
+          // coordinates + map label from profile (if available)
+          const latRaw =
+            (prof as any)?.latitude ??
+            (prof as any)?.lat ??
+            (prof as any)?.geoLat ??
+            null;
+
+          const lngRaw =
+            (prof as any)?.longitude ??
+            (prof as any)?.lng ??
+            (prof as any)?.geoLng ??
+            null;
+
+          if (latRaw !== null && latRaw !== undefined) {
+            const v = Number(latRaw);
+            (p as any).latitude = Number.isFinite(v) ? v : latRaw;
+          }
+
+          if (lngRaw !== null && lngRaw !== undefined) {
+            const v = Number(lngRaw);
+            (p as any).longitude = Number.isFinite(v) ? v : lngRaw;
+          }
+
+          const mapLabelRaw =
+            (prof as any)?.mapLabel ??
+            (prof as any)?.map_label ??
+            null;
+
+          if (typeof mapLabelRaw === "string" && mapLabelRaw.trim().length) {
+            (p as any).mapLabel = mapLabelRaw.trim();
+          }
 
           // optional: normalize cityCode if provided by DB profile
           const _cityCode = (prof as any)?.cityCode as unknown;
@@ -167,12 +200,17 @@ router.get("/search", async (req: Request, res: Response) => {
             (p as any).cityCode = _cityCode.toUpperCase();
           }
 
+          // optional: override images from profile if provided
           if (Array.isArray(prof.images) && prof.images.length) {
-            if (!(p as any).images || !Array.isArray((p as any).images)) (p as any).images = [];
+            if (!(p as any).images || !Array.isArray((p as any).images)) {
+              (p as any).images = [];
+            }
             const urls = Array.isArray((prof as any).images)
-            ? (prof as any).images.map((x: any) => (typeof x === "string" ? x : String(x?.url || ""))).filter(Boolean)
-            : [];
-          (p as any).images = urls; // cover-first order preserved if provided
+              ? (prof as any).images
+                  .map((x: any) => (typeof x === "string" ? x : String(x?.url || "")))
+                  .filter(Boolean)
+              : [];
+            (p as any).images = urls; // cover-first order preserved if provided
           }
         }
       } catch (err) {
