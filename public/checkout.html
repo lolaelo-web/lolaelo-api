@@ -1559,13 +1559,25 @@
       const addonsSubtotalNum = Number(s.addonsSubtotal || 0);
 
       if (addons.length && Number.isFinite(addonsSubtotalNum) && addonsSubtotalNum > 0) {
-        // Header row for add-ons
-        parts.push(
-          '<div class="breakdown-line" style="margin-top:4px;font-weight:600;">' +
-            '<span>Add-ons</span>' +
-            '<span></span>' +
-          '</div>'
-        );
+      // Header row for add-ons
+      // Insert Stay Total (sum of nightly base room amounts)
+      const stayTotalNum = Array.isArray(nightsArr)
+        ? nightsArr.reduce((sum, n) => {
+            const amt = Number(
+              n.amount !== undefined ? n.amount :
+              n.price  !== undefined ? n.price  :
+              n.value  !== undefined ? n.value  : 0
+            );
+            return sum + (Number.isFinite(amt) ? amt : 0);
+          }, 0)
+        : 0;
+
+      parts.push(
+        '<div class="breakdown-line" style="margin-top:6px;font-weight:600;">' +
+          '<span>Stay total</span>' +
+          '<span>' + formatCurrency(stayTotalNum, cur) + '</span>' +
+        '</div>'
+      );
 
         addons.forEach(function (item) {
           if (!item) return;
@@ -2895,23 +2907,49 @@
 
       if (applyBtn && checkInInput && checkOutInput) {
         applyBtn.addEventListener("click", function () {
-          const ci = checkInInput.value || state.start;
-          const co = checkOutInput.value || state.end;
-          if (!ci || !co) return;
+          const ciRaw = checkInInput.value || state.start;
+          const coRaw = checkOutInput.value || state.end;
 
-          const ciDate = new Date(ci);
-          const coDate = new Date(co);
+          // Need at least a start date
+          if (!ciRaw) return;
 
-          if (!Number.isNaN(ciDate) && !Number.isNaN(coDate) && coDate <= ciDate) {
-            coDate.setDate(ciDate.getDate() + 1);
+          // Local YYYY-MM-DD formatter (no timezone conversion)
+          function formatLocalYmd(d) {
+            const y = d.getFullYear();
+            const m = String(d.getMonth() + 1).padStart(2, "0");
+            const dd = String(d.getDate()).padStart(2, "0");
+            return y + "-" + m + "-" + dd;
           }
 
-          const finalStart = !Number.isNaN(ciDate)
-            ? ciDate.toISOString().slice(0, 10)
-            : ci;
-          const finalEnd = !Number.isNaN(coDate)
-            ? coDate.toISOString().slice(0, 10)
-            : co;
+          const ciDate = parseLocalYMD(ciRaw);
+          let finalStart = ciRaw.slice(0, 10);
+          let finalEnd;
+
+          if (ciDate) {
+            let endDate = null;
+
+            // If there is an end date and it is AFTER the start, keep it
+            if (coRaw) {
+              const parsedEnd = parseLocalYMD(coRaw);
+              if (parsedEnd && parsedEnd > ciDate) {
+                endDate = parsedEnd;
+              }
+            }
+
+            // Otherwise default end = start + 1 day
+            if (!endDate) {
+              endDate = new Date(ciDate.getTime());
+              endDate.setDate(ciDate.getDate() + 1);
+            }
+
+            finalStart = formatLocalYmd(ciDate);
+            finalEnd = formatLocalYmd(endDate);
+          } else {
+            // Fallback – invalid start, just passthrough end
+            finalEnd = (coRaw || "").slice(0, 10);
+          }
+
+          if (!finalStart || !finalEnd) return;
 
           const qsNext = new URLSearchParams(location.search);
           qsNext.set("start", finalStart);

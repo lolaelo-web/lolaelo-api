@@ -859,12 +859,11 @@
         ×
       </button>
 
-      <iframe
-        id="catalog-map-frame"
+      <div
+        id="catalog-map-canvas"
         class="catalog-map-frame"
-        loading="lazy"
-        referrerpolicy="no-referrer-when-downgrade"
-      ></iframe>
+        role="presentation"
+      ></div>
     </div>
   </div>
 
@@ -1375,60 +1374,211 @@
     });
   })();
 
-  /* === ANCHOR: CATALOG_MAP_MODAL_WIRING (city-centered) ===================== */
+  /* === ANCHOR: CATALOG_MAP_MODAL_WIRING (pins from results) =============== */
   (function wireCatalogMapModal(){
     const openBtn  = document.getElementById("catalog-map-open");
     const backdrop = document.getElementById("catalog-map-modal");
     const closeBtn = document.getElementById("catalog-map-close");
-    const frame    = document.getElementById("catalog-map-frame");
-    if (!openBtn || !backdrop || !closeBtn || !frame) return;
+    const canvas   = document.getElementById("catalog-map-canvas");
+    if (!openBtn || !backdrop || !closeBtn || !canvas) return;
 
-    function getMapQueryFromSearch(){
-      const destLabelEl = document.getElementById("dest-label");
-      const destHidden  = document.getElementById("dest");
+    let map = null;
+    let markers = [];
+    let infoWindow = null;
+    let lastZoomForMarkers = null;
 
-      const label = (destLabelEl && destLabelEl.textContent || "").trim();
-      const val   = (destHidden && destHidden.value || "").trim();
+    function getPropsForMap(){
+      const list = Array.isArray(window.__catalogProps) ? window.__catalogProps : [];
+      const out = [];
 
-      // Prefer the human label (e.g. "Siargao")
-      let q = label || val;
+      for (const p of list){
+        const mp = p.meta && p.meta.property ? p.meta.property : {};
+        let lat = mp.latitude ?? mp.lat ?? p.latitude ?? p.lat ?? null;
+        let lng = mp.longitude ?? mp.lng ?? p.longitude ?? p.lng ?? null;
 
-      if (!q) {
-        // Fallback: whole country if somehow blank
-        return "Philippines";
+        if (typeof lat === "string") lat = parseFloat(lat);
+        if (typeof lng === "string") lng = parseFloat(lng);
+
+        if (!Number.isFinite(lat) || !Number.isFinite(lng)) continue;
+
+        out.push({ p, pos: { lat, lng } });
       }
 
-      // If the value is an all-caps code (e.g. "SIARGAO") and we have a label, use label
-      if (q.toUpperCase() === q && label) {
-        q = label;
-      }
-
-      // Bias to PH for now since all inventory is there
-      return q + ", Philippines";
+      return out;
     }
 
-    function buildMapUrl(){
-      const q = encodeURIComponent(getMapQueryFromSearch());
-      // Same pattern as details page: Google Maps embed with a search query
-      return "https://www.google.com/maps?q=" + q + "&z=10&output=embed";
+    function computeCenter(entries){
+      if (!entries.length){
+        // Philippines fallback
+        return { lat: 12.8797, lng: 121.7740 };
+      }
+      let sumLat = 0, sumLng = 0;
+      for (const e of entries){
+        sumLat += e.pos.lat;
+        sumLng += e.pos.lng;
+      }
+      return { lat: sumLat / entries.length, lng: sumLng / entries.length };
+    }
+
+    function escapeHtml(str){
+      return String(str || "")
+        .replace(/&/g, "&amp;")
+        .replace(/</g, "&lt;")
+        .replace(/>/g, "&gt;")
+        .replace(/"/g, "&quot;");
+    }
+
+    function buildDetailsLink(p){
+      const baseLink = `/catalog_details.html?propertyId=${encodeURIComponent(p.propertyId)}`;
+      return window.ratePlanId
+        ? `${baseLink}&ratePlanId=${encodeURIComponent(window.ratePlanId)}`
+        : baseLink;
+    }
+
+    // Simple zoom-aware grouping: at low zoom, nearby props share one pin
+    function groupEntries(entries, zoom){
+      const z = typeof zoom === "number" ? zoom : 10;
+      let precision;
+      if (z <= 7) precision = 0;
+      else if (z <= 9) precision = 1;
+      else if (z <= 11) precision = 2;
+      else if (z <= 13) precision = 3;
+      else precision = 4;
+
+      const buckets = new Map();
+      for (const e of entries){
+        const key = e.pos.lat.toFixed(precision) + "|" + e.pos.lng.toFixed(precision);
+        const arr = buckets.get(key);
+        if (arr) arr.push(e); else buckets.set(key, [e]);
+      }
+
+      return Array.from(buckets.values()).map(group => ({
+        pos: group[0].pos,
+        items: group
+      }));
+    }
+
+    function refreshMarkers(){
+      if (!map) return;
+
+      const entries = getPropsForMap();
+      const groups  = groupEntries(entries, map.getZoom());
+
+      // Clear old markers
+      for (const m of markers){
+        m.setMap(null);
+      }
+      markers = [];
+
+      for (const group of groups){
+        const props = group.items;
+        const single = props.length === 1;
+        const firstP = props[0].p;
+        const markerTitle = single
+          ? (firstP.name || "Stay")
+          : `${props.length} stays here`;
+
+        const marker = new google.maps.Marker({
+          map,
+          position: group.pos,
+          title: markerTitle
+        });
+
+        marker.addListener("click", function(){
+          if (!infoWindow){
+            infoWindow = new google.maps.InfoWindow();
+          }
+
+          let html;
+          if (single){
+            const p = firstP;
+            const link = buildDetailsLink(p);
+            const mp  = p.meta && p.meta.property ? p.meta.property : {};
+            const label =
+              mp.mapLabel ||
+              p.location ||
+              [p.city, p.country].filter(Boolean).join(", ");
+
+            html =
+              '<div style="font-size:13px;max-width:240px;">' +
+              `<strong>${escapeHtml(p.name || "Property")}</strong><br>` +
+              (label ? `${escapeHtml(label)}<br>` : "") +
+              `<a href="${link}" style="color:#ff6a3d;font-weight:600;text-decoration:none;">View details</a>` +
+              "</div>";
+          } else {
+            const items = props.slice(0, 4);
+            let listHtml = "";
+            for (const e of items){
+              const p = e.p;
+              const link = buildDetailsLink(p);
+              listHtml +=
+                `<li><a href="${link}" style="color:#ff6a3d;text-decoration:none;">${escapeHtml(p.name || "Property")}</a></li>`;
+            }
+            if (props.length > 4){
+              listHtml += "<li>…and more</li>";
+            }
+
+            html =
+              '<div style="font-size:13px;max-width:260px;">' +
+              `<strong>${props.length} stays in this area</strong>` +
+              `<ul style="margin:6px 0;padding-left:18px;">${listHtml}</ul>` +
+              "</div>";
+          }
+
+          infoWindow.setContent(html);
+          infoWindow.open(map, marker);
+        });
+
+        markers.push(marker);
+      }
+    }
+
+    function ensureMap(){
+      const entries = getPropsForMap();
+      const center  = computeCenter(entries);
+      const zoom    = entries.length === 1 ? 13 : 10;
+
+      if (!(window.google && google.maps && google.maps.Map)){
+        console.warn("[catalog] Google Maps JS not ready");
+        return;
+      }
+
+      if (!map){
+        map = new google.maps.Map(canvas, {
+          center,
+          zoom,
+          mapTypeControl: false,
+          streetViewControl: false
+        });
+
+        map.addListener("zoom_changed", function(){
+          const z = map.getZoom();
+          if (z === lastZoomForMarkers) return;
+          lastZoomForMarkers = z;
+          refreshMarkers();
+        });
+      } else {
+        map.setCenter(center);
+        map.setZoom(zoom);
+      }
+
+      lastZoomForMarkers = map.getZoom();
+      refreshMarkers();
     }
 
     function openModal(){
       backdrop.style.display = "flex";
       backdrop.setAttribute("aria-hidden", "false");
 
-      frame.src = buildMapUrl();
-
       document.documentElement.style.overflow = "hidden";
       document.body.style.overflow = "hidden";
+
+      ensureMap();
     }
 
     function closeModal(){
       backdrop.style.display = "none";
       backdrop.setAttribute("aria-hidden", "true");
-
-      // Clear src so a new city search will reload the correct map next time
-      frame.src = "";
 
       document.documentElement.style.overflow = "";
       document.body.style.overflow = "";
@@ -1451,5 +1601,8 @@
   })();
 
   </script>
+
+  <script src="https://maps.googleapis.com/maps/api/js?key=AIzaSyB3S03x_g_worh7dj4dk-lHYPFJ3RMknVc"></script>
+
 </body>
 </html>
