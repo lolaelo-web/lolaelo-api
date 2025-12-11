@@ -137,6 +137,88 @@
       transition:transform 0.15s ease-out;
     }
 
+    /* === ANCHOR: CATALOG_MAP_MODAL_CSS ============================= */
+    .subhead-row{
+      display:flex;
+      align-items:center;
+      justify-content:space-between;
+      gap:12px;
+      margin-top:8px;
+    }
+
+    .map-toggle-btn{
+      display:inline-flex;
+      align-items:center;
+      gap:6px;
+      padding:6px 10px;
+      border-radius:999px;
+      border:1px solid var(--line-soft);
+      background:rgba(15,23,42,0.02);
+      color:var(--muted);
+      font-size:13px;
+      cursor:pointer;
+    }
+
+    .map-toggle-btn:hover{
+      background:rgba(15,23,42,0.04);
+    }
+
+    .map-toggle-icon{
+      width:18px;
+      height:18px;
+      border-radius:999px;
+      display:block;
+    }
+
+    .catalog-map-backdrop{
+      position:fixed;
+      inset:0;
+      display:none;
+      align-items:center;
+      justify-content:center;
+      background:rgba(15,23,42,0.55);
+      z-index:70;
+    }
+
+    .catalog-map-inner{
+      background:#020617;
+      border-radius:18px;
+      box-shadow:0 18px 45px rgba(15,23,42,0.32);
+      width:min(900px, calc(100vw - 32px));
+      height:min(540px, calc(100vh - 80px));
+      position:relative;
+      overflow:hidden;
+    }
+
+    .catalog-map-close{
+      position:absolute;
+      top:10px;
+      right:10px;
+      width:32px;
+      height:32px;
+      border-radius:999px;
+      border:1px solid rgba(148,163,184,0.5);
+      background:#ffffff;
+      cursor:pointer;
+      font-size:16px;
+      display:flex;
+      align-items:center;
+      justify-content:center;
+    }
+
+    .catalog-map-frame{
+      border:0;
+      width:100%;
+      height:100%;
+    }
+
+    @media (max-width:640px){
+      .catalog-map-inner{
+        width:calc(100vw - 24px);
+        height:calc(100vh - 60px);
+      }
+    }
+
     /* === ANCHOR: CATALOG_FILTERS_SEARCH ================================== */
     /* Collapsible filters (amenities only) */
     details.filters{
@@ -701,7 +783,24 @@
         <button id="search" class="search-btn" type="button">Search</button>
       </div>
 
-      <div class="subhead" id="found" style="margin-top:8px;">Ready.</div>
+      <div class="subhead-row">
+        <div class="subhead" id="found">Ready.</div>
+        <button
+          type="button"
+          id="catalog-map-open"
+          class="map-toggle-btn"
+          aria-label="View results on map"
+        >
+          <img
+            src="https://www.lolaelo.com/logo2.png?cb=fav-v1"
+            alt="Map"
+            class="map-toggle-icon"
+            decoding="async"
+            loading="lazy"
+          />
+          <span>Map</span>
+        </button>
+      </div>
     </div>
 
     <!-- ANCHOR: FILTERS_DETAILS (amenities only) -->
@@ -722,6 +821,36 @@
     </details>
 
     <section id="grid" class="grid" aria-live="polite"></section>
+  </div>
+
+  <!-- ANCHOR: CATALOG_MAP_MODAL_HTML -->
+  <div
+    id="catalog-map-modal"
+    class="catalog-map-backdrop"
+    aria-hidden="true"
+  >
+    <div
+      class="catalog-map-inner"
+      role="dialog"
+      aria-modal="true"
+      aria-label="Map of search results"
+    >
+      <button
+        type="button"
+        id="catalog-map-close"
+        class="catalog-map-close"
+        aria-label="Close map"
+      >
+        ×
+      </button>
+
+      <iframe
+        id="catalog-map-frame"
+        class="catalog-map-frame"
+        loading="lazy"
+        referrerpolicy="no-referrer-when-downgrade"
+      ></iframe>
+    </div>
   </div>
 
   <script>
@@ -1182,6 +1311,51 @@
       }
     });
   })();
+
+  /* === ANCHOR: CATALOG_MAP_MODAL_WIRING (shell only) ===================== */
+  (function wireCatalogMapModal(){
+    const openBtn  = document.getElementById("catalog-map-open");
+    const backdrop = document.getElementById("catalog-map-modal");
+    const closeBtn = document.getElementById("catalog-map-close");
+    const frame    = document.getElementById("catalog-map-frame");
+    if (!openBtn || !backdrop || !closeBtn || !frame) return;
+
+    function openModal(){
+      backdrop.style.display = "flex";
+      backdrop.setAttribute("aria-hidden","false");
+
+      if (!frame.src) {
+        frame.src = "about:blank"; // placeholder; real map wiring comes next step
+      }
+
+      document.documentElement.style.overflow = "hidden";
+      document.body.style.overflow = "hidden";
+    }
+
+    function closeModal(){
+      backdrop.style.display = "none";
+      backdrop.setAttribute("aria-hidden","true");
+
+      document.documentElement.style.overflow = "";
+      document.body.style.overflow = "";
+    }
+
+    openBtn.addEventListener("click", openModal);
+    closeBtn.addEventListener("click", closeModal);
+
+    backdrop.addEventListener("click", function(evt){
+      if (evt.target === backdrop) {
+        closeModal();
+      }
+    });
+
+    document.addEventListener("keydown", function(evt){
+      if (evt.key === "Escape" && backdrop.style.display === "flex") {
+        closeModal();
+      }
+    });
+  })();
+
   </script>
 </body>
 </html>
