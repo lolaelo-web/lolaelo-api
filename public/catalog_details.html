@@ -764,6 +764,11 @@
     .chips{ display:flex; gap:6px; flex-wrap:wrap; margin:10px 0; }
     .chip{ font-size:11px; padding:4px 8px; border:1px solid var(--line); border-radius:999px; background:#fafafa; color:#444; }
 
+    /* Make Amenities chips match the darker Description text color */
+    .summary-bubble .summary-chip{
+      color: #0F1C2E !important;   /* dark navy */
+    }
+
     /* ANCHOR: DETAILS_TAGS */
     .tag{
       padding:4px 8px;
@@ -1007,7 +1012,7 @@
     .summary-actions > .summary-icon-wrap:first-child .summary-bubble{
       max-width: 1200px;   /* 2× wider than before */
       min-width: 600px;    /* ensure it starts wide */
-      transform: translateX(-45%);   /* move bubble right so left edge is fully visible */
+      transform: translateX(15%);   /* move bubble right so left edge is fully visible */
     }
 
     .summary .chips{
@@ -1137,6 +1142,15 @@
       color:#0F1C2E;   /* same deep navy as bubbles */
       text-align:center;
       width:100%;
+    }
+
+    .summary-chip{
+      display:inline-block;
+      background:#F3F4F6;
+      padding:4px 8px;
+      border-radius:10px;
+      font-size:13px;
+      color:var(--fg-muted);   /* ← THIS is the lighter color */
     }
 
     .summary-dates{

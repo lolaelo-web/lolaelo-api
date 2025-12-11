@@ -2011,22 +2011,17 @@
       state.addonsConfig = rows;
 
       // If neither container exists, nothing to do
-      if (!modalBody && !listEl) return;
+      if (!listEl && !modalBody) return;
 
-      // Clear containers: we use modal body for interactive grid,
-      // inline list is only for summary (handled separately).
-      if (modalBody) modalBody.innerHTML = "";
+      // Clear both containers (we primarily use the modal body)
       if (listEl) listEl.innerHTML = "";
+      if (modalBody) modalBody.innerHTML = "";
 
       if (!rows.length) {
         if (emptyEl) {
           emptyEl.textContent = "No add-ons are available for this stay.";
           emptyEl.style.display = "block";
         }
-        // No config: reset selections/summary
-        state.selectedAddons = [];
-        state.addonsSelections = {};
-        renderAddonsInlineSummary(0);
         return;
       }
 
@@ -2034,41 +2029,34 @@
         emptyEl.style.display = "none";
       }
 
+      // Prefer modal body; fall back to inline list if modal not present
       const target = modalBody || listEl;
 
-      // ----- Header row: Activity · UoM · Price · Qty · Total -----
+      // ---------- Header row: 5 columns ----------
       const header = document.createElement("div");
       header.className = "addon-row addon-row-header";
 
-      const hActivity = document.createElement("div");
-      hActivity.textContent = "Activity";
+      function makeHeaderCell(className, text) {
+        const el = document.createElement("div");
+        el.className = "addon-col " + className;
+        el.textContent = text;
+        return el;
+      }
 
-      const hUom = document.createElement("div");
-      hUom.textContent = "Unit";
-
-      const hPrice = document.createElement("div");
-      hPrice.textContent = "Price / unit";
-
-      const hQty = document.createElement("div");
-      hQty.textContent = "Qty";
-
-      const hTotal = document.createElement("div");
-      hTotal.textContent = "Total";
-
-      header.appendChild(hActivity);
-      header.appendChild(hUom);
-      header.appendChild(hPrice);
-      header.appendChild(hQty);
-      header.appendChild(hTotal);
+      header.appendChild(makeHeaderCell("addon-col-activity", "Activity"));
+      header.appendChild(makeHeaderCell("addon-col-uom", "Unit"));
+      header.appendChild(makeHeaderCell("addon-col-price", "Price per unit"));
+      header.appendChild(makeHeaderCell("addon-col-qty", "Qty"));
+      header.appendChild(makeHeaderCell("addon-col-total", "Total"));
 
       target.appendChild(header);
 
-      // ----- Data rows -----
-      rows.forEach(function (item, idx) {
-        const activity = (item.activity || "").toString().trim() || "Add-on";
-        const uom      = (item.uom || "").toString().trim();
-        const rawPrice = item.price;
-        const notes    = (item.notes || "").toString().trim();
+      // ---------- Data rows: 5 columns ----------
+      rows.forEach(function (addon, idx) {
+        const activity = (addon.activity || "").toString().trim() || "Add-on";
+        const uom      = (addon.uom || "").toString().trim();
+        const notes    = (addon.notes || "").toString().trim();
+        const rawPrice = addon.price;
 
         const price =
           typeof rawPrice === "number"
@@ -2077,7 +2065,7 @@
             ? Number(rawPrice)
             : NaN;
 
-        const hasNumericPrice = Number.isFinite(price) && price > 0;
+        const hasNumericPrice = !Number.isNaN(price) && Number.isFinite(price);
         const priceText = hasNumericPrice
           ? formatCurrency(price, state.pricingCurrency || "USD")
           : "Price TBD";
@@ -2085,43 +2073,39 @@
         const row = document.createElement("div");
         row.className = "addon-row";
 
-        // Activity col (name + hotel notes)
+        // Column 1: Activity (and optional notes)
         const colActivity = document.createElement("div");
-        colActivity.className = "addon-col-activity";
+        colActivity.className = "addon-col addon-col-activity";
 
         const titleEl = document.createElement("div");
         titleEl.className = "addon-title";
         titleEl.textContent = activity;
-
         colActivity.appendChild(titleEl);
 
         if (notes) {
           const notesEl = document.createElement("div");
-          notesEl.className = "addon-meta";
+          notesEl.className = "addon-notes";
           notesEl.textContent = notes;
           colActivity.appendChild(notesEl);
         }
 
-        // UoM col
+        // Column 2: UoM
         const colUom = document.createElement("div");
-        colUom.className = "addon-col-uom";
+        colUom.className = "addon-col addon-col-uom";
         colUom.textContent = uom || "—";
 
-        // Price col
+        // Column 3: Price per UoM
         const colPrice = document.createElement("div");
-        colPrice.className = "addon-col-price";
+        colPrice.className = "addon-col addon-col-price";
         colPrice.textContent = priceText;
 
-        // Qty col
+        // Column 4: Qty (with input)
         const colQty = document.createElement("div");
-        colQty.className = "addon-col-qty";
-
-        const qtyLabel = document.createElement("label");
-        qtyLabel.textContent = "Qty";
+        colQty.className = "addon-col addon-col-qty";
 
         const key = String(idx);
         const currentQty =
-          state.addonsSelections && state.addonsSelections[key]
+          state.addonsSelections && typeof state.addonsSelections[key] === "number"
             ? state.addonsSelections[key]
             : 0;
 
@@ -2129,18 +2113,14 @@
         qtyInput.type = "number";
         qtyInput.min = "0";
         qtyInput.step = "1";
-        qtyInput.value =
-          typeof currentQty === "number" && currentQty > 0
-            ? String(currentQty)
-            : "0";
+        qtyInput.value = currentQty > 0 ? String(currentQty) : "0";
         qtyInput.setAttribute("data-addon-index", String(idx));
 
-        colQty.appendChild(qtyLabel);
         colQty.appendChild(qtyInput);
 
-        // Total col
+        // Column 5: Subtotal for this row
         const colTotal = document.createElement("div");
-        colTotal.className = "addon-col-total";
+        colTotal.className = "addon-col addon-col-total addon-line-total";
 
         function refreshLineTotal() {
           const q = parseInt(qtyInput.value, 10);
@@ -2169,10 +2149,9 @@
           recomputeSelectedAddons();
         });
 
-        // Initial line total
+        // Initial subtotal render
         refreshLineTotal();
 
-        // Append columns to row in order
         row.appendChild(colActivity);
         row.appendChild(colUom);
         row.appendChild(colPrice);
@@ -2182,7 +2161,7 @@
         target.appendChild(row);
       });
 
-      // Initial subtotal + inline summary
+      // After initial render, compute subtotal + summary once
       recomputeSelectedAddons();
     }
 
