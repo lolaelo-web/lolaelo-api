@@ -1378,7 +1378,7 @@
     });
   })();
 
-  /* === ANCHOR: CATALOG_MAP_MODAL_WIRING (pins from results) =============== */
+  /* === ANCHOR: CATALOG_MAP_MODAL_WIRING (details-backed pins) =============== */
   (function wireCatalogMapModal(){
     const openBtn  = document.getElementById("catalog-map-open");
     const backdrop = document.getElementById("catalog-map-modal");
@@ -1391,28 +1391,34 @@
     let infoWindow = null;
     let lastZoomForMarkers = null;
 
-    function getPropsForMap(){
-      const list = Array.isArray(window.__catalogProps) ? window.__catalogProps : [];
-      const out = [];
+    // cache: propertyId -> { lat, lng, label }
+    const coordCache = Object.create(null);
 
-      for (const p of list){
-        const mp = p.meta && p.meta.property ? p.meta.property : {};
-        let lat = mp.latitude ?? mp.lat ?? p.latitude ?? p.lat ?? null;
-        let lng = mp.longitude ?? mp.lng ?? p.longitude ?? p.lng ?? null;
-
-        if (typeof lat === "string") lat = parseFloat(lat);
-        if (typeof lng === "string") lng = parseFloat(lng);
-
-        if (!Number.isFinite(lat) || !Number.isFinite(lng)) continue;
-
-        out.push({ p, pos: { lat, lng } });
-      }
-
-      return out;
+    function getProps(){
+      return Array.isArray(window.__catalogProps) ? window.__catalogProps : [];
     }
 
-    function computeCenter(entries){
-      // 1) If properties have coordinates, use their center
+    function getDestLabel(){
+      const destLabelEl = document.getElementById("dest-label");
+      return (destLabelEl && destLabelEl.textContent || "").trim();
+    }
+
+    function getPresetCenter(label){
+      const PRESETS = {
+        "Siargao":      { lat: 9.8443, lng: 126.0450 },
+        "General Luna": { lat: 9.7892, lng: 126.1654 },
+        "Cloud 9":      { lat: 9.8088, lng: 126.1713 },
+        "El Nido":      { lat: 11.2027, lng: 119.4150 },
+        "Coron":        { lat: 12.0,    lng: 120.2    },
+        "Boracay":      { lat: 11.9622, lng: 121.9246 },
+        "Manila":       { lat: 14.5995, lng: 120.9842 },
+        "Cebu":         { lat: 10.3157, lng: 123.8854 }
+      };
+      if (PRESETS[label]) return PRESETS[label];
+      return { lat: 12.8797, lng: 121.7740 }; // PH center fallback
+    }
+
+    function computeCenter(entries, destLabel){
       if (entries.length){
         let sumLat = 0, sumLng = 0;
         for (const e of entries){
@@ -1421,28 +1427,7 @@
         }
         return { lat: sumLat / entries.length, lng: sumLng / entries.length };
       }
-
-      // 2) Otherwise center map at the destination city
-      const destLabelEl = document.getElementById("dest-label");
-      const raw = (destLabelEl && destLabelEl.textContent || "").trim();
-      const q = raw ? raw + ", Philippines" : "Philippines";
-
-      // Hard-coded known centers for major destinations
-      const PRESETS = {
-        "Siargao":        { lat: 9.8443, lng: 126.0450 },
-        "General Luna":   { lat: 9.7892, lng: 126.1654 },
-        "Cloud 9":        { lat: 9.8088, lng: 126.1713 },
-        "El Nido":        { lat: 11.2027, lng: 119.4150 },
-        "Coron":          { lat: 12.0000, lng: 120.2000 },
-        "Boracay":        { lat: 11.9622, lng: 121.9246 },
-        "Manila":         { lat: 14.5995, lng: 120.9842 },
-        "Cebu":           { lat: 10.3157, lng: 123.8854 }
-      };
-
-      if (PRESETS[raw]) return PRESETS[raw];
-
-      // 3) Fallback: PH center
-      return { lat: 12.8797, lng: 121.7740 };
+      return getPresetCenter(destLabel || getDestLabel());
     }
 
     function escapeHtml(str){
@@ -1460,7 +1445,6 @@
         : baseLink;
     }
 
-    // Simple zoom-aware grouping: at low zoom, nearby props share one pin
     function groupEntries(entries, zoom){
       const z = typeof zoom === "number" ? zoom : 10;
       let precision;
@@ -1483,25 +1467,106 @@
       }));
     }
 
-    function refreshMarkers(){
+    function buildEntries(props){
+      const out = [];
+      for (const p of props){
+        const id = p.propertyId;
+        if (!id) continue;
+
+        let lat = (p.latitude ?? null);
+        let lng = (p.longitude ?? null);
+        let label = p.mapLabel || p.location || [p.city, p.country].filter(Boolean).join(", ");
+
+        const cached = coordCache[id];
+        if (cached){
+          lat   = cached.lat;
+          lng   = cached.lng;
+          label = cached.label || label;
+        }
+
+        if (typeof lat === "string") lat = parseFloat(lat);
+        if (typeof lng === "string") lng = parseFloat(lng);
+        if (!Number.isFinite(lat) || !Number.isFinite(lng)) continue;
+
+        out.push({ p, pos: { lat, lng }, label });
+      }
+      return out;
+    }
+
+    async function loadMissingCoords(props){
+      const tasks = [];
+
+      for (const p of props){
+        const id = p.propertyId;
+        if (!id) continue;
+
+        const hasLat =
+          coordCache[id] ||
+          Number.isFinite(parseFloat((p.latitude ?? "").toString())) &&
+          Number.isFinite(parseFloat((p.longitude ?? "").toString()));
+
+        if (hasLat) continue;
+
+        const url = `/catalog/details?propertyId=${encodeURIComponent(id)}`;
+        tasks.push(
+          fetch(url)
+            .then(r => (r.ok ? r.json() : null))
+            .then(j => {
+              if (!j || !j.meta || !j.meta.property) return;
+              const mp = j.meta.property;
+              let lat = mp.latitude ?? mp.lat ?? mp.geoLat ?? null;
+              let lng = mp.longitude ?? mp.lng ?? mp.geoLng ?? null;
+              if (typeof lat === "string") lat = parseFloat(lat);
+              if (typeof lng === "string") lng = parseFloat(lng);
+              if (!Number.isFinite(lat) || !Number.isFinite(lng)) return;
+
+              const label =
+                mp.mapLabel ||
+                p.mapLabel ||
+                p.location ||
+                [p.city, p.country].filter(Boolean).join(", ");
+
+              coordCache[id] = { lat, lng, label };
+              p.latitude  = lat;
+              p.longitude = lng;
+              if (!p.mapLabel && label) p.mapLabel = label;
+            })
+            .catch(err => {
+              console.warn("[catalog.map] details fetch failed for", id, err);
+            })
+        );
+      }
+
+      if (tasks.length) {
+        await Promise.all(tasks);
+      }
+    }
+
+    function refreshMarkers(destLabel){
       if (!map) return;
 
-      const entries = getPropsForMap();
+      const props   = getProps();
+      const entries = buildEntries(props);
       const groups  = groupEntries(entries, map.getZoom());
 
-      // Clear old markers
+      // Clear existing markers
       for (const m of markers){
         m.setMap(null);
       }
       markers = [];
 
+      if (!infoWindow){
+        infoWindow = new google.maps.InfoWindow();
+      }
+
       for (const group of groups){
-        const props = group.items;
-        const single = props.length === 1;
-        const firstP = props[0].p;
+        const propsInGroup = group.items;
+        const single = propsInGroup.length === 1;
+        const firstP = propsInGroup[0].p;
+
         const markerTitle = single
           ? (firstP.name || "Stay")
-          : `${props.length} stays here`;
+          : `${propsInGroup.length} stays here`;
 
         const marker = new google.maps.Marker({
           map,
@@ -1510,19 +1575,15 @@
         });
 
         marker.addListener("click", function(){
-          if (!infoWindow){
-            infoWindow = new google.maps.InfoWindow();
-          }
-
           let html;
           if (single){
             const p = firstP;
-            const link = buildDetailsLink(p);
-            const mp  = p.meta && p.meta.property ? p.meta.property : {};
             const label =
-              mp.mapLabel ||
+              coordCache[p.propertyId]?.label ||
+              p.mapLabel ||
               p.location ||
               [p.city, p.country].filter(Boolean).join(", ");
+            const link = buildDetailsLink(p);
 
             html =
               '<div style="font-size:13px;max-width:240px;">' +
@@ -1531,7 +1592,7 @@
               `<a href="${link}" style="color:#ff6a3d;font-weight:600;text-decoration:none;">View details</a>` +
               "</div>";
           } else {
-            const items = props.slice(0, 4);
+            const items = propsInGroup.slice(0, 4);
             let listHtml = "";
             for (const e of items){
               const p = e.p;
@@ -1539,13 +1600,13 @@
               listHtml +=
                 `<li><a href="${link}" style="color:#ff6a3d;text-decoration:none;">${escapeHtml(p.name || "Property")}</a></li>`;
             }
-            if (props.length > 4){
+            if (propsInGroup.length > 4){
               listHtml += "<li>…and more</li>";
             }
 
             html =
               '<div style="font-size:13px;max-width:260px;">' +
-              `<strong>${props.length} stays in this area</strong>` +
+              `<strong>${propsInGroup.length} stays in this area</strong>` +
               `<ul style="margin:6px 0;padding-left:18px;">${listHtml}</ul>` +
               "</div>";
           }
@@ -1556,25 +1617,31 @@
 
         markers.push(marker);
       }
+
+      // If we had no entries, at least keep map centered on destination
+      if (!groups.length){
+        const center = computeCenter([], destLabel);
+        map.setCenter(center);
+      }
     }
 
-    function ensureMap(){
-      const entries = getPropsForMap();
-      const center  = computeCenter(entries);
-      const zoom    = entries.length === 1 ? 13 : 10;
+    async function ensureMap(){
+      const props      = getProps();
+      const destLabel  = getDestLabel();
+      const startCenter = getPresetCenter(destLabel);
 
       if (!(window.google && google.maps && google.maps.Map)){
-        console.warn("[catalog] Google Maps JS not ready");
+        console.warn("[catalog.map] Google Maps JS not ready");
         return;
       }
 
       if (!map){
         map = new google.maps.Map(canvas, {
-          center,
-          zoom,
+          center: startCenter,
+          zoom: props.length === 1 ? 11 : 9,
           mapTypeControl: false,
           streetViewControl: false,
-          fullscreenControl: false,   // <— removes conflicting control
+          fullscreenControl: false,
           zoomControl: true,
           gestureHandling: "greedy"
         });
@@ -1583,31 +1650,39 @@
           const z = map.getZoom();
           if (z === lastZoomForMarkers) return;
           lastZoomForMarkers = z;
-          refreshMarkers();
+          refreshMarkers(destLabel);
         });
       } else {
-        map.setCenter(center);
-        map.setZoom(zoom);
+        map.setCenter(startCenter);
       }
 
+      // Load coords from /catalog/details for each property if needed
+      await loadMissingCoords(props);
+
+      const entries = buildEntries(props);
+      const center  = computeCenter(entries, destLabel);
+      const zoom    = entries.length === 1 ? 13 : (props.length ? 10 : map.getZoom());
+
+      map.setCenter(center);
+      map.setZoom(zoom);
+
       lastZoomForMarkers = map.getZoom();
-      refreshMarkers();
+      refreshMarkers(destLabel);
     }
 
     function openModal(){
       backdrop.style.display = "flex";
       backdrop.setAttribute("aria-hidden", "false");
-
       document.documentElement.style.overflow = "hidden";
       document.body.style.overflow = "hidden";
 
-      ensureMap();
+      // fire and forget
+      void ensureMap();
     }
 
     function closeModal(){
       backdrop.style.display = "none";
       backdrop.setAttribute("aria-hidden", "true");
-
       document.documentElement.style.overflow = "";
       document.body.style.overflow = "";
     }
@@ -1628,7 +1703,7 @@
     });
   })();
 
-  </script>
+</script>
 
   <script src="https://maps.googleapis.com/maps/api/js?key=AIzaSyB3S03x_g_worh7dj4dk-lHYPFJ3RMknVc"></script>
 
