@@ -3257,6 +3257,7 @@
             allowInput: false,
             clickOpens: false,                 // we open via the pill
             closeOnSelect: false,              // keep open after start; close after end
+            enableTime: false,
             positionElement: displayBtn,       // anchor to the pill (fixes top-left)
             appendTo: datesCardWrapper || document.body,
 
@@ -3268,9 +3269,10 @@
               keepScroll(); // guard against jump scroll
             },
 
-            onChange: function (selectedDates) {
+            onChange: function (selectedDates, dateStr, instance) {
               const s = (selectedDates && selectedDates[0]) ? selectedDates[0] : null;
               const e = (selectedDates && selectedDates[1]) ? selectedDates[1] : null;
+
               setDisplayText(s, e);
               keepScroll();
 

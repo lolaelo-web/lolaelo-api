@@ -835,14 +835,6 @@
 
     /* clamp lives on the TEXT node */
     .room-desc-text{
-      display: -webkit-box;
-      -webkit-box-orient: vertical;
-      -webkit-line-clamp: 3;
-
-      /* standard property for linters */
-      line-clamp: 3;
-
-      overflow: hidden;
       line-height: 1.45;
       font-size: 13px;
       color: var(--muted);
@@ -854,6 +846,7 @@
       overflow: visible;
     }
 
+    /* Button styling reused by the room modal */
     .room-desc-toggle{
       margin-top: 6px;
       font-size: 12px;
@@ -864,7 +857,6 @@
       padding: 0;
       cursor: pointer;
     }
-
     /* ANCHOR: ROOMCAT_PLANS_CSS */
     .roomcat .toggle {
       appearance: none;
@@ -4041,6 +4033,60 @@
         });
       })();
     }
+
+    // ANCHOR: ROOM_MODAL_SUMMARY_TOGGLE
+    (function attachRoomModalSummaryToggle(){
+      const info    = document.querySelector(".room-modal-info");
+      const summary = document.getElementById("roomModalSummary");
+      const btn     = document.getElementById("roomModalReadMore");
+
+      if (!info || !summary || !btn) return;
+
+      // Rough heuristic so we only show "Read more" when it is actually long.
+      const MIN_LEN_FOR_TOGGLE = 260;
+
+      function applyClamp(){
+        const text = (summary.textContent || "").trim();
+
+        // No text or very short text → no clamp, no button
+        if (!text || text.length < MIN_LEN_FOR_TOGGLE){
+          summary.classList.remove("is-clamped");
+          info.classList.remove("is-expanded");
+          btn.hidden = true;
+          btn.textContent = "Read more";
+          return;
+        }
+
+        // Long text → clamp by default, show button
+        summary.classList.add("is-clamped");
+        info.classList.remove("is-expanded");
+        btn.hidden = false;
+        btn.textContent = "Read more";
+      }
+
+      btn.addEventListener("click", () => {
+        const expanded = info.classList.toggle("is-expanded");
+
+        if (expanded){
+          summary.classList.remove("is-clamped");
+          btn.textContent = "Show less";
+        } else {
+          summary.classList.add("is-clamped");
+          btn.textContent = "Read more";
+        }
+      });
+
+      // If other code fills in the summary later, this keeps clamp in sync
+      const observer = new MutationObserver(applyClamp);
+      observer.observe(summary, {
+        childList: true,
+        characterData: true,
+        subtree: true
+      });
+
+      // Initial run for whatever text is there on first open
+      applyClamp();
+    })();
 
     // ANCHOR: ROOM_MODAL_STUB
     window.openRoomModal = function openRoomModal(ctx) {
