@@ -858,11 +858,19 @@
       cursor: pointer;
     }
 
-    /* Make the Room Description span full modal width (keep the 2-column lists below) */
+    /* === ROOM DESCRIPTION FULL-WIDTH, ALIGNED WITH CONTENT GUTTERS === */
     .room-desc-block{
-      grid-column: 1 / -1;
       width: 100%;
-      max-width: 100%;
+      padding-left: 32px;
+      padding-right: 32px;
+      box-sizing: border-box;
+    }
+
+    @media (max-width: 768px){
+      .room-desc-block{
+        padding-left: 20px;
+        padding-right: 20px;
+      }
     }
 
     /* ANCHOR: ROOMCAT_PLANS_CSS */
