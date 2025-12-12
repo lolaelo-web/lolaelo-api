@@ -1116,6 +1116,30 @@
 
     function stars(n){ return '★'.repeat(Number(n||0)); }
 
+    // Build catalog_details link carrying dates, guests, and optional ratePlanId
+    function buildDetailsLink(p){
+      const startInp  = document.getElementById("start");
+      const endInp    = document.getElementById("end");
+      const guestsInp = document.getElementById("cat-guests");
+
+      const startVal  = (startInp  && startInp.value)  || "";
+      const endVal    = (endInp    && endInp.value)    || "";
+      const guestsVal = (guestsInp && guestsInp.value) || "";
+
+      const params = new URLSearchParams();
+      params.set("propertyId", String(p.propertyId));
+
+      if (startVal)  params.set("start", startVal);
+      if (endVal)    params.set("end",   endVal);
+      if (guestsVal) params.set("guests", guestsVal);
+
+      if (window.ratePlanId) {
+        params.set("ratePlanId", String(window.ratePlanId));
+      }
+
+      return "/catalog_details.html?" + params.toString();
+    }
+
     function cardHTML(p, start, end){
       // ANCHOR: CARDIMAGE_COVER_PICKER (REPLACE)
       const imgs = Array.isArray(p.images) ? p.images : [];
