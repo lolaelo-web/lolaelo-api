@@ -4677,6 +4677,25 @@
       })
       .catch(()=>{});
   })();
+
+  // ANCHOR: DETAILS_SCROLL_GUARD
+  (function setupScrollGuard() {
+    // Log what happens on load
+    window.addEventListener("load", function () {
+      console.log("[details] scroll on load:", window.scrollX, window.scrollY);
+      if (window.scrollX !== 0) {
+        window.scrollTo(0, window.scrollY || 0);
+      }
+    });
+
+    // Any time the page scrolls, clamp horizontal scroll back to 0
+    window.addEventListener("scroll", function () {
+      if (window.scrollX !== 0) {
+        console.log("[details] correcting scrollX from", window.scrollX, "to 0");
+        window.scrollTo(0, window.scrollY || 0);
+      }
+    }, { passive: true });
+  })();
   </script>
 </body>
 </html>
