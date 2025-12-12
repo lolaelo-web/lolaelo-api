@@ -3273,6 +3273,12 @@
               const e = (selectedDates && selectedDates[1]) ? selectedDates[1] : null;
               setDisplayText(s, e);
               keepScroll();
+
+              // Auto-close once end date is selected (match catalog behavior)
+              if (s && e && instance && typeof instance.close === "function") {
+                instance.close();
+                keepScroll();
+              }
             }
           });
 
