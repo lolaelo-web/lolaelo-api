@@ -816,6 +816,54 @@
     transform: translateY(0);
   }
 
+  /* Agreement line next to payment button */
+  .payment-agreement {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 4px;
+    font-size: 12px;
+    color: var(--muted);
+    margin-left: auto; /* push to the right of button + lock */
+    max-width: 260px;
+  }
+
+  .payment-agreement-label {
+    display: flex;
+    align-items: flex-start;
+    gap: 6px;
+    padding: 6px 10px;
+    border-radius: 10px;
+    border: 1px solid transparent;
+    background: #ffffff;
+    cursor: pointer;
+    transition:
+      border-color 0.15s ease-out,
+      box-shadow 0.15s ease-out,
+      background 0.15s ease-out;
+  }
+
+  .payment-agreement-checkbox {
+    width: 14px;
+    height: 14px;
+    margin-top: 1px;
+  }
+
+  .payment-agreement-text {
+    line-height: 1.3;
+  }
+
+  .payment-agreement.error .payment-agreement-label {
+    border-color: #ef4444;
+    box-shadow: 0 0 0 1px rgba(239, 68, 68, 0.45);
+    background: linear-gradient(#fff5f5, #ffffff);
+  }
+
+  .terms-error {
+    font-size: 11px;
+    color: #b91c1c;
+  }
+
   /* === CHECKOUT SECTION 2 GRID LAYOUT ================================== */
 
   .dates-grid {
@@ -1350,33 +1398,50 @@
                 </div>
               </div>
 
-							<!-- SECURITY ICON + CONFIRM BUTTON (SIDE BY SIDE) -->
-							<div style="display:flex; align-items:center; justify-content:flex-start; gap:14px; margin-top:16px; position:relative;">
+              <!-- SECURITY ICON + CONFIRM BUTTON + AGREEMENT -->
+              <div style="display:flex; align-items:flex-start; justify-content:flex-start; gap:14px; margin-top:16px; position:relative;">
 
                 <!-- Confirm button -->
                 <button class="btn-primary" type="button" data-confirm="5">
                   Proceed to secure payment
                 </button>
 
-								<!-- Security icon + bubble -->
-								<div class="payment-security" style="position:relative;">
-									<button
-										class="security-icon-btn"
-										type="button"
-										aria-label="Security and payments"
-									>
-										🔒
-									</button>
+                <!-- Security icon + bubble -->
+                <div class="payment-security" style="position:relative;">
+                  <button
+                    class="security-icon-btn"
+                    type="button"
+                    aria-label="Security and payments"
+                  >
+                    🔒
+                  </button>
 
-									<div class="security-bubble">
-										<strong>Secure checkout</strong>
-										Your payment is encrypted and processed by Stripe, the same
-										provider trusted by companies like Lyft and Airbnb.
-										Future options like PayPal and GCash will follow the same
-										security standards so your card details never touch our servers.
-									</div>
-								</div>
-							</div>
+                  <div class="security-bubble">
+                    <strong>Secure checkout</strong>
+                    Your payment is encrypted and processed by Stripe, the same
+                    provider trusted by companies like Lyft and Airbnb.
+                    Future options like PayPal and GCash will follow the same
+                    security standards so your card details never touch our servers.
+                  </div>
+                </div>
+
+                <!-- Terms / Privacy agreement -->
+                <div class="payment-agreement">
+                  <label class="payment-agreement-label" for="termsCheckbox">
+                    <input
+                      id="termsCheckbox"
+                      type="checkbox"
+                      class="payment-agreement-checkbox"
+                    />
+                    <span class="payment-agreement-text">
+                      I agree to Lolaelo’s Terms of Use and Privacy Policy.
+                    </span>
+                  </label>
+                  <div id="termsError" class="terms-error" style="display:none;">
+                    Please agree to the Terms of Use and Privacy Policy to continue.
+                  </div>
+                </div>
+              </div>
 						</div>
 					</div>
 				</div>
@@ -2787,13 +2852,30 @@
         } else if (errorEl) {
           errorEl.style.display = "none";
         }
+      } else if (section === 5) {
+        // Terms / Privacy agreement is required before payment
+        const checkbox = document.getElementById("termsCheckbox");
+        const errorEl  = document.getElementById("termsError");
+        const wrap     = document.querySelector(".payment-agreement");
+
+        const isChecked = checkbox && checkbox.checked;
+
+        if (!isChecked) {
+          if (errorEl) errorEl.style.display = "block";
+          if (wrap) wrap.classList.add("error");
+          return; // do not mark section 5 as confirmed
+        }
+
+        // Clear error state once user checks the box
+        if (errorEl) errorEl.style.display = "none";
+        if (wrap) wrap.classList.remove("error");
       }
 
       state.sectionConfirmed[section] = true;
       refreshSections();
     }
 
-     // ANCHOR: ADDONS_MODAL_HANDLERS
+    // ANCHOR: ADDONS_MODAL_HANDLERS
     // Modal open / close / apply is handled via the global click
     // delegation above using:
     //   [data-open-addons-modal]
