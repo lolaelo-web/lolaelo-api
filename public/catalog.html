@@ -1155,10 +1155,7 @@
           ? '<span class="chip" title="No rooms available in selected window">sold out</span>'
           : '';
 
-      const baseLink = `/catalog_details.html?propertyId=${encodeURIComponent(p.propertyId)}`;
-      const link = window.ratePlanId
-        ? `${baseLink}&ratePlanId=${encodeURIComponent(window.ratePlanId)}`
-        : baseLink;
+      const link = buildDetailsLink(p);
 
       const locationLabel =
         p.location ||
@@ -1581,10 +1578,27 @@
     }
 
     function buildDetailsLink(p){
-      const baseLink = `/catalog_details.html?propertyId=${encodeURIComponent(p.propertyId)}`;
-      return window.ratePlanId
-        ? `${baseLink}&ratePlanId=${encodeURIComponent(window.ratePlanId)}`
-        : baseLink;
+      // Read current search box values so they flow into details page
+      const startInp  = document.getElementById("start");
+      const endInp    = document.getElementById("end");
+      const guestsInp = document.getElementById("cat-guests");
+
+      const startVal  = (startInp  && startInp.value)  || "";
+      const endVal    = (endInp    && endInp.value)    || "";
+      const guestsVal = (guestsInp && guestsInp.value) || "";
+
+      const params = new URLSearchParams();
+      params.set("propertyId", String(p.propertyId));
+
+      if (startVal)  params.set("start", startVal);
+      if (endVal)    params.set("end",   endVal);
+      if (guestsVal) params.set("guests", guestsVal);
+
+      if (window.ratePlanId) {
+        params.set("ratePlanId", String(window.ratePlanId));
+      }
+
+      return "/catalog_details.html?" + params.toString();
     }
 
     function groupEntries(entries, zoom){
