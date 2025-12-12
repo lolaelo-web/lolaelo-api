@@ -311,11 +311,17 @@
     }
 
     .filters-body label{
-      display:inline-flex;
+      display:flex;
       align-items:center;
-      gap:4px;
+      justify-content:flex-start;
+      flex-direction:row-reverse;  /* move checkbox to the right */
+      gap:6px;
       font-size:13px;
       cursor:pointer;
+    }
+
+    .filters-body label input[type="checkbox"]{
+      margin:0; /* keep checkbox vertically centered */
     }
 
     .filters-body input[type="checkbox"]{
@@ -338,15 +344,15 @@
     }
 
     .sort-select{
-      min-height:36px;                   /* MATCH BUTTONS */
-      padding:6px 16px;                  /* MATCH BUTTONS */
+      min-height:36px;
+      padding:6px 16px;
 
       border-radius:999px;
       border:1px solid rgba(255,106,61,0.45);
 
       background:#ffffff;
       font-size:13px;
-      line-height:1;                     /* MATCH TEXT */
+      line-height:1;
       color:var(--fg);
 
       cursor:pointer;
@@ -361,6 +367,9 @@
       appearance:none;
       -webkit-appearance:none;
       -moz-appearance:none;
+
+      text-align:center;   /* NEW */
+      text-indent:0;       /* NEW */
     }
 
     .sort-select:focus{
