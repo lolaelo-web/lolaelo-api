@@ -908,8 +908,9 @@
     box-shadow: 0 4px 12px rgba(15,23,42,0.06);
 
     display: flex;
-    align-items: center;
-    gap: 12px;
+    flex-direction: column;   /* stack */
+    align-items: stretch;     /* full width */
+    gap: 10px;
   }
 
   /* hide old native date fields (keep them in DOM for your existing apply logic) */
@@ -3168,6 +3169,36 @@
       // Keep these for apply/URL update
       const applyBtn     = document.getElementById("checkout-dates-apply");
 
+      // ANCHOR: CHECKOUT_DATES_APPLY_WIRE
+      if (applyBtn && !applyBtn.dataset.wiredDates) {
+        applyBtn.dataset.wiredDates = "1";
+
+        applyBtn.addEventListener("click", function () {
+          // Prefer flatpickr selection if present
+          const fp = rangeDriver && rangeDriver._checkoutFp ? rangeDriver._checkoutFp : null;
+          const sel = fp && fp.selectedDates ? fp.selectedDates : [];
+
+          const s = sel[0] || parseLocalYMD(state.start) || null;
+          let   e = sel[1] || parseLocalYMD(state.end)   || null;
+
+          if (!s) return;
+
+          if (!e || e <= s) {
+            e = new Date(s.getTime());
+            e.setDate(s.getDate() + 1);
+          }
+
+          const finalStart = formatLocalYmd(s);
+          const finalEnd   = formatLocalYmd(e);
+
+          const qsNext = new URLSearchParams(location.search);
+          qsNext.set("start", finalStart);
+          qsNext.set("end", finalEnd);
+
+          location.assign(`${location.pathname}?${qsNext.toString()}`);
+        });
+      }
+
       // Helper: format a Date as local YYYY-MM-DD (no timezone shift)
       function formatLocalYmd(d) {
         const y  = d.getFullYear();
@@ -3278,165 +3309,6 @@
           });
         } // end init guard
       } // end flatpickr guard
-
-      // Failsafe: ensure the "Update dates" button is wired even if something
-      // short-circuits inside initCheckout earlier.
-      document.addEventListener("DOMContentLoaded", function () {
-        const btn     = document.getElementById("checkout-dates-apply");
-        const ciInput = document.getElementById("checkout-checkin");
-        const coInput = document.getElementById("checkout-checkout");
-
-        if (!btn || !ciInput || !coInput) return;
-
-        // If initCheckout already wired this with the correct logic, do nothing
-        if (btn.dataset.wiredDates === "1") return;
-
-        // Mark as wired in the fallback path
-        btn.dataset.wiredDates = "1";
-
-        btn.addEventListener("click", function () {
-          const ciRaw = ciInput.value || (window.state && state.start) || "";
-          const coRaw = coInput.value || (window.state && state.end)   || "";
-
-          if (!ciRaw) return;
-
-          // Use the same local parsing behavior as the main handler
-          const ciDate = parseLocalYMD(ciRaw);
-          if (!ciDate) return;
-
-          function formatLocalYmd(d) {
-            const y  = d.getFullYear();
-            const m  = String(d.getMonth() + 1).padStart(2, "0");
-            const dd = String(d.getDate()).padStart(2, "0");
-            return y + "-" + m + "-" + dd;
-          }
-
-          let endDate = null;
-
-          if (coRaw) {
-            const parsedEnd = parseLocalYMD(coRaw);
-            if (parsedEnd && parsedEnd > ciDate) {
-              endDate = parsedEnd;
-            }
-          }
-
-          if (!endDate) {
-            endDate = new Date(ciDate.getTime());
-            endDate.setDate(ciDate.getDate() + 1);
-          }
-
-          const finalStart = formatLocalYmd(ciDate);
-          const finalEnd   = formatLocalYmd(endDate);
-
-          if (!finalStart || !finalEnd) return;
-
-          const params = new URLSearchParams(window.location.search);
-          params.set("start", finalStart);
-          params.set("end",   finalEnd);
-
-          const newUrl =
-            window.location.pathname + "?" + params.toString();
-
-          window.location.href = newUrl;
-        });
-      });
-
-      // ANCHOR: CHECKOUT_DATECARD_FLATPICKR
-      document.addEventListener("DOMContentLoaded", function () {
-        const driver       = document.getElementById("checkout-dates-driver");
-        const displayBtn   = document.getElementById("checkout-dates-display");
-        const displayLabel = document.getElementById("checkout-dates-display-label");
-        const ciInput      = document.getElementById("checkout-checkin");
-        const coInput      = document.getElementById("checkout-checkout");
-
-        if (!driver || !displayBtn || !displayLabel || !ciInput || !coInput) return;
-        if (typeof window.flatpickr !== "function") return;
-
-        if (driver.dataset.fpWired === "1") return;
-        driver.dataset.fpWired = "1";
-
-        function formatLocalYmd(d) {
-          const y  = d.getFullYear();
-          const m  = String(d.getMonth() + 1).padStart(2, "0");
-          const dd = String(d.getDate()).padStart(2, "0");
-          return y + "-" + m + "-" + dd;
-        }
-
-        function formatDisplay(ymd) {
-          const d = parseLocalYMD(ymd);
-          if (!d) return "";
-          return d.toLocaleDateString(undefined, { month: "2-digit", day: "2-digit", year: "numeric" });
-        }
-
-        function syncLabel() {
-          const s = ciInput.value || (window.state && state.start) || "";
-          const e = coInput.value || (window.state && state.end)   || "";
-          const sTxt = formatDisplay(s);
-          const eTxt = formatDisplay(e);
-
-          if (sTxt && eTxt) {
-            displayLabel.textContent = sTxt + " to " + eTxt;
-          } else if (sTxt) {
-            displayLabel.textContent = sTxt + " to ...";
-          } else {
-            displayLabel.textContent = "Select dates";
-          }
-        }
-
-        // Use current inputs as defaults (your initCheckout already sets them)
-        const defaults = [];
-        if (ciInput.value) defaults.push(ciInput.value);
-        if (coInput.value) defaults.push(coInput.value);
-
-        let lastScrollY = 0;
-
-        const fp = flatpickr(driver, {
-          mode: "range",
-          dateFormat: "Y-m-d",
-          defaultDate: defaults.length ? defaults : null,
-          disableMobile: true,
-          clickOpens: false,
-
-          // CRITICAL: anchor the calendar to the visible pill, not the hidden driver
-          positionElement: displayBtn,
-
-          onOpen: function () {
-            lastScrollY = window.scrollY || 0;
-            requestAnimationFrame(() => window.scrollTo(0, lastScrollY));
-          },
-          onClose: function () {
-            requestAnimationFrame(() => window.scrollTo(0, lastScrollY));
-          },
-
-          onChange: function (selectedDates) {
-            if (!Array.isArray(selectedDates) || !selectedDates.length) {
-              ciInput.value = "";
-              coInput.value = "";
-              syncLabel();
-              return;
-            }
-
-            const start = selectedDates[0];
-            const end   = selectedDates.length > 1 ? selectedDates[1] : null;
-
-            ciInput.value = formatLocalYmd(start);
-            coInput.value = end ? formatLocalYmd(end) : "";
-
-            syncLabel();
-          }
-        });
-
-        displayBtn.addEventListener("click", function (e) {
-          e.preventDefault();
-          e.stopPropagation();
-
-          lastScrollY = window.scrollY || 0;
-          fp.open();
-          requestAnimationFrame(() => window.scrollTo(0, lastScrollY));
-        });
-
-        syncLabel();
-      });
 
       const addonsList = document.getElementById("addonsList");
       if (addonsList) {
