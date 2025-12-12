@@ -26,6 +26,9 @@
     href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap"
     rel="stylesheet"
   />
+  <!-- Flatpickr (calendar) -->
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr@4.6.13/dist/flatpickr.min.css" />
+
 <style>
   :root {
     --bg: #f9fafb;
@@ -896,17 +899,82 @@
     cursor: pointer;
   }
 
-  .checkout-dates-card-wrapper .detail-date-bar {
+  .checkout-dates-card-wrapper .detail-date-bar{
     width: 100%;
-    padding: 14px;
+    padding: 12px 14px;
     border-radius: 18px;
-    border: 1px solid var(--line);
-    background: white;
+    border: 1px solid var(--border);
+    background: #ffffff;
     box-shadow: 0 4px 12px rgba(15,23,42,0.06);
 
     display: flex;
-    flex-direction: column;
+    align-items: center;
+    gap: 12px;
+  }
+
+  /* hide old native date fields (keep them in DOM for your existing apply logic) */
+  #checkout-date-bar .detail-date-field{
+    display: none;
+  }
+
+  /* flatpickr driver stays invisible */
+  .checkout-dates-driver{
+    position: absolute;
+    left: -9999px;
+    width: 1px;
+    height: 1px;
+    opacity: 0;
+    pointer-events: none;
+  }
+
+  /* the new “range pill” */
+  .checkout-dates-display{
+    flex: 1 1 auto;
+    display: inline-flex;
+    align-items: center;
     gap: 10px;
+    padding: 10px 14px;
+    border-radius: 999px;
+    border: 1px solid var(--border);
+    background: #ffffff;
+    cursor: pointer;
+    font-size: 14px;
+    color: var(--text);
+    text-align: left;
+    white-space: nowrap;
+  }
+
+  .checkout-dates-display:focus-visible{
+    outline: 2px solid rgba(15,118,110,0.35);
+    outline-offset: 2px;
+  }
+
+  .checkout-dates-display-icon{
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 22px;
+  }
+
+  /* keep the Update button aligned to the same row */
+  #checkout-dates-apply{
+    margin: 0;
+    align-self: center;
+    white-space: nowrap;
+  }
+
+  /* small screens: allow wrapping gracefully */
+  @media (max-width: 760px){
+    .checkout-dates-card-wrapper .detail-date-bar{
+      flex-wrap: wrap;
+    }
+    #checkout-dates-apply{
+      width: 100%;
+    }
+    .checkout-dates-display{
+      width: 100%;
+      justify-content: flex-start;
+    }
   }
 
   #checkout-dates-apply {
@@ -1101,6 +1169,22 @@
                   <div id="checkoutDatesCardWrapper" class="checkout-dates-card-wrapper hidden">
 
                     <div id="checkout-date-bar" class="detail-date-bar">
+                      <input
+                        type="text"
+                        id="checkout-dates-driver"
+                        class="checkout-dates-driver"
+                        aria-hidden="true"
+                      />
+
+                      <button
+                        type="button"
+                        id="checkout-dates-display"
+                        class="checkout-dates-display"
+                        aria-label="Edit stay dates"
+                      >
+                        <span class="checkout-dates-display-icon">📅</span>
+                        <span id="checkout-dates-display-label">Select dates</span>
+                      </button>
 
                       <label class="detail-date-field">
                         <span>Check in</span>
@@ -3158,6 +3242,104 @@
           window.location.href = newUrl;
         });
       });
+
+      // ANCHOR: CHECKOUT_DATECARD_FLATPICKR
+      document.addEventListener("DOMContentLoaded", function () {
+        const driver       = document.getElementById("checkout-dates-driver");
+        const displayBtn   = document.getElementById("checkout-dates-display");
+        const displayLabel = document.getElementById("checkout-dates-display-label");
+        const ciInput      = document.getElementById("checkout-checkin");
+        const coInput      = document.getElementById("checkout-checkout");
+
+        if (!driver || !displayBtn || !displayLabel || !ciInput || !coInput) return;
+        if (typeof window.flatpickr !== "function") return;
+
+        if (driver.dataset.fpWired === "1") return;
+        driver.dataset.fpWired = "1";
+
+        function formatLocalYmd(d) {
+          const y  = d.getFullYear();
+          const m  = String(d.getMonth() + 1).padStart(2, "0");
+          const dd = String(d.getDate()).padStart(2, "0");
+          return y + "-" + m + "-" + dd;
+        }
+
+        function formatDisplay(ymd) {
+          const d = parseLocalYMD(ymd);
+          if (!d) return "";
+          return d.toLocaleDateString(undefined, { month: "2-digit", day: "2-digit", year: "numeric" });
+        }
+
+        function syncLabel() {
+          const s = ciInput.value || (window.state && state.start) || "";
+          const e = coInput.value || (window.state && state.end)   || "";
+          const sTxt = formatDisplay(s);
+          const eTxt = formatDisplay(e);
+
+          if (sTxt && eTxt) {
+            displayLabel.textContent = sTxt + " to " + eTxt;
+          } else if (sTxt) {
+            displayLabel.textContent = sTxt + " to ...";
+          } else {
+            displayLabel.textContent = "Select dates";
+          }
+        }
+
+        // Use current inputs as defaults (your initCheckout already sets them)
+        const defaults = [];
+        if (ciInput.value) defaults.push(ciInput.value);
+        if (coInput.value) defaults.push(coInput.value);
+
+        let lastScrollY = 0;
+
+        const fp = flatpickr(driver, {
+          mode: "range",
+          dateFormat: "Y-m-d",
+          defaultDate: defaults.length ? defaults : null,
+          disableMobile: true,
+          clickOpens: false,
+
+          // CRITICAL: anchor the calendar to the visible pill, not the hidden driver
+          positionElement: displayBtn,
+
+          onOpen: function () {
+            lastScrollY = window.scrollY || 0;
+            requestAnimationFrame(() => window.scrollTo(0, lastScrollY));
+          },
+          onClose: function () {
+            requestAnimationFrame(() => window.scrollTo(0, lastScrollY));
+          },
+
+          onChange: function (selectedDates) {
+            if (!Array.isArray(selectedDates) || !selectedDates.length) {
+              ciInput.value = "";
+              coInput.value = "";
+              syncLabel();
+              return;
+            }
+
+            const start = selectedDates[0];
+            const end   = selectedDates.length > 1 ? selectedDates[1] : null;
+
+            ciInput.value = formatLocalYmd(start);
+            coInput.value = end ? formatLocalYmd(end) : "";
+
+            syncLabel();
+          }
+        });
+
+        displayBtn.addEventListener("click", function (e) {
+          e.preventDefault();
+          e.stopPropagation();
+
+          lastScrollY = window.scrollY || 0;
+          fp.open();
+          requestAnimationFrame(() => window.scrollTo(0, lastScrollY));
+        });
+
+        syncLabel();
+      });
+
       const addonsList = document.getElementById("addonsList");
       if (addonsList) {
         addonsList.addEventListener("input", function (ev) {
