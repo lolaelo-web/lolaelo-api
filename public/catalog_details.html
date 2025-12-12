@@ -833,11 +833,13 @@
       margin-top: 6px;
     }
 
+    /* clamp lives on the TEXT node */
     .room-desc-text{
       display: -webkit-box;
       -webkit-box-orient: vertical;
-
       -webkit-line-clamp: 3;
+
+      /* standard property for linters */
       line-clamp: 3;
 
       overflow: hidden;
@@ -849,7 +851,6 @@
     .room-desc-text.is-expanded{
       -webkit-line-clamp: unset;
       line-clamp: unset;
-
       overflow: visible;
     }
 
@@ -1638,6 +1639,24 @@
             <div id="prop-location" class="summary-location"></div>
           </div> <!-- /.summary-main -->
         </div> <!-- /.summary -->
+
+        <!-- ANCHOR: DETAILS_MAP_MODAL_HTML -->
+        <div id="details-map-modal" class="details-map-backdrop" aria-hidden="true">
+          <div class="details-map-inner" role="dialog" aria-modal="true" aria-label="Map">
+            <div class="details-map-header">
+              <div>Map</div>
+              <button type="button" id="details-map-close" class="details-map-close" aria-label="Close">Close</button>
+            </div>
+            <iframe
+              id="details-map-frame"
+              class="details-map-frame"
+              loading="lazy"
+              referrerpolicy="no-referrer-when-downgrade"
+              allowfullscreen
+            ></iframe>
+          </div>
+        </div>
+        <!-- /ANCHOR: DETAILS_MAP_MODAL_HTML -->
 
         <!-- ANCHOR: ROOMCAT_LIST_HTML -->
         <div id="roomCats" class="roomcats" aria-label="Available room categories (open only)"></div>
@@ -4435,6 +4454,11 @@
           const s = (room.summary || "").trim();
           modalSummary.textContent = s;
           modalSummary.style.display = s ? "" : "none";
+
+          // Ensure the Read more clamp is recalculated after we write text
+          if (typeof refreshRoomDescClamp === "function") {
+            refreshRoomDescClamp();
+          }
         }
 
         // Details and inclusions from keys + free text

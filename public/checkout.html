@@ -28,6 +28,8 @@
   />
   <!-- Flatpickr (calendar) -->
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr@4.6.13/dist/flatpickr.min.css" />
+  <script src="https://cdn.jsdelivr.net/npm/flatpickr@4.6.13/dist/flatpickr.min.js"></script>
+
 
 <style>
   :root {
@@ -3277,29 +3279,84 @@
           rangeDriver._checkoutFp = fp;
 
           // Open calendar when clicking the pill
+          // Defensive: if fp isn't valid (or wiring got disrupted), build a fallback fp on demand.
           displayBtn.addEventListener("click", function (e) {
             e.preventDefault();
             e.stopPropagation();
-            fp.open();
-            keepScroll();
+
+            console.log("[checkout][dates] pill click");
+
+            // Prefer the primary instance created above
+            if (fp && typeof fp.open === "function") {
+              fp.open();
+              keepScroll();
+              return;
+            }
+
+            // Fallback: if something prevented fp from being usable, create one now
+            if (rangeDriver && typeof window.flatpickr === "function") {
+              try {
+                if (!rangeDriver._checkoutFp) {
+                  rangeDriver._checkoutFp = flatpickr(rangeDriver, {
+                    mode: "range",
+                    dateFormat: "Y-m-d",
+                    allowInput: false,
+                    clickOpens: false,
+                    closeOnSelect: false,
+                    positionElement: displayBtn,
+                    appendTo: datesCardWrapper || document.body,
+                    onOpen: function () {
+                      keepScroll();
+                    },
+                    onChange: function (selectedDates) {
+                      const s = (selectedDates && selectedDates[0]) ? selectedDates[0] : null;
+                      const ee = (selectedDates && selectedDates[1]) ? selectedDates[1] : null;
+                      setDisplayText(s, ee);
+                      keepScroll();
+                    }
+                  });
+                }
+
+                rangeDriver._checkoutFp.open();
+                keepScroll();
+                return;
+              } catch (err) {
+                console.warn("[checkout][dates] fallback flatpickr init failed", err);
+              }
+            }
+
+            console.warn("[checkout][dates] flatpickr not available / driver missing");
           });
 
           // Apply button: read from flatpickr selection, normalize, then reload URL
-          applyBtn.addEventListener("click", function () {
-            const sel = fp.selectedDates || [];
+          applyBtn.addEventListener("click", function (e) {
+            e.preventDefault();
+
+            console.log("[checkout][dates] apply click");
+
+            // Prefer primary fp, fall back to any on-demand instance
+            const activeFp =
+              (fp && typeof fp === "object") ? fp :
+              (rangeDriver && rangeDriver._checkoutFp) ? rangeDriver._checkoutFp :
+              null;
+
+            const sel = (activeFp && Array.isArray(activeFp.selectedDates))
+              ? activeFp.selectedDates
+              : [];
+
             const s = sel[0] || parseLocalYMD(state.start) || null;
-            let e = sel[1] || parseLocalYMD(state.end) || null;
+            let endDate = sel[1] || parseLocalYMD(state.end) || null;
 
             if (!s) return;
 
             // Ensure end exists and is after start
-            if (!e || e <= s) {
-              e = new Date(s.getTime());
-              e.setDate(s.getDate() + 1);
+            if (!endDate || endDate <= s) {
+              endDate = new Date(s.getTime());
+              endDate.setDate(s.getDate() + 1);
             }
 
             const finalStart = formatLocalYmd(s);
-            const finalEnd   = formatLocalYmd(e);
+            const finalEnd   = formatLocalYmd(endDate);
 
             const qsNext = new URLSearchParams(location.search);
             qsNext.set("start", finalStart);
