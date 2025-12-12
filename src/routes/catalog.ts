@@ -1267,6 +1267,51 @@ router.get("/details", async (req: Request, res: Response) => {
             ?.get("logger")
             ?.warn?.({ e, propertyId }, "details.ratePlanSummaries-attach failed");
         }
+
+        // === Availability rollup for qty selection (per roomTypeId, window [start,end)) ===
+        try {
+          const roomsArr = Array.isArray((base as any).rooms) ? ((base as any).rooms as any[]) : [];
+          const msPerDay = 24 * 60 * 60 * 1000;
+          const startDate = new Date(`${start}T00:00:00Z`);
+          const endDate = new Date(`${end}T00:00:00Z`);
+
+          const nightsTotal = Math.max(0, Math.round((endDate.getTime() - startDate.getTime()) / msPerDay));
+
+          for (const room of roomsArr) {
+            const daily = Array.isArray(room?.daily) ? room.daily : [];
+
+            let closedNightsCount = 0;
+            let minInv: number | null = null;
+
+            for (let t = startDate.getTime(); t < endDate.getTime(); t += msPerDay) {
+              const iso = new Date(t).toISOString().slice(0, 10);
+              const rec = daily.find((d: any) => d && d.date === iso);
+
+              if (!rec) {
+                // Missing day -> treat as 0 inventory (forces min to 0)
+                minInv = (minInv == null) ? 0 : Math.min(minInv, 0);
+                continue;
+              }
+
+              if (!!rec.closed) closedNightsCount++;
+
+              const inv = Number(rec.inventory ?? 0);
+              const safeInv = Number.isFinite(inv) ? inv : 0;
+              minInv = (minInv == null) ? safeInv : Math.min(minInv, safeInv);
+            }
+
+            const availableRooms =
+              closedNightsCount > 0 ? 0 : Math.max(0, Number.isFinite(minInv as any) ? (minInv as number) : 0);
+
+            room.availableRooms = availableRooms;
+            room.availabilitySummary = { availableRooms, closedNightsCount, nightsTotal };
+          }
+        } catch (e) {
+          req
+            .app
+            ?.get("logger")
+            ?.warn?.({ e, propertyId }, "details.availability-rollup failed");
+        }
       }
 
     } catch (err) {
