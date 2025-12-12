@@ -3193,7 +3193,7 @@
           displayLabel.textContent = "Select dates";
         }
       }
-    }
+    
       const editDatesLink = document.getElementById("editDatesLink");
       if (editDatesLink && datesCardWrapper) {
         editDatesLink.addEventListener("click", function () {
@@ -3276,10 +3276,9 @@
 
             location.assign(`${location.pathname}?${qsNext.toString()}`);
           });
-
         } // end init guard
       } // end flatpickr guard
-      
+    }
       document.addEventListener("DOMContentLoaded", initCheckout);
 
       // Failsafe: ensure the "Update dates" button is wired even if something
