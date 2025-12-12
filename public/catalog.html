@@ -144,10 +144,16 @@
     /* === ANCHOR: CATALOG_MAP_MODAL_CSS ============================= */
     .subhead-row{
       display:flex;
-      align-items:flex-start;
+      align-items:center;
       justify-content:space-between;
       gap:12px;
       margin-top:8px;
+    }
+
+    .subhead-actions{
+      display:flex;
+      align-items:center;
+      gap:8px;
     }
 
     .map-toggle-btn{
@@ -243,12 +249,7 @@
     }
 
     .filters summary{
-      list-style:none;
-      cursor:pointer;
-      padding:0;
-      font-weight:600;
-      display:flex;
-      align-items:center;
+      display:none;
     }
 
     .filters[open] summary{
@@ -313,13 +314,21 @@
 
     .sort-select{
       border-radius:999px;
-      border:1px solid rgba(148,163,184,0.8);
-      padding:4px 10px;
+      border:1px solid rgba(255,106,61,0.45);
+      padding:6px 18px;
       background:#ffffff;
       font-size:13px;
       color:var(--fg);
       outline:none;
       cursor:pointer;
+      background-image:
+        linear-gradient(#ffffff, #ffffff),
+        linear-gradient(135deg, #ffd7c2 0%, #ffb08a 50%, #ff8b55 100%);
+      background-origin:border-box;
+      background-clip:padding-box, border-box;
+      appearance:none;
+      -webkit-appearance:none;
+      -moz-appearance:none;
     }
 
     .sort-select:focus{
@@ -927,30 +936,42 @@
 
       <div class="subhead-row">
         <div class="subhead" id="found">Ready.</div>
-      </div>
-    </div>
 
-    <!-- ANCHOR: CATALOG_MAP_ROW -->
-    <div class="map-row" style="
-      display:flex;
-      justify-content:center;
-      padding:12px 0 10px 0;
-    ">
-      <button
-        type="button"
-        id="catalog-map-open"
-        class="map-toggle-btn catalog-btn-outline catalog-btn-navy"
-        aria-label="View results on map"
-      >
-        <img
-          src="https://www.lolaelo.com/logo2.png?cb=fav-v1"
-          alt="Map"
-          class="map-toggle-icon"
-          decoding="async"
-          loading="lazy"
-        />
-        <span>Map</span>
-      </button>
+        <div class="subhead-actions">
+          <!-- Filter pill (left of Map) -->
+          <button
+            type="button"
+            id="filtersBtn"
+            class="map-toggle-btn catalog-btn-outline catalog-btn-navy"
+          >
+            <span>Filters ⚙️</span>
+          </button>
+
+          <!-- Map pill (center) -->
+          <button
+            type="button"
+            id="catalog-map-open"
+            class="map-toggle-btn catalog-btn-outline catalog-btn-navy"
+            aria-label="View results on map"
+          >
+            <img
+              src="https://www.lolaelo.com/logo2.png?cb=fav-v1"
+              alt="Map"
+              class="map-toggle-icon"
+              decoding="async"
+              loading="lazy"
+            />
+            <span>Map</span>
+          </button>
+
+          <!-- Sort dropdown (right) -->
+          <select id="sort-order" class="sort-select">
+            <option value="">Sort by</option>
+            <option value="price-asc">Price (low to high)</option>
+            <option value="price-desc">Price (high to low)</option>
+          </select>
+        </div>
+      </div>
     </div>
 
     <!-- ANCHOR: FILTERS_DETAILS (amenities only) -->
@@ -995,16 +1016,6 @@
         <label><input type="checkbox" value="Flexible self check-in (lockbox / smart lock)"> Flexible self check-in (lockbox / smart lock)</label>
       </div>
     </details>
-
-    <!-- ANCHOR: SORT_CONTROLS -->
-    <div class="sort-row">
-      <label for="sort-order" class="sort-label">Sort by</label>
-      <select id="sort-order" class="sort-select">
-        <option value="">Relevance</option>
-        <option value="price-asc">Price (low to high)</option>
-        <option value="price-desc">Price (high to low)</option>
-      </select>
-    </div>
 
     <section id="grid" class="grid" aria-live="polite"></section>
   </div>
@@ -1546,31 +1557,25 @@
     run();
   </script>
   <!-- ANCHOR: CATALOG_FILTERS_TOGGLE -->
-  <script>
-  (() => {
-    const btn = document.getElementById('filtersBtn');
-    const panel = document.getElementById('filtersPanel');
-    if (!btn || !panel) return;
-    btn.setAttribute('aria-controls', 'filtersPanel');
-    btn.setAttribute('aria-expanded', panel.open ? 'true' : 'false');
-    btn.addEventListener('click', () => {
-      panel.open = !panel.open;
+    <script>
+    (() => {
+      const btn   = document.getElementById('filtersBtn');
+      const panel = document.getElementById('amenities');
+      if (!btn || !panel) return;
+
+      btn.setAttribute('aria-controls', 'amenities');
       btn.setAttribute('aria-expanded', panel.open ? 'true' : 'false');
-    });
-  })();
-  /* ANCHOR: FILTERS_TOGGLE_JS */
-  (() => {
-    const btn   = document.getElementById('filtersBtn');
-    const panel = document.getElementById('amenities');
-    if (!btn || !panel) return;
-    btn.addEventListener('click', () => {
-      const willOpen = !panel.open;
-      panel.open = willOpen;
-      if (willOpen) {
-        panel.scrollIntoView({ behavior: 'smooth', block: 'start' });
-      }
-    });
-  })();
+
+      btn.addEventListener('click', () => {
+        const willOpen = !panel.open;
+        panel.open = willOpen;
+        btn.setAttribute('aria-expanded', willOpen ? 'true' : 'false');
+
+        if (willOpen) {
+          panel.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        }
+      });
+    })();
 
   /* === ANCHOR: CUSTOM_SELECT_INIT (match landing, hardened) ============= */
 
