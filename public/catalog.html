@@ -296,7 +296,38 @@
       accent-color:#064e3b; /* brand green */
     }
 
-    /* === ANCHOR: CATALOG_SEARCH_BAR_CSS (mirror landing) ================ */
+    .sort-row{
+      margin:8px 0 0;
+      display:flex;
+      align-items:center;
+      justify-content:flex-end;
+      gap:8px;
+      font-size:13px;
+      color:var(--muted);
+    }
+
+    .sort-label{
+      font-size:13px;
+      color:var(--muted);
+    }
+
+    .sort-select{
+      border-radius:999px;
+      border:1px solid rgba(148,163,184,0.8);
+      padding:4px 10px;
+      background:#ffffff;
+      font-size:13px;
+      color:var(--fg);
+      outline:none;
+      cursor:pointer;
+    }
+
+    .sort-select:focus{
+      border-color:#ff6a3d;
+      box-shadow:0 0 0 1px rgba(255,106,61,0.35);
+    }
+
+    /* === ANCHOR: CATALOG_SEARCH_BAR_CSS (mirror landing) ==========
 
     /* Outer search card: match index.html search-card */
     .searchbar{
@@ -928,16 +959,52 @@
         <span class="summary-pill catalog-btn-outline catalog-btn-navy">Filters ⚙️</span>
       </summary>
       <div class="filters-body">
-        <label><input type="checkbox" value="beachfront"> Beachfront</label>
-        <label><input type="checkbox" value="pool"> Pool</label>
-        <label><input type="checkbox" value="wifi"> Wi-Fi</label>
-        <label><input type="checkbox" value="aircon"> Aircon</label>
-        <label><input type="checkbox" value="restaurant"> Restaurant</label>
-        <label><input type="checkbox" value="harbor-view"> Harbor view</label>
-        <label><input type="checkbox" value="eco"> Eco</label>
-        <label><input type="checkbox" value="bar"> Bar</label>
+        <!-- Core value filters -->
+        <label><input type="checkbox" value="Breakfast included (no added cost)"> Breakfast included (no added cost)</label>
+        <label><input type="checkbox" value="Kids stay free under 12"> Kids stay free under 12</label>
+        <label><input type="checkbox" value="Free Wi-Fi"> Free Wi-Fi</label>
+        <label><input type="checkbox" value="Free parking"> Free parking</label>
+        <label><input type="checkbox" value="Airport shuttle"> Airport shuttle</label>
+        <label><input type="checkbox" value="Daily housekeeping"> Daily housekeeping</label>
+
+        <!-- Facilities -->
+        <label><input type="checkbox" value="Swimming pool"> Swimming pool</label>
+        <label><input type="checkbox" value="Gym or fitness center"> Gym or fitness center</label>
+        <label><input type="checkbox" value="Spa or sauna"> Spa or sauna</label>
+        <label><input type="checkbox" value="Beachfront or direct beach access"> Beachfront or direct beach access</label>
+        <label><input type="checkbox" value="Water sports equipment (kayak / paddleboard / snorkel)"> Water sports equipment (kayak / paddleboard / snorkel)</label>
+
+        <!-- Property policies / family -->
+        <label><input type="checkbox" value="24-hour front desk"> 24-hour front desk</label>
+        <label><input type="checkbox" value="Family / child-friendly property"> Family / child-friendly property</label>
+        <label><input type="checkbox" value="Non-smoking property"> Non-smoking property</label>
+        <label><input type="checkbox" value="Smoking area"> Smoking area</label>
+        <label><input type="checkbox" value="Pets allowed"> Pets allowed</label>
+        <label><input type="checkbox" value="Facilities for disabled guests"> Facilities for disabled guests</label>
+
+        <!-- Services / extras -->
+        <label><input type="checkbox" value="Business center or meeting rooms"> Business center or meeting rooms</label>
+        <label><input type="checkbox" value="Shared kitchen or guest pantry"> Shared kitchen or guest pantry</label>
+        <label><input type="checkbox" value="Laundry service or self-service laundry"> Laundry service or self-service laundry</label>
+        <label><input type="checkbox" value="On-site restaurant"> On-site restaurant</label>
+
+        <!-- Quiet / eco / baby -->
+        <label><input type="checkbox" value="Eco-cleaning option (reduced housekeeping)"> Eco-cleaning option (reduced housekeeping)</label>
+        <label><input type="checkbox" value="Quiet hours enforced"> Quiet hours enforced</label>
+        <label><input type="checkbox" value="Guaranteed crib or baby cot"> Guaranteed crib or baby cot</label>
+        <label><input type="checkbox" value="Flexible self check-in (lockbox / smart lock)"> Flexible self check-in (lockbox / smart lock)</label>
       </div>
     </details>
+
+    <!-- ANCHOR: SORT_CONTROLS -->
+    <div class="sort-row">
+      <label for="sort-order" class="sort-label">Sort by</label>
+      <select id="sort-order" class="sort-select">
+        <option value="">Relevance</option>
+        <option value="price-asc">Price (low to high)</option>
+        <option value="price-desc">Price (high to low)</option>
+      </select>
+    </div>
 
     <section id="grid" class="grid" aria-live="polite"></section>
   </div>
@@ -1359,8 +1426,15 @@
           });
         }
 
-        found.textContent = `Found ${list.length} propert${list.length===1?"y":"ies"} — ${list.filter(p=>p.availableNights>0).length} with availability.`;
-        grid.innerHTML = list.map(p => cardHTML(p, start, end)).join("") || "<div>No results.</div>";
+        // apply sort
+        list = applySort(list);
+
+        found.textContent =
+          `Found ${list.length} propert${list.length === 1 ? "y" : "ies"} — ` +
+          `${list.filter(p => p.availableNights > 0).length} with availability.`;
+        grid.innerHTML =
+          list.map(p => cardHTML(p, start, end)).join("") ||
+          "<div>No results.</div>";
       }catch(err){
         console.error(err);
         found.textContent = "Search failed.";
@@ -1394,6 +1468,34 @@
     // Destination dropdown now custom-select, so we trigger run() manually if needed
     S('dest')?.addEventListener('change', run);
 
+    function getPriceValue(p){
+      if (!p) return Infinity;
+      const direct = Number(p.fromPrice);
+      if (Number.isFinite(direct) && direct > 0) return direct;
+
+      const s = typeof p.fromPriceStr === "string" ? p.fromPriceStr : "";
+      if (!s) return Infinity;
+      const cleaned = s.replace(/[^0-9.]+/g, "");
+      const n = Number(cleaned);
+      return Number.isFinite(n) && n > 0 ? n : Infinity;
+    }
+
+    function applySort(list){
+      if (!Array.isArray(list) || !list.length) return list;
+      const sel = document.getElementById('sort-order');
+      if (!sel) return list;
+      const mode = sel.value;
+      if (!mode) return list;
+
+      const sorted = list.slice();
+      if (mode === "price-asc") {
+        sorted.sort((a, b) => getPriceValue(a) - getPriceValue(b));
+      } else if (mode === "price-desc") {
+        sorted.sort((a, b) => getPriceValue(b) - getPriceValue(a));
+      }
+      return sorted;
+    }
+
     /* ANCHOR: AMENITY_AUTO_FILTER */
     function filterAndRenderByAmenities(){
       if (!window.__catalogProps) return;
@@ -1401,19 +1503,27 @@
       const start = startInp.value || new Date().toISOString().slice(0,10);
       const end   = endInp.value   || start;
 
-      const sel = Array.from(document.querySelectorAll('#amenities input[type="checkbox"]:checked'))
-        .map(cb => String(cb.value).toLowerCase());
+      const sel = Array.from(
+        document.querySelectorAll('#amenities input[type="checkbox"]:checked')
+      ).map(cb => String(cb.value).toLowerCase());
 
       const all = window.__catalogProps;
-      const list = sel.length
+      let list = sel.length
         ? all.filter(p => {
             const am = (p.amenities || []).map(a => String(a).toLowerCase());
             return sel.every(a => am.includes(a));
           })
-        : all;
+        : all.slice();
 
-      found.textContent = `Found ${list.length} propert${list.length===1?'y':'ies'} — ${list.filter(p=>p.availableNights>0).length} with availability.`;
-      grid.innerHTML = list.map(p => cardHTML(p, start, end)).join("") || "<div>No results.</div>";
+      // apply sort on top of amenity filter
+      list = applySort(list);
+
+      found.textContent =
+        `Found ${list.length} propert${list.length === 1 ? "y" : "ies"} — ` +
+        `${list.filter(p => p.availableNights > 0).length} with availability.`;
+      grid.innerHTML =
+        list.map(p => cardHTML(p, start, end)).join("") ||
+        "<div>No results.</div>";
     }
 
     document.querySelectorAll('#amenities input[type="checkbox"]').forEach(cb => {
@@ -1421,6 +1531,17 @@
         if (!window.__catalogProps) { run(); } else { filterAndRenderByAmenities(); }
       });
     });
+
+    const sortSelect = document.getElementById('sort-order');
+    if (sortSelect) {
+      sortSelect.addEventListener('change', () => {
+        if (!window.__catalogProps) {
+          run();
+        } else {
+          filterAndRenderByAmenities();
+        }
+      });
+    }
 
     run();
   </script>
