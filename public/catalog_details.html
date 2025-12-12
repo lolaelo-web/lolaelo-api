@@ -256,17 +256,24 @@
     #detail-checkin,
     #detail-checkout{
       position:absolute;
-      inset:0;
+      left:0;
+      top:0;
+      width:1px;
+      height:1px;
       opacity:0;
       pointer-events:none;
+      overflow:hidden;
     }
 
     /* Style ONLY the "Update dates" button */
     #detail-dates-apply{
-      padding:6px 10px;
+      display:inline-flex;              /* makes vertical centering reliable */
+      align-items:center;
+      justify-content:center;
+      padding:6px 12px;
       border-radius:999px;
       border:1px solid var(--accent);
-      background:transparent;
+      background:#ffffff;
       font-size:12px;
       font-weight:500;
       cursor:pointer;
@@ -1341,6 +1348,11 @@
       object-fit: contain;
       display: block;
       margin: 0 auto;
+    }
+
+    html, body {
+      max-width: 100%;
+      overflow-x: hidden;
     }
 
   </style>
