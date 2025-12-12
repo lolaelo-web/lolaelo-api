@@ -812,24 +812,35 @@
       display: block;
     }
 
+    /* === ROOM DESCRIPTION (READ MORE) === */
     .room-desc{
-      display: -webkit-box;
-      -webkit-line-clamp: 4;
-      line-clamp: 4;              /* add this */
-      -webkit-box-orient: vertical;
-      overflow: hidden;
-      line-height: 1.5;
+      margin-top: 6px;
     }
 
-    .room-desc.is-expanded{
+    .room-desc-text{
+      display: -webkit-box;
+      -webkit-box-orient: vertical;
+
+      -webkit-line-clamp: 3;
+      line-clamp: 3;
+
+      overflow: hidden;
+      line-height: 1.45;
+      font-size: 13px;
+      color: var(--muted);
+    }
+
+    .room-desc-text.is-expanded{
       -webkit-line-clamp: unset;
-      line-clamp: unset;          /* add this */
+      line-clamp: unset;
+
       overflow: visible;
     }
 
     .room-desc-toggle{
       margin-top: 6px;
-      font-size: 13px;
+      font-size: 12px;
+      font-weight: 600;
       color: var(--accent);
       background: none;
       border: none;
@@ -1643,11 +1654,21 @@
               aria-label="Room photos"
             ></div>
           </div>
-          <div class="room-modal-info">
-            <p id="roomModalSummary" class="small"></p>
-            <button type="button" id="roomModalReadMore" class="room-modal-readmore" hidden>Read more</button>
+            <div class="room-modal-info">
+              <div class="room-desc">
+                <div id="roomModalSummary" class="room-desc-text"></div>
+                <button
+                  type="button"
+                  id="roomModalReadMore"
+                  class="room-desc-toggle"
+                  hidden
+                >
+                  Read more
+                </button>
+              </div>
 
-            <div id="roomModalSpecs" class="small muted"></div>
+              <div id="roomModalSpecs" class="small muted"></div>
+            </div>
 
             <div class="room-modal-section" id="roomModalDetailsSection" style="display:none;">
               <p class="room-modal-subtitle">Room Details</p>
