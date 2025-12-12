@@ -10,6 +10,10 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="/css/extranet.css?cb=font-unify-v1" />
+  <link
+    rel="stylesheet"
+    href="https://cdn.jsdelivr.net/npm/flatpickr@4.6.13/dist/flatpickr.min.css"
+  />
 
   <style>
     /* === ANCHOR: DETAILS_LIGHT_SKIN ======================================= */
@@ -180,39 +184,85 @@
 
     /* ANCHOR: DETAILS_DATE_BAR_CSS */
     .detail-date-bar{
-      /* 2-column grid for Check-in / Check-out */
-      display:grid;
-      grid-template-columns:1fr 1fr;
-      grid-auto-rows:auto;
-      column-gap:8px;
-      row-gap:6px;
+      display:flex;
+      align-items:flex-end;
+      gap:8px;
 
       margin-top:2px;
       font-size:12px;
 
-      /* Obey the date card’s width */
       width:100%;
       max-width:100%;
       box-sizing:border-box;
     }
-   
-    .detail-date-bar label{
+
+    .detail-date-bar .detail-date-field{
+      flex:1 1 auto;
       display:flex;
       flex-direction:column;
-      gap:2px;
+      gap:4px;
     }
-    .detail-date-bar label span{
+
+    .detail-date-label{
       font-size:11px;
       color:var(--muted);
     }
-    .detail-date-bar input[type="date"]{
-      font-size:12px;
-      padding:4px 6px;
-      border-radius:8px;
+
+    /* Combined dates pill (landing / catalog style) */
+    .detail-dates-shell{
+      display:flex;
+      align-items:center;
+      gap:8px;
+      border-radius:12px;
       border:1px solid var(--border-subtle);
       background:var(--surface-subtle);
-      color:var(--fg);
+      padding:6px 10px;
     }
+
+    .detail-dates-shell .icon{
+      font-size:14px;
+    }
+
+    .details-dates-display{
+      border:none;
+      background:transparent;
+      padding:0;
+      margin:0;
+      flex:1;
+      text-align:left;
+      font:inherit;
+      font-size:13px;
+      color:var(--fg);
+      cursor:pointer;
+    }
+
+    .details-dates-display-label{
+      opacity:0.7;
+    }
+
+    .detail-dates-combined.has-dates .details-dates-display-label{
+      opacity:1;
+      font-weight:500;
+    }
+
+    /* Invisible Flatpickr driver */
+    .details-dates-driver{
+      position:absolute;
+      inset:0;
+      opacity:0;
+      pointer-events:none;
+    }
+
+    /* Hide native date inputs – keep for JS and accessibility */
+    #detail-checkin,
+    #detail-checkout{
+      position:absolute;
+      inset:0;
+      opacity:0;
+      pointer-events:none;
+    }
+
+    /* Update button – keep same pill style */
     .detail-date-bar button{
       padding:6px 10px;
       border-radius:999px;
@@ -222,10 +272,6 @@
       font-weight:500;
       cursor:pointer;
       white-space:nowrap;
-
-      /* New layout behavior */
-      grid-column:1 / -1;      /* button spans both columns */
-      justify-self:flex-end;   /* aligned to the right within the card */
     }
 
     /* ANCHOR: DETAILS_LAYOUT_COLS */
@@ -1396,21 +1442,44 @@
 
               <!-- Date selector -->
               <div class="summary-dates">
-                <!-- ANCHOR: DETAILS_DATE_BAR_HTML -->
-                <div id="details-date-bar" class="detail-date-bar">
-                  <label class="detail-date-field">
-                    <span>Check in</span>
-                    <input type="date" id="detail-checkin">
-                  </label>
-                  <label class="detail-date-field">
-                    <span>Check out</span>
-                    <input type="date" id="detail-checkout">
-                  </label>
-                  <button type="button" id="detail-dates-apply">
-                    Update dates
-                  </button>
-                </div>
-                <div id="nights-note" class="meta summary-nights"></div>
+              <!-- ANCHOR: DETAILS_DATE_BAR_HTML -->
+              <div id="details-date-bar" class="detail-date-bar">
+                <label class="detail-date-field detail-dates-combined">
+                  <span class="detail-date-label">Dates</span>
+                  <div class="detail-dates-shell">
+                    <span class="icon">📅</span>
+
+                    <!-- Visible clickable label (same idea as landing / catalog) -->
+                    <button
+                      type="button"
+                      id="details-dates-display"
+                      class="details-dates-display"
+                      aria-haspopup="dialog"
+                    >
+                      <span id="details-dates-display-label" class="details-dates-display-label">
+                        Check-in – Check-out
+                      </span>
+                    </button>
+
+                    <!-- Invisible input that Flatpickr actually binds to -->
+                    <input
+                      id="details-dates-driver"
+                      class="details-dates-driver"
+                      type="text"
+                      autocomplete="off"
+                    />
+                  </div>
+
+                  <!-- Hidden actual values used by JS / URLs -->
+                  <input type="date" id="detail-checkin">
+                  <input type="date" id="detail-checkout">
+                </label>
+
+                <button type="button" id="detail-dates-apply">
+                  Update dates
+                </button>
+              </div>
+              <div id="nights-note" class="meta summary-nights"></div>
               </div>
 
             </div> <!-- /.summary-actions -->
@@ -1486,6 +1555,8 @@
     </div>
   </div>
 
+  <script src="https://cdn.jsdelivr.net/npm/flatpickr@4.6.13/dist/flatpickr.min.js"></script>
+
   <script>
     // ANCHOR: DETAILS_QUERY_PARAMS
     const qs = new URLSearchParams(location.search || '');
@@ -1512,9 +1583,14 @@
 
     // ANCHOR: DETAILS_DATE_BAR_SETUP
     (function setupDetailsDateBar() {
-      const checkInInput  = document.getElementById("detail-checkin");
-      const checkOutInput = document.getElementById("detail-checkout");
-      const applyBtn      = document.getElementById("detail-dates-apply");
+      const checkInInput   = document.getElementById("detail-checkin");
+      const checkOutInput  = document.getElementById("detail-checkout");
+      const applyBtn       = document.getElementById("detail-dates-apply");
+      const rangeDriver    = document.getElementById("details-dates-driver");
+      const displayBtn     = document.getElementById("details-dates-display");
+      const displayLabel   = document.getElementById("details-dates-display-label");
+      const combinedField  = document.querySelector(".detail-date-field.detail-dates-combined");
+
       if (!checkInInput || !checkOutInput || !applyBtn) return;
 
       // Helper: local YYYY-MM-DD formatter (no timezone conversion)
@@ -1537,15 +1613,89 @@
         return new Date(y, m - 1, d);
       }
 
-      // Initialize inputs from current URL dates
+      // For the visible label, use numeric m/d/Y like the other pages
+      function labelFromYmd(ymd) {
+        const d = parseLocalYmd(ymd);
+        if (!d) return "";
+        const mm = String(d.getMonth() + 1).padStart(2, "0");
+        const dd = String(d.getDate()).padStart(2, "0");
+        const yy = d.getFullYear();
+        return mm + "/" + dd + "/" + yy;
+      }
+
+      function syncDisplay() {
+        if (!displayLabel || !combinedField) return;
+
+        const ciRaw = checkInInput.value;
+        const coRaw = checkOutInput.value;
+
+        if (!ciRaw || !coRaw) {
+          combinedField.classList.remove("has-dates");
+          displayLabel.textContent = "Check-in – Check-out";
+          return;
+        }
+
+        const ciLabel = labelFromYmd(ciRaw);
+        const coLabel = labelFromYmd(coRaw);
+        if (!ciLabel || !coLabel) {
+          combinedField.classList.remove("has-dates");
+          displayLabel.textContent = "Check-in – Check-out";
+          return;
+        }
+
+        combinedField.classList.add("has-dates");
+        displayLabel.textContent = ciLabel + " to " + coLabel;
+      }
+
+      // Initialize hidden inputs from current URL dates
       try {
         checkInInput.value  = start;
         checkOutInput.value = end;
       } catch (_) {
         // ignore
       }
+      syncDisplay();
 
-      // Whenever check-in changes, auto-bump check-out to at least +1 day
+      // Flatpickr range on the invisible driver, if available
+      let fp = null;
+      if (rangeDriver && window.flatpickr) {
+        const defaultDates = [];
+        const sDate = parseLocalYmd(start);
+        const eDate = parseLocalYmd(end);
+        if (sDate) defaultDates.push(sDate);
+        if (eDate) defaultDates.push(eDate);
+
+        fp = flatpickr(rangeDriver, {
+          mode: "range",
+          dateFormat: "Y-m-d",
+          defaultDate: defaultDates,
+          onChange(selectedDates) {
+            let s = selectedDates[0] || null;
+            let e = selectedDates[1] || null;
+
+            // Enforce end >= start + 1 day, same rule as catalog
+            if (s && !e) {
+              e = new Date(s.getTime());
+              e.setDate(e.getDate() + 1);
+            }
+
+            if (s && e) {
+              checkInInput.value  = formatLocalYmd(s);
+              checkOutInput.value = formatLocalYmd(e);
+              syncDisplay();
+            }
+          }
+        });
+
+        // Clicking the visible pill opens the calendar
+        if (displayBtn) {
+          displayBtn.addEventListener("click", function () {
+            if (fp) fp.open();
+          });
+        }
+      }
+
+      // Fallback: if someone changes check-in (keyboard, etc.), keep end ≥ start+1 and refresh label
       checkInInput.addEventListener("change", function () {
         const ciRaw = checkInInput.value;
         if (!ciRaw) return;
@@ -1563,13 +1713,13 @@
           }
         }
 
-        // If no valid end or end <= start, set end = start + 1 day
         if (!endDate) {
           endDate = new Date(ciDate.getTime());
           endDate.setDate(ciDate.getDate() + 1);
         }
 
         checkOutInput.value = formatLocalYmd(endDate);
+        syncDisplay();
       });
 
       // Apply button: enforce end > start and push dates into URL
@@ -1577,7 +1727,7 @@
         const ciRaw = checkInInput.value || start;
         const coRaw = checkOutInput.value || end;
 
-        // We need at least a start date to do anything useful
+        // Need at least a start date to do anything useful
         if (!ciRaw) return;
 
         const ciDate = parseLocalYmd(ciRaw);
@@ -1603,20 +1753,15 @@
 
           finalEnd = formatLocalYmd(endDate);
         } else {
-          // Fallback – invalid start date, just passthrough whatever end we had
           finalEnd = (coRaw || "").slice(0, 10);
         }
 
-        if (!finalStart || !finalEnd) return;
+        const qsNext = new URLSearchParams(location.search);
+        qsNext.set("start", finalStart);
+        qsNext.set("end",   finalEnd);
 
-        const params = new URLSearchParams(window.location.search);
-        params.set("start", finalStart);
-        params.set("end",   finalEnd);
-
-        const newUrl =
-          window.location.pathname + "?" + params.toString() + "#rateplans";
-
-        window.location.href = newUrl;
+        const nextUrl = `${location.pathname}?${qsNext.toString()}`;
+        location.assign(nextUrl);
       });
     })();
 
