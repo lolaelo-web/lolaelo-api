@@ -284,11 +284,30 @@
 
     .filters-body{
       padding:12px 14px 10px;
-      display:flex;
-      gap:10px 16px;
-      flex-wrap:wrap;
+      display:grid;
+      grid-template-columns:repeat(5, minmax(0, 1fr)); /* 5 fixed columns */
+      gap:8px 16px;
       font-size:13px;
       color:var(--muted);
+    }
+
+    .filter-col{
+      display:flex;
+      flex-direction:column;
+      gap:4px;
+      min-width:0;
+    }
+
+    .filter-col-title{
+      font-weight:600;
+      font-size:12px;
+      color:#4b5563;
+      padding-bottom:4px;
+      margin-bottom:4px;
+      border-bottom:1px solid rgba(148,163,184,0.35); /* faint line under label */
+      white-space:nowrap;
+      overflow:hidden;
+      text-overflow:ellipsis;
     }
 
     .filters-body label{
@@ -993,40 +1012,57 @@
         <span class="summary-pill catalog-btn-outline catalog-btn-navy">Filters ⚙️</span>
       </summary>
       <div class="filters-body">
-        <!-- Core value filters -->
-        <label><input type="checkbox" value="Breakfast included (no added cost)"> Breakfast included (no added cost)</label>
-        <label><input type="checkbox" value="Kids stay free under 12"> Kids stay free under 12</label>
-        <label><input type="checkbox" value="Free Wi-Fi"> Free Wi-Fi</label>
-        <label><input type="checkbox" value="Free parking"> Free parking</label>
-        <label><input type="checkbox" value="Airport shuttle"> Airport shuttle</label>
-        <label><input type="checkbox" value="Daily housekeeping"> Daily housekeeping</label>
 
-        <!-- Facilities -->
-        <label><input type="checkbox" value="Swimming pool"> Swimming pool</label>
-        <label><input type="checkbox" value="Gym or fitness center"> Gym or fitness center</label>
-        <label><input type="checkbox" value="Spa or sauna"> Spa or sauna</label>
-        <label><input type="checkbox" value="Beachfront or direct beach access"> Beachfront or direct beach access</label>
-        <label><input type="checkbox" value="Water sports equipment (kayak / paddleboard / snorkel)"> Water sports equipment (kayak / paddleboard / snorkel)</label>
+        <!-- Column 1 — Value & essentials -->
+        <div class="filter-col">
+          <div class="filter-col-title">Value & essentials</div>
+          <label><input type="checkbox" value="Breakfast included (no added cost)"> Breakfast included (no added cost)</label>
+          <label><input type="checkbox" value="Kids stay free under 12"> Kids stay free under 12</label>
+          <label><input type="checkbox" value="Free Wi-Fi"> Free Wi-Fi</label>
+          <label><input type="checkbox" value="Free parking"> Free parking</label>
+          <label><input type="checkbox" value="Daily housekeeping"> Daily housekeeping</label>
+        </div>
 
-        <!-- Property policies / family -->
-        <label><input type="checkbox" value="24-hour front desk"> 24-hour front desk</label>
-        <label><input type="checkbox" value="Family / child-friendly property"> Family / child-friendly property</label>
-        <label><input type="checkbox" value="Non-smoking property"> Non-smoking property</label>
-        <label><input type="checkbox" value="Smoking area"> Smoking area</label>
-        <label><input type="checkbox" value="Pets allowed"> Pets allowed</label>
-        <label><input type="checkbox" value="Facilities for disabled guests"> Facilities for disabled guests</label>
+        <!-- Column 2 — Wellness & leisure -->
+        <div class="filter-col">
+          <div class="filter-col-title">Wellness & leisure</div>
+          <label><input type="checkbox" value="Swimming pool"> Swimming pool</label>
+          <label><input type="checkbox" value="Gym or fitness center"> Gym or fitness center</label>
+          <label><input type="checkbox" value="Spa or sauna"> Spa or sauna</label>
+          <label><input type="checkbox" value="Water sports equipment (kayak / paddleboard / snorkel)"> Water sports equipment (kayak / paddleboard / snorkel)</label>
+          <label><input type="checkbox" value="Beachfront or direct beach access"> Beachfront or direct beach access</label>
+        </div>
 
-        <!-- Services / extras -->
-        <label><input type="checkbox" value="Business center or meeting rooms"> Business center or meeting rooms</label>
-        <label><input type="checkbox" value="Shared kitchen or guest pantry"> Shared kitchen or guest pantry</label>
-        <label><input type="checkbox" value="Laundry service or self-service laundry"> Laundry service or self-service laundry</label>
-        <label><input type="checkbox" value="On-site restaurant"> On-site restaurant</label>
+        <!-- Column 3 — Policy & comfort -->
+        <div class="filter-col">
+          <div class="filter-col-title">Policy & comfort</div>
+          <label><input type="checkbox" value="24-hour front desk"> 24-hour front desk</label>
+          <label><input type="checkbox" value="Family / child-friendly property"> Family / child-friendly property</label>
+          <label><input type="checkbox" value="Non-smoking property"> Non-smoking property</label>
+          <label><input type="checkbox" value="Smoking area"> Smoking area</label>
+          <label><input type="checkbox" value="Pets allowed"> Pets allowed</label>
+        </div>
 
-        <!-- Quiet / eco / baby -->
-        <label><input type="checkbox" value="Eco-cleaning option (reduced housekeeping)"> Eco-cleaning option (reduced housekeeping)</label>
-        <label><input type="checkbox" value="Quiet hours enforced"> Quiet hours enforced</label>
-        <label><input type="checkbox" value="Guaranteed crib or baby cot"> Guaranteed crib or baby cot</label>
-        <label><input type="checkbox" value="Flexible self check-in (lockbox / smart lock)"> Flexible self check-in (lockbox / smart lock)</label>
+        <!-- Column 4 — Services & facilities -->
+        <div class="filter-col">
+          <div class="filter-col-title">Services & facilities</div>
+          <label><input type="checkbox" value="Facilities for disabled guests"> Facilities for disabled guests</label>
+          <label><input type="checkbox" value="Business center or meeting rooms"> Business center or meeting rooms</label>
+          <label><input type="checkbox" value="Shared kitchen or guest pantry"> Shared kitchen or guest pantry</label>
+          <label><input type="checkbox" value="Laundry service or self-service laundry"> Laundry service or self-service laundry</label>
+          <label><input type="checkbox" value="On-site restaurant"> On-site restaurant</label>
+        </div>
+
+        <!-- Column 5 — Eco, safety & convenience -->
+        <div class="filter-col">
+          <div class="filter-col-title">Eco, safety & convenience</div>
+          <label><input type="checkbox" value="Eco-cleaning option (reduced housekeeping)"> Eco-cleaning option (reduced housekeeping)</label>
+          <label><input type="checkbox" value="Quiet hours enforced"> Quiet hours enforced</label>
+          <label><input type="checkbox" value="Guaranteed crib or baby cot"> Guaranteed crib or baby cot</label>
+          <label><input type="checkbox" value="Flexible self check-in (lockbox / smart lock)"> Flexible self check-in (lockbox / smart lock)</label>
+          <label><input type="checkbox" value="Airport shuttle"> Airport shuttle</label>
+        </div>
+
       </div>
     </details>
 
