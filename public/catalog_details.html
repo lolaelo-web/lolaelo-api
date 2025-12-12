@@ -533,6 +533,45 @@
       box-shadow: 0 0 0 2px rgba(255,106,61,0.25) inset;
     }
 
+    /* ANCHOR: ROOM_MODAL_DESC_CLAMP */
+    #roomModalSummary{
+      /* default (expanded) behavior */
+      white-space: normal;
+      overflow-wrap: anywhere;
+    }
+
+    /* clamped preview (4 lines) */
+    #roomModalSummary.is-clamped{
+      display: -webkit-box;
+      -webkit-box-orient: vertical;
+      -webkit-line-clamp: 4;
+
+      /* add standard property to silence the compatibility warning */
+      line-clamp: 4;
+
+      overflow: hidden;
+    }
+
+    /* when expanded, undo the clamp */
+    .room-modal-info.is-expanded #roomModalSummary{
+      display: block;
+      overflow: visible;
+    }
+
+    .room-modal-readmore{
+      align-self: flex-start;
+      border: 1px solid var(--line);
+      background: #fff;
+      border-radius: 999px;
+      padding: 6px 10px;
+      font-size: 12px;
+      cursor: pointer;
+    }
+
+    .room-modal-readmore[hidden]{
+      display: none !important;
+    }
+
     .room-modal-info{
       margin-top: 12px;
       padding: 0 72px 4px;  /* doubled indent left & right */
@@ -556,6 +595,7 @@
       grid-column: 2;        /* Property Facilities & Inclusions on the right */
     }
 
+    /* ANCHOR: ROOM_MODAL_PLANS_CSS */
     .room-modal-plans{
       border-top: 1px solid #f3f4f6;
       padding-top: 10px;
@@ -770,6 +810,31 @@
       height: 100%;
       object-fit: cover;
       display: block;
+    }
+
+    .room-desc{
+      display: -webkit-box;
+      -webkit-line-clamp: 4;
+      line-clamp: 4;              /* add this */
+      -webkit-box-orient: vertical;
+      overflow: hidden;
+      line-height: 1.5;
+    }
+
+    .room-desc.is-expanded{
+      -webkit-line-clamp: unset;
+      line-clamp: unset;          /* add this */
+      overflow: visible;
+    }
+
+    .room-desc-toggle{
+      margin-top: 6px;
+      font-size: 13px;
+      color: var(--accent);
+      background: none;
+      border: none;
+      padding: 0;
+      cursor: pointer;
     }
 
     /* ANCHOR: ROOMCAT_PLANS_CSS */
@@ -1580,6 +1645,7 @@
           </div>
           <div class="room-modal-info">
             <p id="roomModalSummary" class="small"></p>
+            <button type="button" id="roomModalReadMore" class="room-modal-readmore" hidden>Read more</button>
 
             <div id="roomModalSpecs" class="small muted"></div>
 
@@ -1594,7 +1660,13 @@
             </div>
           </div>
           <div class="room-modal-plans">
+
+          <!-- ANCHOR: ROOM_MODAL_PLANS_HTML -->
+          <div class="room-modal-plans">
             <p class="room-modal-subtitle">Available plans</p>
+            <div id="roomModalPlans"></div>
+          </div>
+
             <div id="roomModalPlans"></div>
           </div>
         <!-- ANCHOR: ROOM_MODAL_LIGHTBOX -->

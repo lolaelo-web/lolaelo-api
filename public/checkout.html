@@ -3278,8 +3278,6 @@
           });
         } // end init guard
       } // end flatpickr guard
-    }
-      document.addEventListener("DOMContentLoaded", initCheckout);
 
       // Failsafe: ensure the "Update dates" button is wired even if something
       // short-circuits inside initCheckout earlier.
@@ -3461,6 +3459,10 @@
           recomputeSelectedAddons();
         });
       }
+    } // END initCheckout
+
+    // Run init once when DOM is ready (THIS MUST BE OUTSIDE initCheckout)
+    document.addEventListener("DOMContentLoaded", initCheckout);
   </script>
 
 	  <script>
