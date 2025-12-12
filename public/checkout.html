@@ -824,16 +824,17 @@
     gap: 4px;
     font-size: 12px;
     color: var(--muted);
-    margin-left: 8px;      /* stay close to the security icon */
-    max-width: 420px;      /* give the sentence room to stay on one line */
+    margin-left: 8px;
+    margin-top: 10px;   /* <<< drops entire block one line down */
+    max-width: 420px;
   }
 
   .payment-agreement-label {
     display: flex;
-    align-items: center;        /* keep checkbox + text aligned */
+    align-items: center;
     gap: 6px;
     padding: 6px 10px;
-    margin-top: 6px;            /* drop the whole line down slightly */
+    margin-top: 0;     /* reset */
     border-radius: 10px;
     border: 1px solid transparent;
     background: #ffffff;
@@ -1442,9 +1443,16 @@
                       type="checkbox"
                       class="payment-agreement-checkbox"
                     />
-                    <span class="payment-agreement-text">
-                      I agree to Lolaelo’s Terms of Use and Privacy Policy.
-                    </span>
+                  <span class="payment-agreement-text">
+                    I agree to Lolaelo’s
+                    <a href="/public/terms.html" target="_blank" style="color:#0f766e; text-decoration:underline;">
+                      Terms of Use
+                    </a>
+                    and
+                    <a href="/public/privacy.html" target="_blank" style="color:#0f766e; text-decoration:underline;">
+                      Privacy Policy
+                    </a>.
+                  </span>
                   </label>
                   <div id="termsError" class="terms-error" style="display:none;">
                     Please agree to the Terms of Use and Privacy Policy to continue.

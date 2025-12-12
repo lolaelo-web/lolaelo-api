@@ -147,7 +147,9 @@
       align-items:center;
       justify-content:space-between;
       gap:12px;
-      margin-top:8px;
+
+      /* DROP THE THREE BUTTONS DOWN */
+      margin-top:20px;
     }
 
     .subhead-actions{
@@ -159,13 +161,17 @@
     .map-toggle-btn{
       display:inline-flex;
       align-items:center;
-      gap:8px;
-      padding:10px 20px;
+      gap:6px;
+
+      min-height:36px;          /* unified height with sort-select */
+      padding:6px 16px;         /* unified padding */
+
       border-radius:999px;
       border:1px solid rgba(255,106,61,0.75); /* subtle orange outline */
       background:#ffffff;
       color:var(--muted);
-      font-size:16px;
+      font-size:13px;           /* match sort-select */
+      line-height:1;            /* tighten vertical alignment */
       cursor:pointer;
       box-shadow:0 2px 4px rgba(15,23,42,0.06);
       transition:
@@ -313,19 +319,26 @@
     }
 
     .sort-select{
+      min-height:36px;                   /* MATCH BUTTONS */
+      padding:6px 16px;                  /* MATCH BUTTONS */
+
       border-radius:999px;
       border:1px solid rgba(255,106,61,0.45);
-      padding:6px 18px;
+
       background:#ffffff;
       font-size:13px;
+      line-height:1;                     /* MATCH TEXT */
       color:var(--fg);
-      outline:none;
+
       cursor:pointer;
+      outline:none;
+
       background-image:
         linear-gradient(#ffffff, #ffffff),
         linear-gradient(135deg, #ffd7c2 0%, #ffb08a 50%, #ff8b55 100%);
       background-origin:border-box;
       background-clip:padding-box, border-box;
+
       appearance:none;
       -webkit-appearance:none;
       -moz-appearance:none;
@@ -966,7 +979,7 @@
 
           <!-- Sort dropdown (right) -->
           <select id="sort-order" class="sort-select">
-            <option value="">Sort by</option>
+            <option value="">Sort by ▲ ▼</option>
             <option value="price-asc">Price (low to high)</option>
             <option value="price-desc">Price (high to low)</option>
           </select>
