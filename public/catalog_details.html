@@ -487,10 +487,18 @@
     }
 
     .room-modal-top{
-      display: flex;
-      flex-direction: column;
-      gap: 6px;
+      padding: 18px 26px 8px;
+      display:flex;
+      flex-direction:column;
+      gap:10px;
+      align-items:stretch; /* key: allow children to use full width */
     }
+    /* Keep description/specs full width inside the modal */
+    #roomModalSummary,
+    #roomModalSpecs{
+      width: 100%;
+    }
+
     .room-modal-top h2{
       margin: 0;
       font-size: 18px;

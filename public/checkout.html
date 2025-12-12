@@ -1140,6 +1140,12 @@
                 </div>
               </div>
               <div class="field-row">
+                <div class="field-label">Room Quantity</div>
+                <div class="field-value">
+                  <div id="roomQty">1</div>
+                </div>
+              </div>
+              <div class="field-row">
                 <div class="field-label">Rate plan</div>
                 <div class="field-value">
                   <div id="ratePlanName"></div>
@@ -1705,6 +1711,8 @@
         propertyLocation: params.get("propertyLocation") || "",
         roomName: params.get("roomName") || "",
 
+        qty: params.get("qty") || "1",
+
         // Rate plan display name – prefer explicit name, fall back to planLabel
         ratePlanName:
           params.get("ratePlanName") ||
@@ -2255,6 +2263,7 @@
     const state = {
       propertyId: "",
       roomId: "",
+      qty: 1,
       start: "",
       end: "",
       ratePlanId: "",
@@ -2299,6 +2308,8 @@
       if (roomNameEl) roomNameEl.textContent = roomText;
       const planNameEl = document.getElementById("ratePlanName");
       if (planNameEl) planNameEl.textContent = planText;
+      const qtyEl = document.getElementById("roomQty");
+      if (qtyEl) qtyEl.textContent = String(state.qty || 1);
 
       // Summary card on the right
       document.getElementById("summaryProperty").textContent = propertyText;
@@ -3041,6 +3052,7 @@
       const q = parseQuery();
       state.propertyId = q.propertyId;
       state.roomId = q.roomId;
+      state.qty = Math.max(1, Number.parseInt(q.qty, 10) || 1);
       state.start = q.start;
       state.end = q.end;
       state.ratePlanId = q.ratePlanId;
