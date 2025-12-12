@@ -977,42 +977,68 @@
     }
   }
 
+  #checkout-dates-driver{
+    position:absolute;
+    opacity:0;
+    pointer-events:none;
+    height:0;
+    width:0;
+  }
+
   /* === CHECKOUT DATE CARD (stacked) === */
   .checkout-dates-shell{
-    display: flex;
-    flex-direction: column;      /* stack vertically */
-    align-items: flex-end;       /* align to the right edge */
-    gap: 10px;
-    width: 100%;
-    position: relative;
-    z-index: 2;
+    display:flex;
+    flex-direction:column;      /* stack vertically */
+    align-items:flex-end;       /* align to right */
+    gap:10px;
+    width:100%;
+    position:relative;
   }
 
-  /* Ensure nothing overlays the date pill */
-  .checkout-dates-shell *{
-    pointer-events: auto;
-  }
-
-  /* Date range pill */
-  .checkout-dates-display{
-    width: 100%;
-    max-width: 260px;
-    position: relative;
-    z-index: 3;
-  }
-
-  /* Update dates button — single source of truth */
+  /* Ensure the pill and button are block-level and stack cleanly */
+  #checkout-dates-display,
   #checkout-dates-apply{
-    align-self: flex-end;
-    margin: 0;
-    transform: none;
-    padding: 6px 12px;
-    border-radius: 999px;
-    border: 1px solid var(--bubble);
-    background: transparent;
-    font-size: 12px;
-    font-weight: 500;
-    cursor: pointer;
+    display:block;
+  }
+
+  /* Pill sizing stays consistent */
+  .checkout-dates-display{
+    width:100%;
+    max-width:260px;
+  }
+
+  /* If anything inside the card was intercepting clicks, keep clicks enabled */
+  .checkout-dates-shell *{
+    pointer-events:auto;
+  }
+
+  /* One source of truth for Update button */
+  #checkout-dates-apply{
+    margin:0 !important;
+    transform:none !important;
+    align-self:flex-end;
+    padding:6px 12px;
+    border-radius:999px;
+    border:1px solid var(--bubble);
+    background:transparent;
+    font-size:12px;
+    font-weight:500;
+    cursor:pointer;
+    white-space:nowrap;
+  }
+
+  /* Driver input: hide without display:none so flatpickr can position properly */
+  #checkout-dates-driver{
+    position:absolute;
+    opacity:0;
+    pointer-events:none;
+    height:0;
+    width:0;
+  }
+
+  /* Keep the calendar anchored near the pill (not top-left) */
+  .checkout-dates-shell .flatpickr-calendar{
+    z-index: 9999;
   }
 
   /* collapse into 1 column on small screens */
@@ -3131,72 +3157,16 @@
         });
       }
 
-      // Date card wiring for Section 2
+      // Date card wiring for Section 2 (flatpickr range + anchored to pill)
       const datesCardWrapper = document.getElementById("checkoutDatesCardWrapper");
-      const checkInInput    = document.getElementById("checkout-checkin");
-      const checkOutInput   = document.getElementById("checkout-checkout");
-      const applyBtn        = document.getElementById("checkout-dates-apply");
 
-      // ANCHOR: CHECKOUT_DATE_UI_OPEN
-      // If the newer "Select dates" UI exists, wire it to open the picker without scroll-jump.
-      // Safe: no-op if those elements don't exist.
-      const datesDisplayBtn = document.getElementById("checkout-dates-display");
-      const datesDriver     = document.getElementById("checkout-dates-driver");
+      // NEW ids (match catalog_details pattern)
+      const rangeDriver  = document.getElementById("checkout-dates-driver");          // hidden text input
+      const displayBtn   = document.getElementById("checkout-dates-display");         // the date pill button
+      const displayLabel = document.getElementById("checkout-dates-display-label");   // text inside pill
 
-      function openDatesPickerNoScroll(e){
-        if (e) {
-          e.preventDefault();
-          e.stopPropagation();
-        }
-
-        // Flatpickr path (new UI)
-        if (datesDriver && datesDriver._flatpickr) {
-          datesDriver._flatpickr.open();
-          return;
-        }
-
-        // Fallback path (native inputs)
-        if (checkInInput) {
-          try {
-            // Chrome supports showPicker on date inputs
-            if (typeof checkInInput.showPicker === "function") {
-              checkInInput.showPicker();
-            } else {
-              checkInInput.focus({ preventScroll: true });
-              checkInInput.click();
-            }
-          } catch (_) {
-            checkInInput.focus();
-          }
-        }
-      }
-
-      if (datesDisplayBtn) {
-        datesDisplayBtn.addEventListener("click", openDatesPickerNoScroll);
-      }
-      // Also allow clicking the pill shell itself (if you used one)
-      const datesDisplayShell = document.querySelector(".checkout-dates-display");
-      if (datesDisplayShell && datesDisplayShell !== datesDisplayBtn) {
-        datesDisplayShell.addEventListener("click", openDatesPickerNoScroll);
-      }
-
-      // Initialize inputs from state/query (use raw strings, no timezone conversion)
-      if (checkInInput && checkOutInput) {
-        try {
-          if (state.start) checkInInput.value = state.start;
-          if (state.end)   checkOutInput.value = state.end;
-        } catch (_) {
-          // ignore
-        }
-      }
-
-      const editDatesLink = document.getElementById("editDatesLink");
-      if (editDatesLink && datesCardWrapper) {
-        editDatesLink.addEventListener("click", function () {
-          const visible = datesCardWrapper.style.display === "flex";
-          datesCardWrapper.style.display = visible ? "none" : "flex";
-        });
-      }
+      // Keep these for apply/URL update
+      const applyBtn     = document.getElementById("checkout-dates-apply");
 
       // Helper: format a Date as local YYYY-MM-DD (no timezone shift)
       function formatLocalYmd(d) {
@@ -3206,49 +3176,110 @@
         return `${y}-${m}-${dd}`;
       }
 
-      if (applyBtn && checkInInput && checkOutInput) {
-        // Mark as wired so the failsafe handler at the bottom does not double-attach
-        applyBtn.dataset.wiredDates = "1";
+      function formatMmddyyyy(d) {
+        const m = String(d.getMonth() + 1).padStart(2, "0");
+        const dd = String(d.getDate()).padStart(2, "0");
+        const y = d.getFullYear();
+        return `${m}/${dd}/${y}`;
+      }
 
-        applyBtn.addEventListener("click", function () {
-          const ciRaw = checkInInput.value || state.start || "";
-          const coRaw = checkOutInput.value || state.end   || "";
-
-          // Need at least a start date
-          if (!ciRaw) return;
-
-          // Use the same local-ymd parsing helper used elsewhere
-          const ciDate = parseLocalYMD(ciRaw);
-          if (!ciDate) return;
-
-          let endDate = null;
-
-          // If there is an end date and it is AFTER the start, keep it
-          if (coRaw) {
-            const parsedEnd = parseLocalYMD(coRaw);
-            if (parsedEnd && parsedEnd > ciDate) {
-              endDate = parsedEnd;
-            }
-          }
-
-          // Otherwise default end date to start + 1 day
-          if (!endDate) {
-            endDate = new Date(ciDate.getTime());
-            endDate.setDate(ciDate.getDate() + 1);
-          }
-
-          const finalStart = formatLocalYmd(ciDate);
-          const finalEnd   = formatLocalYmd(endDate);
-
-          const qsNext = new URLSearchParams(location.search);
-          qsNext.set("start", finalStart);
-          qsNext.set("end",   finalEnd);
-
-          const nextUrl = `${location.pathname}?${qsNext.toString()}`;
-          location.assign(nextUrl);
-        });
+      function setDisplayText(startDate, endDate) {
+        if (!displayLabel) return;
+        if (startDate && endDate) {
+          displayLabel.textContent = `${formatMmddyyyy(startDate)} to ${formatMmddyyyy(endDate)}`;
+        } else if (startDate) {
+          displayLabel.textContent = `${formatMmddyyyy(startDate)} to`;
+        } else {
+          displayLabel.textContent = "Select dates";
+        }
       }
     }
+      const editDatesLink = document.getElementById("editDatesLink");
+      if (editDatesLink && datesCardWrapper) {
+        editDatesLink.addEventListener("click", function () {
+          const visible = datesCardWrapper.style.display === "flex";
+          datesCardWrapper.style.display = visible ? "none" : "flex";
+        });
+      }
+
+      // Bail if required elements aren’t present
+      if (rangeDriver && displayBtn && applyBtn && window.flatpickr) {
+        // Prevent double-init
+        if (!rangeDriver._checkoutFp) {
+
+          // Seed initial dates from state (YYYY-MM-DD)
+          const seedStart = parseLocalYMD(state.start);
+          const seedEnd   = parseLocalYMD(state.end);
+
+          setDisplayText(seedStart || null, seedEnd || null);
+
+          const keepScroll = () => {
+            const y = window.scrollY;
+            requestAnimationFrame(() => window.scrollTo(0, y));
+          };
+
+          const fp = flatpickr(rangeDriver, {
+            mode: "range",
+            dateFormat: "Y-m-d",
+            allowInput: false,
+            clickOpens: false,                 // we open via the pill
+            closeOnSelect: false,              // keep open after start; close after end
+            positionElement: displayBtn,       // anchor to the pill (fixes top-left)
+            appendTo: datesCardWrapper || document.body,
+
+            defaultDate: (seedStart && seedEnd) ? [formatLocalYmd(seedStart), formatLocalYmd(seedEnd)]
+                      : (seedStart) ? [formatLocalYmd(seedStart)]
+                      : null,
+
+            onOpen: function () {
+              keepScroll(); // guard against jump scroll
+            },
+
+            onChange: function (selectedDates) {
+              const s = (selectedDates && selectedDates[0]) ? selectedDates[0] : null;
+              const e = (selectedDates && selectedDates[1]) ? selectedDates[1] : null;
+              setDisplayText(s, e);
+              keepScroll();
+            }
+          });
+
+          rangeDriver._checkoutFp = fp;
+
+          // Open calendar when clicking the pill
+          displayBtn.addEventListener("click", function (e) {
+            e.preventDefault();
+            e.stopPropagation();
+            fp.open();
+            keepScroll();
+          });
+
+          // Apply button: read from flatpickr selection, normalize, then reload URL
+          applyBtn.addEventListener("click", function () {
+            const sel = fp.selectedDates || [];
+            const s = sel[0] || parseLocalYMD(state.start) || null;
+            let e = sel[1] || parseLocalYMD(state.end) || null;
+
+            if (!s) return;
+
+            // Ensure end exists and is after start
+            if (!e || e <= s) {
+              e = new Date(s.getTime());
+              e.setDate(s.getDate() + 1);
+            }
+
+            const finalStart = formatLocalYmd(s);
+            const finalEnd   = formatLocalYmd(e);
+
+            const qsNext = new URLSearchParams(location.search);
+            qsNext.set("start", finalStart);
+            qsNext.set("end", finalEnd);
+
+            location.assign(`${location.pathname}?${qsNext.toString()}`);
+          });
+
+        } // end init guard
+      } // end flatpickr guard
+      
       document.addEventListener("DOMContentLoaded", initCheckout);
 
       // Failsafe: ensure the "Update dates" button is wired even if something
