@@ -977,8 +977,35 @@
     }
   }
 
-  #checkout-dates-apply {
+  /* === CHECKOUT DATE CARD (stacked) === */
+  .checkout-dates-shell{
+    display: flex;
+    flex-direction: column;      /* stack vertically */
+    align-items: flex-end;       /* align to the right edge */
+    gap: 10px;
+    width: 100%;
+    position: relative;
+    z-index: 2;
+  }
+
+  /* Ensure nothing overlays the date pill */
+  .checkout-dates-shell *{
+    pointer-events: auto;
+  }
+
+  /* Date range pill */
+  .checkout-dates-display{
+    width: 100%;
+    max-width: 260px;
+    position: relative;
+    z-index: 3;
+  }
+
+  /* Update dates button — single source of truth */
+  #checkout-dates-apply{
     align-self: flex-end;
+    margin: 0;
+    transform: none;
     padding: 6px 12px;
     border-radius: 999px;
     border: 1px solid var(--bubble);
@@ -3109,6 +3136,49 @@
       const checkInInput    = document.getElementById("checkout-checkin");
       const checkOutInput   = document.getElementById("checkout-checkout");
       const applyBtn        = document.getElementById("checkout-dates-apply");
+
+      // ANCHOR: CHECKOUT_DATE_UI_OPEN
+      // If the newer "Select dates" UI exists, wire it to open the picker without scroll-jump.
+      // Safe: no-op if those elements don't exist.
+      const datesDisplayBtn = document.getElementById("checkout-dates-display");
+      const datesDriver     = document.getElementById("checkout-dates-driver");
+
+      function openDatesPickerNoScroll(e){
+        if (e) {
+          e.preventDefault();
+          e.stopPropagation();
+        }
+
+        // Flatpickr path (new UI)
+        if (datesDriver && datesDriver._flatpickr) {
+          datesDriver._flatpickr.open();
+          return;
+        }
+
+        // Fallback path (native inputs)
+        if (checkInInput) {
+          try {
+            // Chrome supports showPicker on date inputs
+            if (typeof checkInInput.showPicker === "function") {
+              checkInInput.showPicker();
+            } else {
+              checkInInput.focus({ preventScroll: true });
+              checkInInput.click();
+            }
+          } catch (_) {
+            checkInInput.focus();
+          }
+        }
+      }
+
+      if (datesDisplayBtn) {
+        datesDisplayBtn.addEventListener("click", openDatesPickerNoScroll);
+      }
+      // Also allow clicking the pill shell itself (if you used one)
+      const datesDisplayShell = document.querySelector(".checkout-dates-display");
+      if (datesDisplayShell && datesDisplayShell !== datesDisplayBtn) {
+        datesDisplayShell.addEventListener("click", openDatesPickerNoScroll);
+      }
 
       // Initialize inputs from state/query (use raw strings, no timezone conversion)
       if (checkInInput && checkOutInput) {
