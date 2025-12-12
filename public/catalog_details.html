@@ -183,9 +183,9 @@
     }
 
     /* ANCHOR: DETAILS_DATE_BAR_CSS */
-    .detail-date-bar{
+.detail-date-bar{
       display:flex;
-      align-items:flex-end;
+      align-items:center;           /* center pill and button vertically */
       gap:8px;
 
       margin-top:2px;
@@ -214,7 +214,7 @@
       align-items:center;
       gap:8px;
       border-radius:12px;
-      border:1px solid var(--border-subtle);
+      border:1px solid var(--line);       /* match outer card outline */
       background:var(--surface-subtle);
       padding:6px 10px;
     }
@@ -1687,12 +1687,31 @@
           }
         });
 
-        // Clicking the visible pill opens the calendar
+        // Clicking the visible pill opens the calendar (or falls back to native picker)
         if (displayBtn) {
           displayBtn.addEventListener("click", function () {
-            if (fp) fp.open();
+            if (fp && typeof fp.open === "function") {
+              fp.open();
+              return;
+            }
+            if (checkInInput) {
+              checkInInput.focus();
+              if (typeof checkInInput.showPicker === "function") {
+                checkInInput.showPicker();
+              }
+            }
           });
         }
+      } else if (displayBtn) {
+        // No flatpickr loaded: still make the pill do something useful
+        displayBtn.addEventListener("click", function () {
+          if (checkInInput) {
+            checkInInput.focus();
+            if (typeof checkInInput.showPicker === "function") {
+              checkInInput.showPicker();
+            }
+          }
+        });
       }
 
       // Fallback: if someone changes check-in (keyboard, etc.), keep end ≥ start+1 and refresh label
@@ -1727,7 +1746,6 @@
         const ciRaw = checkInInput.value || start;
         const coRaw = checkOutInput.value || end;
 
-        // Need at least a start date to do anything useful
         if (!ciRaw) return;
 
         const ciDate = parseLocalYmd(ciRaw);
@@ -1737,7 +1755,6 @@
         if (ciDate) {
           let endDate = null;
 
-          // If there is an end date and it is after the start, keep it.
           if (coRaw) {
             const parsedEnd = parseLocalYmd(coRaw);
             if (parsedEnd && parsedEnd > ciDate) {
@@ -1745,7 +1762,6 @@
             }
           }
 
-          // Otherwise, default end date to start + 1 day
           if (!endDate) {
             endDate = new Date(ciDate.getTime());
             endDate.setDate(ciDate.getDate() + 1);

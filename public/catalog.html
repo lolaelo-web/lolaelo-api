@@ -742,6 +742,37 @@
       color:#ff6a3d;
       text-decoration:none;
     }
+
+    /* === ANCHOR: CATALOG_BUTTON_STANDARDIZATION === */
+    /* Standard navy text */
+    .catalog-btn-navy {
+      color: #0f1e4d !important; /* dark navy blue */
+      font-weight: 500;
+    }
+
+    /* Standard outline pill (same as Map pill) */
+    .catalog-btn-outline {
+      background: #ffffff !important;
+      border: 1px solid rgba(15, 23, 42, 0.18) !important; /* subtle navy/gray outline */
+      border-radius: 999px !important;
+      padding: 6px 14px !important;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      transition: background 0.15s ease, box-shadow 0.15s ease;
+    }
+
+    .catalog-btn-outline:hover {
+      background: #f2f6ff !important; /* soft blue hover */
+      box-shadow: 0 2px 8px rgba(15, 23, 42, 0.12);
+    }
+
+    /* Fix for inline <button> and <summary> */
+    .catalog-btn-outline:focus {
+      outline: none !important;
+    }
+
   </style>
 </head>
 <body>
@@ -869,7 +900,7 @@
       <button
         type="button"
         id="catalog-map-open"
-        class="map-toggle-btn"
+        class="map-toggle-btn catalog-btn-outline catalog-btn-navy"
         aria-label="View results on map"
       >
         <img
@@ -886,7 +917,7 @@
     <!-- ANCHOR: FILTERS_DETAILS (amenities only) -->
     <details id="amenities" class="filters">
       <summary>
-        <span class="summary-pill">Filters ></span>
+        <span class="summary-pill catalog-btn-outline catalog-btn-navy">Filters ⚙️</span>
       </summary>
       <div class="filters-body">
         <label><input type="checkbox" value="beachfront"> Beachfront</label>
@@ -1202,8 +1233,14 @@
             <div class="price">${price}</div>
           </div>
           <div class="foot">
-            <a class="details-btn" href="${link}">Details</a>
+            <a
+              class="details-btn catalog-btn-outline catalog-btn-navy"
+              href="${link}"
+            >
+              Details
+            </a>
           </div>
+
         </div>
       </article>
       `;
