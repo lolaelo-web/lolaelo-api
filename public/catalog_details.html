@@ -857,6 +857,14 @@
       padding: 0;
       cursor: pointer;
     }
+
+    /* Make the Room Description span full modal width (keep the 2-column lists below) */
+    .room-desc-block{
+      grid-column: 1 / -1;
+      width: 100%;
+      max-width: 100%;
+    }
+
     /* ANCHOR: ROOMCAT_PLANS_CSS */
     .roomcat .toggle {
       appearance: none;
@@ -1684,16 +1692,18 @@
       </div>
 
       <div class="room-modal-info">
-        <div class="room-desc">
-          <div id="roomModalSummary" class="room-desc-text"></div>
-          <button
-            type="button"
-            id="roomModalReadMore"
-            class="room-desc-toggle"
-            hidden
-          >
-            Read more
-          </button>
+        <div class="room-desc-block">
+          <div class="room-desc">
+            <div id="roomModalSummary" class="room-desc-text"></div>
+            <button
+              type="button"
+              id="roomModalReadMore"
+              class="room-desc-toggle"
+              hidden
+            >
+              Read more
+            </button>
+          </div>
         </div>
 
         <div id="roomModalSpecs" class="small muted"></div>
