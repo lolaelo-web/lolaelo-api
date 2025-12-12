@@ -743,34 +743,40 @@
       text-decoration:none;
     }
 
-    /* === ANCHOR: CATALOG_BUTTON_STANDARDIZATION === */
-    /* Standard navy text */
+    /* === ANCHOR: CATALOG_BUTTON_STANDARDIZATION (UPDATED GRADIENT OUTLINE) === */
+
+    /* Shared navy text */
     .catalog-btn-navy {
       color: #0f1e4d !important; /* dark navy blue */
       font-weight: 500;
     }
 
-    /* Standard outline pill (same as Map pill) */
+    /* Gradient outline pill */
     .catalog-btn-outline {
       background: #ffffff !important;
-      border: 1px solid rgba(15, 23, 42, 0.18) !important; /* subtle navy/gray outline */
       border-radius: 999px !important;
       padding: 6px 14px !important;
       display: inline-flex;
       align-items: center;
       justify-content: center;
       cursor: pointer;
-      transition: background 0.15s ease, box-shadow 0.15s ease;
+      transition: background 0.15s ease, box-shadow 0.15s ease, border-color 0.15s;
+      border: 1px solid transparent !important;
+
+      /* Light orange gradient outline */
+      background-image:
+        linear-gradient(#ffffff, #ffffff),
+        linear-gradient(135deg, #ffd7c2 0%, #ffb08a 50%, #ff8b55 100%);
+      background-origin: border-box;
+      background-clip: padding-box, border-box;
     }
 
+    /* Hover state: brighter gradient + soft glow */
     .catalog-btn-outline:hover {
-      background: #f2f6ff !important; /* soft blue hover */
-      box-shadow: 0 2px 8px rgba(15, 23, 42, 0.12);
-    }
-
-    /* Fix for inline <button> and <summary> */
-    .catalog-btn-outline:focus {
-      outline: none !important;
+      background-image:
+        linear-gradient(#ffffff, #ffffff),
+        linear-gradient(135deg, #ffb997 0%, #ff9463 50%, #ff6a3d 100%);
+      box-shadow: 0 2px 10px rgba(255, 106, 61, 0.25);
     }
 
   </style>
