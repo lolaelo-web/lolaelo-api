@@ -874,6 +874,34 @@
     }
 
     /* ANCHOR: ROOMCAT_PLANS_CSS */
+    .qty-inline{
+      display:flex;
+      align-items:center;
+      justify-content:space-between;
+      gap:10px;
+      margin-top:8px;
+      padding:8px 10px;
+      border:1px solid rgba(0,0,0,0.08);
+      border-radius:12px;
+      background:#fff;
+    }
+    .qty-avail{
+      font-size:13px;
+      color:#0f172a;
+    }
+    .qty-label{
+      font-size:12px;
+      color:#475569;
+      margin-right:8px;
+    }
+    .qty-select{
+      height:34px;
+      border-radius:10px;
+      border:1px solid rgba(0,0,0,0.15);
+      padding:0 10px;
+      background:#fff;
+    }
+
     .roomcat .toggle {
       appearance: none;
       border: 1px solid var(--line);
@@ -3091,6 +3119,24 @@
         const listEl = document.getElementById('roomCats');
         if (!listEl) return;
 
+        // === QTY SELECTION STATE (v1) ===
+        // key: `${roomId}|${planId}` -> qty
+        const qtyByRoomPlanKey = Object.create(null);
+
+        function qpKey(roomId, planId){
+          return `${String(roomId)}|${String(planId)}`;
+        }
+        function clampInt(n, lo, hi){
+          const x = Number.parseInt(n, 10);
+          if (!Number.isFinite(x)) return lo;
+          return Math.max(lo, Math.min(hi, x));
+        }
+        function getAvailForRoom(roomId){
+          const el = document.querySelector(`.roomcat[data-room-id="${CSS.escape(String(roomId))}"]`);
+          const v = el ? Number(el.getAttribute('data-available-rooms') || 0) : 0;
+          return Number.isFinite(v) ? Math.max(0, v) : 0;
+        }
+
         // local helpers
         function getSelectedPlanIds(){
           try { const a = JSON.parse(localStorage.getItem('rateplan.selectedIds')||'[]'); return Array.isArray(a)?a.map(Number).filter(Number.isFinite):[]; }
@@ -3412,7 +3458,7 @@
           }
 
           return `
-            <div class="roomcat" data-room-id="${rid}">
+            <div class="roomcat" data-room-id="${rid}" data-available-rooms="${Number(room.availableRooms ?? 0)}">
             ${ (plans && plans.length >= 1)
                 ? `<button class="toggle" type="button" aria-expanded="false" aria-label="Show plans" tabindex="0" role="button">+</button>`
                 : `<span class="visually-hidden">Single rate plan</span>` }
@@ -3575,7 +3621,7 @@
             }
           }
 
-                    function renderPlanRows(roomId, plans){
+          function renderPlanRows(roomId, plans){
             const sel = selectedIds();
             const plansQS = sel.length ? `&plans=${encodeURIComponent(sel.join(','))}` : '';
             const inScope = sel.length ? plans.filter(p => sel.includes(p.id)) : plans.slice();
@@ -3584,45 +3630,64 @@
             const { propertyName, propertyLocation } = getCheckoutMeta();
             const roomName = getRoomNameForCheckout(roomId);
 
-            const rows = rowsSource
-              .map(p => {
-                const name = labelFor(p);
-                const desc = describePlan(p);
+            // availability is stored on the roomcat DOM node by Step B
+            const maxAvail = getAvailForRoom(roomId);
 
-                const rawPrice = getPlanPriceForRoom(roomId, p.id);
-                const hasPrice = rawPrice != null && Number.isFinite(Number(rawPrice));
-                const priceLabel = hasPrice ? money(rawPrice) : null;
-                const priceHtml = hasPrice
-                  ? `<div class="meta"><strong>${priceLabel}</strong> / night</div>`
-                  : '';
+            const rows = rowsSource.map(p => {
+              const name = labelFor(p);
+              const desc = describePlan(p);
 
-                const url =
-                  `/checkout.html?propertyId=${encodeURIComponent(propertyId)}` +
-                  `&propertyName=${encodeURIComponent(propertyName)}` +
-                  (propertyLocation ? `&propertyLocation=${encodeURIComponent(propertyLocation)}` : '') +
-                  `&roomId=${encodeURIComponent(roomId)}` +
-                  `&roomName=${encodeURIComponent(roomName)}` +
-                  `&start=${encodeURIComponent(start)}` +
-                  `&end=${encodeURIComponent(end)}` +
-                  `&ratePlanId=${encodeURIComponent(p.id)}` +
-                  `&planLabel=${encodeURIComponent(name)}` +
-                  `${plansQS}`;
+              const rawPrice = getPlanPriceForRoom(roomId, p.id);
+              const hasPrice = rawPrice != null && Number.isFinite(Number(rawPrice));
+              const priceLabel = hasPrice ? money(rawPrice) : null;
+              const priceHtml = hasPrice ? `<div class="meta"><strong>${priceLabel}</strong> / night</div>` : '';
 
-                return `
-                  <div class="planrow" data-plan-id="${p.id}">
-                    <div>
-                      <div class="planname">${name}</div>
-                      <div class="meta">${desc}</div>
-                      ${priceHtml}
-                    </div>
-                    <a class="roomcat-plan-btn"
-                        href="${url}"
-                        aria-label="Book now with this rate"
-                      >
-                        Book now
-                      </a>
-                  </div>`;
-              }).join('');
+              // current qty (default 0)
+              const key = qpKey(roomId, p.id);
+              const cur = clampInt(qtyByRoomPlanKey[key] ?? 0, 0, maxAvail);
+
+              // build qty options 0..maxAvail
+              let opts = "";
+              for (let i = 0; i <= maxAvail; i++){
+                opts += `<option value="${i}" ${i === cur ? "selected" : ""}>${i}</option>`;
+              }
+
+              const url =
+                `/checkout.html?propertyId=${encodeURIComponent(propertyId)}` +
+                `&propertyName=${encodeURIComponent(propertyName)}` +
+                (propertyLocation ? `&propertyLocation=${encodeURIComponent(propertyLocation)}` : '') +
+                `&roomId=${encodeURIComponent(roomId)}` +
+                `&roomName=${encodeURIComponent(roomName)}` +
+                `&start=${encodeURIComponent(start)}` +
+                `&end=${encodeURIComponent(end)}` +
+                `&ratePlanId=${encodeURIComponent(p.id)}` +
+                `&planLabel=${encodeURIComponent(name)}` +
+                `${plansQS}` +
+                `&qty=${encodeURIComponent(cur)}`;
+
+              // NOTE: pure string concatenation to avoid nested template literal issues
+              return (
+                `<div class="planrow" data-plan-id="${p.id}">` +
+                  `<div>` +
+                    `<div class="planname">${name}</div>` +
+                    `<div class="meta">${desc}</div>` +
+                    `${priceHtml}` +
+                  `</div>` +
+
+                  `<div class="qty-inline">` +
+                    `<div class="qty-avail">Available: <span class="qty-avail-val">${maxAvail}</span></div>` +
+                    `<div class="qty-pick">` +
+                      `<label class="qty-label" for="qty_${roomId}_${p.id}">Qty</label>` +
+                      `<select class="qty-select" id="qty_${roomId}_${p.id}" data-room-id="${roomId}" data-plan-id="${p.id}">` +
+                        `${opts}` +
+                      `</select>` +
+                    `</div>` +
+                  `</div>` +
+
+                  `<a class="roomcat-plan-btn" href="${url}" aria-label="Book now with this rate">Book now</a>` +
+                `</div>`
+              );
+            }).join('');
 
             return rows;
           }
@@ -3680,6 +3745,75 @@
             if (!plans.length) continue;
 
             panel.innerHTML = renderPlanRows(rid, plans);          // render rows
+            // wire qty selects inside this panel
+            panel.querySelectorAll('.qty-select').forEach(selEl => {
+              selEl.addEventListener('change', (e) => {
+                const el = e.currentTarget;
+                const roomId = String(el.getAttribute('data-room-id') || '');
+                const planId = String(el.getAttribute('data-plan-id') || '');
+                const max = getAvailForRoom(roomId);
+                const qty = clampInt(el.value, 0, max);
+
+                const key = qpKey(roomId, planId);
+                qtyByRoomPlanKey[key] = qty;
+
+                // update the adjacent Book now link inside the same planrow
+                const row = el.closest('.planrow');
+                const a = row ? row.querySelector('a.roomcat-plan-btn') : null;
+                if (a && a.getAttribute('href')) {
+                  const href = a.getAttribute('href');
+                  const base = href.replace(/([?&])qty=\d+(&?)/, (m, p1, p2) => (p2 ? p1 : ''));
+                  const join = base.includes('?') ? '&' : '?';
+                  a.setAttribute('href', `${base}${join}qty=${encodeURIComponent(qty)}`);
+                }
+
+                // Persist normalized selection object (groundwork for cart later)
+                try {
+                  const selKey = "checkout.selection.v1";
+
+                  // Read existing selection, or create new
+                  let selObj = null;
+                  try { selObj = JSON.parse(localStorage.getItem(selKey) || "null"); } catch (_) { selObj = null; }
+
+                  if (!selObj || typeof selObj !== "object") {
+                    selObj = { propertyId: String(propertyId), start: String(start), end: String(end), items: [] };
+                  }
+
+                  // Always keep these aligned to current page context
+                  selObj.propertyId = String(propertyId);
+                  selObj.start = String(start);
+                  selObj.end = String(end);
+                  if (!Array.isArray(selObj.items)) selObj.items = [];
+
+                  const roomTypeId = String(roomId);
+                  const ratePlanId = String(planId);
+
+                  // Pull labels from DOM for accuracy
+                  const row = el.closest(".planrow");
+                  const planLabel = row && row.querySelector(".planname") ? row.querySelector(".planname").textContent.trim() : "";
+                  const roomName = (typeof getRoomNameForCheckout === "function") ? String(getRoomNameForCheckout(roomTypeId) || "") : "";
+
+                  // Upsert or delete item
+                  const idx = selObj.items.findIndex(it => String(it.roomTypeId) === roomTypeId && String(it.ratePlanId) === ratePlanId);
+
+                  if (qty <= 0) {
+                    if (idx >= 0) selObj.items.splice(idx, 1);
+                  } else {
+                    const item = { roomTypeId, ratePlanId, qty: Number(qty), roomName, planLabel };
+                    if (idx >= 0) selObj.items[idx] = item;
+                    else selObj.items.push(item);
+                  }
+
+                  localStorage.setItem(selKey, JSON.stringify(selObj));
+                  console.log("[details][qty][persist] saved", selObj);
+                } catch (e) {
+                  console.warn("[details][qty][persist] failed", e);
+                }
+
+                console.log('[details][qty] set', { roomId, planId, qty, max });
+              });
+            });
+
             panel.setAttribute('data-hydrated', 'true');           // mark as partner-authoritative
             panel.dataset.hydratedAt = String(Date.now());         // (optional) timestamp for debugging
 
