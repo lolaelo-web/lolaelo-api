@@ -444,12 +444,15 @@
 
     .room-modal-body{
       display: grid;
-      /* approx 40% for hero block, 60% for details + plans */
-      grid-template-rows: auto minmax(180px, 2fr) minmax(240px, 3fr);
+      /* top | hero | info | plans */
+      grid-template-rows: auto minmax(180px, 2fr) auto minmax(240px, 3fr);
       gap: 12px;
       padding: 18px 18px 20px;
-      overflow-y: auto;   /* allow vertical scroll so thumbs + plans are always reachable */
-      min-height: 0;      /* required for scrollable grid inside flex parent */
+
+      /* make the body the scrollable region of the modal */
+      flex: 1;
+      overflow-y: auto;
+      min-height: 0;
     }
 
     .room-modal-top{
@@ -649,8 +652,8 @@
     @media (max-width: 640px){
       .room-modal-body{
         padding: 14px 14px 16px;
-        /* keep same 40/60 bias but slightly more compact on small screens */
-        grid-template-rows: auto minmax(150px, 2fr) minmax(200px, 3fr);
+        /* top | hero | info | plans */
+        grid-template-rows: auto minmax(150px, 2fr) auto minmax(200px, 3fr);
       }
     }
 
