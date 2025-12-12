@@ -456,6 +456,22 @@
       min-height: 0;
     }
 
+    /* ANCHOR: ROOM_MODAL_PADDING_AND_COLUMNS */
+    .room-modal-two-cols{
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 24px;
+      padding: 0 24px;          /* restores left/right indent */
+      box-sizing: border-box;
+    }
+
+    @media (max-width: 820px){
+      .room-modal-two-cols{
+        grid-template-columns: 1fr;
+        padding: 0 16px;
+      }
+    }
+
     /* ANCHOR: ROOM_MODAL_HERO_CAP */
     .room-modal-hero{
       max-height: 260px;        /* cap hero height */
@@ -1628,61 +1644,70 @@
       </section>
     </div>
 
-    <!-- ANCHOR: ROOM_MODAL_HTML -->
-    <div id="roomModalBackdrop" class="room-modal-backdrop" aria-hidden="true">
-      <div class="room-modal" role="dialog" aria-modal="true" aria-label="Room details">
-        <button type="button" class="room-modal-close" aria-label="Close">Close</button>
-        <div class="room-modal-body">
-          <div class="room-modal-top">
-            <h2 id="roomModalTitle">Room</h2>
-            <p id="roomModalMeta" class="small muted"></p>
+<!-- ANCHOR: ROOM_MODAL_HTML -->
+<div id="roomModalBackdrop" class="room-modal-backdrop" aria-hidden="true">
+  <div class="room-modal" role="dialog" aria-modal="true" aria-label="Room details">
+    <button type="button" class="room-modal-close" aria-label="Close">Close</button>
+
+    <div class="room-modal-body">
+      <div class="room-modal-top">
+        <h2 id="roomModalTitle">Room</h2>
+        <p id="roomModalMeta" class="small muted"></p>
+      </div>
+
+      <div class="room-modal-hero">
+        <div class="room-modal-hero-main">
+          <img
+            id="roomModalHeroImg"
+            src=""
+            alt=""
+            loading="lazy"
+            decoding="async"
+          >
+        </div>
+        <div
+          id="roomModalThumbs"
+          class="room-modal-thumbs"
+          aria-label="Room photos"
+        ></div>
+      </div>
+
+      <div class="room-modal-info">
+        <div class="room-desc">
+          <div id="roomModalSummary" class="room-desc-text"></div>
+          <button
+            type="button"
+            id="roomModalReadMore"
+            class="room-desc-toggle"
+            hidden
+          >
+            Read more
+          </button>
+        </div>
+
+        <div id="roomModalSpecs" class="small muted"></div>
+      </div>
+
+      <!-- ANCHOR: ROOM_MODAL_TWO_COLS -->
+      <div class="room-modal-two-cols">
+        <div class="room-modal-col" id="roomModalColDetails">
+          <div class="room-modal-section" id="roomModalDetailsSection" style="display:none;">
+            <p class="room-modal-subtitle">Room Details</p>
+            <ul id="roomModalDetailsList" class="small"></ul>
           </div>
+        </div>
 
-          <div class="room-modal-hero">
-            <div class="room-modal-hero-main">
-              <img
-                id="roomModalHeroImg"
-                src=""
-                alt=""
-                loading="lazy"
-                decoding="async"
-              >
-            </div>
-            <div
-              id="roomModalThumbs"
-              class="room-modal-thumbs"
-              aria-label="Room photos"
-            ></div>
+        <div class="room-modal-col" id="roomModalColFacilities">
+          <div class="room-modal-section" id="roomModalInclusionsSection" style="display:none;">
+            <p class="room-modal-subtitle">Property Facilities & Inclusions</p>
+            <ul id="roomModalInclusionsList" class="small"></ul>
           </div>
-            <div class="room-modal-info">
-              <div class="room-desc">
-                <div id="roomModalSummary" class="room-desc-text"></div>
-                <button
-                  type="button"
-                  id="roomModalReadMore"
-                  class="room-desc-toggle"
-                  hidden
-                >
-                  Read more
-                </button>
-              </div>
+        </div>
+      </div>
+      <!-- /ANCHOR: ROOM_MODAL_TWO_COLS -->
 
-              <div id="roomModalSpecs" class="small muted"></div>
-            </div>
+    </div> <!-- /room-modal-body -->
 
-            <div class="room-modal-section" id="roomModalDetailsSection" style="display:none;">
-              <p class="room-modal-subtitle">Room Details</p>
-              <ul id="roomModalDetailsList" class="small"></ul>
-            </div>
-
-            <div class="room-modal-section" id="roomModalInclusionsSection" style="display:none;">
-              <p class="room-modal-subtitle">Property Facilities & Inclusions</p>
-              <ul id="roomModalInclusionsList" class="small"></ul>
-            </div>
-          </div>
-          <div class="room-modal-plans">
-
-          <!-- ANCHOR: ROOM_MODAL_PLANS_HTML -->
           <div class="room-modal-plans">
             <p class="room-modal-subtitle">Available plans</p>
             <div id="roomModalPlans"></div>
