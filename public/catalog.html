@@ -761,9 +761,11 @@
       justify-content: center;
       cursor: pointer;
       transition: background 0.15s ease, box-shadow 0.15s ease, border-color 0.15s;
-      border: 1px solid transparent !important;
 
-      /* Light orange gradient outline */
+      /* NEW: solid light-orange visible outline */
+      border: 1px solid rgba(255, 106, 61, 0.45) !important;
+
+      /* Gradient overlay for hover (kept from your previous setup) */
       background-image:
         linear-gradient(#ffffff, #ffffff),
         linear-gradient(135deg, #ffd7c2 0%, #ffb08a 50%, #ff8b55 100%);
