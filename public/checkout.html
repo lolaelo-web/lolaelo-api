@@ -1697,21 +1697,46 @@
 
       const propertyId = fromUrl || fromStorage;
 
+      // --- qty: URL first, then durable fallback (checkout.selection.v1) ---
+      const roomIdStr = params.get("roomId") || "";
+      const planIdStr = params.get("ratePlanId") || params.get("plan") || "";
+      let qtyStr = params.get("qty") || "";
+
+      if (!qtyStr) {
+        try {
+          const raw = localStorage.getItem("checkout.selection.v1") || "";
+          const sel = raw ? JSON.parse(raw) : null;
+
+          const items = sel && Array.isArray(sel.items) ? sel.items : [];
+          const roomIdNum = Number(roomIdStr);
+          const planIdNum = Number(planIdStr);
+
+          const hit = items.find(it => {
+            const r = Number(it && (it.roomTypeId != null ? it.roomTypeId : it.roomId));
+            const p = Number(it && (it.ratePlanId != null ? it.ratePlanId : it.planId));
+            return Number.isFinite(r) && Number.isFinite(p) && r === roomIdNum && p === planIdNum;
+          });
+
+          if (hit && hit.qty != null) qtyStr = String(hit.qty);
+        } catch (_) {}
+      }
+
       return {
         propertyId,
-        roomId: params.get("roomId") || "",
+        roomId: roomIdStr,
         start: params.get("start") || "",
         end: params.get("end") || "",
 
         // IDs
-        ratePlanId: params.get("ratePlanId") || params.get("plan") || "",
+        ratePlanId: planIdStr,
 
         // Optional name fields (can be populated from catalog_details)
         propertyName: params.get("propertyName") || "",
         propertyLocation: params.get("propertyLocation") || "",
         roomName: params.get("roomName") || "",
 
-        qty: params.get("qty") || "1",
+        // NEW: qty
+        qty: qtyStr || "1",
 
         // Rate plan display name – prefer explicit name, fall back to planLabel
         ratePlanName:
@@ -2880,6 +2905,30 @@
         console.warn("[checkout] ratePlan adjustment failed", e);
         adjustedNights = nightsArr;
         totalNumeric = baseTotal;
+      }
+
+      // 3) Apply room quantity (multiplies room-only totals and nightly amounts)
+      var qtyNum = 1;
+      try {
+        qtyNum = Number.parseInt(String(state.qty || 1), 10);
+        if (!Number.isFinite(qtyNum) || qtyNum < 1) qtyNum = 1;
+      } catch (_) {
+        qtyNum = 1;
+      }
+
+      if (qtyNum > 1 && Array.isArray(adjustedNights) && adjustedNights.length) {
+        adjustedNights = adjustedNights.map(function (n) {
+          var clone = Object.assign({}, n);
+          var raw = Number(
+            clone.amount !== undefined ? clone.amount :
+            clone.price  !== undefined ? clone.price  :
+            clone.value  !== undefined ? clone.value  : 0
+          );
+          var scaled = Number.isFinite(raw) ? (raw * qtyNum) : 0;
+          clone.amount = Math.round(scaled * 100) / 100;
+          return clone;
+        });
+        totalNumeric = Math.round((Number(totalNumeric) * qtyNum) * 100) / 100;
       }
 
       var currency = quote.currency || "USD";
