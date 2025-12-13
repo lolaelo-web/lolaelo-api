@@ -643,10 +643,16 @@
     display: block;
   }
 
-  .breakdown-line {
-    display: flex;
-    justify-content: space-between;
+  .breakdown-line{
+    display: grid;
+    grid-template-columns: 1fr auto auto;
+    column-gap: 10px;
+    align-items: baseline;
     margin-bottom: 2px;
+  }
+  .breakdown-line .bd-rooms{
+    color: var(--muted);
+    white-space: nowrap;
   }
 
   /* ANCHOR: STICKY_FOOTER */
@@ -2018,9 +2024,12 @@
           );
           const amtText = formatCurrency(amtNum, cur);
 
+          const qn = Math.max(1, Number.parseInt(String(s.qty || state.qty || 1), 10) || 1);
+
           parts.push(
             '<div class="breakdown-line">' +
               '<span>' + label + '</span>' +
+              (qn > 1 ? ('<span class="bd-rooms">x ' + qn + ' rooms</span>') : '') +
               '<span>' + amtText + '</span>' +
             '</div>'
           );
@@ -3316,6 +3325,14 @@
 
       state.sectionConfirmed[section] = true;
       refreshSections();
+
+      // If user just confirmed Payment Method, immediately start Stripe Checkout.
+      if (section === 4) {
+        const btn = document.getElementById("confirmAndPayButton");
+        if (btn && !btn.disabled) {
+          setTimeout(() => btn.click(), 0);
+        }
+      }
     }
 
     // ANCHOR: ADDONS_MODAL_HANDLERS
