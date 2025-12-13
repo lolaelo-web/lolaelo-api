@@ -1289,18 +1289,6 @@
                         <span id="propertyIdValue" style="display:none;"></span>
                       </div>
                     </div>
-
-                    <div class="top-info-right">
-                      <div class="field-label">Stay dates</div>
-                      <div class="field-value">
-                        <span id="stayDatesInline"></span>
-                      </div>
-
-                      <!-- Edit dates link (shows the preserved date card on the right) -->
-                      <button class="card-header-link" id="editDatesLink" type="button">
-                        Edit dates
-                      </button>
-                    </div>
                   </div>
 
                   <!-- Row 1 (existing): Room -> Rate plan -> # of Rooms -->
@@ -1380,6 +1368,16 @@
 
                 <!-- RIGHT COLUMN: DATE CARD (preserved) -->
                 <div class="dates-right">
+                    <div class="top-info-rightbox">
+                      <div class="top-info-rightbox-row">
+                        <div class="top-info-rightbox-label">Stay dates</div>
+                        <div class="top-info-rightbox-value"><span id="stayDatesInline"></span></div>
+                      </div>
+
+                      <button type="button" class="card-header-link" id="editDatesLink">
+                        Edit dates
+                      </button>
+                    </div>
                   <div id="checkoutDatesCardWrapper" class="checkout-dates-card-wrapper hidden">
 
                     <div id="checkout-date-bar" class="detail-date-bar">
@@ -2473,7 +2471,17 @@
       const planText =
         state.ratePlanName || state.ratePlanId || "Rate plan";
 
-      // Hidden IDs (for debugging / future logic)
+      // Compute dates/nights FIRST (prevents ReferenceError)
+      const startFormatted = formatDate(state.start);
+      const endFormatted   = formatDate(state.end);
+      const nights         = diffNights(state.start, state.end);
+
+      const datesText =
+        startFormatted && endFormatted
+          ? startFormatted + " to " + endFormatted
+          : "";
+
+      // Hidden IDs
       const propIdEl = document.getElementById("propertyIdValue");
       if (propIdEl) propIdEl.textContent = state.propertyId;
       const roomIdEl = document.getElementById("roomIdValue");
@@ -2498,53 +2506,43 @@
       const qtyEl = document.getElementById("roomQty");
       if (qtyEl) qtyEl.textContent = String(qn);
 
-      // --- NEW: Row 2 + Row 3 values ---
+      // Row 2 + stay dates
       const nightsEl = document.getElementById("stayNights");
       if (nightsEl) nightsEl.textContent = String(nights || 0);
 
       const stayInline = document.getElementById("stayDatesInline");
-      if (stayInline) {
-        const sf = formatDate(state.start);
-        const ef = formatDate(state.end);
-        stayInline.textContent = (sf && ef) ? `${sf} to ${ef}` : "";
-      }
+      if (stayInline) stayInline.textContent = datesText;
 
-      // Avg price = (room total / qty / nights)
+      // Avg price + total pill (use formatCurrency, NOT money())
+      const cur = state.pricingCurrency || "USD";
+      const total = Number(state.pricingTotal || 0); // qty-adjusted total
+
       const avgEl = document.getElementById("avgNightPrice");
       if (avgEl) {
         const nn = Math.max(1, Number(nights || 0));
         const qq = Math.max(1, Number(qn || 1));
-        const total = Number(state.pricingTotal || 0); // this is qty-adjusted
         const avg = total > 0 ? (total / qq / nn) : 0;
-        avgEl.textContent = money(avg);
+        avgEl.textContent = formatCurrency(avg, cur);
       }
 
       const totalPill = document.getElementById("totalPill");
-      if (totalPill) totalPill.textContent = money(Number(state.pricingTotal || 0));
+      if (totalPill) totalPill.textContent = formatCurrency(total, cur);
 
       // Summary card on the right
-      document.getElementById("summaryProperty").textContent = propertyText;
-      document.getElementById("summaryRoom").textContent = qn === 1 ? roomText : `${roomText} · ${qn} rooms`;
-      document.getElementById("summaryPlan").textContent = planText;
+      const sp = document.getElementById("summaryProperty");
+      if (sp) sp.textContent = propertyText;
+      const sr = document.getElementById("summaryRoom");
+      if (sr) sr.textContent = qn === 1 ? roomText : `${roomText} · ${qn} rooms`;
+      const spl = document.getElementById("summaryPlan");
+      if (spl) spl.textContent = planText;
 
-      const startFormatted = formatDate(state.start);
-      const endFormatted = formatDate(state.end);
-      const nights = diffNights(state.start, state.end);
-            const datesText =
-        startFormatted && endFormatted
-          ? startFormatted + " to " + endFormatted
-          : "Dates";
-      document.getElementById("stayDatesText").textContent = datesText;
-      document.getElementById("summaryDates").textContent = datesText;
+      const sd = document.getElementById("summaryDates");
+      if (sd) sd.textContent = datesText || "Dates";
+
       const nightsText =
         nights ? nights + " night" + (nights > 1 ? "s" : "") : "";
-      const nightsNum =
-        typeof nights === "number" ? nights : Number(nights) || 0;
-
-      document.getElementById("nightsCountText").textContent =
-        nightsText || "nights";
-      document.getElementById("summaryNights").textContent =
-        nightsText || "n";
+      const sn = document.getElementById("summaryNights");
+      if (sn) sn.textContent = nightsText || "n";
 
       // Avg. price per night in Section 2 + total pill
       const nightlyEl = document.getElementById("nightlyPriceText");
@@ -3328,6 +3326,21 @@
           });
         });
       });
+
+      (function wireEditDatesLink() {
+        const link = document.getElementById("editDatesLink");
+        const wrap = document.getElementById("checkoutDatesCardWrapper");
+        if (!link || !wrap) return;
+
+        link.addEventListener("click", function (e) {
+          e.preventDefault();
+          wrap.classList.remove("hidden");
+          wrap.scrollIntoView({ behavior: "smooth", block: "nearest" });
+
+          const btn = document.getElementById("checkout-dates-display");
+          if (btn) btn.focus();
+        });
+      })();
 
       document.querySelectorAll("[data-confirm]").forEach(function (btn) {
         btn.addEventListener("click", function () {
