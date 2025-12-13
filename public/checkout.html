@@ -976,16 +976,11 @@
   }
 
   .stay-confirm-row{
+    margin-top: 14px;
     display:flex;
     align-items:flex-end;
-    justify-content:space-between;
-    gap:16px;
-    margin: 6px 0 0 0;
-  }
-
-  .stay-left{
-    min-width: 0;
-    flex: 1 1 auto;
+    justify-content:flex-start;  /* bottom-left */
+    gap:12px;
   }
 
   #stayDatesInline{
@@ -1000,8 +995,8 @@
 
   /* Dividers + padding between consolidated rows */
   .rp-stack{
-    margin-top: 10px;
-    padding-top: 10px;
+    margin-top: 18px;              /* space after Room row */
+    padding-top: 18px;             /* space before divider */
     border-top: 1px solid rgba(255,106,61,0.22);
   }
   .rp-stack .room-plan-row{
@@ -1012,10 +1007,6 @@
     padding-top: 10px;
   }
 
-  /* Move confirm button to bottom-left */
-  .stay-confirm-row{
-    justify-content: flex-start;
-  }
   #confirmRoomPriceBtn{
     margin-top: 8px;
   }
@@ -1272,6 +1263,13 @@
                     </div>
                   </div>
 
+                  <div class="field-row stay-dates-top">
+                    <div class="field-label">Stay dates</div>
+                    <div class="field-value">
+                      <span id="stayDatesInline"></span>
+                    </div>
+                  </div>
+
                   <!-- Row 1 (existing): Room -> Rate plan -> # of Rooms -->
                 <div class="rp-stack">
                   <div class="room-plan-row">
@@ -1332,15 +1330,8 @@
                   </div>
                 </div>
 
-                  <!-- Row 3: stay dates + confirm -->
+                  <!-- Row 3: confirm -->
                   <div class="stay-confirm-row">
-                    <div class="stay-left">
-                      <div class="rp-label">Stay dates</div>
-                      <div class="rp-value">
-                        <span id="stayDatesInline"></span>
-                      </div>
-                    </div>
-
                     <button
                       type="button"
                       class="btn-primary"
