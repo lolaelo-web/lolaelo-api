@@ -1397,7 +1397,7 @@
                       type="button"
                       class="btn-primary"
                       id="confirmRoomPriceBtn"
-                      data-confirm="2"
+                      data-confirm="1"
                     >
                       Confirm Room & Price
                     </button>
@@ -1479,19 +1479,19 @@
             </div>
           </div>
 
-          <!-- Section 3 - Add-ons -->
-          <div class="card" data-section="3">
+          <!-- Section 2 - Add-ons -->
+          <div class="card" data-section="2">
             <div class="card-header">
               <div class="card-title">
-                <div class="card-step" data-step-indicator="3">3</div>
+                <div class="card-step" data-step-indicator="2">2</div>
                 ADD-ONs
               </div>
-              <div class="card-status" data-step-status="3">
+              <div class="card-status" data-step-status="2">
                 Locked until previous step
               </div>
             </div>
 
-            <div class="section-body hidden" data-section-body="3">
+            <div class="section-body hidden" data-section-body="2">
               <p class="section-intro">
                 Optional activities and extras selected by your hotel.
               </p>
@@ -1543,7 +1543,7 @@
                 "
               >
                 <!-- Left: primary action -->
-                <button class="btn-primary" type="button" data-confirm="3">
+                <button class="btn-primary" type="button" data-confirm="2">
                   Confirm add-ons
                 </button>
 
@@ -1566,21 +1566,21 @@
                   </span>
                 </div>
               </div>
-            </div> <!-- end section-body 3 -->
-          </div>   <!-- end card (Section 3) -->
+            </div> <!-- end section-body 2 -->
+          </div>   <!-- end card (Section 2) -->
 
-          <!-- Section 4 - Guest details -->
-          <div class="card" data-section="4">
+          <!-- Section 3 - Guest details -->
+          <div class="card" data-section="3">
             <div class="card-header">
               <div class="card-title">
-                <div class="card-step" data-step-indicator="4">4</div>
+                <div class="card-step" data-step-indicator="3">3</div>
                 Guest details
               </div>
-              <div class="card-status" data-step-status="4">
+              <div class="card-status" data-step-status="3">
                 Locked until previous step
               </div>
             </div>
-            <div class="section-body hidden" data-section-body="4">
+            <div class="section-body hidden" data-section-body="3">
               <div class="guest-form-grid">
                 <div>
                   <label for="firstName">First name</label>
@@ -1634,25 +1634,25 @@
                 Please fill in all guest details and contact information.
               </div>
 
-              <button class="btn-primary" type="button" data-confirm="4">
+              <button class="btn-primary" type="button" data-confirm="3">
                 Confirm guest details
               </button>
             </div>
           </div>
 
-          <!-- Section 5 - Payment method -->
-          <div class="card" data-section="5">
+          <!-- Section 4 - Payment method -->
+          <div class="card" data-section="4">
             <div class="card-header">
               <div class="card-title">
-                <div class="card-step" data-step-indicator="5">5</div>
+                <div class="card-step" data-step-indicator="4">4</div>
                 Payment method
               </div>
-              <div class="card-status" data-step-status="5">
+              <div class="card-status" data-step-status="4">
                 Locked until previous step
               </div>
             </div>
 
-            <div class="section-body hidden" data-section-body="5">
+            <div class="section-body hidden" data-section-body="4">
               <div class="field-row">
                 
                 <!-- TOP ROW: PAYMENT PILLS -->
@@ -1752,7 +1752,7 @@
               <div style="display:flex; align-items:center; justify-content:flex-start; gap:14px; margin-top:16px; position:relative;">
 
                 <!-- Confirm button -->
-                <button class="btn-primary" type="button" data-confirm="5">
+                <button class="btn-primary" type="button" data-confirm="4">
                   Proceed to secure payment
                 </button>
 
@@ -3257,7 +3257,7 @@
     }
 
     function refreshSections() {
-      for (let i = 1; i <= 5; i++) {
+      for (let i = 1; i <= 4; i++) {
         const isConfirmed = state.sectionConfirmed[i];
         if (i === 1) {
           setSectionState(1, isConfirmed ? "completed" : "active");
@@ -3274,14 +3274,13 @@
         state.sectionConfirmed[1] &&
         state.sectionConfirmed[2] &&
         state.sectionConfirmed[3] &&
-        state.sectionConfirmed[4] &&
-        state.sectionConfirmed[5];
+        state.sectionConfirmed[4];
       document.getElementById("confirmAndPayButton").disabled = !allConfirmed;
     }
 
     function handleConfirmClick(section) {
       // Guest details validation lives on section 4
-      if (section === 4) {
+      if (section === 3) {
         const firstName = document.getElementById("firstName").value.trim();
         const lastName = document.getElementById("lastName").value.trim();
         const email = document.getElementById("email").value.trim();
@@ -3294,7 +3293,7 @@
         } else if (errorEl) {
           errorEl.style.display = "none";
         }
-      } else if (section === 5) {
+      } else if (section === 4) {
         // Terms / Privacy agreement is required before payment
         const checkbox = document.getElementById("termsCheckbox");
         const errorEl  = document.getElementById("termsError");
