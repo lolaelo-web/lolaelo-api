@@ -988,11 +988,18 @@
       align-items:center;
       gap:10px;
       white-space:nowrap;
+
+      /* force container to NOT look like a pill */
+      border: none !important;
+      background: transparent !important;
+      padding: 0 !important;
+      border-radius: 0 !important;
+      box-shadow: none !important;
     }
 
     .planrow .qty-avail-pill,
     .planrow .qty-pick-pill{
-      display:flex;
+      display:inline-flex;
       align-items:center;
       gap:6px;
       padding: 6px 10px;
@@ -1000,6 +1007,7 @@
       border: 1px solid var(--border);
       background:#fff;
       font-size:12px;
+      flex: 0 0 auto;
     }
 
     .planrow .qty-avail-pill{
