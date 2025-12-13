@@ -1004,9 +1004,10 @@
   .top-info-left{ flex: 1 1 auto; min-width: 0; }
   .top-info-right{
     flex: 0 0 auto;
+    margin-left: auto;     /* pins to far right */
     text-align: right;
-    margin-left: auto;     /* forces it to the far right */
-    min-width: 220px;
+    min-width: 140px;      /* was too big and caused wrapping */
+    max-width: 40%;
   }
   .top-info-right .field-label,
   .top-info-right .field-value{
@@ -1019,12 +1020,12 @@
   /* Dividers + padding between consolidated rows */
   .rp-stack{
     margin-top: 12px; /* space after top info row */
-    padding-top: 10px;
+    padding-top: 5px;
     border-top: 1px solid rgba(255,106,61,0.22);
   }
 
   .rp-stack .room-plan-row{
-    padding-top: 10px;
+    padding-top: 5px;
     padding-bottom: 18px; /* breathing room before the divider */
     border-bottom: 1px solid rgba(255,106,61,0.22);
   }
@@ -1379,7 +1380,7 @@
 
                 <!-- RIGHT COLUMN: DATE CARD (preserved) -->
                 <div class="dates-right">
-                  <div id="checkoutDatesCardWrapper" class="checkout-dates-card-wrapper">
+                  <div id="checkoutDatesCardWrapper" class="checkout-dates-card-wrapper hidden">
 
                     <div id="checkout-date-bar" class="detail-date-bar">
                       <input
@@ -2502,7 +2503,11 @@
       if (nightsEl) nightsEl.textContent = String(nights || 0);
 
       const stayInline = document.getElementById("stayDatesInline");
-      if (stayInline) stayInline.textContent = datesText;
+      if (stayInline) {
+        const sf = formatDate(state.start);
+        const ef = formatDate(state.end);
+        stayInline.textContent = (sf && ef) ? `${sf} to ${ef}` : "";
+      }
 
       // Avg price = (room total / qty / nights)
       const avgEl = document.getElementById("avgNightPrice");
@@ -3472,8 +3477,7 @@
       const editDatesLink = document.getElementById("editDatesLink");
       if (editDatesLink && datesCardWrapper) {
         editDatesLink.addEventListener("click", function () {
-          const visible = datesCardWrapper.style.display === "flex";
-          datesCardWrapper.style.display = visible ? "none" : "flex";
+          datesCardWrapper.classList.toggle("hidden");
         });
       }
 

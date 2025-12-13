@@ -414,7 +414,7 @@
     .room-modal-close {
         position: absolute;
         top: 12px;
-        right: 56px;
+        right: 56px !important;
 
         /* Make the background match the date-card outline style */
         background: #FFFFFF;
@@ -422,7 +422,7 @@
 
         /* Proper sizing for text instead of the tiny X-circle */
         padding: 6px 14px; 
-        border-radius: 8px;
+        border-radius: 10px;
 
         font-size: 14px;
         color: #0F1C2E;
@@ -1470,14 +1470,7 @@
       flex-direction:column;
     }
     .details-map-header{
-      padding:10px 14px;
-      font-size:13px;
-      font-weight:600;
-      border-bottom:1px solid rgba(148,163,184,0.35);
-      display:flex;
-      align-items:center;
-      justify-content:space-between;
-      gap:12px;
+      display:none !important; /* removes the white bar */
     }
     .details-map-close{
       border:none;
