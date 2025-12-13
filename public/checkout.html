@@ -936,6 +936,68 @@
     margin-bottom: 12px;
   }
 
+  /* === CHECKOUT SECTION 1 (Room & Price) ROW LAYOUT ===================== */
+
+  .room-plan-row{
+    display:flex;
+    align-items:flex-end;
+    gap:12px;
+    margin: 10px 0 14px 0;
+  }
+
+  .rp-col{ min-width: 0; }
+  .rp-label{ font-size: 12px; color: var(--muted); margin-bottom: 4px; }
+  .rp-value{ font-size: 13px; color: var(--text); }
+
+  .rp-arrow, .rp-op{
+    flex: 0 0 auto;
+    color: var(--muted);
+    font-weight: 600;
+    line-height: 1;
+    padding-bottom: 2px;
+  }
+
+  .room-price-row{
+    display:flex;
+    align-items:flex-end;
+    gap:12px;
+    margin: 6px 0 14px 0;
+  }
+
+  .pill-outline{
+    flex: 0 0 auto;
+    padding: 8px 14px;
+    border-radius: 9999px;
+    border: 2px solid var(--bubble);
+    background: #ffffff;
+    color: var(--text);
+    font-weight: 700;
+    cursor: default;
+  }
+
+  .stay-confirm-row{
+    display:flex;
+    align-items:flex-end;
+    justify-content:space-between;
+    gap:16px;
+    margin: 6px 0 0 0;
+  }
+
+  .stay-left{
+    min-width: 0;
+    flex: 1 1 auto;
+  }
+
+  #stayDatesInline{
+    display:inline-block;
+    white-space: nowrap;
+  }
+
+  /* Keep the confirm button from overlapping the dates */
+  #confirmRoomPriceBtn{
+    flex: 0 0 auto;
+  }
+
   .dates-right .card-header-link {
     border: 0;
     background: transparent;
