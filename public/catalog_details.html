@@ -1159,9 +1159,17 @@
       box-shadow: 0 0 0 3px rgba(239,68,68,.18) !important;
     }
 
+    /* error highlight ONLY on the pill */
     .qty-pick-pill.is-error{
       border-color:#ef4444 !important;
       box-shadow: 0 0 0 3px rgba(239,68,68,.18) !important;
+    }
+
+    /* prevent the inner select from also looking "outlined" */
+    .qty-pick-pill.is-error .qty-select{
+      border-color: transparent !important;
+      box-shadow: none !important;
+      outline: none !important;
     }
 
     .muted{
@@ -3997,22 +4005,28 @@
             function flashQtyError(selectEl){
               if (!selectEl) return;
 
-              const pill = selectEl.closest(".qty-pick-pill");
+              // Highlight ONLY the outer pill, not the <select>
+              const pill =
+                selectEl.closest(".qty-pick-pill") ||
+                selectEl.closest(".qty-pick") ||
+                selectEl.parentElement;
 
-              selectEl.classList.add("is-error");
+              if (!pill) return;
+
               if (pill) pill.classList.add("is-error");
+              // ensure inner select never gets the error class (prevents double outline)
+              selectEl.classList.remove("is-error");
 
               try { selectEl.focus(); } catch(_){}
 
               window.clearTimeout(flashQtyError._t);
               flashQtyError._t = window.setTimeout(() => {
-                selectEl.classList.remove("is-error");
                 if (pill) pill.classList.remove("is-error");
               }, 1400);
             }
 
             document.addEventListener("click", (e) => {
-              const btn = e.target.closest(".roomcat-plan-btn, .plan-book-btn, .modal-plan-book-btn, a.btn-select");
+              const btn = e.target.closest(".roomcat-plan-btn, .plan-book-btn, .modal-plan-book-btn");
               if (!btn) return;
 
               const scope =
