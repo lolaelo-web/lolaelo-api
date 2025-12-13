@@ -645,7 +645,7 @@
 
   .breakdown-line{
     display: grid;
-    grid-template-columns: 1fr auto auto;
+    grid-template-columns: auto 1fr auto;
     column-gap: 10px;
     align-items: baseline;
     margin-bottom: 2px;
@@ -1817,7 +1817,7 @@
             <div class="summary-card-title">Your stay</div>
 
             <div class="summary-line" style="margin-bottom:12px;">
-              <span>Property name</span>
+              <span>Property Name</span>
               <strong id="summaryProperty">Property</strong>
             </div>
 
@@ -1838,14 +1838,18 @@
               <strong id="summaryDates">Dates</strong>
             </div>
 
-            <!-- Nights hidden but intact for JS -->
-            <div class="summary-line" style="display:none;">
-              <span>Nights</span>
-              <strong id="summaryNights">n</strong>
+            <div class="summary-line" style="margin-bottom:6px;">
+              <span># of Rooms</span>
+              <strong id="summaryRooms">--</strong>
             </div>
 
             <div class="summary-line" style="margin-bottom:14px;">
-              <span>Add-ons</span>
+              <span># of Nights</span>
+              <strong id="summaryNightsVisible">--</strong>
+            </div>
+
+            <div class="summary-line" style="margin-bottom:14px;">
+              <span>ADD-ONs</span>
               <strong id="summaryAddons">None selected</strong>
             </div>
 
