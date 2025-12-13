@@ -966,6 +966,61 @@
       background: #fafafa;
       margin-bottom: 8px;
     }
+    .planrow .plan-actions{
+      display:flex;
+      align-items:center;
+      justify-content:flex-end;
+      gap:10px;
+    }
+
+    @media (max-width: 520px){
+      .planrow .plan-actions{
+        flex-direction:column;
+        align-items:flex-end;
+        gap:8px;
+      }
+     .planrow .qty-inline{
+        justify-content:flex-end;
+      }
+    }
+    .planrow .qty-inline{
+      display:flex;
+      align-items:center;
+      gap:10px;
+      white-space:nowrap;
+    }
+
+    .planrow .qty-avail{
+      font-size:12px;
+      color:var(--muted);
+    }
+
+    .planrow .qty-avail-val{
+      font-weight:600;
+      color:var(--fg);
+    }
+
+    .planrow .qty-pick{
+      display:flex;
+      align-items:center;
+      gap:6px;
+    }
+
+    .planrow .qty-label{
+      font-size:12px;
+      color:var(--muted);
+    }
+
+    .planrow .qty-select{
+      height:32px;
+      padding: 0 10px;
+      border-radius: 10px;
+      border: 1px solid var(--border);
+      background:#fff;
+      color:var(--fg);
+      font-weight:600;
+    }
+
     .planrow .planname{
       font-weight: 600;
       font-size: 14px;
@@ -3662,23 +3717,27 @@
               // NOTE: pure string concatenation to avoid nested template literal issues
               return (
                 `<div class="planrow" data-plan-id="${p.id}">` +
-                  `<div>` +
+
+                  `<div class="planinfo">` +
                     `<div class="planname">${name}</div>` +
                     `<div class="meta">${desc}</div>` +
                     `${priceHtml}` +
                   `</div>` +
 
-                  `<div class="qty-inline">` +
-                    `<div class="qty-avail">Available: <span class="qty-avail-val">${maxAvail}</span></div>` +
-                    `<div class="qty-pick">` +
-                      `<label class="qty-label" for="qty_${roomId}_${p.id}">Qty</label>` +
-                      `<select class="qty-select" id="qty_${roomId}_${p.id}" data-room-id="${roomId}" data-plan-id="${p.id}">` +
-                        `${opts}` +
-                      `</select>` +
+                  `<div class="plan-actions">` +
+                    `<div class="qty-inline">` +
+                      `<div class="qty-avail">Available: <span class="qty-avail-val">${maxAvail}</span></div>` +
+                      `<div class="qty-pick">` +
+                        `<label class="qty-label" for="qty_${roomId}_${p.id}">Qty</label>` +
+                        `<select class="qty-select" id="qty_${roomId}_${p.id}" data-room-id="${roomId}" data-plan-id="${p.id}">` +
+                          `${opts}` +
+                        `</select>` +
+                      `</div>` +
                     `</div>` +
+
+                    `<a class="roomcat-plan-btn" href="${url}" aria-label="Book now with this rate">Book now</a>` +
                   `</div>` +
 
-                  `<a class="roomcat-plan-btn" href="${url}" aria-label="Book now with this rate">Book now</a>` +
                 `</div>`
               );
             }).join('');
