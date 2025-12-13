@@ -3820,11 +3820,16 @@
               const priceLabel = hasPrice ? money(rawPrice) : null;
               const priceHtml = hasPrice ? `<div class="meta"><strong>${priceLabel}</strong> / night</div>` : '';
 
-              // current qty (default 0)
+              // current qty (default 1 when maxAvail > 0)
               const key = qpKey(roomId, p.id);
-              const cur = clampInt(qtyByRoomPlanKey[key] ?? 0, 0, maxAvail);
 
-              cur = Number.isFinite(Number(cur)) && Number(cur) > 0 ? Number(cur) : (maxAvail > 0 ? 1 : 0);
+              // pull saved qty (or 0), clamp to [0..maxAvail]
+              let cur = clampInt(qtyByRoomPlanKey[key] ?? 0, 0, maxAvail);
+
+              // if nothing selected yet, default to 1 (only if rooms exist)
+              if (!(Number.isFinite(Number(cur)) && Number(cur) > 0)) {
+                cur = (maxAvail > 0 ? 1 : 0);
+              }
 
               // build qty options 0..maxAvail
               let opts = "";
@@ -5235,10 +5240,11 @@
 
               savedQty = Math.min(savedQty, maxAvail);
 
+              const rawSaved = Number(savedQty);
               const normQty =
-                Number.isFinite(Number(savedQty)) && Number(savedQty) > 0
-                  ? Number(savedQty)
-                  : 1;
+                Number.isFinite(rawSaved) && rawSaved > 0
+                  ? Math.min(rawSaved, maxAvail)
+                  : (maxAvail > 0 ? 1 : 0);
 
               const opts = Array.from({ length: maxAvail + 1 }, (_, i) => i)
                 .map(i => `<option value="${i}" ${i === normQty ? "selected" : ""}>${i}</option>`)

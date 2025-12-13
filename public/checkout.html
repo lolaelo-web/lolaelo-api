@@ -1979,6 +1979,32 @@
       }
     }
 
+    function coalesceQueryFromCart(q) {
+      const qq = Object.assign({}, q || {});
+      const cart = loadCartV1();
+      const items = cart && Array.isArray(cart.items) ? cart.items : [];
+      if (!items.length) return { q: qq, cart: null, active: null };
+
+      // For now: active item = first item in cart
+      const active = items[0];
+
+      // Fill missing query fields from cart (do not override URL when present)
+      if (!qq.propertyId && active.propertyId != null) qq.propertyId = String(active.propertyId);
+      if (!qq.roomId     && active.roomTypeId != null) qq.roomId = String(active.roomTypeId);
+      if (!qq.ratePlanId && active.ratePlanId != null) qq.ratePlanId = String(active.ratePlanId);
+      if ((!qq.qty || Number(qq.qty) <= 0) && active.qty != null) qq.qty = String(active.qty);
+
+      if (!qq.start && active.start) qq.start = String(active.start);
+      if (!qq.end   && active.end)   qq.end   = String(active.end);
+
+      if (!qq.propertyName && active.propertyName) qq.propertyName = String(active.propertyName);
+      if (!qq.propertyLocation && active.propertyLocation) qq.propertyLocation = String(active.propertyLocation);
+      if (!qq.roomName && active.roomName) qq.roomName = String(active.roomName);
+      if (!qq.ratePlanName && active.planLabel) qq.ratePlanName = String(active.planLabel);
+
+      return { q: qq, cart, active };
+    }
+
     function saveCartV1(cart) {
       try {
         localStorage.setItem(CART_KEY, JSON.stringify(cart));
@@ -3437,8 +3463,15 @@
     //   [data-apply-addons-modal]
 
     function initCheckout() {
-      const q = parseQuery();
-      migrateSelectionToCartIfNeeded(q);
+      const q0 = parseQuery();
+      migrateSelectionToCartIfNeeded(q0);
+
+      const picked = coalesceQueryFromCart(q0);
+      const q = picked.q;
+
+      // optional state hooks for later steps (no UI impact now)
+      state.cart = picked.cart;
+      state.activeLine = picked.active;
       state.propertyId = q.propertyId;
       state.roomId = q.roomId;
       state.qty = Math.max(1, Number.parseInt(q.qty, 10) || 1);
