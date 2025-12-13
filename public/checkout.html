@@ -1159,7 +1159,7 @@
       <div class="layout">
         <!-- Left side: progressive sections -->
         <div>
-          <!-- Section 1 - Property and room -->
+          <!-- Section 1 - Room and Prices -->
           <div class="card" data-section="1">
             <div class="card-header">
               <div class="card-title">
@@ -1170,92 +1170,105 @@
                 Waiting for confirmation
               </div>
             </div>
+
             <div class="section-body" data-section-body="1">
-            <div class="field-row">
-              <div class="field-label">Property name</div>
-              <div class="field-value">
-                <div id="propertyName"></div>
-                <div class="muted" id="propertyMeta"></div>
-                <span id="propertyIdValue" style="display:none;"></span>
-              </div>
-            </div>
-              <div class="room-plan-row">
-                <div class="rp-col">
-                  <div class="rp-label">Room</div>
-                  <div class="rp-value">
-                    <span id="roomName"></span>
-                    <span id="roomIdValue" style="display:none;"></span>
-                  </div>
-                </div>
 
-                <div class="rp-arrow">→</div>
+              <!-- CONSOLIDATED TWO-COLUMN GRID (Left = Room/Price rows, Right = Dates editor card) -->
+              <div class="dates-grid">
 
-                <div class="rp-col">
-                  <div class="rp-label">Rate Plan</div>
-                  <div class="rp-value">
-                    <span id="ratePlanName"></span>
-                    <span id="ratePlanIdValue" style="display:none;"></span>
-                  </div>
-                </div>
+                <!-- LEFT COLUMN -->
+                <div class="dates-left">
 
-                <div class="rp-col">
-                  <div class="rp-label"># of Rooms</div>
-                  <div class="rp-value">
-                    <span id="roomQty">1</span>
-                  </div>
-                </div>
-                </div>
-
-                <!-- Row 2: nights x avg price = total -->
-                <div class="room-price-row">
-                  <div class="rp-col">
-                    <div class="rp-label">Nights</div>
-                    <div class="rp-value">
-                      <span id="stayNights">0</span>
+                  <div class="field-row">
+                    <div class="field-label">Property name</div>
+                    <div class="field-value">
+                      <div id="propertyName"></div>
+                      <div class="muted" id="propertyMeta"></div>
+                      <span id="propertyIdValue" style="display:none;"></span>
                     </div>
                   </div>
 
-                  <div class="rp-op">×</div>
+                  <!-- Row 1 (existing): Room -> Rate plan -> # of Rooms -->
+                  <div class="room-plan-row">
+                    <div class="rp-col">
+                      <div class="rp-label">Room</div>
+                      <div class="rp-value">
+                        <span id="roomName"></span>
+                        <span id="roomIdValue" style="display:none;"></span>
+                      </div>
+                    </div>
 
-                  <div class="rp-col">
-                    <div class="rp-label">Avg. price</div>
-                    <div class="rp-value">
-                      <span id="avgNightPrice">$0</span>
+                    <div class="rp-arrow">→</div>
+
+                    <div class="rp-col">
+                      <div class="rp-label">Rate Plan</div>
+                      <div class="rp-value">
+                        <span id="ratePlanName"></span>
+                        <span id="ratePlanIdValue" style="display:none;"></span>
+                      </div>
+                    </div>
+
+                    <div class="rp-col">
+                      <div class="rp-label"># of Rooms</div>
+                      <div class="rp-value">
+                        <span id="roomQty">1</span>
+                      </div>
                     </div>
                   </div>
 
-                  <div class="rp-op">=</div>
+                  <!-- Row 2: nights x avg price = total -->
+                  <div class="room-price-row">
+                    <div class="rp-col">
+                      <div class="rp-label">Nights</div>
+                      <div class="rp-value">
+                        <span id="stayNights">0</span>
+                      </div>
+                    </div>
 
-                  <button
-                    type="button"
-                    class="pill-outline"
-                    id="totalPill"
-                    aria-label="Total room price"
-                  >
-                    $0
-                  </button>
+                    <div class="rp-op">×</div>
+
+                    <div class="rp-col">
+                      <div class="rp-label">Avg. price</div>
+                      <div class="rp-value">
+                        <span id="avgNightPrice">$0</span>
+                      </div>
+                    </div>
+
+                    <div class="rp-op">=</div>
+
+                    <button
+                      type="button"
+                      class="pill-outline"
+                      id="totalPill"
+                      aria-label="Total room price"
+                    >
+                      $0
+                    </button>
+                  </div>
+
+                  <!-- Row 3: stay dates + confirm -->
+                  <div class="stay-confirm-row">
+                    <div class="stay-left">
+                      <div class="rp-label">Stay dates</div>
+                      <div class="rp-value">
+                        <span id="stayDatesInline"></span>
+                      </div>
+                    </div>
+
+                    <button
+                      type="button"
+                      class="btn-primary"
+                      id="confirmRoomPriceBtn"
+                      data-confirm="2"
+                    >
+                      Confirm Room & Price
+                    </button>
+                  </div>
+
                 </div>
+                <!-- END LEFT COLUMN -->
 
-                <!-- Row 3: stay dates + confirm -->
-                <div class="stay-confirm-row">
-                  <div class="stay-left">
-                    <div class="rp-label">Stay dates</div>
-                    <div class="rp-value">
-                      <span id="stayDatesInline"></span>
-                    </div>
-                  </div>
-
-                <button
-                  type="button"
-                  class="btn-primary"
-                  id="confirmRoomPriceBtn"
-                  data-confirm="2"
-                >
-                  Confirm Room & Price
-                </button>
-               </div>
-
-                <!-- RIGHT COLUMN: DATE CARD -->
+                <!-- RIGHT COLUMN: DATE CARD (preserved) -->
                 <div class="dates-right">
                   <div id="checkoutDatesCardWrapper" class="checkout-dates-card-wrapper hidden">
 
@@ -1307,6 +1320,7 @@
                     </div>
                   </div>
                 </div>
+                <!-- END RIGHT COLUMN -->
 
               </div>
               <!-- END GRID -->
