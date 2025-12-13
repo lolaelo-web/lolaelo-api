@@ -1182,14 +1182,18 @@
 
                 <div class="rp-arrow">→</div>
 
-                <div class="rp-col rp-col-grow">
+                <div class="rp-col">
                   <div class="rp-label">Rate plan</div>
                   <div class="rp-value">
                     <span id="ratePlanName"></span>
-                    <span class="rp-mult">x</span>
-                    <span id="roomQty">1</span>
-                    <span class="rp-unit">rooms</span>
                     <span id="ratePlanIdValue" style="display:none;"></span>
+                  </div>
+                </div>
+
+                <div class="rp-col">
+                  <div class="rp-label"># of Rooms</div>
+                  <div class="rp-value">
+                    <span id="roomQty">1</span>
                   </div>
                 </div>
               </div>
@@ -2388,7 +2392,7 @@
       }
 
       const qtyEl = document.getElementById("roomQty");
-      if (qtyEl) qtyEl.textContent = qn === 1 ? "1 room" : `${qn} rooms`;
+      if (qtyEl) qtyEl.textContent = String(qn);
 
       // Summary card on the right
       document.getElementById("summaryProperty").textContent = propertyText;
