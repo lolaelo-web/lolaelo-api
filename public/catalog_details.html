@@ -4079,6 +4079,123 @@
               const roomName  = getRoomNameForCheckout(rid);
               const planLabel = primary && (primary.name || primary.code || "");
 
+              // CART v1 (Secondary Sprint) - append behavior
+              const CartV1 = (() => {
+                if (window.__checkoutCartV1) return window.__checkoutCartV1;
+
+                const CART_KEY = "checkout.cart.v1";
+                const SELECTION_KEY = "checkout.selection.v1";
+
+                const api = {
+                  load() {
+                    try {
+                      const raw = localStorage.getItem(CART_KEY) || "";
+                      const obj = raw ? JSON.parse(raw) : null;
+                      if (!obj || typeof obj !== "object") return null;
+                      if (obj.version !== 1) return null;
+                      if (!Array.isArray(obj.items)) obj.items = [];
+                      return obj;
+                    } catch (_) {
+                      return null;
+                    }
+                  },
+
+                  save(cart) {
+                    try {
+                      localStorage.setItem(CART_KEY, JSON.stringify(cart));
+                      return true;
+                    } catch (_) {
+                      return false;
+                    }
+                  },
+
+                  newCartWithItem(item) {
+                    return {
+                      version: 1,
+                      createdAt: new Date().toISOString(),
+                      itinerary: { policy: "continuous_or_adjacent", currency: "PHP" },
+                      items: [item]
+                    };
+                  },
+
+                  getQtyFromSelection(roomTypeId, ratePlanId) {
+                    try {
+                      const raw = localStorage.getItem(SELECTION_KEY) || "";
+                      const sel = raw ? JSON.parse(raw) : null;
+                      if (!sel || typeof sel !== "object") return 1;
+                      if (!Array.isArray(sel.items)) return 1;
+
+                      const rt = String(roomTypeId || "");
+                      const rp = String(ratePlanId || "");
+                      const hit = sel.items.find(it =>
+                        String(it.roomTypeId) === rt && String(it.ratePlanId) === rp
+                      );
+
+                      const q = hit && hit.qty != null ? Number(hit.qty) : 1;
+                      return Number.isFinite(q) ? q : 1;
+                    } catch (_) {
+                      return 1;
+                    }
+                  },
+
+                  _day(ymd) {
+                    // ymd expected: YYYY-MM-DD
+                    if (!ymd || typeof ymd !== "string") return NaN;
+                    const m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(ymd.trim());
+                    if (!m) return NaN;
+                    const y = Number(m[1]), mo = Number(m[2]), d = Number(m[3]);
+                    return Date.UTC(y, mo - 1, d) / 86400000; // integer day count
+                  },
+
+                  isContinuousOrAdjacent(items) {
+                    const spans = items
+                      .map(it => ({
+                        s: this._day(it.start),
+                        e: this._day(it.end)
+                      }))
+                      .filter(x => Number.isFinite(x.s) && Number.isFinite(x.e))
+                      .sort((a, b) => a.s - b.s || a.e - b.e);
+
+                    if (spans.length <= 1) return true;
+
+                    let curEnd = spans[0].e;
+                    for (let i = 1; i < spans.length; i++) {
+                      const next = spans[i];
+                      // allow overlap OR exact adjacency (next.start == curEnd)
+                      if (next.s > curEnd) return false;
+                      if (next.e > curEnd) curEnd = next.e;
+                    }
+                    return true;
+                  },
+
+                  tryAppend(item) {
+                    const existing = this.load();
+                    const cart = existing || this.newCartWithItem(item);
+
+                    if (existing) {
+                      cart.items = Array.isArray(cart.items) ? cart.items : [];
+                      cart.items = cart.items.concat([item]);
+                    }
+
+                    if (!this.isContinuousOrAdjacent(cart.items)) {
+                      return { ok: false, cart: existing || null };
+                    }
+
+                    this.save(cart);
+                    return { ok: true, cart };
+                  },
+
+                  clearAndStart(item) {
+                    const cart = this.newCartWithItem(item);
+                    this.save(cart);
+                    return cart;
+                  }
+                };
+
+                window.__checkoutCartV1 = api;
+                return api;
+              })();
+
               // Look at the server payload first, fall back to the query param
               const payload = window.__detailsPayload || {};
               const pidRaw =
@@ -4121,6 +4238,71 @@
               } catch (_) {}
 
               topLink.setAttribute("href", url.toString());
+
+              // Append-to-cart on click (do not overwrite). Guard against duplicate listeners.
+              if (!topLink.dataset.cartBound) {
+                topLink.dataset.cartBound = "1";
+
+                topLink.addEventListener("click", (e) => {
+                  // Build the line item from the same context used to build the checkout URL
+                  const lineId =
+                    "ln_" + Date.now().toString(36) + "_" + Math.random().toString(36).slice(2, 8);
+
+                  const qty = CartV1.getQtyFromSelection(rid, String(primary.id));
+
+                  // Enforce primary-sprint rule: block only when qty=0 (scoped to this click)
+                  if (!qty || Number(qty) <= 0) {
+                    e.preventDefault();
+                    alert("Please select at least 1 room.");
+                    return;
+                  }
+
+                  const item = {
+                    lineId,
+                    propertyId: String(checkoutPropertyId || ""),
+                    propertyName: String(propertyName || ""),
+                    propertyLocation: String(propertyLocation || ""),
+                    roomTypeId: String(rid || ""),
+                    roomName: String(roomName || ""),
+                    ratePlanId: String(primary.id),
+                    planLabel: String(planLabel || ""),
+                    qty: Number(qty),
+                    start: String(start || ""),
+                    end: String(end || "")
+                  };
+
+                  // Try to append. If continuity breaks, prompt for next action.
+                  const res = CartV1.tryAppend(item);
+
+                  if (!res.ok) {
+                    e.preventDefault();
+
+                    const msg =
+                      "This checkout supports one trip at a time. Multiple hotels are allowed only if dates are continuous or back-to-back.\n\n" +
+                      "Choose:\n" +
+                      "1 = Finish current trip (go to checkout, do not add)\n" +
+                      "2 = Clear cart and start new trip\n" +
+                      "3 = Cancel";
+
+                    const choice = (window.prompt(msg, "3") || "").trim();
+
+                    if (choice === "1") {
+                      window.location.href = url.toString();
+                      return;
+                    }
+                    if (choice === "2") {
+                      CartV1.clearAndStart(item);
+                      window.location.href = url.toString();
+                      return;
+                    }
+                    // cancel: do nothing
+                    return;
+                  }
+
+                  // On success, proceed to checkout (cart persists)
+                  // Let the link navigate normally.
+                });
+              }
 
               console.log("[details→checkout] building href (final)", {
                 checkoutPropertyId,
