@@ -1487,31 +1487,23 @@
     }
 
     /* ANCHOR: MODAL_CLOSE_BUTTON_UNIFY */
-    .room-modal button[aria-label="Close"],
+
+    /* ROOM modal close — move left & align with room title row */
+    .room-modal button.room-modal-close,
+    #roomModalBackdrop button.room-modal-close {
+      position: absolute;
+      top: 18px;        /* aligns with room name row */
+      right: 56px;      /* clears scrollbar */
+      z-index: 60;
+    }
+
+    /* MAP modal close — keep top-right */
     .map-modal  button[aria-label="Close"],
-    #roomModalBackdrop  button[aria-label="Close"],
-    #mapModalBackdrop   button[aria-label="Close"] {
+    #mapModalBackdrop button[aria-label="Close"] {
       position: absolute;
       top: 12px;
       right: 12px;
-
-      background: #FFFFFF;
-      border: 1px solid #E5E7EB;
-
-      padding: 6px 14px;
-      min-width: 60px;
-      height: auto;
-      border-radius: 8px;
-
-      box-sizing: border-box;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-
-      font-size: 14px;
-      color: #0F1C2E;
-      cursor: pointer;
-      z-index: 50;
+      z-index: 60;
     }
 
     .room-modal button[aria-label="Close"]:hover,

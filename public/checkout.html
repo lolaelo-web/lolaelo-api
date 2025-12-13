@@ -310,9 +310,13 @@
     border-top: 1px dashed var(--border-soft);
   }
 
-  .checkout-dates-card-wrapper {
-    margin-top: 4px;
-    display: none;          /* toggled by JS */
+  .checkout-dates-card-wrapper{
+    margin-top: 6px;
+    display: block;         /* visible when not .hidden */
+  }
+
+  .checkout-dates-card-wrapper.hidden{
+    display: none;
   }
 
   .detail-date-bar {
@@ -925,11 +929,30 @@
 
   /* === CHECKOUT SECTION 2 GRID LAYOUT ================================== */
 
-  .dates-grid {
-    display: grid;
-    grid-template-columns: 1fr 260px;  /* left flexible, right fixed */
+  .dates-grid{
+    display:grid;
+    grid-template-columns: 1fr 1fr;  /* split evenly */
     gap: 32px;
-    align-items: flex-start;
+    align-items: start;
+  }
+
+  .dates-right{
+    display:flex;
+    flex-direction:column;
+    align-items:flex-end;     /* pin to right edge */
+  }
+
+  .dates-right .top-info-right{
+    text-align:right;
+  }
+
+  .dates-right .top-info-right .field-value{
+    color:#111;               /* stay dates value darker */
+    font-weight:600;
+  }
+
+  .dates-right .top-info-right #editDatesLink{
+    color:#ff6a3d;            /* edit dates orange */
   }
 
   .dates-left .field-row {
@@ -1368,16 +1391,19 @@
 
                 <!-- RIGHT COLUMN: DATE CARD (preserved) -->
                 <div class="dates-right">
-                    <div class="top-info-rightbox">
-                      <div class="top-info-rightbox-row">
-                        <div class="top-info-rightbox-label">Stay dates</div>
-                        <div class="top-info-rightbox-value"><span id="stayDatesInline"></span></div>
-                      </div>
 
-                      <button type="button" class="card-header-link" id="editDatesLink">
-                        Edit dates
-                      </button>
+                  <div class="top-info-right">
+                    <div class="field-label">Stay dates</div>
+                    <div class="field-value">
+                      <span id="stayDatesInline"></span>
                     </div>
+
+                    <!-- Edit dates link (shows the preserved date card on the right) -->
+                    <button class="card-header-link" id="editDatesLink" type="button">
+                      Edit dates
+                    </button>
+                  </div>
+
                   <div id="checkoutDatesCardWrapper" class="checkout-dates-card-wrapper hidden">
 
                     <div id="checkout-date-bar" class="detail-date-bar">
