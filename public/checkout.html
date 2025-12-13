@@ -1004,37 +1004,34 @@
   .top-info-left{ flex: 1 1 auto; min-width: 0; }
   .top-info-right{
     flex: 0 0 auto;
-    text-align:right;
-    min-width: 180px;
+    text-align: right;
+    margin-left: auto;     /* forces it to the far right */
+    min-width: 220px;
+  }
+  .top-info-right .field-label,
+  .top-info-right .field-value{
+    text-align: right;
   }
   .top-info-right .field-value{
     white-space: nowrap;
   }
 
-  /* Tighten space around the divider and improve breathing room for Row 1 */
-  .rp-stack{
-    margin-top: 12px;   /* was too tall */
-    padding-top: 10px;
-  }
-  .rp-stack .room-plan-row{
-    padding-top: 8px;   /* adds space ABOVE “room type a” before divider */
-    padding-bottom: 12px;
-  }
-
   /* Dividers + padding between consolidated rows */
   .rp-stack{
-    margin-top: 18px;              /* space after Room row */
-    padding-top: 12px;             /* space before divider */
+    margin-top: 12px; /* space after top info row */
+    padding-top: 10px;
     border-top: 1px solid rgba(255,106,61,0.22);
   }
+
   .rp-stack .room-plan-row{
-    padding-bottom: 10px;
+    padding-top: 10px;
+    padding-bottom: 18px; /* breathing room before the divider */
     border-bottom: 1px solid rgba(255,106,61,0.22);
   }
+
   .rp-stack .room-price-row{
     padding-top: 10px;
   }
-
   #confirmRoomPriceBtn{
     margin-top: 8px;
   }
@@ -1297,6 +1294,11 @@
                       <div class="field-value">
                         <span id="stayDatesInline"></span>
                       </div>
+
+                      <!-- Edit dates link (shows the preserved date card on the right) -->
+                      <button class="card-header-link" id="editDatesLink" type="button">
+                        Edit dates
+                      </button>
                     </div>
                   </div>
 
@@ -1377,7 +1379,7 @@
 
                 <!-- RIGHT COLUMN: DATE CARD (preserved) -->
                 <div class="dates-right">
-                  <div id="checkoutDatesCardWrapper" class="checkout-dates-card-wrapper hidden">
+                  <div id="checkoutDatesCardWrapper" class="checkout-dates-card-wrapper">
 
                     <div id="checkout-date-bar" class="detail-date-bar">
                       <input
