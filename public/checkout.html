@@ -1020,24 +1020,28 @@
     margin-bottom: 10px; /* controls space before the divider */
   }
   .top-info-left{ flex: 1 1 auto; min-width: 0; }
+
+  /* Top-right stay dates + edit link: right aligned, but allow wrapping (no border bleed) */
   .top-info-right{
-    flex: 0 0 auto;
-    margin-left: auto;     /* pins to far right */
-    text-align: right;
-    min-width: 140px;      /* was too big and caused wrapping */
-    max-width: 40%;
+    display:flex;
+    flex-direction:column;
+    align-items:flex-end;
+    text-align:right;
+    max-width: 48%;
   }
-  .top-info-right .field-label,
-  .top-info-right .field-value{
-    text-align: right;
+
+  .top-info-right .field-label{
+    text-align:right;
   }
 
   .top-info-right .field-value{
-    color:#111;               /* black */
-    font-weight:400;          /* not bold */
-    white-space: normal;      /* allow wrapping */
-    overflow-wrap: anywhere;  /* prevent bleed */
-    max-width: 240px;
+    text-align:right;
+    color:#111;           /* darker value */
+    font-weight:400;      /* not bold */
+    max-width: 240px;     /* prevents pushing into the gutter */
+    white-space: normal;  /* allow wrap */
+    overflow-wrap: anywhere;
+    word-break: break-word;
   }
 
   /* Dividers + padding between consolidated rows */
@@ -1359,7 +1363,16 @@
                     <div class="rp-op">×</div>
 
                     <div class="rp-col">
-                      <div class="rp-label">Avg. price</div>
+                      <div class="rp-label"># of Rooms</div>
+                      <div class="rp-value">
+                        <span id="roomQty">1</span>
+                      </div>
+                    </div>
+
+                    <div class="rp-op">×</div>
+
+                    <div class="rp-col">
+                      <div class="rp-label">Avg. Price/Night</div>
                       <div class="rp-value">
                         <span id="avgNightPrice">$0</span>
                       </div>
@@ -3517,10 +3530,22 @@
         }
       }
     
+      // --- Edit dates: single authoritative click handler (prevents double-wiring) ---
       const editDatesLink = document.getElementById("editDatesLink");
       if (editDatesLink && datesCardWrapper) {
-        editDatesLink.addEventListener("click", function () {
-          datesCardWrapper.classList.toggle("hidden");
+        // Kill any previous listeners by cloning the node (prevents "click cancels itself")
+        const fresh = editDatesLink.cloneNode(true);
+        editDatesLink.parentNode.replaceChild(fresh, editDatesLink);
+
+        fresh.addEventListener("click", function (e) {
+          e.preventDefault();
+
+          // Show the date card reliably
+          datesCardWrapper.classList.remove("hidden");
+          datesCardWrapper.style.display = "flex";
+
+          // Optional: scroll into view so it feels responsive
+          try { datesCardWrapper.scrollIntoView({ behavior: "smooth", block: "nearest" }); } catch (_) {}
         });
       }
 
