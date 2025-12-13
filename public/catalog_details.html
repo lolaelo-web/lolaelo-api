@@ -347,6 +347,7 @@
     }
 
     .roomcat-plan-btn{
+      height: 36px;
       display: inline-flex;
       align-items: center;
       justify-content: center;
@@ -900,15 +901,42 @@
     }
     .qty-label{
       font-size:12px;
-      color:#475569;
-      margin-right:8px;
+      color:var(--muted);
     }
-    .qty-select{
-      height:34px;
-      border-radius:10px;
-      border:1px solid rgba(0,0,0,0.15);
-      padding:0 10px;
+
+    .qty-avail,
+    .qty-pick{
+      height: 34px;                 /* standard height */
+      display:flex;
+      align-items:center;
+      padding: 0 12px;
+      border-radius: 12px;
+      border: 1px solid var(--border);
       background:#fff;
+      white-space: nowrap;
+    }
+
+    .qty-select{
+      height: 34px;                 /* standard height */
+      padding: 0 10px;
+      border-radius: 10px;
+      border: 1px solid var(--border);
+      background:#fff;
+      color:var(--fg);
+      font-weight:600;
+    }
+
+    /* Standardize Book now height to match */
+    .roomcat-plan-btn{
+      height: 34px;
+      display:inline-flex;
+      align-items:center;
+      justify-content:center;
+      padding: 0 14px;              /* overrides old padding */
+    }
+    .roomcat-plan-btn.is-disabled{
+      opacity: .45;
+      pointer-events: none;
     }
 
     .roomcat .toggle {
@@ -979,7 +1007,7 @@
         align-items:flex-end;
         gap:8px;
       }
-     .planrow .qty-inline{
+    .planrow .qty-inline{
         justify-content:flex-end;
       }
     }
@@ -1002,7 +1030,9 @@
       display:inline-flex;
       align-items:center;
       gap:6px;
-      padding: 6px 10px;
+
+      height: 36px;                 /* STANDARD HEIGHT */
+      padding: 0 12px;              /* vertical handled by height */
       border-radius: 9999px;
       border: 1px solid var(--border);
       background:#fff;
@@ -1025,7 +1055,7 @@
     }
 
     .planrow .qty-select{
-      height:26px;
+      height: 30px;                 /* fits inside 36px pill */
       padding: 0 8px;
       border-radius: 8px;
       border: 1px solid var(--border);
@@ -1060,8 +1090,8 @@
       color: var(--muted);
       font-size: 13px;
     }
-
     /* ANCHOR: DETAILS_PRICE_SIZE */
+
     .price{
       font-weight: 600;
       font-size: 24px;
@@ -4868,17 +4898,119 @@
                   `<div class="room-modal-plan-pill-price">Price unavailable</div>`;
               }
 
+              // availability for the stay (backend rollup already present on room in your payload)
+              const maxAvail = Math.max(0, Number(
+                room.availabilitySummary?.availableRooms ??
+                room.availableRooms ??
+                0
+              ) || 0);
+
+              // read previously saved qty for this room+plan from checkout.selection.v1
+              let savedQty = 0;
+              try{
+                const sel = JSON.parse(localStorage.getItem("checkout.selection.v1") || "null");
+                const items = Array.isArray(sel?.items) ? sel.items : [];
+                const hit = items.find(it =>
+                  String(it.roomTypeId ?? it.roomId) === String(roomId) &&
+                  String(it.ratePlanId ?? it.planId) === String(id)
+                );
+                savedQty = Math.max(0, Number(hit?.qty || 0) || 0);
+              }catch(_){ savedQty = 0; }
+
+              savedQty = Math.min(savedQty, maxAvail);
+
+              const opts = Array.from({length: maxAvail + 1}, (_,i)=>i)
+                .map(i => `<option value="${i}" ${i===savedQty ? "selected":""}>${i}</option>`)
+                .join("");
+
               pill.innerHTML =
                 `<div class="room-modal-plan-pill-title">${label}</div>
                 <div class="room-modal-plan-pill-desc">${desc}</div>
                 ${priceHtml}
-                <a class="room-modal-plan-pill-btn"
-                    href="${url}"
-                    aria-label="Book ${label} now">
-                    Book now
-                </a>`;
+
+                <div class="plan-actions">
+                  <div class="qty-inline">
+                    <div class="qty-avail">Available: <span class="qty-avail-val">${maxAvail}</span></div>
+
+                    <div class="qty-pick">
+                      <span class="qty-label">Qty</span>
+                      <select
+                        class="qty-select room-modal-qty"
+                        data-room-id="${roomId}"
+                        data-plan-id="${id}"
+                        data-max="${maxAvail}"
+                      >
+                        ${opts}
+                      </select>
+                    </div>
+                  </div>
+
+                  <a class="room-modal-plan-pill-btn"
+                      href="${url}${url.includes('?') ? '&' : '?'}qty=${encodeURIComponent(savedQty)}"
+                      aria-label="Book ${label} now">
+                      Book now
+                  </a>
+                </div>`;
 
               plansWrap.appendChild(pill);
+
+              // wire qty change for this pill (persist + update href)
+              const qtySel = pill.querySelector("select.room-modal-qty");
+              if (qtySel){
+                qtySel.addEventListener("change", () => {
+                  const roomId2 = String(qtySel.getAttribute("data-room-id") || "");
+                  const planId2 = String(qtySel.getAttribute("data-plan-id") || "");
+                  const max2 = Math.max(0, Number(qtySel.getAttribute("data-max") || 0) || 0);
+                  const qty2 = Math.min(max2, Math.max(0, Number(qtySel.value || 0) || 0));
+
+                  // update link
+                  const a = pill.querySelector("a.room-modal-plan-pill-btn");
+                  if (a){
+                    const href = a.getAttribute("href") || "";
+                    const base = href.replace(/([?&])qty=\d+(&?)/, (m,p1,p2)=> (p2 ? p1 : ""));
+                    const join = base.includes("?") ? "&" : "?";
+                    a.setAttribute("href", `${base}${join}qty=${encodeURIComponent(qty2)}`);
+                  }
+
+                  // persist to checkout.selection.v1 (same format you already use inline)
+                  try{
+                    const selKey = "checkout.selection.v1";
+                    let selObj = null;
+                    try { selObj = JSON.parse(localStorage.getItem(selKey) || "null"); } catch(_) { selObj = null; }
+                    if (!selObj || typeof selObj !== "object") selObj = { propertyId: String(propertyId), start: String(start), end: String(end), items: [] };
+
+                    selObj.propertyId = String(propertyId);
+                    selObj.start = String(start);
+                    selObj.end = String(end);
+                    if (!Array.isArray(selObj.items)) selObj.items = [];
+
+                    const idx = selObj.items.findIndex(it =>
+                      String(it.roomTypeId ?? it.roomId) === roomId2 &&
+                      String(it.ratePlanId ?? it.planId) === planId2
+                    );
+
+                    if (qty2 <= 0){
+                      if (idx >= 0) selObj.items.splice(idx, 1);
+                    } else {
+                      const item = {
+                        roomTypeId: roomId2,
+                        ratePlanId: planId2,
+                        qty: qty2,
+                        roomName: String(roomName || ""),
+                        planLabel: String(label || "")
+                      };
+                      if (idx >= 0) selObj.items[idx] = item;
+                      else selObj.items.push(item);
+                    }
+
+                    localStorage.setItem(selKey, JSON.stringify(selObj));
+                    console.log("[details][qty][persist] saved", selObj);
+                  }catch(e){
+                    console.warn("[details][qty][persist] failed", e);
+                  }
+                });
+              }
+
             });
           }
         } catch (_) {}
