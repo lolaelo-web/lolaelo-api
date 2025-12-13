@@ -2271,9 +2271,11 @@
           state.pricingTotal > 0) {
         base = state.pricingTotal;
       } else if (typeof state.baseRoomTotal === "number" &&
-                 Number.isFinite(state.baseRoomTotal) &&
-                 state.baseRoomTotal > 0) {
-        base = state.baseRoomTotal;
+                Number.isFinite(state.baseRoomTotal) &&
+                state.baseRoomTotal > 0) {
+        // baseRoomTotal was captured before qty scaling; apply qty here for safety
+        const qn = Math.max(1, Number.parseInt(String(state.qty || 1), 10) || 1);
+        base = state.baseRoomTotal * qn;
       }
 
       const addons = Number(state.addonsSubtotal || 0);
@@ -2329,12 +2331,20 @@
       const propMetaEl = document.getElementById("propertyMeta");
       if (propMetaEl) propMetaEl.textContent = propertyMeta;
 
+      const qn = Math.max(1, Number.parseInt(String(state.qty || 1), 10) || 1);
+
       const roomNameEl = document.getElementById("roomName");
-      if (roomNameEl) roomNameEl.textContent = roomText;
+      if (roomNameEl) {
+        roomNameEl.textContent = qn > 1 ? `${roomText} (x${qn})` : roomText;
+      }
+
       const planNameEl = document.getElementById("ratePlanName");
-      if (planNameEl) planNameEl.textContent = planText;
+      if (planNameEl) {
+        planNameEl.textContent = qn > 1 ? `${planText} (x${qn})` : planText;
+      }
+
       const qtyEl = document.getElementById("roomQty");
-      if (qtyEl) qtyEl.textContent = String(state.qty || 1);
+      if (qtyEl) qtyEl.textContent = String(qn);
 
       // Summary card on the right
       document.getElementById("summaryProperty").textContent = propertyText;

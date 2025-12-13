@@ -598,7 +598,7 @@
 
     .room-modal-info{
       margin-top: 12px;
-      padding: 0 72px 4px;  /* doubled indent left & right */
+      padding: 0 24px;
       display: grid;
       grid-template-columns: minmax(0, 1.2fr) minmax(0, 1fr);
       column-gap: 40px;
@@ -868,10 +868,10 @@
 
     /* === ROOM DESCRIPTION FULL-WIDTH, ALIGNED WITH CONTENT GUTTERS === */
     .room-desc-block{
+      grid-column: 1 / -1;   /* span full width of the modal grid */
+      padding-left: 0;
+      padding-right: 0;
       width: 100%;
-      padding-left: 32px;
-      padding-right: 32px;
-      box-sizing: border-box;
     }
 
     @media (max-width: 768px){
