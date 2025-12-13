@@ -998,6 +998,28 @@
     flex: 0 0 auto;
   }
 
+  /* Dividers + padding between consolidated rows */
+  .rp-stack{
+    margin-top: 10px;
+    padding-top: 10px;
+    border-top: 1px solid rgba(255,106,61,0.22);
+  }
+  .rp-stack .room-plan-row{
+    padding-bottom: 10px;
+    border-bottom: 1px solid rgba(255,106,61,0.22);
+  }
+  .rp-stack .room-price-row{
+    padding-top: 10px;
+  }
+
+  /* Move confirm button to bottom-left */
+  .stay-confirm-row{
+    justify-content: flex-start;
+  }
+  #confirmRoomPriceBtn{
+    margin-top: 8px;
+  }
+
   .dates-right .card-header-link {
     border: 0;
     background: transparent;
@@ -1251,6 +1273,7 @@
                   </div>
 
                   <!-- Row 1 (existing): Room -> Rate plan -> # of Rooms -->
+                <div class="rp-stack">
                   <div class="room-plan-row">
                     <div class="rp-col">
                       <div class="rp-label">Room</div>
@@ -1307,6 +1330,7 @@
                       $0
                     </button>
                   </div>
+                </div>
 
                   <!-- Row 3: stay dates + confirm -->
                   <div class="stay-confirm-row">
