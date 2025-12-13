@@ -679,6 +679,73 @@
       text-align: center;
     }
 
+    /* Modal: split Available + Qty into two pills (match inline behavior) */
+    .room-modal-plan-pill .qty-inline{
+      display:flex;
+      align-items:center;
+      gap:10px;
+      white-space:nowrap;
+
+      /* IMPORTANT: prevent the global .qty-inline container styling
+        from turning this into one big combined box */
+      border: none !important;
+      background: transparent !important;
+      padding: 0 !important;
+      border-radius: 0 !important;
+      box-shadow: none !important;
+    }
+
+    .room-modal-plan-pill .qty-avail,
+    .room-modal-plan-pill .qty-pick{
+      height: 34px;
+      display:flex;
+      align-items:center;
+      padding: 0 12px;
+      border-radius: 12px;
+      border: 1px solid var(--border);
+      background:#fff;
+    }
+
+    .room-modal-plan-pill .qty-avail{
+      font-size:12px;
+      color:var(--muted);
+    }
+
+    .room-modal-plan-pill .qty-avail-val{
+      font-weight:600;
+      color:var(--fg);
+    }
+
+    .room-modal-plan-pill .qty-label{
+      font-size:12px;
+      color:var(--muted);
+      margin-right:6px;
+    }
+
+    .room-modal-plan-pill .qty-select{
+      height: 30px;
+      padding: 0 8px;
+      border-radius: 8px;
+      border: 1px solid var(--border);
+      background:#fff;
+      color:var(--fg);
+      font-weight:600;
+    }
+
+    /* Standardize “Book now” height to match pills */
+    .room-modal-plan-pill-btn{
+      height: 34px;
+      padding: 0 20px;              /* overrides old padding */
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .room-modal-plan-pill-btn.is-disabled{
+      opacity: .45;
+      pointer-events: none;
+    }
+
     /* Teal outline “Book now” button inside plan pills */
     .room-modal-plan-pill-btn{
       margin-top: 6px;
@@ -5010,7 +5077,6 @@
                   }
                 });
               }
-
             });
           }
         } catch (_) {}
