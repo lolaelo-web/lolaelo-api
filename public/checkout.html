@@ -993,10 +993,38 @@
     flex: 0 0 auto;
   }
 
+  /* Top row: Property name (left) + Stay dates (right) */
+  .top-info-row{
+    display:flex;
+    align-items:flex-start;
+    justify-content:space-between;
+    gap:16px;
+    margin-bottom: 10px; /* controls space before the divider */
+  }
+  .top-info-left{ flex: 1 1 auto; min-width: 0; }
+  .top-info-right{
+    flex: 0 0 auto;
+    text-align:right;
+    min-width: 180px;
+  }
+  .top-info-right .field-value{
+    white-space: nowrap;
+  }
+
+  /* Tighten space around the divider and improve breathing room for Row 1 */
+  .rp-stack{
+    margin-top: 12px;   /* was too tall */
+    padding-top: 10px;
+  }
+  .rp-stack .room-plan-row{
+    padding-top: 8px;   /* adds space ABOVE “room type a” before divider */
+    padding-bottom: 12px;
+  }
+
   /* Dividers + padding between consolidated rows */
   .rp-stack{
     margin-top: 18px;              /* space after Room row */
-    padding-top: 18px;             /* space before divider */
+    padding-top: 12px;             /* space before divider */
     border-top: 1px solid rgba(255,106,61,0.22);
   }
   .rp-stack .room-plan-row{
@@ -1254,19 +1282,21 @@
                 <!-- LEFT COLUMN -->
                 <div class="dates-left">
 
-                  <div class="field-row">
-                    <div class="field-label">Property name</div>
-                    <div class="field-value">
-                      <div id="propertyName"></div>
-                      <div class="muted" id="propertyMeta"></div>
-                      <span id="propertyIdValue" style="display:none;"></span>
+                  <div class="top-info-row">
+                    <div class="top-info-left">
+                      <div class="field-label">Property name</div>
+                      <div class="field-value">
+                        <div id="propertyName"></div>
+                        <div class="muted" id="propertyMeta"></div>
+                        <span id="propertyIdValue" style="display:none;"></span>
+                      </div>
                     </div>
-                  </div>
 
-                  <div class="field-row stay-dates-top">
-                    <div class="field-label">Stay dates</div>
-                    <div class="field-value">
-                      <span id="stayDatesInline"></span>
+                    <div class="top-info-right">
+                      <div class="field-label">Stay dates</div>
+                      <div class="field-value">
+                        <span id="stayDatesInline"></span>
+                      </div>
                     </div>
                   </div>
 
