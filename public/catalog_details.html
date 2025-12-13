@@ -1153,6 +1153,17 @@
       }
     }
 
+    /* qty validation error */
+    .qty-select.is-error{
+      border-color:#ef4444 !important;
+      box-shadow: 0 0 0 3px rgba(239,68,68,.18) !important;
+    }
+
+    .qty-pick-pill.is-error{
+      border-color:#ef4444 !important;
+      box-shadow: 0 0 0 3px rgba(239,68,68,.18) !important;
+    }
+
     .muted{
       color: var(--muted);
       font-size: 13px;
@@ -3837,7 +3848,7 @@
                   `<div class="plan-actions">` +
                     `<div class="qty-inline">` +
 
-                      `<div class="qty-avail-pill">Available Rooms: <span class="qty-avail-val">${maxAvail}</span></div>` +
+                      `<div class="qty-avail-pill">Available Rooms: <span class="qty-avail-val"> ${maxAvail}</span></div>` +
 
                       `<div class="qty-pick-pill">` +
                         `<label class="qty-label" for="qty_${roomId}_${p.id}">Qty</label>` +
@@ -3979,6 +3990,46 @@
                 console.log('[details][qty] set', { roomId, planId, qty, max });
               });
             });
+
+            // === Qty guard: block Book now when qty <= 0 (inline + modal) ===
+            function flashQtyError(selectEl){
+              if (!selectEl) return;
+
+              const pill = selectEl.closest(".qty-pick-pill");
+
+              selectEl.classList.add("is-error");
+              if (pill) pill.classList.add("is-error");
+
+              try { selectEl.focus(); } catch(_){}
+
+              window.clearTimeout(flashQtyError._t);
+              flashQtyError._t = window.setTimeout(() => {
+                selectEl.classList.remove("is-error");
+                if (pill) pill.classList.remove("is-error");
+              }, 1400);
+            }
+
+            document.addEventListener("click", (e) => {
+              const btn = e.target.closest(".roomcat-plan-btn, .plan-book-btn, .modal-plan-book-btn, a.btn-select");
+              if (!btn) return;
+
+              const scope =
+                btn.closest(".planrow") ||
+                btn.closest(".plan-card") ||
+                btn.closest(".modal-plan-card") ||
+                btn.closest(".roomcat-card") ||
+                btn.closest("[data-plan-id]") ||
+                btn.parentElement;
+
+              const sel = scope ? scope.querySelector("select.qty-select") : null;
+              const qty = sel ? (Number.parseInt(String(sel.value || "0"), 10) || 0) : 0;
+
+              if (qty <= 0) {
+                e.preventDefault();
+                e.stopPropagation();
+                flashQtyError(sel);
+              }
+            }, true);
 
             panel.setAttribute('data-hydrated', 'true');           // mark as partner-authoritative
             panel.dataset.hydratedAt = String(Date.now());         // (optional) timestamp for debugging
@@ -4986,8 +5037,10 @@
 
               savedQty = Math.min(savedQty, maxAvail);
 
-              const opts = Array.from({length: maxAvail + 1}, (_,i)=>i)
-                .map(i => `<option value="${i}" ${i===savedQty ? "selected":""}>${i}</option>`)
+              const normQty = Number.isFinite(Number(savedQty)) ? Number(savedQty) : 0;
+
+              const opts = Array.from({ length: maxAvail + 1 }, (_, i) => i)
+                .map(i => `<option value="${i}" ${i === normQty ? "selected" : ""}>${i}</option>`)
                 .join("");
 
               pill.innerHTML =
@@ -4997,7 +5050,7 @@
 
                 <div class="plan-actions">
                   <div class="qty-inline">
-                    <div class="qty-avail">Available: <span class="qty-avail-val">${maxAvail}</span></div>
+                    <div class="qty-avail">Available Rooms:  <span class="qty-avail-val">${maxAvail}</span></div>
 
                     <div class="qty-pick">
                       <span class="qty-label">Qty</span>
