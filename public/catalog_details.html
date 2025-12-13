@@ -990,8 +990,19 @@
       white-space:nowrap;
     }
 
-    .planrow .qty-avail{
+    .planrow .qty-avail-pill,
+    .planrow .qty-pick-pill{
+      display:flex;
+      align-items:center;
+      gap:6px;
+      padding: 6px 10px;
+      border-radius: 9999px;
+      border: 1px solid var(--border);
+      background:#fff;
       font-size:12px;
+    }
+
+    .planrow .qty-avail-pill{
       color:var(--muted);
     }
 
@@ -1000,21 +1011,15 @@
       color:var(--fg);
     }
 
-    .planrow .qty-pick{
-      display:flex;
-      align-items:center;
-      gap:6px;
-    }
-
     .planrow .qty-label{
       font-size:12px;
       color:var(--muted);
     }
 
     .planrow .qty-select{
-      height:32px;
-      padding: 0 10px;
-      border-radius: 10px;
+      height:26px;
+      padding: 0 8px;
+      border-radius: 8px;
       border: 1px solid var(--border);
       background:#fff;
       color:var(--fg);
@@ -3726,13 +3731,16 @@
 
                   `<div class="plan-actions">` +
                     `<div class="qty-inline">` +
-                      `<div class="qty-avail">Available: <span class="qty-avail-val">${maxAvail}</span></div>` +
-                      `<div class="qty-pick">` +
+
+                      `<div class="qty-avail-pill">Available Rooms: <span class="qty-avail-val">${maxAvail}</span></div>` +
+
+                      `<div class="qty-pick-pill">` +
                         `<label class="qty-label" for="qty_${roomId}_${p.id}">Qty</label>` +
                         `<select class="qty-select" id="qty_${roomId}_${p.id}" data-room-id="${roomId}" data-plan-id="${p.id}">` +
                           `${opts}` +
                         `</select>` +
                       `</div>` +
+
                     `</div>` +
 
                     `<a class="roomcat-plan-btn" href="${url}" aria-label="Book now with this rate">Book now</a>` +

@@ -994,6 +994,14 @@
     width:100%;
   }
 
+  .room-price-row .rp-col{
+    display:flex;
+    flex-direction:column;
+    align-items: center;
+  }
+  .room-price-row .rp-label{
+    align-self: flex-start;
+  }
   .pill-outline{
     flex: 0 0 auto;
     padding: 8px 14px;
@@ -2599,8 +2607,11 @@
 
       const nightsText =
         nights ? nights + " night" + (nights > 1 ? "s" : "") : "";
+      const srooms = document.getElementById("summaryRooms");
+      if (srooms) srooms.textContent = (qn === 1) ? "1 room" : `${qn} rooms`;
+
       const sn = document.getElementById("summaryNights");
-      if (sn) sn.textContent = nightsText || "n";
+      if (sn) sn.textContent = nightsText || "--";
 
       // Avg. price per night in Section 2 + total pill
       const nightlyEl = document.getElementById("nightlyPriceText");
