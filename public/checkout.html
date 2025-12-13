@@ -287,6 +287,11 @@
     gap: 8px;
     flex-wrap: wrap;
   }
+
+  /* Center value for # of Rooms column only */
+  .rp-col:last-child .rp-value{
+    justify-content: center;
+  }
   .rp-arrow{
     font-size: 16px;
     color: var(--muted);
@@ -1093,7 +1098,10 @@
       align-items: flex-start;
     }
   }
-  
+  .card[data-section="2"]{
+    display:none;
+  }
+
 </style>
 
 </head>
@@ -1156,7 +1164,7 @@
             <div class="card-header">
               <div class="card-title">
                 <div class="card-step active" data-step-indicator="1">1</div>
-                Property and room
+                Room & Price
               </div>
               <div class="card-status" data-step-status="1">
                 Waiting for confirmation
@@ -1183,7 +1191,7 @@
                 <div class="rp-arrow">→</div>
 
                 <div class="rp-col">
-                  <div class="rp-label">Rate plan</div>
+                  <div class="rp-label">Rate Plan</div>
                   <div class="rp-value">
                     <span id="ratePlanName"></span>
                     <span id="ratePlanIdValue" style="display:none;"></span>
@@ -1196,80 +1204,56 @@
                     <span id="roomQty">1</span>
                   </div>
                 </div>
-              </div>
-              <div class="field-inline">
-                <button class="btn-link" id="changePlanLink" type="button">
-                  Change room or rate plan
-                </button>
-              </div>
-              <button class="btn-primary" type="button" data-confirm="1">
-                Confirm room
-              </button>
-            </div>
-          </div>
+                </div>
 
-          <!-- Section 2 - Dates and pricing -->
-          <div class="card" data-section="2">
-            <div class="card-header">
-              <div class="card-title">
-                <div class="card-step" data-step-indicator="2">2</div>
-                Dates and pricing
-              </div>
-
-              <div class="card-header-actions">
-                <div class="card-status" data-step-status="2">Waiting for confirmation</div>
-                <button class="card-header-link" id="editDatesLink" type="button">
-                  Edit dates
-                </button>
-              </div>
-            </div>
-
-            <!-- Body -->
-            <div class="section-body hidden" data-section-body="2">
-
-              <!-- TWO COLUMN GRID -->
-              <div class="dates-grid">
-
-                <!-- LEFT COLUMN -->
-                <div class="dates-left">
-                  <div class="field-row">
-                    <div class="field-label">Stay dates</div>
-                    <div class="field-value" id="stayDatesText">Dates from URL</div>
-                  </div>
-
-                  <div class="field-row">
-                    <div class="field-label">Nights</div>
-                    <div class="field-value" id="nightsCountText">n nights</div>
-                  </div>
-
-                  <div class="field-row">
-                    <div class="field-label">Avg. Price</div>
-                    <div class="price-summary-row">
-                      <div class="price-main-info">
-                        <div
-                          class="price-per-night"
-                          id="nightlyPriceText"
-                        >
-                          -
-                        </div>
-                        <div
-                          class="price-per-night-caption"
-                          id="nightlyPriceCaption"
-                        >
-                          <!-- will show “for X nights” -->
-                        </div>
-                      </div>
-                      <div class="price-total-pill" id="priceTotalPill">
-                        Total:
-                        <span id="priceTotalText">$0.00</span>
-                      </div>
+                <!-- Row 2: nights x avg price = total -->
+                <div class="room-price-row">
+                  <div class="rp-col">
+                    <div class="rp-label">Nights</div>
+                    <div class="rp-value">
+                      <span id="stayNights">0</span>
                     </div>
                   </div>
 
-                  <button class="btn-primary" type="button" data-confirm="2">
-                    Confirm dates and price
+                  <div class="rp-op">×</div>
+
+                  <div class="rp-col">
+                    <div class="rp-label">Avg. price</div>
+                    <div class="rp-value">
+                      <span id="avgNightPrice">$0</span>
+                    </div>
+                  </div>
+
+                  <div class="rp-op">=</div>
+
+                  <button
+                    type="button"
+                    class="pill-outline"
+                    id="totalPill"
+                    aria-label="Total room price"
+                  >
+                    $0
                   </button>
                 </div>
+
+                <!-- Row 3: stay dates + confirm -->
+                <div class="stay-confirm-row">
+                  <div class="stay-left">
+                    <div class="rp-label">Stay dates</div>
+                    <div class="rp-value">
+                      <span id="stayDatesInline"></span>
+                    </div>
+                  </div>
+
+                <button
+                  type="button"
+                  class="btn-primary"
+                  id="confirmRoomPriceBtn"
+                  data-confirm="2"
+                >
+                  Confirm Room & Price
+                </button>
+               </div>
 
                 <!-- RIGHT COLUMN: DATE CARD -->
                 <div class="dates-right">
@@ -2382,17 +2366,33 @@
       const qn = Math.max(1, Number.parseInt(String(state.qty || 1), 10) || 1);
 
       const roomNameEl = document.getElementById("roomName");
-      if (roomNameEl) {
-        roomNameEl.textContent = qn > 1 ? `${roomText} (x${qn})` : roomText;
-      }
+      if (roomNameEl) roomNameEl.textContent = roomText;
 
       const planNameEl = document.getElementById("ratePlanName");
-      if (planNameEl) {
-        planNameEl.textContent = qn > 1 ? `${planText} (x${qn})` : planText;
-      }
+      if (planNameEl) planNameEl.textContent = planText;
 
       const qtyEl = document.getElementById("roomQty");
       if (qtyEl) qtyEl.textContent = String(qn);
+
+      // --- NEW: Row 2 + Row 3 values ---
+      const nightsEl = document.getElementById("stayNights");
+      if (nightsEl) nightsEl.textContent = String(nights || 0);
+
+      const stayInline = document.getElementById("stayDatesInline");
+      if (stayInline) stayInline.textContent = datesText;
+
+      // Avg price = (room total / qty / nights)
+      const avgEl = document.getElementById("avgNightPrice");
+      if (avgEl) {
+        const nn = Math.max(1, Number(nights || 0));
+        const qq = Math.max(1, Number(qn || 1));
+        const total = Number(state.pricingTotal || 0); // this is qty-adjusted
+        const avg = total > 0 ? (total / qq / nn) : 0;
+        avgEl.textContent = money(avg);
+      }
+
+      const totalPill = document.getElementById("totalPill");
+      if (totalPill) totalPill.textContent = money(Number(state.pricingTotal || 0));
 
       // Summary card on the right
       document.getElementById("summaryProperty").textContent = propertyText;
