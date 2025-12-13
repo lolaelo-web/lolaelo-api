@@ -5056,7 +5056,7 @@
               const normQty =
                 Number.isFinite(Number(savedQty)) && Number(savedQty) > 0
                   ? Number(savedQty)
-                  : (maxAvail > 0 ? 1 : 0);
+                  : 1;
 
               const opts = Array.from({ length: maxAvail + 1 }, (_, i) => i)
                 .map(i => `<option value="${i}" ${i === normQty ? "selected" : ""}>${i}</option>`)

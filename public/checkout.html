@@ -1961,6 +1961,85 @@
       };
     }
 
+    // =========================
+    // CART v1 (Secondary Sprint)
+    // =========================
+    const CART_KEY = "checkout.cart.v1";
+    const SELECTION_KEY = "checkout.selection.v1";
+
+    function safeJsonParse(raw) {
+      try { return raw ? JSON.parse(raw) : null; } catch (_) { return null; }
+    }
+
+    function loadCartV1() {
+      try {
+        return safeJsonParse(localStorage.getItem(CART_KEY) || "");
+      } catch (_) {
+        return null;
+      }
+    }
+
+    function saveCartV1(cart) {
+      try {
+        localStorage.setItem(CART_KEY, JSON.stringify(cart));
+        return true;
+      } catch (_) {
+        return false;
+      }
+    }
+
+    function buildCartFromCurrentQuery(q) {
+      const nowIso = new Date().toISOString();
+      const lineId =
+        "ln_" + Date.now().toString(36) + "_" + Math.random().toString(36).slice(2, 8);
+
+      return {
+        version: 1,
+        createdAt: nowIso,
+        itinerary: {
+          policy: "continuous_or_adjacent",
+          currency: "PHP"
+        },
+        items: [
+          {
+            lineId,
+            propertyId: q.propertyId || "",
+            propertyName: q.propertyName || "",
+            propertyLocation: q.propertyLocation || "",
+            roomTypeId: q.roomId || "",
+            roomName: q.roomName || "",
+            ratePlanId: q.ratePlanId || "",
+            planLabel: q.ratePlanName || "",
+            qty: Number(q.qty || 1) || 1,
+            start: q.start || "",
+            end: q.end || ""
+          }
+        ]
+      };
+    }
+
+    function migrateSelectionToCartIfNeeded(q) {
+      // If cart already exists, do nothing.
+      const existingCart = loadCartV1();
+      if (existingCart && existingCart.version === 1 && Array.isArray(existingCart.items)) {
+        return existingCart;
+      }
+
+      // If selection exists, create a cart (do not delete selection yet).
+      let sel = null;
+      try {
+        sel = safeJsonParse(localStorage.getItem(SELECTION_KEY) || "");
+      } catch (_) {
+        sel = null;
+      }
+      if (!sel) return null;
+
+      // Minimal migration: create cart from current query fields (stable + already in use today).
+      const cart = buildCartFromCurrentQuery(q);
+      saveCartV1(cart);
+      return cart;
+    }
+
     // Treat YYYY-MM-DD as a plain calendar date (no timezone)
     function parseLocalYMD(dateStr) {
       if (!dateStr) return null;
@@ -3359,6 +3438,7 @@
 
     function initCheckout() {
       const q = parseQuery();
+      migrateSelectionToCartIfNeeded(q);
       state.propertyId = q.propertyId;
       state.roomId = q.roomId;
       state.qty = Math.max(1, Number.parseInt(q.qty, 10) || 1);
