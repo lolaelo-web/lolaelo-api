@@ -2066,8 +2066,7 @@
           const label = name + " · Qty " + qty;
           const amtText = formatCurrency(lineTotalNum, cur);
 
-          const qn = Math.max(1, Number.parseInt(String((s.qty || state.qty || 1)), 10) || 1);
-          const left = qn === 1 ? label : (label + " x " + qn + " rooms");
+          const left = label;
 
           parts.push(
             '<div class="breakdown-line">' +
