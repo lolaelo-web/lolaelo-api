@@ -312,7 +312,7 @@
 
   .checkout-dates-card-wrapper{
     margin-top: 6px;
-    display: block;         /* visible when not .hidden */
+    display: block;         /* visible unless hidden */
   }
 
   .checkout-dates-card-wrapper.hidden{
@@ -946,11 +946,6 @@
     text-align:right;
   }
 
-  .dates-right .top-info-right .field-value{
-    color:#111;               /* stay dates value darker */
-    font-weight:600;
-  }
-
   .dates-right .top-info-right #editDatesLink{
     color:#ff6a3d;            /* edit dates orange */
   }
@@ -1036,8 +1031,13 @@
   .top-info-right .field-value{
     text-align: right;
   }
+
   .top-info-right .field-value{
-    white-space: nowrap;
+    color:#111;               /* black */
+    font-weight:400;          /* not bold */
+    white-space: normal;      /* allow wrapping */
+    overflow-wrap: anywhere;  /* prevent bleed */
+    max-width: 240px;
   }
 
   /* Dividers + padding between consolidated rows */
@@ -1067,6 +1067,10 @@
     font-size: 12px;
     font-weight: 500;
     cursor: pointer;
+  }
+
+  #editDatesLink{
+    color:#ff6a3d;
   }
 
   .checkout-dates-card-wrapper .detail-date-bar{
