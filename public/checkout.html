@@ -260,6 +260,45 @@
     color: var(--text);
   }
 
+  /* Room -> Plan x Rooms (Section 1) */
+  .room-plan-row{
+    margin-top: 12px;
+    display: flex;
+    align-items: flex-end;
+    gap: 10px;
+  }
+  .rp-col{
+    display:flex;
+    flex-direction:column;
+    gap:4px;
+    min-width: 0;
+  }
+  .rp-col-grow{ flex: 1; }
+
+  .rp-label{
+    font-size: 12px;
+    color: var(--muted);
+  }
+  .rp-value{
+    font-size: 14px;
+    color: var(--text);
+    display:flex;
+    align-items: baseline;
+    gap: 8px;
+    flex-wrap: wrap;
+  }
+  .rp-arrow{
+    font-size: 16px;
+    color: var(--muted);
+    padding: 0 2px 2px;
+  }
+  .rp-mult{
+    color: var(--muted);
+  }
+  .rp-unit{
+    color: var(--muted);
+  }
+
   .addons-block {
     margin-top: 16px;
     padding-top: 12px;
@@ -505,11 +544,11 @@
     gap: 2px;
   }
 
-.price-per-night {
-  font-size: 14px;      /* closer to dates / nights */
-  font-weight: 400;
-  color: var(--text);
-}
+  .price-per-night {
+    font-size: 14px;      /* closer to dates / nights */
+    font-weight: 400;
+    color: var(--text);
+  }
   .price-per-night-caption {
     font-size: 12px;
     color: var(--muted);
@@ -1132,24 +1171,26 @@
                 <span id="propertyIdValue" style="display:none;"></span>
               </div>
             </div>
-              <div class="field-row">
-                <div class="field-label">Room</div>
-                <div class="field-value">
-                  <div id="roomName"></div>
-                  <span id="roomIdValue" style="display:none;"></span>
+              <div class="room-plan-row">
+                <div class="rp-col">
+                  <div class="rp-label">Room</div>
+                  <div class="rp-value">
+                    <span id="roomName"></span>
+                    <span id="roomIdValue" style="display:none;"></span>
+                  </div>
                 </div>
-              </div>
-              <div class="field-row">
-                <div class="field-label">Room Quantity</div>
-                <div class="field-value">
-                  <div id="roomQty">1</div>
-                </div>
-              </div>
-              <div class="field-row">
-                <div class="field-label">Rate plan</div>
-                <div class="field-value">
-                  <div id="ratePlanName"></div>
-                  <span id="ratePlanIdValue" style="display:none;"></span>
+
+                <div class="rp-arrow">→</div>
+
+                <div class="rp-col rp-col-grow">
+                  <div class="rp-label">Rate plan</div>
+                  <div class="rp-value">
+                    <span id="ratePlanName"></span>
+                    <span class="rp-mult">x</span>
+                    <span id="roomQty">1</span>
+                    <span class="rp-unit">rooms</span>
+                    <span id="ratePlanIdValue" style="display:none;"></span>
+                  </div>
                 </div>
               </div>
               <div class="field-inline">
@@ -1869,9 +1910,12 @@
           const label = name + " · Qty " + qty;
           const amtText = formatCurrency(lineTotalNum, cur);
 
+          const qn = Math.max(1, Number.parseInt(String((s.qty || state.qty || 1)), 10) || 1);
+          const left = qn === 1 ? label : (label + " x " + qn + " rooms");
+
           parts.push(
             '<div class="breakdown-line">' +
-              '<span>' + label + '</span>' +
+              '<span>' + left + '</span>' +
               '<span>' + amtText + '</span>' +
             '</div>'
           );
@@ -2344,11 +2388,11 @@
       }
 
       const qtyEl = document.getElementById("roomQty");
-      if (qtyEl) qtyEl.textContent = String(qn);
+      if (qtyEl) qtyEl.textContent = qn === 1 ? "1 room" : `${qn} rooms`;
 
       // Summary card on the right
       document.getElementById("summaryProperty").textContent = propertyText;
-      document.getElementById("summaryRoom").textContent = roomText;
+      document.getElementById("summaryRoom").textContent = qn === 1 ? roomText : `${roomText} · ${qn} rooms`;
       document.getElementById("summaryPlan").textContent = planText;
 
       const startFormatted = formatDate(state.start);
