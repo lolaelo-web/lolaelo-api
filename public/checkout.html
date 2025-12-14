@@ -1323,7 +1323,9 @@
             <div class="section-body" data-section-body="1">
 
               <!-- CONSOLIDATED TWO-COLUMN GRID (Left = Room/Price rows, Right = Dates editor card) -->
-              <div class="dates-grid">
+              <!-- ANCHOR: ROOM_PRICE_CARDS_ROOT -->
+              <div id="roomPriceCardsRoot">
+                <div class="dates-grid" id="roomPriceCardTemplate">
 
                 <!-- LEFT COLUMN -->
                 <div class="dates-left">
@@ -1491,7 +1493,8 @@
                 <!-- END RIGHT COLUMN -->
 
               </div>
-              <!-- END GRID -->
+            </div>
+           <!-- END GRID -->
 
             </div>
           </div>
@@ -3409,6 +3412,62 @@
       document.getElementById("confirmAndPayButton").disabled = !allConfirmed;
     }
 
+    function suffixIdsInClone(rootEl, idx) {
+      rootEl.querySelectorAll("[id]").forEach(function (el) {
+        var orig = el.id;
+        el.dataset.origId = orig;
+        el.id = orig + "__li" + idx;
+      });
+    }
+
+    function setCloneTextByOrigId(rootEl, origId, text) {
+      var el = rootEl.querySelector('[data-orig-id="' + origId + '"]');
+      if (el) el.textContent = text == null ? "" : String(text);
+    }
+
+    function renderRoomPriceCardsFromCart() {
+      var cart = loadCartV1();
+      if (!cart || !Array.isArray(cart.items) || cart.items.length <= 1) return;
+
+      var root = document.getElementById("roomPriceCardsRoot");
+      var tpl  = document.getElementById("roomPriceCardTemplate");
+      if (!root || !tpl) return;
+
+      // Keep the first card as-is (it uses the original IDs and existing logic).
+      // Remove any previously cloned cards.
+      root.querySelectorAll(".dates-grid.__li").forEach(function (n) { n.remove(); });
+
+      // Create clones for items[1..]
+      for (var i = 1; i < cart.items.length; i++) {
+        var item = cart.items[i];
+
+        var clone = tpl.cloneNode(true);
+        clone.classList.add("__li");
+        clone.dataset.lineId = item.lineId || ("line_" + i);
+
+        // Suffix IDs inside clone to avoid duplicates
+        suffixIdsInClone(clone, i);
+
+        // Populate visible fields in the clone (display only for now)
+        setCloneTextByOrigId(clone, "propertyName", item.propertyName || "");
+        setCloneTextByOrigId(clone, "propertyMeta", item.propertyLocation || "");
+        setCloneTextByOrigId(clone, "propertyIdValue", item.propertyId || "");
+        setCloneTextByOrigId(clone, "roomName", item.roomName || "");
+        setCloneTextByOrigId(clone, "roomIdValue", item.roomTypeId || "");
+        setCloneTextByOrigId(clone, "ratePlanName", item.planLabel || "");
+        setCloneTextByOrigId(clone, "ratePlanIdValue", item.ratePlanId || "");
+        setCloneTextByOrigId(clone, "roomQty", item.qty != null ? item.qty : "");
+        setCloneTextByOrigId(clone, "stayDatesInline", (item.start && item.end) ? (item.start + " to " + item.end) : "");
+
+        // For now: hide the date editor inside clone to avoid flatpickr duplication in this step.
+        // We will wire per-card edit dates next step.
+        var wrap = clone.querySelector('[data-orig-id="checkoutDatesCardWrapper"]');
+        if (wrap) wrap.classList.add("hidden");
+
+        root.appendChild(clone);
+      }
+    }
+
     function handleConfirmClick(section) {
       // Guest details validation lives on section 4
       if (section === 3) {
@@ -3485,6 +3544,7 @@
 
       updateSummaries();
       refreshSections();
+      renderRoomPriceCardsFromCart();
       loadAddonsForProperty();
 
       // Allow clicking headers to reopen a section, but keep only one open
