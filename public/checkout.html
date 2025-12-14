@@ -3679,7 +3679,7 @@
             ["propertyId","roomId","ratePlanId","qty","start","end","propertyName","propertyLocation","roomName","planLabel","plans"].forEach(k => qsNext.delete(k));
           }
 
-          location.assign(`${location.pathname}?${qsNext.toString()}`);
+          location.replace(`${location.pathname}?${qsNext.toString()}`);
           return;
         } catch (_) {}
 
@@ -4456,6 +4456,16 @@
 
     // Run init once when DOM is ready (THIS MUST BE OUTSIDE initCheckout)
     document.addEventListener("DOMContentLoaded", initCheckout);
+    // If the browser restores this page from bfcache, force a fresh render from cart
+    window.addEventListener("pageshow", function () {
+      try {
+        // Re-run only the cart render to avoid double-wiring everything
+        if (typeof renderRoomPriceCardsFromCart === "function") {
+          renderRoomPriceCardsFromCart();
+        }
+      } catch (_) {}
+    });
+
   </script>
 
 	  <script>
