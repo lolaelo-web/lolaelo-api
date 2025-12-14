@@ -3523,7 +3523,7 @@
       });
 
       // Singleton Confirm (SAFE): do NOT move/remove DOM nodes.
-      // Just show the confirm row only on the last card.
+      // Just show confirm on the last card only.
       try {
         const lastIdx = cards.length - 1;
 
@@ -3531,10 +3531,8 @@
           const row = card.querySelector(".stay-confirm-row");
           if (!row) return;
 
-          // Only the last card shows confirm
           row.style.display = (i === lastIdx) ? "flex" : "none";
 
-          // Make sure the Confirm button inside is visible (in case styles touched it)
           const confirmBtn = row.querySelector('button[data-confirm="1"]');
           if (confirmBtn) confirmBtn.style.display = "";
         });
@@ -3853,11 +3851,13 @@
             .catch(err => console.warn("[checkout] card quote failed", err));
         })(clone, item);
       }
+
+      // IMPORTANT: normalize AFTER cards are rendered (so remove/confirm visibility wins)
+      try { normalizeRoomPriceCardsUI(); } catch (_) {}
     }
 
-    try { normalizeRoomPriceCardsUI(); } catch (_) {}
-    
     function handleConfirmClick(section) {
+
       // Guest details validation lives on section 4
       if (section === 3) {
         const firstName = document.getElementById("firstName").value.trim();
