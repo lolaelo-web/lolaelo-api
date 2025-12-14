@@ -2006,8 +2006,38 @@
       const items = cart && Array.isArray(cart.items) ? cart.items : [];
       if (!items.length) return { q: qq, cart: null, active: null };
 
-      // For now: active item = first item in cart
-      const active = items[0];
+      // Active item = try match the URL selection first; otherwise fall back to first item
+      let active = null;
+
+      const wantPid   = qq.propertyId ? String(qq.propertyId) : "";
+      const wantRoom  = qq.roomId ? String(qq.roomId) : "";
+      const wantPlan  = qq.ratePlanId ? String(qq.ratePlanId) : "";
+      const wantStart = qq.start ? String(qq.start) : "";
+      const wantEnd   = qq.end ? String(qq.end) : "";
+
+      active =
+        items.find(it => {
+          if (!it) return false;
+          const pid  = it.propertyId != null ? String(it.propertyId) : "";
+          const rid  = it.roomTypeId != null ? String(it.roomTypeId) : "";
+          const plan = it.ratePlanId != null ? String(it.ratePlanId) : "";
+          const s    = it.start != null ? String(it.start) : "";
+          const e    = it.end != null ? String(it.end) : "";
+
+          // Match the strongest signals first (pid + room + plan). Dates help when provided.
+          if (wantPid && pid !== wantPid) return false;
+          if (wantRoom && rid !== wantRoom) return false;
+          if (wantPlan && plan !== wantPlan) return false;
+
+          // If the URL includes dates, enforce them too.
+          if (wantStart && s !== wantStart) return false;
+          if (wantEnd && e !== wantEnd) return false;
+
+          return true;
+        }) || null;
+
+      // If no exact match, prefer the most recently added item (cart-like behavior)
+      if (!active) active = items[items.length - 1];
 
       // Fill missing query fields from cart (do not override URL when present)
       if (!qq.propertyId && active.propertyId != null) qq.propertyId = String(active.propertyId);
@@ -3533,7 +3563,9 @@
         setCloneTextByOrigId(clone, "ratePlanName", item.planLabel || "");
         setCloneTextByOrigId(clone, "ratePlanIdValue", item.ratePlanId || "");
         setCloneTextByOrigId(clone, "roomQty", item.qty != null ? item.qty : "");
-        setCloneTextByOrigId(clone, "stayDatesInline", prettyStayRange(item.start, item.end));
+
+      const datesEl = clone.querySelector('[data-orig-id="stayDatesInline"]');
+        if (datesEl) datesEl.textContent = prettyStayRange(item.start, item.end);
 
         // For now: hide the date editor inside clone to avoid flatpickr duplication in this step.
         // We will wire per-card edit dates next step.
@@ -3612,6 +3644,70 @@
     function initCheckout() {
       const q0 = parseQuery();
       migrateSelectionToCartIfNeeded(q0);
+
+      // NEW: If user arrived with an explicit selection in the URL (from catalog_details),
+      // ensure it exists as a cart line (append vs overwrite).
+      (function ensureQueryLineIsInCart() {
+        const hasAll =
+          q0 &&
+          Number(q0.propertyId) &&
+          Number(q0.roomId) &&
+          Number(q0.ratePlanId) &&
+          q0.start &&
+          q0.end;
+
+        if (!hasAll) return;
+
+        const cart = loadCartV1();
+        if (!cart || !Array.isArray(cart.items)) return;
+
+        const propId = String(q0.propertyId);
+        const roomId = String(q0.roomId);
+        const planId = String(q0.ratePlanId);
+        const start  = String(q0.start);
+        const end    = String(q0.end);
+        const qty    = Math.max(1, Number.parseInt(String(q0.qty || "1"), 10) || 1);
+
+        // Consider it the “same line” only if property+room+plan+dates match
+        const existing = cart.items.find(it =>
+          String(it.propertyId) === propId &&
+          String(it.roomTypeId) === roomId &&
+          String(it.ratePlanId) === planId &&
+          String(it.start) === start &&
+          String(it.end) === end
+        );
+
+        if (existing) {
+          // If user re-clicked Book Now on same exact line, just sync qty + labels
+          existing.qty = qty;
+          if (q0.propertyName) existing.propertyName = String(q0.propertyName);
+          if (q0.propertyLocation) existing.propertyLocation = String(q0.propertyLocation);
+          if (q0.roomName) existing.roomName = String(q0.roomName);
+          if (q0.ratePlanName) existing.planLabel = String(q0.ratePlanName);
+          saveCartV1(cart);
+          return;
+        }
+
+        // Append as a new line
+        const lineId =
+          "ln_" + Date.now().toString(36) + "_" + Math.random().toString(36).slice(2, 8);
+
+        cart.items.push({
+          lineId,
+          propertyId: propId,
+          propertyName: String(q0.propertyName || ""),
+          propertyLocation: String(q0.propertyLocation || ""),
+          roomTypeId: roomId,
+          roomName: String(q0.roomName || ""),
+          ratePlanId: planId,
+          planLabel: String(q0.ratePlanName || ""),
+          qty,
+          start,
+          end
+        });
+
+        saveCartV1(cart);
+      })();
 
       const picked = coalesceQueryFromCart(q0);
       const q = picked.q;
