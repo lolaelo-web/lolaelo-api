@@ -961,7 +961,7 @@
     text-align:right;
   }
 
-  .dates-right .top-info-right #editDatesLink{
+  .dates-right .top-info-right .card-header-link{
     color:#ff6a3d;            /* edit dates orange */
   }
 
@@ -1025,9 +1025,13 @@
   .stay-confirm-row{
     margin-top: 14px;
     display:flex;
-    align-items:flex-end;
-    justify-content:flex-start;  /* bottom-left */
+    align-items:center;
+    justify-content:space-between; /* prevent overlap */
     gap:12px;
+  }
+
+  .stay-confirm-row .btn-primary{
+    margin-left:auto;
   }
 
   #stayDatesInline{
@@ -3240,6 +3244,48 @@
       }
     }
 
+    function applyQuoteToCard(cardEl, quote) {
+      if (!cardEl || !quote) return;
+
+      const total = Number(quote.total || 0);
+      const nightsArr = Array.isArray(quote.nights) ? quote.nights : [];
+      const nights = nightsArr.length || 0;
+
+      // avg price/night
+      const avg = nights > 0 ? (total / nights) : 0;
+
+      // Find elements inside this card (prefer id-suffixed by dataset orig id, else fallback to query by id suffix)
+      const avgEl =
+        cardEl.querySelector('[data-orig-id="avgNightPrice"]') ||
+        cardEl.querySelector('[id^="avgNightPrice__li"]') ||
+        cardEl.querySelector("#avgNightPrice");
+
+      const totalBtn =
+        cardEl.querySelector('[data-orig-id="totalPill"]') ||
+        cardEl.querySelector('[id^="totalPill__li"]') ||
+        cardEl.querySelector("#totalPill");
+
+      const nightsEl =
+        cardEl.querySelector('[data-orig-id="stayNights"]') ||
+        cardEl.querySelector('[id^="stayNights__li"]') ||
+        cardEl.querySelector("#stayNights");
+
+      if (nightsEl) nightsEl.textContent = String(nights);
+
+      // Use existing currency formatting style from top card (simple $ fallback)
+      const cur = quote.currency || "";
+      const fmtMoney = (v) => {
+        const n = Number(v || 0);
+        const s = n.toFixed(0);
+        if (cur === "USD") return "$" + s;
+        if (cur) return cur + " " + s;
+        return "$" + s;
+      };
+
+      if (avgEl) avgEl.textContent = fmtMoney(avg);
+      if (totalBtn) totalBtn.textContent = fmtMoney(total);
+    }
+
     function applyCheckoutQuote(quote) {
       if (!quote || typeof quote !== "object") return;
 
@@ -3654,6 +3700,29 @@
       if (itemsSorted[0] && itemsSorted[0].lineId) {
         tpl.dataset.lineId = itemsSorted[0].lineId;
         tpl.setAttribute("data-lineid", String(cart.items[0].lineId));
+        // Ensure the first card gets its quote applied via the same scoped method
+        (function(card, itemRef) {
+          if (!itemRef) return;
+          const pid = Number(itemRef.propertyId || 0);
+          if (!pid) return;
+
+          const qs = new URLSearchParams();
+          qs.set("propertyId", String(pid));
+          if (itemRef.start) qs.set("start", String(itemRef.start));
+          if (itemRef.end)   qs.set("end",   String(itemRef.end));
+          if (itemRef.roomTypeId) qs.set("roomId", String(itemRef.roomTypeId));
+          if (itemRef.ratePlanId) qs.set("ratePlanId", String(itemRef.ratePlanId));
+          qs.set("qty", String(itemRef.qty || 1));
+
+          authFetch("/catalog/details?" + qs.toString())
+            .then(r => r.json())
+            .then(data => {
+              const quote = data && data.checkoutQuote ? data.checkoutQuote : null;
+              if (quote) applyQuoteToCard(card, quote);
+            })
+            .catch(err => console.warn("[checkout] first card quote failed", err));
+        })(tpl, itemsSorted[0]);
+
       }
 
       // Remove any previously cloned cards.
@@ -3691,6 +3760,27 @@
         if (wrap) wrap.classList.add("hidden");
 
         root.appendChild(clone);
+        // Fetch quote for this line item and apply to this card (scoped)
+        (function(card, itemRef) {
+          const pid = Number(itemRef.propertyId || 0);
+          if (!pid) return;
+
+          const qs = new URLSearchParams();
+          qs.set("propertyId", String(pid));
+          if (itemRef.start) qs.set("start", String(itemRef.start));
+          if (itemRef.end)   qs.set("end",   String(itemRef.end));
+          if (itemRef.roomTypeId) qs.set("roomId", String(itemRef.roomTypeId));
+          if (itemRef.ratePlanId) qs.set("ratePlanId", String(itemRef.ratePlanId));
+          qs.set("qty", String(itemRef.qty || 1));
+
+          authFetch("/catalog/details?" + qs.toString())
+            .then(r => r.json())
+            .then(data => {
+              const quote = data && data.checkoutQuote ? data.checkoutQuote : null;
+              if (quote) applyQuoteToCard(card, quote);
+            })
+            .catch(err => console.warn("[checkout] card quote failed", err));
+        })(clone, item);
       }
     }
 
@@ -3879,15 +3969,64 @@
         });
       });
 
-      (function wireEditDatesLink() {
-        const link = document.getElementById("editDatesLink");
+      (function wireEditDatesLinksAllCards() {
         const wrap = document.getElementById("checkoutDatesCardWrapper");
-        if (!link || !wrap) return;
+        if (!wrap) return;
 
-        link.addEventListener("click", function (e) {
+        // Active line item for date edits
+        state.activeLineIdForDates = state.activeLineIdForDates || null;
+
+        document.addEventListener("click", function (e) {
+          const link = e.target.closest(".dates-grid .top-info-right .card-header-link");
+          if (!link) return;
+
+          // Only handle the "Edit dates" links, not other links/buttons
+          const isEdit =
+            link.id === "editDatesLink" ||
+            (link.dataset && link.dataset.origId === "editDatesLink") ||
+            (typeof link.id === "string" && link.id.indexOf("editDatesLink__li") === 0);
+
+          if (!isEdit) return;
+
           e.preventDefault();
+
+          const card = link.closest(".dates-grid");
+          if (!card) return;
+
+          const lineId = card.getAttribute("data-lineid") || (card.dataset ? card.dataset.lineId : null);
+          if (!lineId) {
+            alert("Edit dates failed: missing data-lineid on this card.");
+            return;
+          }
+
+          state.activeLineIdForDates = String(lineId);
+
+          // Move the single real date editor into this card's right column
+          const rightCol = card.querySelector(".dates-right");
+          if (rightCol) rightCol.appendChild(wrap);
+
           wrap.classList.remove("hidden");
           wrap.scrollIntoView({ behavior: "smooth", block: "nearest" });
+
+          // Load that line's dates into the editor (inputs + flatpickr)
+          const cart = loadCartV1();
+          const items = cart && Array.isArray(cart.items) ? cart.items : [];
+          const it = items.find(x => String(x && x.lineId) === String(lineId));
+          if (!it) return;
+
+          state.start = String(it.start || "");
+          state.end   = String(it.end || "");
+
+          const inEl  = document.getElementById("checkout-checkin");
+          const outEl = document.getElementById("checkout-checkout");
+          if (inEl)  inEl.value = state.start;
+          if (outEl) outEl.value = state.end;
+
+          const rangeDriver = document.getElementById("checkout-dates-driver");
+          const fp = rangeDriver && rangeDriver._checkoutFp ? rangeDriver._checkoutFp : null;
+          if (fp && state.start && state.end) {
+            fp.setDate([state.start, state.end], true);
+          }
 
           const btn = document.getElementById("checkout-dates-display");
           if (btn) btn.focus();
@@ -4198,6 +4337,56 @@
 
             const finalStart = formatLocalYmd(s);
             const finalEnd   = formatLocalYmd(endDate);
+
+            // Apply ONLY to the active line item in the cart
+            const lineId = state.activeLineIdForDates ? String(state.activeLineIdForDates) : null;
+            if (!lineId) return;
+
+            const cartNow = loadCartV1();
+            if (!cartNow || !Array.isArray(cartNow.items)) return;
+
+            const idx = cartNow.items.findIndex(it => String(it && it.lineId) === lineId);
+            if (idx < 0) return;
+
+            // Propose update
+            const proposed = cartNow.items.map(x => Object.assign({}, x));
+            proposed[idx].start = finalStart;
+            proposed[idx].end   = finalEnd;
+
+            // Validate: continuous/back-to-back only (no gaps). Allow overlaps.
+            function dayNum(ymd) {
+              if (!ymd || typeof ymd !== "string") return Number.MAX_SAFE_INTEGER;
+              const p = ymd.split("-");
+              if (p.length !== 3) return Number.MAX_SAFE_INTEGER;
+              return (Number(p[0]) * 10000) + (Number(p[1]) * 100) + Number(p[2]);
+            }
+
+            const sorted = proposed.slice().sort((a,b) => dayNum(a.start) - dayNum(b.start) || dayNum(a.end) - dayNum(b.end));
+            for (let i = 1; i < sorted.length; i++) {
+              const prevEnd = dayNum(sorted[i - 1].end);
+              const curStart = dayNum(sorted[i].start);
+              if (curStart > prevEnd) {
+                alert("This checkout supports one trip at a time. Dates must be continuous or back-to-back (no gaps).");
+                return;
+              }
+            }
+
+            // Commit update
+            cartNow.items = proposed;
+            saveCartV1(cartNow);
+
+            // Keep the URL focused on this updated line (so the “active” card matches)
+            const active = cartNow.items[idx];
+            if (active) {
+              qsNext.set("propertyId", String(active.propertyId || ""));
+              qsNext.set("roomId",     String(active.roomTypeId || ""));
+              qsNext.set("ratePlanId", String(active.ratePlanId || ""));
+              qsNext.set("qty",        String(active.qty || 1));
+            }
+
+            // After apply, hide the date card
+            const wrap = document.getElementById("checkoutDatesCardWrapper");
+            if (wrap) wrap.classList.add("hidden");
 
             const qsNext = new URLSearchParams(location.search);
             qsNext.set("start", finalStart);
