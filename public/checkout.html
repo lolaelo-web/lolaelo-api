@@ -3516,10 +3516,20 @@
 
       const many = cards.length > 1;
 
-      // Always control Remove visibility first
+      // Always control Remove visibility first (Remove must show on every card when 2+)
       cards.forEach((card) => {
         const removeBtn = card.querySelector('button[data-remove-lineitem="1"]');
-        if (removeBtn) removeBtn.style.display = many ? "" : "none";
+        if (!removeBtn) return;
+
+        // If Remove is inside a hidden confirm row on non-last cards, move it out.
+        const row = removeBtn.closest(".stay-confirm-row");
+        if (row) {
+          removeBtn.remove();
+          // Place it under the pricing row, before the confirm row area (keeps minimal layout)
+          card.appendChild(removeBtn);
+        }
+
+        removeBtn.style.display = many ? "" : "none";
       });
 
       // Singleton Confirm (SAFE): do NOT move/remove DOM nodes.
