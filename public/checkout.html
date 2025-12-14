@@ -3821,21 +3821,29 @@
         const cards = Array.from(document.querySelectorAll('.dates-grid[data-lineid]'));
         if (!cards.length) return;
 
-        // Find/keep the first confirm row, remove any duplicates
+        // 1) Try to find confirm rows inside cards
         let confirmRow = null;
         cards.forEach(card => {
           const row = card.querySelector(".stay-confirm-row");
           if (!row) return;
-          if (!confirmRow) {
-            confirmRow = row;
-          } else {
-            row.remove();
-          }
+          if (!confirmRow) confirmRow = row;
+          else row.remove();
         });
 
-        if (!confirmRow) return;
+        // 2) Fallback: find the canonical confirm button anywhere in the document
+        if (!confirmRow) {
+          const btn = document.getElementById("confirmRoomPriceBtn");
+          if (btn) {
+            confirmRow = btn.closest(".stay-confirm-row") || null;
+          }
+        }
 
-        // Always show it (in case any earlier logic hid it)
+        if (!confirmRow) {
+          console.warn("[checkout] singleton confirm: no .stay-confirm-row found (no confirm button in DOM)");
+          return;
+        }
+
+        // Always show it
         confirmRow.style.display = "flex";
         confirmRow.style.alignItems = "center";
         confirmRow.style.justifyContent = "flex-end";
@@ -3845,20 +3853,10 @@
         // Move to last card's right column
         const last = cards[cards.length - 1];
         const right = last.querySelector(".dates-right") || last;
-
         right.appendChild(confirmRow);
-      } catch (_) {}
-    }
 
-    function prettyStayRange(start, end) {
-      try {
-        if (!start || !end) return "";
-        const ds = new Date(start + "T00:00:00");
-        const de = new Date(end   + "T00:00:00");
-        const fmt = (d) => d.toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" });
-        return fmt(ds) + " to " + fmt(de);
-      } catch (_) {
-        return (start && end) ? (start + " to " + end) : "";
+      } catch (e) {
+        console.warn("[checkout] singleton confirm failed", e);
       }
     }
 
