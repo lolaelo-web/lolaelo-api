@@ -3866,6 +3866,27 @@
       try { normalizeRoomPriceCardsUI(); } catch (_) {}
     }
 
+    // === CONFIRM DELEGATE WIRE (prevents dead Confirm when cards are cloned) ===
+    if (!window.__checkoutConfirmDelegated) {
+      window.__checkoutConfirmDelegated = true;
+
+      document.addEventListener("click", function (e) {
+        const btn = e.target && e.target.closest
+          ? e.target.closest('button[data-confirm="1"]')
+          : null;
+
+        if (!btn) return;
+
+        // Prevent any default behavior and make Confirm always work
+        e.preventDefault();
+
+        // Section 1 confirm
+        try { handleConfirmClick(1); } catch (err) {
+          console.warn("[checkout] confirm delegate failed", err);
+        }
+      }, true);
+    }
+
     function handleConfirmClick(section) {
 
       // Guest details validation lives on section 4
