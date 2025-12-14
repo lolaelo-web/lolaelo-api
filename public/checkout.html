@@ -942,6 +942,15 @@
     align-items: start;
   }
 
+  /* === SECTION 1: LINE ITEM CARD OUTLINE (subtle separation) === */
+  .section-body[data-section-body="1"] .dates-grid{
+    border: 1px solid rgba(15, 28, 46, 0.10);
+    border-radius: 16px;
+    padding: 14px;
+    margin-bottom: 14px;
+    background: linear-gradient(180deg, rgba(255, 106, 61, 0.03), rgba(255, 255, 255, 0));
+  }
+
   .dates-right{
     display:flex;
     flex-direction:column;
@@ -1410,17 +1419,26 @@
                   </div>
                 </div>
 
-                  <!-- Row 3: confirm -->
-                  <div class="stay-confirm-row">
-                    <button
-                      type="button"
-                      class="btn-primary"
-                      id="confirmRoomPriceBtn"
-                      data-confirm="1"
-                    >
-                      Confirm Room & Price
-                    </button>
-                  </div>
+                <!-- Row 3: confirm / remove -->
+                <div class="stay-confirm-row">
+                  <button
+                    type="button"
+                    class="btn-primary"
+                    id="confirmRoomPriceBtn"
+                    data-confirm="1"
+                  >
+                    Confirm Room & Price
+                  </button>
+
+                  <button
+                    type="button"
+                    class="btn-danger-outline"
+                    id="removeLineItemBtn"
+                    data-remove-lineitem="1"
+                  >
+                    Remove line item
+                  </button>
+                </div>
 
                 </div>
                 <!-- END LEFT COLUMN -->
@@ -3412,6 +3430,56 @@
       document.getElementById("confirmAndPayButton").disabled = !allConfirmed;
     }
 
+    function normalizeRoomPriceCardsUI() {
+      const cards = Array.from(
+        document.querySelectorAll('.section-body[data-section-body="1"] .dates-grid')
+      );
+      if (!cards.length) return;
+
+      const many = cards.length > 1;
+
+      cards.forEach((card, idx) => {
+        const confirmBtn = card.querySelector('button[data-confirm="1"]');
+        const removeBtn  = card.querySelector('button[data-remove-lineitem="1"]');
+
+        // Show Confirm only once (last card)
+        if (confirmBtn) confirmBtn.style.display = (idx === cards.length - 1) ? "" : "none";
+
+        // Show Remove only when there are 2+ cards
+        if (removeBtn) removeBtn.style.display = many ? "" : "none";
+      });
+    }
+
+    // Delegated remove handler
+    document.addEventListener("click", (e) => {
+      const btn = e.target.closest('button[data-remove-lineitem="1"]');
+      if (!btn) return;
+
+      const card = btn.closest(".dates-grid");
+      if (!card) return;
+
+      // We expect your render loop to set a line id on the card wrapper.
+      const lineId =
+        card.getAttribute("data-lineid") ||
+        card.getAttribute("data-lineId") ||
+        (card.dataset ? (card.dataset.lineid || card.dataset.lineId || card.dataset.lineId) : null);
+
+      if (!lineId) {
+        alert("Remove failed: missing lineId on this card wrapper (data-lineid).");
+        return;
+      }
+
+      let cart = null;
+      try { cart = JSON.parse(localStorage.getItem("checkout.cart.v1") || "null"); } catch (_) { cart = null; }
+      if (!cart || !Array.isArray(cart.items)) return;
+
+      cart.items = cart.items.filter(it => String(it.lineId) !== String(lineId));
+      localStorage.setItem("checkout.cart.v1", JSON.stringify(cart));
+
+      // Safe re-render approach for now
+      location.reload();
+    });
+
     function suffixIdsInClone(rootEl, idx) {
       rootEl.querySelectorAll("[id]").forEach(function (el) {
         var orig = el.id;
@@ -3546,6 +3614,7 @@
       refreshSections();
       renderRoomPriceCardsFromCart();
       loadAddonsForProperty();
+      normalizeRoomPriceCardsUI();
 
       // Allow clicking headers to reopen a section, but keep only one open
 
