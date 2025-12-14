@@ -3522,37 +3522,22 @@
         if (removeBtn) removeBtn.style.display = many ? "" : "none";
       });
 
-      // Singleton Confirm: keep one confirm row, remove duplicates, move to last card's right column
+      // Singleton Confirm (SAFE): do NOT move/remove DOM nodes.
+      // Just show the confirm row only on the last card.
       try {
-        let keepRow = null;
+        const lastIdx = cards.length - 1;
 
-        cards.forEach((card) => {
+        cards.forEach((card, i) => {
           const row = card.querySelector(".stay-confirm-row");
           if (!row) return;
 
-          if (!keepRow) {
-            keepRow = row;
-          } else {
-            row.remove();
-          }
+          // Only the last card shows confirm
+          row.style.display = (i === lastIdx) ? "flex" : "none";
+
+          // Make sure the Confirm button inside is visible (in case styles touched it)
+          const confirmBtn = row.querySelector('button[data-confirm="1"]');
+          if (confirmBtn) confirmBtn.style.display = "";
         });
-
-        // If we didn't find a row, fall back to confirm button (older markup)
-        if (!keepRow) {
-          const btn = document.querySelector('.section-body[data-section-body="1"] button[data-confirm="1"]');
-          if (btn) keepRow = btn.closest(".stay-confirm-row");
-        }
-
-        if (!keepRow) return;
-
-        // Ensure confirm button is visible
-        const confirmBtn = keepRow.querySelector('button[data-confirm="1"]');
-        if (confirmBtn) confirmBtn.style.display = "";
-
-        // Move row into the last card's right column
-        const last = cards[cards.length - 1];
-        const right = last.querySelector(".dates-right") || last;
-        right.appendChild(keepRow);
       } catch (_) {}
     }
 
