@@ -3773,7 +3773,7 @@
           if (itemRef.ratePlanId) qs.set("ratePlanId", String(itemRef.ratePlanId));
           qs.set("qty", String(itemRef.qty || 1));
 
-          authFetch("/catalog/details?" + qs.toString())
+          fetch("/catalog/details?" + qs.toString(), { credentials: "include" })
             .then(r => r.json())
             .then(data => {
               const quote = data && data.checkoutQuote ? data.checkoutQuote : null;
