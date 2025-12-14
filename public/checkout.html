@@ -1432,7 +1432,7 @@
 
                   <button
                     type="button"
-                    class="btn-danger-outline"
+                    class="card-header-link"
                     id="removeLineItemBtn"
                     data-remove-lineitem="1"
                   >
@@ -3502,6 +3502,12 @@
       if (!root || !tpl) return;
 
       // Keep the first card as-is (it uses the original IDs and existing logic).
+      // Tag the first (template) card with its lineId so remove works on it too
+      if (cart.items[0] && cart.items[0].lineId) {
+        tpl.dataset.lineId = cart.items[0].lineId;
+        tpl.setAttribute("data-lineid", String(cart.items[0].lineId));
+      }
+
       // Remove any previously cloned cards.
       root.querySelectorAll(".dates-grid.__li").forEach(function (n) { n.remove(); });
 
@@ -3511,7 +3517,9 @@
 
         var clone = tpl.cloneNode(true);
         clone.classList.add("__li");
-        clone.dataset.lineId = item.lineId || ("line_" + i);
+      const lid = item.lineId || ("line_" + i);
+        clone.dataset.lineId = lid;
+        clone.setAttribute("data-lineid", String(lid));
 
         // Suffix IDs inside clone to avoid duplicates
         suffixIdsInClone(clone, i);
@@ -3525,7 +3533,7 @@
         setCloneTextByOrigId(clone, "ratePlanName", item.planLabel || "");
         setCloneTextByOrigId(clone, "ratePlanIdValue", item.ratePlanId || "");
         setCloneTextByOrigId(clone, "roomQty", item.qty != null ? item.qty : "");
-        setCloneTextByOrigId(clone, "stayDatesInline", (item.start && item.end) ? (item.start + " to " + item.end) : "");
+        setCloneTextByOrigId(clone, "stayDatesInline", prettyStayRange(item.start, item.end));
 
         // For now: hide the date editor inside clone to avoid flatpickr duplication in this step.
         // We will wire per-card edit dates next step.
@@ -3533,6 +3541,18 @@
         if (wrap) wrap.classList.add("hidden");
 
         root.appendChild(clone);
+      }
+    }
+
+    function prettyStayRange(start, end) {
+      try {
+        if (!start || !end) return "";
+        const ds = new Date(start + "T00:00:00");
+        const de = new Date(end   + "T00:00:00");
+        const fmt = (d) => d.toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" });
+        return fmt(ds) + " to " + fmt(de);
+      } catch (_) {
+        return (start && end) ? (start + " to " + end) : "";
       }
     }
 
@@ -3615,7 +3635,7 @@
       renderRoomPriceCardsFromCart();
       loadAddonsForProperty();
       normalizeRoomPriceCardsUI();
-
+      
       // Allow clicking headers to reopen a section, but keep only one open
 
       // Allow clicking headers to reopen a section, but keep only one open
