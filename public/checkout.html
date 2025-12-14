@@ -3702,6 +3702,30 @@
       if (el) el.textContent = text == null ? "" : String(text);
     }
 
+    // Helper: render "Dec 16, 2025 to Dec 19, 2025" from YYYY-MM-DD
+    function prettyStayRange(start, end) {
+      try {
+        if (!start || !end) return "";
+        const s = String(start);
+        const e = String(end);
+
+        // Parse as local date (avoid timezone shift)
+        const ps = s.split("-").map(n => parseInt(n, 10));
+        const pe = e.split("-").map(n => parseInt(n, 10));
+        if (ps.length !== 3 || pe.length !== 3) return `${s} to ${e}`;
+
+        const ds = new Date(ps[0], ps[1] - 1, ps[2]);
+        const de = new Date(pe[0], pe[1] - 1, pe[2]);
+
+        const fmt = (d) =>
+          d.toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" });
+
+        return `${fmt(ds)} to ${fmt(de)}`;
+      } catch (_) {
+        return `${start || ""} to ${end || ""}`;
+      }
+    }
+
     function renderRoomPriceCardsFromCart() {
       var cart = loadCartV1();
         // Sort items by start date (earliest first), then end date
