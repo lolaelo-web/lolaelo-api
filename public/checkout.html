@@ -1068,9 +1068,11 @@
     color:#111;           /* darker value */
     font-weight:400;      /* not bold */
     max-width: 240px;     /* prevents pushing into the gutter */
-    white-space: normal;  /* allow wrap */
-    overflow-wrap: anywhere;
-    word-break: break-word;
+    white-space: nowrap;  /* keep in one row */
+    overflow-wrap: normal;
+    word-break: normal;
+    overflow: hidden;
+    text-overflow: ellipsis;
   }
 
   /* Dividers + padding between consolidated rows */
@@ -3480,6 +3482,89 @@
       });
     }
 
+    function confirmRemoveLineItemUI(onYes) {
+      // Remove existing modal if any
+      const old = document.getElementById("removeLineItemConfirm");
+      if (old) old.remove();
+
+      const backdrop = document.createElement("div");
+      backdrop.id = "removeLineItemConfirm";
+      backdrop.style.position = "fixed";
+      backdrop.style.left = "0";
+      backdrop.style.top = "0";
+      backdrop.style.right = "0";
+      backdrop.style.bottom = "0";
+      backdrop.style.background = "rgba(15, 28, 46, 0.35)";
+      backdrop.style.display = "flex";
+      backdrop.style.alignItems = "center";
+      backdrop.style.justifyContent = "center";
+      backdrop.style.zIndex = "9999";
+      backdrop.style.padding = "18px";
+
+      const card = document.createElement("div");
+      card.style.background = "#fff";
+      card.style.border = "1px solid rgba(15, 28, 46, 0.12)";
+      card.style.borderRadius = "16px";
+      card.style.maxWidth = "420px";
+      card.style.width = "100%";
+      card.style.boxShadow = "0 12px 30px rgba(15, 28, 46, 0.18)";
+      card.style.padding = "16px 16px 14px 16px";
+      card.style.fontFamily = "Inter, system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif";
+
+      const title = document.createElement("div");
+      title.textContent = "Remove this line item?";
+      title.style.fontWeight = "700";
+      title.style.fontSize = "14px";
+      title.style.color = "#0F1C2E";
+
+      const body = document.createElement("div");
+      body.textContent = "This will remove the room and rate plan from your checkout.";
+      body.style.marginTop = "6px";
+      body.style.fontSize = "13px";
+      body.style.color = "rgba(15, 28, 46, 0.8)";
+      body.style.lineHeight = "1.35";
+
+      const actions = document.createElement("div");
+      actions.style.display = "flex";
+      actions.style.gap = "10px";
+      actions.style.justifyContent = "flex-end";
+      actions.style.marginTop = "12px";
+
+      const noBtn = document.createElement("button");
+      noBtn.type = "button";
+      noBtn.textContent = "No";
+      noBtn.className = "pill-outline"; // uses your existing aesthetic
+
+      const yesBtn = document.createElement("button");
+      yesBtn.type = "button";
+      yesBtn.textContent = "Yes, remove";
+      yesBtn.className = "btn-primary"; // uses your existing aesthetic
+
+      function close() {
+        backdrop.remove();
+      }
+
+      backdrop.addEventListener("click", (e) => {
+        if (e.target === backdrop) close();
+      });
+
+      noBtn.addEventListener("click", () => close());
+      yesBtn.addEventListener("click", () => {
+        close();
+        try { onYes && onYes(); } catch(_) {}
+      });
+
+      actions.appendChild(noBtn);
+      actions.appendChild(yesBtn);
+
+      card.appendChild(title);
+      card.appendChild(body);
+      card.appendChild(actions);
+
+      backdrop.appendChild(card);
+      document.body.appendChild(backdrop);
+    }
+
     // Delegated remove handler
     document.addEventListener("click", (e) => {
       const btn = e.target.closest('button[data-remove-lineitem="1"]');
@@ -3507,7 +3592,9 @@
       localStorage.setItem("checkout.cart.v1", JSON.stringify(cart));
 
       // Safe re-render approach for now
-      location.reload();
+      confirmRemoveLineItemUI(() => {
+        location.reload();
+      });
     });
 
     function suffixIdsInClone(rootEl, idx) {
