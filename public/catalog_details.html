@@ -4242,6 +4242,10 @@
                 }
               } catch (_) {}
 
+              try {
+                localStorage.setItem("checkout.lastDetailsUrl", window.location.href);
+              } catch (_) {}
+
               topLink.setAttribute("href", url.toString());
 
               // Append-to-cart on click (do not overwrite). Guard against duplicate listeners.

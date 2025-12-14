@@ -3591,8 +3591,20 @@
       cart.items = cart.items.filter(it => String(it.lineId) !== String(lineId));
       localStorage.setItem("checkout.cart.v1", JSON.stringify(cart));
 
-      // Safe re-render approach for now
       confirmRemoveLineItemUI(() => {
+        try {
+          const cart = loadCartV1();
+          const items = cart && Array.isArray(cart.items) ? cart.items : [];
+
+          const keep = items.filter(it => String(it && it.lineId) !== String(lineId));
+          cart.items = keep;
+          saveCartV1(cart);
+
+          console.log("[checkout] removed lineId", lineId, "remaining", keep.length);
+        } catch (e) {
+          console.warn("[checkout] remove failed in confirm", e);
+        }
+
         location.reload();
       });
     });
@@ -3612,7 +3624,26 @@
 
     function renderRoomPriceCardsFromCart() {
       var cart = loadCartV1();
-      if (!cart || !Array.isArray(cart.items) || cart.items.length <= 1) return;
+        // Sort items by start date (earliest first), then end date
+        function dayNum(ymd) {
+          if (!ymd || typeof ymd !== "string") return Number.MAX_SAFE_INTEGER;
+          const p = ymd.split("-");
+          if (p.length !== 3) return Number.MAX_SAFE_INTEGER;
+          return (Number(p[0]) * 10000) + (Number(p[1]) * 100) + Number(p[2]);
+        }
+
+        const itemsSorted = Array.isArray(cart && cart.items)
+          ? cart.items.slice().sort((a, b) => {
+              const as = dayNum(a.start);
+              const bs = dayNum(b.start);
+              if (as !== bs) return as - bs;
+              const ae = dayNum(a.end);
+              const be = dayNum(b.end);
+              return ae - be;
+            })
+          : [];
+
+      if (!cart || !Array.isArray(itemsSorted) || itemsSorted.length <= 1) return;
 
       var root = document.getElementById("roomPriceCardsRoot");
       var tpl  = document.getElementById("roomPriceCardTemplate");
@@ -3620,8 +3651,8 @@
 
       // Keep the first card as-is (it uses the original IDs and existing logic).
       // Tag the first (template) card with its lineId so remove works on it too
-      if (cart.items[0] && cart.items[0].lineId) {
-        tpl.dataset.lineId = cart.items[0].lineId;
+      if (itemsSorted[0] && itemsSorted[0].lineId) {
+        tpl.dataset.lineId = itemsSorted[0].lineId;
         tpl.setAttribute("data-lineid", String(cart.items[0].lineId));
       }
 
@@ -3629,8 +3660,8 @@
       root.querySelectorAll(".dates-grid.__li").forEach(function (n) { n.remove(); });
 
       // Create clones for items[1..]
-      for (var i = 1; i < cart.items.length; i++) {
-        var item = cart.items[i];
+      for (var i = 1; i < itemsSorted.length; i++) {
+        var item = itemsSorted[i];
 
         var clone = tpl.cloneNode(true);
         clone.classList.add("__li");
@@ -3936,8 +3967,18 @@
 
       const changePlanLink = document.getElementById("changePlanLink");
       if (changePlanLink) {
-        changePlanLink.addEventListener("click", function () {
-          window.history.back();
+        changePlanLink.addEventListener("click", function (e) {
+          e.preventDefault();
+
+          // Deterministic navigation (no browser back stack dependency)
+          // Prefer the most recent catalog_details url if present; otherwise fall back to catalog.
+          const lastDetails = localStorage.getItem("checkout.lastDetailsUrl");
+          if (lastDetails && typeof lastDetails === "string") {
+            window.location.href = lastDetails;
+            return;
+          }
+
+          window.location.href = "/catalog.html";
         });
       }
 
