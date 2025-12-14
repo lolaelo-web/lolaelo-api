@@ -3816,6 +3816,38 @@
             .catch(err => console.warn("[checkout] card quote failed", err));
         })(clone, item);
       }
+      // === SINGLETON CONFIRM: keep one confirm row and move it to the last card's right column ===
+      try {
+        const cards = Array.from(document.querySelectorAll('.dates-grid[data-lineid]'));
+        if (!cards.length) return;
+
+        // Find/keep the first confirm row, remove any duplicates
+        let confirmRow = null;
+        cards.forEach(card => {
+          const row = card.querySelector(".stay-confirm-row");
+          if (!row) return;
+          if (!confirmRow) {
+            confirmRow = row;
+          } else {
+            row.remove();
+          }
+        });
+
+        if (!confirmRow) return;
+
+        // Always show it (in case any earlier logic hid it)
+        confirmRow.style.display = "flex";
+        confirmRow.style.alignItems = "center";
+        confirmRow.style.justifyContent = "flex-end";
+        confirmRow.style.width = "100%";
+        confirmRow.style.marginTop = "12px";
+
+        // Move to last card's right column
+        const last = cards[cards.length - 1];
+        const right = last.querySelector(".dates-right") || last;
+
+        right.appendChild(confirmRow);
+      } catch (_) {}
     }
 
     function prettyStayRange(start, end) {
