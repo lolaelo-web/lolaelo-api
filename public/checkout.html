@@ -3651,7 +3651,41 @@
           console.warn("[checkout] remove failed in confirm", e);
         }
 
+        // IMPORTANT: avoid re-adding the removed line via URL->cart guard on reload.
+        // Navigate to a URL that points to an existing remaining line (or clears selection).
+        try {
+          const cartAfter = loadCartV1();
+          const remaining = cartAfter && Array.isArray(cartAfter.items) ? cartAfter.items : [];
+
+          const qsNext = new URLSearchParams(location.search);
+
+          if (remaining.length) {
+            const it0 = remaining[0];
+
+            qsNext.set("propertyId", String(it0.propertyId || ""));
+            qsNext.set("roomId",     String(it0.roomTypeId || ""));
+            qsNext.set("ratePlanId", String(it0.ratePlanId || ""));
+            qsNext.set("qty",        String(it0.qty || 1));
+            qsNext.set("start",      String(it0.start || ""));
+            qsNext.set("end",        String(it0.end || ""));
+
+            // Optional labels (safe)
+            if (it0.propertyName) qsNext.set("propertyName", String(it0.propertyName));
+            if (it0.propertyLocation) qsNext.set("propertyLocation", String(it0.propertyLocation));
+            if (it0.roomName) qsNext.set("roomName", String(it0.roomName));
+            if (it0.planLabel) qsNext.set("planLabel", String(it0.planLabel));
+          } else {
+            // No items left: clear selection params so nothing can be re-added
+            ["propertyId","roomId","ratePlanId","qty","start","end","propertyName","propertyLocation","roomName","planLabel","plans"].forEach(k => qsNext.delete(k));
+          }
+
+          location.assign(`${location.pathname}?${qsNext.toString()}`);
+          return;
+        } catch (_) {}
+
+        // Fallback
         location.reload();
+
       });
     });
 
