@@ -3516,16 +3516,44 @@
 
       const many = cards.length > 1;
 
-      cards.forEach((card, idx) => {
-        const confirmBtn = card.querySelector('button[data-confirm="1"]');
-        const removeBtn  = card.querySelector('button[data-remove-lineitem="1"]');
-
-        // Show Confirm only once (last card)
-        if (confirmBtn) confirmBtn.style.display = (idx === cards.length - 1) ? "" : "none";
-
-        // Show Remove only when there are 2+ cards
+      // Always control Remove visibility first
+      cards.forEach((card) => {
+        const removeBtn = card.querySelector('button[data-remove-lineitem="1"]');
         if (removeBtn) removeBtn.style.display = many ? "" : "none";
       });
+
+      // Singleton Confirm: keep one confirm row, remove duplicates, move to last card's right column
+      try {
+        let keepRow = null;
+
+        cards.forEach((card) => {
+          const row = card.querySelector(".stay-confirm-row");
+          if (!row) return;
+
+          if (!keepRow) {
+            keepRow = row;
+          } else {
+            row.remove();
+          }
+        });
+
+        // If we didn't find a row, fall back to confirm button (older markup)
+        if (!keepRow) {
+          const btn = document.querySelector('.section-body[data-section-body="1"] button[data-confirm="1"]');
+          if (btn) keepRow = btn.closest(".stay-confirm-row");
+        }
+
+        if (!keepRow) return;
+
+        // Ensure confirm button is visible
+        const confirmBtn = keepRow.querySelector('button[data-confirm="1"]');
+        if (confirmBtn) confirmBtn.style.display = "";
+
+        // Move row into the last card's right column
+        const last = cards[cards.length - 1];
+        const right = last.querySelector(".dates-right") || last;
+        right.appendChild(keepRow);
+      } catch (_) {}
     }
 
     function confirmRemoveLineItemUI(onYes) {
@@ -3839,48 +3867,6 @@
             })
             .catch(err => console.warn("[checkout] card quote failed", err));
         })(clone, item);
-      }
-      // === SINGLETON CONFIRM: keep one confirm row and move it to the last card's right column ===
-      try {
-        const cards = Array.from(document.querySelectorAll('.dates-grid[data-lineid]'));
-        if (!cards.length) return;
-
-        // 1) Try to find confirm rows inside cards
-        let confirmRow = null;
-        cards.forEach(card => {
-          const row = card.querySelector(".stay-confirm-row");
-          if (!row) return;
-          if (!confirmRow) confirmRow = row;
-          else row.remove();
-        });
-
-        // 2) Fallback: find the canonical confirm button anywhere in the document
-        if (!confirmRow) {
-          const btn = document.getElementById("confirmRoomPriceBtn");
-          if (btn) {
-            confirmRow = btn.closest(".stay-confirm-row") || null;
-          }
-        }
-
-        if (!confirmRow) {
-          console.warn("[checkout] singleton confirm: no .stay-confirm-row found (no confirm button in DOM)");
-          return;
-        }
-
-        // Always show it
-        confirmRow.style.display = "flex";
-        confirmRow.style.alignItems = "center";
-        confirmRow.style.justifyContent = "flex-end";
-        confirmRow.style.width = "100%";
-        confirmRow.style.marginTop = "12px";
-
-        // Move to last card's right column
-        const last = cards[cards.length - 1];
-        const right = last.querySelector(".dates-right") || last;
-        right.appendChild(confirmRow);
-
-      } catch (e) {
-        console.warn("[checkout] singleton confirm failed", e);
       }
     }
 
