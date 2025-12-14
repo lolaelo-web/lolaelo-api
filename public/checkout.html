@@ -3855,6 +3855,8 @@
       }
     }
 
+    try { normalizeRoomPriceCardsUI(); } catch (_) {}
+    
     function handleConfirmClick(section) {
       // Guest details validation lives on section 4
       if (section === 3) {
