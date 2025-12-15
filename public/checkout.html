@@ -3319,6 +3319,14 @@
     }
 
     function applyCheckoutQuote(quote) {
+      console.log("[checkout] applyCheckoutQuote source/isFinal", {
+        source: quote && quote.source,
+        isFinal: quote && quote.isFinal,
+        currency: quote && quote.currency,
+        total: quote && quote.total,
+        nightsCount: quote && quote.nights ? quote.nights.length : 0
+      });
+
       if (!quote || typeof quote !== "object") return;
 
       // Start from backend quote
@@ -3352,6 +3360,8 @@
       var totalNumeric = baseTotal;
 
       var isDbFinal = !!(quote && (quote.source === "db" || quote.isFinal === true));
+      console.log("[checkout] applyCheckoutQuote isDbFinal", isDbFinal);
+
       if (!isDbFinal) {
         try {
           var q = parseQuery();
@@ -3435,6 +3445,7 @@
     async function loadAddonsConfig() {
       const ids = getCheckoutIdsFromQuery();
       const propertyId = ids.propertyId;
+      const roomId = ids.roomId;
       const start = ids.start;
       const end = ids.end;
       const ratePlanId = ids.ratePlanId;
@@ -3449,6 +3460,12 @@
         params.set("propertyId", propertyId);
         params.set("start", start);
         params.set("end", end);
+
+        // CRITICAL: ensure backend builds checkoutQuote for the correct room
+        if (roomId) {
+          params.set("roomId", String(roomId));
+        }
+
         if (Number.isFinite(ratePlanId)) {
           params.set("ratePlanId", String(ratePlanId));
         }
