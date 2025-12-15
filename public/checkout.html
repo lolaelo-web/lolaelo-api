@@ -3142,16 +3142,27 @@
       };
     }
 
-    async function loadAddonsForProperty() {
-      const q = parseQuery();
+      // Prefer state.propertyId, otherwise use query param.
+      // DO NOT coerce missing/blank to 0 - that's an invalid checkout state.
+      const rawPropertyId =
+        (state.propertyId != null && String(state.propertyId).trim()) ||
+        (q.propertyId != null && String(q.propertyId).trim()) ||
+        "";
 
-      // Prefer state.propertyId if we’ve already set it, otherwise fall back
-      // to whatever parseQuery resolved (query string + localStorage bridge).
-      const propertyId = Number(
-        (state.propertyId && String(state.propertyId)) ||
-        (q.propertyId && String(q.propertyId)) ||
-        "0"
-      );
+      const propertyId = rawPropertyId ? Number(rawPropertyId) : NaN;
+
+      if (!Number.isFinite(propertyId) || propertyId <= 0) {
+        console.error("[checkout] invalid/missing propertyId", {
+          rawPropertyId,
+          href: location.href,
+          statePropertyId: state.propertyId,
+          qPropertyId: q.propertyId
+        });
+
+        // Stop downstream calls that would return hasQuote:false and show $0
+        alert("Invalid checkout link (missing property). Please restart booking from the property page.");
+        return;
+      }
 
       // Dates: prefer the current state, fall back to query
       const start = state.start || q.start || "";
@@ -3283,7 +3294,6 @@
         state.addonsConfig = [];
         renderAddons([]);
       }
-    }
 
     function applyQuoteToCard(cardEl, quote, qty) {
       if (!cardEl || !quote) return;
