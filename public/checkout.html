@@ -935,13 +935,6 @@
 
   /* === CHECKOUT SECTION 2 GRID LAYOUT ================================== */
 
-  .dates-grid{
-    display:grid;
-    grid-template-columns: 1fr 1fr;  /* split evenly */
-    gap: 32px;
-    align-items: start;
-  }
-
   /* === SECTION 1: LINE ITEM CARD OUTLINE (subtle separation) === */
   .section-body[data-section-body="1"] .dates-grid{
     border: 1px solid rgba(15, 28, 46, 0.10);
@@ -949,6 +942,13 @@
     padding: 14px;
     margin-bottom: 14px;
     background: linear-gradient(180deg, rgba(255, 106, 61, 0.03), rgba(255, 255, 255, 0));
+  }
+
+  .dates-grid{
+    display:grid;
+    grid-template-columns: 1fr 1fr;  /* split evenly */
+    gap: 32px;
+    align-items: stretch;            /* key: make both columns equal height */
   }
 
   .dates-right{
@@ -963,7 +963,7 @@
     display:flex;
     justify-content:flex-end; /* bottom-right */
   }
-  
+
   .dates-right .top-info-right{
     text-align:right;
   }
@@ -4532,6 +4532,15 @@
 
     // Run init once when DOM is ready (THIS MUST BE OUTSIDE initCheckout)
     document.addEventListener("DOMContentLoaded", initCheckout);
+
+    // BFCache guard: if user navigates back/forward and the page is restored from cache,
+    // force a real reload so UI re-renders from latest localStorage cart state.
+    window.addEventListener("pageshow", function (e) {
+      if (e && e.persisted) {
+        location.reload();
+      }
+    });
+    
     // If the browser restores this page from bfcache, force a fresh render from cart
     window.addEventListener("pageshow", function () {
       try {
