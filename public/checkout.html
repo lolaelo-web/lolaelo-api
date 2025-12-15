@@ -3778,6 +3778,37 @@
         }
 
     function renderRoomPriceCardsFromCart() {
+      // Fallbacks: make these available even if helpers were moved/removed elsewhere
+      const prettyStayRange = (window.prettyStayRange) ? window.prettyStayRange : function (start, end) {
+        try {
+          if (!start || !end) return "";
+          const ps = String(start).split("-").map(n => parseInt(n, 10));
+          const pe = String(end).split("-").map(n => parseInt(n, 10));
+          if (ps.length !== 3 || pe.length !== 3) return `${start} to ${end}`;
+          const ds = new Date(ps[0], ps[1] - 1, ps[2]);
+          const de = new Date(pe[0], pe[1] - 1, pe[2]);
+          const fmt = d => d.toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" });
+          return `${fmt(ds)} to ${fmt(de)}`;
+        } catch (_) {
+          return `${start || ""} to ${end || ""}`;
+        }
+      };
+
+      const stayNightsFromRange = (window.stayNightsFromRange) ? window.stayNightsFromRange : function (start, end) {
+        try {
+          if (!start || !end) return 0;
+          const ps = String(start).split("-").map(n => parseInt(n, 10));
+          const pe = String(end).split("-").map(n => parseInt(n, 10));
+          if (ps.length !== 3 || pe.length !== 3) return 0;
+          const ds = Date.UTC(ps[0], ps[1] - 1, ps[2]);
+          const de = Date.UTC(pe[0], pe[1] - 1, pe[2]);
+          const nights = Math.round((de - ds) / 86400000);
+          return Number.isFinite(nights) && nights >= 0 ? nights : 0;
+        } catch (_) {
+          return 0;
+        }
+      };
+
       // === CARD ID → ROLE NORMALIZER ===
       // Converts duplicate IDs inside cards into data-role attributes
       function normalizeCardRoles(card){
