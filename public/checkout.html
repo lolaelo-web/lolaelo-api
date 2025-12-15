@@ -2709,6 +2709,13 @@
     };
 
     function updateSummaries() {
+      // In cart mode, Section 1 is rendered from checkout.cart.v1.
+      // Prevent legacy single-selection summary writer from touching card fields.
+      try {
+        const c = loadCartV1();
+        if (c && Array.isArray(c.items) && c.items.length) return;
+      } catch (_) {}
+
       const propertyText =
         state.propertyName || state.propertyId || "Property";
       const propertyMeta = state.propertyLocation || "";
@@ -2743,9 +2750,7 @@
 
       const qn = Math.max(1, Number.parseInt(String(state.qty || 1), 10) || 1);
 
-      const roomNameEl =
-        (cardEl && cardEl.querySelector && cardEl.querySelector('[data-role="roomName"]')) ||
-        document.querySelector('#roomPriceCardTemplate [data-role="roomName"]'); // safety
+      const roomNameEl = document.getElementById("roomName");
       if (roomNameEl) roomNameEl.textContent = roomText;
 
       const planNameEl = document.getElementById("ratePlanName");
