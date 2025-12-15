@@ -3293,18 +3293,16 @@
       const nights = nightsArr.length || 0;
       const avg = nights > 0 ? (total / nights) : 0;
 
-      // Prefer data-role (post-normalize), then legacy fallbacks (pre-normalize)
-      const pick = (role, legacyId) =>
-        cardEl.querySelector(`[data-role="${role}"]`) ||
-        cardEl.querySelector(`[data-orig-id="${role}"]`) ||
-        cardEl.querySelector(`[id^="${legacyId}__li"]`) ||
-        cardEl.querySelector(`#${legacyId}`);
-
-      const avgEl   = pick("avgNightPrice", "avgNightPrice");
-      const totalEl = pick("totalPill", "totalPill");
-      const nightsEl= pick("stayNights", "stayNights");
-
-      if (nightsEl) nightsEl.textContent = String(nights);
+      // Prefer data-role / data-orig-id (post-normalize). Update ALL matches inside the card.
+      const pickAll = (role, legacyId) => {
+        const sel = [
+          `[data-role="${role}"]`,
+          `[data-orig-id="${role}"]`,
+          `[id^="${legacyId}__li"]`,
+          `#${legacyId}`
+        ].join(",");
+        return Array.from(cardEl.querySelectorAll(sel));
+      };
 
       const cur = quote.currency || "";
       const fmtMoney = (v) => {
@@ -3315,8 +3313,9 @@
         return "$" + s;
       };
 
-      if (avgEl) avgEl.textContent = fmtMoney(avg);
-      if (totalEl) totalEl.textContent = fmtMoney(total);
+      pickAll("stayNights", "stayNights").forEach(el => { el.textContent = String(nights); });
+      pickAll("avgNightPrice", "avgNightPrice").forEach(el => { el.textContent = fmtMoney(avg); });
+      pickAll("totalPill", "totalPill").forEach(el => { el.textContent = fmtMoney(total); });
     }
 
     function applyCheckoutQuote(quote) {
