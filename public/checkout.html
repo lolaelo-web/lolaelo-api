@@ -3915,7 +3915,10 @@
           if (itemRef.ratePlanId) qs.set("ratePlanId", String(itemRef.ratePlanId));
           qs.set("qty", String(itemRef.qty || 1));
 
-          fetch("/catalog/details?" + qs.toString(), { credentials: "include" })
+          fetch("/catalog/details?" + qs.toString(), {
+            credentials: "include",
+            headers: { Accept: "application/json" }
+          })
             .then(r => r.json())
             .then(data => {
               const quote = data && data.checkoutQuote ? data.checkoutQuote : null;
@@ -3991,7 +3994,10 @@
           if (itemRef.ratePlanId) qs.set("ratePlanId", String(itemRef.ratePlanId));
           qs.set("qty", String(itemRef.qty || 1));
 
-          fetch("/catalog/details?" + qs.toString(), { credentials: "include" })
+          fetch("/catalog/details?" + qs.toString(), {
+            credentials: "include",
+            headers: { Accept: "application/json" }
+          })
             .then(r => r.json())
             .then(data => {
               const quote = data && data.checkoutQuote ? data.checkoutQuote : null;
