@@ -3891,6 +3891,7 @@
 
           const qs = new URLSearchParams();
           qs.set("propertyId", String(pid));
+          qs.set("plans", "2");
           if (itemRef.start) qs.set("start", String(itemRef.start));
           if (itemRef.end)   qs.set("end",   String(itemRef.end));
           const roomIdForQuote = itemRef.roomTypeId || itemRef.roomId;
@@ -3966,6 +3967,7 @@
 
           const qs = new URLSearchParams();
           qs.set("propertyId", String(pid));
+          qs.set("plans", "2");
           if (itemRef.start) qs.set("start", String(itemRef.start));
           if (itemRef.end)   qs.set("end",   String(itemRef.end));
           const roomIdForQuote = itemRef.roomTypeId || itemRef.roomId;
