@@ -3752,33 +3752,30 @@
     }
 
     function setCloneTextByOrigId(rootEl, origId, text) {
-      var el = rootEl.querySelector('[data-orig-id="' + origId + '"]');
-      if (el) el.textContent = text == null ? "" : String(text);
-    }
+          var nodes = rootEl.querySelectorAll('[data-orig-id="' + origId + '"]');
+          if (!nodes || !nodes.length) return;
+          var val = text == null ? "" : String(text);
+          nodes.forEach(function (el) { el.textContent = val; });
+        }
 
     // Helper: render "Dec 16, 2025 to Dec 19, 2025" from YYYY-MM-DD
-    function prettyStayRange(start, end) {
-      try {
-        if (!start || !end) return "";
-        const s = String(start);
-        const e = String(end);
+    function stayNightsFromRange(start, end) {
+          try {
+            if (!start || !end) return 0;
+            const ps = String(start).split("-").map(n => parseInt(n, 10));
+            const pe = String(end).split("-").map(n => parseInt(n, 10));
+            if (ps.length !== 3 || pe.length !== 3) return 0;
 
-        // Parse as local date (avoid timezone shift)
-        const ps = s.split("-").map(n => parseInt(n, 10));
-        const pe = e.split("-").map(n => parseInt(n, 10));
-        if (ps.length !== 3 || pe.length !== 3) return `${s} to ${e}`;
+            // Use UTC midnight to avoid timezone/DST shifting
+            const ds = Date.UTC(ps[0], ps[1] - 1, ps[2]);
+            const de = Date.UTC(pe[0], pe[1] - 1, pe[2]);
+            const nights = Math.round((de - ds) / 86400000);
 
-        const ds = new Date(ps[0], ps[1] - 1, ps[2]);
-        const de = new Date(pe[0], pe[1] - 1, pe[2]);
-
-        const fmt = (d) =>
-          d.toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" });
-
-        return `${fmt(ds)} to ${fmt(de)}`;
-      } catch (_) {
-        return `${start || ""} to ${end || ""}`;
-      }
-    }
+            return Number.isFinite(nights) && nights >= 0 ? nights : 0;
+          } catch (_) {
+            return 0;
+          }
+        }
 
     function renderRoomPriceCardsFromCart() {
       // === CARD ID → ROLE NORMALIZER ===
@@ -3848,12 +3845,13 @@
         setTplText("ratePlanName", it0.planLabel || "");
         setTplText("ratePlanIdValue", it0.ratePlanId || "");
 
-        // roomQty appears multiple times
-        tpl.querySelectorAll("#roomQty").forEach(n => {
+        // roomQty appears multiple times (template has 2 spots)
+        tpl.querySelectorAll('[data-role="roomQty"],[data-orig-id="roomQty"],#roomQty').forEach(n => {
           n.textContent = it0.qty != null ? String(it0.qty) : "1";
         });
 
         setTplText("stayDatesInline", prettyStayRange(it0.start, it0.end));
+        setTplText("stayNights", String(stayNightsFromRange(it0.start, it0.end)));
 
         // Apply pricing quote to template card
         (function(card, itemRef) {
@@ -3905,8 +3903,11 @@
         setCloneTextByOrigId(clone, "ratePlanIdValue", item.ratePlanId || "");
         setCloneTextByOrigId(clone, "roomQty", item.qty != null ? item.qty : "");
 
-      const datesEl = clone.querySelector('[data-orig-id="stayDatesInline"]');
+        const datesEl = clone.querySelector('[data-orig-id="stayDatesInline"]');
         if (datesEl) datesEl.textContent = prettyStayRange(item.start, item.end);
+
+        // Ensure nights is populated even before pricing quote returns
+        setCloneTextByOrigId(clone, "stayNights", String(stayNightsFromRange(item.start, item.end)));
 
         // For now: hide the date editor inside clone to avoid flatpickr duplication in this step.
         // We will wire per-card edit dates next step.
