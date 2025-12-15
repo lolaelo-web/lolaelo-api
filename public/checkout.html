@@ -3792,12 +3792,39 @@
       var tpl  = document.getElementById("roomPriceCardTemplate");
       if (!root || !tpl) return;
 
-      // Keep the first card as-is (it uses the original IDs and existing logic).
-      // Tag the first (template) card with its lineId so remove works on it too
-      if (itemsSorted[0] && itemsSorted[0].lineId) {
-        tpl.dataset.lineId = itemsSorted[0].lineId;
-        tpl.setAttribute("data-lineid", String(cart.items[0].lineId));
-        // Ensure the first card gets its quote applied via the same scoped method
+      // First (template) card must be populated from cart[0], NOT from URL-driven logic
+      if (itemsSorted[0]) {
+        const it0 = itemsSorted[0];
+
+        // Tag template card
+        if (it0.lineId) {
+          tpl.dataset.lineId = it0.lineId;
+          tpl.setAttribute("data-lineid", String(it0.lineId));
+        }
+
+        // Helper scoped to template
+        const setTplText = (id, val) => {
+          const el = tpl.querySelector("#" + id);
+          if (el) el.textContent = val == null ? "" : String(val);
+        };
+
+        // Populate template card fields
+        setTplText("propertyName", it0.propertyName || "");
+        setTplText("propertyMeta", it0.propertyLocation || "");
+        setTplText("propertyIdValue", it0.propertyId || "");
+        setTplText("roomName", it0.roomName || "");
+        setTplText("roomIdValue", it0.roomTypeId || "");
+        setTplText("ratePlanName", it0.planLabel || "");
+        setTplText("ratePlanIdValue", it0.ratePlanId || "");
+
+        // roomQty appears multiple times
+        tpl.querySelectorAll("#roomQty").forEach(n => {
+          n.textContent = it0.qty != null ? String(it0.qty) : "1";
+        });
+
+        setTplText("stayDatesInline", prettyStayRange(it0.start, it0.end));
+
+        // Apply pricing quote to template card
         (function(card, itemRef) {
           if (!itemRef) return;
           const pid = Number(itemRef.propertyId || 0);
@@ -3818,8 +3845,7 @@
               if (quote) applyQuoteToCard(card, quote);
             })
             .catch(err => console.warn("[checkout] card quote failed", err));
-        })(tpl, itemsSorted[0]);
-
+        })(tpl, it0);
       }
 
       // Remove any previously cloned cards.
@@ -4540,7 +4566,7 @@
         location.reload();
       }
     });
-    
+
     // If the browser restores this page from bfcache, force a fresh render from cart
     window.addEventListener("pageshow", function () {
       try {
