@@ -2743,7 +2743,9 @@
 
       const qn = Math.max(1, Number.parseInt(String(state.qty || 1), 10) || 1);
 
-      const roomNameEl = document.getElementById("roomName");
+      const roomNameEl =
+        (cardEl && cardEl.querySelector && cardEl.querySelector('[data-role="roomName"]')) ||
+        document.querySelector('#roomPriceCardTemplate [data-role="roomName"]'); // safety
       if (roomNameEl) roomNameEl.textContent = roomText;
 
       const planNameEl = document.getElementById("ratePlanName");
@@ -3268,29 +3270,21 @@
       const total = Number(quote.total || 0);
       const nightsArr = Array.isArray(quote.nights) ? quote.nights : [];
       const nights = nightsArr.length || 0;
-
-      // avg price/night
       const avg = nights > 0 ? (total / nights) : 0;
 
-      // Find elements inside this card (prefer id-suffixed by dataset orig id, else fallback to query by id suffix)
-      const avgEl =
-        cardEl.querySelector('[data-orig-id="avgNightPrice"]') ||
-        cardEl.querySelector('[id^="avgNightPrice__li"]') ||
-        cardEl.querySelector("#avgNightPrice");
+      // Prefer data-role (post-normalize), then legacy fallbacks (pre-normalize)
+      const pick = (role, legacyId) =>
+        cardEl.querySelector(`[data-role="${role}"]`) ||
+        cardEl.querySelector(`[data-orig-id="${role}"]`) ||
+        cardEl.querySelector(`[id^="${legacyId}__li"]`) ||
+        cardEl.querySelector(`#${legacyId}`);
 
-      const totalBtn =
-        cardEl.querySelector('[data-orig-id="totalPill"]') ||
-        cardEl.querySelector('[id^="totalPill__li"]') ||
-        cardEl.querySelector("#totalPill");
-
-      const nightsEl =
-        cardEl.querySelector('[data-orig-id="stayNights"]') ||
-        cardEl.querySelector('[id^="stayNights__li"]') ||
-        cardEl.querySelector("#stayNights");
+      const avgEl   = pick("avgNightPrice", "avgNightPrice");
+      const totalEl = pick("totalPill", "totalPill");
+      const nightsEl= pick("stayNights", "stayNights");
 
       if (nightsEl) nightsEl.textContent = String(nights);
 
-      // Use existing currency formatting style from top card (simple $ fallback)
       const cur = quote.currency || "";
       const fmtMoney = (v) => {
         const n = Number(v || 0);
@@ -3301,7 +3295,7 @@
       };
 
       if (avgEl) avgEl.textContent = fmtMoney(avg);
-      if (totalBtn) totalBtn.textContent = fmtMoney(total);
+      if (totalEl) totalEl.textContent = fmtMoney(total);
     }
 
     function applyCheckoutQuote(quote) {
@@ -3766,6 +3760,15 @@
     }
 
     function renderRoomPriceCardsFromCart() {
+      // === CARD ID → ROLE NORMALIZER ===
+      // Converts duplicate IDs inside cards into data-role attributes
+      function normalizeCardRoles(card){
+        card.querySelectorAll("[id]").forEach(el => {
+          el.setAttribute("data-role", el.id);
+          el.removeAttribute("id");
+        });
+      }
+
       var cart = loadCartV1();
         // Sort items by start date (earliest first), then end date
         function dayNum(ymd) {
@@ -3791,6 +3794,8 @@
       var root = document.getElementById("roomPriceCardsRoot");
       var tpl  = document.getElementById("roomPriceCardTemplate");
       if (!root || !tpl) return;
+      // Normalize the template once so it does not keep global IDs
+      try { normalizeCardRoles(tpl); } catch (_) {}
 
       // First (template) card must be populated from cart[0], NOT from URL-driven logic
       if (itemsSorted[0]) {
