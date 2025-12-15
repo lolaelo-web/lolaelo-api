@@ -3285,15 +3285,21 @@
       }
     }
 
-    function applyQuoteToCard(cardEl, quote) {
+    function applyQuoteToCard(cardEl, quote, qty) {
       if (!cardEl || !quote) return;
+
+      const q = Math.max(1, Number(qty || 1));
 
       const total = Number(quote.total || 0);
       const nightsArr = Array.isArray(quote.nights) ? quote.nights : [];
       const nights = nightsArr.length || 0;
+
+      // Avg is per-night per-room (do NOT multiply by qty)
       const avg = nights > 0 ? (total / nights) : 0;
 
-      // Prefer data-role / data-orig-id (post-normalize). Update ALL matches inside the card.
+      // Total shown on the card should reflect qty rooms
+      const totalScaled = total * q;
+
       const pickAll = (role, legacyId) => {
         const sel = [
           `[data-role="${role}"]`,
@@ -3315,7 +3321,7 @@
 
       pickAll("stayNights", "stayNights").forEach(el => { el.textContent = String(nights); });
       pickAll("avgNightPrice", "avgNightPrice").forEach(el => { el.textContent = fmtMoney(avg); });
-      pickAll("totalPill", "totalPill").forEach(el => { el.textContent = fmtMoney(total); });
+      pickAll("totalPill", "totalPill").forEach(el => { el.textContent = fmtMoney(totalScaled); });
     }
 
     function applyCheckoutQuote(quote) {
@@ -3919,7 +3925,7 @@
                 keys: quote ? Object.keys(quote) : null,
                 raw: data
               });
-              if (quote) applyQuoteToCard(card, quote);
+              if (quote) applyQuoteToCard(card, quote, itemRef.qty || 1);
 
               // Read back what the UI shows right after apply
               try {
@@ -3995,7 +4001,7 @@
                 keys: quote ? Object.keys(quote) : null,
                 raw: data
               });
-              if (quote) applyQuoteToCard(card, quote);
+              if (quote) applyQuoteToCard(card, quote, itemRef.qty || 1);
 
               // Read back what the UI shows right after apply
               try {
