@@ -957,6 +957,13 @@
     align-items:flex-end;     /* pin to right edge */
   }
 
+  .dates-right .stay-confirm-row{
+    margin-top:auto;          /* pushes confirm to the bottom */
+    width:100%;
+    display:flex;
+    justify-content:flex-end; /* bottom-right */
+  }
+  
   .dates-right .top-info-right{
     text-align:right;
   }
@@ -1029,13 +1036,6 @@
     justify-content:flex-end;
     gap:12px;
     width:100%;
-  }
-
-  .dates-right .stay-confirm-row{
-    margin-top:auto;            /* push to bottom */
-    width:100%;
-    display:flex;
-    justify-content:flex-end;   /* push button to right */
   }
 
   .stay-remove-row{
@@ -1519,7 +1519,7 @@
                     </div>
                   </div>
 
-                  <!-- Row 3: confirm (moved to right column) -->
+                  <!-- Row 3: confirm (right column, bottom) -->
                   <div class="stay-confirm-row">
                     <button
                       type="button"
@@ -1536,7 +1536,7 @@
 
               </div>
             </div>
-           <!-- END GRID -->
+            <!-- END GRID -->
 
             </div>
           </div>
@@ -3786,7 +3786,7 @@
             })
           : [];
 
-      if (!cart || !Array.isArray(itemsSorted) || itemsSorted.length <= 1) return;
+      if (!cart || !Array.isArray(itemsSorted) || !itemsSorted.length) return;
 
       var root = document.getElementById("roomPriceCardsRoot");
       var tpl  = document.getElementById("roomPriceCardTemplate");
