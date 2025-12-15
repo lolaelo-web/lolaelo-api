@@ -3142,6 +3142,9 @@
       };
     }
 
+    async function loadAddonsForProperty() {
+      const q = parseQuery();
+
       // Prefer state.propertyId, otherwise use query param.
       // DO NOT coerce missing/blank to 0 - that's an invalid checkout state.
       const rawPropertyId =
@@ -3168,12 +3171,8 @@
       const start = state.start || q.start || "";
       const end   = state.end   || q.end   || "";
 
-      if (!Number.isFinite(propertyId) || propertyId <= 0 || !start || !end) {
-        console.log("[checkout] loadAddonsForProperty missing params", {
-          propertyId,
-          start,
-          end
-        });
+      if (!start || !end) {
+        console.log("[checkout] loadAddonsForProperty missing params", { propertyId, start, end });
         return;
       }
 
@@ -3201,10 +3200,7 @@
         });
 
         if (!resp.ok) {
-          console.warn(
-            "[checkout] /catalog/details for addons failed",
-            resp.status
-          );
+          console.warn("[checkout] /catalog/details for addons failed", resp.status);
           state.addonsConfig = [];
           renderAddons([]);
           return;
@@ -3219,11 +3215,7 @@
         const addons = Array.isArray(data.addons) ? data.addons : [];
         state.addonsConfig = addons;
         console.log("[checkout] addons from details", {
-          propertyId,
-          start,
-          end,
-          count: addons.length,
-          addons
+          propertyId, start, end, count: addons.length, addons
         });
         renderAddons(addons);
 
@@ -3232,11 +3224,8 @@
           const quote = data.checkoutQuote;
           console.log("[checkout] applying checkoutQuote", quote);
 
-          // Remember the base room total (no add-ons yet)
           const baseTotal = Number(quote && quote.total);
-          if (Number.isFinite(baseTotal)) {
-            state.baseRoomTotal = baseTotal;
-          }
+          if (Number.isFinite(baseTotal)) state.baseRoomTotal = baseTotal;
 
           applyCheckoutQuote(quote);
         } else {
@@ -3244,16 +3233,13 @@
             const roomsArr = Array.isArray(data.rooms) ? data.rooms : [];
             if (!roomsArr.length) return;
 
-            // Prefer the room the user actually selected, fall back to first room
             const qRoomId = q.roomId ? Number(q.roomId) : NaN;
             let chosen = null;
 
             if (Number.isFinite(qRoomId)) {
               chosen =
                 roomsArr.find(r => {
-                  const rtId = Number(
-                    (r && (r.roomTypeId != null ? r.roomTypeId : r.id))
-                  );
+                  const rtId = Number((r && (r.roomTypeId != null ? r.roomTypeId : r.id)));
                   return Number.isFinite(rtId) && rtId === qRoomId;
                 }) || null;
             }
@@ -3294,6 +3280,7 @@
         state.addonsConfig = [];
         renderAddons([]);
       }
+    }
 
     function applyQuoteToCard(cardEl, quote, qty) {
       if (!cardEl || !quote) return;
