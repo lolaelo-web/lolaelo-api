@@ -3894,7 +3894,8 @@
           qs.set("propertyId", String(pid));
           if (itemRef.start) qs.set("start", String(itemRef.start));
           if (itemRef.end)   qs.set("end",   String(itemRef.end));
-          if (itemRef.roomTypeId) qs.set("roomId", String(itemRef.roomTypeId));
+          const roomIdForQuote = itemRef.roomTypeId || itemRef.roomId;
+          if (roomIdForQuote) qs.set("roomId", String(roomIdForQuote));
           if (itemRef.ratePlanId) qs.set("ratePlanId", String(itemRef.ratePlanId));
           qs.set("qty", String(itemRef.qty || 1));
 
@@ -3955,7 +3956,8 @@
           qs.set("propertyId", String(pid));
           if (itemRef.start) qs.set("start", String(itemRef.start));
           if (itemRef.end)   qs.set("end",   String(itemRef.end));
-          if (itemRef.roomTypeId) qs.set("roomId", String(itemRef.roomTypeId));
+          const roomIdForQuote = itemRef.roomTypeId || itemRef.roomId;
+          if (roomIdForQuote) qs.set("roomId", String(roomIdForQuote));
           if (itemRef.ratePlanId) qs.set("ratePlanId", String(itemRef.ratePlanId));
           qs.set("qty", String(itemRef.qty || 1));
 
