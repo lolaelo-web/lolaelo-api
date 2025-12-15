@@ -3785,8 +3785,10 @@
       // Converts duplicate IDs inside cards into data-role attributes
       function normalizeCardRoles(card){
         card.querySelectorAll("[id]").forEach(el => {
-          el.setAttribute("data-role", el.id);
-          el.removeAttribute("id");
+          var orig = el.id;
+          el.dataset.origId = orig;            // enables setCloneTextByOrigId()
+          el.setAttribute("data-role", orig);  // enables data-role lookups
+          el.removeAttribute("id");            // prevents duplicate IDs across cards
         });
       }
 
@@ -3830,7 +3832,10 @@
 
         // Helper scoped to template
         const setTplText = (id, val) => {
-          const el = tpl.querySelector("#" + id);
+          const el =
+            tpl.querySelector("#" + id) ||
+            tpl.querySelector('[data-orig-id="' + id + '"]') ||
+            tpl.querySelector('[data-role="' + id + '"]');
           if (el) el.textContent = val == null ? "" : String(val);
         };
 
