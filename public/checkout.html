@@ -3282,6 +3282,46 @@
       }
     }
 
+    // ================================
+    // FETCH QUOTE FOR A SINGLE CARD
+    // ================================
+    async function getQuoteForRoom({ propertyId, roomId, start, end, ratePlanId }) {
+      if (!propertyId || !roomId || !start || !end) {
+        console.warn("[checkout] getQuoteForRoom missing params", {
+          propertyId, roomId, start, end, ratePlanId
+        });
+        return null;
+      }
+
+      const qs = new URLSearchParams();
+      qs.set("propertyId", String(propertyId));
+      qs.set("roomId", String(roomId));
+      qs.set("start", start);
+      qs.set("end", end);
+
+      // IMPORTANT:
+      // ratePlanId is informational only for checkout display.
+      // Backend pricing is already resolved in catalog/details.
+      if (Number.isFinite(ratePlanId)) {
+        qs.set("ratePlanId", String(ratePlanId));
+      }
+
+      const url = "/catalog/details?" + qs.toString();
+      console.log("[checkout] card quote URL", url);
+
+      const resp = await fetch(url, {
+        headers: { Accept: "application/json" }
+      });
+
+      if (!resp.ok) {
+        console.warn("[checkout] card quote fetch failed", resp.status);
+        return null;
+      }
+
+      const data = await resp.json();
+      return data && data.checkoutQuote ? data.checkoutQuote : null;
+    }
+
     function applyQuoteToCard(cardEl, quote, qty) {
       if (!cardEl || !quote) return;
 
@@ -3899,8 +3939,13 @@
         // Apply pricing quote to template card
         (function(card, itemRef) {
           if (!itemRef) return;
-          const pid = Number(itemRef.propertyId || 0);
-          if (!pid) return;
+        const pid = Number(
+          itemRef.propertyId ||
+          state.propertyId ||
+          (parseQuery && parseQuery().propertyId) ||
+          0
+        );
+        if (!pid) return;
 
           const qs = new URLSearchParams();
           qs.set("propertyId", String(pid));
@@ -3978,7 +4023,12 @@
         root.appendChild(clone);
         // Fetch quote for this line item and apply to this card (scoped)
         (function(card, itemRef) {
-          const pid = Number(itemRef.propertyId || 0);
+          const pid = Number(
+            itemRef.propertyId ||
+            state.propertyId ||
+            (parseQuery && parseQuery().propertyId) ||
+            0
+          );
           if (!pid) return;
 
           const qs = new URLSearchParams();
