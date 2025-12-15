@@ -3902,7 +3902,20 @@
             .then(r => r.json())
             .then(data => {
               const quote = data && data.checkoutQuote ? data.checkoutQuote : null;
+              console.log("[checkout] quote payload", {
+                hasQuote: !!quote,
+                checkoutQuote: quote,
+                keys: quote ? Object.keys(quote) : null,
+                raw: data
+              });
               if (quote) applyQuoteToCard(card, quote);
+
+              // Read back what the UI shows right after apply
+              try {
+                const avgNow = (card.querySelector('[data-role="avgNightPrice"],[data-orig-id="avgNightPrice"],#avgNightPrice')||{}).textContent;
+                const totNow = (card.querySelector('[data-role="totalPill"],[data-orig-id="totalPill"],#totalPill')||{}).textContent;
+                console.log("[checkout] after apply", { avgNow, totNow, lineId: card.getAttribute("data-lineid") });
+              } catch (_) {}
             })
             .catch(err => console.warn("[checkout] card quote failed", err));
         })(tpl, it0);
@@ -3964,7 +3977,20 @@
             .then(r => r.json())
             .then(data => {
               const quote = data && data.checkoutQuote ? data.checkoutQuote : null;
+              console.log("[checkout] quote payload", {
+                hasQuote: !!quote,
+                checkoutQuote: quote,
+                keys: quote ? Object.keys(quote) : null,
+                raw: data
+              });
               if (quote) applyQuoteToCard(card, quote);
+
+              // Read back what the UI shows right after apply
+              try {
+                const avgNow = (card.querySelector('[data-role="avgNightPrice"],[data-orig-id="avgNightPrice"],#avgNightPrice')||{}).textContent;
+                const totNow = (card.querySelector('[data-role="totalPill"],[data-orig-id="totalPill"],#totalPill')||{}).textContent;
+                console.log("[checkout] after apply", { avgNow, totNow, lineId: card.getAttribute("data-lineid") });
+              } catch (_) {}
             })
             .catch(err => console.warn("[checkout] card quote failed", err));
         })(clone, item);
