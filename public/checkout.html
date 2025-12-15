@@ -1026,8 +1026,22 @@
     margin-top: 14px;
     display:flex;
     align-items:center;
-    justify-content:space-between; /* prevent overlap */
+    justify-content:flex-end;
     gap:12px;
+    width:100%;
+  }
+
+  .dates-right .stay-confirm-row{
+    margin-top:auto;            /* push to bottom */
+    width:100%;
+    display:flex;
+    justify-content:flex-end;   /* push button to right */
+  }
+
+  .stay-remove-row{
+    margin-top: 10px;
+    display:flex;
+    justify-content:flex-start; /* bottom-left */
   }
 
   .stay-confirm-row .btn-primary{
@@ -1425,17 +1439,8 @@
                   </div>
                 </div>
 
-                <!-- Row 3: confirm / remove -->
-                <div class="stay-confirm-row">
-                  <button
-                    type="button"
-                    class="btn-primary"
-                    id="confirmRoomPriceBtn"
-                    data-confirm="1"
-                  >
-                    Confirm Room & Price
-                  </button>
-
+                <!-- Row 3: remove (confirm moved to right column) -->
+                <div class="stay-remove-row">
                   <button
                     type="button"
                     class="card-header-link"
@@ -1514,6 +1519,17 @@
                     </div>
                   </div>
                 </div>
+                <!-- Row 3: confirm (moved to right column) -->
+                  <div class="stay-confirm-row">
+                    <button
+                      type="button"
+                      class="btn-primary"
+                      id="confirmRoomPriceBtn"
+                      data-confirm="1"
+                    >
+                      Confirm Room & Price
+                    </button>
+                  </div>
                 <!-- END RIGHT COLUMN -->
 
               </div>
