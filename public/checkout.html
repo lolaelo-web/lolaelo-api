@@ -2126,6 +2126,22 @@
         return existingCart;
       }
 
+      // NEW: If user arrived with a full selection in the URL but we have no cart yet
+      // (common after cache wipe), bootstrap checkout.cart.v1 from the URL selection.
+      const hasQuerySelection =
+        q &&
+        Number(q.propertyId) &&
+        Number(q.roomId) &&
+        Number(q.ratePlanId) &&
+        q.start &&
+        q.end;
+
+      if (hasQuerySelection) {
+        const cartFromUrl = buildCartFromCurrentQuery(q);
+        saveCartV1(cartFromUrl);
+        return cartFromUrl;
+      }
+
       // If selection exists, create a cart (do not delete selection yet).
       let sel = null;
       try {
