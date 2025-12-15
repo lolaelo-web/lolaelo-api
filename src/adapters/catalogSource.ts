@@ -265,19 +265,13 @@ export async function getRoomsDailyFromDb(
     select: { roomTypeId: true, ratePlanId: true, date: true, price: true },
   });
 
-  // Index: keep exact plan prices separate from null-plan prices
-  const priceByPlan = new Map<string, number>(); // key: `${roomTypeId}|${date}|plan|<id>` -> price
-  const priceNull   = new Map<string, number>(); // key: `${roomTypeId}|${date}|null`       -> price
+  // Index: `${roomTypeId}|${date}|plan|<id>` -> price
+  const priceByPlan = new Map<string, number>();
   for (const r of priceRows) {
     const d = r.date.toISOString().slice(0, 10);
     const major = Number(r.price); // Decimal -> number
-    if (r.ratePlanId == null) {
-      const k = `${r.roomTypeId}|${d}|null`;
-      if (!priceNull.has(k)) priceNull.set(k, major);
-    } else {
-      const k = `${r.roomTypeId}|${d}|plan|${r.ratePlanId}`;
-      if (!priceByPlan.has(k)) priceByPlan.set(k, major);
-    }
+    const k = `${r.roomTypeId}|${d}|plan|${r.ratePlanId}`;
+    if (!priceByPlan.has(k)) priceByPlan.set(k, major);
   }
 
   // 5) Build output, covering all dates; price preference: specified plan → preferred exposeToUis plan → null plan → basePrice
@@ -297,7 +291,6 @@ export async function getRoomsDailyFromDb(
           if (k.startsWith(`${rt.id}|${d}|plan|`)) { price = v; break; }
         }
       }
-      if (price == null) price = priceNull.get(`${rt.id}|${d}|null`) ?? null;
       if (price == null) price = Number(rt.basePrice);
 
       // inventory+flags

@@ -1489,9 +1489,14 @@ router.get("/details", async (req: Request, res: Response) => {
           }
 
           (base as any).checkoutQuote = {
+            source: "db",                 // IMPORTANT: tells checkout.html NOT to re-adjust
             currency: curCode || "USD",
             total,
             nights,
+            roomTypeId: Number(
+              (chosen as any)?.roomTypeId ?? (chosen as any)?.id ?? 0
+            ) || null,
+            ratePlanId: req.query.ratePlanId ? Number(req.query.ratePlanId) : null,
           };
         }
       }
