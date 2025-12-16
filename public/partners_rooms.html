@@ -4196,25 +4196,13 @@
 
           next = Array.from(new Set(next));
 
-          // Update runtime + storage
-          window.__selectedPlanIds = next.slice();
-          window.currentRatePlanId = next[0] || stdId || id;
-
-          try {
-            localStorage.setItem('rateplan.selectedIds', JSON.stringify(window.__selectedPlanIds));
-            localStorage.setItem('rateplan.lastPlanId', String(window.currentRatePlanId));
-          } catch(_){}
-
-          // Update URL (plans=... & plan=...)
-          try { if (typeof updateURLFromState === 'function') updateURLFromState(); } catch(_){}
-
           const code = String(p.code || '').toUpperCase();
 
           // STD is always on
           if (code === 'STD') { box.checked = true; return; }
 
           // Optimistic UI, but revert on failure
-          const nextActive = !!box.checked;
+          const nextActive = box.checked ? true : false;
 
           // Keep at least one checked (STD guarantees that)
           if (!nextActive) {
