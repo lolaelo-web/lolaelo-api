@@ -2670,12 +2670,19 @@
       try {
         const ids = Array.isArray(e?.detail?.ids) ? e.detail.ids : [];
         const expected = sig(ids);
+
+        // Derive the real STD id from the DOM (DB ids are not always 1)
+        const stdChip = document.querySelector('#rateplan-checks .chip[data-plan-code="STD"]');
+        const stdId = Number(stdChip && stdChip.getAttribute('data-plan-id'));
+        const STD_FALLBACK = (Number.isFinite(stdId) && stdId > 0) ? String(stdId) : '1';
+
         // Check soon after handlers run, giving UI a frame to apply
         requestAnimationFrame(() => {
           const actual = sig(domIds());
-          if (expected && actual !== expected) {
+          const exp = expected || STD_FALLBACK;
+          if (actual !== exp) {
             console.warn('[PLAN_INTEGRITY_CHECK] DOM mismatch after rateplans:changed',
-              { expectedIds: expected, actualIds: actual, source: e?.detail?.source || '' });
+              { expectedIds: exp, actualIds: actual, source: e?.detail?.source || '' });
           }
         });
       } catch(_){}
@@ -3837,7 +3844,7 @@
     // 3) Primary plan = canonical from chips (filters out invalid/hidden ids)
     const primary = (typeof getCanonicalPrimaryPlanId === 'function')
       ? getCanonicalPrimaryPlanId()
-      : (Number(localStorage.getItem('rateplan.lastPlanId') || 1) || 1);
+      : (Number(localStorage.getItem('rateplan.lastPlanId')) || getCanonicalPrimaryPlanId() || 1);
     window.currentRatePlanId = primary;
     try { localStorage.setItem('rateplan.lastPlanId', String(primary)); } catch(_){}
 
@@ -3849,7 +3856,7 @@
     // 5) Listen once for future checkbox changes → update state + refresh
     const handler = (e) => {
       const list = (e && e.detail && Array.isArray(e.detail.ids)) ? e.detail.ids : [];
-      window.currentRatePlanId = list.length ? Number(list[0]) : 1;
+      window.currentRatePlanId = list.length ? Number(list[0]) : (getCanonicalPrimaryPlanId() || 1);
       try { localStorage.setItem('rateplan.lastPlanId', String(window.currentRatePlanId)); } catch(_){}
       try { if (typeof saveCtx === 'function') saveCtx(); } catch (_){}
       try { if (typeof updateURLFromState === 'function') updateURLFromState(); } catch (_){}
@@ -4340,7 +4347,11 @@
     window.saveRoomPlanSelection = function(roomId, ids){
       const rid = Number(roomId || window.currentRoomTypeId);
       const clean = (Array.isArray(ids) ? ids : []).map(Number).filter(n => Number.isFinite(n) && n>0);
-      const next = clean.length ? clean : [1];
+      const stdChip = document.querySelector('#rateplan-checks .chip[data-plan-code="STD"]');
+      const stdId = Number(stdChip && stdChip.getAttribute('data-plan-id'));
+      const STD_FALLBACK = (Number.isFinite(stdId) && stdId > 0) ? stdId : 1;
+
+      const next = clean.length ? clean : [STD_FALLBACK];
 
       const byRoom = readMap(LS_BYROOM); byRoom[rid] = next; writeMap(LS_BYROOM, byRoom);
       const lastMap = readMap(LS_LAST_BYROOM); lastMap[rid] = next[0]; writeMap(LS_LAST_BYROOM, lastMap);
