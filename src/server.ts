@@ -82,13 +82,18 @@ app.get("/extranet/property/rateplans", async (req: Request, res: Response) => {
 // body: { propertyId: 2, roomTypeId: 32, plans: [{ code:"NRF", active:true, kind:"PERCENT", value:-10, isDefault:false }, ...] }
 app.post("/extranet/property/rateplans", express.json(), async (req: Request, res: Response) => {
   const body = req.body ?? {};
-  const partnerId = num(body.propertyId ?? (req.query as any)?.propertyId);
-  const roomTypeId = num(body.roomTypeId ?? (req.query as any)?.roomTypeId);
+  const q: any = req.query ?? {};
+
+  // Accept IDs from body OR query string
+  const partnerId = num(body.propertyId ?? q.propertyId);
+  const roomTypeId = num(body.roomTypeId ?? q.roomTypeId);
+
   const items = Array.isArray(body.plans) ? body.plans : [];
 
   if (!partnerId || !roomTypeId) {
     return res.status(400).json({ error: "propertyId_and_roomTypeId_required" });
   }
+
   if (!items.length) {
     return res.status(400).json({ error: "no_plans" });
   }
@@ -182,10 +187,13 @@ app.post("/extranet/property/rateplans", express.json(), async (req: Request, re
 
     await client.end();
     return res.json({ ok: true, plans: rows });
-  } catch (e) {
+  } catch (e: any) {
     console.error("rateplans POST db error:", e);
-    try { /* best-effort rollback */ } catch {}
-    return res.status(500).json({ error: "rateplans_post_failed" });
+
+    return res.status(500).json({
+      error: "rateplans_post_failed",
+      message: String(e?.message || e).slice(0, 300),
+    });
   }
 });
 
