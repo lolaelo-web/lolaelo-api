@@ -4091,8 +4091,10 @@
       });
 
       // Ensure Standard exists and is named consistently
+      // IMPORTANT: do not hardcode id=1 (DB ids differ per room)
       if (!byCode.has('STD')) {
-        byCode.set('STD', { id:1, code:'STD', name:'Standard', placeholder:false });
+        const fallbackStdId = Number(window.currentRatePlanId || 1);
+        byCode.set('STD', { id: fallbackStdId, code:'STD', name:'Standard', placeholder:true, active:true });
       } else {
         const std = byCode.get('STD'); if (std) std.name = 'Standard';
       }
