@@ -3781,12 +3781,19 @@
               const raw = Array.isArray(j) ? j : (j.rows || j.plans || j.data || j.result || []);
 
               const parsed = raw
-                .map(p => ({
-                  id: Number(p.id ?? p.ratePlanId ?? p.rate_plan_id),
-                  code: String(p.code ?? p.ratePlanCode ?? p.rate_plan_code ?? '').toUpperCase(),
-                  name: p.name ?? p.label ?? p.code ?? `Plan ${p.id ?? p.ratePlanId}`
-                }))
-                .filter(p => Number.isFinite(p.id));
+                .map(p => {
+                  const id = Number(p.id ?? p.ratePlanId ?? p.rate_plan_id);
+                  const code = String(p.code ?? p.ratePlanCode ?? p.rate_plan_code ?? "").toUpperCase();
+                  const name = (p.name ?? p.label ?? p.code ?? `Plan ${p.id ?? p.ratePlanId ?? ""}`) + "";
+
+                  const kind = String(p.kind ?? "NONE").toUpperCase();
+                  const value = Number(p.value ?? 0);           // numeric may come as string
+                  const active = (p.active === undefined) ? true : Boolean(p.active);
+                  const isDefault = (p.isDefault === undefined) ? false : Boolean(p.isDefault);
+
+                  return { id, code, name, kind, value, active, isDefault };
+                })
+                .filter(p => Number.isFinite(p.id) && p.code);
 
               if (!parsed.length) {
                 console.warn('[hydratePlansFromPartners] no usable rateplans for room', rid);

@@ -3380,7 +3380,7 @@
       // 1) Base total from backend (before plan adjustments)
       var baseTotal = 0;
       if (typeof quote.total === "number" && Number.isFinite(quote.total)) {
-        baseTotal = quote.total;
+        baseTotal = Number(quote.total);
       } else if (nightsArr.length) {
         baseTotal = nightsArr.reduce(function (sum, n) {
           var v = Number(
