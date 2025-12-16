@@ -4115,24 +4115,6 @@
         return String(a.code).localeCompare(String(b.code));
       });
 
-      // Seed selection from DB-active flags ONLY (DB is source of truth)
-      // We still keep window.__selectedPlanIds so the rest of the page keeps working,
-      // but we do NOT read/write localStorage for enabling/disabling plans anymore.
-      const selectedOrig = list
-        .filter(p => p && p.code === 'STD' ? true : (p.active !== false))
-        .map(p => Number(p.id))
-        .filter(Number.isFinite);
-
-      // Ensure at least STD exists
-      let finalSelected = selectedOrig.slice();
-      if (!finalSelected.length) {
-        const stdId = Number(byCode.get('STD')?.id || 1);
-        finalSelected = Number.isFinite(stdId) ? [stdId] : [1];
-      }
-
-      // Runtime truth
-      window.__selectedPlanIds = finalSelected.slice();
-
       // Visible selection (all “active” are visible by definition)
       const validIds = new Set(list.map(p => Number(p.id)).filter(Number.isFinite));
       const visibleSelected = finalSelected.filter(n => validIds.has(n));
@@ -4174,29 +4156,6 @@
       if (numericId){
         box.addEventListener('change', async () => {
           label.classList.toggle('active', !!box.checked);
-
-          const id = Number(box.getAttribute('data-plan-id'));
-          // --- Selection update (keeps integrity checker happy) ---
-          // Ensure STD is always included
-          const list = Array.isArray(window.__selectedPlanIds) ? window.__selectedPlanIds.slice() : [];
-          let next = list.filter(Number.isFinite);
-
-          // normalize legacy: ensure current STD id is included
-          const stdChip = document.querySelector('#rateplan-checks .chip[data-plan-code="STD"]');
-          const stdId = Number(stdChip && stdChip.getAttribute('data-plan-id'));
-          if (Number.isFinite(stdId) && !next.includes(stdId)) next.unshift(stdId);
-
-          // Apply this toggle to selection
-          if (box.checked) {
-            if (!next.includes(id)) next.push(id);
-          } else {
-            // allow disabling BRKF/NRF selection, but never remove STD
-            next = next.filter(x => x !== id);
-            if (Number.isFinite(stdId)) next = next.filter(x => x !== 1).map(x => (x === 1 ? stdId : x));
-            if (Number.isFinite(stdId) && !next.includes(stdId)) next.unshift(stdId);
-          }
-
-          next = Array.from(new Set(next));
 
           const code = String(p.code || '').toUpperCase();
 
@@ -4250,13 +4209,6 @@
                 try { window.populateRatePlanChecks(latest); } catch(_) {}
               }
             } catch(_) {}
-
-            // Optional: emit a tagged event so diagnostics can ignore it
-            try {
-              document.dispatchEvent(new CustomEvent('rateplans:changed', {
-                detail: { ids: (Array.isArray(window.__selectedPlanIds) ? window.__selectedPlanIds.slice() : []), source: 'active-toggle' }
-              }));
-            } catch(_){}
           } catch (e) {
             console.warn('[rateplans] persist active failed, reverting', e);
             // revert checkbox
@@ -4269,12 +4221,6 @@
 
       // Ensure row is visible
       hostRow.style.display = 'flex';
-
-      // Persist current primary + broadcast initial selection (don’t overwrite selectedIds here)
-      const primary = (visibleSelected.length ? visibleSelected[0] : (selectedOrig[0] ?? Number(localStorage.getItem('rateplan.lastPlanId')) ?? 1));
-      window.currentRatePlanId = primary;
-      try { localStorage.setItem('rateplan.lastPlanId', String(primary)); } catch(_){}
-      try { if (typeof updateURLFromState === 'function') updateURLFromState(); } catch(_){}
 
       // Initial event so calendar fetch uses same id(s)
       document.dispatchEvent(new CustomEvent('rateplans:changed', {
