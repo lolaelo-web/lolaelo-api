@@ -7550,10 +7550,10 @@ const setWindow = (sISO, doRender = true) => {
 
     try { if (typeof window.updateURLFromState === 'function') window.updateURLFromState(); } catch(_){}
 
-    // broadcast a normalized event so downstream listeners get the canonical csv
+    // broadcast using the same schema the rest of the page expects (ids as Array)
     try {
       document.dispatchEvent(new CustomEvent('rateplans:changed', {
-        detail: { ids: ids.join(','), source: 'panel-checkbox' }
+        detail: { ids: ids.slice(), primary: (ids[0] ?? 1), source: 'panel-checkbox' }
       }));
     } catch(_){}
 
