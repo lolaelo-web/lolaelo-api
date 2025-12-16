@@ -3735,7 +3735,9 @@
     }
 
     try{
-      const r = await authFetch('/extranet/property/rateplans');
+      const pid = Number((window.state && (window.state.partnerId || window.state.propertyId)) || 2);
+      const rid = Number(window.currentRoomTypeId || 0);
+      const r = await authFetch(`/extranet/property/rateplans?propertyId=${encodeURIComponent(String(pid))}&roomTypeId=${encodeURIComponent(String(rid))}`);
       if (!r) {
         lastRatePlanLoadNote = 'Network error loading rate plans — using Standard.';
         return [{ id: 1, name: 'Standard' }];
@@ -7164,7 +7166,8 @@ const setWindow = (sISO, doRender = true) => {
   const LS_KEYS = ['rateplans.ids','rateplan.ids','rateplans.lastIds','rateplan.lastIds'];
 
   async function fetchPlans(roomId){
-    const url = `/extranet/property/rateplans?roomTypeId=${roomId}`;
+    const pid = Number((window.state && (window.state.partnerId || window.state.propertyId)) || 2);
+    const url = `/extranet/property/rateplans?propertyId=${encodeURIComponent(String(pid))}&roomTypeId=${encodeURIComponent(String(roomId))}`;
     const r = (typeof window.authFetch === 'function') ? await window.authFetch(url) : await fetch(url);
     const j = await r.json();
     const raw = Array.isArray(j) ? j : (j.rows || j.plans || []);
@@ -7349,7 +7352,8 @@ const setWindow = (sISO, doRender = true) => {
           return Promise.resolve(cached);
         }
 
-        var url     = '/extranet/property/rateplans?roomTypeId=' + roomId;
+        var pid = Number((window.state && (window.state.partnerId || window.state.propertyId)) || 2);
+        var url = '/extranet/property/rateplans?propertyId=' + encodeURIComponent(String(pid)) + '&roomTypeId=' + encodeURIComponent(String(roomId));
         var fetcher = (typeof window.authFetch === 'function') ? window.authFetch : fetch;
 
         return fetcher(url, { method: 'GET' })
