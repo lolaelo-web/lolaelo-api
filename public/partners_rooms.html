@@ -1145,9 +1145,9 @@
     roomPhotosList.innerHTML = `<span class="note">Loading photos…</span>`;
 
     try {
-      // Backend: /extranet/property/rooms/:roomId/photos should return
-      //   { photos:[{id, url|thumbnailUrl, label?}, ...] }  OR a bare array.
-      const res = await authFetch(`/extranet/property/rooms/${rid}/photos`, { method:"GET" });
+      // Backend: use /extranet/property/photos (exists) and filter by roomTypeId.
+      // Response shape: { value:[...], Count } (or sometimes bare array).
+      const res = await authFetch(`/extranet/property/photos`, { method:"GET" });
 
       if (!res.ok){
         roomPhotosCache.set(rid, []);
@@ -1156,9 +1156,15 @@
       }
 
       const j = await res.json().catch(() => ({}));
-      const arr = Array.isArray(j)
-        ? j
-        : (Array.isArray(j.photos) ? j.photos : []);
+
+      // normalize list
+      let all = [];
+      if (Array.isArray(j)) all = j;
+      else if (Array.isArray(j.value)) all = j.value;
+      else if (Array.isArray(j.photos)) all = j.photos;
+
+      // keep only this room’s photos
+      const arr = all.filter(p => Number(p?.roomTypeId) === rid);
 
       const normalized = arr
         .filter(p => p && (p.thumbnailUrl || p.url || p.src))
