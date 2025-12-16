@@ -4236,6 +4236,40 @@
           label.classList.toggle('active', !!box.checked);
 
           const id = Number(box.getAttribute('data-plan-id'));
+          // --- Selection update (keeps integrity checker happy) ---
+          // Ensure STD is always included
+          const list = Array.isArray(window.__selectedPlanIds) ? window.__selectedPlanIds.slice() : [];
+          let next = list.filter(Number.isFinite);
+
+          // normalize legacy: ensure current STD id is included
+          const stdChip = document.querySelector('#rateplan-checks .chip[data-plan-code="STD"]');
+          const stdId = Number(stdChip && stdChip.getAttribute('data-plan-id'));
+          if (Number.isFinite(stdId) && !next.includes(stdId)) next.unshift(stdId);
+
+          // Apply this toggle to selection
+          if (box.checked) {
+            if (!next.includes(id)) next.push(id);
+          } else {
+            // allow disabling BRKF/NRF selection, but never remove STD
+            next = next.filter(x => x !== id);
+            if (Number.isFinite(stdId)) next = next.filter(x => x !== 1).map(x => (x === 1 ? stdId : x));
+            if (Number.isFinite(stdId) && !next.includes(stdId)) next.unshift(stdId);
+          }
+
+          next = Array.from(new Set(next));
+
+          // Update runtime + storage
+          window.__selectedPlanIds = next.slice();
+          window.currentRatePlanId = next[0] || stdId || id;
+
+          try {
+            localStorage.setItem('rateplan.selectedIds', JSON.stringify(window.__selectedPlanIds));
+            localStorage.setItem('rateplan.lastPlanId', String(window.currentRatePlanId));
+          } catch(_){}
+
+          // Update URL (plans=... & plan=...)
+          try { if (typeof updateURLFromState === 'function') updateURLFromState(); } catch(_){}
+
           const code = String(p.code || '').toUpperCase();
 
           // STD is always on
