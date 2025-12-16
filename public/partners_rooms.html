@@ -2627,71 +2627,6 @@
     }, true); // capture
   })();
 
-  /* ANCHOR: PLAN_GLOBALS_SYNC */
-  (function installPlanGlobalsSync(){
-    const EVT = 'rateplans:changed';
-
-    document.addEventListener(EVT, (e) => {
-      try {
-        const ids = Array.isArray(e?.detail?.ids) ? e.detail.ids.map(Number).filter(Number.isFinite) : [];
-        const primary = Number.isFinite(Number(e?.detail?.primary)) ? Number(e.detail.primary) : (ids[0] ?? null);
-
-        // No-ops if unchanged
-        const prevIds = Array.isArray(window.currentRatePlanIds) ? window.currentRatePlanIds.map(Number).filter(Number.isFinite) : [];
-        const sameIds = ids.length === prevIds.length && ids.every((v,i)=>v===prevIds[i]);
-        const samePrimary = Number(window.currentRatePlanId) === primary;
-        if (sameIds && samePrimary) return;
-
-        // Update globals
-        window.currentRatePlanIds = ids.slice();
-        if (primary != null) window.currentRatePlanId = primary; else delete window.currentRatePlanId;
-      } catch(_){}
-    }, false);
-  })();
-
-  /* ANCHOR: PLAN_INTEGRITY_CHECK */
-  (function installPlanIntegrityCheck(){
-    const EVT = 'rateplans:changed';
-    const DEV = !/^(prod|production)$/i.test(String(window.__env||'')) && location.hostname !== 'lolaelo.com';
-
-    function domIds(){
-      const nodes = document.querySelectorAll('[data-plan-id].selected, input[name="rateplan"]:checked, input[data-plan-id]:checked');
-      return Array.from(nodes)
-        .map(n => Number(n.getAttribute('data-plan-id') || n.value))
-        .filter(Number.isFinite)
-        .sort((a,b)=>a-b);
-    }
-
-    function sig(arr){ return (Array.isArray(arr) ? arr.slice().sort((a,b)=>a-b) : []).join(','); }
-
-    // After every normalized change, verify DOM reflects it within a frame
-    document.addEventListener(EVT, (e) => {
-      if (!DEV) return; // diagnostics only in dev
-      try {
-        const ids = Array.isArray(e?.detail?.ids) ? e.detail.ids : [];
-        const expected = sig(ids);
-        const isActiveToggle = (e?.detail?.source === 'active-toggle');
-
-        // Derive the real STD id from the DOM (DB ids are not always 1)
-        const stdChip = document.querySelector('#rateplan-checks .chip[data-plan-code="STD"]');
-        const stdId = Number(stdChip && stdChip.getAttribute('data-plan-id'));
-        if (!Number.isFinite(stdId) || stdId <= 0) return; // not ready yet (chips not rendered)
-        const STD_FALLBACK = String(stdId);
-
-        // Check soon after handlers run, giving UI a frame to apply
-        requestAnimationFrame(() => {
-          const actual = sig(domIds());
-          if (!actual) return;
-          const exp = expected || STD_FALLBACK;
-          if (!isActiveToggle && actual !== exp) {
-            console.warn('[PLAN_INTEGRITY_CHECK] DOM mismatch after rateplans:changed',
-              { expectedIds: exp, actualIds: actual, source: e?.detail?.source || '' });
-          }
-        });
-      } catch(_){}
-    }, false);
-  })();
-
   /* ANCHOR: EMIT_RATEPLANS_CHANGED_HELPER */
   (function installEmitHelper(){
     function emitRateplansChanged(ids, primary=null, source=''){
@@ -4306,12 +4241,16 @@
       if (!same){
         // Still keep selection stored (for calendar pricing plan), but do NOT touch chip checkboxes here.
         window.saveRoomPlanSelection(rid, want);
-        try { document.dispatchEvent(new CustomEvent('rateplans:changed', { detail:{ ids: want.slice(), roomId: rid } })); } catch(_){}
+        try { document.dispatchEvent(new CustomEvent('rateplans:changed', { detail:{ ids: want.slice(), roomId: rid, source:'selection-sync' } })); } catch(_){}
       }
     };
 
     // Persist per-room whenever the chips selection changes
     document.addEventListener('rateplans:changed', (e)=>{
+      const src = e?.detail?.source || '';
+      // Ignore events that are not explicit user selection changes.
+      if (src === 'active-toggle' || src === 'selection-sync') return;
+
       const ids = Array.isArray(e.detail?.ids) ? e.detail.ids.map(Number).filter(Number.isFinite) : [];
       const rid = Number(window.currentRoomTypeId);
       if (Number.isFinite(rid) && ids.length){ window.saveRoomPlanSelection(rid, ids); }
