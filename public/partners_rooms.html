@@ -4157,7 +4157,7 @@
       box.type = 'checkbox';
       box.setAttribute('data-plan-id', String(p.id));
       box.disabled = !numericId;
-      box.checked = numericId && (p.code === 'STD' ? true : (p.active !== false));
+      box.checked = (String(p.code || '').toUpperCase() === 'STD') ? true : (p.active === true);
 
       // Keep chip "active" class aligned with checkbox (your other logic uses .active)
       label.classList.toggle('active', !!box.checked);
