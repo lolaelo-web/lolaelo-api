@@ -4241,15 +4241,10 @@
 
           // Persist to backend (DB source of truth)
           try {
-            const rid = Number(window.currentRoomTypeId || 0);
-            const fetcher = (typeof window.authFetch === 'function') ? window.authFetch : fetch;
+          const rid = Number(window.currentRoomTypeId || 0);
+          const fetcher = (typeof window.authFetch === 'function') ? window.authFetch : fetch;
 
-          const pid = Number(
-            state?.partnerId ||
-            state?.propertyId ||
-            window.partnerId ||
-            2   // TEMP fallback for validation only
-          );
+          const pid = getRatePlanPropertyId();
 
           const url =
             `/extranet/property/rateplans?propertyId=${encodeURIComponent(String(pid))}` +
