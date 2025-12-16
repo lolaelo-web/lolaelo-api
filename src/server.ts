@@ -82,8 +82,8 @@ app.get("/extranet/property/rateplans", async (req: Request, res: Response) => {
 // body: { propertyId: 2, roomTypeId: 32, plans: [{ code:"NRF", active:true, kind:"PERCENT", value:-10, isDefault:false }, ...] }
 app.post("/extranet/property/rateplans", express.json(), async (req: Request, res: Response) => {
   const body = req.body ?? {};
-  const partnerId = num(body.propertyId);
-  const roomTypeId = num(body.roomTypeId);
+  const partnerId = num(body.propertyId ?? (req.query as any)?.propertyId);
+  const roomTypeId = num(body.roomTypeId ?? (req.query as any)?.roomTypeId);
   const items = Array.isArray(body.plans) ? body.plans : [];
 
   if (!partnerId || !roomTypeId) {
