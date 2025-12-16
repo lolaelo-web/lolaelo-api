@@ -2675,11 +2675,13 @@
         // Derive the real STD id from the DOM (DB ids are not always 1)
         const stdChip = document.querySelector('#rateplan-checks .chip[data-plan-code="STD"]');
         const stdId = Number(stdChip && stdChip.getAttribute('data-plan-id'));
-        const STD_FALLBACK = (Number.isFinite(stdId) && stdId > 0) ? String(stdId) : '1';
+        if (!Number.isFinite(stdId) || stdId <= 0) return; // not ready yet (chips not rendered)
+        const STD_FALLBACK = String(stdId);
 
         // Check soon after handlers run, giving UI a frame to apply
         requestAnimationFrame(() => {
           const actual = sig(domIds());
+          if (!actual) return;
           const exp = expected || STD_FALLBACK;
           if (!isActiveToggle && actual !== exp) {
             console.warn('[PLAN_INTEGRITY_CHECK] DOM mismatch after rateplans:changed',
