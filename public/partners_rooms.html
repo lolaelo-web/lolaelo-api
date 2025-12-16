@@ -6633,18 +6633,16 @@
     (function sanitizePrimaryAgainstPlans(){
       try{
         const list = (Array.isArray(plans) ? plans : []);
-        const validIds = new Set(
-          list.map(p => Number(p.id)).filter(Number.isFinite)
-        );
+        const validIds = new Set(list.map(p => Number(p.id)).filter(Number.isFinite));
 
-        // Find the REAL Standard id from DB (code=STD). Fallback to 1 if missing.
+        // Resolve the real STD id from DB
         const stdId = (() => {
           const hit = list.find(p => String(p.code || '').toUpperCase() === 'STD');
           const n = Number(hit && hit.id);
           return Number.isFinite(n) ? n : 1;
         })();
 
-        // Collect current ids from globals or storage
+        // Collect ids from runtime or storage
         let ids = Array.isArray(window.__selectedPlanIds) ? window.__selectedPlanIds.slice() : [];
         if (!ids.length) {
           try { ids = JSON.parse(localStorage.getItem('rateplan.selectedIds') || '[]'); } catch(_) {}
@@ -6652,32 +6650,29 @@
           ids = ids.map(Number).filter(Number.isFinite);
         }
 
-        // Legacy fix: if UI/storage/url used "1" for Standard but DB uses (e.g.) 12, translate it
-        if (stdId !== 1) {
-          ids = ids.map(x => (x === 1 ? stdId : x));
-        }
+        // Translate legacy 1 -> stdId
+        if (stdId !== 1) ids = ids.map(x => (x === 1 ? stdId : x));
 
-        // Ensure at least Standard exists
+        // Must always include STD
         if (!ids.length) ids = [stdId];
 
-        // Primary: prefer current/global; else first of stored; else Standard
+        // Keep only ids that exist
+        ids = ids.filter(x => validIds.has(x));
+        if (!ids.length) ids = [stdId];
+
+        // Primary
         let primary = Number(window.currentRatePlanId);
         if (!Number.isFinite(primary)) primary = ids[0] || stdId;
-        if (stdId !== 1 && primary === 1) primary = stdId;
+        if (primary === 1 && stdId !== 1) primary = stdId;
 
-        // Keep only ids that exist in the returned plan list (prevents “phantom” selections)
-        const cleaned = ids.filter(x => validIds.has(x));
-        if (!cleaned.length) cleaned.push(stdId);
-
-        window.__selectedPlanIds = cleaned.slice();
-        window.currentRatePlanId = cleaned[0] || stdId;
+        window.__selectedPlanIds = ids.slice();
+        window.currentRatePlanId = primary;
 
         try {
-          localStorage.setItem('rateplan.selectedIds', JSON.stringify(window.__selectedPlanIds));
-          localStorage.setItem('rateplan.lastPlanId', String(window.currentRatePlanId));
+          localStorage.setItem('rateplan.selectedIds', JSON.stringify(ids));
+          localStorage.setItem('rateplan.lastPlanId', String(primary));
         } catch(_){}
 
-        // Sync URL now (this will rewrite plans=1 into plans=12, etc.)
         try { updateURLFromState?.(); } catch(_){}
       } catch(e){
         console.warn('sanitizePrimaryAgainstPlans failed', e);
