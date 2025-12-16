@@ -4222,11 +4222,6 @@
       // Ensure row is visible
       hostRow.style.display = 'flex';
 
-      // Initial event so calendar fetch uses same id(s)
-      document.dispatchEvent(new CustomEvent('rateplans:changed', {
-        detail:{ ids: window.__selectedPlanIds.slice() }
-      }));
-
       // Persist primary on first paint so refresh keeps the same plan
       try {
         const first = Array.isArray(selected) ? selected[0] : (window.getSelectedRatePlanIds?.()[0]);
@@ -4311,8 +4306,10 @@
       const have = boxes.filter(b => b.checked).map(b => Number(b.dataset.planId));
 
       const same = want.length === have.length && want.every(id => have.includes(id));
+      // Option A: DB enablement owns chip checked states.
+      // Do not overwrite chip checkbox states from selection.
       if (!same){
-        boxes.forEach(b => { const id = Number(b.dataset.planId); b.checked = want.includes(id); });
+        // Still keep selection stored (for calendar pricing plan), but do NOT touch chip checkboxes here.
         window.saveRoomPlanSelection(rid, want);
         try { document.dispatchEvent(new CustomEvent('rateplans:changed', { detail:{ ids: want.slice(), roomId: rid } })); } catch(_){}
       }
