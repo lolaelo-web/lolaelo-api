@@ -109,13 +109,23 @@ app.post("/extranet/property/rateplans", express.json(), async (req: Request, re
       const code = String(p.code || "").toUpperCase().slice(0, 10);
       if (!code) continue;
 
-      // Standard should stay stable; we can allow active toggle, but never allow changing the math away from NONE/0 unless you explicitly want that later.
-      const kind = String(p.kind || "").toUpperCase();
-      const safeKind: RPKind =
-        kind === "PERCENT" || kind === "ABSOLUTE" ? (kind as RPKind) : "NONE";
+      // If caller didn't send kind/value (active toggle), do NOT touch kind/value in DB.
+      let safeKind: RPKind | null = null;
+      let safeVal: number | null = null;
 
-      const rawVal = Number(p.value);
-      const safeVal = Number.isFinite(rawVal) ? rawVal : 0;
+      const kindWasSent = Object.prototype.hasOwnProperty.call(p, "kind");
+      const valueWasSent = Object.prototype.hasOwnProperty.call(p, "value");
+
+      if (kindWasSent || valueWasSent) {
+        const kind = String(p.kind || "").toUpperCase();
+        const k: RPKind = (kind === "PERCENT" || kind === "ABSOLUTE") ? (kind as RPKind) : "NONE";
+
+        const rawVal = Number(p.value);
+        const v = Number.isFinite(rawVal) ? rawVal : 0;
+
+        safeKind = k;
+        safeVal = v;
+      }
 
       const active = p.active === undefined ? null : Boolean(p.active);
       const isDefault = p.isDefault === undefined ? null : Boolean(p.isDefault);
