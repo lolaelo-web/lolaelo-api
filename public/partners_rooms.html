@@ -2670,6 +2670,7 @@
       try {
         const ids = Array.isArray(e?.detail?.ids) ? e.detail.ids : [];
         const expected = sig(ids);
+        const isActiveToggle = (e?.detail?.source === 'active-toggle');
 
         // Derive the real STD id from the DOM (DB ids are not always 1)
         const stdChip = document.querySelector('#rateplan-checks .chip[data-plan-code="STD"]');
@@ -2680,7 +2681,7 @@
         requestAnimationFrame(() => {
           const actual = sig(domIds());
           const exp = expected || STD_FALLBACK;
-          if (actual !== exp) {
+          if (!isActiveToggle && actual !== exp) {
             console.warn('[PLAN_INTEGRITY_CHECK] DOM mismatch after rateplans:changed',
               { expectedIds: exp, actualIds: actual, source: e?.detail?.source || '' });
           }
@@ -3938,7 +3939,9 @@
         }
       }catch(_){}
       const cur = Number(window.currentRatePlanId);
-      return Number.isFinite(cur) ? [cur] : [1];
+      const stdChip = document.querySelector('#rateplan-checks .chip[data-plan-code="STD"]');
+      const stdId = Number(stdChip && stdChip.getAttribute('data-plan-id'));
+      return Number.isFinite(cur) ? [cur] : [Number.isFinite(stdId) ? stdId : 1];
     }
     function saveSelectedIds(ids){
       try{ localStorage.setItem(LS_KEY_IDS, JSON.stringify(ids)); }catch(_){}
@@ -3954,7 +3957,9 @@
         }
       }catch(_){}
       const cur = Number(window.currentRatePlanId);
-      return Number.isFinite(cur) ? [cur] : [1];
+      const stdChip = document.querySelector('#rateplan-checks .chip[data-plan-code="STD"]');
+      const stdId = Number(stdChip && stdChip.getAttribute('data-plan-id'));
+      return Number.isFinite(cur) ? [cur] : [Number.isFinite(stdId) ? stdId : 1];
     };
 
     // ----- build list: API plans + always show Custom 1/2
@@ -4245,31 +4250,21 @@
 
             // notify rest of page (calendar refresh etc)
 
-            // Recompute enabled plan ids from latest server truth (STD always enabled)
-            let enabledIds = [];
-            try {
-              const src = (Array.isArray(latest) && latest.length) ? latest : (Array.isArray(plans) ? plans : []);
-              enabledIds = src
-                .filter(p => {
-                  const c = String(p?.code || '').toUpperCase();
-                  return (c === 'STD') || (p?.active !== false);
-                })
-                .map(p => Number(p.id))
-                .filter(Number.isFinite);
-            } catch (_) {}
-
-            if (!enabledIds.length) enabledIds = [1];
-
-            // Update runtime truth + persist per-room selection so syncChipsToCurrentRoom won't undo the UI
-            window.__selectedPlanIds = enabledIds.slice();
+            // Active toggles should NOT rewrite selection. Just refresh chips from server truth.
             try {
               const rid2 = Number(window.currentRoomTypeId || 0);
-              if (typeof window.saveRoomPlanSelection === 'function' && Number.isFinite(rid2) && rid2 > 0) {
-                window.saveRoomPlanSelection(rid2, enabledIds.slice());
+              if (typeof window.loadRatePlansForRoom === 'function' && Number.isFinite(rid2) && rid2 > 0) {
+                const latest = await window.loadRatePlansForRoom(rid2);
+                try { window.populateRatePlanChecks(latest); } catch(_) {}
               }
-            } catch (_) {}
+            } catch(_) {}
 
-            document.dispatchEvent(new CustomEvent('rateplans:changed', { detail: { ids: enabledIds.slice() } }));
+            // Optional: emit a tagged event so diagnostics can ignore it
+            try {
+              document.dispatchEvent(new CustomEvent('rateplans:changed', {
+                detail: { ids: (Array.isArray(window.__selectedPlanIds) ? window.__selectedPlanIds.slice() : []), source: 'active-toggle' }
+              }));
+            } catch(_){}
           } catch (e) {
             console.warn('[rateplans] persist active failed, reverting', e);
             // revert checkbox
@@ -6570,11 +6565,16 @@
 
         // Primary: URL ?plan wins, else first selected, else last, else 1
         let primary = (Number.isFinite(planFromUrl) ? planFromUrl : (selected[0] ?? last));
-        if (!Number.isFinite(primary)) primary = 1;
+        if (!Number.isFinite(primary)) {
+          // Prefer STD from URL plans if present, otherwise leave to sanitize against DB
+          primary = (plansFromUrl.length ? plansFromUrl[0] : NaN);
+        }
 
         // Ensure primary is included in selected
         if (!selected.includes(primary)) selected = [primary, ...selected];
         selected = Array.from(new Set(selected));
+
+        if (!Number.isFinite(primary)) primary = 1;
 
     // Expose for renderers and downstream listeners
     window.__selectedPlanIds = (selected.length ? selected : [primary]).filter(Number.isFinite);
@@ -7262,7 +7262,7 @@ const setWindow = (sISO, doRender = true) => {
 
     // Broadcast fresh IDs so integrity checks realign
     const ids = plans.map(p => p.id).sort((a,b)=>a-b);
-    document.dispatchEvent(new CustomEvent('rateplans:changed', { detail:{ ids: ids.join(','), source: `heal:${sourceLabel||''}`}}));
+    document.dispatchEvent(new CustomEvent('rateplans:changed', { detail:{ ids: ids.slice(), source: `heal:${sourceLabel||''}`}}));
 
     // Log for debug
     const domIds = Array.from(panel.querySelectorAll('.plan-row[data-plan-id]'))
@@ -7714,35 +7714,6 @@ const setWindow = (sISO, doRender = true) => {
 (() => {
   const LEGACY = ['rateplans.ids','rateplan.ids','rateplans.lastIds','rateplan.lastIds'];
   try { LEGACY.forEach(k => localStorage.removeItem(k)); } catch(_){}
-})();
-</script>
-<script>
-(() => {
-  const HOST_CHIPS = '#rateplan-checks';
-  function resyncFromLS(){
-    try{
-      const ids = JSON.parse(localStorage.getItem('rateplan.selectedIds') || '[]') || [];
-      const set = new Set((ids||[]).map(Number).filter(Number.isFinite));
-      // chips
-      document.querySelectorAll(`${HOST_CHIPS} .chip[data-plan-id]`).forEach(ch => {
-        const pid = Number(ch.getAttribute('data-plan-id'));
-        ch.classList.toggle('active', set.has(pid));
-        const cb = ch.querySelector('input[type="checkbox"][data-plan-id]');
-        if (cb) cb.checked = set.has(pid);
-      });
-      // panel checkboxes mirror
-      document.querySelectorAll('#plans-panel .plan-row[data-plan-id] input.plan-check[data-plan-id]').forEach(cb => {
-        const pid = Number(cb.getAttribute('data-plan-id'));
-        cb.checked = set.has(pid);
-        cb.disabled = false; cb.dataset.delegatesChip = '1';
-      });
-      // broadcast canonical list
-      document.dispatchEvent(new CustomEvent('rateplans:changed', { detail:{ ids: ids.join(','), source:'visibility-resync' } }));
-    } catch(_) {}
-  }
-  document.addEventListener('visibilitychange', () => {
-    if (document.visibilityState === 'visible') resyncFromLS();
-  });
 })();
 </script>
 
