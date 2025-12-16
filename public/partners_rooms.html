@@ -4115,10 +4115,6 @@
         return String(a.code).localeCompare(String(b.code));
       });
 
-      // Visible selection (all “active” are visible by definition)
-      const validIds = new Set(list.map(p => Number(p.id)).filter(Number.isFinite));
-      const visibleSelected = finalSelected.filter(n => validIds.has(n));
-
       // Render chips
       host.innerHTML = '';
       list.forEach(p => {
@@ -4140,7 +4136,6 @@
       const box = document.createElement('input');
       box.type = 'checkbox';
       box.setAttribute('data-plan-id', String(p.id));
-      box.disabled = !numericId;
       box.checked = (String(p.code || '').toUpperCase() === 'STD') ? true : (p.active === true);
 
       // Keep chip "active" class aligned with checkbox (your other logic uses .active)
