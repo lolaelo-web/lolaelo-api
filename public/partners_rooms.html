@@ -4202,29 +4202,39 @@
       list.forEach(p => {
         const numericId = Number.isFinite(Number(p.id)) && !p.placeholder;
 
-        const label = document.createElement('label');
-        label.className = 'chip';
-        label.style.marginRight = '4px';
-        if (!numericId){
-          label.style.opacity = '0.65';
-          label.title = 'Save plan rules to activate this plan';
-        }
+      const label = document.createElement('label');
+      label.className = 'chip';
+      label.style.marginRight = '4px';
 
-        const box = document.createElement('input');
-        box.type = 'checkbox';
-        box.setAttribute('data-plan-id', String(p.id));
-        box.disabled = !numericId;
-        box.checked = numericId && (p.code === 'STD' ? true : (p.active !== false));
+      // IMPORTANT: many downstream helpers rely on chip[data-plan-id]
+      label.setAttribute('data-plan-id', String(p.id));
+      label.setAttribute('data-plan-code', String(p.code || '').toUpperCase());
 
-        const txt = document.createElement('span');
-        txt.textContent = p.name;
+      if (!numericId){
+        label.style.opacity = '0.65';
+        label.title = 'Save plan rules to activate this plan';
+      }
 
-        label.appendChild(box);
-        label.appendChild(txt);
-        host.appendChild(label);
+      const box = document.createElement('input');
+      box.type = 'checkbox';
+      box.setAttribute('data-plan-id', String(p.id));
+      box.disabled = !numericId;
+      box.checked = numericId && (p.code === 'STD' ? true : (p.active !== false));
 
-        if (numericId){
-          box.addEventListener('change', async () => {
+      // Keep chip "active" class aligned with checkbox (your other logic uses .active)
+      label.classList.toggle('active', !!box.checked);
+
+      const txt = document.createElement('span');
+      txt.textContent = p.name;
+
+      label.appendChild(box);
+      label.appendChild(txt);
+      host.appendChild(label);
+
+      if (numericId){
+        box.addEventListener('change', async () => {
+          label.classList.toggle('active', !!box.checked);
+
           const id = Number(box.getAttribute('data-plan-id'));
           const code = String(p.code || '').toUpperCase();
 
