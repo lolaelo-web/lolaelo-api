@@ -6563,22 +6563,35 @@
     if (ctx.roomId) currentRoomTypeId = ctx.roomId;
     setRightActive(!!currentRoomTypeId);
 
-   // ANCHOR: RATE_PLAN_INIT
-  {
-    // Prefer URL ?plan, then stored selected[0], then lastPlanId, else 1 (STD)
-    const url = new URL(location.href);
-    const planFromUrl = Number(url.searchParams.get('plan') || '');
-    let selected = [];
-    try { selected = JSON.parse(localStorage.getItem('rateplan.selectedIds') || '[]'); } catch(_){}
-    selected = Array.isArray(selected) ? selected.map(n => Number(n)).filter(Number.isFinite) : [];
+    // ANCHOR: RATE_PLAN_INIT
+      {
+        // Prefer URL ?plans/?plan first (deep links), then stored selection, then lastPlanId, else 1 (STD)
+        const url = new URL(location.href);
 
-    let last = Number(localStorage.getItem('rateplan.lastPlanId') || '');
-    if (!Number.isFinite(last)) last = undefined;
+        const plansRaw = String(url.searchParams.get('plans') || '').trim();
+        const plansFromUrl = plansRaw
+          ? plansRaw.split(',').map(s => Number(String(s).trim())).filter(Number.isFinite)
+          : [];
 
-    // Prefer stored selection first, then last, then URL (no more plan=6 bounce)
-    let primary = (selected[0] ?? last);
-    if (!Number.isFinite(primary) && Number.isFinite(planFromUrl)) primary = planFromUrl;
-    if (!Number.isFinite(primary)) primary = 1;
+        const planFromUrl = Number(url.searchParams.get('plan') || '');
+
+        let selected = [];
+        try { selected = JSON.parse(localStorage.getItem('rateplan.selectedIds') || '[]'); } catch(_){}
+        selected = Array.isArray(selected) ? selected.map(n => Number(n)).filter(Number.isFinite) : [];
+
+        // URL wins when present
+        if (plansFromUrl.length) selected = plansFromUrl;
+
+        let last = Number(localStorage.getItem('rateplan.lastPlanId') || '');
+        if (!Number.isFinite(last)) last = undefined;
+
+        // Primary: URL ?plan wins, else first selected, else last, else 1
+        let primary = (Number.isFinite(planFromUrl) ? planFromUrl : (selected[0] ?? last));
+        if (!Number.isFinite(primary)) primary = 1;
+
+        // Ensure primary is included in selected
+        if (!selected.includes(primary)) selected = [primary, ...selected];
+        selected = Array.from(new Set(selected));
 
     // Expose for renderers and downstream listeners
     window.__selectedPlanIds = (selected.length ? selected : [primary]).filter(Number.isFinite);
