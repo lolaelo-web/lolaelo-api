@@ -4269,7 +4269,32 @@
             }
 
             // notify rest of page (calendar refresh etc)
-            document.dispatchEvent(new CustomEvent('rateplans:changed', { detail: { ids: window.__selectedPlanIds || [] } }));
+
+            // Recompute enabled plan ids from latest server truth (STD always enabled)
+            let enabledIds = [];
+            try {
+              const src = (Array.isArray(latest) && latest.length) ? latest : (Array.isArray(plans) ? plans : []);
+              enabledIds = src
+                .filter(p => {
+                  const c = String(p?.code || '').toUpperCase();
+                  return (c === 'STD') || (p?.active !== false);
+                })
+                .map(p => Number(p.id))
+                .filter(Number.isFinite);
+            } catch (_) {}
+
+            if (!enabledIds.length) enabledIds = [1];
+
+            // Update runtime truth + persist per-room selection so syncChipsToCurrentRoom won't undo the UI
+            window.__selectedPlanIds = enabledIds.slice();
+            try {
+              const rid2 = Number(window.currentRoomTypeId || 0);
+              if (typeof window.saveRoomPlanSelection === 'function' && Number.isFinite(rid2) && rid2 > 0) {
+                window.saveRoomPlanSelection(rid2, enabledIds.slice());
+              }
+            } catch (_) {}
+
+            document.dispatchEvent(new CustomEvent('rateplans:changed', { detail: { ids: enabledIds.slice() } }));
           } catch (e) {
             console.warn('[rateplans] persist active failed, reverting', e);
             // revert checkbox
