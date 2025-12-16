@@ -6582,8 +6582,10 @@
       history.replaceState({}, '', url.toString());
     } catch(_){}
 
-    // Continue existing flow
-    const plans = await fetchRatePlansSafe();
+    const roomFromUrl = new URLSearchParams(location.search).get('room');
+    const rid = Number(window.currentRoomTypeId || roomFromUrl || 0);
+    const plans = await fetchRatePlansSafe(rid);
+
     // Sanitize selected/primary against the actually available plans
     (function sanitizePrimaryAgainstPlans(){
       try{
@@ -6694,7 +6696,10 @@
   (function ensurePlansPanel(){
     try{
       if (typeof fetchRatePlansSafe === 'function'){
-        fetchRatePlansSafe()
+        const roomFromUrl = new URLSearchParams(location.search).get('room');
+        const rid = Number(window.currentRoomTypeId || roomFromUrl || 0);
+
+        fetchRatePlansSafe(rid)
           .then(plans => { renderPlansPanel(plans); })
           .catch(() => { renderPlansPanel([{ id:1, name:'Standard', isDefault:true, kind:'NONE' }]); });
       } else {
@@ -6961,7 +6966,10 @@
       const code = row?.getAttribute('data-plan-code');
       if (!code) return;
       try{
-        const plans = await fetchRatePlansSafe();
+        const roomFromUrl = new URLSearchParams(location.search).get('room');
+        const rid = Number(window.currentRoomTypeId || roomFromUrl || 0);
+        const plans = await fetchRatePlansSafe(rid);
+
         const p = (plans || []).find(x => String(x.code || '').toUpperCase() === String(code).toUpperCase());
         if (p) applyServerRuleToRow(row, p);
       }catch(_){}
@@ -7181,16 +7189,15 @@ const setWindow = (sISO, doRender = true) => {
   const LS_KEYS = ['rateplans.ids','rateplan.ids','rateplans.lastIds','rateplan.lastIds'];
 
   async function fetchPlans(roomId){
-    const pid = Number((typeof getRatePlanPropertyId === 'function' ? getRatePlanPropertyId() : 2));
-    const url = `/extranet/property/rateplans?propertyId=${encodeURIComponent(String(pid))}&roomTypeId=${encodeURIComponent(String(roomId))}`;
-    const r = (typeof window.authFetch === 'function') ? await window.authFetch(url) : await fetch(url);
-    const j = await r.json();
-    const raw = Array.isArray(j) ? j : (j.rows || j.plans || []);
-    return raw.map(p => ({
-      id: Number(p.id || p.ratePlanId),
-      code: String(p.code||'').toUpperCase(),
-      name: p.name || p.code || `Plan ${p.id||p.ratePlanId}`
-    })).filter(p => Number.isFinite(p.id));
+    const rid = Number(roomId);
+    const list = await fetchRatePlansSafe(rid);
+    return (Array.isArray(list) ? list : [])
+      .map(p => ({
+        id: Number(p.id),
+        code: String(p.code || '').toUpperCase(),
+        name: String(p.name || p.code || `Plan ${p.id}`)
+      }))
+      .filter(p => Number.isFinite(p.id));
   }
 
   async function ensurePlansRendered(sourceLabel){
