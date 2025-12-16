@@ -3728,28 +3728,51 @@
   const RATEPLANS_FETCH_ENABLED = true;   // backend live
   async function fetchRatePlansSafe(){
     lastRatePlanLoadNote = '';
-    // Hard short-circuit: avoid any network call (prevents 404 log noise)
+
+    // Hard short-circuit
     if (!RATEPLANS_FETCH_ENABLED){
       lastRatePlanLoadNote = 'Rate plans endpoint disabled — using Standard.';
-      return [{ id: 1, name: 'Standard' }];
+      return [{ id: 1, name: 'Standard', code: 'STD', isDefault: true }];
     }
 
     try{
-      const pid = Number((window.state && (window.state.partnerId || window.state.propertyId)) || 2);
-      const rid = Number(window.currentRoomTypeId || 0);
-      const r = await authFetch(`/extranet/property/rateplans?propertyId=${encodeURIComponent(String(pid))}&roomTypeId=${encodeURIComponent(String(rid))}`);
+      // roomTypeId: current room first, else URL ?room=
+      const roomFromUrl = new URLSearchParams(location.search).get('room');
+      const rid = Number(window.currentRoomTypeId || roomFromUrl || 0);
+
+      // propertyId: URL ?propertyId= first, else state, else fallback 2
+      const qs = new URLSearchParams(location.search);
+      const propFromUrl = qs.get('propertyId');
+      const pid = Number(
+        propFromUrl ||
+        (window.state && (window.state.partnerId || window.state.propertyId)) ||
+        2
+      );
+
+      if (!Number.isFinite(pid) || pid <= 0 || !Number.isFinite(rid) || rid <= 0){
+        lastRatePlanLoadNote = `Missing ids (propertyId=${pid}, roomTypeId=${rid}) — using Standard.`;
+        return [{ id: 1, name: 'Standard', code: 'STD', isDefault: true }];
+      }
+
+      const url =
+        `/extranet/property/rateplans?propertyId=${encodeURIComponent(String(pid))}` +
+        `&roomTypeId=${encodeURIComponent(String(rid))}`;
+
+      const r = await authFetch(url);
+
       if (!r) {
         lastRatePlanLoadNote = 'Network error loading rate plans — using Standard.';
-        return [{ id: 1, name: 'Standard' }];
+        return [{ id: 1, name: 'Standard', code: 'STD', isDefault: true }];
       }
       if (r.status === 401 || r.status === 403){
         lastRatePlanLoadNote = 'Auth error loading rate plans — please sign in. Using Standard.';
-        return [{ id: 1, name: 'Standard' }];
+        return [{ id: 1, name: 'Standard', code: 'STD', isDefault: true }];
       }
       if (!r.ok){
         lastRatePlanLoadNote = `Server error ${r.status} loading rate plans — using Standard.`;
-        return [{ id: 1, name: 'Standard' }];
+        return [{ id: 1, name: 'Standard', code: 'STD', isDefault: true }];
       }
+
       const arr = await r.json();
       if (Array.isArray(arr) && arr.length){
         return arr
@@ -3758,17 +3781,19 @@
             id: Number(p.id),
             name: String(p.name || p.code || `Plan ${p.id}`),
             code: (p.code ? String(p.code) : ''),
-            isDefault: !!p.isDefault
+            isDefault: !!p.isDefault,
+            active: (p.active == null ? true : !!p.active)
           }));
       } else {
         lastRatePlanLoadNote = 'No rate plans found — using Standard.';
-        return [{ id: 1, name: 'Standard' }];
+        return [{ id: 1, name: 'Standard', code: 'STD', isDefault: true }];
       }
     }catch(_){
       lastRatePlanLoadNote = 'Unexpected error loading rate plans — using Standard.';
-      return [{ id: 1, name: 'Standard' }];
+      return [{ id: 1, name: 'Standard', code: 'STD', isDefault: true }];
     }
   }
+
   // Canonical primary plan id for the given room (defaults to current)
   function getCanonicalPrimaryPlanId(roomId){
     const rid = Number(roomId || window.currentRoomTypeId);
