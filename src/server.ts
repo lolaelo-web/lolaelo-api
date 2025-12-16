@@ -16,224 +16,168 @@ const __dirname = path.dirname(__filename);
 const app = express();
 app.disable("x-powered-by");
 
-// ---- RatePlans (DB-backed, replaces in-memory ratePlanStore) ----
-import { Pool } from "pg";
+// === RATE PLANS (DB-backed) ===
+type RPKind = "NONE" | "PERCENT" | "ABSOLUTE";
 
-// Keep this near top-level in server.ts (same file) so it’s reused
-const _cs_rp = process.env.DATABASE_URL || "";
-const _wantsSSL_rp = /\bsslmode=require\b/i.test(_cs_rp) || /render\.com/i.test(_cs_rp);
-const ratePlanPool = new Pool({
-  connectionString: _cs_rp,
-  ssl: _wantsSSL_rp ? { rejectUnauthorized: false } : undefined,
-});
-
-function isExpiredTs(expiresAt: any): boolean {
-  if (!expiresAt) return false;
-  const t = new Date(expiresAt).getTime();
-  return Number.isNaN(t) ? false : t <= Date.now();
+function wantsSSL(cs: string): boolean {
+  return /\bsslmode=require\b/i.test(cs) || /render\.com/i.test(cs);
 }
 
-// Lightweight auth for write routes (matches your extranet session model)
-async function requirePartnerId(req: Request): Promise<number> {
-  const auth = String(req.headers["authorization"] || "");
-  const m = /^Bearer\s+(.+)$/.exec(auth);
-  let token = m ? m[1].trim() : "";
-  if (!token) token = String(req.headers["x-partner-token"] || "").trim();
-  if (!token) throw new Error("unauthorized:no_token");
-
-  const { rows } = await ratePlanPool.query(
-    `SELECT "partnerId","expiresAt","revokedAt"
-       FROM extranet."ExtranetSession"
-      WHERE "token" = $1
-      LIMIT 1`,
-    [token]
-  );
-
-  if (!rows.length) throw new Error("unauthorized:no_session");
-  const s = rows[0];
-  if (s.revokedAt) throw new Error("unauthorized:revoked");
-  if (isExpiredTs(s.expiresAt)) throw new Error("unauthorized:expired");
-
-  const pid = Number(s.partnerId);
-  if (!Number.isFinite(pid) || pid <= 0) throw new Error("unauthorized:bad_partner");
-  return pid;
+function num(v: any): number | null {
+  const n = Number(v);
+  return Number.isFinite(n) ? n : null;
 }
 
-// GET: read current plans for a room (public-friendly if propertyId/roomTypeId are provided)
+// GET /extranet/property/rateplans?propertyId=2&roomTypeId=32
 app.get("/extranet/property/rateplans", async (req: Request, res: Response) => {
   try {
     res.set("Cache-Control", "no-store");
 
-    const roomTypeId = Number((req.query as any).roomTypeId || 0);
-    const propertyId = Number((req.query as any).propertyId || 0); // in your app this is effectively partnerId
+    const partnerId = num((req.query as any)?.propertyId);
+    const roomTypeId = num((req.query as any)?.roomTypeId);
 
-    if (!Number.isFinite(roomTypeId) || roomTypeId <= 0) {
-      return res.status(400).json({ error: "roomTypeId_required" });
+    if (!partnerId || !roomTypeId) {
+      return res.status(400).json({ error: "propertyId_and_roomTypeId_required" });
     }
 
-    // NOTE: We treat propertyId as partnerId (matches how catalog_details builds the URL)
-    if (!Number.isFinite(propertyId) || propertyId <= 0) {
-      return res.status(400).json({ error: "propertyId_required" });
-    }
+    const cs = process.env.DATABASE_URL || "";
+    if (!cs) throw new Error("DATABASE_URL missing");
 
-    const { rows } = await ratePlanPool.query(
+    const client = new Client({
+      connectionString: cs,
+      ssl: wantsSSL(cs) ? { rejectUnauthorized: false } : undefined,
+    });
+
+    await client.connect();
+
+    const { rows } = await client.query(
       `
       SELECT
-        "id",
-        "name",
-        COALESCE("code", 'RP' || "id"::text) AS "code",
-        COALESCE("kind", 'NONE')            AS "kind",
-        COALESCE("value", 0)                AS "value",
-        COALESCE("active", true)            AS "active",
-        COALESCE("isDefault", false)        AS "isDefault"
+        id,
+        name,
+        code,
+        COALESCE("isDefault", FALSE) AS "isDefault",
+        COALESCE(kind, 'NONE')       AS kind,
+        COALESCE(value, 0)           AS value,
+        COALESCE(active, TRUE)       AS active
       FROM extranet."RatePlan"
       WHERE "partnerId" = $1
         AND "roomTypeId" = $2
-        AND COALESCE("active", true) = true
-      ORDER BY COALESCE("isDefault", false) DESC, "id" ASC
+      ORDER BY
+        COALESCE("isDefault", FALSE) DESC,
+        id ASC
       `,
-      [propertyId, roomTypeId]
+      [partnerId, roomTypeId]
     );
 
+    await client.end();
     return res.json(rows);
   } catch (e) {
-    console.error("[rateplans:get] db error:", e);
+    console.error("rateplans GET db error:", e);
     return res.status(500).json({ error: "rateplans_get_failed" });
   }
 });
 
-// POST: upsert rateplan rules + active/default flags (AUTH REQUIRED)
+// POST /extranet/property/rateplans
+// body: { propertyId: 2, roomTypeId: 32, plans: [{ code:"NRF", active:true, kind:"PERCENT", value:-10, isDefault:false }, ...] }
 app.post("/extranet/property/rateplans", express.json(), async (req: Request, res: Response) => {
-  const client = await ratePlanPool.connect();
+  const body = req.body ?? {};
+  const partnerId = num(body.propertyId);
+  const roomTypeId = num(body.roomTypeId);
+  const items = Array.isArray(body.plans) ? body.plans : [];
+
+  if (!partnerId || !roomTypeId) {
+    return res.status(400).json({ error: "propertyId_and_roomTypeId_required" });
+  }
+  if (!items.length) {
+    return res.status(400).json({ error: "no_plans" });
+  }
+
   try {
-    res.set("Cache-Control", "no-store");
+    const cs = process.env.DATABASE_URL || "";
+    if (!cs) throw new Error("DATABASE_URL missing");
 
-    const authedPartnerId = await requirePartnerId(req);
+    const client = new Client({
+      connectionString: cs,
+      ssl: wantsSSL(cs) ? { rejectUnauthorized: false } : undefined,
+    });
 
-    const body: any = req.body || {};
-    const roomTypeId = Number(body.roomTypeId || 0);
-    const plans = Array.isArray(body.plans) ? body.plans : [];
-
-    if (!Number.isFinite(roomTypeId) || roomTypeId <= 0) {
-      return res.status(400).json({ error: "roomTypeId_required" });
-    }
-    if (!plans.length) return res.status(400).json({ error: "no_plans" });
-
-    // Guard: room must belong to this partner
-    const own = await client.query(
-      `SELECT "id" FROM extranet."RoomType" WHERE "id"=$1 AND "partnerId"=$2 LIMIT 1`,
-      [roomTypeId, authedPartnerId]
-    );
-    if (!own.rowCount) return res.status(403).json({ error: "forbidden" });
-
+    await client.connect();
     await client.query("BEGIN");
 
-    // Normalize + upsert
-    for (const p of plans) {
-      if (!p || typeof p !== "object") continue;
+    for (const p of items) {
+      const code = String(p.code || "").toUpperCase().slice(0, 10);
+      if (!code) continue;
 
-      const id = Number(p.id || 0);
-      const name = (typeof p.name === "string" && p.name.trim()) ? p.name.trim().slice(0, 60) : null;
+      // Standard should stay stable; we can allow active toggle, but never allow changing the math away from NONE/0 unless you explicitly want that later.
+      const kind = String(p.kind || "").toUpperCase();
+      const safeKind: RPKind =
+        kind === "PERCENT" || kind === "ABSOLUTE" ? (kind as RPKind) : "NONE";
 
-      const code =
-        (typeof p.code === "string" && p.code.trim())
-          ? p.code.trim().toUpperCase().slice(0, 10)
-          : null;
+      const rawVal = Number(p.value);
+      const safeVal = Number.isFinite(rawVal) ? rawVal : 0;
 
-      const kindRaw =
-        (typeof p.kind === "string" && p.kind.trim())
-          ? p.kind.trim().toUpperCase().slice(0, 12)
-          : "NONE";
+      const active = p.active === undefined ? null : Boolean(p.active);
+      const isDefault = p.isDefault === undefined ? null : Boolean(p.isDefault);
 
-      const kind = ["NONE", "PERCENT", "ABSOLUTE"].includes(kindRaw) ? kindRaw : "NONE";
+      const name = typeof p.name === "string" && p.name.trim() ? p.name.trim().slice(0, 60) : null;
 
-      let value = Number(p.value);
-      if (!Number.isFinite(value)) value = 0;
-      if (kind === "PERCENT") value = Math.max(-100, Math.min(100, value));
-      if (kind === "ABSOLUTE") value = Math.max(-100000, Math.min(100000, value));
-      if (kind === "NONE") value = 0;
-
-      const active = (p.active === false || p.active === "false" || p.active === 0 || p.active === "0") ? false : true;
-      const isDefault = (p.isDefault === true || p.isDefault === "true" || p.isDefault === 1 || p.isDefault === "1") ? true : false;
-
-      if (id > 0) {
-        await client.query(
-          `
-          UPDATE extranet."RatePlan"
-             SET "name" = COALESCE($1, "name"),
-                 "code" = COALESCE($2, "code"),
-                 "kind" = $3,
-                 "value" = $4,
-                 "active" = $5,
-                 "isDefault" = $6,
-                 "updatedAt" = NOW()
-           WHERE "id" = $7
-             AND "partnerId" = $8
-             AND "roomTypeId" = $9
-          `,
-          [name, code, kind, value, active, isDefault, id, authedPartnerId, roomTypeId]
-        );
-      } else {
-        // create new
-        await client.query(
-          `
-          INSERT INTO extranet."RatePlan"
-            ("partnerId","roomTypeId","name","code","kind","value","active","isDefault","createdAt","updatedAt")
-          VALUES
-            ($1,$2,COALESCE($3,'Custom'),COALESCE($4,NULL),$5,$6,$7,$8,NOW(),NOW())
-          `,
-          [authedPartnerId, roomTypeId, name, code, kind, value, active, isDefault]
-        );
-      }
+      await client.query(
+        `
+        UPDATE extranet."RatePlan"
+        SET
+          name       = COALESCE($5, name),
+          kind       = COALESCE($6, kind),
+          value      = COALESCE($7, value),
+          active     = COALESCE($8, active),
+          "isDefault"= COALESCE($9, "isDefault")
+        WHERE "partnerId" = $1
+          AND "roomTypeId" = $2
+          AND UPPER(code) = $3
+        `,
+        [partnerId, roomTypeId, code, code, name, safeKind, safeVal, active, isDefault]
+      );
     }
 
-    // Enforce single default per roomTypeId (if multiple were set true)
+    // enforce single default (optional but recommended)
     await client.query(
       `
       WITH d AS (
-        SELECT "id"
+        SELECT id
         FROM extranet."RatePlan"
-        WHERE "partnerId"=$1 AND "roomTypeId"=$2 AND COALESCE("isDefault",false)=true
-        ORDER BY "id" ASC
+        WHERE "partnerId" = $1 AND "roomTypeId" = $2 AND COALESCE("isDefault", FALSE) = TRUE
+        ORDER BY id ASC
         LIMIT 1
       )
-      UPDATE extranet."RatePlan" rp
-         SET "isDefault" = (rp."id" IN (SELECT "id" FROM d))
-       WHERE rp."partnerId"=$1 AND rp."roomTypeId"=$2
+      UPDATE extranet."RatePlan"
+      SET "isDefault" = (id IN (SELECT id FROM d))
+      WHERE "partnerId" = $1 AND "roomTypeId" = $2
       `,
-      [authedPartnerId, roomTypeId]
+      [partnerId, roomTypeId]
     );
 
     await client.query("COMMIT");
 
-    // Return fresh list
     const { rows } = await client.query(
       `
-      SELECT "id","name",
-             COALESCE("code",'RP' || "id"::text) AS "code",
-             COALESCE("kind",'NONE') AS "kind",
-             COALESCE("value",0)     AS "value",
-             COALESCE("active",true) AS "active",
-             COALESCE("isDefault",false) AS "isDefault"
+      SELECT id,name,code,COALESCE("isDefault",FALSE) AS "isDefault",
+             COALESCE(kind,'NONE') AS kind, COALESCE(value,0) AS value,
+             COALESCE(active,TRUE) AS active
       FROM extranet."RatePlan"
-      WHERE "partnerId"=$1 AND "roomTypeId"=$2
-      ORDER BY COALESCE("isDefault",false) DESC, "id" ASC
+      WHERE "partnerId" = $1 AND "roomTypeId" = $2
+      ORDER BY COALESCE("isDefault", FALSE) DESC, id ASC
       `,
-      [authedPartnerId, roomTypeId]
+      [partnerId, roomTypeId]
     );
 
-    return res.json({ ok: true, roomTypeId, plans: rows });
-  } catch (e: any) {
-    await client.query("ROLLBACK");
-    console.error("[rateplans:post] error:", e?.message || e);
-    const msg = String(e?.message || "");
-    if (msg.startsWith("unauthorized:")) return res.status(401).json({ error: "unauthorized" });
+    await client.end();
+    return res.json({ ok: true, plans: rows });
+  } catch (e) {
+    console.error("rateplans POST db error:", e);
+    try { /* best-effort rollback */ } catch {}
     return res.status(500).json({ error: "rateplans_post_failed" });
-  } finally {
-    client.release();
   }
 });
-// ---- RatePlans END ----
 
 // ---- CORS ----
 const CORS_ALLOWED_ORIGINS = [
