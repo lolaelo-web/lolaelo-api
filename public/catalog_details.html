@@ -3809,7 +3809,12 @@
           function renderPlanRows(roomId, plans){
             const sel = selectedIds();
             const plansQS = sel.length ? `&plans=${encodeURIComponent(sel.join(','))}` : '';
-            const inScope = sel.length ? plans.filter(p => sel.includes(p.id)) : plans.slice();
+            const onlyActive = plans.filter(p => p.active !== false);
+
+            // keep old selectedIds behavior but do not allow inactive plans to show
+            const inScope = sel.length
+              ? onlyActive.filter(p => sel.includes(p.id))
+              : onlyActive.slice();
             const rowsSource = inScope.length ? inScope : [{ id:1, code:'STD', name:'Standard' }];
 
             const { propertyName, propertyLocation } = getCheckoutMeta();

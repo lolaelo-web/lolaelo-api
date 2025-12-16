@@ -4166,52 +4166,27 @@
         return String(a.code).localeCompare(String(b.code));
       });
 
-      // Seed selection: runtime (__selectedPlanIds) > deeplink > saved > last used > Standard(1)
-      // Then validate against the actual chips and fallback to Standard if none match.
-      let selected = [];
-      if (Array.isArray(window.__selectedPlanIds) && window.__selectedPlanIds.length){
-        selected = window.__selectedPlanIds.slice();
-      } else if (Array.isArray(window.__initialSelectedRatePlanIds) && window.__initialSelectedRatePlanIds.length){
-        selected = window.__initialSelectedRatePlanIds.slice();
-      } else {
-        try { selected = JSON.parse(localStorage.getItem('rateplan.selectedIds') || '[]'); } catch(_){}
-      }
+      // Seed selection from DB-active flags ONLY (DB is source of truth)
+      // We still keep window.__selectedPlanIds so the rest of the page keeps working,
+      // but we do NOT read/write localStorage for enabling/disabling plans anymore.
+      const selectedOrig = list
+        .filter(p => p && p.code === 'STD' ? true : (p.active !== false))
+        .map(p => Number(p.id))
+        .filter(Number.isFinite);
 
-      // Pull last known primary as a weak fallback
-      let last = Number(localStorage.getItem('rateplan.lastPlanId') || '');
-      if (!Number.isFinite(last)) last = undefined;
-      if (!selected.length && Number.isFinite(last)) selected = [last];
-
-      // Build valid id set from the chips we will render
-      const validIds = new Set(
-        list.map(p => Number(p.id)).filter(Number.isFinite)
-      );
-
-      // Preserve the original selection even if some IDs have no chip today
-      let selectedOrig = Array.isArray(selected) ? selected.map(Number).filter(Number.isFinite) : [];
-      let visibleSelected = selectedOrig.filter(n => validIds.has(n));
-
-      // Default to Standard if nothing is selected (so a chip is checked on first paint)
-      if (!selectedOrig.length) {
+      // Ensure at least STD exists
+      let finalSelected = selectedOrig.slice();
+      if (!finalSelected.length) {
         const stdId = Number(byCode.get('STD')?.id || 1);
-        selectedOrig = [stdId];
-        visibleSelected = validIds.has(stdId) ? [stdId] : [];
+        finalSelected = Number.isFinite(stdId) ? [stdId] : [1];
       }
 
-      // Runtime truth = original (don’t drop invisible ids)
-      window.__selectedPlanIds = selectedOrig.slice();
-      // Persist original (only if not already the same)
-      try {
-        const prevRaw = localStorage.getItem('rateplan.selectedIds') || '[]';
-        const prev = JSON.parse(prevRaw);
-        if (!Array.isArray(prev) || prev.join(',') !== selectedOrig.join(',')) {
-          localStorage.setItem('rateplan.selectedIds', JSON.stringify(selectedOrig));
-        }
-        if (selectedOrig.length) {
-          localStorage.setItem('rateplan.lastPlanId', String(selectedOrig[0]));
-        }
-      } catch(_){}
+      // Runtime truth
+      window.__selectedPlanIds = finalSelected.slice();
 
+      // Visible selection (all “active” are visible by definition)
+      const validIds = new Set(list.map(p => Number(p.id)).filter(Number.isFinite));
+      const visibleSelected = finalSelected.filter(n => validIds.has(n));
 
       // Render chips
       host.innerHTML = '';
@@ -4230,7 +4205,7 @@
         box.type = 'checkbox';
         box.setAttribute('data-plan-id', String(p.id));
         box.disabled = !numericId;
-        box.checked  = numericId && visibleSelected.includes(Number(p.id));
+        box.checked = numericId && (p.code === 'STD' ? true : (p.active !== false));
 
         const txt = document.createElement('span');
         txt.textContent = p.name;
@@ -4240,51 +4215,63 @@
         host.appendChild(label);
 
         if (numericId){
-          box.addEventListener('change', () => {
+          box.addEventListener('change', async () => {
           const id = Number(box.getAttribute('data-plan-id'));
+          const code = String(p.code || '').toUpperCase();
 
-          // work with visible selection first
-          const cur = new Set(visibleSelected);
-          if (box.checked) cur.add(id); else cur.delete(id);
+          // STD is always on
+          if (code === 'STD') { box.checked = true; return; }
 
-          // always keep at least one selected (visibly)
-          if (cur.size === 0){ cur.add(id); box.checked = true; }
+          // Optimistic UI, but revert on failure
+          const nextActive = !!box.checked;
 
-          // visible ids in visual order
-          const inOrder = Array.from(host.querySelectorAll('input[type="checkbox"]:checked'))
-            .map(n => Number(n.getAttribute('data-plan-id')))
-            .filter(Number.isFinite);
+          // Keep at least one checked (STD guarantees that)
+          if (!nextActive) {
+            // allow turning off BRKF/NRF etc, STD still on
+          }
 
-          visibleSelected = inOrder.length ? inOrder : Array.from(cur);
+          // Persist to backend (DB source of truth)
+          try {
+            const rid = Number(window.currentRoomTypeId || 0);
+            const fetcher = (typeof window.authFetch === 'function') ? window.authFetch : fetch;
 
-          // Merge with any previously selected IDs that are not visible today
-          let stored = [];
-          try { stored = JSON.parse(localStorage.getItem('rateplan.selectedIds') || '[]'); } catch(_) {}
-          stored = Array.isArray(stored) ? stored.map(Number).filter(Number.isFinite) : [];
-          const hidden = stored.filter(n => !validIds.has(n));
+          const pid = Number(
+            state?.partnerId ||
+            state?.propertyId ||
+            window.partnerId ||
+            2   // TEMP fallback for validation only
+          );
 
-          const fullSelected = [...visibleSelected, ...hidden.filter(n => !visibleSelected.includes(n))];
-            // Persist room-scoped selection too
-            const rid = Number(window.currentRoomTypeId);
-            if (Number.isFinite(rid) && typeof window.setRoomPlanSelection === 'function') {
-              window.setRoomPlanSelection(rid, fullSelected);
+          const url =
+            `/extranet/property/rateplans?propertyId=${encodeURIComponent(String(pid))}` +
+            `&roomTypeId=${encodeURIComponent(String(rid))}`;
+
+            const r = await fetcher(url, {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              cache: 'no-store',
+              credentials: 'include',
+              body: JSON.stringify({
+                plans: [{ code, active: nextActive }]
+              })
+            });
+
+            if (!r.ok) throw new Error(`HTTP ${r.status}`);
+
+            // Refresh from server so UI matches DB exactly
+            if (typeof window.loadRatePlansForRoom === 'function' && Number.isFinite(rid) && rid > 0) {
+              const latest = await window.loadRatePlansForRoom(rid);
+              try { window.populateRatePlanChecks(latest); } catch(_) {}
             }
 
-          // Persist + set globals
-          try {
-            localStorage.setItem('rateplan.selectedIds', JSON.stringify(fullSelected));
-            localStorage.setItem('rateplan.lastPlanId', String(fullSelected[0] || 1));
-          } catch(_){}
-
-          window.__selectedPlanIds = fullSelected.slice();
-
-          // Primary = first visible, else first of full
-          const primary = Number.isFinite(visibleSelected[0]) ? visibleSelected[0] : (fullSelected[0] || 1);
-          window.currentRatePlanId = primary;
-
-          try { if (typeof updateURLFromState === 'function') updateURLFromState(); } catch(_){}
-          try { sessionStorage.setItem('rooms:lastURL', location.href); } catch(_){}
-          document.dispatchEvent(new CustomEvent('rateplans:changed', { detail:{ ids: fullSelected } }));
+            // notify rest of page (calendar refresh etc)
+            document.dispatchEvent(new CustomEvent('rateplans:changed', { detail: { ids: window.__selectedPlanIds || [] } }));
+          } catch (e) {
+            console.warn('[rateplans] persist active failed, reverting', e);
+            // revert checkbox
+            box.checked = !nextActive;
+            alert('Failed to save rate plan change. Please retry.');
+          }
         });
         }
       });
@@ -7288,9 +7275,14 @@ const setWindow = (sISO, doRender = true) => {
         var id = Number(p.id || p.ratePlanId);
         if (!isFinite(id)) continue;
         out.push({
-          id: id,
+          id:   id,
           code: String(p.code || '').toUpperCase(),
-          name: p.name || p.code || ('Plan ' + (p.id || p.ratePlanId))
+          name: p.name || p.code || ('Plan ' + (p.id || p.ratePlanId)),
+          // keep DB truth
+          active: (p.active === undefined) ? true : !!p.active,
+          isDefault: !!p.isDefault,
+          kind: String(p.kind || '').toUpperCase(),
+          value: (p.value === undefined || p.value === null) ? 0 : Number(p.value)
         });
       }
       return out;
