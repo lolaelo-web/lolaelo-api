@@ -3646,7 +3646,11 @@
     const primary =
       Number.isFinite(Number(window.currentRatePlanId))
         ? Number(window.currentRatePlanId)
-        : (ids[0] || Number(localStorage.getItem('rateplan.lastPlanId') || 1) || 1);
+        : (() => {
+          const stdChip = document.querySelector('#rateplan-checks .chip[data-plan-code="STD"]');
+          const stdId = Number(stdChip && stdChip.getAttribute('data-plan-id'));
+          return (ids[0] || Number(localStorage.getItem('rateplan.lastPlanId')) || (Number.isFinite(stdId) ? stdId : 1));
+        })();
     const planId = Number.isFinite(primary) ? primary : 1;
     if (!ids.length) ids = [planId];
 
@@ -4048,86 +4052,6 @@
       };
     }
   })();
-  /* === ROOM-SCOPED RATE PLAN SELECTION HELPERS === */
-  (function(){
-    const LS_SEL_BY_ROOM   = 'rateplan.selectedByRoom';     // { [roomId]: number[] }
-    const LS_LAST_BY_ROOM  = 'rateplan.lastPlanIdByRoom';   // { [roomId]: number }
-
-    function readMap(key, fallback = {}) {
-      try { const o = JSON.parse(localStorage.getItem(key) || 'null'); return (o && typeof o === 'object') ? o : fallback; }
-      catch(_){ return fallback; }
-    }
-    function writeMap(key, obj) {
-      try { localStorage.setItem(key, JSON.stringify(obj || {})); } catch(_){}
-    }
-
-    // Return this room’s selected plan IDs (primary first). Fallback to last/STD(1).
-    window.getRoomPlanSelection = function(roomId){
-      const id = Number(roomId);
-      if (!Number.isFinite(id)) return [];
-      const byRoom = readMap(LS_SEL_BY_ROOM, {});
-      const arr = Array.isArray(byRoom[id]) ? byRoom[id] : [];
-      if (arr.length) return arr.map(n=>Number(n)).filter(Number.isFinite);
-
-      const lastBy = readMap(LS_LAST_BY_ROOM, {});
-      const last = Number(lastBy[id] ?? localStorage.getItem('rateplan.lastPlanId') ?? 1);
-      return Number.isFinite(last) && last > 0 ? [last] : [1];
-    };
-
-    // Persist this room’s plan IDs (and keep legacy globals in sync).
-    window.setRoomPlanSelection = function(roomId, ids){
-      const id = Number(roomId);
-      if (!Number.isFinite(id)) return;
-      const clean = (Array.isArray(ids) ? ids : []).map(n=>Number(n)).filter(Number.isFinite);
-      if (!clean.length) return;
-
-      const byRoom = readMap(LS_SEL_BY_ROOM, {});
-      byRoom[id] = clean;
-      writeMap(LS_SEL_BY_ROOM, byRoom);
-
-      const lastBy = readMap(LS_LAST_BY_ROOM, {});
-      lastBy[id] = clean[0];
-      writeMap(LS_LAST_BY_ROOM, lastBy);
-
-      try {
-        localStorage.setItem('rateplan.selectedIds', JSON.stringify(clean));
-        localStorage.setItem('rateplan.lastPlanId', String(clean[0]));
-      } catch(_){}
-    };
-
-    // Make the visible chips match the current room’s selection, then broadcast.
-    if (typeof window.syncChipsToCurrentRoom !== 'function') window.syncChipsToCurrentRoom = function(){
-      const rid = Number(window.currentRoomTypeId);
-      if (!Number.isFinite(rid)) return;
-
-      const desired = window.getRoomPlanSelection(rid);
-      const host = document.getElementById('rateplan-checks');
-      if (!host) return;
-
-      const inputs = [...host.querySelectorAll('input[type="checkbox"][data-plan-id]')];
-      const validIds = inputs.map(n => Number(n.dataset.planId)).filter(Number.isFinite);
-
-      let toCheck = desired.filter(id => validIds.includes(Number(id)));
-      if (!toCheck.length && validIds.length) toCheck = [validIds.includes(1) ? 1 : validIds[0]];
-
-      // Apply UI state without flicker
-      inputs.forEach(n => { n.checked = toCheck.includes(Number(n.dataset.planId)); });
-
-      // Sync globals + notify dependents (calendar, URL)
-      window.__selectedPlanIds = toCheck.slice();
-      window.currentRatePlanId = Number(toCheck[0]) || 1;
-      try { localStorage.setItem('rateplan.lastPlanId', String(window.currentRatePlanId)); } catch(_){}
-      document.dispatchEvent(new CustomEvent('rateplans:changed', { detail:{ ids: toCheck.slice() } }));
-    };
-
-    // When chips change, persist per-room
-    document.addEventListener('rateplans:changed', (e)=>{
-      const rid = Number(window.currentRoomTypeId);
-      if (!Number.isFinite(rid)) return;
-      const ids = Array.isArray(e.detail?.ids) ? e.detail.ids : [];
-      if (ids.length) window.setRoomPlanSelection(rid, ids);
-    });
-  })();
 
   /* ANCHOR: RATEPLAN_CHIPS_RENDER */
   if (!window.populateRatePlanChecks) {
@@ -4401,10 +4325,14 @@
       if (!ids || !ids.length){
         let globalArr = []; try { globalArr = JSON.parse(localStorage.getItem('rateplan.selectedIds') || '[]'); } catch(_){}
         let last = Number(localStorage.getItem('rateplan.lastPlanId') || '');
-        ids = (Array.isArray(globalArr) && globalArr.length ? globalArr : (Number.isFinite(last) ? [last] : [1]));
+        const stdChip = document.querySelector('#rateplan-checks .chip[data-plan-code="STD"]');
+        const stdId = Number(stdChip && stdChip.getAttribute('data-plan-id'));
+        const STD_FALLBACK = (Number.isFinite(stdId) && stdId > 0) ? stdId : 1;
+
+        ids = (Array.isArray(globalArr) && globalArr.length ? globalArr : (Number.isFinite(last) ? [last] : [STD_FALLBACK]));
       }
       ids = ids.map(Number).filter(n => Number.isFinite(n) && n > 0);
-      if (!ids.length) ids = [1];
+      if (!ids.length) ids = [STD_FALLBACK];
       return ids;
     };
 
