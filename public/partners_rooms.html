@@ -5600,14 +5600,13 @@ const setWindow = (sISO, doRender = true) => {
         var id = Number(p.id || p.ratePlanId);
         if (!isFinite(id)) continue;
         out.push({
-          id:   id,
+          id: id,
           code: String(p.code || '').toUpperCase(),
-          name: p.name || p.code || ('Plan ' + (p.id || p.ratePlanId)),
-          // keep DB truth
-          active: (p.active === undefined) ? true : !!p.active,
+          name: p.name || p.code || ('Plan ' + id),
+          active: (p.active === true),   // DB truth only
           isDefault: !!p.isDefault,
           kind: String(p.kind || '').toUpperCase(),
-          value: (p.value === undefined || p.value === null) ? 0 : Number(p.value)
+          value: (p.value == null ? 0 : Number(p.value))
         });
       }
       return out;
