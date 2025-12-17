@@ -5603,10 +5603,10 @@ const setWindow = (sISO, doRender = true) => {
           id: id,
           code: String(p.code || '').toUpperCase(),
           name: p.name || p.code || ('Plan ' + id),
-          active: (p.active === true),
+          active: (p.active === true),   // DB truth only
           isDefault: !!p.isDefault,
           kind: String(p.kind || '').toUpperCase(),
-          value: (p.value == null ? 0 : p.value)
+          value: (p.value == null ? 0 : Number(p.value))
         });
       }
       return out;
@@ -5627,14 +5627,17 @@ const setWindow = (sISO, doRender = true) => {
             var id = Number(p.id || p.ratePlanId);
             if (!isFinite(id)) continue;
             out.push({
-              id:   id,
+              id: id,
               code: String(p.code || '').toUpperCase(),
-              name: p.name || p.code || ('Plan ' + (p.id || p.ratePlanId))
+              name: p.name || p.code || ('Plan ' + id),
+              active: (p.active === true),
+              isDefault: !!p.isDefault,
+              kind: String(p.kind || '').toUpperCase(),
+              value: (p.value == null ? 0 : p.value)
             });
           }
           return out;
         }
-
 
         // Use cache first to avoid refetching for the same room repeatedly
         window.__cachedPlansByRoom = window.__cachedPlansByRoom || new Map();
