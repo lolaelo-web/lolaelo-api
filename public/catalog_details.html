@@ -3830,15 +3830,13 @@
           }
 
           function renderPlanRows(roomId, plans){
-            const sel = selectedIds();
+            const sel = selectedIds(); // keep only for checkout URL params
             const plansQS = sel.length ? `&plans=${encodeURIComponent(sel.join(','))}` : '';
-            const onlyActive = plans.filter(p => p.active !== false);
 
-            // keep old selectedIds behavior but do not allow inactive plans to show
-            const inScope = sel.length
-              ? onlyActive.filter(p => sel.includes(p.id))
-              : onlyActive.slice();
-            const rowsSource = inScope.length ? inScope : [{ id:1, code:'STD', name:'Standard' }];
+            // DB owns which plans are available to travelers
+            const rowsSource = plans.filter(p => p && p.active === true);
+
+            if (!rowsSource.length) return '';
 
             const { propertyName, propertyLocation } = getCheckoutMeta();
             const roomName = getRoomNameForCheckout(roomId);
@@ -3975,7 +3973,7 @@
 
             // DB owns which plans are available to travelers
             plans = plans.filter(p => p && p.active === true);
-            
+
             if (!plans.length) continue;
 
             panel.innerHTML = renderPlanRows(rid, plans);          // render rows
@@ -5226,6 +5224,14 @@
           }
         }
 
+        // If partner plan hydrate hasn't populated this room yet, trigger it once (non-blocking)
+        try {
+          const ridKey = String(room?.roomTypeId ?? room?.roomId ?? room?.id ?? "");
+          if (ridKey && (!window.__ratePlansByRoom || !window.__ratePlansByRoom[ridKey])) {
+            setTimeout(() => { try { window.hydratePlansFromPartners?.(); } catch(_){} }, 0);
+          }
+        } catch(_){}
+
         // Rate plans – 3 canonical plans, horizontal pills with Select buttons
         try {
           if (plansWrap) {
@@ -5239,7 +5245,16 @@
             const { propertyName, propertyLocation } = getCheckoutMeta();
             const roomName = getRoomNameForCheckout(roomId);
 
-            const ids = getModalSelectedPlanIds();
+            // Use DB-active plans for this room (same truth as inline)
+            const ridKey = String(roomId);
+            const roomPlans = (window.__ratePlansByRoom && Array.isArray(window.__ratePlansByRoom[ridKey]))
+              ? window.__ratePlansByRoom[ridKey]
+              : [];
+
+            const ids = roomPlans.length
+              ? roomPlans.filter(p => p && p.active === true).map(p => Number(p.id)).filter(Number.isFinite)
+              : getModalSelectedPlanIds(); // fallback only
+
             const plansQS = ids.length ? `&plans=${encodeURIComponent(ids.join(','))}` : '';
 
             ids.forEach(id => {
