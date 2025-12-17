@@ -5651,7 +5651,20 @@ const setWindow = (sISO, doRender = true) => {
         var url = '/extranet/property/rateplans?propertyId=' + encodeURIComponent(String(pid)) + '&roomTypeId=' + encodeURIComponent(String(roomId));
         var fetcher = (typeof window.authFetch === 'function') ? window.authFetch : fetch;
 
-        return fetcher(url, { method: 'GET' })
+        var token = localStorage.getItem('partnerToken') || localStorage.getItem('lolaelo_session') || '';
+        return fetch(url, {
+          method: 'GET',
+          cache: 'no-store',
+          credentials: 'include',
+          headers: {
+            'Content-Type': 'application/json',
+            ...(token ? {
+              'Authorization': 'Bearer ' + token,
+              'x-partner-token': token
+            } : {})
+          }
+        })
+
           .then(function(r){ return r.json(); })
           .then(function(j){
             var apiPlans = normPlans(j);
