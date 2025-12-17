@@ -3770,7 +3770,7 @@
             try {
               const fetcher = (typeof window.authFetch === 'function') ? window.authFetch : fetch;
 
-              // Add token headers for Render-hosted extranet endpoints
+              // Token headers (Render endpoints expect these)
               let token = '';
               try { token = localStorage.getItem('partnerToken') || localStorage.getItem('lolaelo_session') || ''; } catch(_){}
               const headers = token ? { 'Authorization': 'Bearer ' + token, 'x-partner-token': token } : {};
@@ -3954,21 +3954,28 @@
             }
 
             let plans = await fetchPlans(rid);        // [{id,code,name}]
+            // Cache per-room plans for modal + reuse
+            try {
+              window.__ratePlansByRoom = window.__ratePlansByRoom || {};
+              window.__ratePlansByRoom[String(rid)] = Array.isArray(plans) ? plans.slice() : [];
+            } catch(_){}
+
             if (!plans.length) continue;
 
             // sync with locally stored partner state (selectedIds/customLabels)
             try {
               const sel = JSON.parse(localStorage.getItem('rateplan.selectedIds') || '[]');
               const lbls = JSON.parse(localStorage.getItem('rateplan.customLabels') || '{}') || {};
-              const activeIds = Array.isArray(sel) ? sel.map(Number).filter(Number.isFinite) : [];
 
-              if (activeIds.length) plans = plans.filter(p => activeIds.includes(p.id));
               plans.forEach(p => {
                 if (p.code === 'CUS1' && lbls.CUS1) p.name = lbls.CUS1;
                 if (p.code === 'CUS2' && lbls.CUS2) p.name = lbls.CUS2;
               });
             } catch {}
 
+            // DB owns which plans are available to travelers
+            plans = plans.filter(p => p && p.active === true);
+            
             if (!plans.length) continue;
 
             panel.innerHTML = renderPlanRows(rid, plans);          // render rows
