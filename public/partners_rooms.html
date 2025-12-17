@@ -5603,10 +5603,10 @@ const setWindow = (sISO, doRender = true) => {
           id: id,
           code: String(p.code || '').toUpperCase(),
           name: p.name || p.code || ('Plan ' + id),
-          active: (p.active === true),   // DB truth only
+          active: (p.active === true),
           isDefault: !!p.isDefault,
           kind: String(p.kind || '').toUpperCase(),
-          value: (p.value == null ? 0 : Number(p.value))
+          value: (p.value == null ? 0 : p.value)
         });
       }
       return out;
