@@ -3829,6 +3829,19 @@
             }
           }
 
+          function applyPlanRule(basePrice, plan){
+            const base = Number(basePrice);
+            if (!Number.isFinite(base)) return null;
+
+            const kind = String(plan?.kind || 'NONE').toUpperCase();
+            const rawVal = (plan?.value == null) ? 0 : Number(plan.value);
+            const val = Number.isFinite(rawVal) ? rawVal : 0;
+
+            if (kind === 'ABSOLUTE') return Math.max(0, base + val);
+            if (kind === 'PERCENT')  return Math.max(0, base * (1 + (val / 100)));
+            return Math.max(0, base);
+          }
+
           function renderPlanRows(roomId, plans){
             const sel = selectedIds(); // keep only for checkout URL params
             const plansQS = sel.length ? `&plans=${encodeURIComponent(sel.join(','))}` : '';
@@ -3848,9 +3861,26 @@
               const name = labelFor(p);
               const desc = describePlan(p);
 
-              const rawPrice = getPlanPriceForRoom(roomId, p.id);
-              const hasPrice = rawPrice != null && Number.isFinite(Number(rawPrice));
-              const priceLabel = hasPrice ? money(rawPrice) : null;
+              // Base nightly price should come from Standard, then apply rule per plan (kind/value)
+              const stdId = (() => {
+                try {
+                  if (String(p.code || '').toUpperCase() === 'STD') return Number(p.id);
+                  const byRoom = window.__ratePlansByRoom && window.__ratePlansByRoom[String(roomId)];
+                  if (Array.isArray(byRoom)) {
+                    const std = byRoom.find(x => String(x.code || '').toUpperCase() === 'STD');
+                    const n = Number(std && std.id);
+                    if (Number.isFinite(n)) return n;
+                  }
+                } catch(_) {}
+                return Number(p.id); // fallback
+              })();
+
+              const baseRaw = getPlanPriceForRoom(roomId, stdId);
+              const baseOk = baseRaw != null && Number.isFinite(Number(baseRaw));
+              const adjRaw = baseOk ? applyPlanRule(Number(baseRaw), p) : null;
+
+              const hasPrice = adjRaw != null && Number.isFinite(Number(adjRaw));
+              const priceLabel = hasPrice ? money(Number(adjRaw).toFixed(2)) : null;
               const priceHtml = hasPrice ? `<div class="meta"><strong>${priceLabel}</strong> / night</div>` : '';
 
               // current qty (default 1 when maxAvail > 0)
