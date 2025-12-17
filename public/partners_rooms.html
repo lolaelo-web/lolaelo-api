@@ -2661,10 +2661,19 @@
             if (!r.ok) throw new Error(`HTTP ${r.status}`);
             await r.json().catch(()=>null);
 
-            // Refresh from server so UI matches DB exactly
-            if (typeof window.loadRatePlansForRoom === 'function' && Number.isFinite(rid) && rid > 0) {
-              const latest = await window.loadRatePlansForRoom(rid);
+            // Refresh using POST response (source of truth)
+            let payload = null;
+            try { payload = await r.json(); } catch(_) { payload = null; }
+
+            const latest = Array.isArray(payload) ? payload : (payload && Array.isArray(payload.plans) ? payload.plans : null);
+            if (latest) {
               try { window.populateRatePlanChecks(latest); } catch(_) {}
+            } else {
+              // fallback: re-fetch if needed
+              if (typeof window.loadRatePlansForRoom === 'function' && Number.isFinite(rid) && rid > 0) {
+                const fetched = await window.loadRatePlansForRoom(rid);
+                try { window.populateRatePlanChecks(fetched); } catch(_) {}
+              }
             }
 
           } catch (e) {
