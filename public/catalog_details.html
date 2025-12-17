@@ -3769,10 +3769,17 @@
 
             try {
               const fetcher = (typeof window.authFetch === 'function') ? window.authFetch : fetch;
+
+              // Add token headers for Render-hosted extranet endpoints
+              let token = '';
+              try { token = localStorage.getItem('partnerToken') || localStorage.getItem('lolaelo_session') || ''; } catch(_){}
+              const headers = token ? { 'Authorization': 'Bearer ' + token, 'x-partner-token': token } : {};
+
               const r = await fetcher(url, {
                 method: 'GET',
                 cache: 'no-store',
-                credentials: 'include'
+                credentials: 'include',
+                headers
               });
 
               if (!r.ok) throw new Error(`HTTP ${r.status}`);
@@ -3788,12 +3795,28 @@
 
                   const kind = String(p.kind ?? "NONE").toUpperCase();
                   const value = Number(p.value ?? 0);           // numeric may come as string
-                  const active = (p.active === undefined) ? true : Boolean(p.active);
+                  const active = (p.active === true);
                   const isDefault = (p.isDefault === undefined) ? false : Boolean(p.isDefault);
 
                   return { id, code, name, kind, value, active, isDefault };
                 })
                 .filter(p => Number.isFinite(p.id) && p.code);
+
+                // Cache plan meta by id for modal + label resolution
+                try {
+                  window.__ratePlanMetaById = window.__ratePlanMetaById || {};
+                  for (const p of parsed){
+                    window.__ratePlanMetaById[String(p.id)] = {
+                      id: p.id,
+                      code: p.code,
+                      name: p.name,
+                      active: p.active,
+                      kind: p.kind,
+                      value: p.value,
+                      isDefault: p.isDefault
+                    };
+                  }
+                } catch(_){}
 
               if (!parsed.length) {
                 console.warn('[hydratePlansFromPartners] no usable rateplans for room', rid);
@@ -4903,64 +4926,87 @@
       function getModalSelectedPlanIds(){
         let ids = [];
 
-        // 1) localStorage from partners_rooms
-        try{
+        // 1) localStorage from partners_rooms (canonical)
+        try {
           const raw = localStorage.getItem('rateplan.selectedIds') || '[]';
           const arr = JSON.parse(raw);
-          if (Array.isArray(arr)) {
-            ids = arr.map(Number).filter(Number.isFinite);
-          }
-        }catch{}
+          if (Array.isArray(arr)) ids = arr.map(Number).filter(n => Number.isFinite(n) && n > 0);
+        } catch (_) {
+          ids = [];
+        }
 
-        // 2) URL (?plans=1,2,3 or ?ratePlanId=1)
+        // 2) URL (?plans=8,18,23 or ?ratePlanId=18)
         if (!ids.length){
-          try{
+          try {
             const qs  = new URLSearchParams(location.search || '');
             const csv = (qs.get('plans') || '').trim();
             if (csv){
-              ids = csv
-                .split(',')
-                .map(s => Number(s.trim()))
-                .filter(Number.isFinite);
-            }else{
+              ids = csv.split(',').map(s => Number(String(s).trim())).filter(n => Number.isFinite(n) && n > 0);
+            } else {
               const single = Number(qs.get('ratePlanId') || qs.get('plan'));
-              if (Number.isFinite(single)) ids = [single];
+              if (Number.isFinite(single) && single > 0) ids = [single];
             }
-          }catch{}
+          } catch(_){}
         }
 
-        // 3) Default to all three if still empty
-        if (!ids.length) ids = [1,2,3];
+        // 3) Fallback to lastPlanId
+        if (!ids.length){
+          try {
+            const last = Number(localStorage.getItem('rateplan.lastPlanId'));
+            if (Number.isFinite(last) && last > 0) ids = [last];
+          } catch(_){}
+        }
 
-        // Only allow our three canonical plans and dedupe
-        const allowed = [1,2,3];
+        // Dedupe, preserve order
         const seen = new Set();
-        return ids.filter(id => {
-          if (!allowed.includes(id)) return false;
-          if (seen.has(id)) return false;
+        const out = [];
+        for (let i = 0; i < ids.length; i++){
+          const id = Number(ids[i]);
+          if (!Number.isFinite(id) || id <= 0) continue;
+          if (seen.has(id)) continue;
           seen.add(id);
-          return true;
-        });
+          out.push(id);
+        }
+        return out;
       }
 
       function getModalPlanLabel(id){
-        if (id === 1) return "Standard";
-        if (id === 2) return "With Breakfast";
-        if (id === 3) return "Non-Refundable";
+        const rid = String(id);
+        const meta = (window.__ratePlanMetaById && window.__ratePlanMetaById[rid]) ? window.__ratePlanMetaById[rid] : null;
+
+        // Prefer partner-provided custom labels by CODE (STD/BRKF/NRF/CUS1/CUS2)
+        let labels = null;
+        try {
+          labels = JSON.parse(localStorage.getItem('rateplan.customLabels') || '{}') || {};
+        } catch(_){
+          labels = {};
+        }
+
+        const code = String(meta && meta.code ? meta.code : '').toUpperCase();
+
+        if (code && labels && typeof labels === 'object' && labels[code]) {
+          return String(labels[code]);
+        }
+
+        if (code === 'STD')  return 'Standard';
+        if (code === 'BRKF') return 'With Breakfast';
+        if (code === 'NRF')  return 'Non-Refundable';
+
+        if (meta && meta.name) return String(meta.name);
         return `Plan ${id}`;
       }
 
       function getModalPlanDescription(id){
-        if (id === 1){
-          return "Flexible standard rate with free cancellation.";
-        }
-        if (id === 2){
-          return "This rate includes breakfast for 2.";
-        }
-        if (id === 3){
-          return "Lower price, no refunds or changes.";
-        }
-        return "Standard conditions apply for this rate.";
+        const rid = String(id);
+        const meta = (window.__ratePlanMetaById && window.__ratePlanMetaById[rid]) ? window.__ratePlanMetaById[rid] : null;
+        const code = String(meta && meta.code ? meta.code : '').toUpperCase();
+
+        if (code === 'STD')  return 'Flexible standard rate with free cancellation.';
+        if (code === 'BRKF') return 'This rate includes breakfast for 2.';
+        if (code === 'NRF')  return 'Lower price, no refunds or changes.';
+        if (code === 'CUS1' || code === 'CUS2') return 'Special rate.';
+
+        return 'Standard conditions apply for this rate.';
       }
 
       function fillList(ul, labels, extraText) {
@@ -5289,7 +5335,7 @@
                   </div>
 
                   <a class="room-modal-plan-pill-btn"
-                      href="${url}${url.includes('?') ? '&' : '?'}qty=${encodeURIComponent(savedQty)}"
+                      href="${url}${url.includes('?') ? '&' : '?'}qty=${encodeURIComponent(normQty)}"
                       aria-label="Book ${label} now">
                       Book now
                   </a>
