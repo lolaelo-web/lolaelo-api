@@ -5418,7 +5418,8 @@
 
         // Refresh plans and repaint UI
         try {
-          const fresh = await fetchRatePlansSafe();
+          const rid = Number(window.currentRoomTypeId || new URLSearchParams(location.search).get('room') || 0);
+          const fresh = await fetchRatePlansSafe(rid);
           try {
             document.dispatchEvent(new CustomEvent('rateplans:fetched', { detail:{ plans: fresh } }));
           } catch(_){}
