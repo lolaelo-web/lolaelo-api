@@ -2549,7 +2549,16 @@
         if (p && p.id != null){
           const code = String(p.code || '').toUpperCase();
           const name = String(p.name || p.code || `Plan ${p.id}`).replace(/\s*\(\d+\)\s*$/,'');
-          byCode.set(code || `ID:${p.id}`, { id:Number(p.id), code, name, placeholder:false });
+          byCode.set(code || `ID:${p.id}`, {
+            id: Number(p.id),
+            code,
+            name,
+            active: (p.active === true),                 // preserve DB truth
+            isDefault: !!p.isDefault,
+            kind: String(p.kind || '').toUpperCase(),
+            value: (p.value == null ? 0 : p.value),      // keep as-is (string ok)
+            placeholder: false
+          });
         }
       });
 
