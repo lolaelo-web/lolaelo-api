@@ -2659,13 +2659,14 @@
             });
 
             if (!r.ok) throw new Error(`HTTP ${r.status}`);
-            await r.json().catch(()=>null);
 
-            // Refresh using POST response (source of truth)
+            // Parse POST response exactly once
             let payload = null;
             try { payload = await r.json(); } catch(_) { payload = null; }
 
             const latest = Array.isArray(payload) ? payload : (payload && Array.isArray(payload.plans) ? payload.plans : null);
+            // Bust cached plans for this room so any fallback fetch is fresh
+            try { window.__cachedPlansByRoom?.delete(rid); } catch(_){}
             if (latest) {
               try { window.populateRatePlanChecks(latest); } catch(_) {}
             } else {
@@ -5688,16 +5689,16 @@ const setWindow = (sISO, doRender = true) => {
             return apiPlans;
           })
           .catch(function(e){
-            // API failed, keep UI consistent with whatever chips indicate
-            var fallback = chipPlans();
+            // API failed — do not fabricate from DOM
+            var fallback = [];
             window.__cachedPlansByRoom = window.__cachedPlansByRoom || new Map();
             window.__cachedPlansByRoom.set(roomId, fallback);
             if (typeof window.renderPlansPanel === 'function') window.renderPlansPanel(fallback);
             return fallback;
           });
-      };
-    console.info('[PLANS_PANEL] shimmed loadRatePlansForRoom (chip-augmented)');
-  }
+        };
+      console.info('[PLANS_PANEL] shimmed loadRatePlansForRoom (chip-augmented)');
+    }
 
     // After calendar builds, ensure plans for current room are loaded at least once
     document.addEventListener('calendar:rendered', function(){
