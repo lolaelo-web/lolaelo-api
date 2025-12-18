@@ -386,9 +386,14 @@ export async function getRoomsDailyFromDb(
         price = priceByPlan.get(`${rt.id}|${d}|plan|${prefPlanId}`) ?? null;
       }
       if (price == null) {
-        // try any plan price for that date
-        for (const [k, v] of priceByPlan) {
-          if (k.startsWith(`${rt.id}|${d}|plan|`)) { price = v; break; }
+        // If caller explicitly requested a specific planId, do NOT fall back to "any plan"
+        // because that can leak another plan's price (NRF/STD) into BRKF, etc.
+        const callerSpecifiedPlan = typeof ratePlanId === "number";
+        if (!callerSpecifiedPlan) {
+          // try any plan price for that date
+          for (const [k, v] of priceByPlan) {
+            if (k.startsWith(`${rt.id}|${d}|plan|`)) { price = v; break; }
+          }
         }
       }
       if (price == null) price = Number(rt.basePrice);
