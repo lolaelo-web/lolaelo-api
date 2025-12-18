@@ -3875,7 +3875,14 @@
                 return Number(p.id); // fallback
               })();
 
-              const baseRaw = getPlanPriceForRoom(roomId, stdId);
+              // Base = Standard nightly, fallback to this plan's nightly if STD missing
+              if (!Number.isFinite(Number(stdId))) stdId = Number(p.id);
+
+              let baseRaw = getPlanPriceForRoom(roomId, stdId);
+              if (!(baseRaw != null && Number.isFinite(Number(baseRaw)))) {
+                baseRaw = getPlanPriceForRoom(roomId, Number(p.id));
+              }
+
               const baseOk = baseRaw != null && Number.isFinite(Number(baseRaw));
               const adjRaw = baseOk ? applyPlanRule(Number(baseRaw), p) : null;
 
@@ -3982,11 +3989,6 @@
             }
 
             let plans = await fetchPlans(rid);        // [{id,code,name}]
-            // Cache per-room plans for modal + reuse
-            try {
-              window.__ratePlansByRoom = window.__ratePlansByRoom || {};
-              window.__ratePlansByRoom[String(rid)] = Array.isArray(plans) ? plans.slice() : [];
-            } catch(_){}
 
             if (!plans.length) continue;
 
@@ -4003,6 +4005,12 @@
 
             // DB owns which plans are available to travelers
             plans = plans.filter(p => p && p.active === true);
+
+            // Cache per-room plans for modal + reuse
+            try {
+              window.__ratePlansByRoom = window.__ratePlansByRoom || {};
+              window.__ratePlansByRoom[String(rid)] = Array.isArray(plans) ? plans.slice() : [];
+            } catch(_){}
 
             if (!plans.length) continue;
 
@@ -5344,7 +5352,14 @@
                   return Number(id);
                 })();
 
-                const baseRaw = getPlanPriceForRoom(roomId, stdId);
+                // Base = Standard nightly, fallback to this plan's nightly if STD missing
+                if (!Number.isFinite(Number(stdId))) stdId = Number(id);
+
+                let baseRaw = getPlanPriceForRoom(roomId, stdId);
+                if (!(baseRaw != null && Number.isFinite(Number(baseRaw)))) {
+                  baseRaw = getPlanPriceForRoom(roomId, Number(id));
+                }
+
                 const baseOk = baseRaw != null && Number.isFinite(Number(baseRaw));
                 const adjRaw = baseOk ? applyPlanRule(Number(baseRaw), planObj) : null;
 
