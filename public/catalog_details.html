@@ -5089,6 +5089,19 @@
         return imgs;
       }
 
+      function applyPlanRule(basePrice, plan){
+        const base = Number(basePrice);
+        if (!Number.isFinite(base)) return null;
+
+        const kind = String(plan?.kind || 'NONE').toUpperCase();
+        const rawVal = (plan?.value == null) ? 0 : Number(plan.value);
+        const val = Number.isFinite(rawVal) ? rawVal : 0;
+
+        if (kind === 'ABSOLUTE') return Math.max(0, base + val);
+        if (kind === 'PERCENT')  return Math.max(0, base * (1 + (val / 100)));
+        return Math.max(0, base);
+      }
+
       function openRoomModal(room){
         if (!room) return;
 
