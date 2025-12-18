@@ -14,6 +14,8 @@ export interface SearchArgs {
 
 export interface DetailsArgs extends SearchArgs {
   propertyId: number;
+  roomId?: number;
+  plans?: number;
 }
 
 // ANCHOR: LOAD_HOTELS_MOCK
@@ -53,22 +55,120 @@ export async function getSearchList(args: SearchArgs): Promise<any> {
 }
 // ANCHOR: GET_DETAILS
 export async function getDetails(args: DetailsArgs): Promise<any | null> {
+  let base: any = null;
+
+  // 1) Keep existing behavior: try mock first (preserves meta/images/addons)
   try {
     const mod: any = await loadHotelsMock();
     const fn = mod?.getAvailability ?? mod?.default?.getAvailability;
-    if (typeof fn !== "function") return null;
-    return fn({
-      propertyId: args.propertyId,
-      start: args.start,
-      end: args.end,
-      ratePlanId: args.ratePlanId ?? 1,
-      currency: mod?.CURRENCY || "USD",
-    });
+    if (typeof fn === "function") {
+      base = await fn({
+        propertyId: args.propertyId,
+        start: args.start,
+        end: args.end,
+        ratePlanId: args.ratePlanId ?? 1,
+        currency: mod?.CURRENCY || "USD",
+      });
+    }
   } catch {
-    // degrade gracefully if mock fails to load
-    return null;
+    base = null;
   }
+
+  // 2) CHECKOUT QUOTE MODE FALLBACK (GATED)
+  // Only activate for checkout-style quote requests:
+  // - plans=2
+  // - non-STD ratePlanId
+  // - missing rooms and/or checkoutQuote in the payload
+  try {
+    const quoteMode = Number(args?.plans) === 2;
+    const rp = Number(args?.ratePlanId ?? 1);
+
+    const hasRooms =
+      !!(base && Array.isArray(base.rooms) && base.rooms.length);
+    const hasQuote =
+      !!(base && base.checkoutQuote);
+
+    if (quoteMode && rp !== 1 && (!hasRooms || !hasQuote)) {
+      const roomsDaily = await getRoomsDailyFromDb(
+        args.propertyId,
+        args.start,
+        args.end,
+        rp
+      );
+
+      if (roomsDaily && roomsDaily.length) {
+        const rooms = roomsDaily.map(r => ({
+          roomTypeId: r.roomId,
+          id: r.roomId,
+          name: r.roomName,
+          daily: r.daily,
+        }));
+
+        const pickId =
+          args.roomId != null ? Number(args.roomId) : undefined;
+
+        const chosen =
+          (Number.isFinite(pickId as any)
+            ? rooms.find(r => Number(r.roomTypeId) === Number(pickId))
+            : null) || rooms[0];
+
+        const daily = Array.isArray((chosen as any)?.daily)
+          ? (chosen as any).daily
+          : [];
+
+        const nights = daily
+          .filter((d: any) =>
+            d &&
+            d.date &&
+            d.price != null &&
+            Number.isFinite(Number(d.price)) &&
+            Number(d.price) > 0
+          )
+          .map((d: any) => ({
+            date: String(d.date),
+            amount: Number(d.price),
+          }));
+
+        const total = nights.reduce((s: number, n: any) => s + n.amount, 0);
+
+        const curRow = daily.find((d: any) => d && d.currency) || null;
+        const currency = curRow?.currency ? String(curRow.currency) : "USD";
+
+        const checkoutQuote =
+          nights.length && Number.isFinite(total) && total > 0
+            ? {
+                source: "db",
+                currency,
+                total,
+                nights,
+                roomTypeId: Number((chosen as any).roomTypeId),
+                ratePlanId: rp,
+              }
+            : null;
+
+        const out: any =
+          base && typeof base === "object"
+            ? { ...base }
+            : { partnerId: args.propertyId };
+
+        out.rooms = rooms;
+        out._roomsSource = "db";
+        if (checkoutQuote) out.checkoutQuote = checkoutQuote;
+
+        // keep addons shape stable
+        if (!Array.isArray(out.addons)) out.addons = [];
+
+        base = out;
+      }
+    }
+  } catch {
+    // intentionally swallow – do not affect non-checkout paths
+  }
+
+  // 3) Return base (mock, or mock + gated DB rooms/quote)
+  return base;
 }
+
 // ANCHOR: GET_CURRENCY
 export async function getCurrency(): Promise<Currency> {
   try {

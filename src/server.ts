@@ -716,7 +716,17 @@ app.get("/catalog/details", async (req: Request, res: Response) => {
   }
 
   try {
-    const payload = await getDetailsFromAdapter({ propertyId, start, end, ratePlanId }) ?? null;
+    const roomId = req.query.roomId != null ? Number(req.query.roomId) : undefined;
+    const plans  = req.query.plans  != null ? Number(req.query.plans)  : undefined;
+
+    const payload = await getDetailsFromAdapter({
+      propertyId,
+      start,
+      end,
+      ratePlanId,
+      roomId,
+      plans,
+    }) ?? null;
 
     if (!payload) {
       res.status(404).json({ ok: false, error: "Not found" });
