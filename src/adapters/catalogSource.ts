@@ -283,15 +283,15 @@ export async function getRoomsDailyFromDb(
 
   const callerSpecifiedPlan = typeof ratePlanId === "number";
 
-  // Requested plan delta (absolute) for derivation
-  let requestedPlanDelta: number | null = null;
+  // Requested plan rule (kind/value) for derivation
+  let requestedPlanRule: { kind: string; value: number } | null = null;
   if (callerSpecifiedPlan) {
     const rp = await prisma.extranet_RatePlan.findUnique({
       where: { id: ratePlanId as number },
-      select: { priceDelta: true },
+      select: { kind: true, value: true },
     });
-    if (rp && rp.priceDelta != null) {
-      requestedPlanDelta = Number(rp.priceDelta);
+    if (rp && rp.kind != null) {
+      requestedPlanRule = { kind: String(rp.kind), value: Number(rp.value ?? 0) };
     }
   }
 
@@ -302,17 +302,23 @@ export async function getRoomsDailyFromDb(
       where: {
         partnerId: propertyId,
         roomTypeId: { in: roomTypeIds },
-        name: "Standard",
+        code: "STD",
       },
       select: { id: true, roomTypeId: true },
     });
     for (const p of stdPlans) stdPlanByRoomType.set(p.roomTypeId, p.id);
   }
 
-  function applyPlanDelta(base: number, delta: number | null): number {
+  function applyPlanRule(base: number, rule: { kind: string; value: number } | null): number {
     if (!Number.isFinite(base)) return base;
-    if (delta == null || !Number.isFinite(delta)) return base;
-    return base + delta;
+    if (!rule) return base;
+
+    const kind = String(rule.kind || "").toUpperCase();
+    const v = Number(rule.value);
+
+    if (kind === "ABSOLUTE") return base + (Number.isFinite(v) ? v : 0);
+    if (kind === "PERCENT")  return base * (1 + ((Number.isFinite(v) ? v : 0) / 100));
+    return base; // NONE/unknown
   }
 
   // 2) Determine preferred rate plan per roomType if none provided
@@ -443,7 +449,7 @@ export async function getRoomsDailyFromDb(
         // Effective STD fallback: basePrice when no STD daily row exists
         if (stdPrice == null) stdPrice = Number(rt.basePrice);
 
-        const derived = applyPlanDelta(Number(stdPrice), requestedPlanDelta);
+        const derived = applyPlanRule(Number(stdPrice), requestedPlanRule);
         price = Number.isFinite(derived) ? derived : Number(rt.basePrice);
       }
 
