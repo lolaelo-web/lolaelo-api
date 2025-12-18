@@ -281,6 +281,40 @@ export async function getRoomsDailyFromDb(
 
   const roomTypeIds = roomTypes.map(r => r.id);
 
+  const callerSpecifiedPlan = typeof ratePlanId === "number";
+
+  // Requested plan delta (absolute) for derivation
+  let requestedPlanDelta: number | null = null;
+  if (callerSpecifiedPlan) {
+    const rp = await prisma.extranet_RatePlan.findUnique({
+      where: { id: ratePlanId as number },
+      select: { priceDelta: true },
+    });
+    if (rp && rp.priceDelta != null) {
+      requestedPlanDelta = Number(rp.priceDelta);
+    }
+  }
+
+  // STD plan id per roomType (STD is the plan named "Standard")
+  const stdPlanByRoomType = new Map<number, number>();
+  {
+    const stdPlans = await prisma.extranet_RatePlan.findMany({
+      where: {
+        partnerId: propertyId,
+        roomTypeId: { in: roomTypeIds },
+        name: "Standard",
+      },
+      select: { id: true, roomTypeId: true },
+    });
+    for (const p of stdPlans) stdPlanByRoomType.set(p.roomTypeId, p.id);
+  }
+
+  function applyPlanDelta(base: number, delta: number | null): number {
+    if (!Number.isFinite(base)) return base;
+    if (delta == null || !Number.isFinite(delta)) return base;
+    return base + delta;
+  }
+
   // 2) Determine preferred rate plan per roomType if none provided
   const preferredPlanByRoom: Record<number, number | null> = {};
 
@@ -349,6 +383,16 @@ export async function getRoomsDailyFromDb(
   const planIds = Array.from(
     new Set(Object.values(preferredPlanByRoom).filter((v): v is number => typeof v === "number"))
   );
+
+  // Always include STD plan ids so we can derive from STD when plan rows are missing
+  for (const rtId of roomTypeIds) {
+    const stdId = stdPlanByRoomType.get(rtId);
+    if (typeof stdId === "number") planIds.push(stdId);
+  }
+
+  // De-dupe after adding STD ids
+  const planIdsDeduped = Array.from(new Set(planIds));
+
   const priceRows = await prisma.extranet_RoomPrice.findMany({
     where: {
       roomTypeId: { in: roomTypeIds },
@@ -356,10 +400,8 @@ export async function getRoomsDailyFromDb(
         gte: new Date(startISO + "T00:00:00Z"),
         lt: new Date(endISO + "T00:00:00Z"),
       },
-      // In extranet_RoomPrice, ratePlanId is NOT nullable.
-      // If we have preferred planIds, filter by those; otherwise, allow all.
-      ...(planIds.length
-        ? { ratePlanId: { in: planIds } }
+      ...(planIdsDeduped.length
+        ? { ratePlanId: { in: planIdsDeduped } }
         : {}),
     },
     select: { roomTypeId: true, ratePlanId: true, date: true, price: true },
@@ -382,20 +424,37 @@ export async function getRoomsDailyFromDb(
     const daily = dates.map((d) => {
       // price lookup
       let price: number | null = null;
+
+      // 1) Try exact requested plan price (if present)
       if (prefPlanId != null) {
         price = priceByPlan.get(`${rt.id}|${d}|plan|${prefPlanId}`) ?? null;
       }
-      if (price == null) {
-        // If caller explicitly requested a specific planId, do NOT fall back to "any plan"
-        // because that can leak another plan's price (NRF/STD) into BRKF, etc.
-        const callerSpecifiedPlan = typeof ratePlanId === "number";
-        if (!callerSpecifiedPlan) {
-          // try any plan price for that date
-          for (const [k, v] of priceByPlan) {
-            if (k.startsWith(`${rt.id}|${d}|plan|`)) { price = v; break; }
-          }
+
+      // 2) If caller specified a plan and explicit daily rows are missing,
+      // derive from effective STD price + plan rule
+      if (price == null && callerSpecifiedPlan) {
+        const stdId = stdPlanByRoomType.get(rt.id) ?? null;
+        let stdPrice: number | null = null;
+
+        if (stdId != null) {
+          stdPrice = priceByPlan.get(`${rt.id}|${d}|plan|${stdId}`) ?? null;
+        }
+
+        // Effective STD fallback: basePrice when no STD daily row exists
+        if (stdPrice == null) stdPrice = Number(rt.basePrice);
+
+        const derived = applyPlanDelta(Number(stdPrice), requestedPlanDelta);
+        price = Number.isFinite(derived) ? derived : Number(rt.basePrice);
+      }
+
+      // 3) If no specific plan requested, legacy fallback to any plan is allowed
+      if (price == null && !callerSpecifiedPlan) {
+        for (const [k, v] of priceByPlan) {
+          if (k.startsWith(`${rt.id}|${d}|plan|`)) { price = v; break; }
         }
       }
+
+      // 4) Final fallback
       if (price == null) price = Number(rt.basePrice);
 
       // inventory+flags
