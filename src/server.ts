@@ -732,6 +732,7 @@ app.get("/catalog/details", async (req: Request, res: Response) => {
       res.status(404).json({ ok: false, error: "Not found" });
       return;
     }
+    res.setHeader("x-lolaelo-details-build", "plans-roomid-gated-v1");
     res.json(payload);
   } catch (e: any) {
     res.status(500).json({ ok: false, error: String(e?.message || e) });
