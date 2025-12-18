@@ -3954,6 +3954,10 @@
           if (itemRef.end)   qs.set("end",   String(itemRef.end));
           const roomIdForQuote = itemRef.roomTypeId || itemRef.roomId;
           if (roomIdForQuote) qs.set("roomId", String(roomIdForQuote));
+
+          const rpid = Number(itemRef.ratePlanId);
+          if (Number.isFinite(rpid) && rpid > 0) qs.set("ratePlanId", String(rpid));
+
           qs.set("qty", String(itemRef.qty || 1));
 
           fetch("/catalog/details?" + qs.toString(), {
@@ -4049,13 +4053,58 @@
           })
             .then(r => r.json())
             .then(data => {
-              const quote = data && data.checkoutQuote ? data.checkoutQuote : null;
+              let quote = (data && data.checkoutQuote) ? data.checkoutQuote : null;
+
               console.log("[checkout] quote payload", {
                 hasQuote: !!quote,
                 checkoutQuote: quote,
                 keys: quote ? Object.keys(quote) : null,
                 raw: data
               });
+
+              // Fallback: derive from rooms[].daily when checkoutQuote is missing
+              if (!quote) {
+                try {
+                  const roomsArr = Array.isArray(data?.rooms) ? data.rooms : [];
+                  const start = String(itemRef.start || "");
+                  const end   = String(itemRef.end || "");
+                  const qRoomId = Number(itemRef.roomTypeId || itemRef.roomId);
+
+                  if (roomsArr.length && start && end && Number.isFinite(qRoomId)) {
+                    const chosen =
+                      roomsArr.find(r => {
+                        const rtId = Number((r && (r.roomTypeId != null ? r.roomTypeId : r.id)));
+                        return Number.isFinite(rtId) && rtId === qRoomId;
+                      }) || roomsArr[0];
+
+                    const daily = Array.isArray(chosen?.daily) ? chosen.daily : [];
+                    const msPerDay = 24 * 60 * 60 * 1000;
+                    const startDate = new Date(start + "T00:00:00Z");
+                    const endDate   = new Date(end   + "T00:00:00Z");
+                    const nights = [];
+
+                    for (let t = startDate.getTime(); t < endDate.getTime(); t += msPerDay) {
+                      const iso = new Date(t).toISOString().slice(0, 10);
+                      const rec = daily.find(d => d && d.date === iso);
+                      if (!rec) continue;
+                      const val = rec.price != null ? Number(rec.price) : NaN;
+                      if (!Number.isFinite(val) || val <= 0) continue;
+                      nights.push({ date: iso, amount: val });
+                    }
+
+                    const total = nights.reduce((sum, n) => sum + n.amount, 0);
+                    if (nights.length && Number.isFinite(total) && total > 0) {
+                      const curRow = daily.find(d => d && d.currency) || null;
+                      const curCode = curRow && curRow.currency ? String(curRow.currency) : "USD";
+                      quote = { source: "db", currency: curCode, total, nights };
+                      console.log("[checkout] derived per-card quote from rooms.daily", quote);
+                    }
+                  }
+                } catch (e) {
+                  console.warn("[checkout] per-card daily fallback failed", e);
+                }
+              }
+
               if (quote) applyQuoteToCard(card, quote, itemRef.qty || 1);
 
               // Read back what the UI shows right after apply
