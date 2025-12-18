@@ -733,6 +733,11 @@ app.get("/catalog/details", async (req: Request, res: Response) => {
       return;
     }
     res.setHeader("x-lolaelo-details-build", "plans-roomid-gated-v1");
+    (payload as any)._detailsRouteFingerprint = "catalog_details_route_v1";
+    (payload as any)._detailsRoutePlans = plans;
+    (payload as any)._detailsRouteRoomId = roomId;
+    (payload as any)._detailsRouteRatePlanId = ratePlanId;
+
     res.json(payload);
   } catch (e: any) {
     res.status(500).json({ ok: false, error: String(e?.message || e) });
