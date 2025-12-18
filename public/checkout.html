@@ -4037,6 +4037,10 @@
           if (itemRef.end)   qs.set("end",   String(itemRef.end));
           const roomIdForQuote = itemRef.roomTypeId || itemRef.roomId;
           if (roomIdForQuote) qs.set("roomId", String(roomIdForQuote));
+
+          const rpid = Number(itemRef.ratePlanId);
+          if (Number.isFinite(rpid) && rpid > 0) qs.set("ratePlanId", String(rpid));
+
           qs.set("qty", String(itemRef.qty || 1));
 
           fetch("/catalog/details?" + qs.toString(), {
