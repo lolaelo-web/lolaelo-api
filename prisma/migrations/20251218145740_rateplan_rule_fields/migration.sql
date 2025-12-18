@@ -1,4 +1,4 @@
-﻿-- Add rule fields to extranet.RatePlan
+-- Add rule fields to extranet.RatePlan
 ALTER TABLE extranet."RatePlan"
   ADD COLUMN IF NOT EXISTS "code" TEXT,
   ADD COLUMN IF NOT EXISTS "kind" TEXT,
