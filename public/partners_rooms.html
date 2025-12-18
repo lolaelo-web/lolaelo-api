@@ -2292,6 +2292,50 @@
     };
   }
 
+    async function refreshPlanRuleEditorsForCurrentRoom(){
+    const rid = Number(window.currentRoomTypeId || 0);
+    if (!Number.isFinite(rid) || rid <= 0) return;
+
+    const plans = await fetchRatePlansSafe(rid);
+
+    try {
+      const panel = document.getElementById('plans-panel');
+      if (!panel) return;
+
+      plans.forEach(p => {
+        const code = String(p.code || '').toUpperCase();
+        if (!code) return;
+        const row = panel.querySelector(`.plan-row[data-plan-code="${code}"]`);
+        if (!row) return;
+
+        // Use existing helper if available in this file
+        if (typeof applyServerRuleToRow === 'function') {
+          applyServerRuleToRow(row, p);
+          return;
+        }
+
+        // Fallback: set fields directly
+        const selSign  = row.querySelector('select[data-field="sign"]');
+        const selUnit  = row.querySelector('select[data-field="unit"]');
+        const inpValue = row.querySelector('input[data-field="value"]');
+
+        const kind = String(p.kind || '').toUpperCase();
+        const v    = Number(p.value);
+        if (!Number.isFinite(v)) return;
+
+        const sign = (v < 0) ? '-' : '+';
+        const mag  = Math.abs(v);
+
+        if (selSign)  selSign.value = sign;
+        if (selUnit)  selUnit.value = (kind === 'PERCENT') ? '%' : '$';
+        if (inpValue) {
+          inpValue.value = String(mag);
+          inpValue.dispatchEvent(new Event('input'));
+        }
+      });
+    } catch(_){}
+  }
+
   /* ANCHOR: RATE_PLAN_DROPDOWN_TO_CHECKS (drop-in) */
   function populateRatePlanDropdown(plans){
     const selectedIds = (Array.isArray(window.__selectedPlanIds) ? window.__selectedPlanIds.slice() : []);
@@ -3224,6 +3268,8 @@
       div.addEventListener("click", async (e)=>{
         if (e.target.closest("button")) return;
         currentRoomTypeId = rt.id;
+
+        try { await refreshPlanRuleEditorsForCurrentRoom(); } catch(_){}
 
         // Align rate-plan chips to this room before any render/fetch
         try { window.syncChipsToCurrentRoom?.(); } catch(_){}
