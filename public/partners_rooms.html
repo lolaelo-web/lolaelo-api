@@ -3269,6 +3269,8 @@
         if (e.target.closest("button")) return;
         currentRoomTypeId = rt.id;
 
+        window.currentRoomTypeId = rt.id;
+
         // Clear plan rule drafts when switching rooms (drafts are not room-scoped)
         try { localStorage.removeItem('rateplan.ruleDrafts'); } catch(_){}
 
@@ -3344,6 +3346,7 @@
         if (r.status === 204){
           if (currentRoomTypeId === rt.id) {
             currentRoomTypeId = null;
+            window.currentRoomTypeId = null;
             setRightActive(false); // remove highlight
           }
           setStatus("Room deleted","ok");
@@ -3376,6 +3379,7 @@
       if (!res.ok){ setStatus("Create failed ("+res.status+")","error"); return; }
       const created = await res.json();
       currentRoomTypeId = created.id;
+      window.currentRoomTypeId = currentRoomTypeId;
       setStatus("Room created","ok");
       await loadRooms();
       await renderCalendar();
@@ -4974,6 +4978,7 @@
     }
 
     if (ctx.roomId) currentRoomTypeId = ctx.roomId;
+    window.currentRoomTypeId = currentRoomTypeId;
     setRightActive(!!currentRoomTypeId);
 
     // ANCHOR: RATE_PLAN_INIT
