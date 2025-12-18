@@ -619,6 +619,25 @@
       border: 1px solid #e5e7eb;
       color: #374151;
     }
+
+    /* Rate plan chips row inside the rules panel */
+    #plans-panel #rateplan-checks-row{
+      display:flex;
+      align-items:center;
+      gap:10px;
+      padding:10px 12px;
+      margin:10px 0;
+      border:1px solid var(--border);
+      border-radius:10px;
+      background:var(--panel-2);
+    }
+    #plans-panel #rateplan-checks{
+      display:flex;
+      flex-wrap:wrap;
+      gap:8px;
+      align-items:center;
+    }
+
   </style>
 
 </head>
@@ -679,13 +698,6 @@
           <button id="copy-link" class="secondary btn btn-secondary-outline" type="button" title="Copy the current link with room, date range, and plan">Copy link</button>
         </div>
           </div> <!-- CLOSES .controls -->
-          <!-- RATE_PLAN_FILTER ROW (chips above day tiles) -->
-          <div id="rateplan-checks-row" class="rateplan-checks-row"
-              style="display:flex; align-items:center; gap:10px; padding:10px 12px; border-bottom:1px solid var(--border); background:var(--panel);">
-            <span class="note" style="margin:0;">Rate plans</span>
-            <div id="rateplan-checks" class="rateplan-checks" style="display:flex; flex-wrap:wrap; gap:8px; align-items:center;"></div>
-            <div style="flex:1"></div>
-          </div>
 
           <div class="calendar">
             <div id="cal-grid" class="cal-grid"></div>
@@ -743,6 +755,14 @@
                   </div>
                 </div>
                 <div class="plan-badge" style="font-size:12px;padding:4px 8px;border-radius:999px;border:1px solid var(--border);background:var(--chip);">code: NRF</div>
+              </div>
+
+              <!-- RATE_PLAN_FILTER ROW (chips above day tiles) -->
+              <div id="rateplan-checks" class="rateplan-checks"
+                  style="display:flex; align-items:center; gap:10px; padding:10px 12px; border-bottom:1px solid var(--border); background:var(--panel);">
+                <span class="note" style="margin:0;">Rate plans</span>
+                <div id="rateplan-checks" class="rateplan-checks" style="display:flex; flex-wrap:wrap; gap:8px; align-items:center;"></div>
+                <div style="flex:1"></div>
               </div>
 
               <!-- Breakfast (editable) -->
