@@ -5308,29 +5308,42 @@
               const pill = document.createElement("div");
               pill.className = "room-modal-plan-pill";
 
-              // Price probe + fallback so we ALWAYS render a price line
+              // Price: base (Standard) + apply plan rule (kind/value)
               let priceHtml = "";
               try {
-                const rawPrice = getPlanPriceForRoom(roomId, id);
-                console.log("[room-modal] price probe", {
-                  roomId,
-                  ratePlanId: id,
-                  rawPrice
-                });
+                // Resolve plan meta for this id (kind/value)
+                const meta =
+                  (window.__ratePlanMetaById && window.__ratePlanMetaById[String(id)]) ||
+                  null;
 
-                const numPrice = rawPrice != null ? Number(rawPrice) : NaN;
-                if (Number.isFinite(numPrice)) {
-                  priceHtml =
-                    `<div class="room-modal-plan-pill-price">${money(numPrice)} / night</div>`;
+                const planObj = meta || { id, code: '', kind: 'NONE', value: 0 };
+
+                // Resolve Standard plan id for this room
+                const stdId = (() => {
+                  try {
+                    const byRoom = window.__ratePlansByRoom && window.__ratePlansByRoom[String(roomId)];
+                    if (Array.isArray(byRoom)) {
+                      const std = byRoom.find(x => String(x.code || '').toUpperCase() === 'STD');
+                      const n = Number(std && std.id);
+                      if (Number.isFinite(n)) return n;
+                    }
+                  } catch(_) {}
+                  return Number(id);
+                })();
+
+                const baseRaw = getPlanPriceForRoom(roomId, stdId);
+                const baseOk = baseRaw != null && Number.isFinite(Number(baseRaw));
+                const adjRaw = baseOk ? applyPlanRule(Number(baseRaw), planObj) : null;
+
+                const hasPrice = adjRaw != null && Number.isFinite(Number(adjRaw));
+                if (hasPrice) {
+                  priceHtml = `<div class="room-modal-plan-pill-price">${money(Number(adjRaw).toFixed(2))} / night</div>`;
                 } else {
-                  // Explicit placeholder so we KNOW the slot is there
-                  priceHtml =
-                    `<div class="room-modal-plan-pill-price">$123.45 / night (placeholder)</div>`;
+                  priceHtml = `<div class="room-modal-plan-pill-price">Price unavailable</div>`;
                 }
               } catch (err) {
-                console.warn("[room-modal] price lookup failed", err);
-                priceHtml =
-                  `<div class="room-modal-plan-pill-price">Price unavailable</div>`;
+                console.warn("[room-modal] price calc failed", err);
+                priceHtml = `<div class="room-modal-plan-pill-price">Price unavailable</div>`;
               }
 
               // availability for the stay (backend rollup already present on room in your payload)
