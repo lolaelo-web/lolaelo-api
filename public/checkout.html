@@ -2676,12 +2676,31 @@
       const totalEl = document.getElementById("summaryTotal");
       if (!totalEl) return;
 
-      const currency = state.pricingCurrency || "USD";
+    let currency = state.pricingCurrency || "USD";
+    let base = 0;
 
-      // Prefer the rate-plan–adjusted total from applyCheckoutQuote,
-      // fall back to baseRoomTotal only if needed.
-      let base = 0;
+    // CART MODE: sum totals from each rendered card
+    try {
+      const cart = loadCartV1();
+      const inCartMode = !!(cart && Array.isArray(cart.items) && cart.items.length);
 
+      if (inCartMode) {
+        const cards = Array.from(
+          document.querySelectorAll('.section-body[data-section-body="1"] .dates-grid[data-lineid]')
+        );
+
+        cards.forEach((card) => {
+          const v = Number(card.dataset ? card.dataset.lineTotal : NaN);
+          if (Number.isFinite(v) && v > 0) base += v;
+
+          const c = card.dataset ? String(card.dataset.lineCurrency || "") : "";
+          if (c && !currency) currency = c;
+        });
+      }
+    } catch (_) {}
+
+    // FALLBACK (non-cart mode): keep existing behavior
+    if (!Number.isFinite(base) || base <= 0) {
       if (typeof state.pricingTotal === "number" &&
           Number.isFinite(state.pricingTotal) &&
           state.pricingTotal > 0) {
@@ -2689,10 +2708,10 @@
       } else if (typeof state.baseRoomTotal === "number" &&
                 Number.isFinite(state.baseRoomTotal) &&
                 state.baseRoomTotal > 0) {
-        // baseRoomTotal was captured before qty scaling; apply qty here for safety
         const qn = Math.max(1, Number.parseInt(String(state.qty || 1), 10) || 1);
         base = state.baseRoomTotal * qn;
       }
+    }
 
       const addons = Number(state.addonsSubtotal || 0);
 
@@ -2724,13 +2743,63 @@
       pricingNights: [] // [{ date, amount }, ...]
     };
 
-    function updateSummaries() {
-      // In cart mode, Section 1 is rendered from checkout.cart.v1.
-      // Prevent legacy single-selection summary writer from touching card fields.
-      try {
-        const c = loadCartV1();
-        if (c && Array.isArray(c.items) && c.items.length) return;
-      } catch (_) {}
+    // In cart mode, DO update the right-side summary panel.
+    // Just don't overwrite the per-card fields (those are rendered from cart).
+    let cart = null;
+    try { cart = loadCartV1(); } catch (_) { cart = null; }
+
+    if (cart && Array.isArray(cart.items) && cart.items.length) {
+      const items = cart.items.slice();
+
+      // 1) Property label
+      const propIds = Array.from(new Set(items.map(it => String(it.propertyId || ""))).values())
+        .filter(Boolean);
+      const propLabel =
+        (propIds.length <= 1)
+          ? String(items[0].propertyName || items[0].propertyId || "Property")
+          : "Multiple properties";
+
+      const sp = document.getElementById("summaryProperty");
+      if (sp) sp.textContent = propLabel;
+
+      // 2) Dates: earliest start, latest end
+      const starts = items.map(it => String(it.start || "")).filter(Boolean).sort();
+      const ends   = items.map(it => String(it.end   || "")).filter(Boolean).sort();
+      const earliest = starts.length ? starts[0] : "";
+      const latest   = ends.length   ? ends[ends.length - 1] : "";
+
+      const sd = document.getElementById("summaryDates");
+      if (sd) {
+        const sFmt = formatDate(earliest);
+        const eFmt = formatDate(latest);
+        sd.textContent = (sFmt && eFmt) ? (sFmt + " to " + eFmt) : "Dates";
+      }
+
+      // 3) Rooms: sum qty
+      const roomsTotal = items.reduce((sum, it) => {
+        const q = Math.max(1, Number.parseInt(String(it.qty || 1), 10) || 1);
+        return sum + q;
+      }, 0);
+
+      const srooms = document.getElementById("summaryRooms");
+      if (srooms) srooms.textContent = (roomsTotal === 1) ? "1 room" : `${roomsTotal} rooms`;
+
+      // 4) Nights: sum (nights per item) * qty
+      const nightsTotal = items.reduce((sum, it) => {
+        const n = stayNightsFromRange(String(it.start || ""), String(it.end || ""));
+        const q = Math.max(1, Number.parseInt(String(it.qty || 1), 10) || 1);
+        return sum + (Number.isFinite(n) ? n : 0) * q;
+      }, 0);
+
+      const snVis = document.getElementById("summaryNightsVisible");
+      if (snVis) snVis.textContent = (nightsTotal > 0) ? String(nightsTotal) : "--";
+
+      // Some parts of the file still reference summaryNights
+      const sn = document.getElementById("summaryNights");
+      if (sn) sn.textContent = (nightsTotal > 0) ? (nightsTotal + " night" + (nightsTotal === 1 ? "" : "s")) : "--";
+
+      return;
+    }
 
       const propertyText =
         state.propertyName || state.propertyId || "Property";
@@ -3359,6 +3428,14 @@
       pickAll("stayNights", "stayNights").forEach(el => { el.textContent = String(nights); });
       pickAll("avgNightPrice", "avgNightPrice").forEach(el => { el.textContent = fmtMoney(avg); });
       pickAll("totalPill", "totalPill").forEach(el => { el.textContent = fmtMoney(totalScaled); });
+      // Store numeric totals on the card so cart summary can sum across cards
+      try {
+        cardEl.dataset.lineTotal = String(totalScaled);         // numeric (qty-scaled)
+        cardEl.dataset.lineCurrency = String(cur || "USD");     // currency hint
+      } catch (_) {}
+
+      // Refresh right summary total in cart mode
+      try { updateGrandTotal(); } catch (_) {}
     }
 
     function applyCheckoutQuote(quote) {
