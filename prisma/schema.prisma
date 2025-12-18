@@ -218,13 +218,22 @@ model extranet_RatePlan {
   name       String
   policy     String?
   priceDelta Decimal?              @db.Decimal(10, 2)
+
+  // Rule-backed plan metadata (preferred long-term over priceDelta)
+  code       String?               // "STD", "BRKF", "NRF"
+  kind       String?               // "NONE", "ABSOLUTE", "PERCENT"
+  value      Decimal?              @db.Decimal(10, 4)  // ABS dollars or percent
+
   createdAt  DateTime              @default(now())
   updatedAt  DateTime
+
   PmsMapping extranet_PmsMapping[]
   Partner    extranet_Partner      @relation(fields: [partnerId], references: [id], onDelete: Cascade)
   RoomType   extranet_RoomType     @relation(fields: [roomTypeId], references: [id], onDelete: Cascade)
   RoomPrice  extranet_RoomPrice[]
 
+  @@index([partnerId, roomTypeId, code])
+  @@unique([roomTypeId, code])
   @@unique([roomTypeId, name])
   @@index([partnerId])
   @@map("RatePlan")
