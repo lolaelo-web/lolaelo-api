@@ -3269,6 +3269,47 @@
         if (e.target.closest("button")) return;
         currentRoomTypeId = rt.id;
 
+        // Clear plan rule drafts when switching rooms (drafts are not room-scoped)
+        try { localStorage.removeItem('rateplan.ruleDrafts'); } catch(_){}
+
+        // Force rehydrate plan rule editors from DB when switching rooms
+        try {
+          const rid = Number(window.currentRoomTypeId || 0);
+          if (Number.isFinite(rid) && typeof window.loadRatePlansForRoom === 'function') {
+            const plans = await window.loadRatePlansForRoom(rid);
+
+            const panel = document.getElementById('plans-panel');
+            if (panel && Array.isArray(plans)) {
+              plans.forEach(p => {
+                const code = String(p.code || '').toUpperCase();
+                const row = panel.querySelector(`.plan-row[data-plan-code="${code}"]`);
+                if (!row) return;
+
+                // Apply server rule into existing inputs
+                const selSign  = row.querySelector('select[data-field="sign"]');
+                const selUnit  = row.querySelector('select[data-field="unit"]');
+                const inpValue = row.querySelector('input[data-field="value"]');
+
+                const kind = String(p.kind || '').toUpperCase();
+                const v = Number(p.value);
+                if (!Number.isFinite(v)) return;
+
+                const sign = (v < 0) ? '-' : '+';
+                const mag  = Math.abs(v);
+
+                if (selSign)  selSign.value = sign;
+                if (selUnit)  selUnit.value = (kind === 'PERCENT') ? '%' : '$';
+                if (inpValue) {
+                  inpValue.value = String(mag);
+                  inpValue.dispatchEvent(new Event('input'));
+                }
+              });
+            }
+          }
+        } catch(e) {
+          console.warn('[rules] rehydrate on room switch failed', e);
+        }
+
         try { await refreshPlanRuleEditorsForCurrentRoom(); } catch(_){}
 
         // Align rate-plan chips to this room before any render/fetch
