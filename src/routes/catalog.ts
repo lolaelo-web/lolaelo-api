@@ -717,7 +717,10 @@ router.get("/details", async (req: Request, res: Response) => {
     }
 
     // Base (mock) details
-    let base: any = await getDetails({ propertyId, start, end, ratePlanId });
+    const roomId = req.query.roomId != null ? Number(req.query.roomId) : undefined;
+    const plans  = req.query.plans  != null ? Number(req.query.plans)  : undefined;
+
+    let base: any = await getDetails({ propertyId, start, end, ratePlanId, roomId, plans });
     if (!base || typeof base !== "object") base = {};
     console.log("[details] start", { propertyId, start, end, ratePlanId });
 
