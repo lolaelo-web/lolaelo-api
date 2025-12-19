@@ -54,16 +54,28 @@
     .nav-left { display: flex; align-items: center; gap: 10px; }
     .logo-img { height: 32px; width: auto; display: block; }
 
-    .nav-right { display: flex; gap: 18px; font-size: 14px; }
-    .nav-link { color: var(--brand); font-weight: 500; padding: 4px 0; }
+    /* ANCHOR: NAV_RIGHT_ALIGN */
+    .nav-right {
+      display: flex;
+      align-items: center;      /* key fix: vertical centering */
+      gap: 18px;
+      font-size: 14px;
+    }
+
+    .nav-link {
+      color: var(--brand);
+      font-weight: 500;
+      padding: 4px 0;
+    }
 
     /* ANCHOR: NAV_ORANGE_DOT */
     .nav-dot {
       width: 6px;
       height: 6px;
       border-radius: 999px;
-      background: var(--accent); /* same orange as investor dot */
-      display: inline-block;
+      background: var(--accent);
+      display: inline-flex;     /* treat dot as flex item */
+      align-self: center;       /* force vertical centering */
     }
 
     .card {
@@ -331,7 +343,7 @@
     .investor-row{
       display: grid;
       grid-template-columns: 3fr 1fr; /* 75 / 25 */
-      align-items: end;
+      align-items: center; /* vertically center CTA column */
       gap: 12px;
     }
 
@@ -403,8 +415,10 @@
         </a>
       </div>
       <nav class="nav-right" aria-label="Primary">
-        <a class="nav-link" href="http://www.lolaelo.com/destinations.html">Explore Destinations</a>
+        <a class="nav-link" href="https://www.lolaelo.com/destinations.html">Explore Destinations</a>
+
         <span class="nav-dot" aria-hidden="true"></span>
+
         <a class="nav-link" href="/catalog.html">Search</a>
       </nav>
     </header>
