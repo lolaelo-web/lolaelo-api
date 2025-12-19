@@ -1,0 +1,749 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Boracay Travel Guide | Top 10 Experiences (Lolaelo)</title>
+  <meta name="description" content="A clean, curated guide to Boracay. The 10 experiences that actually matter, plus quick picks, timing tips, and where to stay." />
+
+  <link rel="icon" href="/logo2.png" />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+
+  <style>
+    :root {
+      --bg: #ffffff;
+      --fg: #111827;
+      --muted: #6b7280;
+      --brand: #064e3b;
+      --accent: #ff6a3d;
+      --border: #e5e7eb;
+      --max-width: 960px;
+      --card-shadow: 0 12px 30px rgba(15,23,42,0.10);
+      --card-shadow-hover: 0 16px 40px rgba(15,23,42,0.18);
+    }
+
+    * { box-sizing: border-box; }
+    html, body { margin: 0; padding: 0; height: 100%; }
+    body {
+      font-family: Inter, ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+      background: var(--bg);
+      color: var(--fg);
+      display: flex;
+      flex-direction: column;
+      min-height: 100vh;
+    }
+
+    a { color: inherit; text-decoration: none; }
+
+    .page {
+      width: 100%;
+      max-width: var(--max-width);
+      margin: 0 auto;
+      padding: 16px 20px 40px;
+      display: flex;
+      flex-direction: column;
+      flex: 1;
+    }
+
+    /* Top nav (match destinations.html) */
+    .nav {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 4px 0 12px;
+    }
+
+    .nav-left { display: flex; align-items: center; gap: 8px; }
+
+    .logo-img { height: 32px; width: auto; display: block; }
+
+    .nav-right {
+      display: flex;
+      align-items: center;
+      gap: 20px;
+      font-size: 14px;
+    }
+
+    .nav-link {
+      color: var(--brand);
+      padding: 4px 0;
+      font-weight: 500;
+      text-decoration: none;
+    }
+
+    .nav-link-back {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      text-decoration: none;
+    }
+
+    .nav-back-arrow {
+      font-size: 16px;
+      line-height: 1;
+      transform: translateY(1px);
+      text-decoration: none !important;
+    }
+
+    .nav-link-back span:last-child { text-decoration: none; }
+
+    .nav-link-back:hover span:last-child { text-decoration: underline; }
+
+    .nav-link-back:hover .nav-back-arrow {
+      transform: translate(-2px, 1px);
+      transition: transform 0.15s ease-out;
+    }
+
+    /* Breadcrumbs */
+    .crumbs {
+      margin-top: 8px;
+      font-size: 12px;
+      color: var(--muted);
+      display: flex;
+      gap: 8px;
+      align-items: center;
+      flex-wrap: wrap;
+    }
+    .crumbs a { color: var(--muted); text-decoration: underline; }
+    .crumbs .sep { color: #9ca3af; }
+
+    /* Hero */
+    .hero {
+      margin-top: 14px;
+      border-radius: 18px;
+      overflow: hidden;
+      min-height: 280px;
+      background-image: url("/assets/dest-boracay.jpg");
+      background-size: cover;
+      background-position: center;
+      background-repeat: no-repeat;
+      position: relative;
+      box-shadow: var(--card-shadow);
+    }
+
+    .hero::before {
+      content: "";
+      position: absolute;
+      inset: 0;
+      background: linear-gradient(to top, rgba(0,0,0,0.55), rgba(0,0,0,0.18));
+    }
+
+    .hero-inner {
+      position: relative;
+      padding: 18px 18px 16px;
+      display: flex;
+      flex-direction: column;
+      justify-content: flex-end;
+      min-height: 280px;
+      gap: 10px;
+    }
+
+    .hero-title {
+      margin: 0;
+      color: #ffffff;
+      font-size: clamp(28px, 4vw, 40px);
+      line-height: 1.15;
+      font-weight: 600;
+      text-shadow: 0 2px 6px rgba(0,0,0,0.35);
+      letter-spacing: -0.01em;
+    }
+
+    .hero-sub {
+      margin: 0;
+      color: rgba(255,255,255,0.92);
+      font-size: 14.5px;
+      line-height: 1.45;
+      max-width: 78ch;
+    }
+
+    .hero-actions {
+      display: flex;
+      gap: 10px;
+      flex-wrap: wrap;
+      margin-top: 6px;
+    }
+
+    .btn {
+      border-radius: 999px;
+      padding: 9px 14px;
+      font-size: 14px;
+      font-weight: 500;
+      border: 1px solid transparent;
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      white-space: nowrap;
+    }
+
+    .btn-primary { background: var(--accent); color: #ffffff; }
+    .btn-secondary { background: rgba(229,242,255,0.95); color: var(--brand); border-color: rgba(229,242,255,0.65); }
+    .btn-ghost { background: rgba(255,255,255,0.14); color: #ffffff; border-color: rgba(255,255,255,0.18); }
+
+    /* Content */
+    .content { margin-top: 18px; }
+
+    .intro {
+      margin-top: 14px;
+      padding: 14px 16px;
+      border: 1px solid var(--border);
+      border-radius: 16px;
+      background: #ffffff;
+      box-shadow: 0 10px 24px rgba(15,23,42,0.06);
+    }
+
+    .intro h2 {
+      margin: 0 0 8px;
+      font-size: 15px;
+      color: var(--brand);
+      font-weight: 600;
+    }
+
+    .intro p {
+      margin: 0 0 8px;
+      font-size: 12.8px;
+      line-height: 1.6;
+      color: #4b5563;
+      white-space: pre-line;
+    }
+
+    .split {
+      margin-top: 14px;
+      display: grid;
+      grid-template-columns: 1.2fr 0.8fr;
+      gap: 14px;
+      align-items: start;
+    }
+
+    .panel {
+      border: 1px solid var(--border);
+      border-radius: 16px;
+      padding: 14px 16px;
+      background: #ffffff;
+      box-shadow: 0 10px 24px rgba(15,23,42,0.06);
+    }
+
+    .panel h3 {
+      margin: 0 0 10px;
+      font-size: 13px;
+      font-weight: 600;
+      color: #111827;
+    }
+
+    .pills {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      margin-top: 10px;
+    }
+
+    .pill {
+      font-size: 12px;
+      padding: 6px 10px;
+      border-radius: 999px;
+      border: 1px solid var(--border);
+      color: #374151;
+      background: #fafafa;
+    }
+
+    .panel ul {
+      margin: 0;
+      padding-left: 18px;
+      font-size: 12.5px;
+      line-height: 1.55;
+      color: #4b5563;
+    }
+
+    .panel li { margin-bottom: 6px; }
+
+    /* Experiences list */
+    .section-title {
+      margin: 22px 0 10px;
+      font-size: 15px;
+      font-weight: 600;
+      color: var(--brand);
+    }
+
+    .cards {
+      display: grid;
+      grid-template-columns: 1fr;
+      gap: 14px;
+    }
+
+    .card {
+      border-radius: 18px;
+      border: 1px solid var(--border);
+      overflow: hidden;
+      background: #ffffff;
+      box-shadow: var(--card-shadow);
+      transition: transform 0.2s ease-out, box-shadow 0.2s ease-out;
+    }
+
+    .card:hover {
+      transform: translateY(-2px);
+      box-shadow: var(--card-shadow-hover);
+    }
+
+    .card-media {
+      height: 170px;
+      background-size: cover;
+      background-position: center;
+      background-repeat: no-repeat;
+      position: relative;
+    }
+
+    .card-media::before {
+      content: "";
+      position: absolute;
+      inset: 0;
+      background: linear-gradient(to top, rgba(0,0,0,0.35), rgba(0,0,0,0.08));
+      opacity: 0.85;
+    }
+
+    .card-body {
+      padding: 14px 16px 16px;
+    }
+
+    .card-kicker {
+      font-size: 12px;
+      color: #6b7280;
+      margin: 0 0 4px;
+    }
+
+    .card-title {
+      margin: 0 0 8px;
+      font-size: 16px;
+      font-weight: 600;
+      color: #111827;
+      letter-spacing: -0.01em;
+    }
+
+    .card-text {
+      margin: 0 0 10px;
+      font-size: 12.8px;
+      line-height: 1.6;
+      color: #4b5563;
+      white-space: pre-line;
+    }
+
+    .meta-row {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      margin-top: 8px;
+    }
+
+    .meta {
+      font-size: 12px;
+      padding: 6px 10px;
+      border-radius: 999px;
+      border: 1px solid var(--border);
+      background: #ffffff;
+      color: #374151;
+    }
+
+    .meta strong { font-weight: 600; }
+
+    .card-cta {
+      margin-top: 12px;
+      display: flex;
+      gap: 10px;
+      flex-wrap: wrap;
+    }
+
+    .link {
+      font-size: 13px;
+      color: var(--brand);
+      font-weight: 500;
+      text-decoration: underline;
+      cursor: pointer;
+    }
+
+    /* FAQ */
+    .faq {
+      margin-top: 22px;
+      border: 1px solid var(--border);
+      border-radius: 16px;
+      padding: 14px 16px;
+      background: #ffffff;
+      box-shadow: 0 10px 24px rgba(15,23,42,0.06);
+    }
+
+    details {
+      border-top: 1px solid var(--border);
+      padding: 10px 0;
+    }
+
+    details:first-of-type { border-top: none; padding-top: 0; }
+    summary {
+      cursor: pointer;
+      list-style: none;
+      font-size: 13px;
+      font-weight: 600;
+      color: #111827;
+    }
+
+    summary::-webkit-details-marker { display: none; }
+
+    .faq p {
+      margin: 8px 0 0;
+      font-size: 12.8px;
+      line-height: 1.6;
+      color: #4b5563;
+    }
+
+    /* Footer */
+    footer {
+      border-top: 1px solid var(--border);
+      padding: 14px 20px 22px;
+      font-size: 12px;
+      color: #6b7280;
+      text-align: center;
+      margin-top: auto;
+    }
+
+    footer a { color: inherit; text-decoration: underline; }
+
+    /* Responsive */
+    @media (max-width: 768px) {
+      .page { padding: 12px 16px 28px; }
+      .split { grid-template-columns: 1fr; }
+      .hero-inner { min-height: 260px; }
+      .card-media { height: 160px; }
+    }
+  </style>
+
+  <!-- FAQ structured data (basic) -->
+  <script type="application/ld+json">
+  {
+    "@context":"https://schema.org",
+    "@type":"FAQPage",
+    "mainEntity":[
+      {
+        "@type":"Question",
+        "name":"How many days do you need in Boracay?",
+        "acceptedAnswer":{"@type":"Answer","text":"Three to five days is the sweet spot for most travelers. Three days covers the highlights. Five days lets you slow down, repeat favorites, and still feel rested."}
+      },
+      {
+        "@type":"Question",
+        "name":"What is the best time of year to visit Boracay?",
+        "acceptedAnswer":{"@type":"Answer","text":"In general, November to May has calmer seas and more reliable beach days. Expect bigger crowds around holidays. Windier months are better for Bulabog activities."}
+      },
+      {
+        "@type":"Question",
+        "name":"Is Boracay good for families with kids?",
+        "acceptedAnswer":{"@type":"Answer","text":"Yes. White Beach is shallow and easy to walk, and many experiences are low-effort. Just plan early starts for boat days and keep afternoons flexible."}
+      },
+      {
+        "@type":"Question",
+        "name":"Is island hopping worth it in Boracay?",
+        "acceptedAnswer":{"@type":"Answer","text":"Yes if you choose a route that matches your pace. Go early, keep stops simple, and prioritize swimming and floating time over rushing a long checklist."}
+      }
+    ]
+  }
+  </script>
+</head>
+
+<body>
+  <div class="page">
+    <header class="nav">
+      <div class="nav-left">
+        <a href="/index.html" aria-label="Lolaelo home">
+          <img src="/logo.png" alt="Lolaelo" class="logo-img" />
+        </a>
+      </div>
+
+      <nav class="nav-right" aria-label="Primary">
+        <a class="nav-link nav-link-back" href="/destinations.html" aria-label="Back to destinations">
+          <span class="nav-back-arrow">←</span>
+          <span>Destinations</span>
+        </a>
+      </nav>
+    </header>
+
+    <div class="crumbs" aria-label="Breadcrumb">
+      <a href="/index.html">Home</a>
+      <span class="sep">·</span>
+      <a href="/destinations.html">Destinations</a>
+      <span class="sep">·</span>
+      <span>Boracay</span>
+    </div>
+
+    <main class="content" role="main">
+      <section class="hero" aria-label="Boracay hero">
+        <div class="hero-inner">
+          <h1 class="hero-title">Boracay: the 10 experiences that define the island</h1>
+          <p class="hero-sub">
+            A curated guide for planning your days without overplanning. If you do a few things well here, Boracay delivers.
+          </p>
+          <div class="hero-actions">
+            <a class="btn btn-primary" href="https://lolaelo-api.onrender.com/catalog.html?q=boracay">View stays in Boracay</a>
+            <a class="btn btn-secondary" href="#top10">Jump to top 10</a>
+            <a class="btn btn-ghost" href="/destinations.html">Back to destinations</a>
+          </div>
+        </div>
+      </section>
+
+      <section class="intro" aria-label="How to use this guide">
+        <h2>How to use this guide</h2>
+        <p>
+Boracay is easy to overbook. This list is designed to keep you focused.
+If you only have 3 days, prioritize: Island hopping, Paraw sunset sailing, and one slow day on White Beach.
+        </p>
+        <div class="pills" aria-label="Quick tags">
+          <span class="pill">Best trip length: 3 to 5 days</span>
+          <span class="pill">Style: beach, water, sunsets</span>
+          <span class="pill">Effort: mostly low</span>
+        </div>
+      </section>
+
+      <section class="split" aria-label="Quick picks and timing">
+        <div class="panel">
+          <h3>Quick picks</h3>
+          <ul>
+            <li><strong>First time:</strong> #1 Island hopping, #2 Paraw sailing, #5 Puka Beach</li>
+            <li><strong>Families:</strong> #5 Puka Beach, #8 D Mall food crawl, #9 Massage and recovery</li>
+            <li><strong>Active:</strong> #4 Bulabog wind sports, #3 Snorkel or freedive, #7 Viewpoints</li>
+            <li><strong>Chill:</strong> #6 Crystal Cove, #10 Sunset cruise, repeat White Beach</li>
+          </ul>
+        </div>
+
+        <div class="panel">
+          <h3>Timing that matters</h3>
+          <ul>
+            <li><strong>Boat days:</strong> start early for calmer water</li>
+            <li><strong>Sunsets:</strong> plan one intentional sunset per day</li>
+            <li><strong>Wind season:</strong> Bulabog shines on windy days</li>
+            <li><strong>Holidays:</strong> expect bigger crowds and higher prices</li>
+          </ul>
+        </div>
+      </section>
+
+      <h2 class="section-title" id="top10">Top 10 experiences</h2>
+
+      <section class="cards" aria-label="Boracay experiences list">
+        <!-- 1 -->
+        <article class="card" id="exp-1">
+          <div class="card-media" style="background-image:url('/assets/dest-boracay-1.jpg');"></div>
+          <div class="card-body">
+            <p class="card-kicker">1 of 10</p>
+            <h3 class="card-title">Island hopping that keeps it simple</h3>
+            <p class="card-text">
+Pick a route that gives you real water time. The goal is not to collect stops, it is to swim, float, and come back feeling lighter.
+            </p>
+            <div class="meta-row">
+              <span class="meta"><strong>Duration:</strong> half day</span>
+              <span class="meta"><strong>Best time:</strong> morning</span>
+              <span class="meta"><strong>Effort:</strong> low</span>
+              <span class="meta"><strong>Crowds:</strong> medium</span>
+            </div>
+            <div class="card-cta">
+              <a class="link" href="https://lolaelo-api.onrender.com/catalog.html?q=boracay">Stays that make early departures easier</a>
+            </div>
+          </div>
+        </article>
+
+        <!-- 2 -->
+        <article class="card" id="exp-2">
+          <div class="card-media" style="background-image:url('/assets/dest-boracay-2.jpg');"></div>
+          <div class="card-body">
+            <p class="card-kicker">2 of 10</p>
+            <h3 class="card-title">Paraw sunset sailing</h3>
+            <p class="card-text">
+This is the cleanest Boracay feeling. Minimal noise, big sky, and the kind of sunset that makes everyone quieter for a minute.
+            </p>
+            <div class="meta-row">
+              <span class="meta"><strong>Duration:</strong> 30 to 60 min</span>
+              <span class="meta"><strong>Best time:</strong> sunset</span>
+              <span class="meta"><strong>Effort:</strong> low</span>
+              <span class="meta"><strong>Vibe:</strong> romantic</span>
+            </div>
+          </div>
+        </article>
+
+        <!-- 3 -->
+        <article class="card" id="exp-3">
+          <div class="card-media" style="background-image:url('/assets/dest-boracay-3.jpg');"></div>
+          <div class="card-body">
+            <p class="card-kicker">3 of 10</p>
+            <h3 class="card-title">Snorkeling or freediving in calmer coves</h3>
+            <p class="card-text">
+If you want clear water without the intensity, go for snorkeling in calmer areas. Keep expectations realistic and prioritize comfort over bravado.
+            </p>
+            <div class="meta-row">
+              <span class="meta"><strong>Duration:</strong> 1 to 3 hrs</span>
+              <span class="meta"><strong>Best time:</strong> morning</span>
+              <span class="meta"><strong>Effort:</strong> low to medium</span>
+              <span class="meta"><strong>Tip:</strong> bring reef-safe sunscreen</span>
+            </div>
+          </div>
+        </article>
+
+        <!-- 4 -->
+        <article class="card" id="exp-4">
+          <div class="card-media" style="background-image:url('/assets/dest-boracay-4.jpg');"></div>
+          <div class="card-body">
+            <p class="card-kicker">4 of 10</p>
+            <h3 class="card-title">Bulabog day: wind sports or just watching</h3>
+            <p class="card-text">
+On windier days, Bulabog makes sense. You can go active with kiteboarding, or just watch it like a live show.
+            </p>
+            <div class="meta-row">
+              <span class="meta"><strong>Duration:</strong> 2 to 4 hrs</span>
+              <span class="meta"><strong>Best time:</strong> windy afternoons</span>
+              <span class="meta"><strong>Effort:</strong> medium</span>
+              <span class="meta"><strong>Skip if:</strong> you want calm water</span>
+            </div>
+          </div>
+        </article>
+
+        <!-- 5 -->
+        <article class="card" id="exp-5">
+          <div class="card-media" style="background-image:url('/assets/dest-boracay-5.jpg');"></div>
+          <div class="card-body">
+            <p class="card-kicker">5 of 10</p>
+            <h3 class="card-title">Puka Beach for a quieter reset</h3>
+            <p class="card-text">
+When White Beach feels too busy, Puka is the reset. Less noise, more space, and a different texture of Boracay.
+            </p>
+            <div class="meta-row">
+              <span class="meta"><strong>Duration:</strong> 2 to 3 hrs</span>
+              <span class="meta"><strong>Best time:</strong> late afternoon</span>
+              <span class="meta"><strong>Effort:</strong> low</span>
+              <span class="meta"><strong>Vibe:</strong> quiet</span>
+            </div>
+          </div>
+        </article>
+
+        <!-- 6 -->
+        <article class="card" id="exp-6">
+          <div class="card-media" style="background-image:url('/assets/dest-boracay.jpg');"></div>
+          <div class="card-body">
+            <p class="card-kicker">6 of 10</p>
+            <h3 class="card-title">Crystal Cove for easy views and light exploring</h3>
+            <p class="card-text">
+This is a simple add-on that feels like a change of pace. Small caves, viewpoints, and a good place to take your time.
+            </p>
+            <div class="meta-row">
+              <span class="meta"><strong>Duration:</strong> 2 to 4 hrs</span>
+              <span class="meta"><strong>Best time:</strong> morning</span>
+              <span class="meta"><strong>Effort:</strong> low to medium</span>
+              <span class="meta"><strong>Note:</strong> watch the steps</span>
+            </div>
+          </div>
+        </article>
+
+        <!-- 7 -->
+        <article class="card" id="exp-7">
+          <div class="card-media" style="background-image:url('/assets/dest-boracay-2.jpg');"></div>
+          <div class="card-body">
+            <p class="card-kicker">7 of 10</p>
+            <h3 class="card-title">A viewpoint moment (Mount Luho or a quiet lookout)</h3>
+            <p class="card-text">
+Boracay is best from water level, but one viewpoint helps you understand the island shape and where you are staying.
+            </p>
+            <div class="meta-row">
+              <span class="meta"><strong>Duration:</strong> 30 to 90 min</span>
+              <span class="meta"><strong>Best time:</strong> late afternoon</span>
+              <span class="meta"><strong>Effort:</strong> low</span>
+              <span class="meta"><strong>Tip:</strong> go before sunset crowds</span>
+            </div>
+          </div>
+        </article>
+
+        <!-- 8 -->
+        <article class="card" id="exp-8">
+          <div class="card-media" style="background-image:url('/assets/dest-boracay-1.jpg');"></div>
+          <div class="card-body">
+            <p class="card-kicker">8 of 10</p>
+            <h3 class="card-title">D Mall food crawl (no rush)</h3>
+            <p class="card-text">
+Build one night around food and walking. Keep it light, pick a few places, and let the beach pull you back after.
+            </p>
+            <div class="meta-row">
+              <span class="meta"><strong>Duration:</strong> 2 to 3 hrs</span>
+              <span class="meta"><strong>Best time:</strong> evening</span>
+              <span class="meta"><strong>Effort:</strong> low</span>
+              <span class="meta"><strong>Great for:</strong> families, groups</span>
+            </div>
+          </div>
+        </article>
+
+        <!-- 9 -->
+        <article class="card" id="exp-9">
+          <div class="card-media" style="background-image:url('/assets/dest-boracay-3.jpg');"></div>
+          <div class="card-body">
+            <p class="card-kicker">9 of 10</p>
+            <h3 class="card-title">Massage and recovery day</h3>
+            <p class="card-text">
+If you are doing boat days and walking a lot, schedule recovery. It makes the rest of the trip feel better.
+            </p>
+            <div class="meta-row">
+              <span class="meta"><strong>Duration:</strong> 60 to 120 min</span>
+              <span class="meta"><strong>Best time:</strong> late afternoon</span>
+              <span class="meta"><strong>Effort:</strong> none</span>
+              <span class="meta"><strong>Result:</strong> higher energy tomorrow</span>
+            </div>
+          </div>
+        </article>
+
+        <!-- 10 -->
+        <article class="card" id="exp-10">
+          <div class="card-media" style="background-image:url('/assets/dest-boracay-4.jpg');"></div>
+          <div class="card-body">
+            <p class="card-kicker">10 of 10</p>
+            <h3 class="card-title">One intentional sunset ritual</h3>
+            <p class="card-text">
+Pick one spot and repeat it. Same time, same pace. Boracay gets better when you stop chasing and start settling.
+            </p>
+            <div class="meta-row">
+              <span class="meta"><strong>Duration:</strong> 45 to 90 min</span>
+              <span class="meta"><strong>Best time:</strong> sunset</span>
+              <span class="meta"><strong>Effort:</strong> low</span>
+              <span class="meta"><strong>Vibe:</strong> calm</span>
+            </div>
+            <div class="card-cta">
+              <a class="link" href="https://lolaelo-api.onrender.com/catalog.html?q=boracay">Browse Boracay stays</a>
+            </div>
+          </div>
+        </article>
+      </section>
+
+      <section class="faq" aria-label="Boracay FAQ">
+        <h2 class="section-title" style="margin:0 0 8px;">FAQ</h2>
+
+        <details>
+          <summary>How many days do you need in Boracay?</summary>
+          <p>Three to five days is the sweet spot. Three days for highlights, five days if you want to slow down and repeat what you love.</p>
+        </details>
+
+        <details>
+          <summary>What is the best time to visit Boracay?</summary>
+          <p>In general, November to May has calmer seas and more reliable beach days. Expect higher crowds around major holidays.</p>
+        </details>
+
+        <details>
+          <summary>Is Boracay worth it during rainy season?</summary>
+          <p>It can be, but plan with flexibility. Choose experiences that still work with changing weather and follow local advisories for sea conditions.</p>
+        </details>
+
+        <details>
+          <summary>Is Boracay good for families?</summary>
+          <p>Yes. It is walkable, the water is often shallow near shore, and many experiences are low-effort. Start earlier in the day for boat activities.</p>
+        </details>
+      </section>
+    </main>
+  </div>
+
+  <footer>
+    © <span id="year"></span> Lolaelo ·
+    <a href="https://lolaelo-api.onrender.com/privacy.html" target="_blank" rel="noopener">Privacy</a>
+    <a href="https://lolaelo-api.onrender.com/terms.html" target="_blank" rel="noopener">Terms</a>
+  </footer>
+
+  <script>
+    document.getElementById("year").textContent = new Date().getFullYear();
+  </script>
+</body>
+</html>
