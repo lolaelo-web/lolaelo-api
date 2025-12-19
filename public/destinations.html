@@ -208,29 +208,12 @@
 
     /* Individual images (placeholder paths) */
 
-    .dest-boracay {
-      background-image: url("/assets/dest-boracay.jpg");
-    }
-
-    .dest-el-nido {
-      background-image: url("/assets/dest-el-nido.jpg");
-    }
-
-    .dest-coron {
-      background-image: url("/assets/dest-coron.jpg");
-    }
-
-    .dest-siargao {
-      background-image: url("/assets/dest-siargao.jpg");
-    }
-
-    .dest-manila {
-      background-image: url("/assets/dest-manila.jpg");
-    }
-
-    .dest-cebu {
-      background-image: url("/assets/dest-cebu.jpg");
-    }
+    .dest-boracay { background-image: url("https://www.lolaelo.com/assets/dest-boracay.jpg"); }
+    .dest-el-nido { background-image: url("https://www.lolaelo.com/assets/dest-el-nido.jpg"); }
+    .dest-coron   { background-image: url("https://www.lolaelo.com/assets/dest-coron.jpg"); }
+    .dest-siargao { background-image: url("https://www.lolaelo.com/assets/dest-siargao.jpg"); }
+    .dest-manila  { background-image: url("https://www.lolaelo.com/assets/dest-manila.jpg"); }
+    .dest-cebu    { background-image: url("https://www.lolaelo.com/assets/dest-cebu.jpg"); }
 
     /* Destination modal */
     .modal-backdrop {
@@ -739,11 +722,13 @@
     let lbImages = [];
     let lbIndex  = 0;
 
+    const ASSET_BASE = "https://www.lolaelo.com/assets/";
+
     // Config per destination (note: thumbs currently only for Boracay)
     const destConfig = {
       "boracay": {
         name: "Boracay",
-        headerImage: "/assets/dest-boracay.jpg",
+        headerImage: ASSET_BASE + "dest-boracay.jpg",
         subtitle: "White sand, turquoise water, and island energy.",
         body: `
 Boracay hits you the moment your feet touch the sand. The island keeps showing up in global “best beaches” lists for a reason - it has that mix of easy access, soft sand, and clear water that actually matches the photos you see online.
@@ -776,18 +761,18 @@ Quick snapshot:
         `,
         staysUrl: "https://lolaelo-api.onrender.com/catalog.html?city=Boracay&cityCode=BORACAY",
         thumbs: [
-          "/assets/dest-boracay.jpg",
-          "/assets/dest-boracay-1.jpg",
-          "/assets/dest-boracay-2.jpg",
-          "/assets/dest-boracay-3.jpg",
-          "/assets/dest-boracay-4.jpg",
-          "/assets/dest-boracay-5.jpg"
+          ASSET_BASE + "dest-boracay.jpg",
+          ASSET_BASE + "dest-boracay-1.jpg",
+          ASSET_BASE + "dest-boracay-2.jpg",
+          ASSET_BASE + "dest-boracay-3.jpg",
+          ASSET_BASE + "dest-boracay-4.jpg",
+          ASSET_BASE + "dest-boracay-5.jpg"
         ]
       },
 
       "el-nido": {
         name: "El Nido",
-        headerImage: "/assets/dest-el-nido.jpg",
+        headerImage: ASSET_BASE + "dest-el-nido.jpg",
         subtitle: "Limestone cliffs, slow days on the water, and my first love.",
         body: `
 El Nido is my first love. It is the place where someone once told me I was “meant to be Filipino,” and for the first time in my life, those words actually carried weight. Sitting on a bangka in the middle of those limestone cliffs, I understood why.
@@ -815,18 +800,18 @@ Quick snapshot:
         `,
         staysUrl: "https://lolaelo-api.onrender.com/catalog.html?city=El%20Nido&cityCode=ELNIDO",
         thumbs: [
-          "/assets/dest-el-nido.jpg",
-          "/assets/dest-el-nido-1.jpg",
-          "/assets/dest-el-nido-2.jpg",
-          "/assets/dest-el-nido-3.jpg",
-          "/assets/dest-el-nido-4.jpg",
-          "/assets/dest-el-nido-5.jpg"
+          ASSET_BASE + "dest-el-nido.jpg",
+          ASSET_BASE + "dest-el-nido-1.jpg",
+          ASSET_BASE + "dest-el-nido-2.jpg",
+          ASSET_BASE + "dest-el-nido-3.jpg",
+          ASSET_BASE + "dest-el-nido-4.jpg",
+          ASSET_BASE + "dest-el-nido-5.jpg"
         ]
       },
 
       "coron": {
         name: "Coron",
-        headerImage: "/assets/dest-coron.jpg",
+        headerImage: ASSET_BASE + "dest-coron.jpg",
         subtitle: "Clear lakes, deep water, and the “Dream Team” of island views.",
         body: `
 Coron reminds me of the 1992 Dream Team - the best of the best all in one place. Lakes, lagoons, cliffs, wrecks, viewpoints… every day feels like another highlight reel. You do not come here for one thing; you come because everything is stacked.
@@ -854,18 +839,18 @@ Quick snapshot:
         `,
         staysUrl: "https://lolaelo-api.onrender.com/catalog.html?city=Coron&cityCode=CORON",
         thumbs: [
-          "/assets/dest-coron.jpg",
-          "/assets/dest-coron-1.jpg",
-          "/assets/dest-coron-2.jpg",
-          "/assets/dest-coron-3.jpg",
-          "/assets/dest-coron-4.jpg",
-          "/assets/dest-coron-5.jpg"
+          ASSET_BASE + "dest-coron.jpg",
+          ASSET_BASE + "dest-coron-1.jpg",
+          ASSET_BASE + "dest-coron-2.jpg",
+          ASSET_BASE + "dest-coron-3.jpg",
+          ASSET_BASE + "dest-coron-4.jpg",
+          ASSET_BASE + "dest-coron-5.jpg"
         ]
       },
 
       "siargao": {
         name: "Siargao",
-        headerImage: "/assets/dest-siargao.jpg",
+        headerImage: ASSET_BASE + "dest-siargao.jpg",
         subtitle: "Surf breaks, palm roads, and the love that got away.",
         body: `
 Siargao is the love that got away. It is the island that shows up in your head on random days - the scooter rides, the 4 PM light hitting the palms, the quiet spots that felt way more emotional than they should have.
@@ -894,18 +879,18 @@ Quick snapshot:
         `,
         staysUrl: "https://lolaelo-api.onrender.com/catalog.html?city=Siargao&cityCode=SIARGAO",
         thumbs: [
-          "/assets/dest-siargao.jpg",
-          "/assets/dest-siargao-1.jpg",
-          "/assets/dest-siargao-2.jpg",
-          "/assets/dest-siargao-3.jpg",
-          "/assets/dest-siargao-4.jpg",
-          "/assets/dest-siargao-5.jpg"
+          ASSET_BASE + "dest-siargao.jpg",
+          ASSET_BASE + "dest-siargao-1.jpg",
+          ASSET_BASE + "dest-siargao-2.jpg",
+          ASSET_BASE + "dest-siargao-3.jpg",
+          ASSET_BASE + "dest-siargao-4.jpg",
+          ASSET_BASE + "dest-siargao-5.jpg"
         ]
       },
 
       "manila": {
         name: "Manila",
-        headerImage: "/assets/dest-manila.jpg",
+        headerImage: ASSET_BASE + "dest-manila.jpg",
         subtitle: "City energy, food, and short hops to the islands.",
         body: `
 Manila is where most trips to the Philippines begin and end. It is not a beach destination, but it is where the stories, families, and late-night conversations usually start.
@@ -930,18 +915,18 @@ Quick snapshot:
         `,
         staysUrl: "https://lolaelo-api.onrender.com/catalog.html?city=Manila&cityCode=MANILA",
         thumbs: [
-          "/assets/dest-manila.jpg",
-          "/assets/dest-manila-1.jpg",
-          "/assets/dest-manila-2.jpg",
-          "/assets/dest-manila-3.jpg",
-          "/assets/dest-manila-4.jpg",
-          "/assets/dest-manila-5.jpg"
+          ASSET_BASE + "dest-manila.jpg",
+          ASSET_BASE + "dest-manila-1.jpg",
+          ASSET_BASE + "dest-manila-2.jpg",
+          ASSET_BASE + "dest-manila-3.jpg",
+          ASSET_BASE + "dest-manila-4.jpg",
+          ASSET_BASE + "dest-manila-5.jpg"
         ]
       },
 
       "cebu": {
         name: "Cebu",
-        headerImage: "/assets/dest-cebu.jpg",
+        headerImage: ASSET_BASE + "dest-cebu.jpg",
         subtitle: "City, islands, and easy access in one hub.",
         body: `
 Cebu gives you a bit of everything in one place. You get a real city with malls, restaurants, and neighborhoods, and you are also a jump away from beaches, waterfalls, and island days.
@@ -966,12 +951,12 @@ Quick snapshot:
         `,
         staysUrl: "https://lolaelo-api.onrender.com/catalog.html?city=Cebu&cityCode=CEBU",
         thumbs: [
-          "/assets/dest-cebu.jpg",
-          "/assets/dest-cebu-1.jpg",
-          "/assets/dest-cebu-2.jpg",
-          "/assets/dest-cebu-3.jpg",
-          "/assets/dest-cebu-4.jpg",
-          "/assets/dest-cebu-5.jpg"
+          ASSET_BASE + "dest-cebu.jpg",
+          ASSET_BASE + "dest-cebu-1.jpg",
+          ASSET_BASE + "dest-cebu-2.jpg",
+          ASSET_BASE + "dest-cebu-3.jpg",
+          ASSET_BASE + "dest-cebu-4.jpg",
+          ASSET_BASE + "dest-cebu-5.jpg"
         ]
       }
 
