@@ -4413,14 +4413,31 @@
           return { wrap, rangeDriver, displayBtn, displayLabel, applyBtn };
         }
 
-        function getActiveCardForDates() {
+        function getActiveCardForDates(clickedEl) {
+          // If user clicked inside a card, trust that card first
+          if (clickedEl && clickedEl.closest) {
+            const cardHit = clickedEl.closest(".dates-grid");
+            if (cardHit) {
+              const lid = cardHit.getAttribute("data-lineid") || "";
+              if (lid) state.activeLineIdForDates = String(lid);
+              return cardHit;
+            }
+          }
+
+          // Otherwise use existing activeLineIdForDates
           const lineId = state && state.activeLineIdForDates ? String(state.activeLineIdForDates) : "";
           if (lineId) {
             const c = document.querySelector(`.dates-grid[data-lineid="${lineId}"]`);
             if (c) return c;
           }
+
           // fallback: first card
-          return document.querySelector(".dates-grid");
+          const first = document.querySelector(".dates-grid");
+          if (first) {
+            const lid = first.getAttribute("data-lineid") || "";
+            if (lid) state.activeLineIdForDates = String(lid);
+          }
+          return first;
         }
 
         document.addEventListener("click", function (e) {
@@ -4430,7 +4447,7 @@
 
           if (!pill) return;
 
-          const card = pill.closest(".dates-grid") || getActiveCardForDates();
+          const card = pill.closest(".dates-grid") || getActiveCardForDates(pill);
           const ctx = resolveDatesCtxFromCard(card);
           if (!ctx || !ctx.rangeDriver || !ctx.displayBtn) return;
 
@@ -4488,7 +4505,7 @@
 
           if (!btn) return;
 
-          const card = btn.closest(".dates-grid") || getActiveCardForDates();
+          const card = btn.closest(".dates-grid") || getActiveCardForDates(btn);
           const ctx = resolveDatesCtxFromCard(card);
           if (!ctx) return;
 
