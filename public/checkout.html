@@ -4373,10 +4373,14 @@
           if (inEl)  inEl.value = state.start;
           if (outEl) outEl.value = state.end;
 
-          const rangeDriver = document.getElementById("checkout-dates-driver");
-          const fp = rangeDriver && rangeDriver._checkoutFp ? rangeDriver._checkoutFp : null;
+          const rangeDriver2 = document.getElementById("checkout-dates-driver");
+          const fp = rangeDriver2 && rangeDriver2._checkoutFp ? rangeDriver2._checkoutFp : null;
           if (fp && state.start && state.end) {
             fp.setDate([state.start, state.end], true);
+            try { fp.open(); } catch (_) {}
+          } else if (fp) {
+            // still open picker even if dates are missing
+            try { fp.open(); } catch (_) {}
           }
 
           const btn = document.getElementById("checkout-dates-display");
