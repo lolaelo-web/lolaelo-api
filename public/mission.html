@@ -4,7 +4,7 @@
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>Lolaelo | Mission and Vision</title>
-  <link rel="icon" href="/logo2.png" />
+  <link rel="icon" href="https://www.lolaelo.com/logo2.png?cb=fav-v1" />
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
 
   <style>
@@ -168,14 +168,18 @@
       color: var(--muted);
     }
 
-    /* ANCHOR: SIGNATURE_ROW_RIGHT_PHOTO */
+    /* ANCHOR: SIGNATURE_ROW_VERTICAL_CENTER */
     .signature-row{
       margin-top: 18px;
       padding-top: 14px;
       border-top: 1px solid var(--border);
       display: inline-flex;
-      align-items: center;
+      align-items: center;       /* keep center */
       gap: 12px;
+    }
+
+    .signature-photo{
+      align-self: center;        /* key fix */
     }
 
     .signature-text{
