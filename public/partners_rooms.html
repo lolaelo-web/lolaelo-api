@@ -496,6 +496,29 @@
     margin-bottom: 14px;
   }
 
+  /* ANCHOR: EDIT_MODAL_REQUIRED_ASTERISK */
+  .req {
+    color: #ff6a3d;
+    font-weight: 600;
+    margin-left: 2px;
+  }
+
+  /* ANCHOR: EDIT_MODAL_REQUIRED_NOTE */
+  .req-note {
+    font-size: 12px;
+    color: #9ca3af;
+    margin-right: auto;
+  }
+  .edit-footer {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+  }
+  .edit-actions {
+    display: flex;
+    gap: 10px;
+  }
+
   /* ANCHOR: ROOM_DETAILS_AND_SIZE_CLEANUP */
 
   /* Room size: fields side by side */
@@ -812,15 +835,15 @@
       </header>
       <div class="body">
         <div class="row">
-          <label for="edit-name" class="muted">Name</label>
+          <label for="edit-name" class="muted">Name<span class="req">*</span></label>
           <input id="edit-name" class="input" autocomplete="off" />
         </div>
         <div class="row">
-          <label for="edit-base" class="muted">Base price (USD)</label>
+          <label for="edit-base" class="muted">Base price (USD)<span class="req">*</span></label>
           <input id="edit-base" class="input" inputmode="decimal" autocomplete="off" required />
         </div>
         <div class="row">
-          <label for="edit-max" class="muted">Max capacity</label>
+          <label for="edit-max" class="muted">Max capacity<span class="req">*</span></label>
           <input id="edit-max" class="input" type="number" min="1" step="1" />
         </div>
         <div class="row">
@@ -833,7 +856,7 @@
 
         <!-- ANCHOR: ROOM_INFO_FIELDS -->
         <div class="row">
-          <label class="muted">Room size</label>
+          <label class="muted">Room size<span class="req">*</span></label>
           <div class="room-size-row">
             <div class="room-size-field">
               <span class="muted small">sqm²</span>
@@ -1086,9 +1109,13 @@
 
         <div class="warn-msg" id="edit-warn" style="display:none;"></div>
       </div>
-      <footer>
-        <button id="edit-cancel" class="secondary btn btn-secondary-outline" type="button">Cancel</button>
-        <button id="edit-save" class="btn" type="button">Save</button>
+      <footer class="edit-footer">
+        <span class="req-note">* Required fields – unable to save unless filled.</span>
+
+        <div class="edit-actions">
+          <button id="edit-cancel" class="secondary btn btn-secondary-outline" type="button">Cancel</button>
+          <button id="edit-save" class="btn" type="button">Save</button>
+        </div>
       </footer>
     </div>
   </div>
