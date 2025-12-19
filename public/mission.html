@@ -279,39 +279,86 @@
       line-height: 1.6;
     }
 
+    /* ANCHOR: BTN_CONSOLIDATED */
     .btn {
       display: inline-flex;
       align-items: center;
       justify-content: center;
       gap: 8px;
+
       border-radius: 999px;
       padding: 10px 14px;
+
       border: 1px solid var(--border);
       background: #ffffff;
+
       font-size: 13px;
       font-weight: 600;
       cursor: pointer;
       white-space: nowrap;
+
+      text-decoration: none; /* prevent underline on <a> buttons */
+      transition: transform 0.15s ease, box-shadow 0.15s ease, filter 0.15s ease;
+    }
+
+    .btn:hover,
+    .btn:focus {
+      text-decoration: none; /* enforce no underline on hover/focus */
     }
 
     .btn-primary {
-      background: var(--accent);
-      border-color: var(--accent);
       color: #ffffff;
+      border-color: transparent;
+
+      background: linear-gradient(
+        135deg,
+        var(--accent) 0%,
+        rgba(255, 132, 90, 1) 100%
+      );
+
       box-shadow: 0 10px 22px rgba(248, 113, 73, 0.45);
     }
 
-    /* ANCHOR: INVESTOR_ROW_BUTTON_LAYOUT */
-    .investor-row {
-      position: relative;
+    .btn-primary:hover,
+    .btn-primary:focus {
+      transform: translateY(-1px);
+      box-shadow: 0 14px 28px rgba(248, 113, 73, 0.45);
+      filter: brightness(1.02);
     }
 
-    .investor-row .btn-primary {
-      width: 20%;
-      min-width: 180px;          /* prevents it from getting too tiny */
-      align-self: flex-end;
-      margin-left: auto;         /* push to the right */
-      margin-top: 8px;
+    /* ANCHOR: INVESTOR_ROW_75_25_CONSOLIDATED */
+    .investor-row{
+      display: grid;
+      grid-template-columns: 3fr 1fr; /* 75 / 25 */
+      align-items: end;
+      gap: 12px;
+    }
+
+    .investor-row-left{
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+    }
+
+    .investor-row-right{
+      display: flex;
+      justify-content: flex-end;
+    }
+
+    .investor-row-right .btn{
+      width: auto;        /* let the button size naturally */
+      min-width: 0;
+      margin: 0;          /* avoid leftover spacing */
+    }
+
+    /* Mobile: stack */
+    @media (max-width: 640px){
+      .investor-row{
+        grid-template-columns: 1fr;
+      }
+      .investor-row-right{
+        justify-content: flex-start;
+      }
     }
 
     footer.site-footer {
@@ -511,13 +558,19 @@
             <div class="d">Travel with us, share feedback, and help shape a platform where everyone wins.</div>
           </div>
           <div class="next-row investor-row">
-            <div class="t">For potential investors</div>
-            <div class="d">
-              For those interested in supporting Lolaelo at an early stage, we have put together a brief overview of how we are building and where we are headed.
+            <div class="investor-row-left">
+              <div class="t">For potential investors</div>
+              <div class="d">
+                For those interested in supporting Lolaelo at an early stage, we have put together a brief overview of how we are building and where we are headed.
+              </div>
             </div>
-            <a class="btn btn-primary" href="/investors.html">View investor overview</a>
+
+            <div class="investor-row-right">
+              <a class="btn btn-primary" href="/investors.html">
+                View investor overview
+              </a>
+            </div>
           </div>
-        </div>
       </section>
     </main>
   </div>

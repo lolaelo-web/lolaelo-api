@@ -224,27 +224,53 @@
       margin-top: 12px;
       align-items: center;
     }
+
+    /* ANCHOR: BTN_CONSOLIDATED_INVESTORS */
     .btn {
       display: inline-flex;
       align-items: center;
       justify-content: center;
       gap: 8px;
+
       border-radius: 999px;
       padding: 10px 14px;
+
       border: 1px solid var(--border);
       background: #ffffff;
+
       font-size: 13px;
       font-weight: 600;
       cursor: pointer;
       white-space: nowrap;
+
+      text-decoration: none; /* remove underline for <a> buttons */
+      transition: transform 0.15s ease, box-shadow 0.15s ease, filter 0.15s ease;
     }
+
+    .btn:hover,
+    .btn:focus {
+      text-decoration: none;
+    }
+
     .btn-primary {
-      background: var(--accent);
-      border-color: var(--accent);
       color: #ffffff;
+      border-color: transparent;
+
+      background: linear-gradient(
+        135deg,
+        var(--accent) 0%,
+        rgba(255, 132, 90, 1) 100%
+      );
+
       box-shadow: 0 10px 22px rgba(248, 113, 73, 0.35);
     }
-    .btn:hover { filter: brightness(0.98); }
+
+    .btn-primary:hover,
+    .btn-primary:focus {
+      transform: translateY(-1px);
+      box-shadow: 0 14px 28px rgba(248, 113, 73, 0.45);
+      filter: brightness(1.02);
+    }
 
     /* Signature (match your mission.html decision: image LEFT of text) */
     .signature-row{
