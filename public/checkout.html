@@ -2357,7 +2357,7 @@
       addons.forEach(function (item) {
         if (!item) return;
         const qty = Number(item.quantity || 0);
-        const name = String(item.name || item.label || "Add-on");
+        const name = String(item.activity || item.name || item.label || "Add-on");
         if (!Number.isFinite(qty) || qty <= 0) return;
         const unit = Number(item.price || 0);
         const amt = unit * qty;
@@ -2608,7 +2608,7 @@
 
         const left = document.createElement("span");
         left.textContent =
-          (sel.activity || "Add-on") +
+          ((sel.activity || sel.name || sel.label || "Add-on")) +
           " · Qty " +
           (sel.quantity != null ? sel.quantity : 0);
 
