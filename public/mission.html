@@ -168,37 +168,41 @@
       color: var(--muted);
     }
 
-    /* ANCHOR: SIGNATURE_ROW_VERTICAL_CENTER */
-    .signature-row{
+    /* ANCHOR: SIGNATURE_LEFT_PHOTO_FIX */
+    .signature-row {
       margin-top: 18px;
       padding-top: 14px;
       border-top: 1px solid var(--border);
-      display: inline-flex;
-      align-items: center;       /* keep center */
+
+      display: flex;              /* force horizontal */
+      flex-direction: row;        /* explicit */
+      align-items: center;        /* vertical centering */
       gap: 12px;
     }
 
-    .signature-photo{
-      align-self: center;        /* key fix */
+    .signature-photo {
+      width: 48px;
+      height: 48px;
+      border-radius: 999px;
+      object-fit: cover;
+      border: 1px solid var(--border);
+      flex-shrink: 0;
     }
 
-    .signature-text{
+    .signature-text {
       display: flex;
       flex-direction: column;
       gap: 2px;
     }
 
-    .signature-photo{
-      margin: 0; /* override any prior spacing */
-      flex: 0 0 auto;
+    .sig-name {
+      font-weight: 600;
+      color: #111827;
     }
 
-    .signature-photo img{
-      width: 56px;
-      height: 56px;
-      border-radius: 999px;
-      object-fit: cover;
-      border: 1px solid var(--border);
+    .sig-title {
+      font-size: 13px;
+      color: var(--muted);
     }
 
     .next {
@@ -396,11 +400,13 @@
           If that resonates with you, you’ll easily recognize what we're trying to build here. In fact, I'm sure you'll help us build this community. 
         </p>
 
-          <div class="signature-photo">
-            <img src="https://www.lolaelo.com/assets/manny.jpg" alt="Manny, Founder of Lolaelo" />
-          </div>
-
         <div class="signature-row" aria-label="Signature">
+          <img
+            class="signature-photo"
+            src="https://www.lolaelo.com/assets/manny.jpg"
+            alt="Manny, Founder of Lolaelo"
+          />
+
           <div class="signature-text">
             <div class="sig-name">Manny</div>
             <div class="sig-title">Founder, Lolaelo</div>
