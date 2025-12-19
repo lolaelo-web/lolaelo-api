@@ -4023,11 +4023,6 @@
         // Ensure nights is populated even before pricing quote returns
         setCloneTextByOrigId(clone, "stayNights", String(stayNightsFromRange(item.start, item.end)));
 
-        // For now: hide the date editor inside clone to avoid flatpickr duplication in this step.
-        // We will wire per-card edit dates next step.
-        var wrap = clone.querySelector('[data-orig-id="checkoutDatesCardWrapper"]');
-        if (wrap) wrap.classList.add("hidden");
-
         root.appendChild(clone);
         // Fetch quote for this line item and apply to this card (scoped)
         (function(card, itemRef) {
@@ -4323,8 +4318,7 @@
       });
 
       (function wireEditDatesLinksAllCards() {
-        const wrap = document.getElementById("checkoutDatesCardWrapper");
-        if (!wrap) return;
+        // Wire all "Edit dates" links (template + clones)
 
         // Active line item for date edits
         state.activeLineIdForDates = state.activeLineIdForDates || null;
@@ -4345,6 +4339,10 @@
 
           const card = link.closest(".dates-grid");
           if (!card) return;
+
+          // Open the wrapper inside the clicked card (not the global/template wrapper)
+          const wrap = card.querySelector('[data-orig-id="checkoutDatesCardWrapper"], #checkoutDatesCardWrapper');
+          if (wrap) wrap.classList.remove("hidden");
 
           const lineId = card.getAttribute("data-lineid") || (card.dataset ? card.dataset.lineId : null);
           if (!lineId) {
