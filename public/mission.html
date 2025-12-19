@@ -57,6 +57,15 @@
     .nav-right { display: flex; gap: 18px; font-size: 14px; }
     .nav-link { color: var(--brand); font-weight: 500; padding: 4px 0; }
 
+    /* ANCHOR: NAV_ORANGE_DOT */
+    .nav-dot {
+      width: 6px;
+      height: 6px;
+      border-radius: 999px;
+      background: var(--accent); /* same orange as investor dot */
+      display: inline-block;
+    }
+
     .card {
       border: 1px solid var(--border);
       border-radius: var(--radius);
@@ -347,6 +356,7 @@
       </div>
       <nav class="nav-right" aria-label="Primary">
         <a class="nav-link" href="http://www.lolaelo.com/destinations.html">Explore Destinations</a>
+        <span class="nav-dot" aria-hidden="true"></span>
         <a class="nav-link" href="/catalog.html">Search</a>
       </nav>
     </header>
