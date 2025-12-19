@@ -353,6 +353,63 @@
 
     summary::-webkit-details-marker { display: none; }
 
+    /* Spotlight layout: text left, circle image right */
+    .spotlight {
+      margin-top: 14px;
+      display: grid;
+      grid-template-columns: 1.15fr 0.85fr;
+      gap: 14px;
+      align-items: center;
+    }
+
+    .spotlight-text {
+      border: 1px solid var(--border);
+      border-radius: 18px;
+      background: #ffffff;
+      box-shadow: var(--card-shadow);
+      padding: 16px 16px 14px;
+    }
+
+    .spotlight-title {
+      margin: 0 0 10px;
+      font-size: 15px;
+      font-weight: 600;
+      color: var(--brand);
+    }
+
+    .spotlight-body .card-text {
+      margin-top: 0;
+    }
+
+    /* Right side: circular image spotlight */
+    .spotlight-media {
+      display: flex;
+      justify-content: center;
+      align-items: center;
+    }
+
+    .spotlight-circle {
+      width: 320px;
+      height: 320px;
+      border-radius: 999px;
+      background-size: cover;
+      background-position: center;
+      background-repeat: no-repeat;
+      box-shadow: 0 18px 44px rgba(15,23,42,0.18);
+      border: 1px solid rgba(229,231,235,0.95);
+    }
+
+    /* Responsive */
+    @media (max-width: 768px) {
+      .spotlight {
+        grid-template-columns: 1fr;
+      }
+      .spotlight-circle {
+        width: 240px;
+        height: 240px;
+      }
+    }
+
     .faq p {
       margin: 8px 0 0;
       font-size: 12.8px;
@@ -435,12 +492,6 @@
     </header>
 
     <div class="crumbs" aria-label="Breadcrumb">
-      <a href="/index.html">Home</a>
-      <span class="sep">·</span>
-      <a href="/destinations.html">Destinations</a>
-      <span class="sep">·</span>
-      <a href="/destinations/boracay/index.html">Boracay</a>
-      <span class="sep">·</span>
       <span>Island hopping</span>
     </div>
 
@@ -497,34 +548,41 @@ A focused half-day feels better than a rushed full day.
 
       <h2 class="section-title" id="plan">A clean half-day plan</h2>
 
-      <section class="card" aria-label="Half-day flow">
-        <div class="card-media" style="background-image:url('/images/boracay/boracay-beach-white-sand.jpg');"></div>
-        <div class="card-body">
+      <section class="spotlight" aria-label="Half-day flow">
+      <div class="spotlight-text">
+          <h3 class="spotlight-title">A clean half-day plan</h3>
+
+          <div class="spotlight-body">
           <p class="card-text">
-<strong>Step 1: 7:30 to 8:30 AM, depart and get to your first swim.</strong>
-Aim for a calm cove or a simple reef stop. The goal is not photos. The goal is water time.
+      <strong>Step 1: 7:30 to 8:30 AM, depart and get to your first swim.</strong>
+      Aim for a calm cove or a simple reef stop. The goal is not photos. The goal is water time.
 
-<strong>Step 2: 9:00 to 10:30 AM, do one main swim session.</strong>
-Pick one spot and stay long enough to actually relax. If you are hopping every 20 minutes, you are not hopping, you are commuting.
+      <strong>Step 2: 9:00 to 10:30 AM, do one main swim session.</strong>
+      Pick one spot and stay long enough to actually relax. If you are hopping every 20 minutes, you are not hopping, you are commuting.
 
-<strong>Step 3: 10:30 to 11:30 AM, one light stop or beach reset.</strong>
-If the group is tired, skip the extra stop. A short, quiet beach moment is often the best part.
+      <strong>Step 3: 10:30 to 11:30 AM, one light stop or beach reset.</strong>
+      If the group is tired, skip the extra stop. A short, quiet beach moment is often the best part.
 
-<strong>Step 4: 12:00 PM, head back before the day gets heavy.</strong>
-You will return with energy instead of feeling cooked.
+      <strong>Step 4: 12:00 PM, head back before the day gets heavy.</strong>
+      You will return with energy instead of feeling cooked.
           </p>
 
           <div class="meta-row">
-            <span class="meta"><strong>Duration:</strong> 4 to 5 hrs</span>
-            <span class="meta"><strong>Best time:</strong> morning</span>
-            <span class="meta"><strong>Effort:</strong> low</span>
-            <span class="meta"><strong>Outcome:</strong> calm + water time</span>
+              <span class="meta"><strong>Duration:</strong> 4 to 5 hrs</span>
+              <span class="meta"><strong>Best time:</strong> morning</span>
+              <span class="meta"><strong>Effort:</strong> low</span>
+              <span class="meta"><strong>Outcome:</strong> calm + water time</span>
           </div>
 
           <div class="meta-row" style="margin-top:10px;">
-            <a class="link" href="https://lolaelo-api.onrender.com/catalog.html?q=boracay">Stays that make early starts easier</a>
+              <a class="link" href="https://lolaelo-api.onrender.com/catalog.html?q=boracay">Stays that make early starts easier</a>
           </div>
-        </div>
+          </div>
+      </div>
+
+      <div class="spotlight-media" aria-hidden="true">
+          <div class="spotlight-circle" style="background-image:url('/images/boracay/boracay-beach-white-sand.jpg');"></div>
+      </div>
       </section>
 
       <h2 class="section-title">What to bring</h2>
