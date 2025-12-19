@@ -1,0 +1,590 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Island Hopping in Boracay | Simple Half-Day Plan (Lolaelo)</title>
+  <meta name="description" content="Island hopping in Boracay, simplified. A clean half-day flow, what to bring, timing that matters, costs, and common mistakes to avoid." />
+
+  <link rel="icon" href="https://www.lolaelo.com/logo2.png" />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+
+  <style>
+    :root {
+      --bg: #ffffff;
+      --fg: #111827;
+      --muted: #6b7280;
+      --brand: #064e3b;
+      --accent: #ff6a3d;
+      --border: #e5e7eb;
+      --max-width: 960px;
+      --card-shadow: 0 12px 30px rgba(15,23,42,0.10);
+      --card-shadow-hover: 0 16px 40px rgba(15,23,42,0.18);
+    }
+
+    * { box-sizing: border-box; }
+    html, body { margin: 0; padding: 0; height: 100%; }
+    body {
+      font-family: Inter, ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+      background: var(--bg);
+      color: var(--fg);
+      display: flex;
+      flex-direction: column;
+      min-height: 100vh;
+    }
+
+    a { color: inherit; text-decoration: none; }
+
+    .page {
+      width: 100%;
+      max-width: var(--max-width);
+      margin: 0 auto;
+      padding: 16px 20px 40px;
+      display: flex;
+      flex-direction: column;
+      flex: 1;
+    }
+
+    /* Top nav (match destinations.html) */
+    .nav {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 4px 0 12px;
+    }
+
+    .nav-left { display: flex; align-items: center; gap: 8px; }
+
+    .logo-img { height: 32px; width: auto; display: block; }
+
+    .nav-right {
+      display: flex;
+      align-items: center;
+      gap: 20px;
+      font-size: 14px;
+    }
+
+    .nav-link {
+      color: var(--brand);
+      padding: 4px 0;
+      font-weight: 500;
+      text-decoration: none;
+    }
+
+    .nav-link-back {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      text-decoration: none;
+    }
+
+    .nav-back-arrow {
+      font-size: 16px;
+      line-height: 1;
+      transform: translateY(1px);
+      text-decoration: none !important;
+    }
+
+    .nav-link-back span:last-child { text-decoration: none; }
+
+    .nav-link-back:hover span:last-child { text-decoration: underline; }
+
+    .nav-link-back:hover .nav-back-arrow {
+      transform: translate(-2px, 1px);
+      transition: transform 0.15s ease-out;
+    }
+
+    /* Breadcrumbs */
+    .crumbs {
+      margin-top: 8px;
+      font-size: 12px;
+      color: var(--muted);
+      display: flex;
+      gap: 8px;
+      align-items: center;
+      flex-wrap: wrap;
+    }
+    .crumbs a { color: var(--muted); text-decoration: underline; }
+    .crumbs .sep { color: #9ca3af; }
+
+    /* Hero */
+    .hero {
+      margin-top: 14px;
+      border-radius: 18px;
+      overflow: hidden;
+      min-height: 280px;
+      background-image: url("/images/boracay/boracay-island-hopping.jpg");
+      background-size: cover;
+      background-position: center;
+      background-repeat: no-repeat;
+      position: relative;
+      box-shadow: var(--card-shadow);
+    }
+
+    .hero::before {
+      content: "";
+      position: absolute;
+      inset: 0;
+      background: linear-gradient(to top, rgba(0,0,0,0.55), rgba(0,0,0,0.18));
+    }
+
+    .hero-inner {
+      position: relative;
+      padding: 18px 18px 16px;
+      display: flex;
+      flex-direction: column;
+      justify-content: flex-end;
+      min-height: 280px;
+      gap: 10px;
+    }
+
+    .hero-title {
+      margin: 0;
+      color: #ffffff;
+      font-size: clamp(26px, 3.8vw, 40px);
+      line-height: 1.15;
+      font-weight: 600;
+      text-shadow: 0 2px 6px rgba(0,0,0,0.35);
+      letter-spacing: -0.01em;
+    }
+
+    .hero-sub {
+      margin: 0;
+      color: rgba(255,255,255,0.92);
+      font-size: 14.5px;
+      line-height: 1.45;
+      max-width: 78ch;
+    }
+
+    .hero-actions {
+      display: flex;
+      gap: 10px;
+      flex-wrap: wrap;
+      margin-top: 6px;
+    }
+
+    .btn {
+      border-radius: 999px;
+      padding: 9px 14px;
+      font-size: 14px;
+      font-weight: 500;
+      border: 1px solid transparent;
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      white-space: nowrap;
+    }
+
+    .btn-primary { background: var(--accent); color: #ffffff; }
+    .btn-secondary { background: rgba(229,242,255,0.95); color: var(--brand); border-color: rgba(229,242,255,0.65); }
+    .btn-ghost { background: rgba(255,255,255,0.14); color: #ffffff; border-color: rgba(255,255,255,0.18); }
+
+    /* Content */
+    .content { margin-top: 18px; }
+
+    .intro {
+      margin-top: 14px;
+      padding: 14px 16px;
+      border: 1px solid var(--border);
+      border-radius: 16px;
+      background: #ffffff;
+      box-shadow: 0 10px 24px rgba(15,23,42,0.06);
+    }
+
+    .intro h2 {
+      margin: 0 0 8px;
+      font-size: 15px;
+      color: var(--brand);
+      font-weight: 600;
+    }
+
+    .intro p {
+      margin: 0 0 8px;
+      font-size: 12.8px;
+      line-height: 1.6;
+      color: #4b5563;
+      white-space: pre-line;
+    }
+
+    .split {
+      margin-top: 14px;
+      display: grid;
+      grid-template-columns: 1.2fr 0.8fr;
+      gap: 14px;
+      align-items: start;
+    }
+
+    .panel {
+      border: 1px solid var(--border);
+      border-radius: 16px;
+      padding: 14px 16px;
+      background: #ffffff;
+      box-shadow: 0 10px 24px rgba(15,23,42,0.06);
+    }
+
+    .panel h3 {
+      margin: 0 0 10px;
+      font-size: 13px;
+      font-weight: 600;
+      color: #111827;
+    }
+
+    .pills {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      margin-top: 10px;
+    }
+
+    .pill {
+      font-size: 12px;
+      padding: 6px 10px;
+      border-radius: 999px;
+      border: 1px solid var(--border);
+      color: #374151;
+      background: #fafafa;
+    }
+
+    .panel ul {
+      margin: 0;
+      padding-left: 18px;
+      font-size: 12.5px;
+      line-height: 1.55;
+      color: #4b5563;
+    }
+
+    .panel li { margin-bottom: 6px; }
+
+    .section-title {
+      margin: 22px 0 10px;
+      font-size: 15px;
+      font-weight: 600;
+      color: var(--brand);
+    }
+
+    .card {
+      border-radius: 18px;
+      border: 1px solid var(--border);
+      overflow: hidden;
+      background: #ffffff;
+      box-shadow: var(--card-shadow);
+      margin-top: 14px;
+    }
+
+    .card-media {
+      height: 170px;
+      background-size: cover;
+      background-position: center;
+      background-repeat: no-repeat;
+      position: relative;
+    }
+
+    .card-media::before {
+      content: "";
+      position: absolute;
+      inset: 0;
+      background: linear-gradient(to top, rgba(0,0,0,0.35), rgba(0,0,0,0.08));
+      opacity: 0.85;
+    }
+
+    .card-body {
+      padding: 14px 16px 16px;
+    }
+
+    .card-text {
+      margin: 0 0 10px;
+      font-size: 12.8px;
+      line-height: 1.6;
+      color: #4b5563;
+      white-space: pre-line;
+    }
+
+    .meta-row {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      margin-top: 8px;
+    }
+
+    .meta {
+      font-size: 12px;
+      padding: 6px 10px;
+      border-radius: 999px;
+      border: 1px solid var(--border);
+      background: #ffffff;
+      color: #374151;
+    }
+
+    .meta strong { font-weight: 600; }
+
+    .link {
+      font-size: 13px;
+      color: var(--brand);
+      font-weight: 500;
+      text-decoration: underline;
+      cursor: pointer;
+    }
+
+    /* FAQ */
+    .faq {
+      margin-top: 22px;
+      border: 1px solid var(--border);
+      border-radius: 16px;
+      padding: 14px 16px;
+      background: #ffffff;
+      box-shadow: 0 10px 24px rgba(15,23,42,0.06);
+    }
+
+    details {
+      border-top: 1px solid var(--border);
+      padding: 10px 0;
+    }
+
+    details:first-of-type { border-top: none; padding-top: 0; }
+    summary {
+      cursor: pointer;
+      list-style: none;
+      font-size: 13px;
+      font-weight: 600;
+      color: #111827;
+    }
+
+    summary::-webkit-details-marker { display: none; }
+
+    .faq p {
+      margin: 8px 0 0;
+      font-size: 12.8px;
+      line-height: 1.6;
+      color: #4b5563;
+    }
+
+    /* Footer */
+    footer {
+      border-top: 1px solid var(--border);
+      padding: 14px 20px 22px;
+      font-size: 12px;
+      color: #6b7280;
+      text-align: center;
+      margin-top: auto;
+    }
+
+    footer a { color: inherit; text-decoration: underline; }
+
+    /* Responsive */
+    @media (max-width: 768px) {
+      .page { padding: 12px 16px 28px; }
+      .split { grid-template-columns: 1fr; }
+      .hero-inner { min-height: 260px; }
+      .card-media { height: 160px; }
+    }
+  </style>
+
+  <script type="application/ld+json">
+  {
+    "@context":"https://schema.org",
+    "@type":"FAQPage",
+    "mainEntity":[
+      {
+        "@type":"Question",
+        "name":"Is island hopping in Boracay worth it?",
+        "acceptedAnswer":{"@type":"Answer","text":"Yes, if you keep it simple. A short route with real swim time feels better than rushing a long checklist of stops."}
+      },
+      {
+        "@type":"Question",
+        "name":"What time should you start island hopping in Boracay?",
+        "acceptedAnswer":{"@type":"Answer","text":"Start early, ideally in the morning. Seas are calmer and you avoid the midday heat and crowd buildup."}
+      },
+      {
+        "@type":"Question",
+        "name":"How long is a Boracay island hopping tour?",
+        "acceptedAnswer":{"@type":"Answer","text":"Most tours run half-day. That is enough if the route is focused and you prioritize water time over too many stops."}
+      },
+      {
+        "@type":"Question",
+        "name":"What should you bring for island hopping?",
+        "acceptedAnswer":{"@type":"Answer","text":"A towel, dry bag, reef-safe sunscreen, water, snacks, and a light layer for boat wind. Keep valuables minimal."}
+      }
+    ]
+  }
+  </script>
+</head>
+
+<body>
+  <div class="page">
+    <header class="nav">
+      <div class="nav-left">
+        <a href="https://www.lolaelo.com" aria-label="Lolaelo home">
+          <img
+            src="https://www.lolaelo.com/logo.png?cb=logo-1x"
+            alt="Lolaelo"
+            class="logo-img"
+            decoding="async"
+            loading="eager"
+          >
+        </a>
+      </div>
+
+      <nav class="nav-right" aria-label="Primary">
+        <a class="nav-link nav-link-back" href="/destinations/boracay/index.html" aria-label="Back to Boracay guide">
+          <span class="nav-back-arrow">←</span>
+          <span>Boracay guide</span>
+        </a>
+      </nav>
+    </header>
+
+    <div class="crumbs" aria-label="Breadcrumb">
+      <a href="/index.html">Home</a>
+      <span class="sep">·</span>
+      <a href="/destinations.html">Destinations</a>
+      <span class="sep">·</span>
+      <a href="/destinations/boracay/index.html">Boracay</a>
+      <span class="sep">·</span>
+      <span>Island hopping</span>
+    </div>
+
+    <main class="content" role="main">
+      <section class="hero" aria-label="Island hopping in Boracay">
+        <div class="hero-inner">
+          <h1 class="hero-title">Island hopping in Boracay, simplified</h1>
+          <p class="hero-sub">
+            A clean half-day plan that prioritizes water time. Skip the long checklist. Do fewer stops well and you will feel the difference.
+          </p>
+          <div class="hero-actions">
+            <a class="btn btn-primary" href="https://lolaelo-api.onrender.com/catalog.html?q=boracay">Browse Boracay stays</a>
+            <a class="btn btn-secondary" href="#plan">Jump to the plan</a>
+            <a class="btn btn-ghost" href="/destinations/boracay/index.html">Back to Boracay</a>
+          </div>
+        </div>
+      </section>
+
+      <section class="intro" aria-label="Quick answer">
+        <h2>Quick answer</h2>
+        <p>
+Island hopping is worth it if you keep it simple. Go early, choose a short route, and prioritize swimming and floating time over collecting stops.
+A focused half-day feels better than a rushed full day.
+        </p>
+        <div class="pills" aria-label="Quick tags">
+          <span class="pill">Best time: morning</span>
+          <span class="pill">Trip length: half day</span>
+          <span class="pill">Effort: low</span>
+          <span class="pill">Good for: first-timers</span>
+        </div>
+      </section>
+
+      <section class="split" aria-label="What matters and what to avoid">
+        <div class="panel">
+          <h3>What matters</h3>
+          <ul>
+            <li><strong>Start early:</strong> calmer seas and less heat</li>
+            <li><strong>Route discipline:</strong> fewer stops, more water time</li>
+            <li><strong>Small group:</strong> faster transitions, less waiting</li>
+            <li><strong>Comfort gear:</strong> towel, dry bag, reef-safe sunscreen</li>
+          </ul>
+        </div>
+
+        <div class="panel">
+          <h3>What to avoid</h3>
+          <ul>
+            <li><strong>Too many stops:</strong> you spend the day boarding, not swimming</li>
+            <li><strong>Late starts:</strong> rougher water and hotter afternoons</li>
+            <li><strong>Overpacking:</strong> valuables and heavy bags ruin boat time</li>
+            <li><strong>Rushing:</strong> plan for one or two great water sessions</li>
+          </ul>
+        </div>
+      </section>
+
+      <h2 class="section-title" id="plan">A clean half-day plan</h2>
+
+      <section class="card" aria-label="Half-day flow">
+        <div class="card-media" style="background-image:url('/images/boracay/boracay-beach-white-sand.jpg');"></div>
+        <div class="card-body">
+          <p class="card-text">
+<strong>Step 1: 7:30 to 8:30 AM, depart and get to your first swim.</strong>
+Aim for a calm cove or a simple reef stop. The goal is not photos. The goal is water time.
+
+<strong>Step 2: 9:00 to 10:30 AM, do one main swim session.</strong>
+Pick one spot and stay long enough to actually relax. If you are hopping every 20 minutes, you are not hopping, you are commuting.
+
+<strong>Step 3: 10:30 to 11:30 AM, one light stop or beach reset.</strong>
+If the group is tired, skip the extra stop. A short, quiet beach moment is often the best part.
+
+<strong>Step 4: 12:00 PM, head back before the day gets heavy.</strong>
+You will return with energy instead of feeling cooked.
+          </p>
+
+          <div class="meta-row">
+            <span class="meta"><strong>Duration:</strong> 4 to 5 hrs</span>
+            <span class="meta"><strong>Best time:</strong> morning</span>
+            <span class="meta"><strong>Effort:</strong> low</span>
+            <span class="meta"><strong>Outcome:</strong> calm + water time</span>
+          </div>
+
+          <div class="meta-row" style="margin-top:10px;">
+            <a class="link" href="https://lolaelo-api.onrender.com/catalog.html?q=boracay">Stays that make early starts easier</a>
+          </div>
+        </div>
+      </section>
+
+      <h2 class="section-title">What to bring</h2>
+
+      <section class="split" aria-label="Packing and comfort">
+        <div class="panel">
+          <h3>Non-negotiables</h3>
+          <ul>
+            <li>Dry bag (or zip bag inside a tote)</li>
+            <li>Towel and a light change of clothes</li>
+            <li>Reef-safe sunscreen and sunglasses</li>
+            <li>Water and light snacks</li>
+          </ul>
+        </div>
+
+        <div class="panel">
+          <h3>Nice to have</h3>
+          <ul>
+            <li>Light layer for boat wind</li>
+            <li>Sea sickness meds if needed</li>
+            <li>Simple waterproof phone pouch</li>
+            <li>Cash for small add-ons</li>
+          </ul>
+        </div>
+      </section>
+
+      <section class="faq" aria-label="Island hopping FAQ">
+        <h2 class="section-title" style="margin:0 0 8px;">FAQ</h2>
+
+        <details>
+          <summary>Is island hopping worth it in Boracay?</summary>
+          <p>Yes if you keep it simple. A short route with real swim time feels better than a rushed checklist of stops.</p>
+        </details>
+
+        <details>
+          <summary>What time should you start?</summary>
+          <p>Morning. Seas are calmer and you avoid the heat and crowd buildup.</p>
+        </details>
+
+        <details>
+          <summary>How long should you plan for?</summary>
+          <p>Half-day is enough if the route is focused. Full-day can be great, but only if the pace stays relaxed.</p>
+        </details>
+
+        <details>
+          <summary>What should you bring?</summary>
+          <p>Dry bag, towel, reef-safe sunscreen, water, snacks, and keep valuables minimal.</p>
+        </details>
+      </section>
+    </main>
+  </div>
+
+  <footer>
+    © <span id="year"></span> Lolaelo ·
+    <a href="https://lolaelo-api.onrender.com/privacy.html" target="_blank" rel="noopener">Privacy</a>
+    <a href="https://lolaelo-api.onrender.com/terms.html" target="_blank" rel="noopener">Terms</a>
+  </footer>
+
+  <script>
+    document.getElementById("year").textContent = new Date().getFullYear();
+  </script>
+</body>
+</html>
