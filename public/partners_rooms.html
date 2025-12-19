@@ -3074,6 +3074,74 @@
     }
 
     el('edit-warn').style.display = 'none';
+    // ANCHOR: EDIT_MODAL_REQUIRED_HELPERS
+    function setEditWarn(msg){
+      const w = el('edit-warn');
+      if (!w) return;
+      if (msg) {
+        w.textContent = String(msg);
+        w.className = 'warn-msg';
+        w.style.display = 'block';
+      } else {
+        w.textContent = '';
+        w.style.display = 'none';
+      }
+    }
+
+    function parseMoneyStrict(v){
+      const s = String(v || '').trim();
+      if (!s) return NaN;
+      if (!/^(\d+)(\.\d{1,2})?$/.test(s)) return NaN;
+      const n = Number(s);
+      return Number.isFinite(n) ? n : NaN;
+    }
+
+    function validateModalRequired(){
+      const nameVal = (el('edit-name')?.value || '').trim();
+      const baseRaw = (el('edit-base')?.value || '').trim();
+      const maxRaw  = (el('edit-max')?.value ?? '').toString().trim();
+      const sqmRaw  = (el('edit-room-size-sqm')?.value || '').trim();
+      const sqftRaw = (el('edit-room-size-sqft')?.value || '').trim();
+
+      if (!nameVal) return { ok:false, msg:'Please fill out all required fields.' };
+      const baseN = parseMoneyStrict(baseRaw);
+      if (!Number.isFinite(baseN) || baseN <= 0) return { ok:false, msg:'Please fill out all required fields.' };
+
+      if (maxRaw === '') return { ok:false, msg:'Please fill out all required fields.' };
+      const maxN = Number(maxRaw);
+      if (!Number.isFinite(maxN) || maxN < 1) return { ok:false, msg:'Please fill out all required fields.' };
+
+      // Room size required: allow either sqm or sqft, but at least one must be > 0
+      const sqmN  = sqmRaw  ? Number(String(sqmRaw).replace(/,/g,''))  : NaN;
+      const sqftN = sqftRaw ? Number(String(sqftRaw).replace(/,/g,'')) : NaN;
+      const hasSize = (Number.isFinite(sqmN) && sqmN > 0) || (Number.isFinite(sqftN) && sqftN > 0);
+      if (!hasSize) return { ok:false, msg:'Please fill out all required fields.' };
+
+      return { ok:true, msg:'' };
+    }
+
+    function refreshEditSaveEnabled(){
+      const saveBtn = el('edit-save');
+      if (!saveBtn) return;
+      const v = validateModalRequired();
+      saveBtn.disabled = !v.ok;
+      if (v.ok) setEditWarn('');
+    }
+
+    // Live validation (keeps Save disabled until required fields are valid)
+    ['edit-name','edit-base','edit-max','edit-room-size-sqm','edit-room-size-sqft'].forEach(id=>{
+      const n = el(id);
+      if (n && !n.dataset.reqBound){
+        n.dataset.reqBound = '1';
+        n.addEventListener('input', refreshEditSaveEnabled);
+        n.addEventListener('change', refreshEditSaveEnabled);
+        n.addEventListener('blur', refreshEditSaveEnabled);
+      }
+    });
+
+    // Initial state
+    refreshEditSaveEnabled();
+
     m.classList.add('open');
 
     // Autofocus first field and prevent background scroll
@@ -3098,6 +3166,15 @@
     m.addEventListener('keydown', onKey);
 
     const onSave = async () => {
+
+      // ANCHOR: EDIT_MODAL_REQUIRED_GATE
+      const req = validateModalRequired();
+      if (!req.ok){
+        setEditWarn(req.msg || 'Please fill out all required fields.');
+        refreshEditSaveEnabled();
+        return;
+      }
+
       const nameVal   = el('edit-name').value.trim();
       const baseVal   = el('edit-base').value.trim();
       const maxValStr = (el('edit-max')?.value ?? '').trim();
@@ -3260,7 +3337,14 @@
       document.body.style.overflow = prevOverflow;
     };
 
-    el('edit-save').addEventListener('click', onSave, { once:true });
+    // ANCHOR: EDIT_SAVE_WIRE_NO_ONCE
+    const saveBtn = el('edit-save');
+    if (saveBtn){
+      // prevent duplicate handlers across repeated opens
+      if (saveBtn._onSaveRef) saveBtn.removeEventListener('click', saveBtn._onSaveRef);
+      saveBtn._onSaveRef = onSave;
+      saveBtn.addEventListener('click', onSave);
+    }
   }
 
   el('edit-cancel').addEventListener('click', ()=>{
