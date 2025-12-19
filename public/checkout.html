@@ -4487,36 +4487,6 @@
       // Keep these for apply/URL update
       const applyBtn     = document.getElementById("checkout-dates-apply");
 
-      // ANCHOR: CHECKOUT_DATES_APPLY_WIRE
-      if (applyBtn && !applyBtn.dataset.wiredDates) {
-        applyBtn.dataset.wiredDates = "1";
-
-        applyBtn.addEventListener("click", function () {
-          // Prefer flatpickr selection if present
-          const fp = rangeDriver && rangeDriver._checkoutFp ? rangeDriver._checkoutFp : null;
-          const sel = fp && fp.selectedDates ? fp.selectedDates : [];
-
-          const s = sel[0] || parseLocalYMD(state.start) || null;
-          let   e = sel[1] || parseLocalYMD(state.end)   || null;
-
-          if (!s) return;
-
-          if (!e || e <= s) {
-            e = new Date(s.getTime());
-            e.setDate(s.getDate() + 1);
-          }
-
-          const finalStart = formatLocalYmd(s);
-          const finalEnd   = formatLocalYmd(e);
-
-          const qsNext = new URLSearchParams(location.search);
-          qsNext.set("start", finalStart);
-          qsNext.set("end", finalEnd);
-
-          location.assign(`${location.pathname}?${qsNext.toString()}`);
-        });
-      }
-
       // Helper: format a Date as local YYYY-MM-DD (no timezone shift)
       function formatLocalYmd(d) {
         const y  = d.getFullYear();
@@ -4543,25 +4513,6 @@
         }
       }
     
-      // --- Edit dates: single authoritative click handler (prevents double-wiring) ---
-      const editDatesLink = document.getElementById("editDatesLink");
-      if (editDatesLink && datesCardWrapper) {
-        // Kill any previous listeners by cloning the node (prevents "click cancels itself")
-        const fresh = editDatesLink.cloneNode(true);
-        editDatesLink.parentNode.replaceChild(fresh, editDatesLink);
-
-        fresh.addEventListener("click", function (e) {
-          e.preventDefault();
-
-          // Show the date card reliably
-          datesCardWrapper.classList.remove("hidden");
-          datesCardWrapper.style.display = "flex";
-
-          // Optional: scroll into view so it feels responsive
-          try { datesCardWrapper.scrollIntoView({ behavior: "smooth", block: "nearest" }); } catch (_) {}
-        });
-      }
-
       // Bail if required elements aren’t present
       if (rangeDriver && displayBtn && applyBtn && window.flatpickr) {
         // Prevent double-init
@@ -4666,6 +4617,7 @@
           // Apply button: read from flatpickr selection, normalize, then reload URL
           applyBtn.addEventListener("click", function (e) {
             e.preventDefault();
+            const qsNext = new URLSearchParams(location.search);
 
             console.log("[checkout][dates] apply click");
 
@@ -4739,11 +4691,17 @@
               qsNext.set("qty",        String(active.qty || 1));
             }
 
-            // After apply, hide the date card
-            const wrap = document.getElementById("checkoutDatesCardWrapper");
+            // Hide the wrapper inside the active card (we move it per-card in cart mode)
+            const activeLineId = state.activeLineIdForDates;
+            const activeCard = activeLineId
+              ? document.querySelector(`.dates-grid[data-lineid="${String(activeLineId)}"]`)
+              : null;
+            const wrap = activeCard
+              ? activeCard.querySelector('[data-orig-id="checkoutDatesCardWrapper"], #checkoutDatesCardWrapper')
+              : document.getElementById("checkoutDatesCardWrapper");
+
             if (wrap) wrap.classList.add("hidden");
 
-            const qsNext = new URLSearchParams(location.search);
             qsNext.set("start", finalStart);
             qsNext.set("end", finalEnd);
 
