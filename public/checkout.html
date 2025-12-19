@@ -1140,9 +1140,11 @@
     gap: 10px;
   }
 
-  /* hide old native date fields (keep them in DOM for your existing apply logic) */
-  #checkout-date-bar .detail-date-field{
-    display: none;
+  /* ANCHOR: CHECKOUT_DATES_HIDE_NATIVE_FIELDS */
+  /* Hide the legacy native date inputs in the date card (template + clones).
+     Keep them in the DOM for any existing apply logic. */
+  .dates-grid .detail-date-field{
+    display: none !important;
   }
 
   /* flatpickr driver stays invisible */
