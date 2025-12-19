@@ -817,7 +817,7 @@
         </div>
         <div class="row">
           <label for="edit-base" class="muted">Base price (USD)</label>
-          <input id="edit-base" class="input" inputmode="decimal" autocomplete="off" />
+          <input id="edit-base" class="input" inputmode="decimal" autocomplete="off" required />
         </div>
         <div class="row">
           <label for="edit-max" class="muted">Max capacity</label>
@@ -3183,10 +3183,41 @@
 
       if (nameVal && nameVal !== rt.name) payload.name = nameVal;
 
-      if (baseVal !== "") {
-        const n = Number(baseVal);
-        if (!Number.isFinite(n) || n < 0) { setStatus("Base price must be a non-negative number.","error"); return; }
-        if (Number(rt.basePrice) !== n) payload.basePrice = n.toFixed(2);
+      // Base price is REQUIRED and must be > 0
+      if (baseVal === "") {
+        setStatus("Base price is required (USD).", "error");
+        return;
+      }
+      const n = Number(baseVal);
+      if (!Number.isFinite(n) || n <= 0) {
+        setStatus("Base price must be greater than 0 (USD).", "error");
+        return;
+      }
+      const nextBaseFixed = n.toFixed(2);
+      if (String(rt.basePrice ?? "") !== nextBaseFixed) payload.basePrice = nextBaseFixed;
+      // ANCHOR: BASEPRICE_OVERWRITE_STAGE
+      if (payload.basePrice) {
+        // If there are any non-empty tile prices visible, warn the user
+        let hasAnyPrices = false;
+        try {
+          const inputs = document.querySelectorAll('#cal-grid input[data-kind="price"]');
+          hasAnyPrices = Array.from(inputs).some(x => String(x.value || '').trim() !== '');
+        } catch (_) {}
+
+        if (hasAnyPrices) {
+          const ok = confirm(
+            "Warning: Saving this base price will overwrite ALL visible day prices for this room in the current calendar window. Continue?"
+          );
+          if (!ok) return;
+        }
+
+        // Stage overwrite for Save changes
+        window.__pendingBasePriceOverwrite = window.__pendingBasePriceOverwrite || {};
+        window.__pendingBasePriceOverwrite[String(rt.id)] = {
+          basePrice: String(payload.basePrice),
+          start: String(currentRangeStart || el("range-start")?.value || ""),
+          end:   String(currentRangeEnd   || el("range-end")?.value   || "")
+        };
       }
 
       if (!Number.isNaN(maxVal)) {
@@ -3259,6 +3290,14 @@
     const res = await authFetch("/extranet/property/rooms");
     if (!res.ok){ setStatus("Failed to load rooms ("+res.status+")","error"); return; }
     const data = await res.json();
+    // ANCHOR: ROOMS_BY_ID_CACHE
+    try {
+      window.__roomsById = window.__roomsById || {};
+      (Array.isArray(data) ? data : []).forEach(r => {
+        if (r && r.id != null) window.__roomsById[String(r.id)] = r;
+      });
+    } catch (_) {}
+
     data.sort((a,b)=>String(a.name).localeCompare(String(b.name), undefined, {sensitivity:'base'}));
     if (!Array.isArray(data)) return;
 
@@ -3388,7 +3427,7 @@
       let p = prompt("Base price in USD (e.g., 129.00):") || "";
       p = p.replace(/[^0-9.]/g,"");
       const basePrice = Number(p);
-      if (!Number.isFinite(basePrice) || basePrice < 0){ setStatus("Enter a valid non-negative price.","error"); return; }
+      if (!Number.isFinite(basePrice) || basePrice <= 0){ setStatus("Enter a valid price greater than 0.","error"); return; }
 
       disableWhileBusy(true);
       const res = await authFetch("/extranet/property/rooms", {
@@ -4147,7 +4186,15 @@
           <span class="tag">Price</span>
           <div class="money">
             <span class="prefix">$</span>
-            <input type="text" value="${prc ? Number(prc.price).toFixed(2) : ""}" data-date="${d}" data-kind="price">
+            <input type="text"
+              value="${(() => {
+                const p = prc ? Number(prc.price) : NaN;
+                if (Number.isFinite(p)) return p.toFixed(2);
+                const rt = window.__roomsById ? window.__roomsById[String(currentRoomTypeId)] : null;
+                const b  = rt ? Number(rt.basePrice) : NaN;
+                return (Number.isFinite(b) && b > 0) ? b.toFixed(2) : "";
+              })()}"
+              data-date="${d}" data-kind="price">
           </div>
         </div>
 
@@ -4588,6 +4635,49 @@
   // Save (grid edits)
   el("save").addEventListener("click", async ()=>{
     const hasRoomEdits = pendingRoomUpdates.size > 0;
+      // ANCHOR: BASEPRICE_OVERWRITE_APPLY
+      if (window.__pendingBasePriceOverwrite) {
+        for (const [ridStr, cfg] of Object.entries(window.__pendingBasePriceOverwrite)) {
+          const rid = Number(ridStr);
+          if (!Number.isFinite(rid) || !cfg) continue;
+
+          const start = String(cfg.start || "");
+          const end   = String(cfg.end   || "");
+          const priceFixed = String(cfg.basePrice || "").trim();
+
+          if (!start || !end || !priceFixed) continue;
+
+          // Resolve the Standard plan id for this room, then bulk write prices for the visible window
+          let stdPlanId = null;
+          try {
+            const plans = await fetchRatePlansSafe(rid);
+            const std = (Array.isArray(plans) ? plans : []).find(p => String(p.code || '').toUpperCase() === 'STD');
+            const n = Number(std && std.id);
+            stdPlanId = Number.isFinite(n) ? n : null;
+          } catch (_) {}
+          if (!Number.isFinite(stdPlanId)) stdPlanId = Number(window.currentRatePlanId || 1) || 1;
+
+          // Build date list for current window
+          const ONE_DAY = 86400000;
+          const dates = [];
+          {
+            const s = new Date(start + "T00:00:00Z");
+            const e = new Date(end   + "T00:00:00Z");
+            for (let d = new Date(s); d <= e; d = new Date(d.getTime() + ONE_DAY)) dates.push(iso(d));
+          }
+
+          const nPrice = Number(priceFixed);
+          const items = dates.map(d => ({ date: d, price: Math.round(nPrice * 100) / 100, ratePlanId: stdPlanId }));
+
+          const prcUrl = `/extranet/property/rooms/${rid}/prices/bulk`;
+          const r = await authFetch(prcUrl, { method: "POST", body: JSON.stringify({ items }) });
+          if (!r.ok) throw new Error(`Base price overwrite failed for room ${rid} (${r.status})`);
+        }
+
+        // Clear staged overwrites once applied
+        window.__pendingBasePriceOverwrite = {};
+      }
+
     const hasGridEdits = dirty.size > 0;
     const invalidCount = document.querySelectorAll('.chip input.error').length;
     if (invalidCount > 0){ setStatus(`Fix ${invalidCount} invalid field${invalidCount>1?'s':''} before saving.`,"error"); return; }
