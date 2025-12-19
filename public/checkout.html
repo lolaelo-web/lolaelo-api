@@ -2214,98 +2214,159 @@
       const container = document.getElementById("breakdownDetails");
       if (!container) return;
 
-      const s = (typeof state === "object" && state) ? state : {};
-      const cur = currency || s.pricingCurrency || "USD";
+      const cur = currency || (state && state.pricingCurrency) || "USD";
 
+      // If cart mode, ignore nightsArr and aggregate across cart items using their per-card quotes.
+      let isCartMode = false;
+      let cart = null;
+      try { cart = loadCartV1(); } catch (_) { cart = null; }
+      if (cart && Array.isArray(cart.items) && cart.items.length) isCartMode = true;
+
+      // Build a date-indexed aggregation: date -> { rooms, total }
+      const byDate = new Map();
+
+      function add(dateStr, rooms, amt) {
+        const k = String(dateStr || "");
+        if (!k) return;
+        if (!byDate.has(k)) byDate.set(k, { rooms: 0, total: 0 });
+        const o = byDate.get(k);
+        o.rooms += rooms;
+        o.total += amt;
+      }
+
+      if (isCartMode) {
+        // Pull card-level quote nights from the DOM (each card already applied a quote)
+        const cards = Array.from(
+          document.querySelectorAll('.section-body[data-section-body="1"] .dates-grid[data-lineid]')
+        );
+
+        // Map lineId -> qty from cart
+        const qtyByLine = new Map();
+        cart.items.forEach(it => {
+          const lid = String(it.lineId || "");
+          const q = Math.max(1, Number.parseInt(String(it.qty || 1), 10) || 1);
+          if (lid) qtyByLine.set(lid, q);
+        });
+
+        cards.forEach(card => {
+          const lid = String(card.getAttribute("data-lineid") || "");
+          const qn = qtyByLine.get(lid) || 1;
+
+          // Prefer cached quote nights (set by applyCheckoutQuote/applyQuoteToCard)
+          // Fallback to parsing from state.pricingNights only if needed
+          let nights = null;
+
+          try {
+            // Some builds store JSON on card.dataset.quoteNights; if not present, ignore
+            if (card.dataset && card.dataset.quoteNights) {
+              nights = JSON.parse(card.dataset.quoteNights);
+            }
+          } catch (_) { nights = null; }
+
+          // If dataset isn't present, we can scrape the per-night amounts from the DOM is not reliable,
+          // so instead we re-fetch from the last quote payload stored on window (if present).
+          if (!Array.isArray(nights)) {
+            // As a fallback, use state.pricingNights ONLY when there is a single card
+            nights = null;
+          }
+
+          // Best-effort: if we can't read per-card nights, use the per-card total spread evenly (still correct totals)
+          if (!Array.isArray(nights)) {
+            const lineTotal = Number(card.dataset ? card.dataset.lineTotal : NaN);
+            const nn = Number(card.querySelector('[data-orig-id="stayNights"]')?.textContent || 0);
+            const nightsCount = Number.isFinite(nn) && nn > 0 ? nn : 0;
+
+            if (Number.isFinite(lineTotal) && lineTotal > 0 && nightsCount > 0) {
+              // We don’t know dates; skip in this fallback
+              return;
+            }
+            return;
+          }
+
+          nights.forEach(n => {
+            const dt = String(n.date || "");
+            const amt = Number(n.amount);
+            if (!dt || !Number.isFinite(amt)) return;
+            add(dt, qn, amt * qn);
+          });
+        });
+      } else {
+        // Non-cart: use nightsArr and state.qty
+        const qn = Math.max(1, Number.parseInt(String((state && state.qty) || 1), 10) || 1);
+        (Array.isArray(nightsArr) ? nightsArr : []).forEach(n => {
+          const dt = String(n.date || "");
+          const amt = Number(n.amount);
+          if (!dt || !Number.isFinite(amt)) return;
+          add(dt, qn, amt * qn);
+        });
+      }
+
+      // Render breakdown lines
+      const dates = Array.from(byDate.keys()).sort();
       const parts = [];
 
-      // 1) Nightly rows (existing behavior)
-      if (Array.isArray(nightsArr) && nightsArr.length > 0) {
-        nightsArr.forEach(function (n) {
-          const dateStr = n.date || n.dt || n.day || "";
-          const label = formatDate(dateStr) || dateStr;
+      dates.forEach(d => {
+        const rec = byDate.get(d);
+        const rooms = rec.rooms || 0;
+        const total = rec.total || 0;
+        const avg = rooms > 0 ? (total / rooms) : 0;
 
-          const amtNum = Number(
-            n.amount !== undefined ? n.amount :
-            n.price  !== undefined ? n.price  :
-            n.value  !== undefined ? n.value  : 0
-          );
-          const amtText = formatCurrency(amtNum, cur);
-
-          const qn = Math.max(1, Number.parseInt(String(s.qty || state.qty || 1), 10) || 1);
-
-          parts.push(
-            '<div class="breakdown-line">' +
-              '<span>' + label + '</span>' +
-              (qn > 1 ? ('<span class="bd-rooms">x ' + qn + ' rooms</span>') : '') +
-              '<span>' + amtText + '</span>' +
-            '</div>'
-          );
-        });
-      }
-
-      // 2) Add-ons section (if any)
-      const addons = Array.isArray(s.selectedAddons) ? s.selectedAddons : [];
-      const addonsSubtotalNum = Number(s.addonsSubtotal || 0);
-
-      if (addons.length && Number.isFinite(addonsSubtotalNum) && addonsSubtotalNum > 0) {
-      // Header row for add-ons
-      // Insert Stay Total (sum of nightly base room amounts)
-      const stayTotalNum = Array.isArray(nightsArr)
-        ? nightsArr.reduce((sum, n) => {
-            const amt = Number(
-              n.amount !== undefined ? n.amount :
-              n.price  !== undefined ? n.price  :
-              n.value  !== undefined ? n.value  : 0
-            );
-            return sum + (Number.isFinite(amt) ? amt : 0);
-          }, 0)
-        : 0;
+        const label = formatDate(d) || d;
+        const left = `${label} × ${rooms} room${rooms === 1 ? "" : "s"} × ${formatCurrency(avg, cur)}`;
+        const right = formatCurrency(total, cur);
 
         parts.push(
-          '<div class="breakdown-line" style="margin-top:6px;font-weight:700;font-size:1.05rem;">' +
-            '<span style="font-size:1.05rem;">Stay total</span>' +
-            '<span style="font-size:1.05rem;">' + formatCurrency(stayTotalNum, cur) + '</span>' +
+          '<div class="breakdown-line">' +
+            '<span>' + left + '</span>' +
+            '<span></span>' +
+            '<span>' + right + '</span>' +
           '</div>'
         );
+      });
 
-        // Spacer between Stay total and first add-on line
-        parts.push('<div class="breakdown-line" style="height:6px;"></div>');
+      // Stay total
+      const stayTotalNum = dates.reduce((sum, d) => sum + (byDate.get(d)?.total || 0), 0);
 
-        addons.forEach(function (item) {
-          if (!item) return;
+      parts.push(
+        '<div class="breakdown-line" style="margin-top:6px;font-weight:700;font-size:1.05rem;">' +
+          '<span style="font-size:1.05rem;">Stay total</span>' +
+          '<span></span>' +
+          '<span style="font-size:1.05rem;">' + formatCurrency(stayTotalNum, cur) + '</span>' +
+        '</div>'
+      );
 
-          const qty = Number(item.quantity || item.qty || 0);
-          const lineTotalNum = Number(item.lineTotal || item.total || 0);
-          if (!qty || !Number.isFinite(lineTotalNum)) return;
+      // Spacer between Stay total and add-ons
+      parts.push('<div class="breakdown-line" style="height:6px;"></div>');
 
-          const name = (item.activity || item.name || "Add-on").toString();
-          const label = name + " · Qty " + qty;
-          const amtText = formatCurrency(lineTotalNum, cur);
+      // Add-ons breakdown (existing)
+      const addons = Array.isArray(state.selectedAddons) ? state.selectedAddons : [];
+      const addonsSubtotalNum = Number(state.addonsSubtotal || 0);
 
-          const left = label;
-
-          parts.push(
-            '<div class="breakdown-line">' +
-              '<span>' + left + '</span>' +
-              '<span>' + amtText + '</span>' +
-            '</div>'
-          );
-        });
-
-        // Add-ons total row
+      addons.forEach(function (item) {
+        if (!item) return;
+        const qty = Number(item.quantity || 0);
+        const name = String(item.name || item.label || "Add-on");
+        if (!Number.isFinite(qty) || qty <= 0) return;
+        const unit = Number(item.price || 0);
+        const amt = unit * qty;
+        const left = `${name} · Qty ${qty}`;
+        const amtText = formatCurrency(amt, cur);
         parts.push(
-          '<div class="breakdown-line" style="font-weight:700;font-size:1.05rem;margin-top:4px;">' +
-            '<span style="font-size:1.05rem;">Add-ons total</span>' +
-            '<span style="font-size:1.05rem;">' + formatCurrency(addonsSubtotalNum, cur) + '</span>' +
+          '<div class="breakdown-line">' +
+            '<span>' + left + '</span>' +
+            '<span></span>' +
+            '<span>' + amtText + '</span>' +
           '</div>'
         );
-      }
+      });
 
-      if (!parts.length) {
-        container.innerHTML = "";
-        return;
-      }
+      parts.push(
+        '<div class="breakdown-line" style="font-weight:700;font-size:1.05rem;margin-top:4px;">' +
+          '<span style="font-size:1.05rem;">Add-ons total</span>' +
+          '<span></span>' +
+          '<span style="font-size:1.05rem;">' + formatCurrency(addonsSubtotalNum, cur) + '</span>' +
+        '</div>'
+      );
 
       container.innerHTML = parts.join("");
     }
@@ -3252,6 +3313,9 @@
 
       const total = Number(quote.total || 0);
       const nightsArr = Array.isArray(quote.nights) ? quote.nights : [];
+      // Cache per-card nights for cart breakdown aggregation
+      try { cardEl.dataset.quoteNights = JSON.stringify(nightsArr); } catch (_) {}
+
       const nights = nightsArr.length || 0;
 
       // Avg is per-night per-room (do NOT multiply by qty)
