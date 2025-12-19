@@ -270,6 +270,28 @@
       line-height: 1.6;
     }
 
+    .btn {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      border-radius: 999px;
+      padding: 10px 14px;
+      border: 1px solid var(--border);
+      background: #ffffff;
+      font-size: 13px;
+      font-weight: 600;
+      cursor: pointer;
+      white-space: nowrap;
+    }
+
+    .btn-primary {
+      background: var(--accent);
+      border-color: var(--accent);
+      color: #ffffff;
+      box-shadow: 0 10px 22px rgba(248, 113, 73, 0.45);
+    }
+
     footer.site-footer {
       border-top: 1px solid var(--border);
       padding: 14px 20px 22px;
@@ -468,9 +490,9 @@
           <div class="next-row">
             <div class="t">For potential investors</div>
             <div class="d">
-              For those interested in supporting Lolaelo at an early stage, we’ve put together a brief overview of how we’re building and where we’re headed.
+              For those interested in supporting Lolaelo at an early stage, we have put together a brief overview of how we are building and where we are headed.
             </div>
-            <a class="btn-outline" href="/investors.html">View investor overview</a>
+            <a class="btn btn-primary" href="/investors.html">View investor overview</a>
           </div>
         </div>
       </section>
