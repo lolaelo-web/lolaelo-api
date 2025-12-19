@@ -4388,6 +4388,180 @@
         });
       })();
 
+      // ANCHOR: CHECKOUT_DATES_DELEGATE_WIRE
+      if (!window.__checkoutDatesDelegated) {
+        window.__checkoutDatesDelegated = true;
+
+        function resolveDatesCtxFromCard(card) {
+          if (!card) return null;
+
+          const wrap =
+            card.querySelector('[data-orig-id="checkoutDatesCardWrapper"], #checkoutDatesCardWrapper');
+
+          const rangeDriver =
+            card.querySelector('[data-orig-id="checkout-dates-driver"], #checkout-dates-driver, .checkout-dates-driver');
+
+          const displayBtn =
+            card.querySelector('[data-orig-id="checkout-dates-display"], #checkout-dates-display, .checkout-dates-display');
+
+          const displayLabel =
+            card.querySelector('[data-orig-id="checkout-dates-display-label"], #checkout-dates-display-label');
+
+          const applyBtn =
+            card.querySelector('[data-orig-id="checkout-dates-apply"], #checkout-dates-apply, button[id^="checkout-dates-apply__li"]');
+
+          return { wrap, rangeDriver, displayBtn, displayLabel, applyBtn };
+        }
+
+        function getActiveCardForDates() {
+          const lineId = state && state.activeLineIdForDates ? String(state.activeLineIdForDates) : "";
+          if (lineId) {
+            const c = document.querySelector(`.dates-grid[data-lineid="${lineId}"]`);
+            if (c) return c;
+          }
+          // fallback: first card
+          return document.querySelector(".dates-grid");
+        }
+
+        document.addEventListener("click", function (e) {
+          const pill = e.target && e.target.closest
+            ? e.target.closest('.checkout-dates-display, #checkout-dates-display, [data-orig-id="checkout-dates-display"]')
+            : null;
+
+          if (!pill) return;
+
+          const card = pill.closest(".dates-grid") || getActiveCardForDates();
+          const ctx = resolveDatesCtxFromCard(card);
+          if (!ctx || !ctx.rangeDriver || !ctx.displayBtn) return;
+
+          e.preventDefault();
+
+          if (typeof window.flatpickr !== "function") return;
+
+          // Seed dates from the active cart line (preferred) or state fallback
+          let seedStart = state && state.start ? parseLocalYMD(state.start) : null;
+          let seedEnd   = state && state.end   ? parseLocalYMD(state.end)   : null;
+
+          try {
+            const lineId = state && state.activeLineIdForDates ? String(state.activeLineIdForDates) : null;
+            const cartNow = loadCartV1();
+            if (lineId && cartNow && Array.isArray(cartNow.items)) {
+              const it = cartNow.items.find(x => String(x && x.lineId) === lineId);
+              if (it) {
+                seedStart = parseLocalYMD(String(it.start || "")) || seedStart;
+                seedEnd   = parseLocalYMD(String(it.end || ""))   || seedEnd;
+              }
+            }
+          } catch (_) {}
+
+          // init once per driver
+          if (!ctx.rangeDriver._checkoutFp) {
+            ctx.rangeDriver._checkoutFp = flatpickr(ctx.rangeDriver, {
+              mode: "range",
+              dateFormat: "Y-m-d",
+              allowInput: false,
+              clickOpens: false,
+              closeOnSelect: false,
+              enableTime: false,
+              positionElement: ctx.displayBtn,
+              appendTo: ctx.wrap || document.body,
+              defaultDate: (seedStart && seedEnd)
+                ? [formatLocalYmd(seedStart), formatLocalYmd(seedEnd)]
+                : (seedStart ? [formatLocalYmd(seedStart)] : null),
+              onChange: function (selectedDates) {
+                const s = selectedDates && selectedDates[0] ? selectedDates[0] : null;
+                const ee = selectedDates && selectedDates[1] ? selectedDates[1] : null;
+                if (typeof setDisplayText === "function") setDisplayText(s, ee);
+              }
+            });
+          }
+
+          if (ctx.rangeDriver._checkoutFp && typeof ctx.rangeDriver._checkoutFp.open === "function") {
+            ctx.rangeDriver._checkoutFp.open();
+          }
+        }, true);
+
+        document.addEventListener("click", function (e) {
+          const btn = e.target && e.target.closest
+            ? e.target.closest('#checkout-dates-apply, [data-orig-id="checkout-dates-apply"], button[id^="checkout-dates-apply__li"]')
+            : null;
+
+          if (!btn) return;
+
+          const card = btn.closest(".dates-grid") || getActiveCardForDates();
+          const ctx = resolveDatesCtxFromCard(card);
+          if (!ctx) return;
+
+          e.preventDefault();
+
+          const fp = ctx.rangeDriver && ctx.rangeDriver._checkoutFp ? ctx.rangeDriver._checkoutFp : null;
+          const sel = (fp && Array.isArray(fp.selectedDates)) ? fp.selectedDates : [];
+
+          const s = sel[0] || parseLocalYMD(state.start) || null;
+          let endDate = sel[1] || parseLocalYMD(state.end) || null;
+
+          if (!s) return;
+
+          if (!endDate || endDate <= s) {
+            endDate = new Date(s.getTime());
+            endDate.setDate(s.getDate() + 1);
+          }
+
+          const finalStart = formatLocalYmd(s);
+          const finalEnd   = formatLocalYmd(endDate);
+
+          const lineId = state.activeLineIdForDates ? String(state.activeLineIdForDates) : null;
+          if (!lineId) return;
+
+          const cartNow = loadCartV1();
+          if (!cartNow || !Array.isArray(cartNow.items)) return;
+
+          const idx = cartNow.items.findIndex(it => String(it && it.lineId) === lineId);
+          if (idx < 0) return;
+
+          const proposed = cartNow.items.map(x => Object.assign({}, x));
+          proposed[idx].start = finalStart;
+          proposed[idx].end   = finalEnd;
+
+          // keep your continuity rule intact (same as existing block)
+          function dayNum(ymd) {
+            if (!ymd || typeof ymd !== "string") return Number.MAX_SAFE_INTEGER;
+            const p = ymd.split("-");
+            if (p.length !== 3) return Number.MAX_SAFE_INTEGER;
+            return (Number(p[0]) * 10000) + (Number(p[1]) * 100) + Number(p[2]);
+          }
+          const sorted = proposed.slice().sort((a,b) => dayNum(a.start) - dayNum(b.start) || dayNum(a.end) - dayNum(b.end));
+          for (let i = 1; i < sorted.length; i++) {
+            const prevEnd = dayNum(sorted[i - 1].end);
+            const curStart = dayNum(sorted[i].start);
+            if (curStart > prevEnd) {
+              alert("This checkout supports one trip at a time. Dates must be continuous or back-to-back (no gaps).");
+              return;
+            }
+          }
+
+          cartNow.items = proposed;
+          saveCartV1(cartNow);
+
+          // hide wrapper in the active card
+          if (ctx.wrap) ctx.wrap.classList.add("hidden");
+
+          const qsNext = new URLSearchParams(location.search);
+          qsNext.set("start", finalStart);
+          qsNext.set("end", finalEnd);
+
+          const active = cartNow.items[idx];
+          if (active) {
+            qsNext.set("propertyId", String(active.propertyId || ""));
+            qsNext.set("roomId",     String(active.roomTypeId || ""));
+            qsNext.set("ratePlanId", String(active.ratePlanId || ""));
+            qsNext.set("qty",        String(active.qty || 1));
+          }
+
+          location.assign(`${location.pathname}?${qsNext.toString()}`);
+        }, true);
+      }
+
       document.querySelectorAll("[data-confirm]").forEach(function (btn) {
         btn.addEventListener("click", function () {
           const section = Number(btn.getAttribute("data-confirm"));
