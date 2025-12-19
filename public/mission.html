@@ -1,0 +1,352 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Lolaelo | Mission and Vision</title>
+  <link rel="icon" href="/logo2.png" />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+
+  <style>
+    :root {
+      --bg: #ffffff;
+      --fg: #111827;
+      --muted: #6b7280;
+      --brand: #064e3b;
+      --accent: #ff6a3d;
+      --border: #e5e7eb;
+      --max: 960px;
+      --radius: 18px;
+    }
+
+    * { box-sizing: border-box; }
+    html, body { margin: 0; padding: 0; height: 100%; }
+    body {
+      font-family: Inter, ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+      background: var(--bg);
+      color: var(--fg);
+      display: flex;
+      flex-direction: column;
+      min-height: 100vh;
+    }
+
+    a { color: inherit; text-decoration: none; }
+    a:hover { text-decoration: underline; }
+
+    .page {
+      width: 100%;
+      max-width: var(--max);
+      margin: 0 auto;
+      padding: 16px 20px 40px;
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      gap: 18px;
+    }
+
+    header.nav {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 4px 0 12px;
+    }
+
+    .nav-left { display: flex; align-items: center; gap: 10px; }
+    .logo-img { height: 32px; width: auto; display: block; }
+
+    .nav-right { display: flex; gap: 18px; font-size: 14px; }
+    .nav-link { color: var(--brand); font-weight: 500; padding: 4px 0; }
+
+    .card {
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      background: #fff;
+      box-shadow: 0 18px 45px rgba(15, 23, 42, 0.06);
+      padding: 22px 22px;
+    }
+
+    .kicker {
+      display: inline-flex;
+      align-items: center;
+      gap: 10px;
+      font-size: 12px;
+      font-weight: 600;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      color: var(--brand);
+      margin-bottom: 10px;
+    }
+
+    .kicker .dot {
+      width: 8px;
+      height: 8px;
+      border-radius: 999px;
+      background: var(--accent);
+      display: inline-block;
+    }
+
+    h1 {
+      margin: 0 0 8px;
+      font-size: clamp(28px, 3.4vw, 40px);
+      line-height: 1.15;
+      color: var(--brand);
+      font-weight: 600;
+    }
+
+    .subhead {
+      margin: 0 0 18px;
+      color: var(--muted);
+      font-size: 15px;
+      line-height: 1.6;
+    }
+
+    .meta {
+      display: flex;
+      gap: 10px;
+      flex-wrap: wrap;
+      margin: 14px 0 18px;
+      color: var(--muted);
+      font-size: 13px;
+    }
+
+    .pill {
+      display: inline-flex;
+      align-items: center;
+      border: 1px solid var(--border);
+      border-radius: 999px;
+      padding: 6px 10px;
+      background: #f9fafb;
+      gap: 8px;
+    }
+
+    .letter {
+      font-size: 15px;
+      line-height: 1.75;
+      color: #111827;
+    }
+
+    .letter h2 {
+      margin: 18px 0 8px;
+      font-size: 16px;
+      color: var(--brand);
+      font-weight: 600;
+    }
+
+    .letter p { margin: 0 0 14px; }
+
+    .callout {
+      border-left: 4px solid var(--accent);
+      padding: 10px 12px;
+      background: rgba(255, 106, 61, 0.06);
+      border-radius: 10px;
+      margin: 14px 0 18px;
+      color: #1f2937;
+    }
+
+    ul.clean {
+      margin: 0 0 14px 18px;
+      padding: 0;
+    }
+    ul.clean li { margin: 6px 0; }
+
+    .signature {
+      margin-top: 18px;
+      padding-top: 14px;
+      border-top: 1px solid var(--border);
+      display: flex;
+      flex-direction: column;
+      gap: 2px;
+    }
+
+    .sig-name {
+      font-weight: 600;
+      color: #111827;
+    }
+
+    .sig-title {
+      font-size: 13px;
+      color: var(--muted);
+    }
+
+    .next {
+      margin-top: 18px;
+      display: grid;
+      grid-template-columns: 1fr;
+      gap: 10px;
+    }
+
+    .next .row {
+      border: 1px solid var(--border);
+      border-radius: 14px;
+      padding: 12px 12px;
+      background: #ffffff;
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+    }
+
+    .next .row .t {
+      font-weight: 600;
+      color: var(--brand);
+      font-size: 13px;
+    }
+
+    .next .row .d {
+      color: var(--muted);
+      font-size: 13px;
+      line-height: 1.6;
+    }
+
+    footer.site-footer {
+      border-top: 1px solid var(--border);
+      padding: 14px 20px 22px;
+      font-size: 12px;
+      color: #6b7280;
+      text-align: center;
+      margin-top: auto;
+    }
+    footer.site-footer a { text-decoration: underline; }
+
+    @media (max-width: 768px) {
+      .page { padding: 12px 16px 32px; }
+      .card { padding: 18px 16px; }
+    }
+  </style>
+</head>
+
+<body>
+  <div class="page">
+    <header class="nav">
+      <div class="nav-left">
+        <a href="/index.html" aria-label="Lolaelo home">
+          <img src="/logo.png" alt="Lolaelo" class="logo-img" />
+        </a>
+      </div>
+      <nav class="nav-right" aria-label="Primary">
+        <a class="nav-link" href="/destinations.html">Destinations</a>
+        <a class="nav-link" href="/catalog.html">Search</a>
+      </nav>
+    </header>
+
+    <main class="card" role="main">
+      <div class="kicker"><span class="dot" aria-hidden="true"></span> Our mission</div>
+      <h1>Mission and Vision</h1>
+      <p class="subhead">
+        A short note from the founder on what Lolaelo is building, why it matters, and how we plan to do it the right way.
+      </p>
+
+      <div class="meta" aria-label="Page metadata">
+        <span class="pill">From: Manny, Founder</span>
+        <span class="pill">Theme: Fair travel, built on trust</span>
+      </div>
+
+      <section class="letter" aria-label="Founder letter">
+        <h2>Welcome</h2>
+        <p>
+          If you’re reading this, you’re probably planning a trip. But more than that, you’re choosing how you want to travel.
+        </p>
+        <p>
+          Lolaelo was built for people who care not just about where they’re going, but about the experience they create along the way and the people who make that experience possible.
+        </p>
+        <p>
+          This platform didn’t start as a tech idea. It started as a question:
+          <strong>Why does travel so often feel transactional, extractive, and unnecessarily complicated?</strong>
+        </p>
+
+        <h2>The problem we’re solving</h2>
+        <p>
+          Modern travel platforms are optimized for scale, not people.
+        </p>
+        <p>
+          Hotels are squeezed by high commissions. Local partners are sidelined or invisible. Travelers are nudged, upsold, distracted, and rushed through cluttered experiences.
+        </p>
+        <p>
+          Everyone participates. Very few actually win.
+        </p>
+
+        <div class="callout">
+          This is a power dynamic. We decided not to replicate it.
+        </div>
+
+        <h2>What Lolaelo stands for</h2>
+        <p>
+          Lolaelo is built on a simple principle:
+          <strong>If you contribute to the experience, you deserve your fair share of the value.</strong>
+        </p>
+        <ul class="clean">
+          <li>The hotel that opens its doors</li>
+          <li>The local team that coordinates your excursions</li>
+          <li>The traveler who trusts us with their time and money</li>
+        </ul>
+        <p>
+          We believe travel should be collaborative, not extractive. No hidden leverage. No tricky dynamics. No one subsidizing someone else’s margins.
+        </p>
+
+        <h2>A community, not a marketplace</h2>
+        <p>
+          Lolaelo is not just a booking engine. It’s a growing community of independent hotels, local operators, and travelers who value clarity, fairness, and authenticity.
+        </p>
+        <p>
+          Our partners aren’t just listings on a page. They’re active participants in your journey. Many of the experiences you’ll find here are coordinated by people on the ground, working with you to shape a trip that actually fits.
+        </p>
+        <p>
+          Not louder. Not more expensive. Just better.
+        </p>
+
+        <h2>Designed with intention</h2>
+        <p>
+          You’ll notice a few things about Lolaelo:
+        </p>
+        <ul class="clean">
+          <li>A clean, uncluttered interface</li>
+          <li>Clear pricing, without surprise upsells</li>
+          <li>A checkout experience built for trust and ease</li>
+        </ul>
+        <p>
+          That’s deliberate. Good design respects your attention. Good systems don’t push you. They support you.
+        </p>
+
+        <h2>Our vision</h2>
+        <p>
+          We’re building a platform where travelers feel confident, partners feel respected and fairly compensated, and growth doesn’t come at someone else’s expense.
+        </p>
+        <p>
+          Success to us isn’t just volume. It’s alignment. When travelers come back. When partners stay because they want to. When everyone involved feels like the system is working with them, not against them.
+        </p>
+
+        <h2>A personal note</h2>
+        <p>
+          Lolaelo is personal to me. It reflects how I believe business should be done: with transparency, accountability, and respect for every contributor in the chain.
+        </p>
+        <p>
+          If that resonates with you, you’re exactly who we built this for.
+        </p>
+
+        <div class="signature" aria-label="Signature">
+          <div class="sig-name">Manny</div>
+          <div class="sig-title">Founder, Lolaelo</div>
+        </div>
+
+        <div class="next" aria-label="What’s next">
+          <div class="row">
+            <div class="t">What’s next</div>
+            <div class="d">As we grow, this page will evolve. Our commitments won’t.</div>
+          </div>
+          <div class="row">
+            <div class="t">Join the community</div>
+            <div class="d">Travel with us, share feedback, and help shape a platform where everyone wins.</div>
+          </div>
+        </div>
+      </section>
+    </main>
+  </div>
+
+  <footer class="site-footer">
+    © <span id="year"></span> Lolaelo · <a href="/privacy.html">Privacy</a> · <a href="/terms.html">Terms</a>
+  </footer>
+
+  <script>
+    document.getElementById("year").textContent = new Date().getFullYear();
+  </script>
+</body>
+</html>
