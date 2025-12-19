@@ -292,6 +292,19 @@
       box-shadow: 0 10px 22px rgba(248, 113, 73, 0.45);
     }
 
+    /* ANCHOR: INVESTOR_ROW_BUTTON_LAYOUT */
+    .investor-row {
+      position: relative;
+    }
+
+    .investor-row .btn-primary {
+      width: 20%;
+      min-width: 180px;          /* prevents it from getting too tiny */
+      align-self: flex-end;
+      margin-left: auto;         /* push to the right */
+      margin-top: 8px;
+    }
+
     footer.site-footer {
       border-top: 1px solid var(--border);
       padding: 14px 20px 22px;
@@ -487,7 +500,7 @@
             <div class="t">Join the community</div>
             <div class="d">Travel with us, share feedback, and help shape a platform where everyone wins.</div>
           </div>
-          <div class="next-row">
+          <div class="next-row investor-row">
             <div class="t">For potential investors</div>
             <div class="d">
               For those interested in supporting Lolaelo at an early stage, we have put together a brief overview of how we are building and where we are headed.
