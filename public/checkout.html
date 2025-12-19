@@ -4454,6 +4454,9 @@
           e.preventDefault();
 
           if (typeof window.flatpickr !== "function") return;
+          // Hide native date inputs in this card when flatpickr is available
+          const bar = card.querySelector('#checkout-date-bar, [data-orig-id="checkout-date-bar"]');
+          if (bar) bar.classList.add("has-flatpickr");
 
           // Seed dates from the active cart line (preferred) or state fallback
           let seedStart = state && state.start ? parseLocalYMD(state.start) : null;
@@ -4485,10 +4488,34 @@
               defaultDate: (seedStart && seedEnd)
                 ? [formatLocalYmd(seedStart), formatLocalYmd(seedEnd)]
                 : (seedStart ? [formatLocalYmd(seedStart)] : null),
-              onChange: function (selectedDates) {
-                const s = selectedDates && selectedDates[0] ? selectedDates[0] : null;
-                const ee = selectedDates && selectedDates[1] ? selectedDates[1] : null;
-                if (typeof setDisplayText === "function") setDisplayText(s, ee);
+              onChange: function (selectedDates, dateStr, instance) {
+                const s = (selectedDates && selectedDates[0]) ? selectedDates[0] : null;
+                const e = (selectedDates && selectedDates[1]) ? selectedDates[1] : null;
+
+                // Update THIS card's pill label immediately (before Update dates)
+                if (ctx.displayLabel) {
+                  if (s && e) {
+                    const mm = String(s.getMonth() + 1).padStart(2, "0");
+                    const dd = String(s.getDate()).padStart(2, "0");
+                    const yy = s.getFullYear();
+                    const mm2 = String(e.getMonth() + 1).padStart(2, "0");
+                    const dd2 = String(e.getDate()).padStart(2, "0");
+                    const yy2 = e.getFullYear();
+                    ctx.displayLabel.textContent = `${mm}/${dd}/${yy} to ${mm2}/${dd2}/${yy2}`;
+                  } else if (s) {
+                    const mm = String(s.getMonth() + 1).padStart(2, "0");
+                    const dd = String(s.getDate()).padStart(2, "0");
+                    const yy = s.getFullYear();
+                    ctx.displayLabel.textContent = `${mm}/${dd}/${yy} to`;
+                  } else {
+                    ctx.displayLabel.textContent = "Select dates";
+                  }
+                }
+
+                // Auto-close once the end date is selected
+                if (s && e && instance && typeof instance.close === "function") {
+                  instance.close();
+                }
               }
             });
           }
