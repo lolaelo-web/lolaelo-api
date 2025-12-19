@@ -4487,6 +4487,42 @@
       // Keep these for apply/URL update
       const applyBtn     = document.getElementById("checkout-dates-apply");
 
+      // ANCHOR: CHECKOUT_DATES_DEBUG_TAP
+      try {
+        console.log("[checkout][dates][debug] init", {
+          hasFlatpickr: typeof window.flatpickr,
+          hasWrapper: !!datesCardWrapper,
+          hasDriver: !!rangeDriver,
+          hasDisplayBtn: !!displayBtn,
+          hasApplyBtn: !!applyBtn,
+          driverFpAttached: !!(rangeDriver && rangeDriver._checkoutFp),
+          applyWiredDates: applyBtn ? String(applyBtn.dataset.wiredDates || "") : ""
+        });
+
+        if (displayBtn && !displayBtn.dataset.debugTap) {
+          displayBtn.dataset.debugTap = "1";
+          displayBtn.addEventListener("click", function () {
+            console.log("[checkout][dates][debug] pill clicked", {
+              hasFlatpickr: typeof window.flatpickr,
+              driverFpAttached: !!(rangeDriver && rangeDriver._checkoutFp)
+            });
+          }, true);
+        }
+
+        if (applyBtn && !applyBtn.dataset.debugTap) {
+          applyBtn.dataset.debugTap = "1";
+          applyBtn.addEventListener("click", function () {
+            console.log("[checkout][dates][debug] apply clicked", {
+              hasFlatpickr: typeof window.flatpickr,
+              driverFpAttached: !!(rangeDriver && rangeDriver._checkoutFp),
+              activeLineIdForDates: (state && state.activeLineIdForDates) ? String(state.activeLineIdForDates) : ""
+            });
+          }, true);
+        }
+      } catch (e) {
+        console.warn("[checkout][dates][debug] tap failed", e);
+      }
+
       // Helper: format a Date as local YYYY-MM-DD (no timezone shift)
       function formatLocalYmd(d) {
         const y  = d.getFullYear();
