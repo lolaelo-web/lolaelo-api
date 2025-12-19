@@ -1,0 +1,530 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Lolaelo | Investor Overview</title>
+  <link rel="icon" href="https://www.lolaelo.com/logo2.png?cb=fav-v1" />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+
+  <style>
+    :root {
+      --bg: #ffffff;
+      --fg: #111827;
+      --muted: #6b7280;
+      --brand: #064e3b;
+      --accent: #ff6a3d;
+      --border: #e5e7eb;
+      --max: 960px;
+      --radius: 18px;
+    }
+
+    * { box-sizing: border-box; }
+    html, body { margin: 0; padding: 0; height: 100%; }
+    body {
+      font-family: Inter, ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+      background: var(--bg);
+      color: var(--fg);
+      display: flex;
+      flex-direction: column;
+      min-height: 100vh;
+    }
+
+    a { color: inherit; text-decoration: none; }
+    a:hover { text-decoration: underline; }
+
+    .page {
+      width: 100%;
+      max-width: var(--max);
+      margin: 0 auto;
+      padding: 16px 20px 40px;
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      gap: 18px;
+    }
+
+    header.nav {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 4px 0 12px;
+    }
+    .nav-left { display: flex; align-items: center; gap: 10px; }
+    .logo-img { height: 32px; width: auto; display: block; }
+    .nav-right { display: flex; gap: 18px; font-size: 14px; align-items: center; }
+    .nav-link { color: var(--brand); font-weight: 500; padding: 4px 0; }
+
+    .card {
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      background: #fff;
+      box-shadow: 0 18px 45px rgba(15, 23, 42, 0.06);
+      padding: 22px;
+    }
+
+    .kicker {
+      display: inline-flex;
+      align-items: center;
+      gap: 10px;
+      font-size: 12px;
+      font-weight: 600;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      color: var(--brand);
+      margin-bottom: 10px;
+    }
+    .kicker .dot {
+      width: 8px;
+      height: 8px;
+      border-radius: 999px;
+      background: var(--accent);
+      display: inline-block;
+    }
+
+    h1 {
+      margin: 0 0 8px;
+      font-size: clamp(28px, 3.4vw, 40px);
+      line-height: 1.15;
+      color: var(--brand);
+      font-weight: 600;
+    }
+
+    .subhead {
+      margin: 0 0 18px;
+      color: var(--muted);
+      font-size: 15px;
+      line-height: 1.6;
+    }
+
+    .meta {
+      display: flex;
+      gap: 10px;
+      flex-wrap: wrap;
+      margin: 14px 0 18px;
+      color: var(--muted);
+      font-size: 13px;
+    }
+
+    .pill {
+      display: inline-flex;
+      align-items: center;
+      border: 1px solid var(--border);
+      border-radius: 999px;
+      padding: 6px 10px;
+      background: #f9fafb;
+      gap: 8px;
+    }
+
+    .section h2 {
+      margin: 18px 0 8px;
+      font-size: 16px;
+      color: var(--brand);
+      font-weight: 600;
+    }
+
+    .section p {
+      margin: 0 0 12px;
+      font-size: 15px;
+      line-height: 1.75;
+      color: #111827;
+    }
+
+    ul.clean {
+      margin: 0 0 14px 18px;
+      padding: 0;
+      font-size: 15px;
+      line-height: 1.7;
+    }
+    ul.clean li { margin: 6px 0; }
+
+    .grid-2 {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 14px;
+      margin: 10px 0 0;
+    }
+
+    .grid-3 {
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: 12px;
+      margin: 10px 0 0;
+    }
+
+    .mini {
+      border: 1px solid var(--border);
+      border-radius: 14px;
+      padding: 14px;
+      background: #ffffff;
+    }
+    .mini .t {
+      font-size: 12px;
+      font-weight: 600;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      color: var(--muted);
+      margin-bottom: 6px;
+    }
+    .mini .v {
+      font-size: 20px;
+      font-weight: 600;
+      color: #111827;
+      margin-bottom: 4px;
+    }
+    .mini .d {
+      font-size: 13px;
+      color: var(--muted);
+      line-height: 1.55;
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-top: 10px;
+      font-size: 13px;
+    }
+    th, td {
+      border-bottom: 1px solid var(--border);
+      padding: 10px 8px;
+      text-align: left;
+      vertical-align: top;
+    }
+    th {
+      color: var(--muted);
+      font-weight: 600;
+      font-size: 12px;
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+      background: #f9fafb;
+    }
+
+    .callout {
+      border-left: 4px solid var(--accent);
+      padding: 12px 12px;
+      background: rgba(255, 106, 61, 0.06);
+      border-radius: 12px;
+      margin: 12px 0 16px;
+      color: #1f2937;
+    }
+
+    .cta-row {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+      margin-top: 12px;
+      align-items: center;
+    }
+    .btn {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      border-radius: 999px;
+      padding: 10px 14px;
+      border: 1px solid var(--border);
+      background: #ffffff;
+      font-size: 13px;
+      font-weight: 600;
+      cursor: pointer;
+      white-space: nowrap;
+    }
+    .btn-primary {
+      background: var(--accent);
+      border-color: var(--accent);
+      color: #ffffff;
+      box-shadow: 0 10px 22px rgba(248, 113, 73, 0.35);
+    }
+    .btn:hover { filter: brightness(0.98); }
+
+    /* Signature (match your mission.html decision: image LEFT of text) */
+    .signature-row{
+      margin-top: 18px;
+      padding-top: 14px;
+      border-top: 1px solid var(--border);
+      display: inline-flex;
+      align-items: center;
+      gap: 12px;
+    }
+    .signature-photo img{
+      width: 48px;
+      height: 48px;
+      border-radius: 999px;
+      object-fit: cover;
+      border: 1px solid var(--border);
+      display: block;
+    }
+    .signature-text{
+      display: flex;
+      flex-direction: column;
+      gap: 2px;
+    }
+    .sig-name { font-weight: 600; color: #111827; }
+    .sig-title { font-size: 13px; color: var(--muted); }
+
+    footer.site-footer {
+      border-top: 1px solid var(--border);
+      padding: 14px 20px 22px;
+      font-size: 12px;
+      color: #6b7280;
+      text-align: center;
+      margin-top: auto;
+    }
+    footer.site-footer a { text-decoration: underline; }
+
+    @media (max-width: 860px) {
+      .grid-2 { grid-template-columns: 1fr; }
+      .grid-3 { grid-template-columns: 1fr; }
+      .card { padding: 18px 16px; }
+    }
+  </style>
+</head>
+
+<body>
+  <div class="page">
+    <header class="nav">
+      <div class="nav-left">
+        <a href="/index.html" aria-label="Lolaelo home">
+          <img src="/logo.png" alt="Lolaelo" class="logo-img" />
+        </a>
+      </div>
+      <nav class="nav-right" aria-label="Primary">
+        <a class="nav-link" href="/mission.html">Mission</a>
+        <a class="nav-link" href="/destinations.html">Destinations</a>
+        <a class="nav-link" href="/catalog.html">Search</a>
+      </nav>
+    </header>
+
+    <main class="card" role="main">
+      <div class="kicker"><span class="dot" aria-hidden="true"></span> Investor overview</div>
+      <h1>Lolaelo</h1>
+      <p class="subhead">
+        A fair-commission, curated OTA built for independent hotels and price sensitive travelers. Delaware-registered LLC.
+      </p>
+
+      <div class="meta" aria-label="Investor summary pills">
+        <span class="pill">Market: Philippines (strategic point of entry)</span>
+        <span class="pill">Model: 5%–15% fair commissions</span>
+        <span class="pill">Supply: Direct (not aggregated)</span>
+        <span class="pill">Raise: $600k pre-seed (SAFE)</span>
+      </div>
+
+      <section class="section" aria-label="The problem">
+        <h2>Problem</h2>
+        <p>
+          The OTA industry is structurally misaligned. Hotels face high margins and pay-for-play visibility, while travelers filter through cluttered, overpriced inventory.
+        </p>
+      </section>
+
+      <section class="section" aria-label="Solution and product">
+        <h2>Solution</h2>
+        <p>
+          Lolaelo is a curated OTA with fair commissions that improves hotel profitability and delivers lower prices through direct inventory and standardized, high-quality content.
+        </p>
+        <ul class="clean">
+          <li>Direct (not aggregated) inventory for cleaner economics</li>
+          <li>Fair commissions (5%–15%) to increase partner adoption and conversion</li>
+          <li>Consistent, media-verified content for better UX and faster purchase decisions</li>
+        </ul>
+      </section>
+
+      <section class="section" aria-label="Market">
+        <h2>Market (Philippines)</h2>
+        <div class="grid-3">
+          <div class="mini">
+            <div class="t">TAM 2026</div>
+            <div class="v">$13.7B</div>
+            <div class="d">Projected PH travel and tourism market size.</div>
+          </div>
+          <div class="mini">
+            <div class="t">SAM 2026</div>
+            <div class="v">$5.5B</div>
+            <div class="d">Hotel + tour bookings (estimated ~40% of TAM).</div>
+          </div>
+          <div class="mini">
+            <div class="t">SOM 2026</div>
+            <div class="v">$4.6M</div>
+            <div class="d">Conservative initial capture of 0.08% of SAM.</div>
+          </div>
+        </div>
+      </section>
+
+      <section class="section" aria-label="Competitive edge">
+        <h2>Competitive edge</h2>
+        <div class="grid-2">
+          <div class="mini">
+            <div class="t">Differentiation</div>
+            <ul class="clean">
+              <li>Fair, transparent, sustainable economics</li>
+              <li>Curated, standardized, media-verified inventory</li>
+              <li>Direct supply + control over content</li>
+              <li>Lean, low-overhead, scalable operations</li>
+            </ul>
+          </div>
+          <div class="mini">
+            <div class="t">Revenue model</div>
+            <ul class="clean">
+              <li>Core commissions: 5%–15%</li>
+              <li>High-margin ancillaries: ~5%</li>
+              <li>Hospitality optimization: 5%–10%</li>
+              <li>Future rails: inventory + payments + traveler membership</li>
+            </ul>
+          </div>
+        </div>
+      </section>
+
+      <section class="section" aria-label="Key numbers">
+        <h2>Key numbers</h2>
+
+        <div class="grid-2">
+          <div class="mini">
+            <div class="t">2026 (early stage)</div>
+            <div class="d">Commission tier: 5% • Partners: 50+ • Projected gross profit: $228k (based on 100 booked nights/day).</div>
+          </div>
+          <div class="mini">
+            <div class="t">2027 (ramp)</div>
+            <div class="d">Commission tier: 10% • Partners: 90+ • Projected gross profit: $2.3m (based on 500 booked nights/day).</div>
+          </div>
+        </div>
+
+        <div class="callout">
+          Conservative forecast targets scale while remaining modest relative to global OTA benchmarks.
+        </div>
+
+        <table aria-label="Conservative financial forecast summary">
+          <thead>
+            <tr>
+              <th>Metric</th>
+              <th>2026</th>
+              <th>2027</th>
+              <th>2028</th>
+              <th>2029</th>
+              <th>2030</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td>Gross booking value</td>
+              <td>$4.56M</td>
+              <td>$22.82M</td>
+              <td>$91.27M</td>
+              <td>$456.36M</td>
+              <td>$1.14B</td>
+            </tr>
+            <tr>
+              <td>Commission revenue</td>
+              <td>$0.23M</td>
+              <td>$2.28M</td>
+              <td>$9.13M</td>
+              <td>$68.45M</td>
+              <td>$171.13M</td>
+            </tr>
+            <tr>
+              <td>Expenditures</td>
+              <td>$0.30M</td>
+              <td>$1.36M</td>
+              <td>$3.57M</td>
+              <td>$14.50M</td>
+              <td>$47.00M</td>
+            </tr>
+            <tr>
+              <td>Net profit</td>
+              <td>($0.07M)</td>
+              <td>$0.92M</td>
+              <td>$5.56M</td>
+              <td>$53.95M</td>
+              <td>$124.13M</td>
+            </tr>
+            <tr>
+              <td>Avg booked nights/day</td>
+              <td>100</td>
+              <td>500</td>
+              <td>2,000</td>
+              <td>10,000</td>
+              <td>25,000</td>
+            </tr>
+          </tbody>
+        </table>
+      </section>
+
+      <section class="section" aria-label="Traction and roadmap">
+        <h2>Traction and roadmap</h2>
+        <div class="grid-2">
+          <div class="mini">
+            <div class="t">Traction</div>
+            <ul class="clean">
+              <li>Active hotel conversations in select locations</li>
+              <li>4 Siargao hotels committed for MVP</li>
+              <li>Extranet live (demo-ready): rooms, photos, pricing, availability</li>
+              <li>Public catalog working</li>
+              <li>MVP end-to-end booking flow target: Week 1, 2026</li>
+            </ul>
+          </div>
+          <div class="mini">
+            <div class="t">Roadmap</div>
+            <ul class="clean">
+              <li><strong>2Q 2026:</strong> MVP live, first 25 partners onboarded, brand launch, core destinations live</li>
+              <li><strong>4Q 2026:</strong> grow to 50–100 partners, finalize add-on features, release partner tools + dashboard, mobile app live</li>
+              <li><strong>Q3 2027:</strong> scale to 300–500 partners, targeted marketing, build customer service + ops</li>
+              <li><strong>Q1 2028:</strong> expand to full travel marketplace, SEA expansion</li>
+            </ul>
+          </div>
+        </div>
+      </section>
+
+      <section class="section" aria-label="Funding ask">
+        <h2>Funding ask</h2>
+        <p>
+          We are raising <strong>$600k</strong> in pre-seed funding to complete development, launch the MVP, and scale hotel acquisition across 6 pilot destinations in the Philippines and beyond, targeting 18–24 months of runway.
+        </p>
+
+        <div class="grid-2">
+          <div class="mini">
+            <div class="t">Instrument</div>
+            <ul class="clean">
+              <li>Round: Pre-seed</li>
+              <li>Amount: $600,000</li>
+              <li>SAFE (post-money)</li>
+              <li>$10M valuation cap</li>
+              <li>15% discount</li>
+            </ul>
+          </div>
+          <div class="mini">
+            <div class="t">Use of funds</div>
+            <ul class="clean">
+              <li>Product & engineering: $165,000</li>
+              <li>Hotel partnerships: $160,000</li>
+              <li>Marketing & growth: $145,000</li>
+              <li>Ops, admin, legal, misc.: $130,000</li>
+            </ul>
+          </div>
+        </div>
+
+        <div class="cta-row">
+          <a class="btn btn-primary" href="mailto:investors@lolaelo.com?subject=Lolaelo%20Investor%20Inquiry">Contact</a>
+          <a class="btn" href="/mission.html">Read mission</a>
+          <a class="btn" href="https://www.lolaelo.com" target="_blank" rel="noopener">Visit site</a>
+        </div>
+
+        <div class="signature-row" aria-label="Signature">
+          <div class="signature-photo">
+            <img src="/assets/manny.jpg" alt="Manny, Founder of Lolaelo" />
+          </div>
+          <div class="signature-text">
+            <div class="sig-name">Manny</div>
+            <div class="sig-title">Founder, Lolaelo</div>
+          </div>
+        </div>
+      </section>
+    </main>
+  </div>
+
+  <footer class="site-footer">
+    © <span id="year"></span> Lolaelo · <a href="/privacy.html">Privacy</a> · <a href="/terms.html">Terms</a>
+  </footer>
+
+  <script>
+    document.getElementById("year").textContent = new Date().getFullYear();
+  </script>
+</body>
+</html>
