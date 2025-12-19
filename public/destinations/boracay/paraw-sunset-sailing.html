@@ -1,0 +1,499 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Paraw Sunset Sailing in Boracay | What to Expect (Lolaelo)</title>
+  <meta name="description" content="Paraw sunset sailing in Boracay, done right. Best timing, how to choose the ride, what to say yes and no to, and how to keep it calm." />
+
+  <link rel="icon" href="https://www.lolaelo.com/logo2.png" />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+
+  <style>
+    :root {
+      --bg: #ffffff;
+      --fg: #111827;
+      --muted: #6b7280;
+      --brand: #064e3b;
+      --accent: #ff6a3d;
+      --border: #e5e7eb;
+      --max-width: 960px;
+      --card-shadow: 0 12px 30px rgba(15,23,42,0.10);
+      --card-shadow-hover: 0 16px 40px rgba(15,23,42,0.18);
+    }
+
+    * { box-sizing: border-box; }
+    html, body { margin: 0; padding: 0; height: 100%; }
+    body {
+      font-family: Inter, ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+      background: var(--bg);
+      color: var(--fg);
+      display: flex;
+      flex-direction: column;
+      min-height: 100vh;
+    }
+
+    a { color: inherit; text-decoration: none; }
+
+    .page {
+      width: 100%;
+      max-width: var(--max-width);
+      margin: 0 auto;
+      padding: 16px 20px 40px;
+      display: flex;
+      flex-direction: column;
+      flex: 1;
+    }
+
+    /* Top nav */
+    .nav {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 4px 0 12px;
+    }
+    .nav-left { display: flex; align-items: center; gap: 8px; }
+    .logo-img { height: 32px; width: auto; display: block; }
+
+    .nav-right {
+      display: flex;
+      align-items: center;
+      gap: 20px;
+      font-size: 14px;
+    }
+    .nav-link { color: var(--brand); padding: 4px 0; font-weight: 500; text-decoration: none; }
+
+    .nav-link-back {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      text-decoration: none;
+    }
+    .nav-back-arrow { font-size: 16px; line-height: 1; transform: translateY(1px); text-decoration: none !important; }
+    .nav-link-back span:last-child { text-decoration: none; }
+    .nav-link-back:hover span:last-child { text-decoration: underline; }
+    .nav-link-back:hover .nav-back-arrow { transform: translate(-2px, 1px); transition: transform 0.15s ease-out; }
+
+    /* Breadcrumbs */
+    .crumbs {
+      margin-top: 8px;
+      font-size: 12px;
+      color: var(--muted);
+      display: flex;
+      gap: 8px;
+      align-items: center;
+      flex-wrap: wrap;
+    }
+    .crumbs a { color: var(--muted); text-decoration: underline; }
+    .crumbs .sep { color: #9ca3af; }
+
+    /* Hero */
+    .hero {
+      margin-top: 14px;
+      border-radius: 18px;
+      overflow: hidden;
+      min-height: 280px;
+      background-image: url("/images/boracay/boracay-sunset-sail.jpg");
+      background-size: cover;
+      background-position: center;
+      background-repeat: no-repeat;
+      position: relative;
+      box-shadow: var(--card-shadow);
+    }
+    .hero::before {
+      content: "";
+      position: absolute;
+      inset: 0;
+      background: linear-gradient(to top, rgba(0,0,0,0.55), rgba(0,0,0,0.18));
+    }
+    .hero-inner {
+      position: relative;
+      padding: 18px 18px 16px;
+      display: flex;
+      flex-direction: column;
+      justify-content: flex-end;
+      min-height: 280px;
+      gap: 10px;
+    }
+    .hero-title {
+      margin: 0;
+      color: #ffffff;
+      font-size: clamp(26px, 3.8vw, 40px);
+      line-height: 1.15;
+      font-weight: 600;
+      text-shadow: 0 2px 6px rgba(0,0,0,0.35);
+      letter-spacing: -0.01em;
+    }
+    .hero-sub {
+      margin: 0;
+      color: rgba(255,255,255,0.92);
+      font-size: 14.5px;
+      line-height: 1.45;
+      max-width: 78ch;
+    }
+    .hero-actions {
+      display: flex;
+      gap: 10px;
+      flex-wrap: wrap;
+      margin-top: 6px;
+    }
+    .btn {
+      border-radius: 999px;
+      padding: 9px 14px;
+      font-size: 14px;
+      font-weight: 500;
+      border: 1px solid transparent;
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      white-space: nowrap;
+    }
+    .btn-primary { background: var(--accent); color: #ffffff; }
+    .btn-secondary { background: rgba(229,242,255,0.95); color: var(--brand); border-color: rgba(229,242,255,0.65); }
+    .btn-ghost { background: rgba(255,255,255,0.14); color: #ffffff; border-color: rgba(255,255,255,0.18); }
+
+    /* Content */
+    .content { margin-top: 18px; }
+
+    .intro {
+      margin-top: 14px;
+      padding: 14px 16px;
+      border: 1px solid var(--border);
+      border-radius: 16px;
+      background: #ffffff;
+      box-shadow: 0 10px 24px rgba(15,23,42,0.06);
+    }
+    .intro h2 { margin: 0 0 8px; font-size: 15px; color: var(--brand); font-weight: 600; }
+    .intro p { margin: 0 0 8px; font-size: 12.8px; line-height: 1.6; color: #4b5563; white-space: pre-line; }
+
+    .split {
+      margin-top: 14px;
+      display: grid;
+      grid-template-columns: 1.2fr 0.8fr;
+      gap: 14px;
+      align-items: start;
+    }
+    .panel {
+      border: 1px solid var(--border);
+      border-radius: 16px;
+      padding: 14px 16px;
+      background: #ffffff;
+      box-shadow: 0 10px 24px rgba(15,23,42,0.06);
+    }
+    .panel h3 { margin: 0 0 10px; font-size: 13px; font-weight: 600; color: #111827; }
+    .panel ul { margin: 0; padding-left: 18px; font-size: 12.5px; line-height: 1.55; color: #4b5563; }
+    .panel li { margin-bottom: 6px; }
+
+    .pills { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 10px; }
+    .pill { font-size: 12px; padding: 6px 10px; border-radius: 999px; border: 1px solid var(--border); color: #374151; background: #fafafa; }
+
+    .section-title { margin: 22px 0 10px; font-size: 15px; font-weight: 600; color: var(--brand); }
+
+    .meta-row { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 8px; }
+    .meta { font-size: 12px; padding: 6px 10px; border-radius: 999px; border: 1px solid var(--border); background: #ffffff; color: #374151; }
+    .meta strong { font-weight: 600; }
+
+    .link { font-size: 13px; color: var(--brand); font-weight: 500; text-decoration: underline; cursor: pointer; }
+
+    /* Spotlight layout (alternates left/right) */
+    .spotlight {
+      margin-top: 14px;
+      display: grid;
+      grid-template-columns: 1.1fr 0.9fr;
+      gap: 14px;
+      align-items: center;
+    }
+
+    .spotlight-text {
+      border: 1px solid var(--border);
+      border-radius: 18px;
+      background: #ffffff;
+      box-shadow: var(--card-shadow);
+      padding: 16px 16px 14px;
+    }
+
+    .spotlight-title {
+      margin: 0 0 10px;
+      font-size: 15px;
+      font-weight: 600;
+      color: var(--brand);
+    }
+
+    .spotlight-body {
+      font-size: 12.8px;
+      line-height: 1.6;
+      color: #4b5563;
+      white-space: pre-line;
+    }
+
+    .spotlight-media {
+      display: flex;
+      justify-content: center;
+      align-items: center;
+    }
+
+    .spotlight-circle {
+      width: 320px;
+      height: 320px;
+      border-radius: 999px;
+      background-size: cover;
+      background-position: center;
+      background-repeat: no-repeat;
+      box-shadow: 0 18px 44px rgba(15,23,42,0.18);
+      border: 1px solid rgba(229,231,235,0.95);
+    }
+
+    .spotlight-reverse .spotlight-text { order: 2; }
+    .spotlight-reverse .spotlight-media { order: 1; }
+
+    /* FAQ */
+    .faq {
+      margin-top: 22px;
+      border: 1px solid var(--border);
+      border-radius: 16px;
+      padding: 14px 16px;
+      background: #ffffff;
+      box-shadow: 0 10px 24px rgba(15,23,42,0.06);
+    }
+    details { border-top: 1px solid var(--border); padding: 10px 0; }
+    details:first-of-type { border-top: none; padding-top: 0; }
+    summary { cursor: pointer; list-style: none; font-size: 13px; font-weight: 600; color: #111827; }
+    summary::-webkit-details-marker { display: none; }
+    .faq p { margin: 8px 0 0; font-size: 12.8px; line-height: 1.6; color: #4b5563; }
+
+    /* Footer */
+    footer {
+      border-top: 1px solid var(--border);
+      padding: 14px 20px 22px;
+      font-size: 12px;
+      color: #6b7280;
+      text-align: center;
+      margin-top: auto;
+    }
+    footer a { color: inherit; text-decoration: underline; }
+
+    /* Responsive */
+    @media (max-width: 768px) {
+      .page { padding: 12px 16px 28px; }
+      .split { grid-template-columns: 1fr; }
+      .hero-inner { min-height: 260px; }
+      .spotlight { grid-template-columns: 1fr; }
+      .spotlight-reverse .spotlight-text { order: 1; }
+      .spotlight-reverse .spotlight-media { order: 2; }
+      .spotlight-circle { width: 240px; height: 240px; }
+    }
+  </style>
+
+  <script type="application/ld+json">
+  {
+    "@context":"https://schema.org",
+    "@type":"FAQPage",
+    "mainEntity":[
+      {
+        "@type":"Question",
+        "name":"Is paraw sunset sailing worth it in Boracay?",
+        "acceptedAnswer":{"@type":"Answer","text":"Yes. It is one of the cleanest Boracay experiences if you keep it simple and aim for a calm, short sail around sunset."}
+      },
+      {
+        "@type":"Question",
+        "name":"What time should you book paraw sailing?",
+        "acceptedAnswer":{"@type":"Answer","text":"Start just before sunset so you get both golden light and the main sunset moment without rushing."}
+      },
+      {
+        "@type":"Question",
+        "name":"How long is a paraw sunset sail?",
+        "acceptedAnswer":{"@type":"Answer","text":"Most rides are 30 to 60 minutes. That is enough to feel it without it dragging."}
+      },
+      {
+        "@type":"Question",
+        "name":"What should you bring for paraw sailing?",
+        "acceptedAnswer":{"@type":"Answer","text":"A light layer for wind, minimal valuables, and a simple phone strap or pouch. Keep it easy."}
+      }
+    ]
+  }
+  </script>
+</head>
+
+<body>
+  <div class="page">
+    <header class="nav">
+      <div class="nav-left">
+        <a href="https://www.lolaelo.com" aria-label="Lolaelo home">
+          <img
+            src="https://www.lolaelo.com/logo.png?cb=logo-1x"
+            alt="Lolaelo"
+            class="logo-img"
+            decoding="async"
+            loading="eager"
+          >
+        </a>
+      </div>
+
+      <nav class="nav-right" aria-label="Primary">
+        <a class="nav-link nav-link-back" href="/destinations/boracay/index.html" aria-label="Back to Boracay guide">
+          <span class="nav-back-arrow">←</span>
+          <span>Boracay guide</span>
+        </a>
+      </nav>
+    </header>
+
+    <div class="crumbs" aria-label="Breadcrumb">
+      <a href="/index.html">Home</a>
+      <span class="sep">·</span>
+      <a href="/destinations.html">Destinations</a>
+      <span class="sep">·</span>
+      <a href="/destinations/boracay/index.html">Boracay</a>
+      <span class="sep">·</span>
+      <span>Paraw sunset sailing</span>
+    </div>
+
+    <main class="content" role="main">
+      <section class="hero" aria-label="Paraw sunset sailing in Boracay">
+        <div class="hero-inner">
+          <h1 class="hero-title">Paraw sunset sailing, without the noise</h1>
+          <p class="hero-sub">
+            Short, calm, and worth doing at least once. The goal is not to chase a perfect photo. The goal is to slow down and let Boracay do what it does.
+          </p>
+          <div class="hero-actions">
+            <a class="btn btn-primary" href="https://lolaelo-api.onrender.com/catalog.html?q=boracay">Browse Boracay stays</a>
+            <a class="btn btn-secondary" href="#how" >Jump to how to do it</a>
+            <a class="btn btn-ghost" href="/destinations/boracay/index.html">Back to Boracay</a>
+          </div>
+        </div>
+      </section>
+
+      <section class="intro" aria-label="Quick answer">
+        <h2>Quick answer</h2>
+        <p>
+Paraw sailing is worth it if you keep it simple. Aim for a short ride close to sunset, avoid overpaying for add-ons, and focus on the feeling instead of filming the whole time.
+        </p>
+        <div class="pills" aria-label="Quick tags">
+          <span class="pill">Best time: sunset</span>
+          <span class="pill">Trip length: 30 to 60 min</span>
+          <span class="pill">Effort: low</span>
+          <span class="pill">Good for: couples, families</span>
+        </div>
+      </section>
+
+      <section class="split" aria-label="What matters and what to avoid">
+        <div class="panel">
+          <h3>What matters</h3>
+          <ul>
+            <li><strong>Timing:</strong> start just before sunset</li>
+            <li><strong>Route:</strong> stay close, keep it calm</li>
+            <li><strong>Comfort:</strong> wind layer and minimal valuables</li>
+            <li><strong>Expectations:</strong> it is about the mood</li>
+          </ul>
+        </div>
+
+        <div class="panel">
+          <h3>What to avoid</h3>
+          <ul>
+            <li><strong>Long rides:</strong> they can drag past the best light</li>
+            <li><strong>Overpaying:</strong> say no to unnecessary upsells</li>
+            <li><strong>Overfilming:</strong> it is better when you look up</li>
+            <li><strong>Late starts:</strong> you miss the best window</li>
+          </ul>
+        </div>
+      </section>
+
+      <h2 class="section-title" id="how">How to do it right</h2>
+
+      <!-- Spotlight 1: text left, circle right -->
+      <section class="spotlight" aria-label="Simple plan">
+        <div class="spotlight-text">
+          <h3 class="spotlight-title">A simple plan that works</h3>
+          <div class="spotlight-body">
+<strong>Step 1: arrive early.</strong>
+Get to the beach area 20 to 30 minutes before you want to depart. It keeps you out of the rushed, chaotic decisions.
+
+<strong>Step 2: choose calm over “extreme.”</strong>
+A steady, quiet sail is the point. If the pitch feels like a nightclub on water, skip it.
+
+<strong>Step 3: keep it short.</strong>
+Thirty to sixty minutes is enough. You want the peak light and the main sunset moment, not a long loop that turns into waiting.
+
+<strong>Step 4: end with an easy walk.</strong>
+After the sail, walk the shoreline for 10 minutes. It locks in the calm feeling.
+          </div>
+
+          <div class="meta-row">
+            <span class="meta"><strong>Best window:</strong> sunset</span>
+            <span class="meta"><strong>Length:</strong> 30 to 60 min</span>
+            <span class="meta"><strong>Effort:</strong> low</span>
+          </div>
+
+          <div class="meta-row" style="margin-top:10px;">
+            <a class="link" href="https://lolaelo-api.onrender.com/catalog.html?q=boracay">Stays that make sunset timing easy</a>
+          </div>
+        </div>
+
+        <div class="spotlight-media" aria-hidden="true">
+          <div class="spotlight-circle" style="background-image:url('/images/boracay/boracay-sunset-sail.jpg');"></div>
+        </div>
+      </section>
+
+      <!-- Spotlight 2: reversed (circle left, text right) -->
+      <section class="spotlight spotlight-reverse" aria-label="What to bring and what to say no to">
+        <div class="spotlight-text">
+          <h3 class="spotlight-title">What to bring, what to say no to</h3>
+          <div class="spotlight-body">
+<strong>Bring:</strong> a light layer (wind), a simple phone strap, and just enough cash for small extras.
+<strong>Skip:</strong> bulky bags and anything you will worry about losing.
+
+<strong>Say no to:</strong> expensive add-ons that don’t change the experience. If you want a better sail, pay for calmer timing, not a louder package.
+
+<strong>Photos:</strong> take a few, then stop. The best part is the quiet.
+          </div>
+
+          <div class="meta-row">
+            <span class="meta"><strong>Wind:</strong> common at sea</span>
+            <span class="meta"><strong>Valuables:</strong> keep minimal</span>
+            <span class="meta"><strong>Goal:</strong> calm</span>
+          </div>
+        </div>
+
+        <div class="spotlight-media" aria-hidden="true">
+          <div class="spotlight-circle" style="background-image:url('/images/boracay/boracay-nightlife.jpg');"></div>
+        </div>
+      </section>
+
+      <section class="faq" aria-label="Paraw sailing FAQ">
+        <h2 class="section-title" style="margin:0 0 8px;">FAQ</h2>
+
+        <details>
+          <summary>Is paraw sunset sailing worth it?</summary>
+          <p>Yes. Keep it short, keep it calm, and let the sunset do the work.</p>
+        </details>
+
+        <details>
+          <summary>What time should you book it?</summary>
+          <p>Start just before sunset so you get golden light and the main sunset moment without rushing.</p>
+        </details>
+
+        <details>
+          <summary>How long should the ride be?</summary>
+          <p>Thirty to sixty minutes is enough for most people.</p>
+        </details>
+
+        <details>
+          <summary>What should you bring?</summary>
+          <p>A light layer for wind, minimal valuables, and a simple phone strap or pouch.</p>
+        </details>
+      </section>
+    </main>
+  </div>
+
+  <footer>
+    © <span id="year"></span> Lolaelo ·
+    <a href="https://lolaelo-api.onrender.com/privacy.html" target="_blank" rel="noopener">Privacy</a>
+    <a href="https://lolaelo-api.onrender.com/terms.html" target="_blank" rel="noopener">Terms</a>
+  </footer>
+
+  <script>
+    document.getElementById("year").textContent = new Date().getFullYear();
+  </script>
+</body>
+</html>
