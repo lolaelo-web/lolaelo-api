@@ -354,15 +354,33 @@
       color: #111827;
     }
 
-    .modal-thumbs-row {
+    /* Shared bottom rail for experiences CTA + thumbnails */
+    .modal-exp-footer {
       display: flex;
-      justify-content: flex-end;     /* <-- moves thumbs to bottom-right */
-      gap: 8px;
-      margin-top: 14px;
-      padding-bottom: 4px;
-      overflow-x: auto;
+      align-items: center;
+      justify-content: flex-end;
+      gap: 14px;
+      margin-top: 10px;
     }
 
+    #dest-modal-activities .modal-exp-footer {
+      justify-content: flex-start;
+    }
+
+    .modal-thumbs-row-right {
+      justify-content: flex-end;
+      margin-top: 10px;
+    }
+
+    .modal-thumbs-row {
+      margin-top: 8px;
+    }
+
+    /* Make sure both sit on the same baseline */
+    .modal-exp-footer,
+    .modal-thumbs-row {
+      line-height: 1;
+    }
     .modal-thumb {
       flex: 0 0 auto;
       width: 64px;
@@ -461,16 +479,29 @@
       line-height:1.2;
     }
 
-    .exp-cta-link{
-      display:inline-flex;
-      margin-top:12px;
-      font-weight:700;
-      color:#0f766e;
-      text-decoration:none;
+    .exp-cta-link {
+      display: inline-flex;
+      align-items: center;
+      margin-top: 6px;
+      font-size: 13.5px;     /* slightly stronger than body, weaker than h3 */
+      font-weight: 700;
+      color: #0f766e;
+      text-decoration: none;
     }
 
-    .exp-cta-link:hover{
-      text-decoration:underline;
+    /* Final alignment for Experiences CTA */
+    #dest-modal-activities .exp-cta-link {
+      display: block;          /* forces new line */
+      text-align: left;        /* left align text */
+      margin-top: 12px;        /* push it down one line */
+    }
+
+    .exp-cta-link:hover {
+      text-decoration: underline;
+    }
+
+    #dest-modal-activities {
+      margin-top: 4px;
     }
 
     /* Fullscreen image viewer (lightbox) */
@@ -561,16 +592,25 @@
     }
 
     @media (max-width: 768px) {
-      .modal-panel {
+    .modal-panel {
         height: 90vh;
         width: 96vw;
       }
     }
 
     @media (max-width: 768px) {
-      .modal-body {
-        padding: 14px 14px;
+    .modal-body {
+      padding: 14px 14px;
+    }
+
+    @media (max-width: 768px) {
+      .modal-exp-footer,
+      .modal-thumbs-row {
+        justify-content: flex-start;
+        flex-wrap: wrap;
+        gap: 10px;
       }
+    }
 
     .modal-columns {
       grid-template-columns: 1fr;
@@ -735,7 +775,6 @@
 
       <div class="modal-columns">
         <section class="modal-col modal-col-left">
-          <h3 class="modal-section-title">Experiences</h3>
           <div id="dest-modal-activities"></div>
         </section>
 
@@ -745,11 +784,11 @@
 
           <h3 class="modal-section-title">Quick snapshot</h3>
           <p id="dest-modal-snapshot"></p>
+          
+          <!-- Thumbnails row (above footer) -->
+          <div class="modal-thumbs-row" id="dest-modal-thumbs"></div>
         </section>
       </div>
-
-      <!-- Thumbnails row (above footer) -->
-      <div class="modal-thumbs-row" id="dest-modal-thumbs"></div>
     </div>
 
     <div class="modal-footer">
@@ -824,8 +863,6 @@ Boracay changes during typhoon season - bigger waves, stronger wind, and that dr
 
 It is one of the few destinations in the Philippines that works for everyone: couples, families, groups of friends, solo travelers, and even the “do nothing all day” crowd. Boracay adjusts to your energy.
 
-<h3 class="section-title">Boracay experiences</h3>
-
 <div class="exp-strip" role="group" aria-label="Boracay experiences">
   <a class="exp-pill" href="/destinations/boracay/index.html" aria-label="Explore Boracay experiences: Island hopping">
     <span class="exp-img" style="background-image:url('/images/boracay/boracay-island-hopping.jpg');"></span>
@@ -858,9 +895,12 @@ It is one of the few destinations in the Philippines that works for everyone: co
   </a>
 </div>
 
-<a class="exp-cta-link" href="/destinations/boracay/index.html">
-  Explore the full Boracay experiences guide <span aria-hidden="true">›</span>
-</a>
+<div class="modal-exp-footer">
+  <a class="exp-cta-link" href="/destinations/boracay/index.html"> 
+    <br>
+    Explore the full Boracay experiences guide <span aria-hidden="true">›</span>
+  </a>
+</div>
 
 Major events and seasons:
 • Love Boracay (formerly Laboracay) around April 30 - May 1
