@@ -244,6 +244,7 @@
     }
 
     .modal-panel {
+      position: relative;              /* anchors footer/children */
       width: min(960px, 92vw);
       height: 80vh;
       background: #ffffff;
@@ -251,7 +252,7 @@
       box-shadow: 0 24px 80px rgba(15, 23, 42, 0.35);
       display: flex;
       flex-direction: column;
-      overflow: hidden;
+      overflow: hidden;                /* prevents spill outside rounded corners */
     }
 
     .modal-header {
@@ -322,14 +323,21 @@
     }
 
     .modal-columns {
-      display: flex;
-      gap: 20px;
+      display: grid;
+      grid-template-columns: 1.15fr 0.85fr; /* left wider for experiences */
+      gap: 22px;
       margin-top: 12px;
+      align-items: start;
     }
 
     .modal-col {
-      flex: 1;
       min-width: 0;
+    }
+
+    /* Give the right column a subtle card feel so it reads as a separate panel */
+    .modal-col-right {
+      border-left: 1px solid #e5e7eb;
+      padding-left: 18px;
     }
 
     .modal-section-title {
@@ -361,13 +369,12 @@
     }
 
     .modal-footer {
-      flex: 0 0 10%;             /* was 25% */
+      flex: 0 0 auto;
       border-top: 1px solid #e5e7eb;
       padding: 10px 20px;
-      display: flex;
-      flex-direction: column;
-      gap: 6px;
-      justify-content: center;
+      background: #ffffff;
+      position: relative;              /* stay inside panel */
+      z-index: 2;
     }
 
     .modal-footer-label {
@@ -379,6 +386,7 @@
       display: flex;
       flex-wrap: wrap;
       gap: 10px;
+      justify-content: flex-start;
     }
 
     .modal-cta {
@@ -556,8 +564,15 @@
       }
 
       .modal-columns {
-        flex-direction: column;
-        gap: 10px;
+        grid-template-columns: 1fr;
+        gap: 14px;
+      }
+
+      .modal-col-right {
+        border-left: none;
+        padding-left: 0;
+        border-top: 1px solid #e5e7eb;
+        padding-top: 12px;
       }
 
       .modal-col {
