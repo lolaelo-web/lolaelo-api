@@ -1055,17 +1055,17 @@ Quick snapshot:
     let currentStaysUrl = null;
 
     function splitBodySections(raw) {
-      const text = raw || "";
+      const text = String(raw || "");
 
       const ACT = "Activities I recommend:";
       const EVT = "Major events and seasons:";
       const SNAP = "Quick snapshot:";
 
-      const actIdx = text.indexOf(ACT);
       const evtIdx = text.indexOf(EVT);
       const snapIdx = text.indexOf(SNAP);
 
-      if (actIdx === -1 || evtIdx === -1 || snapIdx === -1) {
+      // Must have EVT + SNAP to do structured split
+      if (evtIdx === -1 || snapIdx === -1) {
         return {
           intro: text.trim(),
           activities: "",
@@ -1074,8 +1074,34 @@ Quick snapshot:
         };
       }
 
-      const intro = text.slice(0, actIdx).trim();
-      const activities = text.slice(actIdx + ACT.length, evtIdx).trim();
+      // Activities can be either:
+      // 1) classic "Activities I recommend:" block, or
+      // 2) embedded HTML experiences block (Boracay), which starts before EVT.
+      let actStart = text.indexOf(ACT);
+
+      // If the classic marker isn't present, treat everything before EVT as "intro+activities",
+      // and split that into intro paragraphs + activities HTML by looking for first HTML tag.
+      // If no HTML tag is found, we leave activities empty and keep everything as intro.
+      let preEvt = text.slice(0, evtIdx).trim();
+      let intro = "";
+      let activities = "";
+
+      if (actStart !== -1 && actStart < evtIdx) {
+        // Classic format
+        intro = text.slice(0, actStart).trim();
+        activities = text.slice(actStart + ACT.length, evtIdx).trim();
+      } else {
+        // HTML-capable format (Boracay experiences strip)
+        const firstTagIdx = preEvt.indexOf("<");
+        if (firstTagIdx !== -1) {
+          intro = preEvt.slice(0, firstTagIdx).trim();
+          activities = preEvt.slice(firstTagIdx).trim();
+        } else {
+          intro = preEvt.trim();
+          activities = "";
+        }
+      }
+
       const events = text.slice(evtIdx + EVT.length, snapIdx).trim();
       const snapshot = text.slice(snapIdx + SNAP.length).trim();
 
@@ -1150,7 +1176,17 @@ Quick snapshot:
       introEl.textContent = intro || "";
 
       // Activities may contain HTML (e.g., experiences strip). Render as HTML.
-      activitiesEl.innerHTML = activities || "";
+      const actRaw = activities || "";
+      const actHtml = actRaw.includes("&lt;")
+        ? actRaw
+            .replace(/&lt;/g, "<")
+            .replace(/&gt;/g, ">")
+            .replace(/&quot;/g, '"')
+            .replace(/&#39;/g, "'")
+            .replace(/&amp;/g, "&")
+        : actRaw;
+
+      activitiesEl.innerHTML = actHtml;
 
       eventsEl.textContent = events || "";
       snapshotEl.textContent = snapshot || "";
