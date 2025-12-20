@@ -4,171 +4,394 @@
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
 
-  <title>Massage and Recovery Day | Boracay Experiences | Lolaelo</title>
-  <meta name="description" content="Massage and recovery day in Boracay: how to plan it, when to go, what to book, pricing expectations, and how to avoid tourist traps." />
+  <title>Massage and Recovery Day in Boracay | Lolaelo</title>
+  <meta name="description" content="Massage and recovery day in Boracay: how to plan it, when to go, what to book, and how to keep the rest of the trip feeling good." />
 
   <link rel="icon" href="https://www.lolaelo.com/logo2.png" />
-  <link rel="preconnect" href="https://www.lolaelo.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
 
-  <meta property="og:title" content="Massage and Recovery Day | Boracay Experiences | Lolaelo" />
-  <meta property="og:description" content="A practical guide to building a low-pressure massage and recovery day in Boracay." />
+  <meta property="og:title" content="Massage and Recovery Day in Boracay | Lolaelo" />
+  <meta property="og:description" content="One reset day between activities. Simple structure, better energy tomorrow." />
   <meta property="og:type" content="website" />
   <meta property="og:image" content="/images/boracay/boracay-massage.jpg" />
 
   <style>
     :root{
-      --bg:#0b1220;
-      --panel:#0f1c2e;
-      --text:#e8eef8;
-      --muted:#a9b7cf;
-      --line:rgba(255,255,255,.10);
-      --brand:#ff6a3d;
-      --brand2:#2b7cff;
+      --bg:#ffffff;
+      --fg:#111827;
+      --muted:#6b7280;
 
-      --radius:18px;
-      --shadow: 0 18px 50px rgba(0,0,0,.45);
-      --max: 1100px;
-      --font: Inter, system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif;
+      --brand:#064e3b;
+      --accent:#ff6a3d;
+      --border:#e5e7eb;
+
+      --max:1100px;
+      --shadow: 0 12px 30px rgba(15,23,42,0.10);
+
+      --font: Inter, ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
     }
 
     *{box-sizing:border-box}
+    html, body{margin:0; padding:0}
     body{
+      font-family: var(--font);
+      background: var(--bg);
+      color: var(--fg);
+      line-height: 1.5;
+    }
+    a{color:inherit; text-decoration:none}
+
+    .wrap{
+      max-width: var(--max);
+      margin: 0 auto;
+      padding: 16px 20px 40px;
+    }
+
+    /* Header (consistent) */
+    .nav{
+      display:flex;
+      align-items:center;
+      justify-content:space-between;
+      padding: 4px 0 12px;
+    }
+    .nav-left{display:flex; align-items:center; gap:8px}
+    .logo-img{height:32px; width:auto; display:block}
+
+    .nav-right{
+      display:flex;
+      align-items:center;
+      gap: 20px;
+      font-size: 14px;
+    }
+    .nav-link{
+      color: var(--brand);
+      padding: 4px 0;
+      font-weight: 500;
+    }
+    .nav-link-back{
+      display:inline-flex;
+      align-items:center;
+      gap: 6px;
+    }
+    .nav-back-arrow{
+      font-size: 16px;
+      line-height: 1;
+      transform: translateY(1px);
+    }
+    .nav-link-back:hover span:last-child{ text-decoration: underline; }
+    .nav-link-back:hover .nav-back-arrow{
+      transform: translate(-2px, 1px);
+      transition: transform 0.15s ease-out;
+    }
+
+    /* Minimal breadcrumb */
+    .crumbs{
+      margin-top: 8px;
+      font-size: 12px;
+      color: var(--muted);
+      display:flex;
+      gap:8px;
+      align-items:center;
+      flex-wrap:wrap;
+    }
+    .crumbs span{
+      display:inline-block;
+      padding: 6px 10px;
+      border: 1px solid var(--border);
+      border-radius: 999px;
+      background: #ffffff;
+    }
+
+    /* Hero card (consistent) */
+    .hero{
+      margin-top: 14px;
+      border-radius: 18px;
+      overflow:hidden;
+      border: 1px solid var(--border);
+      background: #ffffff;
+      box-shadow: var(--shadow);
+    }
+    .heroGrid{
+      display:grid;
+      grid-template-columns: 1.12fr .88fr;
+      gap:0;
+    }
+    .heroMedia{
+      min-height: 340px;
+      position: relative;
+      background: #f3f4f6;
+    }
+    .heroMedia img{
+      width:100%;
+      height:100%;
+      object-fit: cover;
+      display:block;
+    }
+    .heroMedia::after{
+      content:"";
+      position:absolute;
+      inset:0;
+      background: linear-gradient(90deg, rgba(0,0,0,0.05), rgba(0,0,0,0.22));
+      pointer-events:none;
+    }
+    .heroBody{
+      padding: 22px 22px 20px;
+      display:flex;
+      flex-direction: column;
+      gap: 12px;
+    }
+    h1{
       margin:0;
-      font-family:var(--font);
-      background:
-        radial-gradient(1200px 700px at 20% -20%, rgba(255,106,61,.18), transparent 60%),
-        radial-gradient(900px 600px at 90% 10%, rgba(43,124,255,.12), transparent 55%),
-        var(--bg);
-      color:var(--text);
-      line-height:1.5;
+      font-size: 34px;
+      line-height: 1.15;
+      letter-spacing: -0.01em;
+      font-weight: 600;
     }
-    a{color:inherit}
-    .wrap{max-width:var(--max); margin:0 auto; padding:22px 18px 70px}
-
-    .topbar{
-      display:flex; align-items:center; justify-content:space-between;
-      gap:14px; padding:14px;
-      border:1px solid var(--line);
-      background: rgba(15,28,46,.72);
-      border-radius:22px;
-      box-shadow:var(--shadow);
-      backdrop-filter: blur(10px);
+    .lede{
+      margin:0;
+      color: var(--muted);
+      font-size: 14.5px;
+      line-height: 1.55;
     }
-    .brand{display:flex; align-items:center; gap:10px; text-decoration:none}
-    .brand img{width:42px; height:42px; object-fit:contain}
-    .brand .txt{display:flex; flex-direction:column}
-    .brand .name{font-weight:800}
-    .brand .sub{font-size:12px; color:var(--muted)}
 
-    .nav{display:flex; gap:10px; flex-wrap:wrap}
+    .chips{
+      display:flex;
+      flex-wrap:wrap;
+      gap: 8px;
+      margin-top: 2px;
+    }
+    .chip{
+      display:inline-flex;
+      gap:8px;
+      align-items:center;
+      padding: 6px 10px;
+      border: 1px solid var(--border);
+      border-radius: 999px;
+      background: #fafafa;
+      color: #374151;
+      font-size: 12px;
+    }
+    .dot{
+      width: 8px;
+      height: 8px;
+      border-radius: 999px;
+      background: var(--accent);
+      box-shadow: 0 0 0 4px rgba(255,106,61,0.14);
+      flex: 0 0 auto;
+    }
+
+    .kpi{
+      display:grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 10px;
+      margin-top: 4px;
+    }
+    .kpi .item{
+      border: 1px solid var(--border);
+      border-radius: 14px;
+      background: #ffffff;
+      padding: 10px 10px;
+      box-shadow: 0 10px 24px rgba(15,23,42,0.06);
+    }
+    .kpi .lbl{
+      font-size: 12px;
+      color: var(--muted);
+    }
+    .kpi .val{
+      font-size: 13.5px;
+      font-weight: 600;
+      margin-top: 3px;
+      color: #111827;
+    }
+
+    .ctaRow{
+      display:flex;
+      flex-wrap:wrap;
+      gap: 10px;
+      align-items:center;
+      margin-top: 4px;
+    }
+
     .btn{
-      padding:10px 14px;
-      border-radius:12px;
-      border:1px solid var(--line);
-      background: rgba(12,23,39,.65);
-      text-decoration:none;
-      font-weight:650;
-      transition:.15s;
+      border-radius: 999px;
+      padding: 9px 14px;
+      font-size: 14px;
+      font-weight: 500;
+      border: 1px solid transparent;
+      cursor: pointer;
+      display:inline-flex;
+      align-items:center;
+      justify-content:center;
+      gap: 8px;
+      white-space: nowrap;
     }
-    .btn:hover{background: rgba(12,23,39,.85)}
-    .btn.primary{
-      background: linear-gradient(180deg, rgba(255,106,61,.95), rgba(255,106,61,.78));
+    .btn.primary{ background: var(--accent); color: #ffffff; }
+    .btn.secondary{ background: rgba(229,242,255,0.95); color: var(--brand); border-color: rgba(229,242,255,0.65); }
+    .btn.ghost{ background: #ffffff; color: var(--brand); border-color: var(--border); }
+    .btn:hover{ box-shadow: var(--shadow); }
+
+    /* Switch-up body */
+    .section{ margin-top: 18px; }
+
+    .laneGrid{
+      display:grid;
+      grid-template-columns: 1fr 1fr 1fr;
+      gap: 14px;
+      align-items: start;
+    }
+    .lane{
+      border: 1px solid var(--border);
+      border-radius: 16px;
+      background: #ffffff;
+      box-shadow: 0 10px 24px rgba(15,23,42,0.06);
+      padding: 14px 16px;
+    }
+    .lane h2{
+      margin:0 0 8px;
+      font-size: 14px;
+      font-weight: 900;
       color:#111827;
     }
-    .btn.blue{background: rgba(43,124,255,.14)}
-
-    .crumbs{margin:18px 2px 8px; font-size:13px; color:var(--muted)}
-    .crumbs span{
-      padding:8px 12px;
-      border-radius:999px;
-      border:1px solid var(--line);
-      background: rgba(15,28,46,.55);
+    .lane p{
+      margin:0;
+      font-size: 12.8px;
+      color:#4b5563;
+      line-height: 1.55;
+      white-space: pre-line;
+    }
+    .laneTag{
+      display:inline-flex;
+      margin-top: 10px;
+      border: 1px solid var(--border);
+      border-radius: 999px;
+      padding: 5px 9px;
+      background: #fafafa;
+      font-size: 12px;
+      color:#374151;
+      font-weight: 700;
     }
 
-    .hero{
-      margin-top:14px;
-      border-radius:26px;
+    .matrix{
+      margin-top: 14px;
+      border: 1px solid var(--border);
+      border-radius: 16px;
+      background: #ffffff;
+      box-shadow: 0 10px 24px rgba(15,23,42,0.06);
       overflow:hidden;
-      border:1px solid var(--line);
-      background: rgba(15,28,46,.72);
-      box-shadow:var(--shadow);
     }
-    .heroGrid{display:grid; grid-template-columns:1.1fr .9fr}
-    .heroMedia{min-height:340px}
-    .heroMedia img{width:100%; height:100%; object-fit:cover}
-    .heroBody{padding:22px; display:flex; flex-direction:column; gap:14px}
-
-    h1{margin:0; font-size:34px}
-    .lede{color:var(--muted); font-size:15px}
-
-    .chips{display:flex; gap:10px; flex-wrap:wrap}
-    .chip{
-      padding:8px 10px;
-      border-radius:999px;
-      border:1px solid var(--line);
-      background: rgba(12,23,39,.55);
-      font-size:13px;
+    .matrixHead{
+      padding: 14px 16px;
+      background:#fafafa;
+      border-bottom: 1px solid var(--border);
     }
-
-    .kpi{display:grid; grid-template-columns:1fr 1fr; gap:10px}
-    .kpi .item{
-      border:1px solid var(--line);
-      border-radius:14px;
-      background: rgba(12,23,39,.55);
-      padding:10px;
+    .matrixHead h2{
+      margin:0;
+      font-size: 15px;
+      font-weight: 800;
+      color:#111827;
     }
-    .lbl{font-size:12px; color:var(--muted)}
-    .val{font-weight:750}
-
-    .section{margin-top:18px}
-    .grid2{display:grid; grid-template-columns:1fr 1fr; gap:14px}
-    .panel{
-      border:1px solid var(--line);
-      border-radius:var(--radius);
-      background: rgba(15,28,46,.7);
-      padding:16px;
+    .matrixHead p{
+      margin:6px 0 0;
+      font-size: 12.8px;
+      color:#4b5563;
+      line-height: 1.55;
     }
-    .panel h2{margin:0 0 10px}
-    .panel p{margin:0; color:var(--muted); font-size:14px}
-    .list{margin:10px 0 0 18px; color:var(--muted); font-size:14px}
-
-    .spotlight{
+    .matrixBody{
       display:grid;
-      grid-template-columns:.9fr 1.1fr;
-      gap:14px;
-      align-items:center;
+      grid-template-columns: 1fr 1fr;
+      gap:0;
     }
-    .spotlight-reverse{grid-template-columns:1.1fr .9fr}
-    .spotImg{
-      width:260px; height:260px;
-      border-radius:999px;
-      overflow:hidden;
-      border:1px solid var(--line);
-      margin:auto;
+    .col{
+      padding: 14px 16px;
+      border-right: 1px solid var(--border);
     }
-    .spotImg img{width:100%; height:100%; object-fit:cover}
-    .spotText{
-      border:1px solid var(--line);
-      border-radius:22px;
-      background: rgba(15,28,46,.7);
-      padding:18px;
+    .col:last-child{ border-right:none; }
+    .col h3{
+      margin:0 0 8px;
+      font-size: 13px;
+      font-weight: 900;
+      color:#111827;
+    }
+    .col ul{
+      margin:0;
+      padding-left: 18px;
+      font-size: 12.8px;
+      line-height: 1.55;
+      color:#4b5563;
+    }
+    .col li{ margin-bottom: 6px; }
+
+    .protocol{
+      margin-top: 14px;
+      border: 1px solid rgba(255,106,61,0.28);
+      background: rgba(255,106,61,0.08);
+      border-radius: 16px;
+      padding: 12px 14px;
+      box-shadow: 0 10px 24px rgba(15,23,42,0.06);
+    }
+    .protocol strong{ font-weight: 900; color:#111827; }
+    .protocol p{
+      margin: 8px 0 0;
+      font-size: 12.8px;
+      color:#374151;
+      line-height: 1.55;
+      white-space: pre-line;
     }
 
-    .faqItem{
-      border:1px solid var(--line);
-      border-radius:16px;
-      padding:14px;
-      margin-top:10px;
-      background: rgba(12,23,39,.45);
+    /* FAQ */
+    .faq{
+      margin-top: 18px;
+      border: 1px solid var(--border);
+      border-radius: 16px;
+      padding: 14px 16px;
+      background: #ffffff;
+      box-shadow: 0 10px 24px rgba(15,23,42,0.06);
     }
-    .faqQ{font-weight:800}
-    .faqA{color:var(--muted); font-size:14px}
+    .faq h2{
+      margin: 0 0 8px;
+      font-size: 15px;
+      font-weight: 600;
+      color: var(--brand);
+    }
+    details{
+      border-top: 1px solid var(--border);
+      padding: 10px 0;
+    }
+    details:first-of-type{ border-top:none; padding-top:0; }
+    summary{
+      cursor:pointer;
+      list-style:none;
+      font-size: 13px;
+      font-weight: 600;
+      color:#111827;
+    }
+    summary::-webkit-details-marker{ display:none; }
+    .faq p{
+      margin: 8px 0 0;
+      font-size: 12.8px;
+      line-height: 1.6;
+      color: #4b5563;
+    }
 
-    .footer{text-align:center; margin-top:22px; font-size:13px; color:var(--muted)}
+    footer{
+      border-top: 1px solid var(--border);
+      padding: 14px 20px 22px;
+      font-size: 12px;
+      color: #6b7280;
+      text-align: center;
+      margin-top: 26px;
+    }
+    footer a{ color: inherit; text-decoration: underline; }
 
-    @media (max-width:920px){
-      .heroGrid,.grid2,.spotlight,.spotlight-reverse{grid-template-columns:1fr}
-      .spotImg{width:240px; height:240px}
+    @media (max-width: 920px){
+      .wrap{ padding: 12px 16px 28px; }
+      .heroGrid{ grid-template-columns: 1fr; }
+      .heroMedia{ min-height: 260px; }
+      .laneGrid{ grid-template-columns: 1fr; }
+      .matrixBody{ grid-template-columns: 1fr; }
+      .col{ border-right:none; border-bottom: 1px solid var(--border); }
+      .col:last-child{ border-bottom:none; }
+      h1{ font-size: 30px; }
     }
   </style>
 
@@ -180,26 +403,17 @@
       {
         "@type":"Question",
         "name":"When is the best time to schedule a massage in Boracay?",
-        "acceptedAnswer":{
-          "@type":"Answer",
-          "text":"Late morning or mid afternoon works best. You avoid peak sun hours and still have energy for dinner later."
-        }
+        "acceptedAnswer":{"@type":"Answer","text":"Late morning or mid afternoon works best. You avoid peak sun hours and still have energy for dinner later."}
       },
       {
         "@type":"Question",
         "name":"Should I book in advance?",
-        "acceptedAnswer":{
-          "@type":"Answer",
-          "text":"For hotel spas, yes. For beachside or local shops, walk in is usually fine during the day."
-        }
+        "acceptedAnswer":{"@type":"Answer","text":"For hotel spas, yes. For beachside or local shops, walk in is usually fine during the day."}
       },
       {
         "@type":"Question",
         "name":"Are massages in Boracay family friendly?",
-        "acceptedAnswer":{
-          "@type":"Answer",
-          "text":"Many places are fine with kids nearby or offer shorter sessions. Ask before booking and choose quieter hours."
-        }
+        "acceptedAnswer":{"@type":"Answer","text":"Many places are fine with kids nearby or offer shorter sessions. Ask before booking and choose quieter hours."}
       }
     ]
   }
@@ -207,128 +421,185 @@
 </head>
 
 <body>
-<div class="wrap">
-  <header class="topbar">
-    <a class="brand" href="/index.html">
-      <img src="https://www.lolaelo.com/logo.png?cb=logo-1x" alt="Lolaelo" />
-      <div class="txt">
-        <div class="name">Lolaelo</div>
-        <div class="sub">Boracay experiences</div>
+  <div class="wrap">
+    <header class="nav">
+      <div class="nav-left">
+        <a href="https://www.lolaelo.com" aria-label="Lolaelo home">
+          <img
+            src="https://www.lolaelo.com/logo.png?cb=logo-1x"
+            alt="Lolaelo"
+            class="logo-img"
+            decoding="async"
+            loading="eager"
+          >
+        </a>
       </div>
-    </a>
-    <nav class="nav">
-      <a class="btn" href="/destinations/boracay/index.html">Boracay guide</a>
-      <a class="btn blue" href="/catalog.html?destination=boracay">Browse stays</a>
-      <a class="btn primary" href="/destinations.html">All destinations</a>
-    </nav>
-  </header>
 
-  <div class="crumbs"><span>Massage and recovery day</span></div>
+      <nav class="nav-right" aria-label="Primary">
+        <a class="nav-link nav-link-back" href="/destinations/boracay/index.html" aria-label="Back to Boracay guide">
+          <span class="nav-back-arrow">←</span>
+          <span>Boracay guide</span>
+        </a>
+      </nav>
+    </header>
 
-  <section class="hero">
-    <div class="heroGrid">
-      <div class="heroMedia">
-        <img src="/images/boracay/boracay-massage.jpg" alt="Massage and spa setting in Boracay" />
-      </div>
-      <div class="heroBody">
-        <h1>Massage and recovery day</h1>
-        <p class="lede">
-          A reset day between activities. Slow morning, light movement, one good massage, and nothing stacked after.
-        </p>
+    <div class="crumbs" aria-label="Breadcrumb">
+      <span>Massage and recovery day</span>
+    </div>
 
-        <div class="chips">
-          <div class="chip">Best for: reset days</div>
-          <div class="chip">Time: half or full day</div>
-          <div class="chip">Energy: low effort</div>
-          <div class="chip">Family friendly</div>
+    <main role="main">
+      <section class="hero" aria-label="Massage and recovery day in Boracay">
+        <div class="heroGrid">
+          <div class="heroMedia">
+            <img src="/images/boracay/boracay-massage.jpg" alt="Massage and spa setting in Boracay" loading="eager" />
+          </div>
+
+          <div class="heroBody">
+            <h1>Massage and recovery day</h1>
+            <p class="lede">
+              A reset day between activities. Slow morning, light movement, one good massage, and nothing stacked after.
+            </p>
+
+            <div class="chips" aria-label="Quick facts">
+              <div class="chip"><span class="dot"></span>Best timing: late morning</div>
+              <div class="chip"><span class="dot"></span>Session: 60 to 90 min</div>
+              <div class="chip"><span class="dot"></span>Energy: low effort</div>
+              <div class="chip"><span class="dot"></span>Goal: better tomorrow</div>
+            </div>
+
+            <div class="kpi" aria-label="Planning snapshot">
+              <div class="item">
+                <div class="lbl">Structure</div>
+                <div class="val">One main booking</div>
+              </div>
+              <div class="item">
+                <div class="lbl">After</div>
+                <div class="val">Rest or light dinner</div>
+              </div>
+              <div class="item">
+                <div class="lbl">Avoid</div>
+                <div class="val">Back-to-back plans</div>
+              </div>
+              <div class="item">
+                <div class="lbl">Win</div>
+                <div class="val">Higher energy tomorrow</div>
+              </div>
+            </div>
+
+            <div class="ctaRow">
+              <a class="btn primary" href="https://lolaelo-api.onrender.com/catalog.html?q=boracay">Browse Boracay stays</a>
+              <a class="btn secondary" href="#lanes">Pick your recovery lane</a>
+              <a class="btn ghost" href="/destinations/boracay/index.html">Back to Boracay</a>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- Switch-up: lanes -->
+      <section class="section" id="lanes" aria-label="Pick your recovery lane">
+        <div class="laneGrid">
+          <div class="lane">
+            <h2>Lane 1: quick reset</h2>
+            <p>
+60 minutes, done.
+Perfect if you still want dinner plans and a short walk after.
+            </p>
+            <span class="laneTag">Best for: busy schedules</span>
+          </div>
+
+          <div class="lane">
+            <h2>Lane 2: full recovery</h2>
+            <p>
+90 minutes and no other commitments.
+This is the version that changes how you feel tomorrow.
+            </p>
+            <span class="laneTag">Best for: boat-day fatigue</span>
+          </div>
+
+          <div class="lane">
+            <h2>Lane 3: family mode</h2>
+            <p>
+Earlier timing, simpler session, less noise.
+You protect the kids and still get your reset.
+            </p>
+            <span class="laneTag">Best for: families</span>
+          </div>
+        </div>
+      </section>
+
+      <!-- Switch-up: booking matrix -->
+      <section class="section matrix" aria-label="Where to book">
+        <div class="matrixHead">
+          <h2>Where to book</h2>
+          <p>Choose based on what you value today: quiet control or flexible value.</p>
         </div>
 
-        <div class="kpi">
-          <div class="item"><div class="lbl">Best timing</div><div class="val">Late morning</div></div>
-          <div class="item"><div class="lbl">Session length</div><div class="val">60 to 90 min</div></div>
-          <div class="item"><div class="lbl">Pace</div><div class="val">One main booking</div></div>
-          <div class="item"><div class="lbl">After</div><div class="val">Rest or light dinner</div></div>
+        <div class="matrixBody">
+          <div class="col">
+            <h3>Hotel spa</h3>
+            <ul>
+              <li>Quieter, more controlled experience</li>
+              <li>Better privacy and comfort</li>
+              <li>Best if you want consistency</li>
+              <li>Good for couples</li>
+            </ul>
+          </div>
+
+          <div class="col">
+            <h3>Local shop or beach massage</h3>
+            <ul>
+              <li>More flexible and usually cheaper</li>
+              <li>Great for daytime walk-ins</li>
+              <li>More noise and variable quality</li>
+              <li>Best if you want convenience</li>
+            </ul>
+          </div>
         </div>
-      </div>
-    </div>
-  </section>
+      </section>
 
-  <section class="section grid2">
-    <div class="panel">
-      <h2>How to structure the day</h2>
-      <p>
-        Treat this as a buffer day. Do not schedule tours or travel right after your massage.
-      </p>
-      <ul class="list">
-        <li>Sleep in or take a calm beach walk.</li>
-        <li>Massage late morning or early afternoon.</li>
-        <li>Light meal and early night.</li>
-      </ul>
-    </div>
-
-    <div class="panel">
-      <h2>Choosing the right place</h2>
-      <p>
-        Hotel spas are quieter and more controlled. Local shops are cheaper and flexible.
-        Decide what matters more today.
-      </p>
-      <ul class="list">
-        <li>Hotel spa: comfort and privacy.</li>
-        <li>Local shop: value and convenience.</li>
-        <li>Beach massage: relaxing, but noisier.</li>
-      </ul>
-    </div>
-  </section>
-
-  <section class="section">
-    <div class="spotlight">
-      <div class="spotImg">
-        <img src="/images/boracay/boracay-massage-spa.jpg" alt="" />
-      </div>
-      <div class="spotText">
-        <h2>Do not overbook</h2>
+      <!-- Switch-up: protocol -->
+      <section class="section protocol" aria-label="Recovery protocol">
+        <strong>The recovery protocol</strong>
         <p>
-          One solid session beats stacking treatments. Recovery works best when you actually rest afterward.
+1) Hydrate first.
+2) Massage late morning or mid afternoon.
+3) Eat light after.
+4) Do not schedule a hard activity right after.
+5) Sleep earlier than usual.
+
+This is how you actually feel the benefits tomorrow.
         </p>
-      </div>
-    </div>
-  </section>
+      </section>
 
-  <section class="section">
-    <div class="spotlight spotlight-reverse">
-      <div class="spotText">
-        <h2>Hydrate and eat light</h2>
-        <p>
-          Water before and after matters more than the specific massage type.
-          Keep meals simple so you do not undo the recovery.
-        </p>
-      </div>
-      <div class="spotImg">
-        <img src="/images/boracay/boracay-spa-relax.jpg" alt="" />
-      </div>
-    </div>
-  </section>
+      <section class="faq" aria-label="Massage and recovery FAQ">
+        <h2>FAQ</h2>
 
-  <section class="section panel">
-    <h2>FAQ</h2>
+        <details>
+          <summary>When is the best time to schedule a massage in Boracay?</summary>
+          <p>Late morning or mid afternoon works best. You avoid peak sun hours and still have energy for dinner later.</p>
+        </details>
 
-    <div class="faqItem">
-      <p class="faqQ">When is the best time to schedule a massage?</p>
-      <p class="faqA">Late morning or mid afternoon keeps the rest of your day flexible.</p>
-    </div>
+        <details>
+          <summary>Should I book in advance?</summary>
+          <p>For hotel spas, yes. For beachside or local shops, walk in is usually fine during the day.</p>
+        </details>
 
-    <div class="faqItem">
-      <p class="faqQ">Should I book in advance?</p>
-      <p class="faqA">Hotel spas yes. Local shops usually accept walk ins.</p>
-    </div>
+        <details>
+          <summary>Are massages in Boracay family friendly?</summary>
+          <p>Many places are fine with kids nearby or offer shorter sessions. Ask before booking and choose quieter hours.</p>
+        </details>
+      </section>
+    </main>
 
-    <div class="faqItem">
-      <p class="faqQ">Is it kid friendly?</p>
-      <p class="faqA">Yes, especially if you go earlier and choose a quieter setting.</p>
-    </div>
-  </section>
+    <footer>
+      © <span id="year"></span> Lolaelo ·
+      <a href="https://lolaelo-api.onrender.com/privacy.html" target="_blank" rel="noopener">Privacy</a>
+      <a href="https://lolaelo-api.onrender.com/terms.html" target="_blank" rel="noopener">Terms</a>
+    </footer>
+  </div>
 
-  <div class="footer">Lolaelo. Practical travel, no fluff.</div>
-</div>
+  <script>
+    document.getElementById("year").textContent = new Date().getFullYear();
+  </script>
 </body>
 </html>

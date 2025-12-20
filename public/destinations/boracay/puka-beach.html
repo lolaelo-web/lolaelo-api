@@ -9,6 +9,11 @@
   <link rel="icon" href="https://www.lolaelo.com/logo2.png" />
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
 
+  <meta property="og:title" content="Puka Beach Boracay | Quiet Reset Guide (Lolaelo)" />
+  <meta property="og:description" content="More space, less noise. A simple plan that makes Puka feel like a real reset." />
+  <meta property="og:type" content="website" />
+  <meta property="og:image" content="/images/boracay/boracay-beach-white-sand.jpg" />
+
   <style>
     :root {
       --bg: #ffffff;
@@ -97,6 +102,13 @@
       align-items: center;
       flex-wrap: wrap;
     }
+    .crumbs span{
+      display:inline-block;
+      padding: 6px 10px;
+      border: 1px solid var(--border);
+      border-radius: 999px;
+      background: #ffffff;
+    }
 
     /* Hero */
     .hero {
@@ -179,6 +191,9 @@
     .intro h2 { margin: 0 0 8px; font-size: 15px; color: var(--brand); font-weight: 600; }
     .intro p { margin: 0 0 8px; font-size: 12.8px; line-height: 1.6; color: #4b5563; white-space: pre-line; }
 
+    .pills { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 10px; }
+    .pill { font-size: 12px; padding: 6px 10px; border-radius: 999px; border: 1px solid var(--border); color: #374151; background: #fafafa; }
+
     .split {
       margin-top: 14px;
       display: grid;
@@ -196,9 +211,6 @@
     .panel h3 { margin: 0 0 10px; font-size: 13px; font-weight: 600; color: #111827; }
     .panel ul { margin: 0; padding-left: 18px; font-size: 12.5px; line-height: 1.55; color: #4b5563; }
     .panel li { margin-bottom: 6px; }
-
-    .pills { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 10px; }
-    .pill { font-size: 12px; padding: 6px 10px; border-radius: 999px; border: 1px solid var(--border); color: #374151; background: #fafafa; }
 
     .section-title { margin: 22px 0 10px; font-size: 15px; font-weight: 600; color: var(--brand); }
 
@@ -237,6 +249,7 @@
       line-height: 1.6;
       color: #4b5563;
       white-space: pre-line;
+      margin: 0;
     }
 
     .spotlight-media {
@@ -267,6 +280,12 @@
       padding: 14px 16px;
       background: #ffffff;
       box-shadow: 0 10px 24px rgba(15,23,42,0.06);
+    }
+    .faq h2{
+      margin: 0 0 8px;
+      font-size: 15px;
+      font-weight: 600;
+      color: var(--brand);
     }
     details { border-top: 1px solid var(--border); padding: 10px 0; }
     details:first-of-type { border-top: none; padding-top: 0; }
@@ -359,11 +378,11 @@
         <div class="hero-inner">
           <h1 class="hero-title">Puka Beach, for a quieter reset</h1>
           <p class="hero-sub">
-            When the main beach feels busy, Puka is the reset. More space, less noise, and a slower pace if you let it be.
+            More space, less noise. Puka works best when you treat it like a reset, not a checklist stop.
           </p>
           <div class="hero-actions">
             <a class="btn btn-primary" href="https://lolaelo-api.onrender.com/catalog.html?q=boracay">Browse Boracay stays</a>
-            <a class="btn btn-secondary" href="#how">Jump to the plan</a>
+            <a class="btn btn-secondary" href="#plan">Jump to the plan</a>
             <a class="btn btn-ghost" href="/destinations/boracay/index.html">Back to Boracay</a>
           </div>
         </div>
@@ -372,7 +391,7 @@
       <section class="intro" aria-label="Quick answer">
         <h2>Quick answer</h2>
         <p>
-Puka Beach is worth it if you want space and a calmer feel. Give it two to three hours, keep your plan simple, and treat it like a reset instead of a rushed stop.
+Puka Beach is worth it if you want space and a calmer feel. Give it two to three hours, keep your plan simple, and leave before it turns into a crowded loop.
         </p>
         <div class="pills" aria-label="Quick tags">
           <span class="pill">Best time: late afternoon</span>
@@ -388,9 +407,14 @@ Puka Beach is worth it if you want space and a calmer feel. Give it two to three
           <ul>
             <li><strong>Time:</strong> give it a real two-hour window</li>
             <li><strong>Comfort:</strong> water, towel, sunscreen</li>
-            <li><strong>Mindset:</strong> treat it like a reset</li>
-            <li><strong>Pace:</strong> walk, swim, sit, repeat</li>
+            <li><strong>Pace:</strong> walk first, then swim, then sit</li>
+            <li><strong>Mindset:</strong> less talking, more breathing</li>
           </ul>
+
+          <div class="meta-row">
+            <span class="meta"><strong>Sweet spot:</strong> late afternoon</span>
+            <span class="meta"><strong>Best move:</strong> leave on purpose</span>
+          </div>
         </div>
 
         <div class="panel">
@@ -398,36 +422,41 @@ Puka Beach is worth it if you want space and a calmer feel. Give it two to three
           <ul>
             <li><strong>Rushing:</strong> a quick stop misses the point</li>
             <li><strong>Overpacking:</strong> heavy bags reduce enjoyment</li>
-            <li><strong>Midday heat:</strong> it can feel harsher at peak sun</li>
-            <li><strong>Unreal expectations:</strong> it’s about calm, not perfect</li>
+            <li><strong>Midday heat:</strong> can feel harsher at peak sun</li>
+            <li><strong>Phone spiral:</strong> take a few, then stop</li>
           </ul>
+
+          <div class="meta-row">
+            <span class="meta"><strong>Skip if:</strong> you want busy energy</span>
+            <span class="meta"><strong>Bring:</strong> water + cash</span>
+          </div>
         </div>
       </section>
 
-      <h2 class="section-title" id="how">How to make it feel like a reset</h2>
+      <h2 class="section-title" id="plan">A simple reset plan</h2>
 
-      <!-- Spotlight 1: reverse (circle left, text right) -->
-      <section class="spotlight spotlight-reverse" aria-label="A simple plan">
+      <!-- Spotlight 1 (circle left, text right) -->
+      <section class="spotlight spotlight-reverse" aria-label="Reset plan steps">
         <div class="spotlight-text">
-          <h3 class="spotlight-title">A simple plan that works</h3>
-          <div class="spotlight-body">
-<strong>Step 1: arrive and walk first.</strong>
-Before you pick a spot, walk for 5 to 10 minutes. It helps you find your pace.
+          <h3 class="spotlight-title">Do it in four moves</h3>
+          <p class="spotlight-body">
+<strong>Move 1: walk first.</strong>
+Give yourself 5 to 10 minutes before choosing a spot. It changes the whole visit.
 
-<strong>Step 2: do one calm swim.</strong>
-Keep it easy. This is not a workout. It is a reset.
+<strong>Move 2: one calm swim.</strong>
+Keep it easy. This is not a workout.
 
-<strong>Step 3: sit and do nothing for a while.</strong>
-This is the part people skip. It’s also the part that makes it worth it.
+<strong>Move 3: sit and do nothing.</strong>
+This is the part people skip. It is also the part that makes it a real reset.
 
-<strong>Step 4: leave before it gets heavy.</strong>
-Exit while it still feels clean. You want to keep the calm.
-          </div>
+<strong>Move 4: leave while it still feels clean.</strong>
+A clean exit is what keeps the memory positive.
+          </p>
 
           <div class="meta-row">
-            <span class="meta"><strong>Best window:</strong> late afternoon</span>
             <span class="meta"><strong>Length:</strong> 2 to 3 hrs</span>
             <span class="meta"><strong>Effort:</strong> low</span>
+            <span class="meta"><strong>Goal:</strong> calm</span>
           </div>
 
           <div class="meta-row" style="margin-top:10px;">
@@ -440,24 +469,24 @@ Exit while it still feels clean. You want to keep the calm.
         </div>
       </section>
 
-      <!-- Spotlight 2: text left, circle right -->
+      <!-- Spotlight 2 (text left, circle right) -->
       <section class="spotlight" aria-label="What to bring">
         <div class="spotlight-text">
           <h3 class="spotlight-title">What to bring</h3>
-          <div class="spotlight-body">
-<strong>Water.</strong> It sounds obvious, but it’s what keeps the beach pleasant.
+          <p class="spotlight-body">
+<strong>Water.</strong> This is the difference between relaxing and overheating.
 
-<strong>Towel and a light layer.</strong> Wind and salt can turn cold fast.
+<strong>Towel and a light layer.</strong> Wind and salt can hit fast.
 
 <strong>Reef-safe sunscreen.</strong> Put it on early so it sets before you swim.
 
 <strong>Cash.</strong> For small purchases without friction.
-          </div>
+          </p>
 
           <div class="meta-row">
             <span class="meta"><strong>Priority:</strong> comfort</span>
             <span class="meta"><strong>Valuables:</strong> keep minimal</span>
-            <span class="meta"><strong>Goal:</strong> calm</span>
+            <span class="meta"><strong>Move:</strong> travel light</span>
           </div>
         </div>
 
@@ -467,7 +496,7 @@ Exit while it still feels clean. You want to keep the calm.
       </section>
 
       <section class="faq" aria-label="Puka Beach FAQ">
-        <h2 class="section-title" style="margin:0 0 8px;">FAQ</h2>
+        <h2>FAQ</h2>
 
         <details>
           <summary>Is Puka Beach worth it?</summary>
@@ -486,7 +515,7 @@ Exit while it still feels clean. You want to keep the calm.
 
         <details>
           <summary>What should you bring?</summary>
-          <p>Water, a towel, reef-safe sunscreen, and cash for small purchases. Keep it light.</p>
+          <p>Water, a towel, reef-safe sunscreen, and cash for small purchases. Keep it light and comfortable.</p>
         </details>
       </section>
     </main>

@@ -4,329 +4,471 @@
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
 
-  <title>Crystal Cove | Boracay Experiences | Lolaelo</title>
-  <meta name="description" content="Crystal Cove in Boracay: what it is, how to go, what to bring, costs, timing, and practical tips for families and first timers." />
+  <title>Crystal Cove in Boracay | Easy Views and Light Exploring | Lolaelo</title>
+  <meta name="description" content="Crystal Cove in Boracay, simplified. What it is, how to go, best timing, what to bring, and how to avoid turning it into a rushed stop." />
 
-  <!-- Canonical assets -->
   <link rel="icon" href="https://www.lolaelo.com/logo2.png" />
-  <link rel="preconnect" href="https://www.lolaelo.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
 
-  <!-- Open Graph -->
-  <meta property="og:title" content="Crystal Cove | Boracay Experiences | Lolaelo" />
-  <meta property="og:description" content="Practical guide to Crystal Cove: getting there, fees, timing, and what to expect." />
+  <meta property="og:title" content="Crystal Cove in Boracay | Lolaelo" />
+  <meta property="og:description" content="A structured stop that works if you do it early and keep it simple." />
   <meta property="og:type" content="website" />
   <meta property="og:image" content="/images/boracay/boracay-crystal-cove.jpg" />
 
   <style>
     :root{
-      --bg:#0b1220;
-      --panel:#0f1c2e;
-      --panel2:#0c1727;
-      --text:#e8eef8;
-      --muted:#a9b7cf;
-      --line:rgba(255,255,255,.10);
-      --brand:#ff6a3d;
-      --brand2:#2b7cff;
-      --ok:#22c55e;
-      --warn:#f59e0b;
+      --bg:#ffffff;
+      --fg:#111827;
+      --muted:#6b7280;
 
-      --radius:18px;
-      --radius2:999px;
-      --shadow: 0 18px 50px rgba(0,0,0,.45);
-      --max: 1100px;
-      --font: Inter, system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif;
+      --brand:#064e3b;
+      --accent:#ff6a3d;
+      --border:#e5e7eb;
+
+      --max:1100px;
+      --shadow: 0 12px 30px rgba(15,23,42,0.10);
+
+      --font: Inter, ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
     }
 
     *{box-sizing:border-box}
+    html, body{margin:0; padding:0}
     body{
-      margin:0;
-      font-family:var(--font);
-      background: radial-gradient(1200px 700px at 20% -20%, rgba(255,106,61,.18), transparent 60%),
-                  radial-gradient(900px 600px at 90% 10%, rgba(43,124,255,.12), transparent 55%),
-                  var(--bg);
-      color:var(--text);
-      line-height:1.5;
+      font-family: var(--font);
+      background: var(--bg);
+      color: var(--fg);
+      line-height: 1.5;
     }
-    a{color:inherit}
-    .wrap{max-width:var(--max); margin:0 auto; padding:22px 18px 70px}
-    .topbar{
-      display:flex; align-items:center; justify-content:space-between;
-      gap:14px; padding:14px 14px;
-      border:1px solid var(--line);
-      background: rgba(15, 28, 46, .72);
-      border-radius: 22px;
-      box-shadow: var(--shadow);
-      backdrop-filter: blur(10px);
+    a{color:inherit; text-decoration:none}
+
+    .wrap{
+      max-width: var(--max);
+      margin: 0 auto;
+      padding: 16px 20px 40px;
     }
-    .brand{
-      display:flex; align-items:center; gap:10px; text-decoration:none;
-    }
-    .brand img{
-      width:42px; height:42px; object-fit:contain;
-      filter: drop-shadow(0 6px 18px rgba(0,0,0,.35));
-    }
-    .brand .txt{
-      display:flex; flex-direction:column; gap:1px;
-    }
-    .brand .txt .name{font-weight:800; letter-spacing:.2px}
-    .brand .txt .sub{font-size:12px; color:var(--muted)}
+
+    /* Header (keep consistent) */
     .nav{
-      display:flex; gap:10px; align-items:center; flex-wrap:wrap;
+      display:flex;
+      align-items:center;
+      justify-content:space-between;
+      padding: 4px 0 12px;
     }
-    .btn{
-      display:inline-flex; align-items:center; justify-content:center;
-      padding:10px 14px;
-      border-radius: 12px;
-      border:1px solid var(--line);
-      background: rgba(12, 23, 39, .65);
-      color: var(--text);
-      text-decoration:none;
-      font-weight:650;
-      cursor:pointer;
-      transition: transform .15s ease, border-color .15s ease, background .15s ease;
-      user-select:none;
+    .nav-left{display:flex; align-items:center; gap:8px}
+    .logo-img{height:32px; width:auto; display:block}
+
+    .nav-right{
+      display:flex;
+      align-items:center;
+      gap: 20px;
+      font-size: 14px;
     }
-    .btn:hover{transform: translateY(-1px); border-color: rgba(255,255,255,.20); background: rgba(12, 23, 39, .85)}
-    .btn.primary{
-      background: linear-gradient(180deg, rgba(255,106,61,.95), rgba(255,106,61,.78));
-      border-color: rgba(255,106,61,.55);
-      color:#111827;
+    .nav-link{
+      color: var(--brand);
+      padding: 4px 0;
+      font-weight: 500;
     }
-    .btn.primary:hover{border-color: rgba(255,106,61,.8)}
-    .btn.blue{
-      background: rgba(43,124,255,.14);
-      border-color: rgba(43,124,255,.35);
+    .nav-link-back{
+      display:inline-flex;
+      align-items:center;
+      gap: 6px;
+    }
+    .nav-back-arrow{
+      font-size: 16px;
+      line-height: 1;
+      transform: translateY(1px);
+    }
+    .nav-link-back:hover span:last-child{ text-decoration: underline; }
+    .nav-link-back:hover .nav-back-arrow{
+      transform: translate(-2px, 1px);
+      transition: transform 0.15s ease-out;
     }
 
     /* Minimal breadcrumb */
     .crumbs{
-      margin:18px 2px 8px;
+      margin-top: 8px;
+      font-size: 12px;
       color: var(--muted);
-      font-size: 13px;
-      letter-spacing: .2px;
+      display:flex;
+      gap:8px;
+      align-items:center;
+      flex-wrap:wrap;
     }
     .crumbs span{
       display:inline-block;
-      padding:8px 12px;
-      border:1px solid var(--line);
+      padding: 6px 10px;
+      border: 1px solid var(--border);
       border-radius: 999px;
-      background: rgba(15, 28, 46, .55);
+      background: #ffffff;
     }
 
+    /* Hero card (keep consistent) */
     .hero{
-      margin-top:14px;
-      border-radius: 26px;
+      margin-top: 14px;
+      border-radius: 18px;
       overflow:hidden;
-      border:1px solid var(--line);
-      background: rgba(15, 28, 46, .72);
+      border: 1px solid var(--border);
+      background: #ffffff;
       box-shadow: var(--shadow);
     }
     .heroGrid{
       display:grid;
       grid-template-columns: 1.12fr .88fr;
-      gap: 0;
+      gap:0;
     }
     .heroMedia{
       min-height: 340px;
-      position:relative;
-      background: #08101d;
+      position: relative;
+      background: #f3f4f6;
     }
     .heroMedia img{
-      width:100%; height:100%; object-fit:cover; display:block;
-      filter: saturate(1.05) contrast(1.02);
+      width:100%;
+      height:100%;
+      object-fit: cover;
+      display:block;
     }
     .heroMedia::after{
       content:"";
-      position:absolute; inset:0;
-      background: linear-gradient(90deg, rgba(0,0,0,.10), rgba(0,0,0,.45));
+      position:absolute;
+      inset:0;
+      background: linear-gradient(90deg, rgba(0,0,0,0.05), rgba(0,0,0,0.22));
       pointer-events:none;
     }
     .heroBody{
       padding: 22px 22px 20px;
-      display:flex; flex-direction:column; gap:14px;
+      display:flex;
+      flex-direction: column;
+      gap: 12px;
     }
     h1{
       margin:0;
       font-size: 34px;
-      letter-spacing: .2px;
-      line-height:1.15;
+      line-height: 1.15;
+      letter-spacing: -0.01em;
+      font-weight: 600;
     }
-    .lede{margin:0; color: var(--muted); font-size: 15px}
-    .chips{display:flex; flex-wrap:wrap; gap:10px}
-    .chip{
-      display:inline-flex; gap:8px; align-items:center;
-      padding:8px 10px;
-      border:1px solid var(--line);
-      border-radius: 999px;
-      background: rgba(12, 23, 39, .55);
-      color: var(--text);
-      font-size: 13px;
-      white-space:nowrap;
-    }
-    .dot{
-      width:8px; height:8px; border-radius:999px; background: var(--brand);
-      box-shadow: 0 0 0 4px rgba(255,106,61,.14);
+    .lede{
+      margin:0;
+      color: var(--muted);
+      font-size: 14.5px;
+      line-height: 1.55;
     }
 
-    .section{margin-top:18px}
-    .grid2{
-      display:grid;
-      grid-template-columns: 1fr 1fr;
-      gap:14px;
+    .chips{
+      display:flex;
+      flex-wrap:wrap;
+      gap: 8px;
+      margin-top: 2px;
     }
-    .panel{
-      border:1px solid var(--line);
-      background: rgba(15, 28, 46, .70);
-      border-radius: var(--radius);
-      padding: 16px 16px;
-      box-shadow: 0 10px 30px rgba(0,0,0,.28);
+    .chip{
+      display:inline-flex;
+      gap:8px;
+      align-items:center;
+      padding: 6px 10px;
+      border: 1px solid var(--border);
+      border-radius: 999px;
+      background: #fafafa;
+      color: #374151;
+      font-size: 12px;
     }
-    .panel h2{
-      margin:0 0 10px 0;
-      font-size: 18px;
-      letter-spacing: .15px;
+    .dot{
+      width: 8px;
+      height: 8px;
+      border-radius: 999px;
+      background: var(--accent);
+      box-shadow: 0 0 0 4px rgba(255,106,61,0.14);
+      flex: 0 0 auto;
     }
-    .panel p{margin:0; color: var(--muted); font-size: 14px}
-    .list{
-      margin:10px 0 0 0; padding:0 0 0 18px;
-      color: var(--muted);
-      font-size: 14px;
-    }
-    .list li{margin:8px 0}
+
     .kpi{
       display:grid;
       grid-template-columns: 1fr 1fr;
       gap: 10px;
-      margin-top: 10px;
+      margin-top: 4px;
     }
     .kpi .item{
-      border:1px solid var(--line);
+      border: 1px solid var(--border);
       border-radius: 14px;
-      background: rgba(12, 23, 39, .55);
+      background: #ffffff;
       padding: 10px 10px;
+      box-shadow: 0 10px 24px rgba(15,23,42,0.06);
     }
-    .kpi .item .lbl{font-size:12px; color: var(--muted)}
-    .kpi .item .val{font-size:14px; font-weight:750; margin-top:3px}
-
-    /* Spotlight */
-    .spotlight{
-      display:grid;
-      grid-template-columns: .92fr 1.08fr;
-      gap: 14px;
-      align-items:center;
-    }
-    .spotlight-reverse{
-      grid-template-columns: 1.08fr .92fr;
-    }
-    .spotImgWrap{
-      display:flex; justify-content:center; align-items:center;
-      padding: 10px;
-    }
-    .spotImg{
-      width: 260px; height: 260px;
-      border-radius: 999px;
-      overflow:hidden;
-      border: 1px solid var(--line);
-      box-shadow: 0 18px 40px rgba(0,0,0,.35);
-      background: rgba(12, 23, 39, .40);
-    }
-    .spotImg img{
-      width:100%; height:100%;
-      object-fit:cover; display:block;
-      filter: saturate(1.02) contrast(1.02);
-      transform: scale(1.02);
-    }
-    .spotText{
-      border:1px solid var(--line);
-      border-radius: 22px;
-      background: rgba(15, 28, 46, .70);
-      padding: 18px 18px;
-      box-shadow: 0 10px 30px rgba(0,0,0,.26);
-    }
-    .spotText h2{margin:0 0 10px 0; font-size: 20px}
-    .spotText p{margin:0; color: var(--muted); font-size: 14.5px}
-    .spotText .mini{
-      margin-top: 12px;
-      padding-top: 12px;
-      border-top: 1px solid var(--line);
-      display:grid;
-      grid-template-columns: 1fr 1fr;
-      gap: 10px;
+    .kpi .lbl{
+      font-size: 12px;
       color: var(--muted);
+    }
+    .kpi .val{
       font-size: 13.5px;
+      font-weight: 600;
+      margin-top: 3px;
+      color: #111827;
     }
 
     .ctaRow{
-      display:flex; flex-wrap:wrap; gap:10px; align-items:center;
-      margin-top: 12px;
+      display:flex;
+      flex-wrap:wrap;
+      gap: 10px;
+      align-items:center;
+      margin-top: 4px;
+    }
+
+    .btn{
+      border-radius: 999px;
+      padding: 9px 14px;
+      font-size: 14px;
+      font-weight: 500;
+      border: 1px solid transparent;
+      cursor: pointer;
+      display:inline-flex;
+      align-items:center;
+      justify-content:center;
+      gap: 8px;
+      white-space: nowrap;
+    }
+    .btn.primary{ background: var(--accent); color: #ffffff; }
+    .btn.secondary{ background: rgba(229,242,255,0.95); color: var(--brand); border-color: rgba(229,242,255,0.65); }
+    .btn.ghost{ background: #ffffff; color: var(--brand); border-color: var(--border); }
+    .btn:hover{ box-shadow: var(--shadow); }
+
+    /* Switch-up body */
+    .section{ margin-top: 18px; }
+
+    .reality{
+      display:grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 14px;
+      align-items: start;
+      margin-top: 14px;
+    }
+    .tile{
+      border: 1px solid var(--border);
+      border-radius: 16px;
+      background: #ffffff;
+      box-shadow: 0 10px 24px rgba(15,23,42,0.06);
+      padding: 14px 16px;
+    }
+    .tile h2{
+      margin: 0 0 8px;
+      font-size: 15px;
+      font-weight: 700;
+      color: var(--brand);
+    }
+    .tile p{
+      margin: 0;
+      font-size: 12.8px;
+      color:#4b5563;
+      line-height: 1.6;
+      white-space: pre-line;
+    }
+
+    .route{
+      margin-top: 14px;
+      border: 1px solid var(--border);
+      border-radius: 16px;
+      background: #ffffff;
+      box-shadow: 0 10px 24px rgba(15,23,42,0.06);
+      overflow:hidden;
+    }
+    .routeHead{
+      padding: 14px 16px;
+      background: #fafafa;
+      border-bottom: 1px solid var(--border);
+      display:flex;
+      align-items:flex-start;
+      justify-content:space-between;
+      gap: 14px;
+    }
+    .routeHead h2{
+      margin: 0;
+      font-size: 15px;
+      font-weight: 800;
+      color: #111827;
+    }
+    .routeHead p{
+      margin: 6px 0 0;
+      font-size: 12.8px;
+      color:#4b5563;
+      line-height: 1.55;
+    }
+    .routeTag{
+      flex: 0 0 auto;
+      border: 1px solid var(--border);
+      border-radius: 999px;
+      padding: 6px 10px;
+      background: #ffffff;
+      font-size: 12px;
+      color:#374151;
+      font-weight: 700;
+      white-space: nowrap;
+    }
+
+    .routeSteps{
+      display:grid;
+      grid-template-columns: 1fr 1fr 1fr;
+      gap: 0;
+    }
+    .step{
+      padding: 14px 16px;
+      border-right: 1px solid var(--border);
+    }
+    .step:last-child{ border-right:none; }
+    .stepTitle{
+      margin: 0 0 6px;
+      font-size: 13px;
+      font-weight: 800;
+      color:#111827;
+    }
+    .stepText{
+      margin:0;
+      font-size: 12.8px;
+      color:#4b5563;
+      line-height: 1.55;
+      white-space: pre-line;
+    }
+    .stepMeta{
+      margin-top: 10px;
+      padding-top: 10px;
+      border-top: 1px solid var(--border);
+      display:flex;
+      gap: 10px;
+      flex-wrap:wrap;
+      font-size: 12px;
+      color:#6b7280;
+    }
+    .metaTag{
+      border: 1px solid var(--border);
+      border-radius: 999px;
+      padding: 4px 8px;
+      background: #ffffff;
+    }
+
+    .checkGrid{
+      display:grid;
+      grid-template-columns: 1fr 1fr 1fr;
+      gap: 14px;
+      margin-top: 14px;
+      align-items:start;
+    }
+    .check{
+      border: 1px solid var(--border);
+      border-radius: 16px;
+      background: #ffffff;
+      box-shadow: 0 10px 24px rgba(15,23,42,0.06);
+      padding: 14px 16px;
+    }
+    .check h3{
+      margin: 0 0 8px;
+      font-size: 14px;
+      font-weight: 800;
+      color:#111827;
+    }
+    .check ul{
+      margin: 0;
+      padding-left: 18px;
+      font-size: 12.8px;
+      line-height: 1.55;
+      color:#4b5563;
+    }
+    .check li{ margin-bottom: 6px; }
+
+    .warn{
+      margin-top: 14px;
+      border: 1px solid rgba(245,158,11,0.35);
+      background: rgba(245,158,11,0.10);
+      border-radius: 16px;
+      padding: 12px 14px;
+      box-shadow: 0 10px 24px rgba(15,23,42,0.06);
+    }
+    .warn strong{ font-weight: 800; color:#111827; }
+    .warn p{
+      margin: 8px 0 0;
+      font-size: 12.8px;
+      color:#374151;
+      line-height: 1.55;
     }
 
     /* FAQ */
-    .faqItem{
-      border:1px solid var(--line);
+    .faq{
+      margin-top: 18px;
+      border: 1px solid var(--border);
       border-radius: 16px;
-      background: rgba(12, 23, 39, .45);
-      padding: 14px 14px;
-      margin-top: 10px;
+      padding: 14px 16px;
+      background: #ffffff;
+      box-shadow: 0 10px 24px rgba(15,23,42,0.06);
     }
-    .faqQ{font-weight:800; margin:0 0 6px 0}
-    .faqA{margin:0; color: var(--muted); font-size: 14px}
-
-    .footer{
-      margin-top: 22px;
-      color: var(--muted);
+    .faq h2{
+      margin: 0 0 8px;
+      font-size: 15px;
+      font-weight: 600;
+      color: var(--brand);
+    }
+    details{
+      border-top: 1px solid var(--border);
+      padding: 10px 0;
+    }
+    details:first-of-type{ border-top:none; padding-top:0; }
+    summary{
+      cursor:pointer;
+      list-style:none;
       font-size: 13px;
-      text-align:center;
-      opacity:.95;
+      font-weight: 600;
+      color:#111827;
     }
+    summary::-webkit-details-marker{ display:none; }
+    .faq p{
+      margin: 8px 0 0;
+      font-size: 12.8px;
+      line-height: 1.6;
+      color: #4b5563;
+    }
+
+    footer{
+      border-top: 1px solid var(--border);
+      padding: 14px 20px 22px;
+      font-size: 12px;
+      color: #6b7280;
+      text-align: center;
+      margin-top: 26px;
+    }
+    footer a{ color: inherit; text-decoration: underline; }
 
     @media (max-width: 920px){
-      .heroGrid{grid-template-columns: 1fr}
-      .heroMedia{min-height: 260px}
-      .grid2{grid-template-columns: 1fr}
-      .spotlight, .spotlight-reverse{grid-template-columns: 1fr}
-      .spotImg{width: 240px; height: 240px}
-      h1{font-size: 30px}
+      .wrap{ padding: 12px 16px 28px; }
+      .heroGrid{ grid-template-columns: 1fr; }
+      .heroMedia{ min-height: 260px; }
+      .reality{ grid-template-columns: 1fr; }
+      .routeSteps{ grid-template-columns: 1fr; }
+      .step{ border-right:none; border-bottom: 1px solid var(--border); }
+      .step:last-child{ border-bottom:none; }
+      .checkGrid{ grid-template-columns: 1fr; }
+      h1{ font-size: 30px; }
     }
   </style>
 
-  <!-- FAQ JSON-LD -->
   <script type="application/ld+json">
   {
-    "@context": "https://schema.org",
-    "@type": "FAQPage",
-    "mainEntity": [
+    "@context":"https://schema.org",
+    "@type":"FAQPage",
+    "mainEntity":[
       {
-        "@type": "Question",
-        "name": "Is Crystal Cove worth it if I only have half a day?",
-        "acceptedAnswer": {
-          "@type": "Answer",
-          "text": "Yes, if you want an easy, structured side trip with photo spots and light exploring. Plan for boat time plus 1.5 to 3 hours on the island depending on crowds."
-        }
+        "@type":"Question",
+        "name":"Is Crystal Cove worth it if I only have half a day?",
+        "acceptedAnswer":{"@type":"Answer","text":"Yes, if you want an easy, structured side trip with photo spots and light exploring. Plan for boat time plus 1.5 to 3 hours on the island depending on crowds."}
       },
       {
-        "@type": "Question",
-        "name": "Do I need to swim to enjoy Crystal Cove?",
-        "acceptedAnswer": {
-          "@type": "Answer",
-          "text": "No. You can enjoy viewpoints, stairs, small coves, and the general scenery without swimming. Wear shoes with grip because steps can be slick."
-        }
+        "@type":"Question",
+        "name":"Do I need to swim to enjoy Crystal Cove?",
+        "acceptedAnswer":{"@type":"Answer","text":"No. You can enjoy viewpoints, stairs, and the scenery without swimming. Wear shoes with grip because steps can be slick."}
       },
       {
-        "@type": "Question",
-        "name": "What should I bring?",
-        "acceptedAnswer": {
-          "@type": "Answer",
-          "text": "Cash for entrance fees, water, sun protection, a small towel, and shoes with traction. If you plan to swim, add a dry bag and a change of clothes."
-        }
+        "@type":"Question",
+        "name":"What should I bring?",
+        "acceptedAnswer":{"@type":"Answer","text":"Cash for entrance fees, water, sun protection, and shoes with traction. If you plan to swim, add a dry bag and a change of clothes."}
       },
       {
-        "@type": "Question",
-        "name": "How do I get there from Boracay?",
-        "acceptedAnswer": {
-          "@type": "Answer",
-          "text": "Most visitors go by boat as part of an island hopping route. You can also hire a private boat. Ask for Crystal Cove to be included, then confirm the stop duration."
-        }
+        "@type":"Question",
+        "name":"How do I get there from Boracay?",
+        "acceptedAnswer":{"@type":"Answer","text":"Most visitors go by boat as part of an island hopping route. You can also hire a private boat. Ask for Crystal Cove to be included, then confirm the stop duration."}
       }
     ]
   }
@@ -335,219 +477,229 @@
 
 <body>
   <div class="wrap">
-    <header class="topbar">
-      <a class="brand" href="/index.html" aria-label="Lolaelo home">
-        <img src="https://www.lolaelo.com/logo.png?cb=logo-1x" alt="Lolaelo" />
-        <div class="txt">
-          <div class="name">Lolaelo</div>
-          <div class="sub">Boracay experiences</div>
-        </div>
-      </a>
+    <header class="nav">
+      <div class="nav-left">
+        <a href="https://www.lolaelo.com" aria-label="Lolaelo home">
+          <img
+            src="https://www.lolaelo.com/logo.png?cb=logo-1x"
+            alt="Lolaelo"
+            class="logo-img"
+            decoding="async"
+            loading="eager"
+          >
+        </a>
+      </div>
 
-      <nav class="nav" aria-label="Top navigation">
-        <a class="btn" href="/destinations/boracay/index.html">Boracay guide</a>
-        <a class="btn blue" href="/catalog.html?destination=boracay">Browse stays</a>
-        <a class="btn primary" href="/destinations.html">All destinations</a>
+      <nav class="nav-right" aria-label="Primary">
+        <a class="nav-link nav-link-back" href="/destinations/boracay/index.html" aria-label="Back to Boracay guide">
+          <span class="nav-back-arrow">←</span>
+          <span>Boracay guide</span>
+        </a>
       </nav>
     </header>
 
-    <!-- Minimal breadcrumb -->
     <div class="crumbs" aria-label="Breadcrumb">
       <span>Crystal Cove</span>
     </div>
 
-    <section class="hero" aria-label="Hero">
-      <div class="heroGrid">
-        <div class="heroMedia">
-          <!-- Image must exist at: /images/boracay/boracay-crystal-cove.jpg -->
-          <img src="/images/boracay/boracay-crystal-cove.jpg" alt="Crystal Cove in Boracay, coastal views and coves" loading="eager" />
-        </div>
-        <div class="heroBody">
-          <h1>Crystal Cove</h1>
-          <p class="lede">
-            A simple add on to island hopping. Views, stairs, small coves, and quick photo stops.
-            Go early if you want it calmer.
-          </p>
-
-          <div class="chips" aria-label="Quick facts">
-            <div class="chip"><span class="dot"></span>Best for: light exploring</div>
-            <div class="chip"><span class="dot"></span>Time: half day friendly</div>
-            <div class="chip"><span class="dot"></span>Bring: cash + water</div>
-            <div class="chip"><span class="dot"></span>Wear: shoes with grip</div>
+    <main role="main">
+      <section class="hero" aria-label="Crystal Cove in Boracay">
+        <div class="heroGrid">
+          <div class="heroMedia">
+            <img src="/images/boracay/boracay-crystal-cove.jpg" alt="Crystal Cove in Boracay, coastal views and coves" loading="eager" />
           </div>
 
-          <div class="kpi" aria-label="Planning snapshot">
-            <div class="item">
-              <div class="lbl">Ideal timing</div>
-              <div class="val">Morning to early afternoon</div>
-            </div>
-            <div class="item">
-              <div class="lbl">How to do it</div>
-              <div class="val">Island hopping stop</div>
-            </div>
-            <div class="item">
-              <div class="lbl">Crowd level</div>
-              <div class="val">Moderate, spikes midday</div>
-            </div>
-            <div class="item">
-              <div class="lbl">Kid friendly</div>
-              <div class="val">Yes, with supervision on stairs</div>
-            </div>
-          </div>
+          <div class="heroBody">
+            <h1>Crystal Cove, done efficiently</h1>
+            <p class="lede">
+              A structured stop that works if you do it early and keep it simple. Views, stairs, coves, then back to the beach.
+            </p>
 
-          <div class="ctaRow">
-            <a class="btn primary" href="/catalog.html?destination=boracay">Find a place to stay</a>
-            <a class="btn" href="/destinations/boracay/index.html#top10">Back to Boracay top 10</a>
-          </div>
-        </div>
-      </div>
-    </section>
+            <div class="chips" aria-label="Quick facts">
+              <div class="chip"><span class="dot"></span>Best for: light exploring</div>
+              <div class="chip"><span class="dot"></span>Time: half day friendly</div>
+              <div class="chip"><span class="dot"></span>Bring: cash and water</div>
+              <div class="chip"><span class="dot"></span>Wear: shoes with grip</div>
+            </div>
 
-    <section class="section grid2" aria-label="What to expect and quick plan">
-      <div class="panel">
-        <h2>What it feels like</h2>
-        <p>
-          Crystal Cove is structured. You arrive by boat, pay entrance, then walk up and down stairs to reach viewpoints and coves.
-          It is not a rugged hike, but it is not flat either.
-        </p>
-        <ul class="list">
-          <li>Good for photos and a change of scenery.</li>
-          <li>Expect steps. Move slower if it rained.</li>
-          <li>Most people spend 1.5 to 3 hours on the stop.</li>
-        </ul>
-      </div>
+            <div class="kpi" aria-label="Planning snapshot">
+              <div class="item">
+                <div class="lbl">Ideal timing</div>
+                <div class="val">Morning</div>
+              </div>
+              <div class="item">
+                <div class="lbl">How to do it</div>
+                <div class="val">Island hopping stop</div>
+              </div>
+              <div class="item">
+                <div class="lbl">On site time</div>
+                <div class="val">1.5 to 3 hours</div>
+              </div>
+              <div class="item">
+                <div class="lbl">Reality</div>
+                <div class="val">Lots of steps</div>
+              </div>
+            </div>
 
-      <div class="panel">
-        <h2>Quick plan that works</h2>
-        <p>
-          If you are doing island hopping, ask the boat crew to schedule Crystal Cove earlier.
-          You get better light and fewer people, then you can do snorkel spots after.
-        </p>
-        <ul class="list">
-          <li>Start early, confirm the stop duration before leaving.</li>
-          <li>Do viewpoints first, then the coves last.</li>
-          <li>Hydrate. Bring cash for fees and small buys.</li>
-        </ul>
-      </div>
-    </section>
-
-    <!-- Spotlight 1 -->
-    <section class="section" aria-label="Spotlight section one">
-      <div class="spotlight">
-        <div class="spotImgWrap">
-          <div class="spotImg" aria-hidden="true">
-            <img src="/images/boracay/boracay-crystal-cove-steps.jpg" alt="" loading="lazy" />
+            <div class="ctaRow">
+              <a class="btn primary" href="https://lolaelo-api.onrender.com/catalog.html?q=boracay">Browse Boracay stays</a>
+              <a class="btn secondary" href="#route">Jump to the route</a>
+              <a class="btn ghost" href="/destinations/boracay/index.html">Back to Boracay</a>
+            </div>
           </div>
         </div>
-        <div class="spotText">
-          <h2>Do the stairs smart</h2>
+      </section>
+
+      <!-- Switch-up: reality check tiles -->
+      <section class="section" aria-label="Reality check">
+        <div class="reality">
+          <div class="tile">
+            <h2>What it is</h2>
+            <p>
+A structured island stop: stairs, viewpoints, small coves, and photo angles.
+It is a change of pace from White Beach.
+            </p>
+          </div>
+
+          <div class="tile">
+            <h2>What it is not</h2>
+            <p>
+Not a rugged adventure and not a quick 5-minute stop.
+If you rush it, you get the stairs without the calm.
+            </p>
+          </div>
+        </div>
+      </section>
+
+      <!-- Switch-up: 3-stage route -->
+      <section class="section route" id="route" aria-label="Best route">
+        <div class="routeHead">
+          <div>
+            <h2>The stairs-first route</h2>
+            <p>Do the high points first, then coast down into the coves. This keeps the visit smooth.</p>
+          </div>
+          <div class="routeTag">Early is everything</div>
+        </div>
+
+        <div class="routeSteps">
+          <div class="step">
+            <div class="stepTitle">Stage 1: arrive early</div>
+            <p class="stepText">
+If you are island hopping, ask the crew to schedule Crystal Cove early.
+Less heat, fewer people, cleaner photos.
+            </p>
+            <div class="stepMeta">
+              <span class="metaTag">Goal: avoid crowds</span>
+              <span class="metaTag">Move: start early</span>
+            </div>
+          </div>
+
+          <div class="step">
+            <div class="stepTitle">Stage 2: viewpoints first</div>
+            <p class="stepText">
+Hit the higher platforms first while your legs are fresh.
+If you are with kids, this is when you want the most attention and control.
+            </p>
+            <div class="stepMeta">
+              <span class="metaTag">Goal: best views</span>
+              <span class="metaTag">Watch: slick steps</span>
+            </div>
+          </div>
+
+          <div class="step">
+            <div class="stepTitle">Stage 3: coves last</div>
+            <p class="stepText">
+Finish at the coves when you want to slow down.
+If it is packed, do not fight it. Leave and move on.
+            </p>
+            <div class="stepMeta">
+              <span class="metaTag">Goal: calm finish</span>
+              <span class="metaTag">Exit: before queues</span>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- Switch-up: packing checklist grid -->
+      <section class="section" aria-label="Packing checklist">
+        <div class="checkGrid">
+          <div class="check">
+            <h3>Must bring</h3>
+            <ul>
+              <li>Cash (fees, small buys)</li>
+              <li>Water</li>
+              <li>Sun protection</li>
+              <li>Shoes with grip</li>
+            </ul>
+          </div>
+
+          <div class="check">
+            <h3>Nice to have</h3>
+            <ul>
+              <li>Dry bag</li>
+              <li>Small towel</li>
+              <li>Change of clothes</li>
+              <li>Phone strap or pouch</li>
+            </ul>
+          </div>
+
+          <div class="check">
+            <h3>Skip</h3>
+            <ul>
+              <li>Bulky bags</li>
+              <li>Hard-to-track valuables</li>
+              <li>Flip flops on wet days</li>
+              <li>Overpacked gear</li>
+            </ul>
+          </div>
+        </div>
+
+        <div class="warn">
+          <strong>Most common mistake:</strong> treating Crystal Cove like a quick detour.
           <p>
-            The main thing people underestimate is the stair work. It is manageable, but it adds up in heat.
-            Shoes with grip beat flip flops here. If you are with kids, keep them close near railings.
+If the stop is short, it feels like stairs and crowds. Give it real time, or skip it and do something calmer.
           </p>
-          <div class="mini">
-            <div>Tip: start with the higher viewpoints first</div>
-            <div>Watch: wet steps after rain</div>
-          </div>
         </div>
-      </div>
-    </section>
 
-    <!-- Spotlight 2 (reverse) -->
-    <section class="section" aria-label="Spotlight section two">
-      <div class="spotlight spotlight-reverse">
-        <div class="spotText">
-          <h2>Best photos without trying hard</h2>
-          <p>
-            If your goal is clean photos, go earlier and move away from the first crowded landing area.
-            The best frames usually come from higher vantage points with the water behind you.
-          </p>
-          <div class="mini">
-            <div>Light: morning is easiest</div>
-            <div>Bring: a small dry bag</div>
-          </div>
+        <div class="ctaRow" style="margin-top: 14px;">
+          <a class="btn ghost" href="https://lolaelo-api.onrender.com/catalog.html?q=boracay">Browse Boracay stays</a>
         </div>
-        <div class="spotImgWrap">
-          <div class="spotImg" aria-hidden="true">
-            <img src="/images/boracay/boracay-crystal-cove-view.jpg" alt="" loading="lazy" />
-          </div>
-        </div>
-      </div>
-    </section>
+      </section>
 
-    <section class="section panel" aria-label="Costs and logistics">
-      <h2>Costs and logistics</h2>
-      <p>
-        Fees can change. Assume you will pay an entrance fee on arrival. Bring small bills.
-        If you are booking island hopping, confirm Crystal Cove is included and ask how long the stop is.
-      </p>
-      <ul class="list">
-        <li>Bring cash for entrance fees and small purchases.</li>
-        <li>Confirm the stop duration before the boat departs.</li>
-        <li>If you want a calmer visit, ask to do Crystal Cove early in the route.</li>
-      </ul>
-
-      <div class="ctaRow">
-        <a class="btn" href="/destinations/boracay/index.html">Back to Boracay guide</a>
-        <a class="btn blue" href="/catalog.html?destination=boracay">Browse Boracay stays</a>
-      </div>
-    </section>
-
-    <section class="section" aria-label="FAQ">
-      <div class="panel">
+      <section class="faq" aria-label="Crystal Cove FAQ">
         <h2>FAQ</h2>
 
-        <div class="faqItem">
-          <p class="faqQ">Is Crystal Cove worth it if I only have half a day?</p>
-          <p class="faqA">
-            Yes, if you want an easy, structured side trip with photo spots and light exploring.
-            Plan for boat time plus 1.5 to 3 hours on the island depending on crowds.
-          </p>
-        </div>
+        <details>
+          <summary>Is Crystal Cove worth it if I only have half a day?</summary>
+          <p>Yes, if you want an easy, structured side trip with photo spots and light exploring. Plan for boat time plus 1.5 to 3 hours on the island depending on crowds.</p>
+        </details>
 
-        <div class="faqItem">
-          <p class="faqQ">Do I need to swim to enjoy Crystal Cove?</p>
-          <p class="faqA">
-            No. You can enjoy viewpoints, stairs, small coves, and the scenery without swimming.
-            Wear shoes with grip because steps can be slick.
-          </p>
-        </div>
+        <details>
+          <summary>Do I need to swim to enjoy Crystal Cove?</summary>
+          <p>No. You can enjoy viewpoints, stairs, and the scenery without swimming. Wear shoes with grip because steps can be slick.</p>
+        </details>
 
-        <div class="faqItem">
-          <p class="faqQ">What should I bring?</p>
-          <p class="faqA">
-            Cash for entrance fees, water, sun protection, and shoes with traction.
-            If you plan to swim, add a dry bag and a change of clothes.
-          </p>
-        </div>
+        <details>
+          <summary>What should I bring?</summary>
+          <p>Cash for entrance fees, water, sun protection, and shoes with traction. If you plan to swim, add a dry bag and a change of clothes.</p>
+        </details>
 
-        <div class="faqItem">
-          <p class="faqQ">How do I get there from Boracay?</p>
-          <p class="faqA">
-            Most visitors go by boat as part of an island hopping route. You can also hire a private boat.
-            Ask for Crystal Cove to be included, then confirm the stop duration.
-          </p>
-        </div>
-      </div>
-    </section>
+        <details>
+          <summary>How do I get there from Boracay?</summary>
+          <p>Most visitors go by boat as part of an island hopping route. You can also hire a private boat. Ask for Crystal Cove to be included, then confirm the stop duration.</p>
+        </details>
+      </section>
+    </main>
 
-    <div class="footer">
-      Lolaelo. Practical travel, no fluff.
-    </div>
+    <footer>
+      © <span id="year"></span> Lolaelo ·
+      <a href="https://lolaelo-api.onrender.com/privacy.html" target="_blank" rel="noopener">Privacy</a>
+      <a href="https://lolaelo-api.onrender.com/terms.html" target="_blank" rel="noopener">Terms</a>
+    </footer>
   </div>
 
   <script>
-    // Small guard: allow Enter to activate buttons if you ever make card-like blocks clickable later.
-    (function () {
-      document.addEventListener("keydown", function (e) {
-        const el = document.activeElement;
-        if (!el) return;
-        if (e.key !== "Enter") return;
-        if (!el.classList) return;
-        if (!el.classList.contains("btn")) return;
-        el.click();
-      });
-    })();
+    document.getElementById("year").textContent = new Date().getFullYear();
   </script>
 </body>
 </html>

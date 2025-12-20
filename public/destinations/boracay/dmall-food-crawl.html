@@ -4,286 +4,457 @@
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
 
-  <title>D Mall Food Crawl | Boracay Experiences | Lolaelo</title>
-  <meta name="description" content="D Mall food crawl in Boracay: how to do it without rushing, best timing, what to order, budget expectations, and practical tips." />
+  <title>D Mall Food Crawl in Boracay | No-Rush Plan | Lolaelo</title>
+  <meta name="description" content="A no-rush D Mall food crawl in Boracay. A simple 3-stop route, what to order, how to control budget, and how to keep it kid-friendly." />
 
   <link rel="icon" href="https://www.lolaelo.com/logo2.png" />
-  <link rel="preconnect" href="https://www.lolaelo.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
 
-  <meta property="og:title" content="D Mall Food Crawl | Boracay Experiences | Lolaelo" />
-  <meta property="og:description" content="A no-rush D Mall food crawl plan: timing, pacing, budget, and what to prioritize." />
+  <meta property="og:title" content="D Mall Food Crawl in Boracay | Lolaelo" />
+  <meta property="og:description" content="One savory stop, one dessert stop, one optional drink. Keep it simple and end strong." />
   <meta property="og:type" content="website" />
   <meta property="og:image" content="/images/boracay/boracay-dmall-food.jpg" />
 
   <style>
     :root{
-      --bg:#0b1220;
-      --panel:#0f1c2e;
-      --text:#e8eef8;
-      --muted:#a9b7cf;
-      --line:rgba(255,255,255,.10);
-      --brand:#ff6a3d;
-      --brand2:#2b7cff;
+      --bg:#ffffff;
+      --fg:#111827;
+      --muted:#6b7280;
 
-      --radius:18px;
-      --shadow: 0 18px 50px rgba(0,0,0,.45);
-      --max: 1100px;
-      --font: Inter, system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif;
+      --brand:#064e3b;
+      --accent:#ff6a3d;
+      --border:#e5e7eb;
+
+      --max:1100px;
+      --shadow: 0 12px 30px rgba(15,23,42,0.10);
+      --shadow2: 0 16px 40px rgba(15,23,42,0.18);
+
+      --font: Inter, ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
     }
 
     *{box-sizing:border-box}
+    html, body{margin:0; padding:0}
     body{
-      margin:0;
-      font-family:var(--font);
-      background: radial-gradient(1200px 700px at 20% -20%, rgba(255,106,61,.18), transparent 60%),
-                  radial-gradient(900px 600px at 90% 10%, rgba(43,124,255,.12), transparent 55%),
-                  var(--bg);
-      color:var(--text);
-      line-height:1.5;
+      font-family: var(--font);
+      background: var(--bg);
+      color: var(--fg);
+      line-height: 1.5;
     }
-    a{color:inherit}
-    .wrap{max-width:var(--max); margin:0 auto; padding:22px 18px 70px}
+    a{color:inherit; text-decoration:none}
 
-    .topbar{
-      display:flex; align-items:center; justify-content:space-between;
-      gap:14px; padding:14px 14px;
-      border:1px solid var(--line);
-      background: rgba(15, 28, 46, .72);
-      border-radius: 22px;
-      box-shadow: var(--shadow);
-      backdrop-filter: blur(10px);
-    }
-    .brand{display:flex; align-items:center; gap:10px; text-decoration:none}
-    .brand img{
-      width:42px; height:42px; object-fit:contain;
-      filter: drop-shadow(0 6px 18px rgba(0,0,0,.35));
-    }
-    .brand .txt{display:flex; flex-direction:column; gap:1px}
-    .brand .txt .name{font-weight:800; letter-spacing:.2px}
-    .brand .txt .sub{font-size:12px; color:var(--muted)}
-
-    .nav{display:flex; gap:10px; align-items:center; flex-wrap:wrap}
-    .btn{
-      display:inline-flex; align-items:center; justify-content:center;
-      padding:10px 14px;
-      border-radius: 12px;
-      border:1px solid var(--line);
-      background: rgba(12, 23, 39, .65);
-      color: var(--text);
-      text-decoration:none;
-      font-weight:650;
-      cursor:pointer;
-      transition: transform .15s ease, border-color .15s ease, background .15s ease;
-      user-select:none;
-    }
-    .btn:hover{transform: translateY(-1px); border-color: rgba(255,255,255,.20); background: rgba(12, 23, 39, .85)}
-    .btn.primary{
-      background: linear-gradient(180deg, rgba(255,106,61,.95), rgba(255,106,61,.78));
-      border-color: rgba(255,106,61,.55);
-      color:#111827;
-    }
-    .btn.primary:hover{border-color: rgba(255,106,61,.8)}
-    .btn.blue{
-      background: rgba(43,124,255,.14);
-      border-color: rgba(43,124,255,.35);
+    .wrap{
+      max-width: var(--max);
+      margin: 0 auto;
+      padding: 16px 20px 40px;
     }
 
+    /* Header (site-consistent) */
+    .nav{
+      display:flex;
+      align-items:center;
+      justify-content:space-between;
+      padding: 4px 0 12px;
+    }
+    .nav-left{display:flex; align-items:center; gap:8px}
+    .logo-img{height:32px; width:auto; display:block}
+
+    .nav-right{
+      display:flex;
+      align-items:center;
+      gap: 20px;
+      font-size: 14px;
+    }
+    .nav-link{
+      color: var(--brand);
+      padding: 4px 0;
+      font-weight: 500;
+    }
+    .nav-link-back{
+      display:inline-flex;
+      align-items:center;
+      gap: 6px;
+    }
+    .nav-back-arrow{
+      font-size: 16px;
+      line-height: 1;
+      transform: translateY(1px);
+    }
+    .nav-link-back:hover span:last-child{ text-decoration: underline; }
+    .nav-link-back:hover .nav-back-arrow{
+      transform: translate(-2px, 1px);
+      transition: transform 0.15s ease-out;
+    }
+
+    /* Minimal breadcrumb */
     .crumbs{
-      margin:18px 2px 8px;
+      margin-top: 8px;
+      font-size: 12px;
       color: var(--muted);
-      font-size: 13px;
-      letter-spacing: .2px;
+      display:flex;
+      gap:8px;
+      align-items:center;
+      flex-wrap:wrap;
     }
     .crumbs span{
       display:inline-block;
-      padding:8px 12px;
-      border:1px solid var(--line);
+      padding: 6px 10px;
+      border: 1px solid var(--border);
       border-radius: 999px;
-      background: rgba(15, 28, 46, .55);
+      background: #ffffff;
     }
 
+    /* Hero card (consistent) */
     .hero{
-      margin-top:14px;
-      border-radius: 26px;
+      margin-top: 14px;
+      border-radius: 18px;
       overflow:hidden;
-      border:1px solid var(--line);
-      background: rgba(15, 28, 46, .72);
+      border: 1px solid var(--border);
+      background: #ffffff;
       box-shadow: var(--shadow);
     }
     .heroGrid{
       display:grid;
       grid-template-columns: 1.12fr .88fr;
-      gap: 0;
+      gap:0;
     }
     .heroMedia{
       min-height: 340px;
-      position:relative;
-      background: #08101d;
+      position: relative;
+      background: #f3f4f6;
     }
     .heroMedia img{
-      width:100%; height:100%; object-fit:cover; display:block;
-      filter: saturate(1.05) contrast(1.02);
+      width:100%;
+      height:100%;
+      object-fit: cover;
+      display:block;
     }
     .heroMedia::after{
       content:"";
-      position:absolute; inset:0;
-      background: linear-gradient(90deg, rgba(0,0,0,.10), rgba(0,0,0,.45));
+      position:absolute;
+      inset:0;
+      background: linear-gradient(90deg, rgba(0,0,0,0.05), rgba(0,0,0,0.22));
       pointer-events:none;
     }
     .heroBody{
       padding: 22px 22px 20px;
-      display:flex; flex-direction:column; gap:14px;
+      display:flex;
+      flex-direction: column;
+      gap: 12px;
     }
-    h1{margin:0; font-size: 34px; letter-spacing:.2px; line-height:1.15}
-    .lede{margin:0; color: var(--muted); font-size: 15px}
+    h1{
+      margin:0;
+      font-size: 34px;
+      line-height: 1.15;
+      letter-spacing: -0.01em;
+      font-weight: 600;
+    }
+    .lede{
+      margin:0;
+      color: var(--muted);
+      font-size: 14.5px;
+      line-height: 1.55;
+    }
 
-    .chips{display:flex; flex-wrap:wrap; gap:10px}
+    .chips{
+      display:flex;
+      flex-wrap:wrap;
+      gap: 8px;
+      margin-top: 2px;
+    }
     .chip{
-      display:inline-flex; gap:8px; align-items:center;
-      padding:8px 10px;
-      border:1px solid var(--line);
+      display:inline-flex;
+      gap:8px;
+      align-items:center;
+      padding: 6px 10px;
+      border: 1px solid var(--border);
       border-radius: 999px;
-      background: rgba(12, 23, 39, .55);
-      color: var(--text);
-      font-size: 13px;
-      white-space:nowrap;
+      background: #fafafa;
+      color: #374151;
+      font-size: 12px;
     }
     .dot{
-      width:8px; height:8px; border-radius:999px; background: var(--brand);
-      box-shadow: 0 0 0 4px rgba(255,106,61,.14);
+      width: 8px;
+      height: 8px;
+      border-radius: 999px;
+      background: var(--accent);
+      box-shadow: 0 0 0 4px rgba(255,106,61,0.14);
+      flex: 0 0 auto;
     }
 
     .kpi{
       display:grid;
       grid-template-columns: 1fr 1fr;
       gap: 10px;
-      margin-top: 10px;
+      margin-top: 4px;
     }
     .kpi .item{
-      border:1px solid var(--line);
+      border: 1px solid var(--border);
       border-radius: 14px;
-      background: rgba(12, 23, 39, .55);
+      background: #ffffff;
       padding: 10px 10px;
+      box-shadow: 0 10px 24px rgba(15,23,42,0.06);
     }
-    .kpi .item .lbl{font-size:12px; color: var(--muted)}
-    .kpi .item .val{font-size:14px; font-weight:750; margin-top:3px}
-
-    .section{margin-top:18px}
-    .grid2{display:grid; grid-template-columns: 1fr 1fr; gap:14px}
-    .panel{
-      border:1px solid var(--line);
-      background: rgba(15, 28, 46, .70);
-      border-radius: var(--radius);
-      padding: 16px 16px;
-      box-shadow: 0 10px 30px rgba(0,0,0,.28);
-    }
-    .panel h2{margin:0 0 10px 0; font-size: 18px; letter-spacing:.15px}
-    .panel p{margin:0; color: var(--muted); font-size: 14px}
-    .list{margin:10px 0 0 0; padding:0 0 0 18px; color: var(--muted); font-size: 14px}
-    .list li{margin:8px 0}
-
-    .spotlight{
-      display:grid;
-      grid-template-columns: .92fr 1.08fr;
-      gap: 14px;
-      align-items:center;
-    }
-    .spotlight-reverse{grid-template-columns: 1.08fr .92fr}
-    .spotImgWrap{display:flex; justify-content:center; align-items:center; padding:10px}
-    .spotImg{
-      width: 260px; height: 260px;
-      border-radius: 999px;
-      overflow:hidden;
-      border: 1px solid var(--line);
-      box-shadow: 0 18px 40px rgba(0,0,0,.35);
-      background: rgba(12, 23, 39, .40);
-    }
-    .spotImg img{
-      width:100%; height:100%;
-      object-fit:cover; display:block;
-      filter: saturate(1.02) contrast(1.02);
-      transform: scale(1.02);
-    }
-    .spotText{
-      border:1px solid var(--line);
-      border-radius: 22px;
-      background: rgba(15, 28, 46, .70);
-      padding: 18px 18px;
-      box-shadow: 0 10px 30px rgba(0,0,0,.26);
-    }
-    .spotText h2{margin:0 0 10px 0; font-size: 20px}
-    .spotText p{margin:0; color: var(--muted); font-size: 14.5px}
-    .spotText .mini{
-      margin-top: 12px;
-      padding-top: 12px;
-      border-top: 1px solid var(--line);
-      display:grid;
-      grid-template-columns: 1fr 1fr;
-      gap: 10px;
+    .kpi .lbl{
+      font-size: 12px;
       color: var(--muted);
+    }
+    .kpi .val{
       font-size: 13.5px;
+      font-weight: 600;
+      margin-top: 3px;
+      color: #111827;
     }
 
-    .ctaRow{display:flex; flex-wrap:wrap; gap:10px; align-items:center; margin-top:12px}
+    .ctaRow{
+      display:flex;
+      flex-wrap:wrap;
+      gap: 10px;
+      align-items:center;
+      margin-top: 4px;
+    }
 
-    .faqItem{
-      border:1px solid var(--line);
+    .btn{
+      border-radius: 999px;
+      padding: 9px 14px;
+      font-size: 14px;
+      font-weight: 500;
+      border: 1px solid transparent;
+      cursor: pointer;
+      display:inline-flex;
+      align-items:center;
+      justify-content:center;
+      gap: 8px;
+      white-space: nowrap;
+    }
+    .btn.primary{ background: var(--accent); color: #ffffff; }
+    .btn.secondary{ background: rgba(229,242,255,0.95); color: var(--brand); border-color: rgba(229,242,255,0.65); }
+    .btn.ghost{ background: #ffffff; color: var(--brand); border-color: var(--border); }
+    .btn:hover{ box-shadow: var(--shadow); }
+
+    /* Body sections (different from the other pages) */
+    .section{ margin-top: 18px; }
+
+    .route{
+      border: 1px solid var(--border);
       border-radius: 16px;
-      background: rgba(12, 23, 39, .45);
-      padding: 14px 14px;
-      margin-top: 10px;
+      background: #ffffff;
+      box-shadow: 0 10px 24px rgba(15,23,42,0.06);
+      overflow:hidden;
     }
-    .faqQ{font-weight:800; margin:0 0 6px 0}
-    .faqA{margin:0; color: var(--muted); font-size: 14px}
+    .routeHead{
+      display:flex;
+      align-items:flex-start;
+      justify-content:space-between;
+      gap: 14px;
+      padding: 14px 16px;
+      border-bottom: 1px solid var(--border);
+      background: #fafafa;
+    }
+    .routeHead h2{
+      margin:0;
+      font-size: 15px;
+      font-weight: 600;
+      color: var(--brand);
+    }
+    .routeHead p{
+      margin:6px 0 0;
+      font-size: 12.8px;
+      color:#4b5563;
+      line-height: 1.55;
+      white-space: pre-line;
+    }
+    .routeBadge{
+      flex: 0 0 auto;
+      border: 1px solid var(--border);
+      border-radius: 999px;
+      padding: 6px 10px;
+      background: #ffffff;
+      font-size: 12px;
+      color: #374151;
+      font-weight: 600;
+    }
 
-    .footer{margin-top:22px; color: var(--muted); font-size: 13px; text-align:center; opacity:.95}
+    .routeSteps{
+      display:grid;
+      grid-template-columns: 1fr 1fr 1fr;
+      gap: 0;
+    }
+    .step{
+      padding: 14px 16px 14px;
+      border-right: 1px solid var(--border);
+    }
+    .step:last-child{ border-right:none; }
+    .stepNum{
+      font-size: 12px;
+      font-weight: 700;
+      color: #111827;
+      display:inline-flex;
+      align-items:center;
+      gap: 8px;
+    }
+    .stepNum .pill{
+      width: 22px;
+      height: 22px;
+      border-radius: 999px;
+      background: rgba(255,106,61,0.14);
+      color: #111827;
+      display:inline-flex;
+      align-items:center;
+      justify-content:center;
+      font-weight: 800;
+      font-size: 12px;
+    }
+    .stepTitle{
+      margin: 10px 0 6px;
+      font-size: 13px;
+      font-weight: 700;
+      color: #111827;
+    }
+    .stepText{
+      margin:0;
+      font-size: 12.8px;
+      color: #4b5563;
+      line-height: 1.55;
+      white-space: pre-line;
+    }
+    .stepMeta{
+      margin-top: 10px;
+      padding-top: 10px;
+      border-top: 1px solid var(--border);
+      display:flex;
+      gap: 10px;
+      flex-wrap:wrap;
+      font-size: 12px;
+      color: #6b7280;
+    }
+    .metaTag{
+      border: 1px solid var(--border);
+      border-radius: 999px;
+      padding: 4px 8px;
+      background: #ffffff;
+    }
+
+    .grid3{
+      display:grid;
+      grid-template-columns: 1fr 1fr 1fr;
+      gap: 14px;
+      align-items: start;
+      margin-top: 14px;
+    }
+    .card{
+      border: 1px solid var(--border);
+      border-radius: 16px;
+      background: #ffffff;
+      box-shadow: 0 10px 24px rgba(15,23,42,0.06);
+      padding: 14px 16px;
+    }
+    .card h3{
+      margin:0 0 8px;
+      font-size: 14px;
+      font-weight: 700;
+      color: #111827;
+    }
+    .card p{
+      margin:0;
+      font-size: 12.8px;
+      color: #4b5563;
+      line-height: 1.6;
+      white-space: pre-line;
+    }
+
+    .callout{
+      margin-top: 14px;
+      border: 1px solid rgba(255,106,61,0.30);
+      background: rgba(255,106,61,0.08);
+      border-radius: 16px;
+      padding: 12px 14px;
+      color: #111827;
+      box-shadow: 0 10px 24px rgba(15,23,42,0.06);
+    }
+    .callout strong{ font-weight: 700; }
+    .callout p{ margin: 8px 0 0; color:#374151; font-size: 12.8px; line-height: 1.55; }
+
+    /* FAQ */
+    .faq{
+      margin-top: 18px;
+      border: 1px solid var(--border);
+      border-radius: 16px;
+      padding: 14px 16px;
+      background: #ffffff;
+      box-shadow: 0 10px 24px rgba(15,23,42,0.06);
+    }
+    .faq h2{
+      margin: 0 0 8px;
+      font-size: 15px;
+      font-weight: 600;
+      color: var(--brand);
+    }
+    details{
+      border-top: 1px solid var(--border);
+      padding: 10px 0;
+    }
+    details:first-of-type{ border-top:none; padding-top:0; }
+    summary{
+      cursor:pointer;
+      list-style:none;
+      font-size: 13px;
+      font-weight: 600;
+      color:#111827;
+    }
+    summary::-webkit-details-marker{ display:none; }
+    .faq p{
+      margin: 8px 0 0;
+      font-size: 12.8px;
+      line-height: 1.6;
+      color: #4b5563;
+    }
+
+    footer{
+      border-top: 1px solid var(--border);
+      padding: 14px 20px 22px;
+      font-size: 12px;
+      color: #6b7280;
+      text-align: center;
+      margin-top: 26px;
+    }
+    footer a{ color: inherit; text-decoration: underline; }
 
     @media (max-width: 920px){
-      .heroGrid{grid-template-columns: 1fr}
-      .heroMedia{min-height: 260px}
-      .grid2{grid-template-columns: 1fr}
-      .spotlight, .spotlight-reverse{grid-template-columns: 1fr}
-      .spotImg{width: 240px; height: 240px}
-      h1{font-size: 30px}
+      .wrap{ padding: 12px 16px 28px; }
+      .heroGrid{ grid-template-columns: 1fr; }
+      .heroMedia{ min-height: 260px; }
+      .routeSteps{ grid-template-columns: 1fr; }
+      .step{ border-right:none; border-bottom: 1px solid var(--border); }
+      .step:last-child{ border-bottom:none; }
+      .grid3{ grid-template-columns: 1fr; }
+      h1{ font-size: 30px; }
     }
   </style>
 
   <script type="application/ld+json">
   {
-    "@context": "https://schema.org",
-    "@type": "FAQPage",
-    "mainEntity": [
+    "@context":"https://schema.org",
+    "@type":"FAQPage",
+    "mainEntity":[
       {
-        "@type": "Question",
-        "name": "What is the best time for a D Mall food crawl?",
-        "acceptedAnswer": {
-          "@type": "Answer",
-          "text": "Late afternoon into evening is easiest. You avoid peak heat, and more spots are fully open. If you want fewer crowds, start earlier and finish before 7 PM."
-        }
+        "@type":"Question",
+        "name":"What is the best time for a D Mall food crawl?",
+        "acceptedAnswer":{"@type":"Answer","text":"Late afternoon into evening is easiest. You avoid peak heat, and more spots are fully open. If you want fewer crowds, start earlier and finish before 7 PM."}
       },
       {
-        "@type": "Question",
-        "name": "How do I keep it from turning into a long, expensive night?",
-        "acceptedAnswer": {
-          "@type": "Answer",
-          "text": "Pick a target list before you start and share items. Do one savory stop, one dessert stop, and one drink stop, then call it."
-        }
+        "@type":"Question",
+        "name":"How do I keep it from turning into a long, expensive night?",
+        "acceptedAnswer":{"@type":"Answer","text":"Pick a target list before you start and share items. Do one savory stop, one dessert stop, and one optional drink stop, then call it."}
       },
       {
-        "@type": "Question",
-        "name": "Is it kid friendly?",
-        "acceptedAnswer": {
-          "@type": "Answer",
-          "text": "Yes. Go earlier, keep portions simple, and take breaks. Bring wipes, water, and a small snack backup."
-        }
+        "@type":"Question",
+        "name":"Is it kid friendly?",
+        "acceptedAnswer":{"@type":"Answer","text":"Yes. Go earlier, keep portions simple, and take breaks. Bring wipes, water, and a small snack backup."}
       },
       {
-        "@type": "Question",
-        "name": "What should I bring?",
-        "acceptedAnswer": {
-          "@type": "Answer",
-          "text": "Cash and a card if you have one, water, wipes, and a light layer in case you end up by the beach later."
-        }
+        "@type":"Question",
+        "name":"What should I bring?",
+        "acceptedAnswer":{"@type":"Answer","text":"Cash and a card if you have one, water, wipes, and a light layer in case you end up by the beach later."}
       }
     ]
   }
@@ -292,19 +463,24 @@
 
 <body>
   <div class="wrap">
-    <header class="topbar">
-      <a class="brand" href="/index.html" aria-label="Lolaelo home">
-        <img src="https://www.lolaelo.com/logo.png?cb=logo-1x" alt="Lolaelo" />
-        <div class="txt">
-          <div class="name">Lolaelo</div>
-          <div class="sub">Boracay experiences</div>
-        </div>
-      </a>
+    <header class="nav">
+      <div class="nav-left">
+        <a href="https://www.lolaelo.com" aria-label="Lolaelo home">
+          <img
+            src="https://www.lolaelo.com/logo.png?cb=logo-1x"
+            alt="Lolaelo"
+            class="logo-img"
+            decoding="async"
+            loading="eager"
+          >
+        </a>
+      </div>
 
-      <nav class="nav" aria-label="Top navigation">
-        <a class="btn" href="/destinations/boracay/index.html">Boracay guide</a>
-        <a class="btn blue" href="/catalog.html?destination=boracay">Browse stays</a>
-        <a class="btn primary" href="/destinations.html">All destinations</a>
+      <nav class="nav-right" aria-label="Primary">
+        <a class="nav-link nav-link-back" href="/destinations/boracay/index.html" aria-label="Back to Boracay guide">
+          <span class="nav-back-arrow">←</span>
+          <span>Boracay guide</span>
+        </a>
       </nav>
     </header>
 
@@ -312,176 +488,181 @@
       <span>D Mall food crawl</span>
     </div>
 
-    <section class="hero" aria-label="Hero">
-      <div class="heroGrid">
-        <div class="heroMedia">
-          <img src="/images/boracay/boracay-dmall-food.jpg" alt="D Mall Boracay food and street scene" loading="eager" />
-        </div>
-        <div class="heroBody">
-          <h1>D Mall food crawl</h1>
-          <p class="lede">
-            A simple way to sample Boracay without overplanning. Keep it slow, share items, and stop before it turns into a marathon.
-          </p>
-
-          <div class="chips" aria-label="Quick facts">
-            <div class="chip"><span class="dot"></span>Best for: casual sampling</div>
-            <div class="chip"><span class="dot"></span>Time: 2 to 3 hours</div>
-            <div class="chip"><span class="dot"></span>Budget: controlled if you share</div>
-            <div class="chip"><span class="dot"></span>Start: late afternoon</div>
+    <main role="main">
+      <section class="hero" aria-label="D Mall food crawl in Boracay">
+        <div class="heroGrid">
+          <div class="heroMedia">
+            <img src="/images/boracay/boracay-dmall-food.jpg" alt="D Mall Boracay, food and street scene" loading="eager" />
           </div>
 
-          <div class="kpi" aria-label="Planning snapshot">
-            <div class="item">
-              <div class="lbl">Ideal timing</div>
-              <div class="val">4:30 to 7:30</div>
-            </div>
-            <div class="item">
-              <div class="lbl">Pace</div>
-              <div class="val">3 stops, max</div>
-            </div>
-            <div class="item">
-              <div class="lbl">Best move</div>
-              <div class="val">Share portions</div>
-            </div>
-            <div class="item">
-              <div class="lbl">Kid friendly</div>
-              <div class="val">Yes, earlier is easier</div>
-            </div>
-          </div>
+          <div class="heroBody">
+            <h1>D Mall food crawl, no rush</h1>
+            <p class="lede">
+              This works when you keep it tight. One savory stop, one dessert stop, one optional drink, then end it.
+            </p>
 
-          <div class="ctaRow">
-            <a class="btn primary" href="/catalog.html?destination=boracay">Find a place to stay</a>
-            <a class="btn" href="/destinations/boracay/index.html#top10">Back to Boracay top 10</a>
-          </div>
-        </div>
-      </div>
-    </section>
+            <div class="chips" aria-label="Quick facts">
+              <div class="chip"><span class="dot"></span>Start: 4:30 to 6:00</div>
+              <div class="chip"><span class="dot"></span>Time: 2 to 3 hours</div>
+              <div class="chip"><span class="dot"></span>Stops: 3 max</div>
+              <div class="chip"><span class="dot"></span>Kid friendly: yes (earlier)</div>
+            </div>
 
-    <section class="section grid2" aria-label="How to do it and what to order">
-      <div class="panel">
-        <h2>How to do it (no rush)</h2>
-        <p>
-          The goal is not to hit ten places. The goal is to leave satisfied and still have energy.
-          Pick a short sequence, share items, and take a break between stops.
-        </p>
-        <ul class="list">
-          <li>Stop 1: something savory that anchors the night.</li>
-          <li>Stop 2: one snack or dessert.</li>
-          <li>Stop 3: optional drink, then end it.</li>
-        </ul>
-      </div>
+            <div class="kpi" aria-label="Planning snapshot">
+              <div class="item">
+                <div class="lbl">Anchor move</div>
+                <div class="val">Share portions</div>
+              </div>
+              <div class="item">
+                <div class="lbl">Budget control</div>
+                <div class="val">One main per stop</div>
+              </div>
+              <div class="item">
+                <div class="lbl">Energy</div>
+                <div class="val">Walk, not sprint</div>
+              </div>
+              <div class="item">
+                <div class="lbl">Finish</div>
+                <div class="val">Beach walk or back home</div>
+              </div>
+            </div>
 
-      <div class="panel">
-        <h2>What to prioritize</h2>
-        <p>
-          Go for items that are hard to replicate at home and easy to share. Avoid ordering full mains at every stop.
-          If you have kids, build in one safe option.
-        </p>
-        <ul class="list">
-          <li>Grilled seafood or local comfort plates.</li>
-          <li>One signature dessert or fruit based option.</li>
-          <li>Hydration. Water first, then everything else.</li>
-        </ul>
-      </div>
-    </section>
-
-    <section class="section" aria-label="Spotlight one">
-      <div class="spotlight">
-        <div class="spotImgWrap">
-          <div class="spotImg" aria-hidden="true">
-            <img src="/images/boracay/boracay-dmall-street.jpg" alt="" loading="lazy" />
+            <div class="ctaRow">
+              <a class="btn primary" href="https://lolaelo-api.onrender.com/catalog.html?q=boracay">Browse Boracay stays</a>
+              <a class="btn secondary" href="#route">Jump to the 3-stop route</a>
+              <a class="btn ghost" href="/destinations/boracay/index.html">Back to Boracay</a>
+            </div>
           </div>
         </div>
-        <div class="spotText">
-          <h2>Start before the crowd peak</h2>
+      </section>
+
+      <!-- SWITCH-UP: 3-step route card -->
+      <section class="section route" id="route" aria-label="Three-stop route">
+        <div class="routeHead">
+          <div>
+            <h2>The 3-stop route</h2>
+            <p>
+This is the simplest version that still feels like a real food night.
+You are sampling, not committing to five full meals.
+            </p>
+          </div>
+          <div class="routeBadge">3 stops max</div>
+        </div>
+
+        <div class="routeSteps">
+          <div class="step">
+            <div class="stepNum"><span class="pill">1</span> 60 minutes</div>
+            <div class="stepTitle">Savory anchor</div>
+            <p class="stepText">
+Start with something that feels like a meal.
+Split 1 to 2 mains and do not over-order.
+            </p>
+            <div class="stepMeta">
+              <span class="metaTag">Goal: satisfied</span>
+              <span class="metaTag">Move: share</span>
+            </div>
+          </div>
+
+          <div class="step">
+            <div class="stepNum"><span class="pill">2</span> 30 minutes</div>
+            <div class="stepTitle">Dessert or snack</div>
+            <p class="stepText">
+One dessert, not three.
+If you are with kids, this is the smoothest moment of the night.
+            </p>
+            <div class="stepMeta">
+              <span class="metaTag">Goal: quick win</span>
+              <span class="metaTag">Rule: one item</span>
+            </div>
+          </div>
+
+          <div class="step">
+            <div class="stepNum"><span class="pill">3</span> optional</div>
+            <div class="stepTitle">One drink, then exit</div>
+            <p class="stepText">
+If the energy is good, do one final stop.
+If it is getting messy, end the night and take the win.
+            </p>
+            <div class="stepMeta">
+              <span class="metaTag">Goal: clean finish</span>
+              <span class="metaTag">Tip: decide early</span>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- SWITCH-UP: 3 cards instead of 2 panels/spotlights -->
+      <section class="section" aria-label="How to keep it smooth">
+        <div class="grid3">
+          <div class="card">
+            <h3>Order strategy</h3>
+            <p>
+Start with one main and one side.
+If you still want more after 15 minutes, order a second main.
+This prevents waste and overspending.
+            </p>
+          </div>
+
+          <div class="card">
+            <h3>Kid mode</h3>
+            <p>
+Go earlier.
+Choose one safe food option early in the night.
+Bring wipes and water. Keep the crawl shorter and you win.
+            </p>
+          </div>
+
+          <div class="card">
+            <h3>Rain plan</h3>
+            <p>
+If it rains, shorten the route to 2 stops.
+Pick indoor seating. The crawl still works. You just keep it tighter.
+            </p>
+          </div>
+        </div>
+
+        <div class="callout">
+          <strong>Simple rule:</strong> If you are debating a 4th stop, it is already too many.
           <p>
-            If you start early evening, you get smoother service and you can still pivot back to the beach for a quick walk.
-            If you start late, it gets dense and decision fatigue hits fast.
+End the crawl with a short beach walk or go back to rest. Both are wins.
           </p>
-          <div class="mini">
-            <div>Target: arrive before 6 PM</div>
-            <div>Move: keep stops close together</div>
-          </div>
         </div>
-      </div>
-    </section>
+      </section>
 
-    <section class="section" aria-label="Spotlight two">
-      <div class="spotlight spotlight-reverse">
-        <div class="spotText">
-          <h2>Control the budget</h2>
-          <p>
-            The easiest way to overspend is ordering full mains at every stop. Share one main, then split snacks.
-            If you want a clean finish, decide your last stop in advance.
-          </p>
-          <div class="mini">
-            <div>Rule: 3 stops max</div>
-            <div>Tip: one dessert, not three</div>
-          </div>
-        </div>
-        <div class="spotImgWrap">
-          <div class="spotImg" aria-hidden="true">
-            <img src="/images/boracay/boracay-dmall-dessert.jpg" alt="" loading="lazy" />
-          </div>
-        </div>
-      </div>
-    </section>
-
-    <section class="section panel" aria-label="Practical tips">
-      <h2>Practical tips</h2>
-      <p>
-        D Mall is easy, but the small details make it smoother. Keep cash, stay flexible, and do not stack heavy meals back to back.
-      </p>
-      <ul class="list">
-        <li>Bring wipes and water. You will use both.</li>
-        <li>If it rains, it is still fine. Just shorten the crawl and pick indoor spots.</li>
-        <li>End with a short beach walk or go straight back to rest. Both are wins.</li>
-      </ul>
-
-      <div class="ctaRow">
-        <a class="btn" href="/destinations/boracay/index.html">Back to Boracay guide</a>
-        <a class="btn blue" href="/catalog.html?destination=boracay">Browse Boracay stays</a>
-      </div>
-    </section>
-
-    <section class="section" aria-label="FAQ">
-      <div class="panel">
+      <section class="faq" aria-label="D Mall FAQ">
         <h2>FAQ</h2>
 
-        <div class="faqItem">
-          <p class="faqQ">What is the best time for a D Mall food crawl?</p>
-          <p class="faqA">
-            Late afternoon into evening is easiest. You avoid peak heat, and more spots are fully open.
-            If you want fewer crowds, start earlier and finish before 7 PM.
-          </p>
-        </div>
+        <details>
+          <summary>What is the best time for a D Mall food crawl?</summary>
+          <p>Late afternoon into evening is easiest. You avoid peak heat, and more spots are fully open. If you want fewer crowds, start earlier and finish before 7 PM.</p>
+        </details>
 
-        <div class="faqItem">
-          <p class="faqQ">How do I keep it from turning into a long, expensive night?</p>
-          <p class="faqA">
-            Pick a target list before you start and share items. Do one savory stop, one dessert stop, and one drink stop, then call it.
-          </p>
-        </div>
+        <details>
+          <summary>How do I keep it from turning into a long, expensive night?</summary>
+          <p>Pick a target list before you start and share items. Do one savory stop, one dessert stop, and one optional drink stop, then call it.</p>
+        </details>
 
-        <div class="faqItem">
-          <p class="faqQ">Is it kid friendly?</p>
-          <p class="faqA">
-            Yes. Go earlier, keep portions simple, and take breaks. Bring wipes, water, and a small snack backup.
-          </p>
-        </div>
+        <details>
+          <summary>Is it kid friendly?</summary>
+          <p>Yes. Go earlier, keep portions simple, and take breaks. Bring wipes, water, and a small snack backup.</p>
+        </details>
 
-        <div class="faqItem">
-          <p class="faqQ">What should I bring?</p>
-          <p class="faqA">
-            Cash and a card if you have one, water, wipes, and a light layer in case you end up by the beach later.
-          </p>
-        </div>
-      </div>
-    </section>
+        <details>
+          <summary>What should I bring?</summary>
+          <p>Cash and a card if you have one, water, wipes, and a light layer in case you end up by the beach later.</p>
+        </details>
+      </section>
+    </main>
 
-    <div class="footer">
-      Lolaelo. Practical travel, no fluff.
-    </div>
+    <footer>
+      © <span id="year"></span> Lolaelo ·
+      <a href="https://lolaelo-api.onrender.com/privacy.html" target="_blank" rel="noopener">Privacy</a>
+      <a href="https://lolaelo-api.onrender.com/terms.html" target="_blank" rel="noopener">Terms</a>
+    </footer>
   </div>
+
+  <script>
+    document.getElementById("year").textContent = new Date().getFullYear();
+  </script>
 </body>
 </html>

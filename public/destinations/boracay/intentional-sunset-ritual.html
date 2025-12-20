@@ -4,209 +4,397 @@
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
 
-  <title>One Intentional Sunset Ritual | Boracay Experiences | Lolaelo</title>
+  <title>One Intentional Sunset Ritual in Boracay | Lolaelo</title>
   <meta name="description" content="A simple sunset ritual in Boracay: where to go, what to do, timing, and how to keep it calm and memorable without overplanning." />
 
   <link rel="icon" href="https://www.lolaelo.com/logo2.png" />
-  <link rel="preconnect" href="https://www.lolaelo.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
 
-  <meta property="og:title" content="One Intentional Sunset Ritual | Boracay Experiences | Lolaelo" />
-  <meta property="og:description" content="A practical sunset ritual: timing, locations, and a simple plan that feels intentional." />
+  <meta property="og:title" content="One Intentional Sunset Ritual in Boracay | Lolaelo" />
+  <meta property="og:description" content="One calm plan, one clean moment. Arrive early, pick a spot, and stay." />
   <meta property="og:type" content="website" />
   <meta property="og:image" content="/images/boracay/boracay-sunset-ritual.jpg" />
 
   <style>
     :root{
-      --bg:#0b1220;
-      --panel:#0f1c2e;
-      --text:#e8eef8;
-      --muted:#a9b7cf;
-      --line:rgba(255,255,255,.10);
-      --brand:#ff6a3d;
-      --brand2:#2b7cff;
+      --bg:#ffffff;
+      --fg:#111827;
+      --muted:#6b7280;
 
-      --radius:18px;
-      --shadow: 0 18px 50px rgba(0,0,0,.45);
-      --max: 1100px;
-      --font: Inter, system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif;
+      --brand:#064e3b;
+      --accent:#ff6a3d;
+      --border:#e5e7eb;
+
+      --max:1100px;
+      --shadow: 0 12px 30px rgba(15,23,42,0.10);
+
+      --font: Inter, ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
     }
 
     *{box-sizing:border-box}
+    html, body{margin:0; padding:0}
     body{
-      margin:0;
-      font-family:var(--font);
-      background:
-        radial-gradient(1200px 700px at 20% -20%, rgba(255,106,61,.18), transparent 60%),
-        radial-gradient(900px 600px at 90% 10%, rgba(43,124,255,.12), transparent 55%),
-        var(--bg);
-      color:var(--text);
-      line-height:1.5;
+      font-family: var(--font);
+      background: var(--bg);
+      color: var(--fg);
+      line-height: 1.5;
     }
-    a{color:inherit}
-    .wrap{max-width:var(--max); margin:0 auto; padding:22px 18px 70px}
+    a{color:inherit; text-decoration:none}
 
-    .topbar{
-      display:flex; align-items:center; justify-content:space-between;
-      gap:14px; padding:14px 14px;
-      border:1px solid var(--line);
-      background: rgba(15, 28, 46, .72);
-      border-radius: 22px;
-      box-shadow: var(--shadow);
-      backdrop-filter: blur(10px);
+    .wrap{
+      max-width: var(--max);
+      margin: 0 auto;
+      padding: 16px 20px 40px;
     }
-    .brand{display:flex; align-items:center; gap:10px; text-decoration:none}
-    .brand img{width:42px; height:42px; object-fit:contain}
-    .brand .txt{display:flex; flex-direction:column; gap:1px}
-    .brand .txt .name{font-weight:800; letter-spacing:.2px}
-    .brand .txt .sub{font-size:12px; color:var(--muted)}
 
-    .nav{display:flex; gap:10px; flex-wrap:wrap}
-    .btn{
-      display:inline-flex; align-items:center; justify-content:center;
-      padding:10px 14px;
-      border-radius:12px;
-      border:1px solid var(--line);
-      background: rgba(12,23,39,.65);
-      text-decoration:none;
-      font-weight:650;
-      transition:.15s;
-      user-select:none;
+    /* Header (consistent) */
+    .nav{
+      display:flex;
+      align-items:center;
+      justify-content:space-between;
+      padding: 4px 0 12px;
     }
-    .btn:hover{background: rgba(12,23,39,.85)}
-    .btn.primary{
-      background: linear-gradient(180deg, rgba(255,106,61,.95), rgba(255,106,61,.78));
-      border-color: rgba(255,106,61,.55);
-      color:#111827;
-    }
-    .btn.blue{background: rgba(43,124,255,.14); border-color: rgba(43,124,255,.35)}
+    .nav-left{display:flex; align-items:center; gap:8px}
+    .logo-img{height:32px; width:auto; display:block}
 
-    .crumbs{margin:18px 2px 8px; font-size:13px; color:var(--muted)}
+    .nav-right{
+      display:flex;
+      align-items:center;
+      gap: 20px;
+      font-size: 14px;
+    }
+    .nav-link{
+      color: var(--brand);
+      padding: 4px 0;
+      font-weight: 500;
+    }
+    .nav-link-back{
+      display:inline-flex;
+      align-items:center;
+      gap: 6px;
+    }
+    .nav-back-arrow{
+      font-size: 16px;
+      line-height: 1;
+      transform: translateY(1px);
+    }
+    .nav-link-back:hover span:last-child{ text-decoration: underline; }
+    .nav-link-back:hover .nav-back-arrow{
+      transform: translate(-2px, 1px);
+      transition: transform 0.15s ease-out;
+    }
+
+    /* Minimal breadcrumb */
+    .crumbs{
+      margin-top: 8px;
+      font-size: 12px;
+      color: var(--muted);
+      display:flex;
+      gap:8px;
+      align-items:center;
+      flex-wrap:wrap;
+    }
     .crumbs span{
       display:inline-block;
-      padding:8px 12px;
-      border-radius:999px;
-      border:1px solid var(--line);
-      background: rgba(15,28,46,.55);
+      padding: 6px 10px;
+      border: 1px solid var(--border);
+      border-radius: 999px;
+      background: #ffffff;
     }
 
+    /* Hero card (consistent) */
     .hero{
-      margin-top:14px;
-      border-radius:26px;
+      margin-top: 14px;
+      border-radius: 18px;
       overflow:hidden;
-      border:1px solid var(--line);
-      background: rgba(15,28,46,.72);
-      box-shadow:var(--shadow);
+      border: 1px solid var(--border);
+      background: #ffffff;
+      box-shadow: var(--shadow);
     }
-    .heroGrid{display:grid; grid-template-columns:1.12fr .88fr}
-    .heroMedia{min-height:340px; position:relative}
-    .heroMedia img{width:100%; height:100%; object-fit:cover; display:block}
+    .heroGrid{
+      display:grid;
+      grid-template-columns: 1.12fr .88fr;
+      gap:0;
+    }
+    .heroMedia{
+      min-height: 340px;
+      position: relative;
+      background: #f3f4f6;
+    }
+    .heroMedia img{
+      width:100%;
+      height:100%;
+      object-fit: cover;
+      display:block;
+    }
     .heroMedia::after{
       content:"";
-      position:absolute; inset:0;
-      background: linear-gradient(90deg, rgba(0,0,0,.10), rgba(0,0,0,.45));
+      position:absolute;
+      inset:0;
+      background: linear-gradient(90deg, rgba(0,0,0,0.05), rgba(0,0,0,0.22));
       pointer-events:none;
     }
-    .heroBody{padding:22px; display:flex; flex-direction:column; gap:14px}
+    .heroBody{
+      padding: 22px 22px 20px;
+      display:flex;
+      flex-direction: column;
+      gap: 12px;
+    }
+    h1{
+      margin:0;
+      font-size: 34px;
+      line-height: 1.15;
+      letter-spacing: -0.01em;
+      font-weight: 600;
+    }
+    .lede{
+      margin:0;
+      color: var(--muted);
+      font-size: 14.5px;
+      line-height: 1.55;
+    }
 
-    h1{margin:0; font-size:34px; line-height:1.15}
-    .lede{margin:0; color:var(--muted); font-size:15px}
-
-    .chips{display:flex; gap:10px; flex-wrap:wrap}
+    .chips{
+      display:flex;
+      flex-wrap:wrap;
+      gap: 8px;
+      margin-top: 2px;
+    }
     .chip{
-      padding:8px 10px;
-      border-radius:999px;
-      border:1px solid var(--line);
-      background: rgba(12,23,39,.55);
-      font-size:13px;
-      white-space:nowrap;
+      display:inline-flex;
+      gap:8px;
+      align-items:center;
+      padding: 6px 10px;
+      border: 1px solid var(--border);
+      border-radius: 999px;
+      background: #fafafa;
+      color: #374151;
+      font-size: 12px;
     }
     .dot{
-      width:8px; height:8px; border-radius:999px;
-      background: var(--brand);
-      box-shadow: 0 0 0 4px rgba(255,106,61,.14);
-      display:inline-block; margin-right:8px;
+      width: 8px;
+      height: 8px;
+      border-radius: 999px;
+      background: var(--accent);
+      box-shadow: 0 0 0 4px rgba(255,106,61,0.14);
+      flex: 0 0 auto;
     }
 
-    .kpi{display:grid; grid-template-columns:1fr 1fr; gap:10px; margin-top:10px}
-    .kpi .item{
-      border:1px solid var(--line);
-      border-radius:14px;
-      background: rgba(12,23,39,.55);
-      padding:10px;
-    }
-    .lbl{font-size:12px; color:var(--muted)}
-    .val{font-weight:750; margin-top:3px}
-
-    .section{margin-top:18px}
-    .grid2{display:grid; grid-template-columns:1fr 1fr; gap:14px}
-    .panel{
-      border:1px solid var(--line);
-      border-radius:var(--radius);
-      background: rgba(15,28,46,.70);
-      padding:16px;
-      box-shadow: 0 10px 30px rgba(0,0,0,.26);
-    }
-    .panel h2{margin:0 0 10px; font-size:18px}
-    .panel p{margin:0; color:var(--muted); font-size:14px}
-    .list{margin:10px 0 0 18px; color:var(--muted); font-size:14px}
-    .list li{margin:8px 0}
-
-    .spotlight{
-      display:grid;
-      grid-template-columns:.92fr 1.08fr;
-      gap:14px;
-      align-items:center;
-    }
-    .spotlight-reverse{grid-template-columns:1.08fr .92fr}
-    .spotImg{
-      width:260px; height:260px;
-      border-radius:999px;
-      overflow:hidden;
-      border:1px solid var(--line);
-      margin:auto;
-      box-shadow: 0 18px 40px rgba(0,0,0,.35);
-      background: rgba(12,23,39,.40);
-    }
-    .spotImg img{width:100%; height:100%; object-fit:cover; display:block}
-    .spotText{
-      border:1px solid var(--line);
-      border-radius:22px;
-      background: rgba(15,28,46,.70);
-      padding:18px;
-      box-shadow: 0 10px 30px rgba(0,0,0,.26);
-    }
-    .spotText h2{margin:0 0 10px; font-size:20px}
-    .spotText p{margin:0; color:var(--muted); font-size:14.5px}
-    .spotText .mini{
-      margin-top: 12px;
-      padding-top: 12px;
-      border-top: 1px solid var(--line);
+    .kpi{
       display:grid;
       grid-template-columns: 1fr 1fr;
-      gap:10px;
+      gap: 10px;
+      margin-top: 4px;
+    }
+    .kpi .item{
+      border: 1px solid var(--border);
+      border-radius: 14px;
+      background: #ffffff;
+      padding: 10px 10px;
+      box-shadow: 0 10px 24px rgba(15,23,42,0.06);
+    }
+    .kpi .lbl{
+      font-size: 12px;
       color: var(--muted);
+    }
+    .kpi .val{
       font-size: 13.5px;
+      font-weight: 600;
+      margin-top: 3px;
+      color: #111827;
     }
 
-    .ctaRow{display:flex; flex-wrap:wrap; gap:10px; align-items:center; margin-top:12px}
-
-    .faqItem{
-      border:1px solid var(--line);
-      border-radius:16px;
-      padding:14px;
-      margin-top:10px;
-      background: rgba(12,23,39,.45);
+    .ctaRow{
+      display:flex;
+      flex-wrap:wrap;
+      gap: 10px;
+      align-items:center;
+      margin-top: 4px;
     }
-    .faqQ{font-weight:800; margin:0 0 6px}
-    .faqA{margin:0; color:var(--muted); font-size:14px}
 
-    .footer{text-align:center; margin-top:22px; font-size:13px; color:var(--muted); opacity:.95}
+    .btn{
+      border-radius: 999px;
+      padding: 9px 14px;
+      font-size: 14px;
+      font-weight: 500;
+      border: 1px solid transparent;
+      cursor: pointer;
+      display:inline-flex;
+      align-items:center;
+      justify-content:center;
+      gap: 8px;
+      white-space: nowrap;
+    }
+    .btn.primary{ background: var(--accent); color: #ffffff; }
+    .btn.secondary{ background: rgba(229,242,255,0.95); color: var(--brand); border-color: rgba(229,242,255,0.65); }
+    .btn.ghost{ background: #ffffff; color: var(--brand); border-color: var(--border); }
+    .btn:hover{ box-shadow: var(--shadow); }
 
-    @media (max-width:920px){
-      .heroGrid,.grid2,.spotlight,.spotlight-reverse{grid-template-columns:1fr}
-      .heroMedia{min-height:260px}
-      .spotImg{width:240px; height:240px}
-      h1{font-size:30px}
+    /* Switch-up body */
+    .section{ margin-top: 18px; }
+
+    .laneGrid{
+      display:grid;
+      grid-template-columns: 1fr 1fr 1fr;
+      gap: 14px;
+      align-items: start;
+    }
+    .lane{
+      border: 1px solid var(--border);
+      border-radius: 16px;
+      background: #ffffff;
+      box-shadow: 0 10px 24px rgba(15,23,42,0.06);
+      padding: 14px 16px;
+    }
+    .lane h2{
+      margin:0 0 8px;
+      font-size: 14px;
+      font-weight: 900;
+      color: #111827;
+    }
+    .lane p{
+      margin:0;
+      font-size: 12.8px;
+      color:#4b5563;
+      line-height: 1.55;
+      white-space: pre-line;
+    }
+    .laneTag{
+      display:inline-flex;
+      margin-top: 10px;
+      border: 1px solid var(--border);
+      border-radius: 999px;
+      padding: 5px 9px;
+      background: #fafafa;
+      font-size: 12px;
+      color:#374151;
+      font-weight: 700;
+    }
+
+    .checkWrap{
+      margin-top: 14px;
+      border: 1px solid var(--border);
+      border-radius: 16px;
+      background: #ffffff;
+      box-shadow: 0 10px 24px rgba(15,23,42,0.06);
+      overflow:hidden;
+    }
+    .checkHead{
+      padding: 14px 16px;
+      background: #fafafa;
+      border-bottom: 1px solid var(--border);
+      display:flex;
+      align-items:flex-start;
+      justify-content:space-between;
+      gap: 12px;
+    }
+    .checkHead h2{
+      margin:0;
+      font-size: 15px;
+      font-weight: 800;
+      color:#111827;
+    }
+    .checkHead p{
+      margin:6px 0 0;
+      font-size: 12.8px;
+      color:#4b5563;
+      line-height: 1.55;
+    }
+    .checkBody{
+      display:grid;
+      grid-template-columns: 1fr 1fr;
+      gap:0;
+    }
+    .checkCol{
+      padding: 14px 16px;
+      border-right: 1px solid var(--border);
+    }
+    .checkCol:last-child{ border-right:none; }
+    .checkCol h3{
+      margin:0 0 8px;
+      font-size: 13px;
+      font-weight: 900;
+      color:#111827;
+    }
+    .checkCol ul{
+      margin:0;
+      padding-left: 18px;
+      font-size: 12.8px;
+      line-height: 1.55;
+      color:#4b5563;
+    }
+    .checkCol li{ margin-bottom: 6px; }
+
+    .weather{
+      margin-top: 14px;
+      border: 1px solid rgba(59,130,246,0.25);
+      background: rgba(59,130,246,0.08);
+      border-radius: 16px;
+      padding: 12px 14px;
+      box-shadow: 0 10px 24px rgba(15,23,42,0.06);
+    }
+    .weather strong{ font-weight: 900; color:#111827; }
+    .weather p{
+      margin: 8px 0 0;
+      font-size: 12.8px;
+      color:#374151;
+      line-height: 1.55;
+    }
+
+    /* FAQ */
+    .faq{
+      margin-top: 18px;
+      border: 1px solid var(--border);
+      border-radius: 16px;
+      padding: 14px 16px;
+      background: #ffffff;
+      box-shadow: 0 10px 24px rgba(15,23,42,0.06);
+    }
+    .faq h2{
+      margin: 0 0 8px;
+      font-size: 15px;
+      font-weight: 600;
+      color: var(--brand);
+    }
+    details{
+      border-top: 1px solid var(--border);
+      padding: 10px 0;
+    }
+    details:first-of-type{ border-top:none; padding-top:0; }
+    summary{
+      cursor:pointer;
+      list-style:none;
+      font-size: 13px;
+      font-weight: 600;
+      color:#111827;
+    }
+    summary::-webkit-details-marker{ display:none; }
+    .faq p{
+      margin: 8px 0 0;
+      font-size: 12.8px;
+      line-height: 1.6;
+      color: #4b5563;
+    }
+
+    footer{
+      border-top: 1px solid var(--border);
+      padding: 14px 20px 22px;
+      font-size: 12px;
+      color: #6b7280;
+      text-align: center;
+      margin-top: 26px;
+    }
+    footer a{ color: inherit; text-decoration: underline; }
+
+    @media (max-width: 920px){
+      .wrap{ padding: 12px 16px 28px; }
+      .heroGrid{ grid-template-columns: 1fr; }
+      .heroMedia{ min-height: 260px; }
+      .laneGrid{ grid-template-columns: 1fr; }
+      .checkBody{ grid-template-columns: 1fr; }
+      .checkCol{ border-right:none; border-bottom: 1px solid var(--border); }
+      .checkCol:last-child{ border-bottom:none; }
+      h1{ font-size: 30px; }
     }
   </style>
 
@@ -218,34 +406,22 @@
       {
         "@type":"Question",
         "name":"Where is the best place to watch sunset in Boracay?",
-        "acceptedAnswer":{
-          "@type":"Answer",
-          "text":"White Beach is the classic option. For fewer people, walk farther from the busiest central area and claim a simple spot 30 to 45 minutes before sunset."
-        }
+        "acceptedAnswer":{"@type":"Answer","text":"White Beach is the classic option. For fewer people, walk farther from the busiest central area and claim a simple spot 30 to 45 minutes before sunset."}
       },
       {
         "@type":"Question",
         "name":"How early should I arrive?",
-        "acceptedAnswer":{
-          "@type":"Answer",
-          "text":"Arrive 30 to 45 minutes before sunset to settle in, grab a drink or snack, and get a good view without scrambling."
-        }
+        "acceptedAnswer":{"@type":"Answer","text":"Arrive 30 to 45 minutes before sunset to settle in, grab a drink or snack, and get a good view without scrambling."}
       },
       {
         "@type":"Question",
         "name":"Do I need to book anything?",
-        "acceptedAnswer":{
-          "@type":"Answer",
-          "text":"No. The simplest ritual is free. If you want a paid version, paraw sailing is the upgrade, but a calm beach spot works just as well."
-        }
+        "acceptedAnswer":{"@type":"Answer","text":"No. The simplest ritual is free. If you want a paid version, paraw sailing is the upgrade, but a calm beach spot works just as well."}
       },
       {
         "@type":"Question",
         "name":"What if it rains?",
-        "acceptedAnswer":{
-          "@type":"Answer",
-          "text":"If it is raining, shorten the ritual. Pick a covered spot, keep it simple, and move on. Boracay sunsets still pop after rain when clouds break."
-        }
+        "acceptedAnswer":{"@type":"Answer","text":"If it rains, shorten the ritual. Pick a covered spot, keep it simple, and move on. Boracay sunsets still pop after rain when clouds break."}
       }
     ]
   }
@@ -254,19 +430,24 @@
 
 <body>
   <div class="wrap">
-    <header class="topbar">
-      <a class="brand" href="/index.html" aria-label="Lolaelo home">
-        <img src="https://www.lolaelo.com/logo.png?cb=logo-1x" alt="Lolaelo" />
-        <div class="txt">
-          <div class="name">Lolaelo</div>
-          <div class="sub">Boracay experiences</div>
-        </div>
-      </a>
+    <header class="nav">
+      <div class="nav-left">
+        <a href="https://www.lolaelo.com" aria-label="Lolaelo home">
+          <img
+            src="https://www.lolaelo.com/logo.png?cb=logo-1x"
+            alt="Lolaelo"
+            class="logo-img"
+            decoding="async"
+            loading="eager"
+          >
+        </a>
+      </div>
 
-      <nav class="nav" aria-label="Top navigation">
-        <a class="btn" href="/destinations/boracay/index.html">Boracay guide</a>
-        <a class="btn blue" href="/catalog.html?destination=boracay">Browse stays</a>
-        <a class="btn primary" href="/destinations.html">All destinations</a>
+      <nav class="nav-right" aria-label="Primary">
+        <a class="nav-link nav-link-back" href="/destinations/boracay/index.html" aria-label="Back to Boracay guide">
+          <span class="nav-back-arrow">←</span>
+          <span>Boracay guide</span>
+        </a>
       </nav>
     </header>
 
@@ -274,171 +455,162 @@
       <span>One intentional sunset ritual</span>
     </div>
 
-    <section class="hero" aria-label="Hero">
-      <div class="heroGrid">
-        <div class="heroMedia">
-          <img src="/images/boracay/boracay-sunset-ritual.jpg" alt="Sunset on White Beach Boracay, warm sky and silhouettes" loading="eager" />
+    <main role="main">
+      <section class="hero" aria-label="One intentional sunset ritual in Boracay">
+        <div class="heroGrid">
+          <div class="heroMedia">
+            <img src="/images/boracay/boracay-sunset-ritual.jpg" alt="Sunset on White Beach Boracay, warm sky and silhouettes" loading="eager" />
+          </div>
+
+          <div class="heroBody">
+            <h1>One intentional sunset ritual</h1>
+            <p class="lede">
+              Do it once on purpose. Arrive early, pick a spot, and stay until the light drops. No rushing, no bouncing.
+            </p>
+
+            <div class="chips" aria-label="Quick facts">
+              <div class="chip"><span class="dot"></span>Time: 60 to 90 minutes</div>
+              <div class="chip"><span class="dot"></span>Arrive: 30 to 45 min early</div>
+              <div class="chip"><span class="dot"></span>Cost: free</div>
+              <div class="chip"><span class="dot"></span>Best move: one spot</div>
+            </div>
+
+            <div class="kpi" aria-label="Planning snapshot">
+              <div class="item">
+                <div class="lbl">Pick</div>
+                <div class="val">one stretch of sand</div>
+              </div>
+              <div class="item">
+                <div class="lbl">Bring</div>
+                <div class="val">water + one snack</div>
+              </div>
+              <div class="item">
+                <div class="lbl">Do</div>
+                <div class="val">phone down, eyes up</div>
+              </div>
+              <div class="item">
+                <div class="lbl">After</div>
+                <div class="val">walk, then dinner</div>
+              </div>
+            </div>
+
+            <div class="ctaRow">
+              <a class="btn primary" href="https://lolaelo-api.onrender.com/catalog.html?q=boracay">Browse Boracay stays</a>
+              <a class="btn secondary" href="#lanes">Pick your sunset lane</a>
+              <a class="btn ghost" href="/destinations/boracay/index.html">Back to Boracay</a>
+            </div>
+          </div>
         </div>
-        <div class="heroBody">
-          <h1>One intentional sunset ritual</h1>
-          <p class="lede">
-            Do it once on purpose. No agenda, no rushing, no trying to capture everything.
-            Just pick a spot, arrive early, and let it land.
-          </p>
+      </section>
 
-          <div class="chips" aria-label="Quick facts">
-            <div class="chip"><span class="dot"></span>Best for: a calm reset</div>
-            <div class="chip"><span class="dot"></span>Time: 60 to 90 minutes</div>
-            <div class="chip"><span class="dot"></span>Cost: free if you want</div>
-            <div class="chip"><span class="dot"></span>Move: arrive early</div>
+      <!-- Switch-up: pick your lane -->
+      <section class="section" id="lanes" aria-label="Pick your sunset lane">
+        <div class="laneGrid">
+          <div class="lane">
+            <h2>Lane 1: quiet walk</h2>
+            <p>
+Walk 10 to 15 minutes away from the densest area.
+Sit down. No agenda. This is the cleanest version.
+            </p>
+            <span class="laneTag">Best for calm</span>
           </div>
 
-          <div class="kpi" aria-label="Planning snapshot">
-            <div class="item">
-              <div class="lbl">Arrive</div>
-              <div class="val">30 to 45 min early</div>
-            </div>
-            <div class="item">
-              <div class="lbl">Duration</div>
-              <div class="val">1 to 1.5 hours</div>
-            </div>
-            <div class="item">
-              <div class="lbl">Best approach</div>
-              <div class="val">One drink, one view</div>
-            </div>
-            <div class="item">
-              <div class="lbl">After</div>
-              <div class="val">Walk, then dinner</div>
-            </div>
+          <div class="lane">
+            <h2>Lane 2: one drink</h2>
+            <p>
+Pick a single drink or snack.
+The rule: one purchase, then you watch. Do not turn it into a moving schedule.
+            </p>
+            <span class="laneTag">Best for couples</span>
           </div>
 
-          <div class="ctaRow">
-            <a class="btn primary" href="/catalog.html?destination=boracay">Find a place to stay</a>
-            <a class="btn" href="/destinations/boracay/index.html#top10">Back to Boracay top 10</a>
+          <div class="lane">
+            <h2>Lane 3: photo then stop</h2>
+            <p>
+Get your photo early, then put the phone away.
+If you keep recording, you will miss the moment you wanted.
+            </p>
+            <span class="laneTag">Best for memory</span>
           </div>
         </div>
-      </div>
-    </section>
+      </section>
 
-    <section class="section grid2" aria-label="Simple plan">
-      <div class="panel">
-        <h2>Simple plan</h2>
+      <!-- Switch-up: micro ritual checklist -->
+      <section class="section checkWrap" aria-label="Micro ritual checklist">
+        <div class="checkHead">
+          <div>
+            <h2>The micro-ritual</h2>
+            <p>Small rules that make it feel intentional instead of accidental.</p>
+          </div>
+        </div>
+
+        <div class="checkBody">
+          <div class="checkCol">
+            <h3>Do this</h3>
+            <ul>
+              <li>Arrive early and claim your spot.</li>
+              <li>Stay in one place through the peak light.</li>
+              <li>Pick one small snack or drink, then stop.</li>
+              <li>Take one short walk after sunset.</li>
+            </ul>
+          </div>
+
+          <div class="checkCol">
+            <h3>Avoid this</h3>
+            <ul>
+              <li>Bouncing between three viewpoints.</li>
+              <li>Ordering a full dinner during peak light.</li>
+              <li>Last-minute scrambling for seating.</li>
+              <li>Leaving early because it is "done".</li>
+            </ul>
+          </div>
+        </div>
+      </section>
+
+      <!-- Switch-up: weather decision block -->
+      <section class="section weather" aria-label="If weather flips">
+        <strong>If weather flips</strong>
         <p>
-          The easiest ritual is a beach walk into a chosen spot. Pick a quieter stretch, sit down, and stay off your phone for ten minutes.
+If it rains, shorten the ritual instead of forcing it.
+Find a covered spot, wait for a break in the clouds, and take the win.
+After rain is when the sky can go dramatic fast.
         </p>
-        <ul class="list">
-          <li>Pick a spot away from the densest central cluster.</li>
-          <li>Bring water, then choose one small snack or drink.</li>
-          <li>Stay until the light drops. Do not leave early.</li>
-        </ul>
-      </div>
+      </section>
 
-      <div class="panel">
-        <h2>What to avoid</h2>
-        <p>
-          The fastest way to ruin it is trying to do too much during the best light.
-          Keep it simple and you will feel the difference.
-        </p>
-        <ul class="list">
-          <li>No bouncing between three viewpoints.</li>
-          <li>No last-minute sprint to find seating.</li>
-          <li>No full dinner order while the sky is peaking.</li>
-        </ul>
-      </div>
-    </section>
-
-    <section class="section" aria-label="Spotlight one">
-      <div class="spotlight">
-        <div class="spotImg" aria-hidden="true">
-          <img src="/images/boracay/boracay-sunset-walk.jpg" alt="" loading="lazy" />
-        </div>
-        <div class="spotText">
-          <h2>Claim your space early</h2>
-          <p>
-            Arriving early is the entire cheat code. You get a calmer spot, better photos if you want them, and you are not negotiating with crowds.
-          </p>
-          <div class="mini">
-            <div>Timing: 30 to 45 minutes early</div>
-            <div>Move: choose a quieter stretch</div>
-          </div>
-        </div>
-      </div>
-    </section>
-
-    <section class="section" aria-label="Spotlight two">
-      <div class="spotlight spotlight-reverse">
-        <div class="spotText">
-          <h2>Make it one clean moment</h2>
-          <p>
-            Decide your one thing: a short walk, a drink, a photo, or a simple conversation.
-            Then let everything else go.
-          </p>
-          <div class="mini">
-            <div>Rule: one drink or snack</div>
-            <div>After: slow walk into dinner</div>
-          </div>
-        </div>
-        <div class="spotImg" aria-hidden="true">
-          <img src="/images/boracay/boracay-sunset-silhouette.jpg" alt="" loading="lazy" />
-        </div>
-      </div>
-    </section>
-
-    <section class="section panel" aria-label="If you want the upgrade">
-      <h2>If you want the upgrade</h2>
-      <p>
-        The paid version is paraw sailing. If you already did paraw, keep this ritual land-based so it feels different.
-        Either way, the point is intention, not the activity.
-      </p>
-      <ul class="list">
-        <li>Keep it simple even if you upgrade.</li>
-        <li>Do not pack your schedule right after.</li>
-        <li>If it rains, treat the break in clouds as the win.</li>
-      </ul>
-
-      <div class="ctaRow">
-        <a class="btn" href="/destinations/boracay/paraw-sunset-sailing.html">Paraw sunset sailing page</a>
-        <a class="btn blue" href="/destinations/boracay/index.html">Back to Boracay guide</a>
-      </div>
-    </section>
-
-    <section class="section" aria-label="FAQ">
-      <div class="panel">
+      <section class="faq" aria-label="Sunset ritual FAQ">
         <h2>FAQ</h2>
 
-        <div class="faqItem">
-          <p class="faqQ">Where is the best place to watch sunset in Boracay?</p>
-          <p class="faqA">
-            White Beach is the classic option. For fewer people, walk farther from the busiest central area and claim a simple spot 30 to 45 minutes before sunset.
-          </p>
-        </div>
+        <details>
+          <summary>Where is the best place to watch sunset in Boracay?</summary>
+          <p>White Beach is the classic option. For fewer people, walk farther from the busiest central area and claim a simple spot 30 to 45 minutes before sunset.</p>
+        </details>
 
-        <div class="faqItem">
-          <p class="faqQ">How early should I arrive?</p>
-          <p class="faqA">
-            Arrive 30 to 45 minutes before sunset to settle in, grab a drink or snack, and get a good view without scrambling.
-          </p>
-        </div>
+        <details>
+          <summary>How early should I arrive?</summary>
+          <p>Arrive 30 to 45 minutes before sunset to settle in, grab a drink or snack, and get a good view without scrambling.</p>
+        </details>
 
-        <div class="faqItem">
-          <p class="faqQ">Do I need to book anything?</p>
-          <p class="faqA">
-            No. The simplest ritual is free. If you want a paid version, paraw sailing is the upgrade, but a calm beach spot works just as well.
-          </p>
-        </div>
+        <details>
+          <summary>Do I need to book anything?</summary>
+          <p>No. The simplest ritual is free. If you want a paid version, paraw sailing is the upgrade, but a calm beach spot works just as well.</p>
+        </details>
 
-        <div class="faqItem">
-          <p class="faqQ">What if it rains?</p>
-          <p class="faqA">
-            If it is raining, shorten the ritual. Pick a covered spot, keep it simple, and move on. Boracay sunsets still pop after rain when clouds break.
-          </p>
-        </div>
-      </div>
-    </section>
+        <details>
+          <summary>What if it rains?</summary>
+          <p>If it rains, shorten the ritual. Pick a covered spot, keep it simple, and move on. Boracay sunsets still pop after rain when clouds break.</p>
+        </details>
+      </section>
+    </main>
 
-    <div class="footer">
-      Lolaelo. Practical travel, no fluff.
-    </div>
+    <footer>
+      © <span id="year"></span> Lolaelo ·
+      <a href="https://lolaelo-api.onrender.com/privacy.html" target="_blank" rel="noopener">Privacy</a>
+      <a href="https://lolaelo-api.onrender.com/terms.html" target="_blank" rel="noopener">Terms</a>
+    </footer>
   </div>
+
+  <script>
+    document.getElementById("year").textContent = new Date().getFullYear();
+  </script>
 </body>
 </html>

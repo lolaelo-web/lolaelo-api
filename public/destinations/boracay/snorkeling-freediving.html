@@ -32,7 +32,6 @@
       flex-direction: column;
       min-height: 100vh;
     }
-
     a { color: inherit; text-decoration: none; }
 
     .page {
@@ -45,7 +44,7 @@
       flex: 1;
     }
 
-    /* Top nav */
+    /* Top nav (keep same) */
     .nav {
       display: flex;
       align-items: center;
@@ -97,8 +96,15 @@
       align-items: center;
       flex-wrap: wrap;
     }
+    .crumbs span{
+      display:inline-block;
+      padding: 6px 10px;
+      border: 1px solid var(--border);
+      border-radius: 999px;
+      background: #ffffff;
+    }
 
-    /* Hero */
+    /* Hero (keep same) */
     .hero {
       margin-top: 14px;
       border-radius: 18px;
@@ -178,86 +184,149 @@
     }
     .intro h2 { margin: 0 0 8px; font-size: 15px; color: var(--brand); font-weight: 600; }
     .intro p { margin: 0 0 8px; font-size: 12.8px; line-height: 1.6; color: #4b5563; white-space: pre-line; }
-
-    .split {
-      margin-top: 14px;
-      display: grid;
-      grid-template-columns: 1.2fr 0.8fr;
-      gap: 14px;
-      align-items: start;
-    }
-    .panel {
-      border: 1px solid var(--border);
-      border-radius: 16px;
-      padding: 14px 16px;
-      background: #ffffff;
-      box-shadow: 0 10px 24px rgba(15,23,42,0.06);
-    }
-    .panel h3 { margin: 0 0 10px; font-size: 13px; font-weight: 600; color: #111827; }
-    .panel ul { margin: 0; padding-left: 18px; font-size: 12.5px; line-height: 1.55; color: #4b5563; }
-    .panel li { margin-bottom: 6px; }
-
     .pills { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 10px; }
     .pill { font-size: 12px; padding: 6px 10px; border-radius: 999px; border: 1px solid var(--border); color: #374151; background: #fafafa; }
 
     .section-title { margin: 22px 0 10px; font-size: 15px; font-weight: 600; color: var(--brand); }
 
-    .meta-row { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 8px; }
-    .meta { font-size: 12px; padding: 6px 10px; border-radius: 999px; border: 1px solid var(--border); background: #ffffff; color: #374151; }
-    .meta strong { font-weight: 600; }
-
-    .link { font-size: 13px; color: var(--brand); font-weight: 500; text-decoration: underline; cursor: pointer; }
-
-    /* Spotlight layout (alternating) */
-    .spotlight {
+    /* NEW: status + blueprint + safety */
+    .status {
       margin-top: 14px;
-      display: grid;
-      grid-template-columns: 1.1fr 0.9fr;
-      gap: 14px;
-      align-items: center;
+      border: 1px solid rgba(255,106,61,0.28);
+      background: rgba(255,106,61,0.08);
+      border-radius: 16px;
+      padding: 12px 14px;
+      box-shadow: 0 10px 24px rgba(15,23,42,0.06);
     }
+    .status strong { font-weight: 800; color: #111827; }
+    .status p { margin: 8px 0 0; font-size: 12.8px; color: #374151; line-height: 1.55; }
 
-    .spotlight-text {
+    .blueprint {
+      margin-top: 14px;
       border: 1px solid var(--border);
-      border-radius: 18px;
+      border-radius: 16px;
       background: #ffffff;
-      box-shadow: var(--card-shadow);
-      padding: 16px 16px 14px;
+      box-shadow: 0 10px 24px rgba(15,23,42,0.06);
+      overflow: hidden;
     }
-
-    .spotlight-title {
-      margin: 0 0 10px;
-      font-size: 15px;
-      font-weight: 600;
-      color: var(--brand);
+    .bpHead {
+      padding: 14px 16px;
+      background: #fafafa;
+      border-bottom: 1px solid var(--border);
+      display:flex;
+      align-items:flex-start;
+      justify-content:space-between;
+      gap: 14px;
     }
-
-    .spotlight-body {
+    .bpHead h3 {
+      margin: 0;
+      font-size: 14px;
+      font-weight: 900;
+      color: #111827;
+    }
+    .bpHead p {
+      margin: 6px 0 0;
       font-size: 12.8px;
-      line-height: 1.6;
       color: #4b5563;
+      line-height: 1.55;
       white-space: pre-line;
     }
-
-    .spotlight-media {
-      display: flex;
-      justify-content: center;
-      align-items: center;
-    }
-
-    .spotlight-circle {
-      width: 320px;
-      height: 320px;
+    .bpTag {
+      flex: 0 0 auto;
+      border: 1px solid var(--border);
       border-radius: 999px;
-      background-size: cover;
-      background-position: center;
-      background-repeat: no-repeat;
-      box-shadow: 0 18px 44px rgba(15,23,42,0.18);
-      border: 1px solid rgba(229,231,235,0.95);
+      padding: 6px 10px;
+      background: #ffffff;
+      font-size: 12px;
+      color:#374151;
+      font-weight: 700;
+      white-space: nowrap;
+    }
+    .bpSteps {
+      display:grid;
+      grid-template-columns: 1fr 1fr 1fr;
+      gap: 0;
+    }
+    .bpStep {
+      padding: 14px 16px;
+      border-right: 1px solid var(--border);
+    }
+    .bpStep:last-child { border-right: none; }
+    .bpStepTitle {
+      margin: 0 0 6px;
+      font-size: 13px;
+      font-weight: 900;
+      color:#111827;
+    }
+    .bpStepText {
+      margin: 0;
+      font-size: 12.8px;
+      color:#4b5563;
+      line-height: 1.55;
+      white-space: pre-line;
+    }
+    .bpMeta {
+      margin-top: 10px;
+      padding-top: 10px;
+      border-top: 1px solid var(--border);
+      display:flex;
+      gap: 10px;
+      flex-wrap: wrap;
+      font-size: 12px;
+      color:#6b7280;
+    }
+    .metaTag {
+      border: 1px solid var(--border);
+      border-radius: 999px;
+      padding: 4px 8px;
+      background: #ffffff;
     }
 
-    .spotlight-reverse .spotlight-text { order: 2; }
-    .spotlight-reverse .spotlight-media { order: 1; }
+    .safetyGrid {
+      margin-top: 14px;
+      display:grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 14px;
+      align-items: start;
+    }
+    .box {
+      border: 1px solid var(--border);
+      border-radius: 16px;
+      background: #ffffff;
+      box-shadow: 0 10px 24px rgba(15,23,42,0.06);
+      padding: 14px 16px;
+    }
+    .box h3 {
+      margin: 0 0 8px;
+      font-size: 14px;
+      font-weight: 900;
+      color:#111827;
+    }
+    .box ul {
+      margin: 0;
+      padding-left: 18px;
+      font-size: 12.8px;
+      line-height: 1.55;
+      color:#4b5563;
+    }
+    .box li { margin-bottom: 6px; }
+
+    .gearGrid {
+      margin-top: 14px;
+      display:grid;
+      grid-template-columns: 1fr 1fr 1fr;
+      gap: 14px;
+      align-items:start;
+    }
+    .gear {
+      border: 1px solid var(--border);
+      border-radius: 16px;
+      background: #ffffff;
+      box-shadow: 0 10px 24px rgba(15,23,42,0.06);
+      padding: 14px 16px;
+    }
+    .gear h3 { margin: 0 0 8px; font-size: 13px; font-weight: 900; color:#111827; }
+    .gear p { margin: 0; font-size: 12.8px; color:#4b5563; line-height: 1.55; white-space: pre-line; }
 
     /* FAQ */
     .faq {
@@ -268,6 +337,7 @@
       background: #ffffff;
       box-shadow: 0 10px 24px rgba(15,23,42,0.06);
     }
+    .faq h2 { margin: 0 0 8px; font-size: 15px; font-weight: 600; color: var(--brand); }
     details { border-top: 1px solid var(--border); padding: 10px 0; }
     details:first-of-type { border-top: none; padding-top: 0; }
     summary { cursor: pointer; list-style: none; font-size: 13px; font-weight: 600; color: #111827; }
@@ -285,15 +355,14 @@
     }
     footer a { color: inherit; text-decoration: underline; }
 
-    /* Responsive */
     @media (max-width: 768px) {
       .page { padding: 12px 16px 28px; }
-      .split { grid-template-columns: 1fr; }
       .hero-inner { min-height: 260px; }
-      .spotlight { grid-template-columns: 1fr; }
-      .spotlight-reverse .spotlight-text { order: 1; }
-      .spotlight-reverse .spotlight-media { order: 2; }
-      .spotlight-circle { width: 240px; height: 240px; }
+      .bpSteps { grid-template-columns: 1fr; }
+      .bpStep { border-right: none; border-bottom: 1px solid var(--border); }
+      .bpStep:last-child { border-bottom: none; }
+      .safetyGrid { grid-template-columns: 1fr; }
+      .gearGrid { grid-template-columns: 1fr; }
     }
   </style>
 
@@ -359,11 +428,11 @@
         <div class="hero-inner">
           <h1 class="hero-title">Snorkeling and freediving, without forcing it</h1>
           <p class="hero-sub">
-            Keep it calm, keep it safe, and keep your expectations realistic. The best sessions are simple: clear enough water, steady breathing, and time to float.
+            Calm water first. Comfort gear second. Everything else is optional. One good session beats a stressful “best spots” chase.
           </p>
           <div class="hero-actions">
             <a class="btn btn-primary" href="https://lolaelo-api.onrender.com/catalog.html?q=boracay">Browse Boracay stays</a>
-            <a class="btn btn-secondary" href="#how">Jump to the plan</a>
+            <a class="btn btn-secondary" href="#blueprint">Jump to the blueprint</a>
             <a class="btn btn-ghost" href="/destinations/boracay/index.html">Back to Boracay</a>
           </div>
         </div>
@@ -373,111 +442,140 @@
         <h2>Quick answer</h2>
         <p>
 Go early. Choose calm water over hype. If you are new, treat freediving as optional and stay inside comfort.
-A single good water session beats chasing a long checklist of “best spots.”
+Your win condition is simple: a relaxed session and a clean exit before you get tired.
         </p>
         <div class="pills" aria-label="Quick tags">
           <span class="pill">Best time: morning</span>
           <span class="pill">Trip length: 1 to 3 hrs</span>
           <span class="pill">Effort: low to medium</span>
-          <span class="pill">Good for: families, first-timers</span>
+          <span class="pill">Priority: calm water</span>
         </div>
       </section>
 
-      <section class="split" aria-label="What matters and what to avoid">
-        <div class="panel">
-          <h3>What matters</h3>
+      <section class="status" aria-label="Read the water">
+        <strong>Read the water before you commit</strong>
+        <p>
+If it looks choppy, crowded, or chaotic, downshift. Snorkeling should feel easy. If it feels like a mission, it’s the wrong moment.
+        </p>
+      </section>
+
+      <section class="section-title" id="blueprint">Session blueprint</section>
+
+      <section class="blueprint" aria-label="Session blueprint">
+        <div class="bpHead">
+          <div>
+            <h3>One clean session</h3>
+            <p>
+This is the version that works whether you snorkel only or add light freediving. No production. No pressure.
+            </p>
+          </div>
+          <div class="bpTag">1 to 3 hours</div>
+        </div>
+
+        <div class="bpSteps">
+          <div class="bpStep">
+            <div class="bpStepTitle">Stage 1: settle in</div>
+            <p class="bpStepText">
+Mask fit check.
+Float for 3 minutes.
+Slow breathing until you feel calm.
+            </p>
+            <div class="bpMeta">
+              <span class="metaTag">Goal: comfort</span>
+              <span class="metaTag">Move: slow down</span>
+            </div>
+          </div>
+
+          <div class="bpStep">
+            <div class="bpStepTitle">Stage 2: one real water session</div>
+            <p class="bpStepText">
+Pick one calm area and stay.
+If visibility is just “okay,” that’s fine.
+Relaxed time beats chasing perfection.
+            </p>
+            <div class="bpMeta">
+              <span class="metaTag">Goal: float time</span>
+              <span class="metaTag">Rule: fewer stops</span>
+            </div>
+          </div>
+
+          <div class="bpStep">
+            <div class="bpStepTitle">Stage 3: optional freedive</div>
+            <p class="bpStepText">
+Only if you feel good.
+Never alone.
+If anything feels off, stop.
+            </p>
+            <div class="bpMeta">
+              <span class="metaTag">Rule: safety first</span>
+              <span class="metaTag">Exit: early is fine</span>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section class="safetyGrid" aria-label="Safety rules and comfort rules">
+        <div class="box">
+          <h3>Non-negotiable safety</h3>
           <ul>
-            <li><strong>Calm water:</strong> you see more and stress less</li>
-            <li><strong>Comfort gear:</strong> mask fit matters more than anything</li>
-            <li><strong>Short plan:</strong> one solid water session is enough</li>
-            <li><strong>Safety:</strong> never push breath-holds when tired</li>
+            <li>Never freedive alone.</li>
+            <li>No hyperventilating.</li>
+            <li>Stop if you feel tired, cold, or pressured.</li>
+            <li>If water is rough, don’t force it.</li>
           </ul>
         </div>
 
-        <div class="panel">
-          <h3>What to avoid</h3>
+        <div class="box">
+          <h3>Comfort rules</h3>
           <ul>
-            <li><strong>Midday chaos:</strong> heat and crowds reduce enjoyment</li>
-            <li><strong>Bad mask fit:</strong> it ruins the entire session</li>
-            <li><strong>Pressure:</strong> don’t freedive to impress anyone</li>
-            <li><strong>Overpacking:</strong> heavy bags make boat time annoying</li>
+            <li>Mask fit matters more than “spot quality.”</li>
+            <li>Bring water and take breaks.</li>
+            <li>Keep valuables minimal.</li>
+            <li>End before you get cooked by sun.</li>
           </ul>
         </div>
       </section>
 
-      <h2 class="section-title" id="how">How to do it right</h2>
+      <section class="section-title">Gear that matters</section>
 
-      <!-- Spotlight 1 (reverse first, to alternate page rhythm): circle left, text right -->
-      <section class="spotlight spotlight-reverse" aria-label="A simple plan">
-        <div class="spotlight-text">
-          <h3 class="spotlight-title">A simple plan that works</h3>
-          <div class="spotlight-body">
-<strong>Step 1: go early.</strong>
-Morning water tends to be calmer. Even a small difference changes visibility.
-
-<strong>Step 2: do one real session.</strong>
-Pick one cove or one reef stop and stay long enough to settle. Floating time is part of the experience.
-
-<strong>Step 3: keep freediving optional.</strong>
-If you feel good and you know what you are doing, do a few controlled drops. If not, snorkel and enjoy.
-
-<strong>Step 4: end before you’re cooked.</strong>
-Stop while it still feels good. You want to leave with energy, not fatigue.
-          </div>
-
-          <div class="meta-row">
-            <span class="meta"><strong>Best window:</strong> morning</span>
-            <span class="meta"><strong>Length:</strong> 1 to 3 hrs</span>
-            <span class="meta"><strong>Effort:</strong> low to medium</span>
-          </div>
-
-          <div class="meta-row" style="margin-top:10px;">
-            <a class="link" href="https://lolaelo-api.onrender.com/catalog.html?q=boracay">Stays that make early water time easy</a>
-          </div>
+      <section class="gearGrid" aria-label="Gear that matters">
+        <div class="gear">
+          <h3>Mask fit</h3>
+          <p>
+If it leaks, the session is over.
+Test fit first. Adjust before you get in.
+          </p>
         </div>
 
-        <div class="spotlight-media" aria-hidden="true">
-          <div class="spotlight-circle" style="background-image:url('/images/boracay/boracay-snorkeling.jpg');"></div>
-        </div>
-      </section>
-
-      <!-- Spotlight 2: text left, circle right -->
-      <section class="spotlight" aria-label="Gear that matters">
-        <div class="spotlight-text">
-          <h3 class="spotlight-title">Gear that actually matters</h3>
-          <div class="spotlight-body">
-<strong>Mask fit.</strong> If it leaks, nothing else matters. Take 30 seconds to test fit before you commit.
-
-<strong>Anti-fog.</strong> Either use proper anti-fog or a simple rinse routine. Fog kills the experience.
-
-<strong>Dry bag.</strong> Keep it light. Phone, keys, and a small towel. That’s it.
-
-<strong>Reef-safe sunscreen.</strong> Put it on early so it sets before you enter the water.
-          </div>
-
-          <div class="meta-row">
-            <span class="meta"><strong>Priority:</strong> mask fit</span>
-            <span class="meta"><strong>Comfort:</strong> high</span>
-            <span class="meta"><strong>Risk:</strong> low if calm</span>
-          </div>
+        <div class="gear">
+          <h3>Anti-fog</h3>
+          <p>
+Fog ruins visibility faster than anything.
+Use anti-fog or a rinse routine.
+          </p>
         </div>
 
-        <div class="spotlight-media" aria-hidden="true">
-          <div class="spotlight-circle" style="background-image:url('/images/boracay/boracay-beach-white-sand.jpg');"></div>
+        <div class="gear">
+          <h3>Dry bag + water</h3>
+          <p>
+Keep it light.
+Phone, keys, towel, water.
+That’s enough.
+          </p>
         </div>
       </section>
 
       <section class="faq" aria-label="Snorkeling and freediving FAQ">
-        <h2 class="section-title" style="margin:0 0 8px;">FAQ</h2>
+        <h2>FAQ</h2>
 
         <details>
           <summary>Is snorkeling in Boracay worth it?</summary>
-          <p>Yes. Go early and pick calm water. One good session beats chasing too many stops.</p>
+          <p>Yes, if you go early and keep expectations realistic. Calm water beats chasing too many stops.</p>
         </details>
 
         <details>
           <summary>Is freediving safe for beginners?</summary>
-          <p>It can be, if you stay inside comfort and never dive alone. If you feel pressured, skip it.</p>
+          <p>It can be, if you stay within comfort and never dive alone. If you feel pressured, skip it.</p>
         </details>
 
         <details>

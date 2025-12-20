@@ -1,334 +1,345 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="en">
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>Island Hopping in Boracay | Simple Half-Day Plan (Lolaelo)</title>
+
+  <title>Island Hopping in Boracay | Simple Half-Day Plan | Lolaelo</title>
   <meta name="description" content="Island hopping in Boracay, simplified. A clean half-day flow, what to bring, timing that matters, costs, and common mistakes to avoid." />
 
   <link rel="icon" href="https://www.lolaelo.com/logo2.png" />
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
 
+  <meta property="og:title" content="Island Hopping in Boracay | Lolaelo" />
+  <meta property="og:description" content="A clean half-day plan that prioritizes water time. Skip the long checklist. Do fewer stops well." />
+  <meta property="og:type" content="website" />
+  <meta property="og:image" content="/images/boracay/boracay-island-hopping.jpg" />
+
   <style>
-    :root {
-      --bg: #ffffff;
-      --fg: #111827;
-      --muted: #6b7280;
-      --brand: #064e3b;
-      --accent: #ff6a3d;
-      --border: #e5e7eb;
-      --max-width: 960px;
-      --card-shadow: 0 12px 30px rgba(15,23,42,0.10);
-      --card-shadow-hover: 0 16px 40px rgba(15,23,42,0.18);
+    :root{
+      --bg:#ffffff;
+      --fg:#111827;
+      --muted:#6b7280;
+
+      --brand:#064e3b;
+      --accent:#ff6a3d;
+      --border:#e5e7eb;
+
+      --max:1100px;
+      --shadow: 0 12px 30px rgba(15,23,42,0.10);
+      --shadow2: 0 16px 40px rgba(15,23,42,0.18);
+
+      --radius:18px;
+      --radius2:22px;
+
+      --font: Inter, ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
     }
 
-    * { box-sizing: border-box; }
-    html, body { margin: 0; padding: 0; height: 100%; }
-    body {
-      font-family: Inter, ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+    *{box-sizing:border-box}
+    html, body{margin:0; padding:0}
+    body{
+      font-family: var(--font);
       background: var(--bg);
       color: var(--fg);
-      display: flex;
-      flex-direction: column;
-      min-height: 100vh;
+      line-height: 1.5;
     }
+    a{color:inherit; text-decoration:none}
 
-    a { color: inherit; text-decoration: none; }
-
-    .page {
-      width: 100%;
-      max-width: var(--max-width);
+    .wrap{
+      max-width: var(--max);
       margin: 0 auto;
       padding: 16px 20px 40px;
-      display: flex;
-      flex-direction: column;
-      flex: 1;
     }
 
-    /* Top nav (match destinations.html) */
-    .nav {
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
+    /* Header (site-consistent) */
+    .nav{
+      display:flex;
+      align-items:center;
+      justify-content:space-between;
       padding: 4px 0 12px;
     }
+    .nav-left{display:flex; align-items:center; gap:8px}
+    .logo-img{height:32px; width:auto; display:block}
 
-    .nav-left { display: flex; align-items: center; gap: 8px; }
-
-    .logo-img { height: 32px; width: auto; display: block; }
-
-    .nav-right {
-      display: flex;
-      align-items: center;
+    .nav-right{
+      display:flex;
+      align-items:center;
       gap: 20px;
       font-size: 14px;
     }
-
-    .nav-link {
+    .nav-link{
       color: var(--brand);
       padding: 4px 0;
       font-weight: 500;
-      text-decoration: none;
     }
-
-    .nav-link-back {
-      display: inline-flex;
-      align-items: center;
+    .nav-link-back{
+      display:inline-flex;
+      align-items:center;
       gap: 6px;
-      text-decoration: none;
     }
-
-    .nav-back-arrow {
+    .nav-back-arrow{
       font-size: 16px;
       line-height: 1;
       transform: translateY(1px);
-      text-decoration: none !important;
     }
-
-    .nav-link-back span:last-child { text-decoration: none; }
-
-    .nav-link-back:hover span:last-child { text-decoration: underline; }
-
-    .nav-link-back:hover .nav-back-arrow {
+    .nav-link-back:hover span:last-child{ text-decoration: underline; }
+    .nav-link-back:hover .nav-back-arrow{
       transform: translate(-2px, 1px);
       transition: transform 0.15s ease-out;
     }
 
-    /* Breadcrumbs */
-    .crumbs {
+    /* Minimal breadcrumb */
+    .crumbs{
       margin-top: 8px;
       font-size: 12px;
       color: var(--muted);
-      display: flex;
-      gap: 8px;
-      align-items: center;
-      flex-wrap: wrap;
+      display:flex;
+      gap:8px;
+      align-items:center;
+      flex-wrap:wrap;
     }
-    .crumbs a { color: var(--muted); text-decoration: underline; }
-    .crumbs .sep { color: #9ca3af; }
+    .crumbs span{
+      display:inline-block;
+      padding: 6px 10px;
+      border: 1px solid var(--border);
+      border-radius: 999px;
+      background: #ffffff;
+    }
 
-    /* Hero */
-    .hero {
+    /* Hero card (layout template) */
+    .hero{
       margin-top: 14px;
       border-radius: 18px;
-      overflow: hidden;
-      min-height: 280px;
-      background-image: url("/images/boracay/boracay-island-hopping.jpg");
-      background-size: cover;
-      background-position: center;
-      background-repeat: no-repeat;
-      position: relative;
-      box-shadow: var(--card-shadow);
+      overflow:hidden;
+      border: 1px solid var(--border);
+      background: #ffffff;
+      box-shadow: var(--shadow);
     }
-
-    .hero::before {
-      content: "";
-      position: absolute;
-      inset: 0;
-      background: linear-gradient(to top, rgba(0,0,0,0.55), rgba(0,0,0,0.18));
+    .heroGrid{
+      display:grid;
+      grid-template-columns: 1.12fr .88fr;
+      gap:0;
     }
-
-    .hero-inner {
+    .heroMedia{
+      min-height: 340px;
       position: relative;
-      padding: 18px 18px 16px;
-      display: flex;
+      background: #f3f4f6;
+    }
+    .heroMedia img{
+      width:100%;
+      height:100%;
+      object-fit: cover;
+      display:block;
+    }
+    .heroMedia::after{
+      content:"";
+      position:absolute;
+      inset:0;
+      background: linear-gradient(90deg, rgba(0,0,0,0.05), rgba(0,0,0,0.22));
+      pointer-events:none;
+    }
+    .heroBody{
+      padding: 22px 22px 20px;
+      display:flex;
       flex-direction: column;
-      justify-content: flex-end;
-      min-height: 280px;
-      gap: 10px;
+      gap: 12px;
     }
-
-    .hero-title {
-      margin: 0;
-      color: #ffffff;
-      font-size: clamp(26px, 3.8vw, 40px);
+    h1{
+      margin:0;
+      font-size: 34px;
       line-height: 1.15;
-      font-weight: 600;
-      text-shadow: 0 2px 6px rgba(0,0,0,0.35);
       letter-spacing: -0.01em;
+      font-weight: 600;
     }
-
-    .hero-sub {
-      margin: 0;
-      color: rgba(255,255,255,0.92);
+    .lede{
+      margin:0;
+      color: var(--muted);
       font-size: 14.5px;
-      line-height: 1.45;
-      max-width: 78ch;
+      line-height: 1.55;
     }
 
-    .hero-actions {
-      display: flex;
+    .chips{
+      display:flex;
+      flex-wrap:wrap;
+      gap: 8px;
+      margin-top: 2px;
+    }
+    .chip{
+      display:inline-flex;
+      gap:8px;
+      align-items:center;
+      padding: 6px 10px;
+      border: 1px solid var(--border);
+      border-radius: 999px;
+      background: #fafafa;
+      color: #374151;
+      font-size: 12px;
+    }
+    .dot{
+      width: 8px;
+      height: 8px;
+      border-radius: 999px;
+      background: var(--accent);
+      box-shadow: 0 0 0 4px rgba(255,106,61,0.14);
+      flex: 0 0 auto;
+    }
+
+    .kpi{
+      display:grid;
+      grid-template-columns: 1fr 1fr;
       gap: 10px;
-      flex-wrap: wrap;
-      margin-top: 6px;
+      margin-top: 4px;
+    }
+    .kpi .item{
+      border: 1px solid var(--border);
+      border-radius: 14px;
+      background: #ffffff;
+      padding: 10px 10px;
+      box-shadow: 0 10px 24px rgba(15,23,42,0.06);
+    }
+    .kpi .lbl{
+      font-size: 12px;
+      color: var(--muted);
+    }
+    .kpi .val{
+      font-size: 13.5px;
+      font-weight: 600;
+      margin-top: 3px;
+      color: #111827;
     }
 
-    .btn {
+    .ctaRow{
+      display:flex;
+      flex-wrap:wrap;
+      gap: 10px;
+      align-items:center;
+      margin-top: 4px;
+    }
+
+    .btn{
       border-radius: 999px;
       padding: 9px 14px;
       font-size: 14px;
       font-weight: 500;
       border: 1px solid transparent;
       cursor: pointer;
-      display: inline-flex;
-      align-items: center;
-      justify-content: center;
+      display:inline-flex;
+      align-items:center;
+      justify-content:center;
       gap: 8px;
       white-space: nowrap;
     }
+    .btn.primary{ background: var(--accent); color: #ffffff; }
+    .btn.secondary{ background: rgba(229,242,255,0.95); color: var(--brand); border-color: rgba(229,242,255,0.65); }
+    .btn.ghost{ background: #ffffff; color: var(--brand); border-color: var(--border); }
+    .btn:hover{ box-shadow: var(--shadow); }
 
-    .btn-primary { background: var(--accent); color: #ffffff; }
-    .btn-secondary { background: rgba(229,242,255,0.95); color: var(--brand); border-color: rgba(229,242,255,0.65); }
-    .btn-ghost { background: rgba(255,255,255,0.14); color: #ffffff; border-color: rgba(255,255,255,0.18); }
+    /* Sections */
+    .section{ margin-top: 18px; }
 
-    /* Content */
-    .content { margin-top: 18px; }
+    .grid2{
+      display:grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 14px;
+      align-items: start;
+    }
 
-    .intro {
-      margin-top: 14px;
-      padding: 14px 16px;
+    .panel{
       border: 1px solid var(--border);
       border-radius: 16px;
+      padding: 14px 16px;
       background: #ffffff;
       box-shadow: 0 10px 24px rgba(15,23,42,0.06);
     }
-
-    .intro h2 {
-      margin: 0 0 8px;
+    .panel h2{
+      margin: 0 0 10px;
       font-size: 15px;
-      color: var(--brand);
       font-weight: 600;
+      color: var(--brand);
     }
-
-    .intro p {
-      margin: 0 0 8px;
+    .panel p{
+      margin: 0;
       font-size: 12.8px;
       line-height: 1.6;
       color: #4b5563;
       white-space: pre-line;
     }
-
-    .split {
-      margin-top: 14px;
-      display: grid;
-      grid-template-columns: 1.2fr 0.8fr;
-      gap: 14px;
-      align-items: start;
-    }
-
-    .panel {
-      border: 1px solid var(--border);
-      border-radius: 16px;
-      padding: 14px 16px;
-      background: #ffffff;
-      box-shadow: 0 10px 24px rgba(15,23,42,0.06);
-    }
-
-    .panel h3 {
-      margin: 0 0 10px;
-      font-size: 13px;
-      font-weight: 600;
-      color: #111827;
-    }
-
-    .pills {
-      display: flex;
-      flex-wrap: wrap;
-      gap: 8px;
-      margin-top: 10px;
-    }
-
-    .pill {
-      font-size: 12px;
-      padding: 6px 10px;
-      border-radius: 999px;
-      border: 1px solid var(--border);
-      color: #374151;
-      background: #fafafa;
-    }
-
-    .panel ul {
-      margin: 0;
+    .list{
+      margin: 10px 0 0;
       padding-left: 18px;
       font-size: 12.5px;
       line-height: 1.55;
       color: #4b5563;
     }
+    .list li{ margin-bottom: 6px; }
 
-    .panel li { margin-bottom: 6px; }
+    /* Spotlight (same layout logic as template) */
+    .spotlight{
+      margin-top: 14px;
+      display:grid;
+      grid-template-columns: 1.05fr 0.95fr;
+      gap: 14px;
+      align-items:center;
+    }
+    .spotlight-reverse{
+      grid-template-columns: 0.95fr 1.05fr;
+    }
 
-    .section-title {
-      margin: 22px 0 10px;
+    .spotText{
+      border: 1px solid var(--border);
+      border-radius: 18px;
+      background: #ffffff;
+      box-shadow: var(--shadow);
+      padding: 16px 16px 14px;
+    }
+    .spotText h2{
+      margin: 0 0 10px;
       font-size: 15px;
       font-weight: 600;
       color: var(--brand);
     }
-
-    .card {
-      border-radius: 18px;
-      border: 1px solid var(--border);
-      overflow: hidden;
-      background: #ffffff;
-      box-shadow: var(--card-shadow);
-      margin-top: 14px;
-    }
-
-    .card-media {
-      height: 170px;
-      background-size: cover;
-      background-position: center;
-      background-repeat: no-repeat;
-      position: relative;
-    }
-
-    .card-media::before {
-      content: "";
-      position: absolute;
-      inset: 0;
-      background: linear-gradient(to top, rgba(0,0,0,0.35), rgba(0,0,0,0.08));
-      opacity: 0.85;
-    }
-
-    .card-body {
-      padding: 14px 16px 16px;
-    }
-
-    .card-text {
-      margin: 0 0 10px;
+    .spotText p{
+      margin:0;
       font-size: 12.8px;
       line-height: 1.6;
       color: #4b5563;
       white-space: pre-line;
     }
-
-    .meta-row {
-      display: flex;
-      flex-wrap: wrap;
-      gap: 8px;
-      margin-top: 8px;
+    .mini{
+      margin-top: 12px;
+      padding-top: 12px;
+      border-top: 1px solid var(--border);
+      display:grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 10px;
+      color: #4b5563;
+      font-size: 12.5px;
     }
 
-    .meta {
-      font-size: 12px;
-      padding: 6px 10px;
+    .spotImgWrap{
+      display:flex;
+      justify-content:center;
+      align-items:center;
+      padding: 6px;
+    }
+    .spotImg{
+      width: 320px;
+      height: 320px;
       border-radius: 999px;
-      border: 1px solid var(--border);
-      background: #ffffff;
-      color: #374151;
+      overflow:hidden;
+      border: 1px solid rgba(229,231,235,0.95);
+      box-shadow: 0 18px 44px rgba(15,23,42,0.18);
+      background: #f3f4f6;
     }
-
-    .meta strong { font-weight: 600; }
-
-    .link {
-      font-size: 13px;
-      color: var(--brand);
-      font-weight: 500;
-      text-decoration: underline;
-      cursor: pointer;
+    .spotImg img{
+      width:100%;
+      height:100%;
+      object-fit: cover;
+      display:block;
     }
 
     /* FAQ */
-    .faq {
+    .faq{
       margin-top: 22px;
       border: 1px solid var(--border);
       border-radius: 16px;
@@ -336,105 +347,51 @@
       background: #ffffff;
       box-shadow: 0 10px 24px rgba(15,23,42,0.06);
     }
-
-    details {
-      border-top: 1px solid var(--border);
-      padding: 10px 0;
-    }
-
-    details:first-of-type { border-top: none; padding-top: 0; }
-    summary {
-      cursor: pointer;
-      list-style: none;
-      font-size: 13px;
-      font-weight: 600;
-      color: #111827;
-    }
-
-    summary::-webkit-details-marker { display: none; }
-
-    /* Spotlight layout: text left, circle image right */
-    .spotlight {
-      margin-top: 14px;
-      display: grid;
-      grid-template-columns: 1.15fr 0.85fr;
-      gap: 14px;
-      align-items: center;
-    }
-
-    .spotlight-text {
-      border: 1px solid var(--border);
-      border-radius: 18px;
-      background: #ffffff;
-      box-shadow: var(--card-shadow);
-      padding: 16px 16px 14px;
-    }
-
-    .spotlight-title {
-      margin: 0 0 10px;
+    .faq h2{
+      margin: 0 0 8px;
       font-size: 15px;
       font-weight: 600;
       color: var(--brand);
     }
 
-    .spotlight-body .card-text {
-      margin-top: 0;
+    details{
+      border-top: 1px solid var(--border);
+      padding: 10px 0;
     }
-
-    /* Right side: circular image spotlight */
-    .spotlight-media {
-      display: flex;
-      justify-content: center;
-      align-items: center;
+    details:first-of-type{ border-top:none; padding-top:0; }
+    summary{
+      cursor:pointer;
+      list-style:none;
+      font-size: 13px;
+      font-weight: 600;
+      color:#111827;
     }
-
-    .spotlight-circle {
-      width: 320px;
-      height: 320px;
-      border-radius: 999px;
-      background-size: cover;
-      background-position: center;
-      background-repeat: no-repeat;
-      box-shadow: 0 18px 44px rgba(15,23,42,0.18);
-      border: 1px solid rgba(229,231,235,0.95);
-    }
-
-    /* Responsive */
-    @media (max-width: 768px) {
-      .spotlight {
-        grid-template-columns: 1fr;
-      }
-      .spotlight-circle {
-        width: 240px;
-        height: 240px;
-      }
-    }
-
-    .faq p {
+    summary::-webkit-details-marker{ display:none; }
+    .faq p{
       margin: 8px 0 0;
       font-size: 12.8px;
       line-height: 1.6;
       color: #4b5563;
     }
 
-    /* Footer */
-    footer {
+    footer{
       border-top: 1px solid var(--border);
       padding: 14px 20px 22px;
       font-size: 12px;
       color: #6b7280;
       text-align: center;
-      margin-top: auto;
+      margin-top: 26px;
     }
+    footer a{ color: inherit; text-decoration: underline; }
 
-    footer a { color: inherit; text-decoration: underline; }
-
-    /* Responsive */
-    @media (max-width: 768px) {
-      .page { padding: 12px 16px 28px; }
-      .split { grid-template-columns: 1fr; }
-      .hero-inner { min-height: 260px; }
-      .card-media { height: 160px; }
+    @media (max-width: 920px){
+      .wrap{ padding: 12px 16px 28px; }
+      .heroGrid{ grid-template-columns: 1fr; }
+      .heroMedia{ min-height: 260px; }
+      .grid2{ grid-template-columns: 1fr; }
+      .spotlight, .spotlight-reverse{ grid-template-columns: 1fr; }
+      .spotImg{ width: 240px; height: 240px; }
+      h1{ font-size: 30px; }
     }
   </style>
 
@@ -451,7 +408,7 @@
       {
         "@type":"Question",
         "name":"What time should you start island hopping in Boracay?",
-        "acceptedAnswer":{"@type":"Answer","text":"Start early, ideally in the morning. Seas are calmer and you avoid the midday heat and crowd buildup."}
+        "acceptedAnswer":{"@type":"Answer","text":"Start early, ideally in the morning. Seas are calmer and you avoid midday heat and crowd buildup."}
       },
       {
         "@type":"Question",
@@ -469,7 +426,7 @@
 </head>
 
 <body>
-  <div class="page">
+  <div class="wrap">
     <header class="nav">
       <div class="nav-left">
         <a href="https://www.lolaelo.com" aria-label="Lolaelo home">
@@ -495,39 +452,62 @@
       <span>Island hopping</span>
     </div>
 
-    <main class="content" role="main">
+    <main role="main">
       <section class="hero" aria-label="Island hopping in Boracay">
-        <div class="hero-inner">
-          <h1 class="hero-title">Island hopping in Boracay, simplified</h1>
-          <p class="hero-sub">
-            A clean half-day plan that prioritizes water time. Skip the long checklist. Do fewer stops well and you will feel the difference.
-          </p>
-          <div class="hero-actions">
-            <a class="btn btn-primary" href="https://lolaelo-api.onrender.com/catalog.html?q=boracay">Browse Boracay stays</a>
-            <a class="btn btn-secondary" href="#plan">Jump to the plan</a>
-            <a class="btn btn-ghost" href="/destinations/boracay/index.html">Back to Boracay</a>
+        <div class="heroGrid">
+          <div class="heroMedia">
+            <img src="/images/boracay/boracay-island-hopping.jpg" alt="Island hopping in Boracay, clear water and boat scene" loading="eager" />
+          </div>
+
+          <div class="heroBody">
+            <h1>Island hopping, simplified</h1>
+            <p class="lede">
+              A clean half-day plan that prioritizes water time. Skip the long checklist. Do fewer stops well and you will feel the difference.
+            </p>
+
+            <div class="chips" aria-label="Quick facts">
+              <div class="chip"><span class="dot"></span>Best time: morning</div>
+              <div class="chip"><span class="dot"></span>Trip length: half day</div>
+              <div class="chip"><span class="dot"></span>Effort: low</div>
+              <div class="chip"><span class="dot"></span>Good for: first timers</div>
+            </div>
+
+            <div class="kpi" aria-label="Planning snapshot">
+              <div class="item">
+                <div class="lbl">Start window</div>
+                <div class="val">7:30 to 9:00</div>
+              </div>
+              <div class="item">
+                <div class="lbl">Total time</div>
+                <div class="val">4 to 5 hours</div>
+              </div>
+              <div class="item">
+                <div class="lbl>Route rule</div>
+                <div class="val">Fewer stops, longer swim</div>
+              </div>
+              <div class="item">
+                <div class="lbl">Outcome</div>
+                <div class="val">Relaxed, not rushed</div>
+              </div>
+            </div>
+
+            <div class="ctaRow">
+              <a class="btn primary" href="https://lolaelo-api.onrender.com/catalog.html?q=boracay">Browse Boracay stays</a>
+              <a class="btn secondary" href="#plan">Jump to the plan</a>
+              <a class="btn ghost" href="/destinations/boracay/index.html">Back to Boracay</a>
+            </div>
           </div>
         </div>
       </section>
 
-      <section class="intro" aria-label="Quick answer">
-        <h2>Quick answer</h2>
-        <p>
-Island hopping is worth it if you keep it simple. Go early, choose a short route, and prioritize swimming and floating time over collecting stops.
-A focused half-day feels better than a rushed full day.
-        </p>
-        <div class="pills" aria-label="Quick tags">
-          <span class="pill">Best time: morning</span>
-          <span class="pill">Trip length: half day</span>
-          <span class="pill">Effort: low</span>
-          <span class="pill">Good for: first-timers</span>
-        </div>
-      </section>
-
-      <section class="split" aria-label="What matters and what to avoid">
+      <section class="section grid2" aria-label="What matters and what to avoid">
         <div class="panel">
-          <h3>What matters</h3>
-          <ul>
+          <h2>What matters</h2>
+          <p>
+Start early, keep the route focused, and buy back time on the water.
+If you are hopping every 20 minutes, you are commuting, not relaxing.
+          </p>
+          <ul class="list">
             <li><strong>Start early:</strong> calmer seas and less heat</li>
             <li><strong>Route discipline:</strong> fewer stops, more water time</li>
             <li><strong>Small group:</strong> faster transitions, less waiting</li>
@@ -536,85 +516,89 @@ A focused half-day feels better than a rushed full day.
         </div>
 
         <div class="panel">
-          <h3>What to avoid</h3>
-          <ul>
+          <h2>What to avoid</h2>
+          <p>
+The most common mistake is collecting stops instead of actually swimming.
+Overpacking and late starts are the other two.
+          </p>
+          <ul class="list">
             <li><strong>Too many stops:</strong> you spend the day boarding, not swimming</li>
             <li><strong>Late starts:</strong> rougher water and hotter afternoons</li>
             <li><strong>Overpacking:</strong> valuables and heavy bags ruin boat time</li>
-            <li><strong>Rushing:</strong> plan for one or two great water sessions</li>
+            <li><strong>Rushing:</strong> plan for one great water session</li>
           </ul>
         </div>
       </section>
 
-      <h2 class="section-title" id="plan">A clean half-day plan</h2>
+      <section class="section" id="plan" aria-label="Spotlight: half-day plan">
+        <div class="spotlight">
+          <div class="spotText">
+            <h2>A clean half-day plan</h2>
+            <p>
+Step 1: 7:30 to 8:30, depart and get to your first swim.
+Aim for a calm cove or an easy reef stop. The goal is water time, not photos.
 
-      <section class="spotlight" aria-label="Half-day flow">
-      <div class="spotlight-text">
-          <h3 class="spotlight-title">A clean half-day plan</h3>
+Step 2: 9:00 to 10:30, one main swim session.
+Pick one spot and stay long enough to actually relax.
 
-          <div class="spotlight-body">
-          <p class="card-text">
-      <strong>Step 1: 7:30 to 8:30 AM, depart and get to your first swim.</strong>
-      Aim for a calm cove or a simple reef stop. The goal is not photos. The goal is water time.
+Step 3: 10:30 to 11:30, one light stop or beach reset.
+If the group is tired, skip the extra stop. A quiet beach moment is often the best part.
 
-      <strong>Step 2: 9:00 to 10:30 AM, do one main swim session.</strong>
-      Pick one spot and stay long enough to actually relax. If you are hopping every 20 minutes, you are not hopping, you are commuting.
+Step 4: 12:00, head back before the day gets heavy.
+You return with energy instead of feeling cooked.
+            </p>
+            <div class="mini">
+              <div>Rule: one long swim beats three short stops</div>
+              <div>Tip: agree on route before leaving</div>
+            </div>
 
-      <strong>Step 3: 10:30 to 11:30 AM, one light stop or beach reset.</strong>
-      If the group is tired, skip the extra stop. A short, quiet beach moment is often the best part.
-
-      <strong>Step 4: 12:00 PM, head back before the day gets heavy.</strong>
-      You will return with energy instead of feeling cooked.
-          </p>
-
-          <div class="meta-row">
-              <span class="meta"><strong>Duration:</strong> 4 to 5 hrs</span>
-              <span class="meta"><strong>Best time:</strong> morning</span>
-              <span class="meta"><strong>Effort:</strong> low</span>
-              <span class="meta"><strong>Outcome:</strong> calm + water time</span>
+            <div style="margin-top:10px;">
+              <a class="btn ghost" href="https://lolaelo-api.onrender.com/catalog.html?q=boracay">Stays that make early starts easier</a>
+            </div>
           </div>
 
-          <div class="meta-row" style="margin-top:10px;">
-              <a class="link" href="https://lolaelo-api.onrender.com/catalog.html?q=boracay">Stays that make early starts easier</a>
+          <div class="spotImgWrap" aria-hidden="true">
+            <div class="spotImg">
+              <img src="/images/boracay/boracay-beach-white-sand.jpg" alt="" loading="lazy" />
+            </div>
           </div>
-          </div>
-      </div>
-
-      <div class="spotlight-media" aria-hidden="true">
-          <div class="spotlight-circle" style="background-image:url('/images/boracay/boracay-beach-white-sand.jpg');"></div>
-      </div>
-      </section>
-
-      <h2 class="section-title">What to bring</h2>
-
-      <section class="split" aria-label="Packing and comfort">
-        <div class="panel">
-          <h3>Non-negotiables</h3>
-          <ul>
-            <li>Dry bag (or zip bag inside a tote)</li>
-            <li>Towel and a light change of clothes</li>
-            <li>Reef-safe sunscreen and sunglasses</li>
-            <li>Water and light snacks</li>
-          </ul>
-        </div>
-
-        <div class="panel">
-          <h3>Nice to have</h3>
-          <ul>
-            <li>Light layer for boat wind</li>
-            <li>Sea sickness meds if needed</li>
-            <li>Simple waterproof phone pouch</li>
-            <li>Cash for small add-ons</li>
-          </ul>
         </div>
       </section>
 
-      <section class="faq" aria-label="Island hopping FAQ">
-        <h2 class="section-title" style="margin:0 0 8px;">FAQ</h2>
+      <section class="section" aria-label="Spotlight: what to bring">
+        <div class="spotlight spotlight-reverse">
+          <div class="spotText">
+            <h2>What to bring</h2>
+            <p>
+Keep it light. If it does not help you swim or stay comfortable, it probably does not belong on the boat.
+            </p>
+            <ul class="list">
+              <li>Dry bag (or zip bag inside a tote)</li>
+              <li>Towel and a light change of clothes</li>
+              <li>Reef-safe sunscreen and sunglasses</li>
+              <li>Water and light snacks</li>
+              <li>Light layer for boat wind</li>
+            </ul>
+            <div class="mini">
+              <div>Nice to have: waterproof phone pouch</div>
+              <div>Cash: small add-ons and tips</div>
+            </div>
+          </div>
+
+          <div class="spotImgWrap" aria-hidden="true">
+            <div class="spotImg">
+              <img src="/images/boracay/boracay-island-hopping.jpg" alt="" loading="lazy" />
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section class="faq" aria-label="FAQ">
+        <h2>FAQ</h2>
 
         <details>
-          <summary>Is island hopping worth it in Boracay?</summary>
-          <p>Yes if you keep it simple. A short route with real swim time feels better than a rushed checklist of stops.</p>
+          <summary>Is island hopping in Boracay worth it?</summary>
+          <p>Yes, if you keep it simple. A short route with real swim time feels better than rushing a long checklist of stops.</p>
         </details>
 
         <details>
@@ -633,13 +617,13 @@ A focused half-day feels better than a rushed full day.
         </details>
       </section>
     </main>
-  </div>
 
-  <footer>
-    © <span id="year"></span> Lolaelo ·
-    <a href="https://lolaelo-api.onrender.com/privacy.html" target="_blank" rel="noopener">Privacy</a>
-    <a href="https://lolaelo-api.onrender.com/terms.html" target="_blank" rel="noopener">Terms</a>
-  </footer>
+    <footer>
+      © <span id="year"></span> Lolaelo ·
+      <a href="https://lolaelo-api.onrender.com/privacy.html" target="_blank" rel="noopener">Privacy</a>
+      <a href="https://lolaelo-api.onrender.com/terms.html" target="_blank" rel="noopener">Terms</a>
+    </footer>
+  </div>
 
   <script>
     document.getElementById("year").textContent = new Date().getFullYear();

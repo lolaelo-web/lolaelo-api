@@ -1,299 +1,386 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="en">
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>Boracay Nightlife | A Clean Night Plan (Lolaelo)</title>
-  <meta name="description" content="Boracay nightlife without the chaos. Where to start, how to keep it smooth, what to avoid, and how to end the night feeling good tomorrow." />
+
+  <title>Boracay Nightlife | A Clean Night Plan | Lolaelo</title>
+  <meta name="description" content="Boracay nightlife without the chaos. A simple plan, what to avoid, and how to end the night feeling good tomorrow." />
 
   <link rel="icon" href="https://www.lolaelo.com/logo2.png" />
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
 
+  <meta property="og:title" content="Boracay Nightlife | Lolaelo" />
+  <meta property="og:description" content="One warm-up spot, one main spot, then exit on purpose. Keep it clean." />
+  <meta property="og:type" content="website" />
+  <meta property="og:image" content="/images/boracay/boracay-nightlife.jpg" />
+
   <style>
-    :root {
-      --bg: #ffffff;
-      --fg: #111827;
-      --muted: #6b7280;
-      --brand: #064e3b;
-      --accent: #ff6a3d;
-      --border: #e5e7eb;
-      --max-width: 960px;
-      --card-shadow: 0 12px 30px rgba(15,23,42,0.10);
-      --card-shadow-hover: 0 16px 40px rgba(15,23,42,0.18);
+    :root{
+      --bg:#ffffff;
+      --fg:#111827;
+      --muted:#6b7280;
+
+      --brand:#064e3b;
+      --accent:#ff6a3d;
+      --border:#e5e7eb;
+
+      --max:1100px;
+      --shadow: 0 12px 30px rgba(15,23,42,0.10);
+
+      --font: Inter, ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
     }
 
-    * { box-sizing: border-box; }
-    html, body { margin: 0; padding: 0; height: 100%; }
-    body {
-      font-family: Inter, ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+    *{box-sizing:border-box}
+    html, body{margin:0; padding:0}
+    body{
+      font-family: var(--font);
       background: var(--bg);
       color: var(--fg);
-      display: flex;
-      flex-direction: column;
-      min-height: 100vh;
+      line-height: 1.5;
     }
+    a{color:inherit; text-decoration:none}
 
-    a { color: inherit; text-decoration: none; }
-
-    .page {
-      width: 100%;
-      max-width: var(--max-width);
+    .wrap{
+      max-width: var(--max);
       margin: 0 auto;
       padding: 16px 20px 40px;
-      display: flex;
-      flex-direction: column;
-      flex: 1;
     }
 
-    /* Top nav */
-    .nav {
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
+    /* Header (keep consistent) */
+    .nav{
+      display:flex;
+      align-items:center;
+      justify-content:space-between;
       padding: 4px 0 12px;
     }
-    .nav-left { display: flex; align-items: center; gap: 8px; }
-    .logo-img { height: 32px; width: auto; display: block; }
+    .nav-left{display:flex; align-items:center; gap:8px}
+    .logo-img{height:32px; width:auto; display:block}
 
-    .nav-right {
-      display: flex;
-      align-items: center;
+    .nav-right{
+      display:flex;
+      align-items:center;
       gap: 20px;
       font-size: 14px;
     }
-    .nav-link {
+    .nav-link{
       color: var(--brand);
       padding: 4px 0;
       font-weight: 500;
-      text-decoration: none;
     }
-
-    .nav-link-back {
-      display: inline-flex;
-      align-items: center;
+    .nav-link-back{
+      display:inline-flex;
+      align-items:center;
       gap: 6px;
-      text-decoration: none;
     }
-    .nav-back-arrow {
+    .nav-back-arrow{
       font-size: 16px;
       line-height: 1;
       transform: translateY(1px);
-      text-decoration: none !important;
     }
-    .nav-link-back span:last-child { text-decoration: none; }
-    .nav-link-back:hover span:last-child { text-decoration: underline; }
-    .nav-link-back:hover .nav-back-arrow {
+    .nav-link-back:hover span:last-child{ text-decoration: underline; }
+    .nav-link-back:hover .nav-back-arrow{
       transform: translate(-2px, 1px);
       transition: transform 0.15s ease-out;
     }
 
-    /* Breadcrumbs (minimal) */
-    .crumbs {
+    /* Minimal breadcrumb */
+    .crumbs{
       margin-top: 8px;
       font-size: 12px;
       color: var(--muted);
-      display: flex;
-      gap: 8px;
-      align-items: center;
-      flex-wrap: wrap;
+      display:flex;
+      gap:8px;
+      align-items:center;
+      flex-wrap:wrap;
+    }
+    .crumbs span{
+      display:inline-block;
+      padding: 6px 10px;
+      border: 1px solid var(--border);
+      border-radius: 999px;
+      background: #ffffff;
     }
 
-    /* Hero */
-    .hero {
+    /* Hero card (keep consistent) */
+    .hero{
       margin-top: 14px;
       border-radius: 18px;
-      overflow: hidden;
-      min-height: 280px;
-      background-image: url("/images/boracay/boracay-nightlife.jpg");
-      background-size: cover;
-      background-position: center;
-      background-repeat: no-repeat;
-      position: relative;
-      box-shadow: var(--card-shadow);
+      overflow:hidden;
+      border: 1px solid var(--border);
+      background: #ffffff;
+      box-shadow: var(--shadow);
     }
-    .hero::before {
-      content: "";
-      position: absolute;
-      inset: 0;
-      background: linear-gradient(to top, rgba(0,0,0,0.58), rgba(0,0,0,0.16));
+    .heroGrid{
+      display:grid;
+      grid-template-columns: 1.12fr .88fr;
+      gap:0;
     }
-    .hero-inner {
+    .heroMedia{
+      min-height: 340px;
       position: relative;
-      padding: 18px 18px 16px;
-      display: flex;
+      background: #f3f4f6;
+    }
+    .heroMedia img{
+      width:100%;
+      height:100%;
+      object-fit: cover;
+      display:block;
+    }
+    .heroMedia::after{
+      content:"";
+      position:absolute;
+      inset:0;
+      background: linear-gradient(90deg, rgba(0,0,0,0.05), rgba(0,0,0,0.22));
+      pointer-events:none;
+    }
+    .heroBody{
+      padding: 22px 22px 20px;
+      display:flex;
       flex-direction: column;
-      justify-content: flex-end;
-      min-height: 280px;
-      gap: 10px;
+      gap: 12px;
     }
-    .hero-title {
-      margin: 0;
-      color: #ffffff;
-      font-size: clamp(26px, 3.8vw, 40px);
+    h1{
+      margin:0;
+      font-size: 34px;
       line-height: 1.15;
-      font-weight: 600;
-      text-shadow: 0 2px 6px rgba(0,0,0,0.35);
       letter-spacing: -0.01em;
+      font-weight: 600;
     }
-    .hero-sub {
-      margin: 0;
-      color: rgba(255,255,255,0.92);
+    .lede{
+      margin:0;
+      color: var(--muted);
       font-size: 14.5px;
-      line-height: 1.45;
-      max-width: 78ch;
+      line-height: 1.55;
     }
-    .hero-actions {
-      display: flex;
+
+    .chips{
+      display:flex;
+      flex-wrap:wrap;
+      gap: 8px;
+      margin-top: 2px;
+    }
+    .chip{
+      display:inline-flex;
+      gap:8px;
+      align-items:center;
+      padding: 6px 10px;
+      border: 1px solid var(--border);
+      border-radius: 999px;
+      background: #fafafa;
+      color: #374151;
+      font-size: 12px;
+    }
+    .dot{
+      width: 8px;
+      height: 8px;
+      border-radius: 999px;
+      background: var(--accent);
+      box-shadow: 0 0 0 4px rgba(255,106,61,0.14);
+      flex: 0 0 auto;
+    }
+
+    .kpi{
+      display:grid;
+      grid-template-columns: 1fr 1fr;
       gap: 10px;
-      flex-wrap: wrap;
-      margin-top: 6px;
+      margin-top: 4px;
     }
-    .btn {
+    .kpi .item{
+      border: 1px solid var(--border);
+      border-radius: 14px;
+      background: #ffffff;
+      padding: 10px 10px;
+      box-shadow: 0 10px 24px rgba(15,23,42,0.06);
+    }
+    .kpi .lbl{
+      font-size: 12px;
+      color: var(--muted);
+    }
+    .kpi .val{
+      font-size: 13.5px;
+      font-weight: 600;
+      margin-top: 3px;
+      color: #111827;
+    }
+
+    .ctaRow{
+      display:flex;
+      flex-wrap:wrap;
+      gap: 10px;
+      align-items:center;
+      margin-top: 4px;
+    }
+
+    .btn{
       border-radius: 999px;
       padding: 9px 14px;
       font-size: 14px;
       font-weight: 500;
       border: 1px solid transparent;
       cursor: pointer;
-      display: inline-flex;
-      align-items: center;
-      justify-content: center;
+      display:inline-flex;
+      align-items:center;
+      justify-content:center;
       gap: 8px;
       white-space: nowrap;
     }
-    .btn-primary { background: var(--accent); color: #ffffff; }
-    .btn-secondary { background: rgba(229,242,255,0.95); color: var(--brand); border-color: rgba(229,242,255,0.65); }
-    .btn-ghost { background: rgba(255,255,255,0.14); color: #ffffff; border-color: rgba(255,255,255,0.18); }
+    .btn.primary{ background: var(--accent); color: #ffffff; }
+    .btn.secondary{ background: rgba(229,242,255,0.95); color: var(--brand); border-color: rgba(229,242,255,0.65); }
+    .btn.ghost{ background: #ffffff; color: var(--brand); border-color: var(--border); }
+    .btn:hover{ box-shadow: var(--shadow); }
 
-    /* Content */
-    .content { margin-top: 18px; }
+    /* Switch-up body */
+    .section{ margin-top: 18px; }
 
-    .intro {
-      margin-top: 14px;
-      padding: 14px 16px;
+    .decision{
+      border: 1px solid var(--border);
+      border-radius: 16px;
+      background: #fafafa;
+      padding: 12px 14px;
+      display:flex;
+      align-items:flex-start;
+      justify-content:space-between;
+      gap: 14px;
+      margin-top: 12px;
+    }
+    .decision strong{ color:#111827; font-weight: 800; }
+    .decision p{ margin: 6px 0 0; font-size: 12.8px; color:#4b5563; line-height: 1.55; }
+    .decisionTag{
+      flex: 0 0 auto;
+      border: 1px solid var(--border);
+      border-radius: 999px;
+      padding: 6px 10px;
+      background: #ffffff;
+      font-size: 12px;
+      color:#374151;
+      font-weight: 700;
+      white-space: nowrap;
+    }
+
+    .timeline{
       border: 1px solid var(--border);
       border-radius: 16px;
       background: #ffffff;
       box-shadow: 0 10px 24px rgba(15,23,42,0.06);
-    }
-    .intro h2 { margin: 0 0 8px; font-size: 15px; color: var(--brand); font-weight: 600; }
-    .intro p { margin: 0 0 8px; font-size: 12.8px; line-height: 1.6; color: #4b5563; white-space: pre-line; }
-
-    .split {
+      overflow:hidden;
       margin-top: 14px;
-      display: grid;
-      grid-template-columns: 1.2fr 0.8fr;
-      gap: 14px;
-      align-items: start;
     }
-    .panel {
+    .tlRow{
+      display:grid;
+      grid-template-columns: 160px 1fr;
+      border-top: 1px solid var(--border);
+    }
+    .tlRow:first-child{ border-top:none; }
+    .tlTime{
+      padding: 12px 14px;
+      background: #fafafa;
+      border-right: 1px solid var(--border);
+      font-size: 12px;
+      color:#374151;
+      font-weight: 800;
+    }
+    .tlBody{ padding: 12px 14px; }
+    .tlTitle{
+      margin: 0 0 6px;
+      font-size: 13px;
+      font-weight: 800;
+      color:#111827;
+    }
+    .tlText{
+      margin:0;
+      font-size: 12.8px;
+      color:#4b5563;
+      line-height: 1.55;
+      white-space: pre-line;
+    }
+
+    .doGrid{
+      display:grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 14px;
+      margin-top: 14px;
+    }
+    .do{
+      border: 1px solid rgba(34,197,94,0.28);
+      background: rgba(34,197,94,0.08);
+      border-radius: 16px;
+      padding: 14px 16px;
+    }
+    .dont{
+      border: 1px solid rgba(239,68,68,0.22);
+      background: rgba(239,68,68,0.07);
+      border-radius: 16px;
+      padding: 14px 16px;
+    }
+    .do h3, .dont h3{
+      margin:0 0 8px;
+      font-size: 14px;
+      font-weight: 900;
+      color:#111827;
+    }
+    .do ul, .dont ul{
+      margin: 0;
+      padding-left: 18px;
+      font-size: 12.8px;
+      line-height: 1.55;
+      color:#374151;
+    }
+    .do li, .dont li{ margin-bottom: 6px; }
+
+    /* FAQ */
+    .faq{
+      margin-top: 18px;
       border: 1px solid var(--border);
       border-radius: 16px;
       padding: 14px 16px;
       background: #ffffff;
       box-shadow: 0 10px 24px rgba(15,23,42,0.06);
     }
-    .panel h3 { margin: 0 0 10px; font-size: 13px; font-weight: 600; color: #111827; }
-    .panel ul { margin: 0; padding-left: 18px; font-size: 12.5px; line-height: 1.55; color: #4b5563; }
-    .panel li { margin-bottom: 6px; }
-
-    .pills { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 10px; }
-    .pill { font-size: 12px; padding: 6px 10px; border-radius: 999px; border: 1px solid var(--border); color: #374151; background: #fafafa; }
-
-    .section-title { margin: 22px 0 10px; font-size: 15px; font-weight: 600; color: var(--brand); }
-
-    .meta-row { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 8px; }
-    .meta { font-size: 12px; padding: 6px 10px; border-radius: 999px; border: 1px solid var(--border); background: #ffffff; color: #374151; }
-    .meta strong { font-weight: 600; }
-
-    .link { font-size: 13px; color: var(--brand); font-weight: 500; text-decoration: underline; cursor: pointer; }
-
-    /* Spotlight layout (alternating) */
-    .spotlight {
-      margin-top: 14px;
-      display: grid;
-      grid-template-columns: 1.1fr 0.9fr;
-      gap: 14px;
-      align-items: center;
-    }
-
-    .spotlight-text {
-      border: 1px solid var(--border);
-      border-radius: 18px;
-      background: #ffffff;
-      box-shadow: var(--card-shadow);
-      padding: 16px 16px 14px;
-    }
-
-    .spotlight-title {
-      margin: 0 0 10px;
+    .faq h2{
+      margin: 0 0 8px;
       font-size: 15px;
       font-weight: 600;
       color: var(--brand);
     }
-
-    .spotlight-body {
+    details{
+      border-top: 1px solid var(--border);
+      padding: 10px 0;
+    }
+    details:first-of-type{ border-top:none; padding-top:0; }
+    summary{
+      cursor:pointer;
+      list-style:none;
+      font-size: 13px;
+      font-weight: 600;
+      color:#111827;
+    }
+    summary::-webkit-details-marker{ display:none; }
+    .faq p{
+      margin: 8px 0 0;
       font-size: 12.8px;
       line-height: 1.6;
       color: #4b5563;
-      white-space: pre-line;
     }
 
-    .spotlight-media {
-      display: flex;
-      justify-content: center;
-      align-items: center;
-    }
-
-    .spotlight-circle {
-      width: 320px;
-      height: 320px;
-      border-radius: 999px;
-      background-size: cover;
-      background-position: center;
-      background-repeat: no-repeat;
-      box-shadow: 0 18px 44px rgba(15,23,42,0.18);
-      border: 1px solid rgba(229,231,235,0.95);
-    }
-
-    .spotlight-reverse .spotlight-text { order: 2; }
-    .spotlight-reverse .spotlight-media { order: 1; }
-
-    /* FAQ */
-    .faq {
-      margin-top: 22px;
-      border: 1px solid var(--border);
-      border-radius: 16px;
-      padding: 14px 16px;
-      background: #ffffff;
-      box-shadow: 0 10px 24px rgba(15,23,42,0.06);
-    }
-    details { border-top: 1px solid var(--border); padding: 10px 0; }
-    details:first-of-type { border-top: none; padding-top: 0; }
-    summary { cursor: pointer; list-style: none; font-size: 13px; font-weight: 600; color: #111827; }
-    summary::-webkit-details-marker { display: none; }
-    .faq p { margin: 8px 0 0; font-size: 12.8px; line-height: 1.6; color: #4b5563; }
-
-    /* Footer */
-    footer {
+    footer{
       border-top: 1px solid var(--border);
       padding: 14px 20px 22px;
       font-size: 12px;
       color: #6b7280;
       text-align: center;
-      margin-top: auto;
+      margin-top: 26px;
     }
-    footer a { color: inherit; text-decoration: underline; }
+    footer a{ color: inherit; text-decoration: underline; }
 
-    /* Responsive */
-    @media (max-width: 768px) {
-      .page { padding: 12px 16px 28px; }
-      .split { grid-template-columns: 1fr; }
-      .hero-inner { min-height: 260px; }
-      .spotlight { grid-template-columns: 1fr; }
-      .spotlight-reverse .spotlight-text { order: 1; }
-      .spotlight-reverse .spotlight-media { order: 2; }
-      .spotlight-circle { width: 240px; height: 240px; }
+    @media (max-width: 920px){
+      .wrap{ padding: 12px 16px 28px; }
+      .heroGrid{ grid-template-columns: 1fr; }
+      .heroMedia{ min-height: 260px; }
+      .tlRow{ grid-template-columns: 1fr; }
+      .tlTime{ border-right:none; border-bottom: 1px solid var(--border); }
+      .doGrid{ grid-template-columns: 1fr; }
+      h1{ font-size: 30px; }
     }
   </style>
 
@@ -310,7 +397,7 @@
       {
         "@type":"Question",
         "name":"What is the best time to go out in Boracay?",
-        "acceptedAnswer":{"@type":"Answer","text":"Start after sunset. Build the night in two stages: an easy warm-up, then one main spot, then a clean exit."}
+        "acceptedAnswer":{"@type":"Answer","text":"Start after sunset. Warm up somewhere calm, pick one main spot, then exit on purpose."}
       },
       {
         "@type":"Question",
@@ -320,7 +407,7 @@
       {
         "@type":"Question",
         "name":"How do you avoid a messy night?",
-        "acceptedAnswer":{"@type":"Answer","text":"Pick fewer stops, eat first, hydrate, and decide your exit time before the night gets loud."}
+        "acceptedAnswer":{"@type":"Answer","text":"Eat first, hydrate, pick fewer stops, and decide your exit time before the night gets loud."}
       }
     ]
   }
@@ -328,7 +415,7 @@
 </head>
 
 <body>
-  <div class="page">
+  <div class="wrap">
     <header class="nav">
       <div class="nav-left">
         <a href="https://www.lolaelo.com" aria-label="Lolaelo home">
@@ -354,150 +441,171 @@
       <span>Nightlife</span>
     </div>
 
-    <main class="content" role="main">
+    <main role="main">
       <section class="hero" aria-label="Boracay nightlife">
-        <div class="hero-inner">
-          <h1 class="hero-title">Boracay nightlife, done clean</h1>
-          <p class="hero-sub">
-            The goal is a good night and a good tomorrow. Build a simple rhythm, keep it tight, and avoid the spiral that ruins the next day.
-          </p>
-          <div class="hero-actions">
-            <a class="btn btn-primary" href="https://lolaelo-api.onrender.com/catalog.html?q=boracay">Browse Boracay stays</a>
-            <a class="btn btn-secondary" href="#plan">Jump to the night plan</a>
-            <a class="btn btn-ghost" href="/destinations/boracay/index.html">Back to Boracay</a>
+        <div class="heroGrid">
+          <div class="heroMedia">
+            <img src="/images/boracay/boracay-nightlife.jpg" alt="Boracay nightlife, beach lights and evening scene" loading="eager" />
+          </div>
+
+          <div class="heroBody">
+            <h1>Boracay nightlife, done clean</h1>
+            <p class="lede">
+              The goal is a good night and a good tomorrow. Eat first, pick one main spot, then exit on purpose.
+            </p>
+
+            <div class="chips" aria-label="Quick facts">
+              <div class="chip"><span class="dot"></span>Best time: after sunset</div>
+              <div class="chip"><span class="dot"></span>Trip length: 2 to 5 hours</div>
+              <div class="chip"><span class="dot"></span>Effort: low</div>
+              <div class="chip"><span class="dot"></span>Good for: groups, couples</div>
+            </div>
+
+            <div class="kpi" aria-label="Planning snapshot">
+              <div class="item">
+                <div class="lbl">Warm up</div>
+                <div class="val">Dinner + one calm drink</div>
+              </div>
+              <div class="item">
+                <div class="lbl">Main stop</div>
+                <div class="val">One place, stay put</div>
+              </div>
+              <div class="item">
+                <div class="lbl">Exit plan</div>
+                <div class="val">Decide it early</div>
+              </div>
+              <div class="item">
+                <div class="lbl">Tomorrow</div>
+                <div class="val">You wake up normal</div>
+              </div>
+            </div>
+
+            <div class="ctaRow">
+              <a class="btn primary" href="https://lolaelo-api.onrender.com/catalog.html?q=boracay">Browse Boracay stays</a>
+              <a class="btn secondary" href="#plan">Jump to the night plan</a>
+              <a class="btn ghost" href="/destinations/boracay/index.html">Back to Boracay</a>
+            </div>
           </div>
         </div>
       </section>
 
-      <section class="intro" aria-label="Quick answer">
-        <h2>Quick answer</h2>
-        <p>
-A good Boracay night is about pacing. Eat first, start with one calm place, pick one main spot, then exit on purpose.
-Fewer moves. Better energy.
-        </p>
-        <div class="pills" aria-label="Quick tags">
-          <span class="pill">Best time: after sunset</span>
-          <span class="pill">Trip length: 2 to 5 hrs</span>
-          <span class="pill">Effort: low</span>
-          <span class="pill">Good for: groups, couples</span>
+      <!-- Switch-up: decision strip -->
+      <section class="section" aria-label="Quick decision">
+        <div class="decision">
+          <div>
+            <strong>Do this if you want:</strong>
+            <p>A social night that feels fun and controlled, not chaotic.</p>
+          </div>
+          <div class="decisionTag">Yes</div>
+        </div>
+
+        <div class="decision">
+          <div>
+            <strong>Skip this if you want:</strong>
+            <p>Early mornings, strict training mode, or zero tolerance for loud crowds.</p>
+          </div>
+          <div class="decisionTag">Not tonight</div>
         </div>
       </section>
 
-      <section class="split" aria-label="What matters and what to avoid">
-        <div class="panel">
-          <h3>What matters</h3>
-          <ul>
-            <li><strong>Food first:</strong> it changes the whole night</li>
-            <li><strong>One main spot:</strong> pick it and stay</li>
-            <li><strong>Hydration:</strong> simple, but decisive</li>
-            <li><strong>Exit plan:</strong> decide it before you go</li>
-          </ul>
-        </div>
+      <!-- Switch-up: timeline -->
+      <section class="section" id="plan" aria-label="Night plan timeline">
+        <div class="timeline">
+          <div class="tlRow">
+            <div class="tlTime">7:00 to 8:15</div>
+            <div class="tlBody">
+              <div class="tlTitle">Dinner + one calm start</div>
+              <p class="tlText">
+Eat first. It changes the entire night.
+One calm drink is fine. The goal is to start steady, not fast.
+              </p>
+            </div>
+          </div>
 
-        <div class="panel">
-          <h3>What to avoid</h3>
-          <ul>
-            <li><strong>Too many stops:</strong> you lose rhythm fast</li>
-            <li><strong>Valuables:</strong> keep them minimal</li>
-            <li><strong>Getting separated:</strong> agree on meet points</li>
-            <li><strong>Late chaos:</strong> it rarely improves your night</li>
-          </ul>
+          <div class="tlRow">
+            <div class="tlTime">8:30 to 10:45</div>
+            <div class="tlBody">
+              <div class="tlTitle">One main spot</div>
+              <p class="tlText">
+Pick one place and stay. Bouncing around kills rhythm and creates chaos.
+If you are with a group, this is the move.
+              </p>
+            </div>
+          </div>
+
+          <div class="tlRow">
+            <div class="tlTime">10:45 to 11:30</div>
+            <div class="tlBody">
+              <div class="tlTitle">Exit on purpose</div>
+              <p class="tlText">
+Decide your exit time before the night gets loud.
+If you are debating a 3rd place, it is probably time to end it.
+              </p>
+            </div>
+          </div>
         </div>
       </section>
 
-      <h2 class="section-title" id="plan">A clean night plan</h2>
-
-      <!-- Spotlight 1: text left, circle right -->
-      <section class="spotlight" aria-label="Simple night flow">
-        <div class="spotlight-text">
-          <h3 class="spotlight-title">A simple flow that works</h3>
-          <div class="spotlight-body">
-<strong>Step 1: 7:00 to 8:00 PM, dinner and a calm start.</strong>
-Choose a place you can actually talk. This sets the pace.
-
-<strong>Step 2: 8:30 to 10:30 PM, one main spot.</strong>
-Pick one bar or beach-front place and settle in. Bouncing kills energy.
-
-<strong>Step 3: 10:30 to 11:30 PM, optional late add-on.</strong>
-Only if the group feels good. If it starts to tilt messy, end it.
-
-<strong>Step 4: exit on purpose.</strong>
-A clean exit is a skill. It protects tomorrow.
+      <!-- Switch-up: Do / Don’t -->
+      <section class="section" aria-label="Do and don't">
+        <div class="doGrid">
+          <div class="do">
+            <h3>Do</h3>
+            <ul>
+              <li>Eat first. Hydrate early.</li>
+              <li>Pick one main spot and stay.</li>
+              <li>Agree on a meet point.</li>
+              <li>Keep valuables minimal.</li>
+            </ul>
           </div>
 
-          <div class="meta-row">
-            <span class="meta"><strong>Best window:</strong> after sunset</span>
-            <span class="meta"><strong>Effort:</strong> low</span>
-            <span class="meta"><strong>Goal:</strong> good tomorrow</span>
-          </div>
-
-          <div class="meta-row" style="margin-top:10px;">
-            <a class="link" href="https://lolaelo-api.onrender.com/catalog.html?q=boracay">Stays near the action (easy walk back)</a>
+          <div class="dont">
+            <h3>Don’t</h3>
+            <ul>
+              <li>Stack stops for no reason.</li>
+              <li>Get separated with no plan.</li>
+              <li>Chase late chaos.</li>
+              <li>Turn tomorrow into a problem.</li>
+            </ul>
           </div>
         </div>
 
-        <div class="spotlight-media" aria-hidden="true">
-          <div class="spotlight-circle" style="background-image:url('/images/boracay/boracay-nightlife.jpg');"></div>
-        </div>
-      </section>
-
-      <!-- Spotlight 2: reversed (circle left, text right) -->
-      <section class="spotlight spotlight-reverse" aria-label="Rules that keep it smooth">
-        <div class="spotlight-text">
-          <h3 class="spotlight-title">Rules that keep it smooth</h3>
-          <div class="spotlight-body">
-<strong>Eat and hydrate early.</strong> It prevents the hard crash.
-
-<strong>Keep valuables minimal.</strong> Phone, cash, one card. That’s it.
-
-<strong>Pick a meeting point.</strong> If anyone splits, you regroup fast.
-
-<strong>Know your exit time.</strong> Decide it before you start drinking.
-          </div>
-
-          <div class="meta-row">
-            <span class="meta"><strong>Risk:</strong> low if intentional</span>
-            <span class="meta"><strong>Vibe:</strong> controlled</span>
-            <span class="meta"><strong>Priority:</strong> group stays together</span>
-          </div>
-        </div>
-
-        <div class="spotlight-media" aria-hidden="true">
-          <div class="spotlight-circle" style="background-image:url('/images/boracay/boracay-food-dining.jpg');"></div>
+        <div class="ctaRow" style="margin-top: 14px;">
+          <a class="btn ghost" href="https://lolaelo-api.onrender.com/catalog.html?q=boracay">Stays near the action (easy walk back)</a>
         </div>
       </section>
 
       <section class="faq" aria-label="Nightlife FAQ">
-        <h2 class="section-title" style="margin:0 0 8px;">FAQ</h2>
+        <h2>FAQ</h2>
 
         <details>
           <summary>Is Boracay nightlife worth planning around?</summary>
-          <p>Yes, if you keep it intentional. A simple rhythm beats bouncing around without a plan.</p>
+          <p>Yes, if you do it with intention. A simple night plan feels better than bouncing around without a rhythm.</p>
         </details>
 
         <details>
-          <summary>What time should you go out?</summary>
-          <p>Start after sunset. Warm up with a calm spot, then choose one main place.</p>
+          <summary>What is the best time to go out?</summary>
+          <p>Start after sunset. Warm up somewhere calm, pick one main spot, then exit on purpose.</p>
         </details>
 
         <details>
           <summary>Is Boracay safe at night?</summary>
-          <p>Generally yes in busy areas, but use normal travel judgment and avoid getting separated.</p>
+          <p>Generally yes in busy areas, but use normal travel judgment. Keep valuables minimal and avoid getting separated.</p>
         </details>
 
         <details>
           <summary>How do you avoid a messy night?</summary>
-          <p>Eat first, hydrate, keep valuables minimal, and decide your exit time before the night gets loud.</p>
+          <p>Eat first, hydrate, pick fewer stops, and decide your exit time before the night gets loud.</p>
         </details>
       </section>
     </main>
-  </div>
 
-  <footer>
-    © <span id="year"></span> Lolaelo ·
-    <a href="https://lolaelo-api.onrender.com/privacy.html" target="_blank" rel="noopener">Privacy</a>
-    <a href="https://lolaelo-api.onrender.com/terms.html" target="_blank" rel="noopener">Terms</a>
-  </footer>
+    <footer>
+      © <span id="year"></span> Lolaelo ·
+      <a href="https://lolaelo-api.onrender.com/privacy.html" target="_blank" rel="noopener">Privacy</a>
+      <a href="https://lolaelo-api.onrender.com/terms.html" target="_blank" rel="noopener">Terms</a>
+    </footer>
+  </div>
 
   <script>
     document.getElementById("year").textContent = new Date().getFullYear();
