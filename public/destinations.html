@@ -1148,7 +1148,10 @@ Quick snapshot:
       subtitleEl.textContent = cfg.subtitle;
 
       introEl.textContent = intro || "";
-      activitiesEl.textContent = activities || "";
+
+      // Activities may contain HTML (e.g., experiences strip). Render as HTML.
+      activitiesEl.innerHTML = activities || "";
+
       eventsEl.textContent = events || "";
       snapshotEl.textContent = snapshot || "";
 
