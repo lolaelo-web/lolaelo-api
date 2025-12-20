@@ -8,7 +8,7 @@
   <meta name="description" content="Mount Luho viewpoint in Boracay: how to go, best time, what to expect, costs, and practical tips for a quick scenic stop." />
 
   <link rel="icon" href="https://www.lolaelo.com/logo2.png" />
-  <link rel="preconnect" href="https://www.lolaelo.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
 
   <meta property="og:title" content="Viewpoint Moment (Mount Luho) | Boracay Experiences | Lolaelo" />
   <meta property="og:description" content="Practical guide to Mount Luho: timing, transport options, fees, and what to bring." />
@@ -17,232 +17,381 @@
 
   <style>
     :root{
-      --bg:#0b1220;
-      --panel:#0f1c2e;
-      --text:#e8eef8;
-      --muted:#a9b7cf;
-      --line:rgba(255,255,255,.10);
-      --brand:#ff6a3d;
-      --brand2:#2b7cff;
+      --bg:#ffffff;
+      --fg:#111827;
+      --muted:#6b7280;
+
+      --brand:#064e3b;    /* site green */
+      --accent:#ff6a3d;   /* Lolaelo orange */
+      --border:#e5e7eb;
+
+      --max:1100px;
+      --shadow: 0 12px 30px rgba(15,23,42,0.10);
+      --shadow2: 0 16px 40px rgba(15,23,42,0.18);
 
       --radius:18px;
-      --shadow: 0 18px 50px rgba(0,0,0,.45);
-      --max: 1100px;
-      --font: Inter, system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif;
+      --radius2:22px;
+
+      --font: Inter, ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
     }
 
     *{box-sizing:border-box}
+    html, body{margin:0; padding:0}
     body{
-      margin:0;
-      font-family:var(--font);
-      background: radial-gradient(1200px 700px at 20% -20%, rgba(255,106,61,.18), transparent 60%),
-                  radial-gradient(900px 600px at 90% 10%, rgba(43,124,255,.12), transparent 55%),
-                  var(--bg);
-      color:var(--text);
-      line-height:1.5;
+      font-family: var(--font);
+      background: var(--bg);
+      color: var(--fg);
+      line-height: 1.5;
     }
-    a{color:inherit}
-    .wrap{max-width:var(--max); margin:0 auto; padding:22px 18px 70px}
-    .topbar{
-      display:flex; align-items:center; justify-content:space-between;
-      gap:14px; padding:14px 14px;
-      border:1px solid var(--line);
-      background: rgba(15, 28, 46, .72);
-      border-radius: 22px;
-      box-shadow: var(--shadow);
-      backdrop-filter: blur(10px);
-    }
-    .brand{
-      display:flex; align-items:center; gap:10px; text-decoration:none;
-    }
-    .brand img{
-      width:42px; height:42px; object-fit:contain;
-      filter: drop-shadow(0 6px 18px rgba(0,0,0,.35));
-    }
-    .brand .txt{display:flex; flex-direction:column; gap:1px}
-    .brand .txt .name{font-weight:800; letter-spacing:.2px}
-    .brand .txt .sub{font-size:12px; color:var(--muted)}
-    .nav{display:flex; gap:10px; align-items:center; flex-wrap:wrap}
-    .btn{
-      display:inline-flex; align-items:center; justify-content:center;
-      padding:10px 14px;
-      border-radius: 12px;
-      border:1px solid var(--line);
-      background: rgba(12, 23, 39, .65);
-      color: var(--text);
-      text-decoration:none;
-      font-weight:650;
-      cursor:pointer;
-      transition: transform .15s ease, border-color .15s ease, background .15s ease;
-      user-select:none;
-    }
-    .btn:hover{transform: translateY(-1px); border-color: rgba(255,255,255,.20); background: rgba(12, 23, 39, .85)}
-    .btn.primary{
-      background: linear-gradient(180deg, rgba(255,106,61,.95), rgba(255,106,61,.78));
-      border-color: rgba(255,106,61,.55);
-      color:#111827;
-    }
-    .btn.primary:hover{border-color: rgba(255,106,61,.8)}
-    .btn.blue{
-      background: rgba(43,124,255,.14);
-      border-color: rgba(43,124,255,.35);
+    a{color:inherit; text-decoration:none}
+
+    .wrap{
+      max-width: var(--max);
+      margin: 0 auto;
+      padding: 16px 20px 40px;
     }
 
+    /* Header (match rest of site style) */
+    .nav{
+      display:flex;
+      align-items:center;
+      justify-content:space-between;
+      padding: 4px 0 12px;
+    }
+    .nav-left{display:flex; align-items:center; gap:8px}
+    .logo-img{height:32px; width:auto; display:block}
+
+    .nav-right{
+      display:flex;
+      align-items:center;
+      gap: 20px;
+      font-size: 14px;
+    }
+    .nav-link{
+      color: var(--brand);
+      padding: 4px 0;
+      font-weight: 500;
+    }
+    .nav-link-back{
+      display:inline-flex;
+      align-items:center;
+      gap: 6px;
+    }
+    .nav-back-arrow{
+      font-size: 16px;
+      line-height: 1;
+      transform: translateY(1px);
+    }
+    .nav-link-back:hover span:last-child{ text-decoration: underline; }
+    .nav-link-back:hover .nav-back-arrow{
+      transform: translate(-2px, 1px);
+      transition: transform 0.15s ease-out;
+    }
+
+    /* Minimal breadcrumb */
     .crumbs{
-      margin:18px 2px 8px;
+      margin-top: 8px;
+      font-size: 12px;
       color: var(--muted);
-      font-size: 13px;
-      letter-spacing: .2px;
+      display:flex;
+      gap:8px;
+      align-items:center;
+      flex-wrap:wrap;
     }
     .crumbs span{
       display:inline-block;
-      padding:8px 12px;
-      border:1px solid var(--line);
+      padding: 6px 10px;
+      border: 1px solid var(--border);
       border-radius: 999px;
-      background: rgba(15, 28, 46, .55);
+      background: #ffffff;
     }
 
+    /* Hero card (keep dark-layout structure, light theme) */
     .hero{
-      margin-top:14px;
-      border-radius: 26px;
+      margin-top: 14px;
+      border-radius: 18px;
       overflow:hidden;
-      border:1px solid var(--line);
-      background: rgba(15, 28, 46, .72);
+      border: 1px solid var(--border);
+      background: #ffffff;
       box-shadow: var(--shadow);
     }
     .heroGrid{
       display:grid;
       grid-template-columns: 1.12fr .88fr;
-      gap: 0;
+      gap:0;
     }
     .heroMedia{
       min-height: 340px;
-      position:relative;
-      background: #08101d;
+      position: relative;
+      background: #f3f4f6;
     }
     .heroMedia img{
-      width:100%; height:100%; object-fit:cover; display:block;
-      filter: saturate(1.05) contrast(1.02);
+      width:100%;
+      height:100%;
+      object-fit: cover;
+      display:block;
     }
     .heroMedia::after{
       content:"";
-      position:absolute; inset:0;
-      background: linear-gradient(90deg, rgba(0,0,0,.10), rgba(0,0,0,.45));
+      position:absolute;
+      inset:0;
+      background: linear-gradient(90deg, rgba(0,0,0,0.05), rgba(0,0,0,0.22));
       pointer-events:none;
     }
     .heroBody{
       padding: 22px 22px 20px;
-      display:flex; flex-direction:column; gap:14px;
+      display:flex;
+      flex-direction: column;
+      gap: 12px;
     }
-    h1{margin:0; font-size: 34px; letter-spacing:.2px; line-height:1.15}
-    .lede{margin:0; color: var(--muted); font-size: 15px}
-    .chips{display:flex; flex-wrap:wrap; gap:10px}
+    h1{
+      margin:0;
+      font-size: 34px;
+      line-height: 1.15;
+      letter-spacing: -0.01em;
+      font-weight: 600;
+    }
+    .lede{
+      margin:0;
+      color: var(--muted);
+      font-size: 14.5px;
+      line-height: 1.55;
+    }
+
+    .chips{
+      display:flex;
+      flex-wrap:wrap;
+      gap: 8px;
+      margin-top: 2px;
+    }
     .chip{
-      display:inline-flex; gap:8px; align-items:center;
-      padding:8px 10px;
-      border:1px solid var(--line);
+      display:inline-flex;
+      gap:8px;
+      align-items:center;
+      padding: 6px 10px;
+      border: 1px solid var(--border);
       border-radius: 999px;
-      background: rgba(12, 23, 39, .55);
-      color: var(--text);
-      font-size: 13px;
-      white-space:nowrap;
+      background: #fafafa;
+      color: #374151;
+      font-size: 12px;
     }
     .dot{
-      width:8px; height:8px; border-radius:999px; background: var(--brand);
-      box-shadow: 0 0 0 4px rgba(255,106,61,.14);
+      width: 8px;
+      height: 8px;
+      border-radius: 999px;
+      background: var(--accent);
+      box-shadow: 0 0 0 4px rgba(255,106,61,0.14);
+      flex: 0 0 auto;
     }
+
     .kpi{
       display:grid;
       grid-template-columns: 1fr 1fr;
       gap: 10px;
-      margin-top: 10px;
+      margin-top: 4px;
     }
     .kpi .item{
-      border:1px solid var(--line);
+      border: 1px solid var(--border);
       border-radius: 14px;
-      background: rgba(12, 23, 39, .55);
+      background: #ffffff;
       padding: 10px 10px;
+      box-shadow: 0 10px 24px rgba(15,23,42,0.06);
     }
-    .kpi .item .lbl{font-size:12px; color: var(--muted)}
-    .kpi .item .val{font-size:14px; font-weight:750; margin-top:3px}
-
-    .section{margin-top:18px}
-    .grid2{display:grid; grid-template-columns: 1fr 1fr; gap:14px}
-    .panel{
-      border:1px solid var(--line);
-      background: rgba(15, 28, 46, .70);
-      border-radius: var(--radius);
-      padding: 16px 16px;
-      box-shadow: 0 10px 30px rgba(0,0,0,.28);
+    .kpi .lbl{
+      font-size: 12px;
+      color: var(--muted);
     }
-    .panel h2{margin:0 0 10px 0; font-size: 18px; letter-spacing:.15px}
-    .panel p{margin:0; color: var(--muted); font-size: 14px}
-    .list{margin:10px 0 0 0; padding:0 0 0 18px; color: var(--muted); font-size: 14px}
-    .list li{margin:8px 0}
+    .kpi .val{
+      font-size: 13.5px;
+      font-weight: 600;
+      margin-top: 3px;
+      color: #111827;
+    }
 
-    .spotlight{
+    .ctaRow{
+      display:flex;
+      flex-wrap:wrap;
+      gap: 10px;
+      align-items:center;
+      margin-top: 4px;
+    }
+
+    .btn{
+      border-radius: 999px;
+      padding: 9px 14px;
+      font-size: 14px;
+      font-weight: 500;
+      border: 1px solid transparent;
+      cursor: pointer;
+      display:inline-flex;
+      align-items:center;
+      justify-content:center;
+      gap: 8px;
+      white-space: nowrap;
+    }
+    .btn.primary{ background: var(--accent); color: #ffffff; }
+    .btn.secondary{ background: rgba(229,242,255,0.95); color: var(--brand); border-color: rgba(229,242,255,0.65); }
+    .btn.ghost{ background: #ffffff; color: var(--brand); border-color: var(--border); }
+    .btn:hover{ box-shadow: var(--shadow); }
+
+    /* Sections */
+    .section{ margin-top: 18px; }
+
+    .grid2{
       display:grid;
-      grid-template-columns: .92fr 1.08fr;
+      grid-template-columns: 1fr 1fr;
+      gap: 14px;
+      align-items: start;
+    }
+
+    .panel{
+      border: 1px solid var(--border);
+      border-radius: 16px;
+      padding: 14px 16px;
+      background: #ffffff;
+      box-shadow: 0 10px 24px rgba(15,23,42,0.06);
+    }
+    .panel h2{
+      margin: 0 0 10px;
+      font-size: 15px;
+      font-weight: 600;
+      color: var(--brand);
+    }
+    .panel p{
+      margin: 0;
+      font-size: 12.8px;
+      line-height: 1.6;
+      color: #4b5563;
+      white-space: pre-line;
+    }
+    .list{
+      margin: 10px 0 0;
+      padding-left: 18px;
+      font-size: 12.5px;
+      line-height: 1.55;
+      color: #4b5563;
+    }
+    .list li{ margin-bottom: 6px; }
+
+    /* Spotlight (keep same layout logic as dark version, light styling) */
+    .spotlight{
+      margin-top: 14px;
+      display:grid;
+      grid-template-columns: 1.05fr 0.95fr;
       gap: 14px;
       align-items:center;
     }
-    .spotlight-reverse{grid-template-columns: 1.08fr .92fr}
-    .spotImgWrap{display:flex; justify-content:center; align-items:center; padding:10px}
-    .spotImg{
-      width: 260px; height: 260px;
-      border-radius: 999px;
-      overflow:hidden;
-      border: 1px solid var(--line);
-      box-shadow: 0 18px 40px rgba(0,0,0,.35);
-      background: rgba(12, 23, 39, .40);
+    .spotlight-reverse{
+      grid-template-columns: 0.95fr 1.05fr;
     }
-    .spotImg img{
-      width:100%; height:100%;
-      object-fit:cover; display:block;
-      filter: saturate(1.02) contrast(1.02);
-      transform: scale(1.02);
-    }
+
     .spotText{
-      border:1px solid var(--line);
-      border-radius: 22px;
-      background: rgba(15, 28, 46, .70);
-      padding: 18px 18px;
-      box-shadow: 0 10px 30px rgba(0,0,0,.26);
+      border: 1px solid var(--border);
+      border-radius: 18px;
+      background: #ffffff;
+      box-shadow: var(--shadow);
+      padding: 16px 16px 14px;
     }
-    .spotText h2{margin:0 0 10px 0; font-size: 20px}
-    .spotText p{margin:0; color: var(--muted); font-size: 14.5px}
-    .spotText .mini{
+    .spotText h2{
+      margin: 0 0 10px;
+      font-size: 15px;
+      font-weight: 600;
+      color: var(--brand);
+    }
+    .spotText p{
+      margin:0;
+      font-size: 12.8px;
+      line-height: 1.6;
+      color: #4b5563;
+      white-space: pre-line;
+    }
+    .mini{
       margin-top: 12px;
       padding-top: 12px;
-      border-top: 1px solid var(--line);
+      border-top: 1px solid var(--border);
       display:grid;
       grid-template-columns: 1fr 1fr;
       gap: 10px;
-      color: var(--muted);
-      font-size: 13.5px;
+      color: #4b5563;
+      font-size: 12.5px;
     }
 
-    .ctaRow{display:flex; flex-wrap:wrap; gap:10px; align-items:center; margin-top:12px}
+    .spotImgWrap{
+      display:flex;
+      justify-content:center;
+      align-items:center;
+      padding: 6px;
+    }
+    .spotImg{
+      width: 320px;
+      height: 320px;
+      border-radius: 999px;
+      overflow:hidden;
+      border: 1px solid rgba(229,231,235,0.95);
+      box-shadow: 0 18px 44px rgba(15,23,42,0.18);
+      background: #f3f4f6;
+    }
+    .spotImg img{
+      width:100%;
+      height:100%;
+      object-fit: cover;
+      display:block;
+    }
 
-    .faqItem{
-      border:1px solid var(--line);
+    /* FAQ (simple + light) */
+    .faq{
+      margin-top: 22px;
+      border: 1px solid var(--border);
       border-radius: 16px;
-      background: rgba(12, 23, 39, .45);
-      padding: 14px 14px;
-      margin-top: 10px;
+      padding: 14px 16px;
+      background: #ffffff;
+      box-shadow: 0 10px 24px rgba(15,23,42,0.06);
     }
-    .faqQ{font-weight:800; margin:0 0 6px 0}
-    .faqA{margin:0; color: var(--muted); font-size: 14px}
+    .faq h2{
+      margin: 0 0 8px;
+      font-size: 15px;
+      font-weight: 600;
+      color: var(--brand);
+    }
 
-    .footer{margin-top:22px; color: var(--muted); font-size: 13px; text-align:center; opacity:.95}
+    details{
+      border-top: 1px solid var(--border);
+      padding: 10px 0;
+    }
+    details:first-of-type{ border-top:none; padding-top:0; }
+    summary{
+      cursor:pointer;
+      list-style:none;
+      font-size: 13px;
+      font-weight: 600;
+      color:#111827;
+    }
+    summary::-webkit-details-marker{ display:none; }
+    .faq p{
+      margin: 8px 0 0;
+      font-size: 12.8px;
+      line-height: 1.6;
+      color: #4b5563;
+    }
+
+    footer{
+      border-top: 1px solid var(--border);
+      padding: 14px 20px 22px;
+      font-size: 12px;
+      color: #6b7280;
+      text-align: center;
+      margin-top: 26px;
+    }
+    footer a{ color: inherit; text-decoration: underline; }
 
     @media (max-width: 920px){
-      .heroGrid{grid-template-columns: 1fr}
-      .heroMedia{min-height: 260px}
-      .grid2{grid-template-columns: 1fr}
-      .spotlight, .spotlight-reverse{grid-template-columns: 1fr}
-      .spotImg{width: 240px; height: 240px}
-      h1{font-size: 30px}
+      .wrap{ padding: 12px 16px 28px; }
+      .heroGrid{ grid-template-columns: 1fr; }
+      .heroMedia{ min-height: 260px; }
+      .grid2{ grid-template-columns: 1fr; }
+      .spotlight, .spotlight-reverse{ grid-template-columns: 1fr; }
+      .spotImg{ width: 240px; height: 240px; }
+      h1{ font-size: 30px; }
     }
   </style>
 
@@ -290,196 +439,197 @@
 
 <body>
   <div class="wrap">
-    <header class="topbar">
-      <a class="brand" href="/index.html" aria-label="Lolaelo home">
-        <img src="https://www.lolaelo.com/logo.png?cb=logo-1x" alt="Lolaelo" />
-        <div class="txt">
-          <div class="name">Lolaelo</div>
-          <div class="sub">Boracay experiences</div>
-        </div>
-      </a>
+    <header class="nav">
+      <div class="nav-left">
+        <a href="https://www.lolaelo.com" aria-label="Lolaelo home">
+          <img
+            src="https://www.lolaelo.com/logo.png?cb=logo-1x"
+            alt="Lolaelo"
+            class="logo-img"
+            decoding="async"
+            loading="eager"
+          >
+        </a>
+      </div>
 
-      <nav class="nav" aria-label="Top navigation">
-        <a class="btn" href="/destinations/boracay/index.html">Boracay guide</a>
-        <a class="btn blue" href="/catalog.html?destination=boracay">Browse stays</a>
-        <a class="btn primary" href="/destinations.html">All destinations</a>
+      <nav class="nav-right" aria-label="Primary">
+        <a class="nav-link nav-link-back" href="/destinations/boracay/index.html" aria-label="Back to Boracay guide">
+          <span class="nav-back-arrow">←</span>
+          <span>Boracay guide</span>
+        </a>
       </nav>
     </header>
 
     <div class="crumbs" aria-label="Breadcrumb">
-      <span>Viewpoint moment (Mount Luho)</span>
+      <span>Viewpoint moment</span>
     </div>
 
-    <section class="hero" aria-label="Hero">
-      <div class="heroGrid">
-        <div class="heroMedia">
-          <img src="/images/boracay/boracay-mount-luho.jpg" alt="Mount Luho viewpoint in Boracay, panoramic island view" loading="eager" />
+    <main class="content" role="main">
+      <section class="hero" aria-label="Mount Luho viewpoint in Boracay">
+        <div class="heroGrid">
+          <div class="heroMedia">
+            <img src="/images/boracay/boracay-mount-luho.jpg" alt="Mount Luho viewpoint in Boracay, panoramic island view" loading="eager" />
+          </div>
+
+          <div class="heroBody">
+            <h1>Viewpoint moment</h1>
+            <p class="lede">
+              A quick stop that gives you the full island perspective. Go early, keep it short, then get back to the beach.
+            </p>
+
+            <div class="chips" aria-label="Quick facts">
+              <div class="chip"><span class="dot"></span>Best for: panoramic views</div>
+              <div class="chip"><span class="dot"></span>Time: 1 to 2 hours total</div>
+              <div class="chip"><span class="dot"></span>Bring: cash and water</div>
+              <div class="chip"><span class="dot"></span>Go: morning for clarity</div>
+            </div>
+
+            <div class="kpi" aria-label="Planning snapshot">
+              <div class="item">
+                <div class="lbl">Ideal timing</div>
+                <div class="val">8:00 to 10:30</div>
+              </div>
+              <div class="item">
+                <div class="lbl">Transport</div>
+                <div class="val">E-trike or tricycle</div>
+              </div>
+              <div class="item">
+                <div class="lbl">On site time</div>
+                <div class="val">45 to 90 minutes</div>
+              </div>
+              <div class="item">
+                <div class="lbl">Kid friendly</div>
+                <div class="val">Yes, watch railings</div>
+              </div>
+            </div>
+
+            <div class="ctaRow">
+              <a class="btn primary" href="https://lolaelo-api.onrender.com/catalog.html?q=boracay">Browse Boracay stays</a>
+              <a class="btn ghost" href="/destinations/boracay/index.html#top10">Back to Boracay top 10</a>
+            </div>
+          </div>
         </div>
-        <div class="heroBody">
-          <h1>Viewpoint moment</h1>
-          <p class="lede">
-            A quick stop that gives you the full island perspective. Go early, keep it short, then get back to the beach.
+      </section>
+
+      <section class="section grid2" aria-label="What to expect and quick plan">
+        <div class="panel">
+          <h2>What to expect</h2>
+          <p>
+This is a viewpoint stop, not a hike. You are paying for the perspective. The main variable is visibility. Some days you get crisp blues, other days you get haze.
           </p>
+          <ul class="list">
+            <li>Short, scenic, and easy to combine with a beach day.</li>
+            <li>Heat builds fast. Keep it efficient.</li>
+            <li>Great for first time visitors who want one reference shot of the island.</li>
+          </ul>
+        </div>
 
-          <div class="chips" aria-label="Quick facts">
-            <div class="chip"><span class="dot"></span>Best for: panoramic views</div>
-            <div class="chip"><span class="dot"></span>Time: 1 to 2 hours total</div>
-            <div class="chip"><span class="dot"></span>Bring: cash + water</div>
-            <div class="chip"><span class="dot"></span>Go: morning for clarity</div>
+        <div class="panel">
+          <h2>Quick plan that works</h2>
+          <p>
+Treat it like a 90-minute mission. Go early, take photos, then leave. Ask your driver to wait. Agree on total time and total price before you depart.
+          </p>
+          <ul class="list">
+            <li>Target arrival before late morning.</li>
+            <li>Bring water, pay the fee, take your shots, exit.</li>
+            <li>Return to Station 1 or 2 for a calmer mid day beach slot.</li>
+          </ul>
+        </div>
+      </section>
+
+      <section class="section" aria-label="Spotlight one">
+        <div class="spotlight">
+          <div class="spotImgWrap" aria-hidden="true">
+            <div class="spotImg">
+              <img src="/images/boracay/boracay-mount-luho-platform.jpg" alt="" loading="lazy" />
+            </div>
           </div>
 
-          <div class="kpi" aria-label="Planning snapshot">
-            <div class="item">
-              <div class="lbl">Ideal timing</div>
-              <div class="val">8:00 to 10:30</div>
+          <div class="spotText">
+            <h2>Make the view count</h2>
+            <p>
+The best moment is when the island layout clicks: White Beach curve, Bulabog side, and the interior greens. If you want a clean photo, step away from the first platform crowd and wait for a gap.
+            </p>
+            <div class="mini">
+              <div>Tip: shoot wide first, then crop later</div>
+              <div>Watch: haze on humid afternoons</div>
             </div>
-            <div class="item">
-              <div class="lbl">Transport</div>
-              <div class="val">E-trike or tricycle</div>
-            </div>
-            <div class="item">
-              <div class="lbl">On site time</div>
-              <div class="val">45 to 90 minutes</div>
-            </div>
-            <div class="item">
-              <div class="lbl">Kid friendly</div>
-              <div class="val">Yes, watch railings</div>
-            </div>
-          </div>
-
-          <div class="ctaRow">
-            <a class="btn primary" href="/catalog.html?destination=boracay">Find a place to stay</a>
-            <a class="btn" href="/destinations/boracay/index.html#top10">Back to Boracay top 10</a>
           </div>
         </div>
-      </div>
-    </section>
+      </section>
 
-    <section class="section grid2" aria-label="What to expect and quick plan">
-      <div class="panel">
-        <h2>What to expect</h2>
+      <section class="section" aria-label="Spotlight two">
+        <div class="spotlight spotlight-reverse">
+          <div class="spotText">
+            <h2>Transport without drama</h2>
+            <p>
+Use an e-trike or tricycle, but treat it like a small tour agreement. Confirm the driver will take you up, wait, and bring you back. If you are with family, pay for the wait time and keep it smooth.
+            </p>
+            <div class="mini">
+              <div>Confirm: total price and total time</div>
+              <div>Bring: cash in small bills</div>
+            </div>
+          </div>
+
+          <div class="spotImgWrap" aria-hidden="true">
+            <div class="spotImg">
+              <img src="/images/boracay/boracay-mount-luho-ride.jpg" alt="" loading="lazy" />
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section class="section panel" aria-label="Costs and timing">
+        <h2>Costs and timing</h2>
         <p>
-          This is not a hike experience. It is a viewpoint stop with a small entrance area, some platforms, and photo angles.
-          The main variable is visibility. Some days you get crisp blues, other days you get haze.
+Fees can change. Assume there is an entrance fee at the viewpoint. Transport cost depends on distance, wait time, and negotiation. The best control you have is timing: go earlier and keep the stop tight.
         </p>
         <ul class="list">
-          <li>Short, scenic, and easy to combine with a beach day.</li>
-          <li>Heat builds fast. Keep it efficient.</li>
-          <li>Great for first time visitors who want a reference shot of the island.</li>
+          <li>Go early for better visibility and cooler temps.</li>
+          <li>Agree on total transport price and total time up front.</li>
+          <li>If it is hazy, treat it as a quick look, then head back down.</li>
         </ul>
-      </div>
 
-      <div class="panel">
-        <h2>Quick plan that works</h2>
-        <p>
-          Treat it like a 90-minute mission. Go early, take photos, then leave.
-          Ask your driver to wait. Agree on total time and total price before you depart.
-        </p>
-        <ul class="list">
-          <li>Target arrival before late morning.</li>
-          <li>Bring water, pay the fee, take your shots, exit.</li>
-          <li>Return to Station 1 or 2 for a calmer mid day beach slot.</li>
-        </ul>
-      </div>
-    </section>
-
-    <section class="section" aria-label="Spotlight one">
-      <div class="spotlight">
-        <div class="spotImgWrap">
-          <div class="spotImg" aria-hidden="true">
-            <img src="/images/boracay/boracay-mount-luho-platform.jpg" alt="" loading="lazy" />
-          </div>
+        <div class="ctaRow" style="margin-top: 10px;">
+          <a class="btn ghost" href="/destinations/boracay/index.html">Back to Boracay guide</a>
+          <a class="btn secondary" href="https://lolaelo-api.onrender.com/catalog.html?q=boracay">Browse Boracay stays</a>
         </div>
-        <div class="spotText">
-          <h2>Make the view count</h2>
-          <p>
-            The best moment is when the island layout clicks: White Beach curve, Bulabog side, and the interior greens.
-            If you want a clean photo, step away from the first platform crowd and wait 30 seconds for a gap.
-          </p>
-          <div class="mini">
-            <div>Tip: shoot wide first, then crop later</div>
-            <div>Watch: haze on humid afternoons</div>
-          </div>
-        </div>
-      </div>
-    </section>
+      </section>
 
-    <section class="section" aria-label="Spotlight two">
-      <div class="spotlight spotlight-reverse">
-        <div class="spotText">
-          <h2>Transport without drama</h2>
-          <p>
-            Use an e-trike or tricycle, but treat it like a small tour agreement.
-            Confirm the driver will take you up, wait, and bring you back. If you are with family, pay for the wait time and keep it smooth.
-          </p>
-          <div class="mini">
-            <div>Confirm: total price and total time</div>
-            <div>Bring: cash in small bills</div>
-          </div>
-        </div>
-        <div class="spotImgWrap">
-          <div class="spotImg" aria-hidden="true">
-            <img src="/images/boracay/boracay-mount-luho-ride.jpg" alt="" loading="lazy" />
-          </div>
-        </div>
-      </div>
-    </section>
-
-    <section class="section panel" aria-label="Costs and timing">
-      <h2>Costs and timing</h2>
-      <p>
-        Fees can change. Assume there is an entrance fee at the viewpoint. Transport cost depends on distance, wait time, and negotiation.
-        The best control you have is timing: go earlier and keep the stop tight.
-      </p>
-      <ul class="list">
-        <li>Go early for better visibility and cooler temps.</li>
-        <li>Agree on total transport price and total time up front.</li>
-        <li>If it is hazy, treat it as a quick look, then head back down.</li>
-      </ul>
-
-      <div class="ctaRow">
-        <a class="btn" href="/destinations/boracay/index.html">Back to Boracay guide</a>
-        <a class="btn blue" href="/catalog.html?destination=boracay">Browse Boracay stays</a>
-      </div>
-    </section>
-
-    <section class="section" aria-label="FAQ">
-      <div class="panel">
+      <section class="faq" aria-label="FAQ">
         <h2>FAQ</h2>
 
-        <div class="faqItem">
-          <p class="faqQ">Is Mount Luho worth it if I have limited time?</p>
-          <p class="faqA">
-            Yes. It is one of the fastest ways to get a full island view. Plan for 45 to 90 minutes on site, plus transport time.
-          </p>
-        </div>
+        <details>
+          <summary>Is Mount Luho worth it if I have limited time?</summary>
+          <p>Yes. It is one of the fastest ways to get a full island view. Plan for 45 to 90 minutes on site, plus transport time.</p>
+        </details>
 
-        <div class="faqItem">
-          <p class="faqQ">When is the best time to go?</p>
-          <p class="faqA">
-            Go earlier for clearer visibility and softer heat. Late afternoon can be nice too, but clouds and haze are more common.
-          </p>
-        </div>
+        <details>
+          <summary>When is the best time to go?</summary>
+          <p>Go earlier for clearer visibility and softer heat. Late afternoon can be nice too, but clouds and haze are more common.</p>
+        </details>
 
-        <div class="faqItem">
-          <p class="faqQ">How do I get to Mount Luho?</p>
-          <p class="faqA">
-            You can go by e-trike, tricycle, or as part of a short inland tour. Confirm the driver will wait and include the viewpoint stop.
-          </p>
-        </div>
+        <details>
+          <summary>How do I get to Mount Luho?</summary>
+          <p>You can go by e-trike, tricycle, or as part of a short inland tour. Confirm the driver will wait and include the viewpoint stop.</p>
+        </details>
 
-        <div class="faqItem">
-          <p class="faqQ">What should I bring?</p>
-          <p class="faqA">
-            Cash for entrance fees, water, and sun protection. If you have kids, bring a hat and keep a hand on them near railings.
-          </p>
-        </div>
-      </div>
-    </section>
+        <details>
+          <summary>What should I bring?</summary>
+          <p>Cash for entrance fees, water, and sun protection. If you have kids, bring a hat and keep a hand on them near railings.</p>
+        </details>
+      </section>
+    </main>
 
-    <div class="footer">
-      Lolaelo. Practical travel, no fluff.
-    </div>
+    <footer>
+      © <span id="year"></span> Lolaelo ·
+      <a href="https://lolaelo-api.onrender.com/privacy.html" target="_blank" rel="noopener">Privacy</a>
+      <a href="https://lolaelo-api.onrender.com/terms.html" target="_blank" rel="noopener">Terms</a>
+    </footer>
   </div>
+
+  <script>
+    document.getElementById("year").textContent = new Date().getFullYear();
+  </script>
 </body>
 </html>
