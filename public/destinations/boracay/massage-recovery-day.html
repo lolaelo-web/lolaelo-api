@@ -1,0 +1,334 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+
+  <title>Massage and Recovery Day | Boracay Experiences | Lolaelo</title>
+  <meta name="description" content="Massage and recovery day in Boracay: how to plan it, when to go, what to book, pricing expectations, and how to avoid tourist traps." />
+
+  <link rel="icon" href="https://www.lolaelo.com/logo2.png" />
+  <link rel="preconnect" href="https://www.lolaelo.com" crossorigin />
+
+  <meta property="og:title" content="Massage and Recovery Day | Boracay Experiences | Lolaelo" />
+  <meta property="og:description" content="A practical guide to building a low-pressure massage and recovery day in Boracay." />
+  <meta property="og:type" content="website" />
+  <meta property="og:image" content="/images/boracay/boracay-massage.jpg" />
+
+  <style>
+    :root{
+      --bg:#0b1220;
+      --panel:#0f1c2e;
+      --text:#e8eef8;
+      --muted:#a9b7cf;
+      --line:rgba(255,255,255,.10);
+      --brand:#ff6a3d;
+      --brand2:#2b7cff;
+
+      --radius:18px;
+      --shadow: 0 18px 50px rgba(0,0,0,.45);
+      --max: 1100px;
+      --font: Inter, system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif;
+    }
+
+    *{box-sizing:border-box}
+    body{
+      margin:0;
+      font-family:var(--font);
+      background:
+        radial-gradient(1200px 700px at 20% -20%, rgba(255,106,61,.18), transparent 60%),
+        radial-gradient(900px 600px at 90% 10%, rgba(43,124,255,.12), transparent 55%),
+        var(--bg);
+      color:var(--text);
+      line-height:1.5;
+    }
+    a{color:inherit}
+    .wrap{max-width:var(--max); margin:0 auto; padding:22px 18px 70px}
+
+    .topbar{
+      display:flex; align-items:center; justify-content:space-between;
+      gap:14px; padding:14px;
+      border:1px solid var(--line);
+      background: rgba(15,28,46,.72);
+      border-radius:22px;
+      box-shadow:var(--shadow);
+      backdrop-filter: blur(10px);
+    }
+    .brand{display:flex; align-items:center; gap:10px; text-decoration:none}
+    .brand img{width:42px; height:42px; object-fit:contain}
+    .brand .txt{display:flex; flex-direction:column}
+    .brand .name{font-weight:800}
+    .brand .sub{font-size:12px; color:var(--muted)}
+
+    .nav{display:flex; gap:10px; flex-wrap:wrap}
+    .btn{
+      padding:10px 14px;
+      border-radius:12px;
+      border:1px solid var(--line);
+      background: rgba(12,23,39,.65);
+      text-decoration:none;
+      font-weight:650;
+      transition:.15s;
+    }
+    .btn:hover{background: rgba(12,23,39,.85)}
+    .btn.primary{
+      background: linear-gradient(180deg, rgba(255,106,61,.95), rgba(255,106,61,.78));
+      color:#111827;
+    }
+    .btn.blue{background: rgba(43,124,255,.14)}
+
+    .crumbs{margin:18px 2px 8px; font-size:13px; color:var(--muted)}
+    .crumbs span{
+      padding:8px 12px;
+      border-radius:999px;
+      border:1px solid var(--line);
+      background: rgba(15,28,46,.55);
+    }
+
+    .hero{
+      margin-top:14px;
+      border-radius:26px;
+      overflow:hidden;
+      border:1px solid var(--line);
+      background: rgba(15,28,46,.72);
+      box-shadow:var(--shadow);
+    }
+    .heroGrid{display:grid; grid-template-columns:1.1fr .9fr}
+    .heroMedia{min-height:340px}
+    .heroMedia img{width:100%; height:100%; object-fit:cover}
+    .heroBody{padding:22px; display:flex; flex-direction:column; gap:14px}
+
+    h1{margin:0; font-size:34px}
+    .lede{color:var(--muted); font-size:15px}
+
+    .chips{display:flex; gap:10px; flex-wrap:wrap}
+    .chip{
+      padding:8px 10px;
+      border-radius:999px;
+      border:1px solid var(--line);
+      background: rgba(12,23,39,.55);
+      font-size:13px;
+    }
+
+    .kpi{display:grid; grid-template-columns:1fr 1fr; gap:10px}
+    .kpi .item{
+      border:1px solid var(--line);
+      border-radius:14px;
+      background: rgba(12,23,39,.55);
+      padding:10px;
+    }
+    .lbl{font-size:12px; color:var(--muted)}
+    .val{font-weight:750}
+
+    .section{margin-top:18px}
+    .grid2{display:grid; grid-template-columns:1fr 1fr; gap:14px}
+    .panel{
+      border:1px solid var(--line);
+      border-radius:var(--radius);
+      background: rgba(15,28,46,.7);
+      padding:16px;
+    }
+    .panel h2{margin:0 0 10px}
+    .panel p{margin:0; color:var(--muted); font-size:14px}
+    .list{margin:10px 0 0 18px; color:var(--muted); font-size:14px}
+
+    .spotlight{
+      display:grid;
+      grid-template-columns:.9fr 1.1fr;
+      gap:14px;
+      align-items:center;
+    }
+    .spotlight-reverse{grid-template-columns:1.1fr .9fr}
+    .spotImg{
+      width:260px; height:260px;
+      border-radius:999px;
+      overflow:hidden;
+      border:1px solid var(--line);
+      margin:auto;
+    }
+    .spotImg img{width:100%; height:100%; object-fit:cover}
+    .spotText{
+      border:1px solid var(--line);
+      border-radius:22px;
+      background: rgba(15,28,46,.7);
+      padding:18px;
+    }
+
+    .faqItem{
+      border:1px solid var(--line);
+      border-radius:16px;
+      padding:14px;
+      margin-top:10px;
+      background: rgba(12,23,39,.45);
+    }
+    .faqQ{font-weight:800}
+    .faqA{color:var(--muted); font-size:14px}
+
+    .footer{text-align:center; margin-top:22px; font-size:13px; color:var(--muted)}
+
+    @media (max-width:920px){
+      .heroGrid,.grid2,.spotlight,.spotlight-reverse{grid-template-columns:1fr}
+      .spotImg{width:240px; height:240px}
+    }
+  </style>
+
+  <script type="application/ld+json">
+  {
+    "@context":"https://schema.org",
+    "@type":"FAQPage",
+    "mainEntity":[
+      {
+        "@type":"Question",
+        "name":"When is the best time to schedule a massage in Boracay?",
+        "acceptedAnswer":{
+          "@type":"Answer",
+          "text":"Late morning or mid afternoon works best. You avoid peak sun hours and still have energy for dinner later."
+        }
+      },
+      {
+        "@type":"Question",
+        "name":"Should I book in advance?",
+        "acceptedAnswer":{
+          "@type":"Answer",
+          "text":"For hotel spas, yes. For beachside or local shops, walk in is usually fine during the day."
+        }
+      },
+      {
+        "@type":"Question",
+        "name":"Are massages in Boracay family friendly?",
+        "acceptedAnswer":{
+          "@type":"Answer",
+          "text":"Many places are fine with kids nearby or offer shorter sessions. Ask before booking and choose quieter hours."
+        }
+      }
+    ]
+  }
+  </script>
+</head>
+
+<body>
+<div class="wrap">
+  <header class="topbar">
+    <a class="brand" href="/index.html">
+      <img src="https://www.lolaelo.com/logo.png?cb=logo-1x" alt="Lolaelo" />
+      <div class="txt">
+        <div class="name">Lolaelo</div>
+        <div class="sub">Boracay experiences</div>
+      </div>
+    </a>
+    <nav class="nav">
+      <a class="btn" href="/destinations/boracay/index.html">Boracay guide</a>
+      <a class="btn blue" href="/catalog.html?destination=boracay">Browse stays</a>
+      <a class="btn primary" href="/destinations.html">All destinations</a>
+    </nav>
+  </header>
+
+  <div class="crumbs"><span>Massage and recovery day</span></div>
+
+  <section class="hero">
+    <div class="heroGrid">
+      <div class="heroMedia">
+        <img src="/images/boracay/boracay-massage.jpg" alt="Massage and spa setting in Boracay" />
+      </div>
+      <div class="heroBody">
+        <h1>Massage and recovery day</h1>
+        <p class="lede">
+          A reset day between activities. Slow morning, light movement, one good massage, and nothing stacked after.
+        </p>
+
+        <div class="chips">
+          <div class="chip">Best for: reset days</div>
+          <div class="chip">Time: half or full day</div>
+          <div class="chip">Energy: low effort</div>
+          <div class="chip">Family friendly</div>
+        </div>
+
+        <div class="kpi">
+          <div class="item"><div class="lbl">Best timing</div><div class="val">Late morning</div></div>
+          <div class="item"><div class="lbl">Session length</div><div class="val">60 to 90 min</div></div>
+          <div class="item"><div class="lbl">Pace</div><div class="val">One main booking</div></div>
+          <div class="item"><div class="lbl">After</div><div class="val">Rest or light dinner</div></div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section class="section grid2">
+    <div class="panel">
+      <h2>How to structure the day</h2>
+      <p>
+        Treat this as a buffer day. Do not schedule tours or travel right after your massage.
+      </p>
+      <ul class="list">
+        <li>Sleep in or take a calm beach walk.</li>
+        <li>Massage late morning or early afternoon.</li>
+        <li>Light meal and early night.</li>
+      </ul>
+    </div>
+
+    <div class="panel">
+      <h2>Choosing the right place</h2>
+      <p>
+        Hotel spas are quieter and more controlled. Local shops are cheaper and flexible.
+        Decide what matters more today.
+      </p>
+      <ul class="list">
+        <li>Hotel spa: comfort and privacy.</li>
+        <li>Local shop: value and convenience.</li>
+        <li>Beach massage: relaxing, but noisier.</li>
+      </ul>
+    </div>
+  </section>
+
+  <section class="section">
+    <div class="spotlight">
+      <div class="spotImg">
+        <img src="/images/boracay/boracay-massage-spa.jpg" alt="" />
+      </div>
+      <div class="spotText">
+        <h2>Do not overbook</h2>
+        <p>
+          One solid session beats stacking treatments. Recovery works best when you actually rest afterward.
+        </p>
+      </div>
+    </div>
+  </section>
+
+  <section class="section">
+    <div class="spotlight spotlight-reverse">
+      <div class="spotText">
+        <h2>Hydrate and eat light</h2>
+        <p>
+          Water before and after matters more than the specific massage type.
+          Keep meals simple so you do not undo the recovery.
+        </p>
+      </div>
+      <div class="spotImg">
+        <img src="/images/boracay/boracay-spa-relax.jpg" alt="" />
+      </div>
+    </div>
+  </section>
+
+  <section class="section panel">
+    <h2>FAQ</h2>
+
+    <div class="faqItem">
+      <p class="faqQ">When is the best time to schedule a massage?</p>
+      <p class="faqA">Late morning or mid afternoon keeps the rest of your day flexible.</p>
+    </div>
+
+    <div class="faqItem">
+      <p class="faqQ">Should I book in advance?</p>
+      <p class="faqA">Hotel spas yes. Local shops usually accept walk ins.</p>
+    </div>
+
+    <div class="faqItem">
+      <p class="faqQ">Is it kid friendly?</p>
+      <p class="faqA">Yes, especially if you go earlier and choose a quieter setting.</p>
+    </div>
+  </section>
+
+  <div class="footer">Lolaelo. Practical travel, no fluff.</div>
+</div>
+</body>
+</html>

@@ -1,0 +1,444 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+
+  <title>One Intentional Sunset Ritual | Boracay Experiences | Lolaelo</title>
+  <meta name="description" content="A simple sunset ritual in Boracay: where to go, what to do, timing, and how to keep it calm and memorable without overplanning." />
+
+  <link rel="icon" href="https://www.lolaelo.com/logo2.png" />
+  <link rel="preconnect" href="https://www.lolaelo.com" crossorigin />
+
+  <meta property="og:title" content="One Intentional Sunset Ritual | Boracay Experiences | Lolaelo" />
+  <meta property="og:description" content="A practical sunset ritual: timing, locations, and a simple plan that feels intentional." />
+  <meta property="og:type" content="website" />
+  <meta property="og:image" content="/images/boracay/boracay-sunset-ritual.jpg" />
+
+  <style>
+    :root{
+      --bg:#0b1220;
+      --panel:#0f1c2e;
+      --text:#e8eef8;
+      --muted:#a9b7cf;
+      --line:rgba(255,255,255,.10);
+      --brand:#ff6a3d;
+      --brand2:#2b7cff;
+
+      --radius:18px;
+      --shadow: 0 18px 50px rgba(0,0,0,.45);
+      --max: 1100px;
+      --font: Inter, system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif;
+    }
+
+    *{box-sizing:border-box}
+    body{
+      margin:0;
+      font-family:var(--font);
+      background:
+        radial-gradient(1200px 700px at 20% -20%, rgba(255,106,61,.18), transparent 60%),
+        radial-gradient(900px 600px at 90% 10%, rgba(43,124,255,.12), transparent 55%),
+        var(--bg);
+      color:var(--text);
+      line-height:1.5;
+    }
+    a{color:inherit}
+    .wrap{max-width:var(--max); margin:0 auto; padding:22px 18px 70px}
+
+    .topbar{
+      display:flex; align-items:center; justify-content:space-between;
+      gap:14px; padding:14px 14px;
+      border:1px solid var(--line);
+      background: rgba(15, 28, 46, .72);
+      border-radius: 22px;
+      box-shadow: var(--shadow);
+      backdrop-filter: blur(10px);
+    }
+    .brand{display:flex; align-items:center; gap:10px; text-decoration:none}
+    .brand img{width:42px; height:42px; object-fit:contain}
+    .brand .txt{display:flex; flex-direction:column; gap:1px}
+    .brand .txt .name{font-weight:800; letter-spacing:.2px}
+    .brand .txt .sub{font-size:12px; color:var(--muted)}
+
+    .nav{display:flex; gap:10px; flex-wrap:wrap}
+    .btn{
+      display:inline-flex; align-items:center; justify-content:center;
+      padding:10px 14px;
+      border-radius:12px;
+      border:1px solid var(--line);
+      background: rgba(12,23,39,.65);
+      text-decoration:none;
+      font-weight:650;
+      transition:.15s;
+      user-select:none;
+    }
+    .btn:hover{background: rgba(12,23,39,.85)}
+    .btn.primary{
+      background: linear-gradient(180deg, rgba(255,106,61,.95), rgba(255,106,61,.78));
+      border-color: rgba(255,106,61,.55);
+      color:#111827;
+    }
+    .btn.blue{background: rgba(43,124,255,.14); border-color: rgba(43,124,255,.35)}
+
+    .crumbs{margin:18px 2px 8px; font-size:13px; color:var(--muted)}
+    .crumbs span{
+      display:inline-block;
+      padding:8px 12px;
+      border-radius:999px;
+      border:1px solid var(--line);
+      background: rgba(15,28,46,.55);
+    }
+
+    .hero{
+      margin-top:14px;
+      border-radius:26px;
+      overflow:hidden;
+      border:1px solid var(--line);
+      background: rgba(15,28,46,.72);
+      box-shadow:var(--shadow);
+    }
+    .heroGrid{display:grid; grid-template-columns:1.12fr .88fr}
+    .heroMedia{min-height:340px; position:relative}
+    .heroMedia img{width:100%; height:100%; object-fit:cover; display:block}
+    .heroMedia::after{
+      content:"";
+      position:absolute; inset:0;
+      background: linear-gradient(90deg, rgba(0,0,0,.10), rgba(0,0,0,.45));
+      pointer-events:none;
+    }
+    .heroBody{padding:22px; display:flex; flex-direction:column; gap:14px}
+
+    h1{margin:0; font-size:34px; line-height:1.15}
+    .lede{margin:0; color:var(--muted); font-size:15px}
+
+    .chips{display:flex; gap:10px; flex-wrap:wrap}
+    .chip{
+      padding:8px 10px;
+      border-radius:999px;
+      border:1px solid var(--line);
+      background: rgba(12,23,39,.55);
+      font-size:13px;
+      white-space:nowrap;
+    }
+    .dot{
+      width:8px; height:8px; border-radius:999px;
+      background: var(--brand);
+      box-shadow: 0 0 0 4px rgba(255,106,61,.14);
+      display:inline-block; margin-right:8px;
+    }
+
+    .kpi{display:grid; grid-template-columns:1fr 1fr; gap:10px; margin-top:10px}
+    .kpi .item{
+      border:1px solid var(--line);
+      border-radius:14px;
+      background: rgba(12,23,39,.55);
+      padding:10px;
+    }
+    .lbl{font-size:12px; color:var(--muted)}
+    .val{font-weight:750; margin-top:3px}
+
+    .section{margin-top:18px}
+    .grid2{display:grid; grid-template-columns:1fr 1fr; gap:14px}
+    .panel{
+      border:1px solid var(--line);
+      border-radius:var(--radius);
+      background: rgba(15,28,46,.70);
+      padding:16px;
+      box-shadow: 0 10px 30px rgba(0,0,0,.26);
+    }
+    .panel h2{margin:0 0 10px; font-size:18px}
+    .panel p{margin:0; color:var(--muted); font-size:14px}
+    .list{margin:10px 0 0 18px; color:var(--muted); font-size:14px}
+    .list li{margin:8px 0}
+
+    .spotlight{
+      display:grid;
+      grid-template-columns:.92fr 1.08fr;
+      gap:14px;
+      align-items:center;
+    }
+    .spotlight-reverse{grid-template-columns:1.08fr .92fr}
+    .spotImg{
+      width:260px; height:260px;
+      border-radius:999px;
+      overflow:hidden;
+      border:1px solid var(--line);
+      margin:auto;
+      box-shadow: 0 18px 40px rgba(0,0,0,.35);
+      background: rgba(12,23,39,.40);
+    }
+    .spotImg img{width:100%; height:100%; object-fit:cover; display:block}
+    .spotText{
+      border:1px solid var(--line);
+      border-radius:22px;
+      background: rgba(15,28,46,.70);
+      padding:18px;
+      box-shadow: 0 10px 30px rgba(0,0,0,.26);
+    }
+    .spotText h2{margin:0 0 10px; font-size:20px}
+    .spotText p{margin:0; color:var(--muted); font-size:14.5px}
+    .spotText .mini{
+      margin-top: 12px;
+      padding-top: 12px;
+      border-top: 1px solid var(--line);
+      display:grid;
+      grid-template-columns: 1fr 1fr;
+      gap:10px;
+      color: var(--muted);
+      font-size: 13.5px;
+    }
+
+    .ctaRow{display:flex; flex-wrap:wrap; gap:10px; align-items:center; margin-top:12px}
+
+    .faqItem{
+      border:1px solid var(--line);
+      border-radius:16px;
+      padding:14px;
+      margin-top:10px;
+      background: rgba(12,23,39,.45);
+    }
+    .faqQ{font-weight:800; margin:0 0 6px}
+    .faqA{margin:0; color:var(--muted); font-size:14px}
+
+    .footer{text-align:center; margin-top:22px; font-size:13px; color:var(--muted); opacity:.95}
+
+    @media (max-width:920px){
+      .heroGrid,.grid2,.spotlight,.spotlight-reverse{grid-template-columns:1fr}
+      .heroMedia{min-height:260px}
+      .spotImg{width:240px; height:240px}
+      h1{font-size:30px}
+    }
+  </style>
+
+  <script type="application/ld+json">
+  {
+    "@context":"https://schema.org",
+    "@type":"FAQPage",
+    "mainEntity":[
+      {
+        "@type":"Question",
+        "name":"Where is the best place to watch sunset in Boracay?",
+        "acceptedAnswer":{
+          "@type":"Answer",
+          "text":"White Beach is the classic option. For fewer people, walk farther from the busiest central area and claim a simple spot 30 to 45 minutes before sunset."
+        }
+      },
+      {
+        "@type":"Question",
+        "name":"How early should I arrive?",
+        "acceptedAnswer":{
+          "@type":"Answer",
+          "text":"Arrive 30 to 45 minutes before sunset to settle in, grab a drink or snack, and get a good view without scrambling."
+        }
+      },
+      {
+        "@type":"Question",
+        "name":"Do I need to book anything?",
+        "acceptedAnswer":{
+          "@type":"Answer",
+          "text":"No. The simplest ritual is free. If you want a paid version, paraw sailing is the upgrade, but a calm beach spot works just as well."
+        }
+      },
+      {
+        "@type":"Question",
+        "name":"What if it rains?",
+        "acceptedAnswer":{
+          "@type":"Answer",
+          "text":"If it is raining, shorten the ritual. Pick a covered spot, keep it simple, and move on. Boracay sunsets still pop after rain when clouds break."
+        }
+      }
+    ]
+  }
+  </script>
+</head>
+
+<body>
+  <div class="wrap">
+    <header class="topbar">
+      <a class="brand" href="/index.html" aria-label="Lolaelo home">
+        <img src="https://www.lolaelo.com/logo.png?cb=logo-1x" alt="Lolaelo" />
+        <div class="txt">
+          <div class="name">Lolaelo</div>
+          <div class="sub">Boracay experiences</div>
+        </div>
+      </a>
+
+      <nav class="nav" aria-label="Top navigation">
+        <a class="btn" href="/destinations/boracay/index.html">Boracay guide</a>
+        <a class="btn blue" href="/catalog.html?destination=boracay">Browse stays</a>
+        <a class="btn primary" href="/destinations.html">All destinations</a>
+      </nav>
+    </header>
+
+    <div class="crumbs" aria-label="Breadcrumb">
+      <span>One intentional sunset ritual</span>
+    </div>
+
+    <section class="hero" aria-label="Hero">
+      <div class="heroGrid">
+        <div class="heroMedia">
+          <img src="/images/boracay/boracay-sunset-ritual.jpg" alt="Sunset on White Beach Boracay, warm sky and silhouettes" loading="eager" />
+        </div>
+        <div class="heroBody">
+          <h1>One intentional sunset ritual</h1>
+          <p class="lede">
+            Do it once on purpose. No agenda, no rushing, no trying to capture everything.
+            Just pick a spot, arrive early, and let it land.
+          </p>
+
+          <div class="chips" aria-label="Quick facts">
+            <div class="chip"><span class="dot"></span>Best for: a calm reset</div>
+            <div class="chip"><span class="dot"></span>Time: 60 to 90 minutes</div>
+            <div class="chip"><span class="dot"></span>Cost: free if you want</div>
+            <div class="chip"><span class="dot"></span>Move: arrive early</div>
+          </div>
+
+          <div class="kpi" aria-label="Planning snapshot">
+            <div class="item">
+              <div class="lbl">Arrive</div>
+              <div class="val">30 to 45 min early</div>
+            </div>
+            <div class="item">
+              <div class="lbl">Duration</div>
+              <div class="val">1 to 1.5 hours</div>
+            </div>
+            <div class="item">
+              <div class="lbl">Best approach</div>
+              <div class="val">One drink, one view</div>
+            </div>
+            <div class="item">
+              <div class="lbl">After</div>
+              <div class="val">Walk, then dinner</div>
+            </div>
+          </div>
+
+          <div class="ctaRow">
+            <a class="btn primary" href="/catalog.html?destination=boracay">Find a place to stay</a>
+            <a class="btn" href="/destinations/boracay/index.html#top10">Back to Boracay top 10</a>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section class="section grid2" aria-label="Simple plan">
+      <div class="panel">
+        <h2>Simple plan</h2>
+        <p>
+          The easiest ritual is a beach walk into a chosen spot. Pick a quieter stretch, sit down, and stay off your phone for ten minutes.
+        </p>
+        <ul class="list">
+          <li>Pick a spot away from the densest central cluster.</li>
+          <li>Bring water, then choose one small snack or drink.</li>
+          <li>Stay until the light drops. Do not leave early.</li>
+        </ul>
+      </div>
+
+      <div class="panel">
+        <h2>What to avoid</h2>
+        <p>
+          The fastest way to ruin it is trying to do too much during the best light.
+          Keep it simple and you will feel the difference.
+        </p>
+        <ul class="list">
+          <li>No bouncing between three viewpoints.</li>
+          <li>No last-minute sprint to find seating.</li>
+          <li>No full dinner order while the sky is peaking.</li>
+        </ul>
+      </div>
+    </section>
+
+    <section class="section" aria-label="Spotlight one">
+      <div class="spotlight">
+        <div class="spotImg" aria-hidden="true">
+          <img src="/images/boracay/boracay-sunset-walk.jpg" alt="" loading="lazy" />
+        </div>
+        <div class="spotText">
+          <h2>Claim your space early</h2>
+          <p>
+            Arriving early is the entire cheat code. You get a calmer spot, better photos if you want them, and you are not negotiating with crowds.
+          </p>
+          <div class="mini">
+            <div>Timing: 30 to 45 minutes early</div>
+            <div>Move: choose a quieter stretch</div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section class="section" aria-label="Spotlight two">
+      <div class="spotlight spotlight-reverse">
+        <div class="spotText">
+          <h2>Make it one clean moment</h2>
+          <p>
+            Decide your one thing: a short walk, a drink, a photo, or a simple conversation.
+            Then let everything else go.
+          </p>
+          <div class="mini">
+            <div>Rule: one drink or snack</div>
+            <div>After: slow walk into dinner</div>
+          </div>
+        </div>
+        <div class="spotImg" aria-hidden="true">
+          <img src="/images/boracay/boracay-sunset-silhouette.jpg" alt="" loading="lazy" />
+        </div>
+      </div>
+    </section>
+
+    <section class="section panel" aria-label="If you want the upgrade">
+      <h2>If you want the upgrade</h2>
+      <p>
+        The paid version is paraw sailing. If you already did paraw, keep this ritual land-based so it feels different.
+        Either way, the point is intention, not the activity.
+      </p>
+      <ul class="list">
+        <li>Keep it simple even if you upgrade.</li>
+        <li>Do not pack your schedule right after.</li>
+        <li>If it rains, treat the break in clouds as the win.</li>
+      </ul>
+
+      <div class="ctaRow">
+        <a class="btn" href="/destinations/boracay/paraw-sunset-sailing.html">Paraw sunset sailing page</a>
+        <a class="btn blue" href="/destinations/boracay/index.html">Back to Boracay guide</a>
+      </div>
+    </section>
+
+    <section class="section" aria-label="FAQ">
+      <div class="panel">
+        <h2>FAQ</h2>
+
+        <div class="faqItem">
+          <p class="faqQ">Where is the best place to watch sunset in Boracay?</p>
+          <p class="faqA">
+            White Beach is the classic option. For fewer people, walk farther from the busiest central area and claim a simple spot 30 to 45 minutes before sunset.
+          </p>
+        </div>
+
+        <div class="faqItem">
+          <p class="faqQ">How early should I arrive?</p>
+          <p class="faqA">
+            Arrive 30 to 45 minutes before sunset to settle in, grab a drink or snack, and get a good view without scrambling.
+          </p>
+        </div>
+
+        <div class="faqItem">
+          <p class="faqQ">Do I need to book anything?</p>
+          <p class="faqA">
+            No. The simplest ritual is free. If you want a paid version, paraw sailing is the upgrade, but a calm beach spot works just as well.
+          </p>
+        </div>
+
+        <div class="faqItem">
+          <p class="faqQ">What if it rains?</p>
+          <p class="faqA">
+            If it is raining, shorten the ritual. Pick a covered spot, keep it simple, and move on. Boracay sunsets still pop after rain when clouds break.
+          </p>
+        </div>
+      </div>
+    </section>
+
+    <div class="footer">
+      Lolaelo. Practical travel, no fluff.
+    </div>
+  </div>
+</body>
+</html>
