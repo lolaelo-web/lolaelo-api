@@ -244,7 +244,7 @@
     }
 
     .modal-panel {
-      position: relative;              /* anchors footer/children */
+      position: relative;
       width: min(960px, 92vw);
       height: 80vh;
       background: #ffffff;
@@ -252,7 +252,7 @@
       box-shadow: 0 24px 80px rgba(15, 23, 42, 0.35);
       display: flex;
       flex-direction: column;
-      overflow: hidden;                /* prevents spill outside rounded corners */
+      overflow: hidden;              /* keeps footer and body inside rounded panel */
     }
 
     .modal-header {
@@ -302,7 +302,7 @@
     }
 
     .modal-body {
-      flex: 1 1 70%;             /* was flex: 1 1 50% */
+      flex: 1 1 auto;                /* allow body to shrink so footer stays visible */
       padding: 18px 20px;
       overflow-y: auto;
     }
@@ -324,20 +324,27 @@
 
     .modal-columns {
       display: grid;
-      grid-template-columns: 1.15fr 0.85fr; /* left wider for experiences */
+      grid-template-columns: 1.1fr 0.9fr;  /* left experiences, right events/snapshot */
       gap: 22px;
       margin-top: 12px;
       align-items: start;
+    }
+
+    .modal-col-right {
+      border-left: 1px solid #e5e7eb;
+      padding-left: 18px;
     }
 
     .modal-col {
       min-width: 0;
     }
 
-    /* Give the right column a subtle card feel so it reads as a separate panel */
-    .modal-col-right {
-      border-left: 1px solid #e5e7eb;
-      padding-left: 18px;
+    #dest-modal-activities {
+      max-width: 100%;
+    }
+
+    #dest-modal-activities .exp-strip {
+      max-width: 100%;
     }
 
     .modal-section-title {
@@ -370,10 +377,12 @@
 
     .modal-footer {
       flex: 0 0 auto;
+      width: 100%;
+      box-sizing: border-box;
       border-top: 1px solid #e5e7eb;
       padding: 10px 20px;
       background: #ffffff;
-      position: relative;              /* stay inside panel */
+      position: relative;
       z-index: 2;
     }
 
@@ -563,17 +572,17 @@
         padding: 14px 14px;
       }
 
-      .modal-columns {
-        grid-template-columns: 1fr;
-        gap: 14px;
-      }
+    .modal-columns {
+      grid-template-columns: 1fr;
+      gap: 14px;
+    }
 
-      .modal-col-right {
-        border-left: none;
-        padding-left: 0;
-        border-top: 1px solid #e5e7eb;
-        padding-top: 12px;
-      }
+    .modal-col-right {
+      border-left: none;
+      padding-left: 0;
+      border-top: 1px solid #e5e7eb;
+      padding-top: 12px;
+    }
 
       .modal-col {
         width: 100%;
@@ -724,6 +733,7 @@
       <h2 id="dest-modal-subtitle"></h2>
       <p id="dest-modal-intro"></p>
 
+      <div class="modal-columns">
         <section class="modal-col modal-col-left">
           <h3 class="modal-section-title">Experiences</h3>
           <div id="dest-modal-activities"></div>
