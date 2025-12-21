@@ -1,0 +1,480 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Intramuros Walk Guide | Manila (Lolaelo)</title>
+  <meta name="description" content="A practical Intramuros walk: what to do, in what order, how long it takes, what to skip, and how to avoid wasting your day in traffic." />
+
+  <link rel="icon" href="https://www.lolaelo.com/logo2.png" />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+
+  <style>
+    :root{
+      --bg:#ffffff;
+      --fg:#111827;
+      --muted:#6b7280;
+      --brand:#064e3b;
+      --accent:#ff6a3d;
+      --border:#e5e7eb;
+      --max: 980px;
+      --shadow: 0 12px 30px rgba(15,23,42,0.10);
+      --shadow2: 0 14px 34px rgba(15,23,42,0.14);
+      --radius: 18px;
+    }
+
+    *{ box-sizing:border-box; }
+    html,body{ margin:0; padding:0; }
+    body{
+      font-family: Inter, ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+      background:var(--bg);
+      color:var(--fg);
+      min-height:100vh;
+      display:flex;
+      flex-direction:column;
+    }
+
+    a{ color:inherit; text-decoration:none; }
+
+    .page{
+      width:100%;
+      max-width:var(--max);
+      margin:0 auto;
+      padding:16px 20px 40px;
+      flex:1;
+    }
+
+    /* Header (canonical) */
+    .nav{
+      display:flex;
+      align-items:center;
+      justify-content:space-between;
+      padding:4px 0 12px;
+    }
+    .nav-left{ display:flex; align-items:center; gap:10px; }
+    .logo-img{ height:32px; width:auto; display:block; }
+
+    .nav-right{
+      display:flex;
+      align-items:center;
+      gap:18px;
+      font-size:14px;
+      color:var(--brand);
+      font-weight:500;
+    }
+
+    .back-link{
+      display:inline-flex;
+      align-items:center;
+      gap:8px;
+      color:var(--brand);
+    }
+    .back-link:hover span:last-child{ text-decoration:underline; }
+    .back-arrow{
+      font-size:16px;
+      line-height:1;
+      transform: translateY(1px);
+      transition: transform .15s ease-out;
+      text-decoration:none !important;
+    }
+    .back-link:hover .back-arrow{ transform: translate(-2px, 1px); }
+
+    /* Breadcrumb (single label only) */
+    .crumbs{
+      margin-top:8px;
+      font-size:12px;
+      color:var(--muted);
+      display:flex;
+      gap:8px;
+      align-items:center;
+      flex-wrap:wrap;
+    }
+
+    /* HeroGrid (canonical pattern B) */
+    .hero-grid{
+      margin-top:14px;
+      display:grid;
+      grid-template-columns: 1.05fr 0.95fr;
+      gap:14px;
+      align-items:stretch;
+    }
+
+    .hero-img{
+      border-radius:var(--radius);
+      overflow:hidden;
+      border:1px solid var(--border);
+      box-shadow:var(--shadow);
+      background:#f8fafc;
+      min-height:330px;
+      position:relative;
+    }
+    .hero-img img{
+      width:100%;
+      height:100%;
+      object-fit:cover;
+      display:block;
+    }
+
+    .hero-card{
+      border-radius:var(--radius);
+      border:1px solid var(--border);
+      background:#ffffff;
+      box-shadow:var(--shadow);
+      padding:16px 16px 14px;
+      display:flex;
+      flex-direction:column;
+      gap:10px;
+      min-height:330px;
+    }
+
+    .hero-title{
+      margin:0;
+      font-size:28px;
+      line-height:1.15;
+      letter-spacing:-0.01em;
+      font-weight:600;
+    }
+
+    .hero-lede{
+      margin:0;
+      font-size:13.5px;
+      line-height:1.6;
+      color:#4b5563;
+    }
+
+    .chips{
+      display:flex;
+      flex-wrap:wrap;
+      gap:8px;
+      margin-top:2px;
+    }
+    .chip{
+      font-size:12px;
+      padding:6px 10px;
+      border-radius:999px;
+      border:1px solid var(--border);
+      color:#374151;
+      background:#fafafa;
+    }
+
+    .kpis{
+      display:grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap:10px;
+      margin-top:2px;
+    }
+    .kpi{
+      border:1px solid var(--border);
+      border-radius:14px;
+      padding:10px 10px;
+      background:#ffffff;
+    }
+    .kpi .label{ font-size:11px; color:#6b7280; margin-bottom:4px; }
+    .kpi .val{ font-size:13px; font-weight:600; color:#111827; }
+
+    .cta-row{
+      display:flex;
+      gap:10px;
+      flex-wrap:wrap;
+      margin-top:auto;
+      padding-top:4px;
+    }
+    .btn{
+      border-radius:999px;
+      padding:9px 14px;
+      font-size:14px;
+      font-weight:500;
+      border:1px solid transparent;
+      display:inline-flex;
+      align-items:center;
+      justify-content:center;
+      gap:8px;
+      white-space:nowrap;
+      cursor:pointer;
+    }
+    .btn-primary{ background:var(--accent); color:#ffffff; }
+    .btn-secondary{ background: rgba(229,242,255,0.95); color: var(--brand); border-color: rgba(229,242,255,0.65); }
+    .btn-ghost{ background:#ffffff; color:var(--brand); border-color:var(--border); }
+
+    /* Sections */
+    .section{
+      margin-top:16px;
+      border:1px solid var(--border);
+      border-radius:16px;
+      padding:14px 16px;
+      background:#ffffff;
+      box-shadow: 0 10px 24px rgba(15,23,42,0.06);
+    }
+    .section h2{
+      margin:0 0 10px;
+      font-size:15px;
+      color:var(--brand);
+      font-weight:600;
+    }
+    .section p{
+      margin:0 0 10px;
+      font-size:12.8px;
+      line-height:1.65;
+      color:#4b5563;
+      white-space:pre-line;
+    }
+    .section p:last-child{ margin-bottom:0; }
+
+    .split{
+      margin-top:14px;
+      display:grid;
+      grid-template-columns: 1.2fr 0.8fr;
+      gap:14px;
+      align-items:start;
+    }
+    .panel{
+      border:1px solid var(--border);
+      border-radius:16px;
+      padding:14px 16px;
+      background:#ffffff;
+      box-shadow: 0 10px 24px rgba(15,23,42,0.06);
+    }
+    .panel h3{
+      margin:0 0 10px;
+      font-size:13px;
+      font-weight:600;
+      color:#111827;
+    }
+    .panel ul{
+      margin:0;
+      padding-left:18px;
+      font-size:12.6px;
+      line-height:1.6;
+      color:#4b5563;
+    }
+    .panel li{ margin-bottom:6px; }
+
+    /* Spotlights (layout: Intro + Split + Spotlights) */
+    .spotlights{
+      margin-top:14px;
+      display:grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap:14px;
+    }
+    .spot{
+      border:1px solid var(--border);
+      border-radius:18px;
+      overflow:hidden;
+      background:#ffffff;
+      box-shadow:var(--shadow);
+    }
+    .spot img{
+      width:100%;
+      height:220px;
+      object-fit:cover;
+      display:block;
+    }
+    .spot .body{
+      padding:12px 14px 14px;
+    }
+    .spot .title{
+      margin:0 0 6px;
+      font-size:14px;
+      font-weight:600;
+      color:#111827;
+      letter-spacing:-0.01em;
+    }
+    .spot .text{
+      margin:0;
+      font-size:12.8px;
+      line-height:1.6;
+      color:#4b5563;
+      white-space:pre-line;
+    }
+
+    .callout{
+      margin-top:14px;
+      border:1px solid rgba(6,78,59,0.18);
+      background: rgba(6,78,59,0.04);
+      border-radius:16px;
+      padding:12px 14px;
+    }
+    .callout strong{ color:var(--brand); }
+
+    /* Footer */
+    footer{
+      border-top:1px solid var(--border);
+      padding:14px 20px 22px;
+      font-size:12px;
+      color:#6b7280;
+      text-align:center;
+    }
+    footer a{ color:inherit; text-decoration:underline; }
+
+    /* Responsive */
+    @media (max-width: 860px){
+      .hero-grid{ grid-template-columns: 1fr; }
+      .hero-img{ min-height: 260px; }
+      .hero-card{ min-height: auto; }
+      .split{ grid-template-columns:1fr; }
+      .spotlights{ grid-template-columns:1fr; }
+      .page{ padding:12px 16px 28px; }
+    }
+  </style>
+</head>
+
+<body>
+  <div class="page">
+    <header class="nav">
+      <div class="nav-left">
+        <a href="https://www.lolaelo.com" aria-label="Lolaelo home">
+          <img
+            src="https://www.lolaelo.com/logo.png?cb=logo-1x"
+            alt="Lolaelo"
+            class="logo-img"
+            decoding="async"
+            loading="eager"
+          >
+        </a>
+      </div>
+
+      <nav class="nav-right" aria-label="Top navigation">
+        <a class="back-link" href="/destinations/manila/index.html" aria-label="Back to Manila guide">
+          <span class="back-arrow">←</span>
+          <span>Manila guide</span>
+        </a>
+      </nav>
+    </header>
+
+    <div class="crumbs" aria-label="Breadcrumb">
+      <span>Intramuros</span>
+    </div>
+
+    <main role="main">
+      <section class="hero-grid" aria-label="Hero">
+        <div class="hero-img">
+          <img src="/images/manila/hero-intramuros.jpg" alt="Intramuros streets and walls" loading="eager" decoding="async">
+        </div>
+
+        <div class="hero-card">
+          <h1 class="hero-title">Intramuros walk that stays focused</h1>
+          <p class="hero-lede">
+            Intramuros is best when you treat it like a clean route, not a scavenger hunt.
+            Start early, keep stops tight, and leave before heat and traffic start taxing your day.
+          </p>
+
+          <div class="chips" aria-label="Quick chips">
+            <span class="chip">Best time: morning</span>
+            <span class="chip">Duration: 2 to 4 hrs</span>
+            <span class="chip">Effort: low</span>
+            <span class="chip">Crowds: medium</span>
+          </div>
+
+          <div class="kpis" aria-label="KPIs">
+            <div class="kpi">
+              <div class="label">Ideal start</div>
+              <div class="val">8:00 to 9:00</div>
+            </div>
+            <div class="kpi">
+              <div class="label">Stops to aim for</div>
+              <div class="val">3 to 5</div>
+            </div>
+            <div class="kpi">
+              <div class="label">Best pairing</div>
+              <div class="val">Fort Santiago</div>
+            </div>
+            <div class="kpi">
+              <div class="label">Skip if short on time</div>
+              <div class="val">extra detours</div>
+            </div>
+          </div>
+
+          <div class="cta-row" aria-label="CTA row">
+            <a class="btn btn-primary" href="https://lolaelo-api.onrender.com/catalog.html?q=manila">Browse stays</a>
+            <a class="btn btn-secondary" href="/destinations/manila/index.html">Back to Manila guide</a>
+          </div>
+        </div>
+      </section>
+
+      <section class="section" aria-label="Intro">
+        <h2>What you are doing today</h2>
+        <p>
+You are building a short, high-signal walk. The point is to feel the place, get the photos, and leave with context.
+Not to spend the whole day wandering and sweating.
+        </p>
+        <p class="callout">
+          <strong>Rule:</strong> If your route forces a cross-city move at midday, you are paying a traffic tax. Keep Intramuros and Fort Santiago together.
+        </p>
+      </section>
+
+      <section class="split" aria-label="Split section">
+        <div class="panel">
+          <h3>Best simple route (2 to 3 hours)</h3>
+          <ul>
+            <li>Start: main gate area, quick orientation, do not overthink it</li>
+            <li>Walk the walls and key streets for photos and feel</li>
+            <li>Finish at Fort Santiago (or do it next, if you want separation)</li>
+            <li>Exit before midday heat and crowds build</li>
+          </ul>
+        </div>
+
+        <div class="panel">
+          <h3>What to bring (keep it simple)</h3>
+          <ul>
+            <li>Water and a small snack</li>
+            <li>Hat or umbrella for sun</li>
+            <li>Comfortable shoes (cobblestones are real)</li>
+            <li>Small cash for quick buys</li>
+            <li>Phone battery: charge before you arrive</li>
+          </ul>
+        </div>
+      </section>
+
+      <section class="spotlights" aria-label="Spotlights">
+        <article class="spot">
+          <img src="/images/manila/spot-intramuros-streets.jpg" alt="Intramuros streets" loading="lazy" decoding="async">
+          <div class="body">
+            <h3 class="title">Streets and texture first</h3>
+            <p class="text">
+Walk a few blocks with intention. Pick your angles, take the shots, then keep moving.
+This is how you avoid burning time.
+            </p>
+          </div>
+        </article>
+
+        <article class="spot">
+          <img src="/images/manila/spot-intramuros-walls.jpg" alt="Intramuros walls" loading="lazy" decoding="async">
+          <div class="body">
+            <h3 class="title">Walls and viewpoints</h3>
+            <p class="text">
+The walls give you the big picture fast. Do not chase every corner.
+Get a few strong viewpoints and move on.
+            </p>
+          </div>
+        </article>
+      </section>
+
+      <section class="section" aria-label="Reality check">
+        <h2>Reality check</h2>
+        <p>
+Intramuros gets worse when you show up late and try to do everything.
+If your energy starts dropping, end it and pivot to a museum or lunch. That is a win.
+        </p>
+      </section>
+
+      <section class="section" aria-label="Do and do not">
+        <h2>Do and do not</h2>
+        <p>
+Do: start early, keep the route tight, and pair this with Fort Santiago.
+Do not: force a cross-city move midday or chase every stop just because it is on a list.
+        </p>
+      </section>
+    </main>
+  </div>
+
+  <footer>
+    © <span id="year"></span> Lolaelo ·
+    <a href="https://lolaelo-api.onrender.com/privacy.html" target="_blank" rel="noopener">Privacy</a>
+    <a href="https://lolaelo-api.onrender.com/terms.html" target="_blank" rel="noopener">Terms</a>
+  </footer>
+
+  <script>
+    document.getElementById("year").textContent = new Date().getFullYear();
+  </script>
+</body>
+</html>
