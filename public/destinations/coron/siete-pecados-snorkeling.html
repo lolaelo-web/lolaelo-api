@@ -1,0 +1,754 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+
+  <title>Siete Pecados Snorkeling | Coron Experiences | Lolaelo</title>
+  <meta name="description" content="Siete Pecados snorkeling in Coron: timing, conditions, comfort rules, gear basics, and how to keep it safe and fun." />
+
+  <link rel="icon" href="https://www.lolaelo.com/logo2.png" />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+
+  <meta property="og:title" content="Siete Pecados Snorkeling | Coron Experiences | Lolaelo" />
+  <meta property="og:description" content="A practical guide to Siete Pecados: conditions, comfort rules, safety, and gear." />
+  <meta property="og:type" content="website" />
+  <meta property="og:image" content="/images/coron/hero-siete-pecados.jpg" />
+
+  <style>
+    :root{
+      --bg:#ffffff;
+      --fg:#111827;
+      --muted:#6b7280;
+
+      --brand:#064e3b;
+      --accent:#ff6a3d;
+      --border:#e5e7eb;
+
+      --max:1100px;
+      --shadow: 0 12px 30px rgba(15,23,42,0.10);
+      --shadow2: 0 16px 40px rgba(15,23,42,0.18);
+
+      --font: Inter, ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+    }
+
+    *{box-sizing:border-box}
+    html, body{margin:0; padding:0}
+    body{
+      font-family: var(--font);
+      background: var(--bg);
+      color: var(--fg);
+      line-height: 1.5;
+    }
+    a{color:inherit; text-decoration:none}
+
+    .wrap{
+      max-width: var(--max);
+      margin: 0 auto;
+      padding: 16px 20px 40px;
+    }
+
+    /* Header (copied from template) */
+    .nav{
+      display:flex;
+      align-items:center;
+      justify-content:space-between;
+      padding: 4px 0 12px;
+    }
+    .nav-left{display:flex; align-items:center; gap:8px}
+    .logo-img{height:32px; width:auto; display:block}
+
+    .nav-right{
+      display:flex;
+      align-items:center;
+      gap: 20px;
+      font-size: 14px;
+    }
+    .nav-link{
+      color: var(--brand);
+      padding: 4px 0;
+      font-weight: 500;
+    }
+    .nav-link-back{
+      display:inline-flex;
+      align-items:center;
+      gap: 6px;
+    }
+    .nav-back-arrow{
+      font-size: 16px;
+      line-height: 1;
+      transform: translateY(1px);
+    }
+    .nav-link-back:hover span:last-child{ text-decoration: underline; }
+    .nav-link-back:hover .nav-back-arrow{
+      transform: translate(-2px, 1px);
+      transition: transform 0.15s ease-out;
+    }
+
+    /* Minimal breadcrumb (copied from template) */
+    .crumbs{
+      margin-top: 8px;
+      font-size: 12px;
+      color: var(--muted);
+      display:flex;
+      gap:8px;
+      align-items:center;
+      flex-wrap:wrap;
+    }
+    .crumbs span{
+      display:inline-block;
+      padding: 6px 10px;
+      border: 1px solid var(--border);
+      border-radius: 999px;
+      background: #ffffff;
+    }
+
+    /* Hero card (copied from template) */
+    .hero{
+      margin-top: 14px;
+      border-radius: 18px;
+      overflow:hidden;
+      border: 1px solid var(--border);
+      background: #ffffff;
+      box-shadow: var(--shadow);
+    }
+    .heroGrid{
+      display:grid;
+      grid-template-columns: 1.12fr .88fr;
+      gap:0;
+    }
+    .heroMedia{
+      min-height: 340px;
+      position: relative;
+      background: #f3f4f6;
+    }
+    .heroMedia img{
+      width:100%;
+      height:100%;
+      object-fit: cover;
+      display:block;
+    }
+    .heroMedia::after{
+      content:"";
+      position:absolute;
+      inset:0;
+      background: linear-gradient(90deg, rgba(0,0,0,0.05), rgba(0,0,0,0.22));
+      pointer-events:none;
+    }
+    .heroBody{
+      padding: 22px 22px 20px;
+      display:flex;
+      flex-direction: column;
+      gap: 12px;
+    }
+    h1{
+      margin:0;
+      font-size: 34px;
+      line-height: 1.15;
+      letter-spacing: -0.01em;
+      font-weight: 600;
+    }
+    .lede{
+      margin:0;
+      color: var(--muted);
+      font-size: 14.5px;
+      line-height: 1.55;
+    }
+
+    .chips{
+      display:flex;
+      flex-wrap:wrap;
+      gap: 8px;
+      margin-top: 2px;
+    }
+    .chip{
+      display:inline-flex;
+      gap:8px;
+      align-items:center;
+      padding: 6px 10px;
+      border: 1px solid var(--border);
+      border-radius: 999px;
+      background: #fafafa;
+      color: #374151;
+      font-size: 12px;
+    }
+    .dot{
+      width: 8px;
+      height: 8px;
+      border-radius: 999px;
+      background: var(--accent);
+      box-shadow: 0 0 0 4px rgba(255,106,61,0.14);
+      flex: 0 0 auto;
+    }
+
+    .kpi{
+      display:grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 10px;
+      margin-top: 4px;
+    }
+    .kpi .item{
+      border: 1px solid var(--border);
+      border-radius: 14px;
+      background: #ffffff;
+      padding: 10px 10px;
+      box-shadow: 0 10px 24px rgba(15,23,42,0.06);
+    }
+    .kpi .lbl{
+      font-size: 12px;
+      color: var(--muted);
+    }
+    .kpi .val{
+      font-size: 13.5px;
+      font-weight: 600;
+      margin-top: 3px;
+      color: #111827;
+    }
+
+    .ctaRow{
+      display:flex;
+      flex-wrap:wrap;
+      gap: 10px;
+      align-items:center;
+      margin-top: 4px;
+    }
+
+    .btn{
+      border-radius: 999px;
+      padding: 9px 14px;
+      font-size: 14px;
+      font-weight: 500;
+      border: 1px solid transparent;
+      cursor: pointer;
+      display:inline-flex;
+      align-items:center;
+      justify-content:center;
+      gap: 8px;
+      white-space: nowrap;
+    }
+    .btn.primary{ background: var(--accent); color: #ffffff; }
+    .btn.secondary{ background: rgba(229,242,255,0.95); color: var(--brand); border-color: rgba(229,242,255,0.65); }
+    .btn.ghost{ background: #ffffff; color: var(--brand); border-color: var(--border); }
+    .btn:hover{ box-shadow: var(--shadow); }
+
+    /* Sections */
+    .section{ margin-top: 18px; }
+
+    .panel{
+      border: 1px solid var(--border);
+      border-radius: 16px;
+      padding: 14px 16px;
+      background: #ffffff;
+      box-shadow: 0 10px 24px rgba(15,23,42,0.06);
+    }
+    .panel h2{
+      margin: 0 0 10px;
+      font-size: 15px;
+      font-weight: 600;
+      color: var(--brand);
+    }
+    .panel p{
+      margin: 0;
+      font-size: 12.8px;
+      line-height: 1.6;
+      color: #4b5563;
+      white-space: pre-line;
+    }
+
+    /* Read the water */
+    .status{
+      border: 1px solid rgba(6,78,59,0.28);
+      background: rgba(6,78,59,0.04);
+      border-radius: 16px;
+      padding: 14px 16px;
+      box-shadow: 0 10px 24px rgba(15,23,42,0.06);
+    }
+    .status h2{
+      margin: 0 0 8px;
+      font-size: 15px;
+      font-weight: 600;
+      color: #111827;
+    }
+    .status p{
+      margin:0;
+      font-size: 12.8px;
+      line-height: 1.6;
+      color: #4b5563;
+      white-space: pre-line;
+    }
+    .pills{
+      display:flex;
+      flex-wrap:wrap;
+      gap: 8px;
+      margin-top: 10px;
+    }
+    .pill{
+      font-size: 12px;
+      padding: 6px 10px;
+      border-radius: 999px;
+      border: 1px solid var(--border);
+      color: #374151;
+      background: #ffffff;
+    }
+
+    /* Split panels */
+    .split{
+      margin-top: 14px;
+      display:grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 14px;
+      align-items:start;
+    }
+    .list{
+      margin: 10px 0 0;
+      padding-left: 18px;
+      font-size: 12.5px;
+      line-height: 1.55;
+      color: #4b5563;
+    }
+    .list li{ margin-bottom: 6px; }
+
+    /* Gear grid */
+    .gear{
+      margin-top: 14px;
+      display:grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 12px;
+    }
+    .gearItem{
+      border: 1px solid var(--border);
+      border-radius: 16px;
+      background: #ffffff;
+      padding: 12px 12px;
+      box-shadow: 0 10px 24px rgba(15,23,42,0.06);
+    }
+    .gearItem .k{
+      font-size: 12px;
+      color: var(--muted);
+      margin-bottom: 6px;
+    }
+    .gearItem .v{
+      font-size: 13px;
+      font-weight: 600;
+      color: #111827;
+      line-height: 1.35;
+    }
+    .gearItem .s{
+      margin-top: 8px;
+      font-size: 12.6px;
+      color: #4b5563;
+      line-height: 1.55;
+      white-space: pre-line;
+    }
+
+    /* Spotlight */
+    .spotlight{
+      margin-top: 14px;
+      display:grid;
+      grid-template-columns: 1.05fr 0.95fr;
+      gap: 14px;
+      align-items:center;
+    }
+    .spotlight-reverse{
+      grid-template-columns: 0.95fr 1.05fr;
+    }
+    .spotText{
+      border: 1px solid var(--border);
+      border-radius: 18px;
+      background: #ffffff;
+      box-shadow: var(--shadow);
+      padding: 16px 16px 14px;
+    }
+    .spotText h2{
+      margin: 0 0 10px;
+      font-size: 15px;
+      font-weight: 600;
+      color: var(--brand);
+    }
+    .spotText p{
+      margin:0;
+      font-size: 12.8px;
+      line-height: 1.6;
+      color: #4b5563;
+      white-space: pre-line;
+    }
+    .mini{
+      margin-top: 12px;
+      padding-top: 12px;
+      border-top: 1px solid var(--border);
+      display:grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 10px;
+      color: #4b5563;
+      font-size: 12.5px;
+    }
+    .spotImgWrap{
+      display:flex;
+      justify-content:center;
+      align-items:center;
+      padding: 6px;
+    }
+    .spotImg{
+      width: 320px;
+      height: 320px;
+      border-radius: 999px;
+      overflow:hidden;
+      border: 1px solid rgba(229,231,235,0.95);
+      box-shadow: 0 18px 44px rgba(15,23,42,0.18);
+      background: #f3f4f6;
+    }
+    .spotImg img{
+      width:100%;
+      height:100%;
+      object-fit: cover;
+      display:block;
+    }
+
+    /* FAQ */
+    .faq{
+      margin-top: 22px;
+      border: 1px solid var(--border);
+      border-radius: 16px;
+      padding: 14px 16px;
+      background: #ffffff;
+      box-shadow: 0 10px 24px rgba(15,23,42,0.06);
+    }
+    .faq h2{
+      margin: 0 0 8px;
+      font-size: 15px;
+      font-weight: 600;
+      color: var(--brand);
+    }
+    details{
+      border-top: 1px solid var(--border);
+      padding: 10px 0;
+    }
+    details:first-of-type{ border-top:none; padding-top:0; }
+    summary{
+      cursor:pointer;
+      list-style:none;
+      font-size: 13px;
+      font-weight: 600;
+      color:#111827;
+    }
+    summary::-webkit-details-marker{ display:none; }
+    .faq p{
+      margin: 8px 0 0;
+      font-size: 12.8px;
+      line-height: 1.6;
+      color: #4b5563;
+    }
+
+    footer{
+      border-top: 1px solid var(--border);
+      padding: 14px 20px 22px;
+      font-size: 12px;
+      color: #6b7280;
+      text-align: center;
+      margin-top: 26px;
+    }
+    footer a{ color: inherit; text-decoration: underline; }
+
+    @media (max-width: 920px){
+      .wrap{ padding: 12px 16px 28px; }
+      .heroGrid{ grid-template-columns: 1fr; }
+      .heroMedia{ min-height: 260px; }
+      h1{ font-size: 30px; }
+
+      .split{ grid-template-columns: 1fr; }
+      .gear{ grid-template-columns: 1fr; }
+      .spotlight, .spotlight-reverse{ grid-template-columns: 1fr; }
+      .spotImg{ width: 240px; height: 240px; }
+    }
+  </style>
+
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "FAQPage",
+    "mainEntity": [
+      {
+        "@type": "Question",
+        "name": "Is Siete Pecados good for beginners?",
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": "Yes, if you keep it conservative, use flotation if needed, and do not push beyond your comfort zone."
+        }
+      },
+      {
+        "@type": "Question",
+        "name": "What is the best time to snorkel here?",
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": "Earlier is usually smoother and clearer. If conditions feel choppy, shorten the session and prioritize safety."
+        }
+      },
+      {
+        "@type": "Question",
+        "name": "What gear matters most?",
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": "A mask that fits, fins if you are comfortable, and a dry bag. Water shoes help for boat entries and footing."
+        }
+      },
+      {
+        "@type": "Question",
+        "name": "What is the biggest mistake?",
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": "Going in when you are not comfortable and trying to push through. Calm beats ego."
+        }
+      }
+    ]
+  }
+  </script>
+</head>
+
+<body>
+  <div class="wrap">
+    <header class="nav">
+      <div class="nav-left">
+        <a href="https://www.lolaelo.com" aria-label="Lolaelo home">
+          <img
+            src="https://www.lolaelo.com/logo.png?cb=logo-1x"
+            alt="Lolaelo"
+            class="logo-img"
+            decoding="async"
+            loading="eager"
+          >
+        </a>
+      </div>
+
+      <nav class="nav-right" aria-label="Primary">
+        <a class="nav-link nav-link-back" href="/destinations/coron/index.html" aria-label="Back to Coron guide">
+          <span class="nav-back-arrow">←</span>
+          <span>Coron guide</span>
+        </a>
+      </nav>
+    </header>
+
+    <div class="crumbs" aria-label="Breadcrumb">
+      <span>Siete Pecados snorkeling</span>
+    </div>
+
+    <main class="content" role="main">
+      <!-- HERO: keep structure identical to template -->
+      <section class="hero" aria-label="Siete Pecados snorkeling in Coron">
+        <div class="heroGrid">
+          <div class="heroMedia">
+            <img src="/images/coron/hero-siete-pecados.jpg" alt="Siete Pecados snorkeling area in Coron with clear water and reef" loading="eager" />
+          </div>
+
+          <div class="heroBody">
+            <h1>Siete Pecados snorkeling</h1>
+            <p class="lede">
+              This is near-town snorkeling that can feel great when conditions cooperate. The win is safety and comfort, not distance.
+            </p>
+
+            <div class="chips" aria-label="Quick facts">
+              <div class="chip"><span class="dot"></span>Best for: quick snorkel win</div>
+              <div class="chip"><span class="dot"></span>Time: 60 to 120 minutes</div>
+              <div class="chip"><span class="dot"></span>Bring: mask, fins if you use them</div>
+              <div class="chip"><span class="dot"></span>Rule: calm water only</div>
+            </div>
+
+            <div class="kpi" aria-label="Planning snapshot">
+              <div class="item">
+                <div class="lbl">Ideal timing</div>
+                <div class="val">Earlier for clarity</div>
+              </div>
+              <div class="item">
+                <div class="lbl">Water time</div>
+                <div class="val">30 to 60 minutes</div>
+              </div>
+              <div class="item">
+                <div class="lbl">Effort</div>
+                <div class="val">Low to medium</div>
+              </div>
+              <div class="item">
+                <div class="lbl">Risk</div>
+                <div class="val">Low if conservative</div>
+              </div>
+            </div>
+
+            <div class="ctaRow">
+              <a class="btn primary" href="https://lolaelo-api.onrender.com/catalog.html?q=coron">Browse Coron stays</a>
+              <a class="btn ghost" href="/destinations/coron/index.html#top10">Back to Coron top 10</a>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- BODY -->
+      <section class="section" aria-label="Quick intro">
+        <div class="panel">
+          <h2>Quick answer</h2>
+          <p>
+If the water is calm, this is a clean, easy snorkel win.
+If it is choppy or you feel uneasy, shorten it or skip.
+There is no trophy for pushing conditions.
+          </p>
+        </div>
+      </section>
+
+      <section class="section" aria-label="Read the water">
+        <div class="status">
+          <h2>Read the water before you enter</h2>
+          <p>
+You should be able to float and breathe calmly.
+If you feel rushed, anxious, or unstable, you do not “push through.”
+You do the simple version or you do nothing.
+          </p>
+          <div class="pills" aria-label="Readiness checks">
+            <span class="pill">Breathing calm</span>
+            <span class="pill">Mask fit confirmed</span>
+            <span class="pill">Buddy awareness</span>
+            <span class="pill">Exit plan clear</span>
+            <span class="pill">Flotation allowed</span>
+          </div>
+        </div>
+      </section>
+
+      <section class="section" aria-label="What matters and what to avoid">
+        <div class="split">
+          <div class="panel">
+            <h2>What matters</h2>
+            <p>
+Keep it comfortable. Choose a short swim lane.
+Reset often. Stay close to the boat or your exit point.
+            </p>
+            <ul class="list">
+              <li>Short water time beats long water time</li>
+              <li>Mask fit is everything</li>
+              <li>Hydration before and after</li>
+              <li>Stop early if you feel off</li>
+            </ul>
+          </div>
+
+          <div class="panel">
+            <h2>What to avoid</h2>
+            <p>
+Most bad outcomes are basic: discomfort, panic, fatigue.
+Avoid the triggers.
+            </p>
+            <ul class="list">
+              <li>Going in when you already feel uneasy</li>
+              <li>Trying to “keep up” with stronger swimmers</li>
+              <li>Overstaying when the water turns choppy</li>
+              <li>Ignoring dehydration and heat</li>
+            </ul>
+          </div>
+        </div>
+      </section>
+
+      <section class="section" aria-label="Gear basics">
+        <div class="panel">
+          <h2>Gear basics</h2>
+          <p>
+Keep it simple. Prioritize fit and comfort over “more gear.”
+          </p>
+
+          <div class="gear" aria-label="Gear grid">
+            <div class="gearItem">
+              <div class="k">Must</div>
+              <div class="v">Mask that fits</div>
+              <div class="s">A bad mask ruins everything. Fit beats brand.</div>
+            </div>
+            <div class="gearItem">
+              <div class="k">Helpful</div>
+              <div class="v">Fins (if you use them)</div>
+              <div class="s">Less effort, better control. Only if you are comfortable.</div>
+            </div>
+            <div class="gearItem">
+              <div class="k">Must</div>
+              <div class="v">Dry bag</div>
+              <div class="s">Phone, cash, towel. No stress.</div>
+            </div>
+            <div class="gearItem">
+              <div class="k">Optional</div>
+              <div class="v">Rash guard</div>
+              <div class="s">Sun protection and less skin irritation.</div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section class="section" aria-label="Spotlights">
+        <div class="spotlight">
+          <div class="spotImgWrap" aria-hidden="true">
+            <div class="spotImg">
+              <img src="/images/coron/spot-siete-pecados-snorkel.jpg" alt="" loading="lazy" />
+            </div>
+          </div>
+
+          <div class="spotText">
+            <h2>Make it a short win</h2>
+            <p>
+The right version is 30 to 45 minutes of calm snorkeling, then you leave feeling good.
+Do not turn it into a slog.
+            </p>
+            <div class="mini">
+              <div>Target: short calm session</div>
+              <div>Rule: exit early if comfort drops</div>
+            </div>
+          </div>
+        </div>
+
+        <div class="spotlight spotlight-reverse">
+          <div class="spotText">
+            <h2>Comfort rules are safety rules</h2>
+            <p>
+If you are struggling to breathe calmly or your mask keeps failing, your safety margin is shrinking.
+That is your cue to stop.
+            </p>
+            <div class="mini">
+              <div>Best play: reset, then decide</div>
+              <div>Skip: pushing through discomfort</div>
+            </div>
+          </div>
+
+          <div class="spotImgWrap" aria-hidden="true">
+            <div class="spotImg">
+              <img src="/images/coron/spot-siete-pecados-reef.jpg" alt="" loading="lazy" />
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section class="faq" aria-label="FAQ">
+        <h2>FAQ</h2>
+
+        <details>
+          <summary>Is it good for beginners?</summary>
+          <p>Yes, if you keep it conservative, use flotation if needed, and stay in your comfort zone.</p>
+        </details>
+
+        <details>
+          <summary>What is the best time to snorkel?</summary>
+          <p>Earlier is usually smoother and clearer. If it turns choppy, shorten the session and prioritize safety.</p>
+        </details>
+
+        <details>
+          <summary>What gear matters most?</summary>
+          <p>A mask that fits. Fins help if you are comfortable. A dry bag keeps your essentials simple.</p>
+        </details>
+
+        <details>
+          <summary>What is the biggest mistake?</summary>
+          <p>Going in when you are not comfortable and trying to push through. Calm beats ego.</p>
+        </details>
+      </section>
+    </main>
+
+    <footer>
+      © <span id="year"></span> Lolaelo ·
+      <a href="https://lolaelo-api.onrender.com/privacy.html" target="_blank" rel="noopener">Privacy</a>
+      <a href="https://lolaelo-api.onrender.com/terms.html" target="_blank" rel="noopener">Terms</a>
+    </footer>
+  </div>
+
+  <script>
+    document.getElementById("year").textContent = new Date().getFullYear();
+  </script>
+</body>
+</html>
