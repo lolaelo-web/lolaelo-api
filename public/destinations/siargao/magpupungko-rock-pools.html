@@ -1,0 +1,704 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+
+  <title>Magpupungko Rock Pools | Siargao Experiences | Lolaelo</title>
+  <meta name="description" content="Magpupungko Rock Pools guide: tide timing, how to plan the visit, what to bring, safety tips, and the common mistakes that ruin the day." />
+
+  <link rel="icon" href="https://www.lolaelo.com/logo2.png" />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+
+  <meta property="og:title" content="Magpupungko Rock Pools | Siargao Experiences | Lolaelo" />
+  <meta property="og:description" content="A practical guide to Magpupungko: tide timing, route plan, what to bring, and how to avoid a wasted trip." />
+  <meta property="og:type" content="website" />
+  <meta property="og:image" content="/images/siargao/siargao-magpupungko-pools.jpg" />
+
+  <style>
+    :root{
+      --bg:#ffffff;
+      --fg:#111827;
+      --muted:#6b7280;
+
+      --brand:#064e3b;
+      --accent:#ff6a3d;
+      --border:#e5e7eb;
+
+      --max:1100px;
+      --shadow: 0 12px 30px rgba(15,23,42,0.10);
+      --shadow2: 0 16px 40px rgba(15,23,42,0.18);
+
+      --radius:18px;
+      --radius2:22px;
+
+      --font: Inter, ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+    }
+
+    *{box-sizing:border-box}
+    html, body{margin:0; padding:0}
+    body{
+      font-family: var(--font);
+      background: var(--bg);
+      color: var(--fg);
+      line-height: 1.5;
+    }
+    a{color:inherit; text-decoration:none}
+
+    .wrap{
+      max-width: var(--max);
+      margin: 0 auto;
+      padding: 16px 20px 40px;
+    }
+
+    /* Header (consistent) */
+    .nav{
+      display:flex;
+      align-items:center;
+      justify-content:space-between;
+      padding: 4px 0 12px;
+    }
+    .nav-left{display:flex; align-items:center; gap:8px}
+    .logo-img{height:32px; width:auto; display:block}
+
+    .nav-right{
+      display:flex;
+      align-items:center;
+      gap: 20px;
+      font-size: 14px;
+    }
+    .nav-link{
+      color: var(--brand);
+      padding: 4px 0;
+      font-weight: 500;
+    }
+    .nav-link-back{
+      display:inline-flex;
+      align-items:center;
+      gap: 6px;
+    }
+    .nav-back-arrow{
+      font-size: 16px;
+      line-height: 1;
+      transform: translateY(1px);
+    }
+    .nav-link-back:hover span:last-child{ text-decoration: underline; }
+    .nav-link-back:hover .nav-back-arrow{
+      transform: translate(-2px, 1px);
+      transition: transform 0.15s ease-out;
+    }
+
+    /* Breadcrumb */
+    .crumbs{
+      margin-top: 8px;
+      font-size: 12px;
+      color: var(--muted);
+      display:flex;
+      gap:8px;
+      align-items:center;
+      flex-wrap:wrap;
+    }
+    .crumbs span{
+      display:inline-block;
+      padding: 6px 10px;
+      border: 1px solid var(--border);
+      border-radius: 999px;
+      background: #ffffff;
+    }
+
+    /* Hero (consistent) */
+    .hero{
+      margin-top: 14px;
+      border-radius: 18px;
+      overflow:hidden;
+      border: 1px solid var(--border);
+      background: #ffffff;
+      box-shadow: var(--shadow);
+    }
+    .heroGrid{
+      display:grid;
+      grid-template-columns: 1.12fr .88fr;
+      gap:0;
+    }
+    .heroMedia{
+      min-height: 340px;
+      position: relative;
+      background: #f3f4f6;
+    }
+    .heroMedia img{
+      width:100%;
+      height:100%;
+      object-fit: cover;
+      display:block;
+    }
+    .heroMedia::after{
+      content:"";
+      position:absolute;
+      inset:0;
+      background: linear-gradient(90deg, rgba(0,0,0,0.05), rgba(0,0,0,0.22));
+      pointer-events:none;
+    }
+    .heroBody{
+      padding: 22px 22px 20px;
+      display:flex;
+      flex-direction: column;
+      gap: 12px;
+    }
+    h1{
+      margin:0;
+      font-size: 34px;
+      line-height: 1.15;
+      letter-spacing: -0.01em;
+      font-weight: 600;
+    }
+    .lede{
+      margin:0;
+      color: var(--muted);
+      font-size: 14.5px;
+      line-height: 1.55;
+    }
+
+    .chips{
+      display:flex;
+      flex-wrap:wrap;
+      gap: 8px;
+      margin-top: 2px;
+    }
+    .chip{
+      display:inline-flex;
+      gap:8px;
+      align-items:center;
+      padding: 6px 10px;
+      border: 1px solid var(--border);
+      border-radius: 999px;
+      background: #fafafa;
+      color: #374151;
+      font-size: 12px;
+    }
+    .dot{
+      width: 8px;
+      height: 8px;
+      border-radius: 999px;
+      background: var(--accent);
+      box-shadow: 0 0 0 4px rgba(255,106,61,0.14);
+      flex: 0 0 auto;
+    }
+
+    .kpi{
+      display:grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 10px;
+      margin-top: 4px;
+    }
+    .kpi .item{
+      border: 1px solid var(--border);
+      border-radius: 14px;
+      background: #ffffff;
+      padding: 10px 10px;
+      box-shadow: 0 10px 24px rgba(15,23,42,0.06);
+    }
+    .kpi .lbl{
+      font-size: 12px;
+      color: var(--muted);
+    }
+    .kpi .val{
+      font-size: 13.5px;
+      font-weight: 600;
+      margin-top: 3px;
+      color: #111827;
+    }
+
+    .ctaRow{
+      display:flex;
+      flex-wrap:wrap;
+      gap: 10px;
+      align-items:center;
+      margin-top: 4px;
+    }
+
+    .btn{
+      border-radius: 999px;
+      padding: 9px 14px;
+      font-size: 14px;
+      font-weight: 500;
+      border: 1px solid transparent;
+      cursor: pointer;
+      display:inline-flex;
+      align-items:center;
+      justify-content:center;
+      gap: 8px;
+      white-space: nowrap;
+    }
+    .btn.primary{ background: var(--accent); color: #ffffff; }
+    .btn.secondary{ background: rgba(229,242,255,0.95); color: var(--brand); border-color: rgba(229,242,255,0.65); }
+    .btn.ghost{ background: #ffffff; color: var(--brand); border-color: var(--border); }
+    .btn:hover{ box-shadow: var(--shadow); }
+
+    /* Sections */
+    .section{ margin-top: 18px; }
+
+    .grid2{
+      display:grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 14px;
+      align-items: start;
+    }
+    .grid3{
+      display:grid;
+      grid-template-columns: 1fr 1fr 1fr;
+      gap: 12px;
+      align-items: start;
+    }
+
+    .panel{
+      border: 1px solid var(--border);
+      border-radius: 16px;
+      padding: 14px 16px;
+      background: #ffffff;
+      box-shadow: 0 10px 24px rgba(15,23,42,0.06);
+    }
+    .panel h2{
+      margin: 0 0 10px;
+      font-size: 15px;
+      font-weight: 600;
+      color: var(--brand);
+    }
+    .panel p{
+      margin: 0;
+      font-size: 12.8px;
+      line-height: 1.6;
+      color: #4b5563;
+      white-space: pre-line;
+    }
+    .list{
+      margin: 10px 0 0;
+      padding-left: 18px;
+      font-size: 12.5px;
+      line-height: 1.55;
+      color: #4b5563;
+    }
+    .list li{ margin-bottom: 6px; }
+
+    /* Callout */
+    .callout{
+      border: 1px solid rgba(255,106,61,0.35);
+      background: rgba(255,106,61,0.08);
+      border-radius: 16px;
+      padding: 14px 16px;
+      box-shadow: 0 10px 24px rgba(15,23,42,0.06);
+    }
+    .callout h2{
+      margin:0 0 8px;
+      font-size: 15px;
+      font-weight: 700;
+      color: #111827;
+    }
+    .callout p{
+      margin:0;
+      font-size: 12.8px;
+      line-height: 1.6;
+      color: #374151;
+      white-space: pre-line;
+    }
+
+    /* Spotlight */
+    .spotlight{
+      margin-top: 14px;
+      display:grid;
+      grid-template-columns: 1.05fr 0.95fr;
+      gap: 14px;
+      align-items:center;
+    }
+    .spotlight-reverse{
+      grid-template-columns: 0.95fr 1.05fr;
+    }
+
+    .spotText{
+      border: 1px solid var(--border);
+      border-radius: 18px;
+      background: #ffffff;
+      box-shadow: var(--shadow);
+      padding: 16px 16px 14px;
+    }
+    .spotText h2{
+      margin: 0 0 10px;
+      font-size: 15px;
+      font-weight: 600;
+      color: var(--brand);
+    }
+    .spotText p{
+      margin:0;
+      font-size: 12.8px;
+      line-height: 1.6;
+      color: #4b5563;
+      white-space: pre-line;
+    }
+    .mini{
+      margin-top: 12px;
+      padding-top: 12px;
+      border-top: 1px solid var(--border);
+      display:grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 10px;
+      color: #4b5563;
+      font-size: 12.5px;
+    }
+
+    .spotImgWrap{
+      display:flex;
+      justify-content:center;
+      align-items:center;
+      padding: 6px;
+    }
+    .spotImg{
+      width: 320px;
+      height: 320px;
+      border-radius: 999px;
+      overflow:hidden;
+      border: 1px solid rgba(229,231,235,0.95);
+      box-shadow: 0 18px 44px rgba(15,23,42,0.18);
+      background: #f3f4f6;
+    }
+    .spotImg img{
+      width:100%;
+      height:100%;
+      object-fit: cover;
+      display:block;
+    }
+
+    /* FAQ */
+    .faq{
+      margin-top: 22px;
+      border: 1px solid var(--border);
+      border-radius: 16px;
+      padding: 14px 16px;
+      background: #ffffff;
+      box-shadow: 0 10px 24px rgba(15,23,42,0.06);
+    }
+    .faq h2{
+      margin: 0 0 8px;
+      font-size: 15px;
+      font-weight: 600;
+      color: var(--brand);
+    }
+
+    details{
+      border-top: 1px solid var(--border);
+      padding: 10px 0;
+    }
+    details:first-of-type{ border-top:none; padding-top:0; }
+    summary{
+      cursor:pointer;
+      list-style:none;
+      font-size: 13px;
+      font-weight: 600;
+      color:#111827;
+    }
+    summary::-webkit-details-marker{ display:none; }
+    .faq p{
+      margin: 8px 0 0;
+      font-size: 12.8px;
+      line-height: 1.6;
+      color: #4b5563;
+    }
+
+    footer{
+      border-top: 1px solid var(--border);
+      padding: 14px 20px 22px;
+      font-size: 12px;
+      color: #6b7280;
+      text-align: center;
+      margin-top: 26px;
+    }
+    footer a{ color: inherit; text-decoration: underline; }
+
+    @media (max-width: 920px){
+      .wrap{ padding: 12px 16px 28px; }
+      .heroGrid{ grid-template-columns: 1fr; }
+      .heroMedia{ min-height: 260px; }
+      .grid2{ grid-template-columns: 1fr; }
+      .grid3{ grid-template-columns: 1fr; }
+      .spotlight, .spotlight-reverse{ grid-template-columns: 1fr; }
+      .spotImg{ width: 240px; height: 240px; }
+      h1{ font-size: 30px; }
+    }
+  </style>
+
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "FAQPage",
+    "mainEntity": [
+      {
+        "@type": "Question",
+        "name": "Why does tide matter at Magpupungko?",
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": "The rock pools are best around lower tide. If you go at the wrong time, the pools can be rough, less safe, or not the experience you expected."
+        }
+      },
+      {
+        "@type": "Question",
+        "name": "How long should we plan to stay?",
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": "Plan for 2 to 4 hours depending on tide window and how far you are traveling from General Luna."
+        }
+      },
+      {
+        "@type": "Question",
+        "name": "Is it safe for kids?",
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": "It can be, but rock surfaces are slippery and waves can surge. Stay in calmer pool areas and supervise closely."
+        }
+      },
+      {
+        "@type": "Question",
+        "name": "What ruins the trip?",
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": "Arriving outside the tide window, wearing the wrong footwear, and treating slick rocks like normal pavement."
+        }
+      }
+    ]
+  }
+  </script>
+</head>
+
+<body>
+  <div class="wrap">
+    <header class="nav">
+      <div class="nav-left">
+        <a href="https://www.lolaelo.com" aria-label="Lolaelo home">
+          <img
+            src="https://www.lolaelo.com/logo.png?cb=logo-1x"
+            alt="Lolaelo"
+            class="logo-img"
+            decoding="async"
+            loading="eager"
+          >
+        </a>
+      </div>
+
+      <nav class="nav-right" aria-label="Primary">
+        <a class="nav-link nav-link-back" href="/destinations/siargao/index.html" aria-label="Back to Siargao guide">
+          <span class="nav-back-arrow">←</span>
+          <span>Siargao guide</span>
+        </a>
+      </nav>
+    </header>
+
+    <div class="crumbs" aria-label="Breadcrumb">
+      <span>Magpupungko Rock Pools</span>
+    </div>
+
+    <main class="content" role="main">
+      <section class="hero" aria-label="Magpupungko Rock Pools in Siargao">
+        <div class="heroGrid">
+          <div class="heroMedia">
+            <img src="/images/siargao/siargao-magpupungko-pools.jpg" alt="Magpupungko Rock Pools in Siargao" loading="eager" />
+          </div>
+
+          <div class="heroBody">
+            <h1>Magpupungko Rock Pools</h1>
+            <p class="lede">
+              This is a tide experience. Get the timing right and it is amazing. Miss the timing and it is a wasted drive.
+            </p>
+
+            <div class="chips" aria-label="Quick facts">
+              <div class="chip"><span class="dot"></span>Best for: tide window swim</div>
+              <div class="chip"><span class="dot"></span>Time: 2 to 4 hours</div>
+              <div class="chip"><span class="dot"></span>Bring: water shoes</div>
+              <div class="chip"><span class="dot"></span>Plan: around low tide</div>
+            </div>
+
+            <div class="kpi" aria-label="Planning snapshot">
+              <div class="item">
+                <div class="lbl">Key variable</div>
+                <div class="val">Tide timing</div>
+              </div>
+              <div class="item">
+                <div class="lbl">Effort</div>
+                <div class="val">Low to medium</div>
+              </div>
+              <div class="item">
+                <div class="lbl">Surface</div>
+                <div class="val">Slippery rocks</div>
+              </div>
+              <div class="item">
+                <div class="lbl">Kid friendly</div>
+                <div class="val">Yes, with tight supervision</div>
+              </div>
+            </div>
+
+            <div class="ctaRow">
+              <a class="btn primary" href="https://lolaelo-api.onrender.com/catalog.html?q=siargao">Browse Siargao stays</a>
+              <a class="btn ghost" href="/destinations/siargao/index.html#top10">Back to Siargao top 10</a>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- Reality Check -->
+      <section class="section grid2" aria-label="Reality check tiles">
+        <div class="panel">
+          <h2>What it is</h2>
+          <p>
+A rock pool window that feels like a natural swimming spot. When conditions are right, it is one of the coolest “only here” moments in Siargao.
+          </p>
+        </div>
+
+        <div class="panel">
+          <h2>What it is not</h2>
+          <p>
+Not a guaranteed swim at any time. If you show up without checking tide, you are gambling on the whole trip.
+          </p>
+        </div>
+      </section>
+
+      <!-- Plan -->
+      <section class="section panel" aria-label="Plan that works">
+        <h2>Plan that works</h2>
+        <p>
+Treat it like a tide mission. Your goal is to arrive inside the window, enjoy it, then exit before it turns.
+        </p>
+
+        <ul class="list" style="margin-top: 10px;">
+          <li>Pick your day based on tide and weather, not vibes.</li>
+          <li>Arrive earlier than you think, so you are not rushing.</li>
+          <li>Wear the right footwear, move slow, and stay in calmer areas.</li>
+        </ul>
+
+        <div class="ctaRow" style="margin-top: 12px;">
+          <a class="btn secondary" href="https://lolaelo-api.onrender.com/catalog.html?q=siargao">Browse Siargao stays</a>
+          <a class="btn ghost" href="/destinations/siargao/index.html">Back to Siargao guide</a>
+        </div>
+      </section>
+
+      <!-- Checklist -->
+      <section class="section" aria-label="Checklist grid">
+        <div class="grid3">
+          <div class="panel">
+            <h2>Bring</h2>
+            <ul class="list" style="margin-top: 0;">
+              <li>Water shoes (non-negotiable)</li>
+              <li>Water + snacks</li>
+              <li>Sun cover</li>
+              <li>Cash in small bills</li>
+            </ul>
+          </div>
+
+          <div class="panel">
+            <h2>Nice to have</h2>
+            <ul class="list" style="margin-top: 0;">
+              <li>Dry bag</li>
+              <li>Small towel</li>
+              <li>Basic first aid wipes</li>
+            </ul>
+          </div>
+
+          <div class="panel">
+            <h2>Skip</h2>
+            <ul class="list" style="margin-top: 0;">
+              <li>Flip flops</li>
+              <li>Rushing across slick rock</li>
+              <li>No-plan timing</li>
+            </ul>
+          </div>
+        </div>
+      </section>
+
+      <!-- Mistakes -->
+      <section class="section callout" aria-label="Mistakes callout">
+        <h2>Mistakes that ruin it</h2>
+        <p>
+1) Going at the wrong tide.
+2) Wearing the wrong footwear.
+3) Treating slippery rock like normal pavement.
+Slow down. Stay in safe zones. This is not the day for hero moves.
+        </p>
+      </section>
+
+      <!-- Spotlights -->
+      <section class="section" aria-label="Spotlight one">
+        <div class="spotlight">
+          <div class="spotImgWrap" aria-hidden="true">
+            <div class="spotImg">
+              <img src="/images/siargao/siargao-magpupungko-low-tide.jpg" alt="" loading="lazy" />
+            </div>
+          </div>
+
+          <div class="spotText">
+            <h2>Timing is the whole game</h2>
+            <p>
+When it is right, the pools feel calm and clear. When it is wrong, it is rough and less safe.
+Build the day around the tide window, not the other way around.
+            </p>
+            <div class="mini">
+              <div>Do: plan around tide</div>
+              <div>Result: perfect swim</div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section class="section" aria-label="Spotlight two">
+        <div class="spotlight spotlight-reverse">
+          <div class="spotText">
+            <h2>Make it a clean road trip</h2>
+            <p>
+Treat the drive as part of the day. Bring water, keep the car simple, and do not stack extra detours.
+One mission done well beats five stops done sloppy.
+            </p>
+            <div class="mini">
+              <div>Keep it: simple</div>
+              <div>Skip: overstacking</div>
+            </div>
+          </div>
+
+          <div class="spotImgWrap" aria-hidden="true">
+            <div class="spotImg">
+              <img src="/images/siargao/siargao-coconut-road.jpg" alt="" loading="lazy" />
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section class="faq" aria-label="FAQ">
+        <h2>FAQ</h2>
+
+        <details>
+          <summary>Do I need to check tide before going?</summary>
+          <p>Yes. Tide is the whole point. If you do not check it, you are rolling the dice on the experience.</p>
+        </details>
+
+        <details>
+          <summary>What shoes should I wear?</summary>
+          <p>Water shoes with grip. Flip flops and bare feet are how people slip and ruin the day.</p>
+        </details>
+
+        <details>
+          <summary>Can we go with kids?</summary>
+          <p>Yes, but stay close, pick calmer pool zones, and move slower than you think you need to.</p>
+        </details>
+
+        <details>
+          <summary>How long should we stay?</summary>
+          <p>Long enough to enjoy the tide window. For most people, 2 to 4 hours including time on site is plenty.</p>
+        </details>
+      </section>
+    </main>
+
+    <footer>
+      © <span id="year"></span> Lolaelo ·
+      <a href="https://lolaelo-api.onrender.com/privacy.html" target="_blank" rel="noopener">Privacy</a>
+      <a href="https://lolaelo-api.onrender.com/terms.html" target="_blank" rel="noopener">Terms</a>
+    </footer>
+  </div>
+
+  <script>
+    document.getElementById("year").textContent = new Date().getFullYear();
+  </script>
+</body>
+</html>

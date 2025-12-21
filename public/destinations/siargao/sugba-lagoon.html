@@ -1,0 +1,766 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+
+  <title>Sugba Lagoon day trip | Siargao Experiences | Lolaelo</title>
+  <meta name="description" content="Sugba Lagoon day trip guide from Siargao: what it is, what it isn't, best timing, route plan, what to bring, and mistakes to avoid." />
+
+  <link rel="icon" href="https://www.lolaelo.com/logo2.png" />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+
+  <meta property="og:title" content="Sugba Lagoon day trip | Siargao Experiences | Lolaelo" />
+  <meta property="og:description" content="A clean, practical plan for Sugba Lagoon: timing, transport flow, what to bring, and how to keep the day smooth." />
+  <meta property="og:type" content="website" />
+  <meta property="og:image" content="/images/siargao/siargao-sugba-lagoon.jpg" />
+
+  <style>
+    :root{
+      --bg:#ffffff;
+      --fg:#111827;
+      --muted:#6b7280;
+
+      --brand:#064e3b;
+      --accent:#ff6a3d;
+      --border:#e5e7eb;
+
+      --max:1100px;
+      --shadow: 0 12px 30px rgba(15,23,42,0.10);
+      --shadow2: 0 16px 40px rgba(15,23,42,0.18);
+
+      --radius:18px;
+      --radius2:22px;
+
+      --font: Inter, ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+    }
+
+    *{box-sizing:border-box}
+    html, body{margin:0; padding:0}
+    body{
+      font-family: var(--font);
+      background: var(--bg);
+      color: var(--fg);
+      line-height: 1.5;
+    }
+    a{color:inherit; text-decoration:none}
+
+    .wrap{
+      max-width: var(--max);
+      margin: 0 auto;
+      padding: 16px 20px 40px;
+    }
+
+    /* Header (consistent) */
+    .nav{
+      display:flex;
+      align-items:center;
+      justify-content:space-between;
+      padding: 4px 0 12px;
+    }
+    .nav-left{display:flex; align-items:center; gap:8px}
+    .logo-img{height:32px; width:auto; display:block}
+
+    .nav-right{
+      display:flex;
+      align-items:center;
+      gap: 20px;
+      font-size: 14px;
+    }
+    .nav-link{
+      color: var(--brand);
+      padding: 4px 0;
+      font-weight: 500;
+    }
+    .nav-link-back{
+      display:inline-flex;
+      align-items:center;
+      gap: 6px;
+    }
+    .nav-back-arrow{
+      font-size: 16px;
+      line-height: 1;
+      transform: translateY(1px);
+    }
+    .nav-link-back:hover span:last-child{ text-decoration: underline; }
+    .nav-link-back:hover .nav-back-arrow{
+      transform: translate(-2px, 1px);
+      transition: transform 0.15s ease-out;
+    }
+
+    /* Breadcrumb */
+    .crumbs{
+      margin-top: 8px;
+      font-size: 12px;
+      color: var(--muted);
+      display:flex;
+      gap:8px;
+      align-items:center;
+      flex-wrap:wrap;
+    }
+    .crumbs span{
+      display:inline-block;
+      padding: 6px 10px;
+      border: 1px solid var(--border);
+      border-radius: 999px;
+      background: #ffffff;
+    }
+
+    /* Hero (consistent) */
+    .hero{
+      margin-top: 14px;
+      border-radius: 18px;
+      overflow:hidden;
+      border: 1px solid var(--border);
+      background: #ffffff;
+      box-shadow: var(--shadow);
+    }
+    .heroGrid{
+      display:grid;
+      grid-template-columns: 1.12fr .88fr;
+      gap:0;
+    }
+    .heroMedia{
+      min-height: 340px;
+      position: relative;
+      background: #f3f4f6;
+    }
+    .heroMedia img{
+      width:100%;
+      height:100%;
+      object-fit: cover;
+      display:block;
+    }
+    .heroMedia::after{
+      content:"";
+      position:absolute;
+      inset:0;
+      background: linear-gradient(90deg, rgba(0,0,0,0.05), rgba(0,0,0,0.22));
+      pointer-events:none;
+    }
+    .heroBody{
+      padding: 22px 22px 20px;
+      display:flex;
+      flex-direction: column;
+      gap: 12px;
+    }
+    h1{
+      margin:0;
+      font-size: 34px;
+      line-height: 1.15;
+      letter-spacing: -0.01em;
+      font-weight: 600;
+    }
+    .lede{
+      margin:0;
+      color: var(--muted);
+      font-size: 14.5px;
+      line-height: 1.55;
+    }
+
+    .chips{
+      display:flex;
+      flex-wrap:wrap;
+      gap: 8px;
+      margin-top: 2px;
+    }
+    .chip{
+      display:inline-flex;
+      gap:8px;
+      align-items:center;
+      padding: 6px 10px;
+      border: 1px solid var(--border);
+      border-radius: 999px;
+      background: #fafafa;
+      color: #374151;
+      font-size: 12px;
+    }
+    .dot{
+      width: 8px;
+      height: 8px;
+      border-radius: 999px;
+      background: var(--accent);
+      box-shadow: 0 0 0 4px rgba(255,106,61,0.14);
+      flex: 0 0 auto;
+    }
+
+    .kpi{
+      display:grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 10px;
+      margin-top: 4px;
+    }
+    .kpi .item{
+      border: 1px solid var(--border);
+      border-radius: 14px;
+      background: #ffffff;
+      padding: 10px 10px;
+      box-shadow: 0 10px 24px rgba(15,23,42,0.06);
+    }
+    .kpi .lbl{
+      font-size: 12px;
+      color: var(--muted);
+    }
+    .kpi .val{
+      font-size: 13.5px;
+      font-weight: 600;
+      margin-top: 3px;
+      color: #111827;
+    }
+
+    .ctaRow{
+      display:flex;
+      flex-wrap:wrap;
+      gap: 10px;
+      align-items:center;
+      margin-top: 4px;
+    }
+
+    .btn{
+      border-radius: 999px;
+      padding: 9px 14px;
+      font-size: 14px;
+      font-weight: 500;
+      border: 1px solid transparent;
+      cursor: pointer;
+      display:inline-flex;
+      align-items:center;
+      justify-content:center;
+      gap: 8px;
+      white-space: nowrap;
+    }
+    .btn.primary{ background: var(--accent); color: #ffffff; }
+    .btn.secondary{ background: rgba(229,242,255,0.95); color: var(--brand); border-color: rgba(229,242,255,0.65); }
+    .btn.ghost{ background: #ffffff; color: var(--brand); border-color: var(--border); }
+    .btn:hover{ box-shadow: var(--shadow); }
+
+    /* Sections */
+    .section{ margin-top: 18px; }
+
+    .grid2{
+      display:grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 14px;
+      align-items: start;
+    }
+    .grid3{
+      display:grid;
+      grid-template-columns: 1fr 1fr 1fr;
+      gap: 12px;
+      align-items: start;
+    }
+
+    .panel{
+      border: 1px solid var(--border);
+      border-radius: 16px;
+      padding: 14px 16px;
+      background: #ffffff;
+      box-shadow: 0 10px 24px rgba(15,23,42,0.06);
+    }
+    .panel h2{
+      margin: 0 0 10px;
+      font-size: 15px;
+      font-weight: 600;
+      color: var(--brand);
+    }
+    .panel p{
+      margin: 0;
+      font-size: 12.8px;
+      line-height: 1.6;
+      color: #4b5563;
+      white-space: pre-line;
+    }
+    .list{
+      margin: 10px 0 0;
+      padding-left: 18px;
+      font-size: 12.5px;
+      line-height: 1.55;
+      color: #4b5563;
+    }
+    .list li{ margin-bottom: 6px; }
+
+    /* Steps */
+    .steps{
+      margin-top: 10px;
+      display:grid;
+      gap: 10px;
+    }
+    .step{
+      border: 1px solid var(--border);
+      border-radius: 14px;
+      background: #ffffff;
+      padding: 12px 12px;
+      box-shadow: 0 10px 24px rgba(15,23,42,0.06);
+      display:flex;
+      gap: 10px;
+      align-items:flex-start;
+    }
+    .stepNum{
+      width: 26px;
+      height: 26px;
+      border-radius: 999px;
+      background: var(--accent);
+      color:#fff;
+      font-weight:700;
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      flex: 0 0 auto;
+      transform: translateY(1px);
+    }
+    .stepBody h3{
+      margin:0;
+      font-size: 13.5px;
+      font-weight: 700;
+      color:#111827;
+    }
+    .stepBody p{
+      margin:6px 0 0;
+      font-size: 12.8px;
+      line-height: 1.6;
+      color: #4b5563;
+    }
+
+    /* Spotlight */
+    .spotlight{
+      margin-top: 14px;
+      display:grid;
+      grid-template-columns: 1.05fr 0.95fr;
+      gap: 14px;
+      align-items:center;
+    }
+    .spotlight-reverse{
+      grid-template-columns: 0.95fr 1.05fr;
+    }
+
+    .spotText{
+      border: 1px solid var(--border);
+      border-radius: 18px;
+      background: #ffffff;
+      box-shadow: var(--shadow);
+      padding: 16px 16px 14px;
+    }
+    .spotText h2{
+      margin: 0 0 10px;
+      font-size: 15px;
+      font-weight: 600;
+      color: var(--brand);
+    }
+    .spotText p{
+      margin:0;
+      font-size: 12.8px;
+      line-height: 1.6;
+      color: #4b5563;
+      white-space: pre-line;
+    }
+    .mini{
+      margin-top: 12px;
+      padding-top: 12px;
+      border-top: 1px solid var(--border);
+      display:grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 10px;
+      color: #4b5563;
+      font-size: 12.5px;
+    }
+
+    .spotImgWrap{
+      display:flex;
+      justify-content:center;
+      align-items:center;
+      padding: 6px;
+    }
+    .spotImg{
+      width: 320px;
+      height: 320px;
+      border-radius: 999px;
+      overflow:hidden;
+      border: 1px solid rgba(229,231,235,0.95);
+      box-shadow: 0 18px 44px rgba(15,23,42,0.18);
+      background: #f3f4f6;
+    }
+    .spotImg img{
+      width:100%;
+      height:100%;
+      object-fit: cover;
+      display:block;
+    }
+
+    /* Callout */
+    .callout{
+      border: 1px solid rgba(255,106,61,0.35);
+      background: rgba(255,106,61,0.08);
+      border-radius: 16px;
+      padding: 14px 16px;
+      box-shadow: 0 10px 24px rgba(15,23,42,0.06);
+    }
+    .callout h2{
+      margin:0 0 8px;
+      font-size: 15px;
+      font-weight: 700;
+      color: #111827;
+    }
+    .callout p{
+      margin:0;
+      font-size: 12.8px;
+      line-height: 1.6;
+      color: #374151;
+      white-space: pre-line;
+    }
+
+    /* FAQ */
+    .faq{
+      margin-top: 22px;
+      border: 1px solid var(--border);
+      border-radius: 16px;
+      padding: 14px 16px;
+      background: #ffffff;
+      box-shadow: 0 10px 24px rgba(15,23,42,0.06);
+    }
+    .faq h2{
+      margin: 0 0 8px;
+      font-size: 15px;
+      font-weight: 600;
+      color: var(--brand);
+    }
+
+    details{
+      border-top: 1px solid var(--border);
+      padding: 10px 0;
+    }
+    details:first-of-type{ border-top:none; padding-top:0; }
+    summary{
+      cursor:pointer;
+      list-style:none;
+      font-size: 13px;
+      font-weight: 600;
+      color:#111827;
+    }
+    summary::-webkit-details-marker{ display:none; }
+    .faq p{
+      margin: 8px 0 0;
+      font-size: 12.8px;
+      line-height: 1.6;
+      color: #4b5563;
+    }
+
+    footer{
+      border-top: 1px solid var(--border);
+      padding: 14px 20px 22px;
+      font-size: 12px;
+      color: #6b7280;
+      text-align: center;
+      margin-top: 26px;
+    }
+    footer a{ color: inherit; text-decoration: underline; }
+
+    @media (max-width: 920px){
+      .wrap{ padding: 12px 16px 28px; }
+      .heroGrid{ grid-template-columns: 1fr; }
+      .heroMedia{ min-height: 260px; }
+      .grid2{ grid-template-columns: 1fr; }
+      .grid3{ grid-template-columns: 1fr; }
+      .spotlight, .spotlight-reverse{ grid-template-columns: 1fr; }
+      .spotImg{ width: 240px; height: 240px; }
+      h1{ font-size: 30px; }
+    }
+  </style>
+
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "FAQPage",
+    "mainEntity": [
+      {
+        "@type": "Question",
+        "name": "Is Sugba Lagoon worth it?",
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": "Yes. It is one of the cleanest, easiest wow days near Siargao if you start early and keep the day organized."
+        }
+      },
+      {
+        "@type": "Question",
+        "name": "How long does the trip take?",
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": "Plan for a half day to most of a day depending on your transport and how long you stay in the water."
+        }
+      },
+      {
+        "@type": "Question",
+        "name": "What should I bring?",
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": "Water, cash, sun protection, and a dry bag. Keep valuables minimal."
+        }
+      },
+      {
+        "@type": "Question",
+        "name": "What is the biggest mistake people make?",
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": "Starting late, then rushing, then getting stuck managing heat and crowds. This trip rewards early starts."
+        }
+      }
+    ]
+  }
+  </script>
+</head>
+
+<body>
+  <div class="wrap">
+    <header class="nav">
+      <div class="nav-left">
+        <a href="https://www.lolaelo.com" aria-label="Lolaelo home">
+          <img
+            src="https://www.lolaelo.com/logo.png?cb=logo-1x"
+            alt="Lolaelo"
+            class="logo-img"
+            decoding="async"
+            loading="eager"
+          >
+        </a>
+      </div>
+
+      <nav class="nav-right" aria-label="Primary">
+        <a class="nav-link nav-link-back" href="/destinations/siargao/index.html" aria-label="Back to Siargao guide">
+          <span class="nav-back-arrow">←</span>
+          <span>Siargao guide</span>
+        </a>
+      </nav>
+    </header>
+
+    <div class="crumbs" aria-label="Breadcrumb">
+      <span>Sugba Lagoon</span>
+    </div>
+
+    <main class="content" role="main">
+      <section class="hero" aria-label="Sugba Lagoon in Siargao">
+        <div class="heroGrid">
+          <div class="heroMedia">
+            <img src="/images/siargao/siargao-sugba-lagoon.jpg" alt="Sugba Lagoon in Siargao, calm turquoise water" loading="eager" />
+          </div>
+
+          <div class="heroBody">
+            <h1>Sugba Lagoon day trip</h1>
+            <p class="lede">
+              A clean, easy water day. Start early, keep the plan tight, and you will have a great time without it turning into a long, hot grind.
+            </p>
+
+            <div class="chips" aria-label="Quick facts">
+              <div class="chip"><span class="dot"></span>Best for: easy wow day</div>
+              <div class="chip"><span class="dot"></span>Time: half day to full day</div>
+              <div class="chip"><span class="dot"></span>Bring: dry bag + sun cover</div>
+              <div class="chip"><span class="dot"></span>Go: early</div>
+            </div>
+
+            <div class="kpi" aria-label="Planning snapshot">
+              <div class="item">
+                <div class="lbl">Ideal timing</div>
+                <div class="val">Morning departure</div>
+              </div>
+              <div class="item">
+                <div class="lbl">Main activity</div>
+                <div class="val">Swim + paddle + chill</div>
+              </div>
+              <div class="item">
+                <div class="lbl">Effort</div>
+                <div class="val">Low</div>
+              </div>
+              <div class="item">
+                <div class="lbl">Kid friendly</div>
+                <div class="val">Yes, with supervision</div>
+              </div>
+            </div>
+
+            <div class="ctaRow">
+              <a class="btn primary" href="https://lolaelo-api.onrender.com/catalog.html?q=siargao">Browse Siargao stays</a>
+              <a class="btn ghost" href="/destinations/siargao/index.html#top10">Back to Siargao top 10</a>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- Plan 4: Reality Check -->
+      <section class="section grid2" aria-label="Reality check tiles">
+        <div class="panel">
+          <h2>What it is</h2>
+          <p>
+A lagoon day that feels like a tropical water park. Calm water, easy swimming, paddle boards, and a relaxed pace if you start early.
+          </p>
+        </div>
+
+        <div class="panel">
+          <h2>What it is not</h2>
+          <p>
+Not a “show up late and wing it” day. If you start late, you spend your energy managing logistics, heat, and crowd timing.
+          </p>
+        </div>
+      </section>
+
+      <!-- Route -->
+      <section class="section panel" aria-label="Route plan">
+        <h2>Route plan that works</h2>
+        <p>
+Keep it simple. The whole point is calm water time, not a multi-stop marathon.
+        </p>
+
+        <div class="steps" aria-label="Three step plan">
+          <div class="step">
+            <div class="stepNum">1</div>
+            <div class="stepBody">
+              <h3>Leave early and get there first</h3>
+              <p>Early departure buys you better pacing and less friction. This is the single biggest lever you control.</p>
+            </div>
+          </div>
+
+          <div class="step">
+            <div class="stepNum">2</div>
+            <div class="stepBody">
+              <h3>Do the water time first</h3>
+              <p>Swim and paddle while you are fresh. Take photos early. Save lounging for later.</p>
+            </div>
+          </div>
+
+          <div class="step">
+            <div class="stepNum">3</div>
+            <div class="stepBody">
+              <h3>Exit before it drifts</h3>
+              <p>When the day starts to feel hot or crowded, leave. Protect the vibe. You will remember the good part.</p>
+            </div>
+          </div>
+        </div>
+
+        <div class="ctaRow" style="margin-top: 12px;">
+          <a class="btn secondary" href="https://lolaelo-api.onrender.com/catalog.html?q=siargao">Browse Siargao stays</a>
+          <a class="btn ghost" href="/destinations/siargao/index.html">Back to Siargao guide</a>
+        </div>
+      </section>
+
+      <!-- Checklists -->
+      <section class="section" aria-label="Checklist grid">
+        <div class="grid3">
+          <div class="panel">
+            <h2>Bring</h2>
+            <ul class="list" style="margin-top: 0;">
+              <li>Dry bag or sealed pouch</li>
+              <li>Water + snacks</li>
+              <li>Sun cover (hat or long sleeve)</li>
+              <li>Cash in small bills</li>
+            </ul>
+          </div>
+
+          <div class="panel">
+            <h2>Nice to have</h2>
+            <ul class="list" style="margin-top: 0;">
+              <li>Reef safe sunscreen</li>
+              <li>Extra shirt for the ride back</li>
+              <li>Basic first aid wipes</li>
+            </ul>
+          </div>
+
+          <div class="panel">
+            <h2>Skip</h2>
+            <ul class="list" style="margin-top: 0;">
+              <li>Overpacking valuables</li>
+              <li>Heavy bags you cannot keep dry</li>
+              <li>No-plan “late start” energy</li>
+            </ul>
+          </div>
+        </div>
+      </section>
+
+      <!-- Mistakes callout -->
+      <section class="section callout" aria-label="Mistakes callout">
+        <h2>Mistakes that ruin the day</h2>
+        <p>
+1) Starting late.
+2) Treating it like a checklist.
+3) Waiting to eat and hydrate until you are already drained.
+Do the water early, eat and shade, then leave before it gets messy.
+        </p>
+      </section>
+
+      <!-- Spotlights -->
+      <section class="section" aria-label="Spotlight one">
+        <div class="spotlight">
+          <div class="spotImgWrap" aria-hidden="true">
+            <div class="spotImg">
+              <img src="/images/siargao/siargao-sugba-boardwalk.jpg" alt="" loading="lazy" />
+            </div>
+          </div>
+
+          <div class="spotText">
+            <h2>Get the first clean hour</h2>
+            <p>
+The first hour is the best hour. Water looks better, you are fresher, and the day feels effortless.
+Start early so you are not fighting the schedule.
+            </p>
+            <div class="mini">
+              <div>Move: early</div>
+              <div>Result: calm day</div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section class="section" aria-label="Spotlight two">
+        <div class="spotlight spotlight-reverse">
+          <div class="spotText">
+            <h2>Dry bag discipline</h2>
+            <p>
+This is a water day. If you bring it, assume it will get wet unless it is sealed.
+Keep your phone and cash protected and the day stays stress free.
+            </p>
+            <div class="mini">
+              <div>Bring: sealed pouch</div>
+              <div>Skip: loose valuables</div>
+            </div>
+          </div>
+
+          <div class="spotImgWrap" aria-hidden="true">
+            <div class="spotImg">
+              <img src="/images/siargao/siargao-sugba-paddle.jpg" alt="" loading="lazy" />
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section class="faq" aria-label="FAQ">
+        <h2>FAQ</h2>
+
+        <details>
+          <summary>Is Sugba Lagoon good for families?</summary>
+          <p>Yes. Just plan shade breaks, hydration, and simple supervision. Keep the day early and organized.</p>
+        </details>
+
+        <details>
+          <summary>How long should we stay?</summary>
+          <p>Long enough to enjoy the water and relax, short enough to leave while the vibe is still good. Half day works for most people.</p>
+        </details>
+
+        <details>
+          <summary>What is the best time to go?</summary>
+          <p>Earlier is better. It controls crowds, heat, and your overall pace.</p>
+        </details>
+
+        <details>
+          <summary>What should we not do?</summary>
+          <p>Do not start late and try to cram extras. The whole point is calm water time. Protect that.</p>
+        </details>
+      </section>
+    </main>
+
+    <footer>
+      © <span id="year"></span> Lolaelo ·
+      <a href="https://lolaelo-api.onrender.com/privacy.html" target="_blank" rel="noopener">Privacy</a>
+      <a href="https://lolaelo-api.onrender.com/terms.html" target="_blank" rel="noopener">Terms</a>
+    </footer>
+  </div>
+
+  <script>
+    document.getElementById("year").textContent = new Date().getFullYear();
+  </script>
+</body>
+</html>
