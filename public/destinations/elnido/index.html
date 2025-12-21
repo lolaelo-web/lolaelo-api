@@ -1,0 +1,930 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>El Nido Travel Guide | Top 10 Experiences (Lolaelo)</title>
+  <meta name="description" content="A clean, curated guide to El Nido. The 10 experiences that actually matter, plus quick picks, timing tips, and where to stay." />
+
+  <link rel="icon" href="https://www.lolaelo.com/logo2.png" />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+
+  <style>
+    :root {
+      --bg: #ffffff;
+      --fg: #111827;
+      --muted: #6b7280;
+      --brand: #064e3b;
+      --accent: #ff6a3d;
+      --border: #e5e7eb;
+      --max-width: 960px;
+      --card-shadow: 0 12px 30px rgba(15,23,42,0.10);
+      --card-shadow-hover: 0 16px 40px rgba(15,23,42,0.18);
+    }
+
+    * { box-sizing: border-box; }
+    html, body { margin: 0; padding: 0; height: 100%; }
+    body {
+      font-family: Inter, ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+      background: var(--bg);
+      color: var(--fg);
+      display: flex;
+      flex-direction: column;
+      min-height: 100vh;
+    }
+
+    a { color: inherit; text-decoration: none; }
+
+    .page {
+      width: 100%;
+      max-width: var(--max-width);
+      margin: 0 auto;
+      padding: 16px 20px 40px;
+      display: flex;
+      flex-direction: column;
+      flex: 1;
+    }
+
+    /* Top nav (match destinations.html) */
+    .nav {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 4px 0 12px;
+    }
+
+    .nav-left { display: flex; align-items: center; gap: 8px; }
+
+    .logo-img { height: 32px; width: auto; display: block; }
+
+    .nav-right {
+      display: flex;
+      align-items: center;
+      gap: 20px;
+      font-size: 14px;
+    }
+
+    .nav-link {
+      color: var(--brand);
+      padding: 4px 0;
+      font-weight: 500;
+      text-decoration: none;
+    }
+
+    .nav-link-back {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      text-decoration: none;
+    }
+
+    .nav-back-arrow {
+      font-size: 16px;
+      line-height: 1;
+      transform: translateY(1px);
+      text-decoration: none !important;
+    }
+
+    .nav-link-back span:last-child { text-decoration: none; }
+
+    .nav-link-back:hover span:last-child { text-decoration: underline; }
+
+    .nav-link-back:hover .nav-back-arrow {
+      transform: translate(-2px, 1px);
+      transition: transform 0.15s ease-out;
+    }
+
+    /* Breadcrumbs */
+    .crumbs {
+      margin-top: 8px;
+      font-size: 12px;
+      color: var(--muted);
+      display: flex;
+      gap: 8px;
+      align-items: center;
+      flex-wrap: wrap;
+    }
+    .crumbs a { color: var(--muted); text-decoration: underline; }
+    .crumbs .sep { color: #9ca3af; }
+
+    /* Hero */
+    .hero {
+      margin-top: 14px;
+      border-radius: 18px;
+      overflow: hidden;
+      min-height: 280px;
+      background-image: url("/images/elnido/elnido-hero.jpg");
+      background-size: cover;
+      background-position: center;
+      background-repeat: no-repeat;
+      position: relative;
+      box-shadow: var(--card-shadow);
+    }
+
+    .hero::before {
+      content: "";
+      position: absolute;
+      inset: 0;
+      background: linear-gradient(to top, rgba(0,0,0,0.55), rgba(0,0,0,0.18));
+    }
+
+    .hero-inner {
+      position: relative;
+      padding: 18px 18px 16px;
+      display: flex;
+      flex-direction: column;
+      justify-content: flex-end;
+      min-height: 280px;
+      gap: 10px;
+    }
+
+    .hero-title {
+      margin: 0;
+      color: #ffffff;
+      font-size: clamp(28px, 4vw, 40px);
+      line-height: 1.15;
+      font-weight: 600;
+      text-shadow: 0 2px 6px rgba(0,0,0,0.35);
+      letter-spacing: -0.01em;
+    }
+
+    .hero-sub {
+      margin: 0;
+      color: rgba(255,255,255,0.92);
+      font-size: 14.5px;
+      line-height: 1.45;
+      max-width: 78ch;
+    }
+
+    .hero-actions {
+      display: flex;
+      gap: 10px;
+      flex-wrap: wrap;
+      margin-top: 6px;
+    }
+
+    .btn {
+      border-radius: 999px;
+      padding: 9px 14px;
+      font-size: 14px;
+      font-weight: 500;
+      border: 1px solid transparent;
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      white-space: nowrap;
+    }
+
+    .btn-primary { background: var(--accent); color: #ffffff; }
+    .btn-secondary { background: rgba(229,242,255,0.95); color: var(--brand); border-color: rgba(229,242,255,0.65); }
+    .btn-ghost { background: rgba(255,255,255,0.14); color: #ffffff; border-color: rgba(255,255,255,0.18); }
+
+    /* Content */
+    .content { margin-top: 18px; }
+
+    .intro {
+      margin-top: 14px;
+      padding: 14px 16px;
+      border: 1px solid var(--border);
+      border-radius: 16px;
+      background: #ffffff;
+      box-shadow: 0 10px 24px rgba(15,23,42,0.06);
+    }
+
+    .intro h2 {
+      margin: 0 0 8px;
+      font-size: 15px;
+      color: var(--brand);
+      font-weight: 600;
+    }
+
+    .intro p {
+      margin: 0 0 8px;
+      font-size: 12.8px;
+      line-height: 1.6;
+      color: #4b5563;
+      white-space: pre-line;
+    }
+
+    .split {
+      margin-top: 14px;
+      display: grid;
+      grid-template-columns: 1.2fr 0.8fr;
+      gap: 14px;
+      align-items: start;
+    }
+
+    .panel {
+      border: 1px solid var(--border);
+      border-radius: 16px;
+      padding: 14px 16px;
+      background: #ffffff;
+      box-shadow: 0 10px 24px rgba(15,23,42,0.06);
+    }
+
+    .panel h3 {
+      margin: 0 0 10px;
+      font-size: 13px;
+      font-weight: 600;
+      color: #111827;
+    }
+
+    .pills {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      margin-top: 10px;
+    }
+
+    .pill {
+      font-size: 12px;
+      padding: 6px 10px;
+      border-radius: 999px;
+      border: 1px solid var(--border);
+      color: #374151;
+      background: #fafafa;
+    }
+
+    .panel ul {
+      margin: 0;
+      padding-left: 18px;
+      font-size: 12.5px;
+      line-height: 1.55;
+      color: #4b5563;
+    }
+
+    .panel li { margin-bottom: 6px; }
+
+    /* Experiences list */
+    .section-title {
+      margin: 22px 0 10px;
+      font-size: 15px;
+      font-weight: 600;
+      color: var(--brand);
+    }
+
+    .cards {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 14px;
+    }
+
+    .card {
+      border-radius: 18px;
+      border: 1px solid var(--border);
+      overflow: hidden;
+      background: #ffffff;
+      box-shadow: var(--card-shadow);
+      transition: transform 0.2s ease-out, box-shadow 0.2s ease-out;
+      min-height: 420px;
+      border-radius: 22px;
+    }
+
+    .card:hover {
+      transform: translateY(-2px);
+      box-shadow: var(--card-shadow-hover);
+    }
+
+    .card-media {
+      width: 300px;
+      height: 300px;
+      border-radius: 999px;
+      background-size: cover;
+      background-position: center;
+      background-repeat: no-repeat;
+      margin: 18px auto 12px;
+      box-shadow: 0 18px 40px rgba(15,23,42,0.18);
+      border: 1px solid rgba(229,231,235,0.9);
+    }
+
+    /* remove the overlay for circle tiles */
+    .card-media::before { display: none; content: none; }
+
+    .card-body {
+      padding: 8px 18px 18px;
+      text-align: left;
+    }
+
+    .card-kicker {
+      font-size: 12px;
+      color: #6b7280;
+      margin: 0 0 4px;
+    }
+
+    .card-title {
+      margin: 0 0 8px;
+      font-size: 16px;
+      font-weight: 600;
+      color: #111827;
+      letter-spacing: -0.01em;
+
+      display: -webkit-box;
+      line-clamp: 2;
+      -webkit-line-clamp: 2;
+      -webkit-box-orient: vertical;
+      overflow: hidden;
+    }
+
+    .card-text {
+      margin: 0 0 10px;
+      font-size: 12.8px;
+      line-height: 1.6;
+      color: #4b5563;
+      white-space: pre-line;
+
+      display: -webkit-box;
+      line-clamp: 4;
+      -webkit-line-clamp: 4;
+      -webkit-box-orient: vertical;
+      overflow: hidden;
+    }
+
+    .meta-row {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      margin-top: 8px;
+    }
+
+    .meta {
+      font-size: 12px;
+      padding: 6px 10px;
+      border-radius: 999px;
+      border: 1px solid var(--border);
+      background: #ffffff;
+      color: #374151;
+    }
+
+    .meta strong { font-weight: 600; }
+
+    .card-cta {
+      margin-top: 12px;
+      display: flex;
+      gap: 10px;
+      flex-wrap: wrap;
+    }
+
+    .link {
+      font-size: 13px;
+      color: var(--brand);
+      font-weight: 500;
+      text-decoration: underline;
+      cursor: pointer;
+    }
+
+    .card-clickable {
+      cursor: pointer;
+    }
+
+    .card-clickable a {
+      position: relative;
+      z-index: 2;
+    }
+
+    /* FAQ */
+    .faq {
+      margin-top: 22px;
+      border: 1px solid var(--border);
+      border-radius: 16px;
+      padding: 14px 16px;
+      background: #ffffff;
+      box-shadow: 0 10px 24px rgba(15,23,42,0.06);
+    }
+
+    details {
+      border-top: 1px solid var(--border);
+      padding: 10px 0;
+    }
+
+    details:first-of-type { border-top: none; padding-top: 0; }
+    summary {
+      cursor: pointer;
+      list-style: none;
+      font-size: 13px;
+      font-weight: 600;
+      color: #111827;
+    }
+
+    summary::-webkit-details-marker { display: none; }
+
+    .faq p {
+      margin: 8px 0 0;
+      font-size: 12.8px;
+      line-height: 1.6;
+      color: #4b5563;
+    }
+
+    /* Footer */
+    footer {
+      border-top: 1px solid var(--border);
+      padding: 14px 20px 22px;
+      font-size: 12px;
+      color: #6b7280;
+      text-align: center;
+      margin-top: auto;
+    }
+
+    footer a { color: inherit; text-decoration: underline; }
+
+    /* Responsive */
+    @media (max-width: 768px) {
+      .page { padding: 12px 16px 28px; }
+      .split { grid-template-columns: 1fr; }
+      .hero-inner { min-height: 260px; }
+      .cards { grid-template-columns: 1fr; }
+      .card-media { width: 220px; height: 220px; margin: 14px auto 10px; }
+    }
+  </style>
+
+  <script type="application/ld+json">
+  {
+    "@context":"https://schema.org",
+    "@type":"FAQPage",
+    "mainEntity":[
+      {
+        "@type":"Question",
+        "name":"How many days do you need in El Nido?",
+        "acceptedAnswer":{"@type":"Answer","text":"Three to five days is the sweet spot. Three days hits Tour A plus one beach day. Five days lets you add Tour C and slow down."}
+      },
+      {
+        "@type":"Question",
+        "name":"What is the best time of year to visit El Nido?",
+        "acceptedAnswer":{"@type":"Answer","text":"In general, the dry season has calmer seas and clearer water. Boat tours are most reliable when conditions are stable. If weather shifts, keep your plan flexible."}
+      },
+      {
+        "@type":"Question",
+        "name":"Is El Nido good for families with kids?",
+        "acceptedAnswer":{"@type":"Answer","text":"Yes, if you plan smarter. Choose fewer boat stops, start early, and keep a beach day in the schedule. Avoid overpacked tours."}
+      },
+      {
+        "@type":"Question",
+        "name":"Do I need both Tour A and Tour C?",
+        "acceptedAnswer":{"@type":"Answer","text":"Not required, but they complement each other. Tour A is lagoon-heavy. Tour C is more beach-forward. If you only do one, pick based on your pace."}
+      }
+    ]
+  }
+  </script>
+</head>
+
+<body>
+  <div class="page">
+    <header class="nav">
+      <div class="nav-left">
+        <a href="https://www.lolaelo.com" aria-label="Lolaelo home">
+          <img
+            src="https://www.lolaelo.com/logo.png?cb=logo-1x"
+            alt="Lolaelo"
+            class="logo-img"
+            decoding="async"
+            loading="eager"
+          >
+        </a>
+      </div>
+
+      <nav class="nav-right" aria-label="Primary">
+        <a class="nav-link nav-link-back" href="/destinations.html" aria-label="Back to destinations">
+          <span class="nav-back-arrow">←</span>
+          <span>Destinations</span>
+        </a>
+      </nav>
+    </header>
+
+    <div class="crumbs" aria-label="Breadcrumb">
+      <span>El Nido</span>
+    </div>
+
+    <main class="content" role="main">
+      <section class="hero" aria-label="El Nido hero">
+        <div class="hero-inner">
+          <h1 class="hero-title">El Nido: the 10 experiences that actually matter</h1>
+          <p class="hero-sub">
+            Lagoons, beaches, and one simple rule: do fewer things per day, do them earlier, and you will enjoy El Nido a lot more.
+          </p>
+          <div class="hero-actions">
+            <a class="btn btn-primary" href="https://lolaelo-api.onrender.com/catalog.html?q=elnido">View stays in El Nido</a>
+            <a class="btn btn-secondary" href="#top10">Jump to top 10</a>
+            <a class="btn btn-ghost" href="/destinations.html">Back to destinations</a>
+          </div>
+        </div>
+      </section>
+
+      <section class="intro" aria-label="How to use this guide">
+        <h2>How to use this guide</h2>
+        <p>
+El Nido gets messy when you chase every stop.
+If you only have 3 days, prioritize: Tour A, Nacpan Beach, and one intentional sunset at Las Cabanas.
+        </p>
+        <div class="pills" aria-label="Quick tags">
+          <span class="pill">Best trip length: 3 to 5 days</span>
+          <span class="pill">Style: lagoons, boats, beaches</span>
+          <span class="pill">Effort: mixed (mostly low)</span>
+        </div>
+      </section>
+
+      <section class="split" aria-label="Quick picks and timing">
+        <div class="panel">
+          <h3>Quick picks</h3>
+          <ul>
+            <li><strong>First time:</strong> #1 Tour A, #4 Nacpan, #5 Las Cabanas sunset</li>
+            <li><strong>Families:</strong> #4 Nacpan, #10 Lio, #9 Food crawl (early dinner)</li>
+            <li><strong>Active:</strong> #8 Taraw Cliff, #7 Snorkeling, #2 Tour C</li>
+            <li><strong>Chill:</strong> #6 Cadlao Lagoon, repeat sunsets, one slow beach day</li>
+          </ul>
+        </div>
+
+        <div class="panel">
+          <h3>Timing that matters</h3>
+          <ul>
+            <li><strong>Boat tours:</strong> start early for calmer water and fewer crowds</li>
+            <li><strong>Lagoons:</strong> go first, not last</li>
+            <li><strong>Beaches:</strong> protect a real beach day (no rushed add-ons)</li>
+            <li><strong>Sunsets:</strong> keep one evening simple and intentional</li>
+          </ul>
+        </div>
+      </section>
+
+      <h2 class="section-title" id="top10">Top 10 experiences</h2>
+
+      <section class="cards" aria-label="El Nido experiences list">
+
+        <!-- 1 -->
+        <article
+          class="card card-clickable"
+          id="exp-1"
+          role="link"
+          tabindex="0"
+          aria-label="Open full guide: Island hopping (Tour A)"
+          onclick="window.location.href='/destinations/elnido/island-hopping-tour-a.html';"
+          onkeydown="if(event.key==='Enter'){window.location.href='/destinations/elnido/island-hopping-tour-a.html';}"
+        >
+          <div class="card-media" style="background-image:url('/images/elnido/elnido-tour-a.jpg');"></div>
+
+          <div class="card-body">
+            <p class="card-kicker">1 of 10</p>
+            <h3 class="card-title">Island hopping (Tour A) that hits the lagoons</h3>
+
+            <p class="card-text">
+Pick one strong tour and do it right. Start early, keep your expectations realistic, and protect your energy for the swim time.
+            </p>
+
+            <div class="meta-row">
+              <span class="meta"><strong>Duration:</strong> full day</span>
+              <span class="meta"><strong>Best time:</strong> early morning</span>
+              <span class="meta"><strong>Effort:</strong> medium</span>
+              <span class="meta"><strong>Crowds:</strong> high</span>
+            </div>
+
+            <div class="card-cta">
+              <a class="link" href="/destinations/elnido/island-hopping-tour-a.html">Full guide</a>
+              <a class="link" href="https://lolaelo-api.onrender.com/catalog.html?q=elnido">Stays that make early departures easier</a>
+            </div>
+          </div>
+        </article>
+
+        <!-- 2 -->
+        <article
+          class="card card-clickable"
+          id="exp-2"
+          role="link"
+          tabindex="0"
+          aria-label="Open full guide: Island hopping (Tour C)"
+          onclick="window.location.href='/destinations/elnido/island-hopping-tour-c.html';"
+          onkeydown="if(event.key==='Enter'){window.location.href='/destinations/elnido/island-hopping-tour-c.html';}"
+        >
+          <div class="card-media" style="background-image:url('/images/elnido/elnido-tour-c.jpg');"></div>
+
+          <div class="card-body">
+            <p class="card-kicker">2 of 10</p>
+            <h3 class="card-title">Tour C for beaches, clearer water, and less chaos</h3>
+
+            <p class="card-text">
+If you want a boat day that feels cleaner, Tour C usually delivers. Still start early. Still keep the plan tight.
+            </p>
+
+            <div class="meta-row">
+              <span class="meta"><strong>Duration:</strong> full day</span>
+              <span class="meta"><strong>Best time:</strong> early morning</span>
+              <span class="meta"><strong>Effort:</strong> medium</span>
+              <span class="meta"><strong>Vibe:</strong> beach-forward</span>
+            </div>
+
+            <div class="card-cta">
+              <a class="link" href="/destinations/elnido/island-hopping-tour-c.html">Full guide</a>
+              <a class="link" href="https://lolaelo-api.onrender.com/catalog.html?q=elnido">Browse El Nido stays</a>
+            </div>
+          </div>
+        </article>
+
+        <!-- 3 -->
+        <article
+          class="card card-clickable"
+          id="exp-3"
+          role="link"
+          tabindex="0"
+          aria-label="Open full guide: Big and Small Lagoon"
+          onclick="window.location.href='/destinations/elnido/big-small-lagoon.html';"
+          onkeydown="if(event.key==='Enter'){window.location.href='/destinations/elnido/big-small-lagoon.html';}"
+        >
+          <div class="card-media" style="background-image:url('/images/elnido/elnido-big-lagoon.jpg');"></div>
+
+          <div class="card-body">
+            <p class="card-kicker">3 of 10</p>
+            <h3 class="card-title">Big Lagoon and Small Lagoon (do it early)</h3>
+
+            <p class="card-text">
+These are the signature visuals. The difference between “wow” and “crowded mess” is usually your start time.
+            </p>
+
+            <div class="meta-row">
+              <span class="meta"><strong>Duration:</strong> half to full day</span>
+              <span class="meta"><strong>Best time:</strong> morning</span>
+              <span class="meta"><strong>Effort:</strong> low to medium</span>
+              <span class="meta"><strong>Tip:</strong> protect swim time</span>
+            </div>
+
+            <div class="card-cta">
+              <a class="link" href="/destinations/elnido/big-small-lagoon.html">Full guide</a>
+              <a class="link" href="https://lolaelo-api.onrender.com/catalog.html?q=elnido">Browse El Nido stays</a>
+            </div>
+          </div>
+        </article>
+
+        <!-- 4 -->
+        <article
+          class="card card-clickable"
+          id="exp-4"
+          role="link"
+          tabindex="0"
+          aria-label="Open full guide: Nacpan Beach"
+          onclick="window.location.href='/destinations/elnido/nacpan-beach.html';"
+          onkeydown="if(event.key==='Enter'){window.location.href='/destinations/elnido/nacpan-beach.html';}"
+        >
+          <div class="card-media" style="background-image:url('/images/elnido/elnido-nacpan-beach.jpg');"></div>
+
+          <div class="card-body">
+            <p class="card-kicker">4 of 10</p>
+            <h3 class="card-title">Nacpan Beach for a real reset</h3>
+
+            <p class="card-text">
+One of the best decisions you can make is protecting one true beach day. No rushing. No squeezing in add-ons.
+            </p>
+
+            <div class="meta-row">
+              <span class="meta"><strong>Duration:</strong> half day+</span>
+              <span class="meta"><strong>Best time:</strong> late morning</span>
+              <span class="meta"><strong>Effort:</strong> low</span>
+              <span class="meta"><strong>Vibe:</strong> spacious</span>
+            </div>
+
+            <div class="card-cta">
+              <a class="link" href="/destinations/elnido/nacpan-beach.html">Full guide</a>
+              <a class="link" href="https://lolaelo-api.onrender.com/catalog.html?q=elnido">Browse El Nido stays</a>
+            </div>
+          </div>
+        </article>
+
+        <!-- 5 -->
+        <article
+          class="card card-clickable"
+          id="exp-5"
+          role="link"
+          tabindex="0"
+          aria-label="Open full guide: Las Cabanas sunset"
+          onclick="window.location.href='/destinations/elnido/las-cabanas-sunset.html';"
+          onkeydown="if(event.key==='Enter'){window.location.href='/destinations/elnido/las-cabanas-sunset.html';}"
+        >
+          <div class="card-media" style="background-image:url('/images/elnido/elnido-las-cabanas-sunset.jpg');"></div>
+
+          <div class="card-body">
+            <p class="card-kicker">5 of 10</p>
+            <h3 class="card-title">Las Cabanas sunset (keep it simple)</h3>
+
+            <p class="card-text">
+This is the easy win. Show up with time, grab a spot, and let the day end clean. No overthinking.
+            </p>
+
+            <div class="meta-row">
+              <span class="meta"><strong>Duration:</strong> 60 to 90 min</span>
+              <span class="meta"><strong>Best time:</strong> sunset</span>
+              <span class="meta"><strong>Effort:</strong> low</span>
+              <span class="meta"><strong>Tip:</strong> go early for seating</span>
+            </div>
+
+            <div class="card-cta">
+              <a class="link" href="/destinations/elnido/las-cabanas-sunset.html">Full guide</a>
+              <a class="link" href="https://lolaelo-api.onrender.com/catalog.html?q=elnido">Browse El Nido stays</a>
+            </div>
+          </div>
+        </article>
+
+        <!-- 6 -->
+        <article
+          class="card card-clickable"
+          id="exp-6"
+          role="link"
+          tabindex="0"
+          aria-label="Open full guide: Cadlao Lagoon"
+          onclick="window.location.href='/destinations/elnido/cadlao-lagoon.html';"
+          onkeydown="if(event.key==='Enter'){window.location.href='/destinations/elnido/cadlao-lagoon.html';}"
+        >
+          <div class="card-media" style="background-image:url('/images/elnido/elnido-cadlao-lagoon.jpg');"></div>
+
+          <div class="card-body">
+            <p class="card-kicker">6 of 10</p>
+            <h3 class="card-title">Cadlao Lagoon for calmer water time</h3>
+
+            <p class="card-text">
+If your trip needs balance, this is it. Less “checklist,” more float and breathe.
+            </p>
+
+            <div class="meta-row">
+              <span class="meta"><strong>Duration:</strong> half day</span>
+              <span class="meta"><strong>Best time:</strong> morning</span>
+              <span class="meta"><strong>Effort:</strong> low</span>
+              <span class="meta"><strong>Vibe:</strong> calm</span>
+            </div>
+
+            <div class="card-cta">
+              <a class="link" href="/destinations/elnido/cadlao-lagoon.html">Full guide</a>
+              <a class="link" href="https://lolaelo-api.onrender.com/catalog.html?q=elnido">Browse El Nido stays</a>
+            </div>
+          </div>
+        </article>
+
+        <!-- 7 -->
+        <article
+          class="card card-clickable"
+          id="exp-7"
+          role="link"
+          tabindex="0"
+          aria-label="Open full guide: Snorkeling in Bacuit Bay"
+          onclick="window.location.href='/destinations/elnido/snorkeling-bacuit-bay.html';"
+          onkeydown="if(event.key==='Enter'){window.location.href='/destinations/elnido/snorkeling-bacuit-bay.html';}"
+        >
+          <div class="card-media" style="background-image:url('/images/elnido/elnido-snorkeling-bacuit.jpg');"></div>
+
+          <div class="card-body">
+            <p class="card-kicker">7 of 10</p>
+            <h3 class="card-title">Snorkeling in Bacuit Bay (one great spot)</h3>
+
+            <p class="card-text">
+Don’t try to “do everything.” Pick one strong snorkeling stop and stay long enough for it to actually feel worth it.
+            </p>
+
+            <div class="meta-row">
+              <span class="meta"><strong>Duration:</strong> 1 to 3 hrs</span>
+              <span class="meta"><strong>Best time:</strong> morning</span>
+              <span class="meta"><strong>Effort:</strong> low</span>
+              <span class="meta"><strong>Tip:</strong> reef-safe sunscreen</span>
+            </div>
+
+            <div class="card-cta">
+              <a class="link" href="/destinations/elnido/snorkeling-bacuit-bay.html">Full guide</a>
+              <a class="link" href="https://lolaelo-api.onrender.com/catalog.html?q=elnido">Browse El Nido stays</a>
+            </div>
+          </div>
+        </article>
+
+        <!-- 8 -->
+        <article
+          class="card card-clickable"
+          id="exp-8"
+          role="link"
+          tabindex="0"
+          aria-label="Open full guide: Taraw Cliff"
+          onclick="window.location.href='/destinations/elnido/taraw-cliff-viewpoint.html';"
+          onkeydown="if(event.key==='Enter'){window.location.href='/destinations/elnido/taraw-cliff-viewpoint.html';}"
+        >
+          <div class="card-media" style="background-image:url('/images/elnido/elnido-taraw-cliff.jpg');"></div>
+
+          <div class="card-body">
+            <p class="card-kicker">8 of 10</p>
+            <h3 class="card-title">Taraw Cliff viewpoint (only if you are ready)</h3>
+
+            <p class="card-text">
+This is not casual. If you are not fit or conditions are off, skip it. If you are, it is a serious view payoff.
+            </p>
+
+            <div class="meta-row">
+              <span class="meta"><strong>Duration:</strong> 1 to 3 hrs</span>
+              <span class="meta"><strong>Best time:</strong> early morning</span>
+              <span class="meta"><strong>Effort:</strong> high</span>
+              <span class="meta"><strong>Note:</strong> safety first</span>
+            </div>
+
+            <div class="card-cta">
+              <a class="link" href="/destinations/elnido/taraw-cliff-viewpoint.html">Full guide</a>
+              <a class="link" href="https://lolaelo-api.onrender.com/catalog.html?q=elnido">Browse El Nido stays</a>
+            </div>
+          </div>
+        </article>
+
+        <!-- 9 -->
+        <article
+          class="card card-clickable"
+          id="exp-9"
+          role="link"
+          tabindex="0"
+          aria-label="Open full guide: El Nido food crawl"
+          onclick="window.location.href='/destinations/elnido/food-crawl.html';"
+          onkeydown="if(event.key==='Enter'){window.location.href='/destinations/elnido/food-crawl.html';}"
+        >
+          <div class="card-media" style="background-image:url('/images/elnido/elnido-elnido-food-crawl.jpg');"></div>
+
+          <div class="card-body">
+            <p class="card-kicker">9 of 10</p>
+            <h3 class="card-title">Food crawl in town (low effort, high payoff)</h3>
+
+            <p class="card-text">
+After boat days, your best move is a simple dinner plan. Pick a few places, keep it moving, and don’t over-order.
+            </p>
+
+            <div class="meta-row">
+              <span class="meta"><strong>Duration:</strong> 2 to 3 hrs</span>
+              <span class="meta"><strong>Best time:</strong> early evening</span>
+              <span class="meta"><strong>Effort:</strong> low</span>
+              <span class="meta"><strong>Great for:</strong> groups</span>
+            </div>
+
+            <div class="card-cta">
+              <a class="link" href="/destinations/elnido/food-crawl.html">Full guide</a>
+              <a class="link" href="https://lolaelo-api.onrender.com/catalog.html?q=elnido">Browse El Nido stays</a>
+            </div>
+          </div>
+        </article>
+
+        <!-- 10 -->
+        <article
+          class="card card-clickable"
+          id="exp-10"
+          role="link"
+          tabindex="0"
+          aria-label="Open full guide: Lio Beach day trip"
+          onclick="window.location.href='/destinations/elnido/lio-beach-day.html';"
+          onkeydown="if(event.key==='Enter'){window.location.href='/destinations/elnido/lio-beach-day.html';}"
+        >
+          <div class="card-media" style="background-image:url('/images/elnido/elnido-lio-beach.jpg');"></div>
+
+          <div class="card-body">
+            <p class="card-kicker">10 of 10</p>
+            <h3 class="card-title">Lio Beach day trip (easy, clean, family-friendly)</h3>
+
+            <p class="card-text">
+When you want a low-drama day: go here. It’s a simple reset that keeps your trip from turning into nonstop logistics.
+            </p>
+
+            <div class="meta-row">
+              <span class="meta"><strong>Duration:</strong> half day+</span>
+              <span class="meta"><strong>Best time:</strong> late morning</span>
+              <span class="meta"><strong>Effort:</strong> low</span>
+              <span class="meta"><strong>Vibe:</strong> easy</span>
+            </div>
+
+            <div class="card-cta">
+              <a class="link" href="/destinations/elnido/lio-beach-day.html">Full guide</a>
+              <a class="link" href="https://lolaelo-api.onrender.com/catalog.html?q=elnido">Browse El Nido stays</a>
+            </div>
+          </div>
+        </article>
+
+      </section>
+
+      <section class="faq" aria-label="El Nido FAQ">
+        <h2 class="section-title" style="margin:0 0 8px;">FAQ</h2>
+
+        <details>
+          <summary>How many days do you need in El Nido?</summary>
+          <p>Three to five days. Three days covers one main tour, one beach day, and one sunset. Five days lets you add a second tour and still rest.</p>
+        </details>
+
+        <details>
+          <summary>Do I need both Tour A and Tour C?</summary>
+          <p>No. If you only do one: pick Tour A for lagoons, Tour C for beaches and a slightly cleaner pace. Start early either way.</p>
+        </details>
+
+        <details>
+          <summary>What is the biggest mistake people make in El Nido?</summary>
+          <p>Overbooking. One boat day is a real day. Protect recovery time and keep at least one slow beach day.</p>
+        </details>
+
+        <details>
+          <summary>Is El Nido still worth it if weather is unstable?</summary>
+          <p>Yes, if you stay flexible. Shift to beaches, food, and sunsets when sea conditions are rough, and take the first good window for a boat day.</p>
+        </details>
+      </section>
+    </main>
+  </div>
+
+  <footer>
+    © <span id="year"></span> Lolaelo ·
+    <a href="https://lolaelo-api.onrender.com/privacy.html" target="_blank" rel="noopener">Privacy</a>
+    <a href="https://lolaelo-api.onrender.com/terms.html" target="_blank" rel="noopener">Terms</a>
+  </footer>
+
+  <script>
+    document.getElementById("year").textContent = new Date().getFullYear();
+  </script>
+</body>
+</html>

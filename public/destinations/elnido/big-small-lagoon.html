@@ -1,0 +1,449 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Big & Small Lagoon | El Nido Reality Check (Lolaelo)</title>
+  <meta name="description" content="A practical guide to El Nido’s Big and Small Lagoons. What it is, what it isn’t, how to time it, what to bring, and the mistakes that ruin the experience." />
+
+  <link rel="icon" href="https://www.lolaelo.com/logo2.png" />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+
+  <style>
+    :root{
+      --bg:#ffffff;
+      --fg:#111827;
+      --muted:#6b7280;
+      --brand:#064e3b;
+      --accent:#ff6a3d;
+      --border:#e5e7eb;
+      --max-width:960px;
+      --shadow:0 12px 30px rgba(15,23,42,0.10);
+      --shadow2:0 10px 24px rgba(15,23,42,0.06);
+    }
+
+    *{box-sizing:border-box;}
+    html,body{margin:0;padding:0;height:100%;}
+    body{
+      font-family:Inter,ui-sans-serif,system-ui,-apple-system,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
+      background:var(--bg);
+      color:var(--fg);
+      display:flex;
+      flex-direction:column;
+      min-height:100vh;
+    }
+    a{color:inherit;text-decoration:none;}
+
+    .page{
+      width:100%;
+      max-width:var(--max-width);
+      margin:0 auto;
+      padding:16px 20px 40px;
+      display:flex;
+      flex-direction:column;
+      flex:1;
+    }
+
+    /* Header (LOCKED) */
+    .nav{
+      display:flex;
+      align-items:center;
+      justify-content:space-between;
+      padding:4px 0 12px;
+    }
+    .nav-left{display:flex;align-items:center;gap:8px;}
+    .logo-img{height:32px;width:auto;display:block;}
+    .nav-right{
+      display:flex;
+      align-items:center;
+      gap:20px;
+      font-size:14px;
+    }
+    .nav-link-back{
+      display:inline-flex;
+      align-items:center;
+      gap:6px;
+      color:var(--brand);
+      font-weight:500;
+    }
+    .nav-back-arrow{
+      font-size:16px;
+      transform:translateY(1px);
+    }
+    .nav-link-back:hover span:last-child{text-decoration:underline;}
+    .nav-link-back:hover .nav-back-arrow{
+      transform:translate(-2px,1px);
+      transition:transform 0.15s ease-out;
+    }
+
+    /* Breadcrumb */
+    .crumbs{
+      margin-top:8px;
+      font-size:12px;
+      color:var(--muted);
+    }
+
+    /* Hero Pattern A (LOCKED) */
+    .hero{
+      margin-top:14px;
+      border-radius:18px;
+      overflow:hidden;
+      min-height:280px;
+      background-image:url("/images/elnido/elnido-hero.jpg");
+      background-size:cover;
+      background-position:center;
+      position:relative;
+      box-shadow:var(--shadow);
+    }
+    .hero::before{
+      content:"";
+      position:absolute;
+      inset:0;
+      background:linear-gradient(to top, rgba(0,0,0,0.55), rgba(0,0,0,0.18));
+    }
+    .hero-inner{
+      position:relative;
+      padding:18px;
+      min-height:280px;
+      display:flex;
+      flex-direction:column;
+      justify-content:flex-end;
+      gap:10px;
+    }
+    .hero-title{
+      margin:0;
+      color:#fff;
+      font-size:clamp(28px,4vw,40px);
+      font-weight:600;
+      line-height:1.15;
+      text-shadow:0 2px 6px rgba(0,0,0,0.35);
+    }
+    .hero-sub{
+      margin:0;
+      color:rgba(255,255,255,0.92);
+      font-size:14.5px;
+      max-width:78ch;
+      line-height:1.45;
+    }
+    .hero-actions{
+      display:flex;
+      gap:10px;
+      flex-wrap:wrap;
+      margin-top:6px;
+    }
+    .btn{
+      border-radius:999px;
+      padding:9px 14px;
+      font-size:14px;
+      font-weight:500;
+      border:1px solid transparent;
+      cursor:pointer;
+      display:inline-flex;
+      align-items:center;
+      justify-content:center;
+    }
+    .btn-primary{background:var(--accent);color:#fff;}
+    .btn-secondary{background:rgba(229,242,255,0.95);color:var(--brand);}
+    .btn-ghost{background:rgba(255,255,255,0.14);color:#fff;border:1px solid rgba(255,255,255,0.18);}
+
+    /* Base cards */
+    .content{margin-top:18px;}
+    .card{
+      border:1px solid var(--border);
+      border-radius:16px;
+      background:#fff;
+      box-shadow:var(--shadow2);
+    }
+    .section{
+      margin-top:14px;
+      padding:14px 16px;
+    }
+    .section-title{
+      margin:0 0 8px;
+      font-size:15px;
+      font-weight:600;
+      color:var(--brand);
+    }
+    .muted{
+      font-size:12.8px;
+      color:#4b5563;
+      line-height:1.6;
+      white-space:pre-line;
+      margin:0;
+    }
+
+    /* Reality tiles */
+    .reality{
+      margin-top:14px;
+      display:grid;
+      grid-template-columns:1fr 1fr;
+      gap:14px;
+    }
+    .reality h3{
+      margin:0 0 8px;
+      font-size:13px;
+      font-weight:600;
+    }
+
+    /* Route */
+    .route{
+      margin-top:14px;
+    }
+    .route ul{
+      margin:0;
+      padding-left:18px;
+      font-size:12.5px;
+      color:#4b5563;
+      line-height:1.55;
+    }
+    .route li{margin-bottom:6px;}
+
+    /* Checklist grid */
+    .checklists{
+      margin-top:14px;
+      display:grid;
+      grid-template-columns:repeat(3,1fr);
+      gap:14px;
+    }
+    .checklists h3{
+      margin:0 0 8px;
+      font-size:13px;
+      font-weight:600;
+    }
+    .checklists ul{
+      margin:0;
+      padding-left:18px;
+      font-size:12.5px;
+      color:#4b5563;
+      line-height:1.55;
+    }
+
+    /* Mistakes */
+    .mistakes{
+      margin-top:14px;
+      border-left:4px solid var(--accent);
+      background:#fff7f4;
+    }
+
+    /* Spotlights */
+    .spotlights{
+      margin-top:14px;
+      display:grid;
+      gap:14px;
+    }
+    .spotlight{
+      display:grid;
+      grid-template-columns:120px 1fr;
+      gap:14px;
+      align-items:center;
+      padding:14px 16px;
+    }
+    .spotlight.alt{
+      grid-template-columns:1fr 120px;
+    }
+    .spotlight-img{
+      width:120px;
+      height:120px;
+      border-radius:999px;
+      background-size:cover;
+      background-position:center;
+      box-shadow:0 18px 40px rgba(15,23,42,0.18);
+      border:1px solid rgba(229,231,235,0.9);
+    }
+
+    /* FAQ */
+    .faq{margin-top:14px;padding:14px 16px;}
+    details{
+      border-top:1px solid var(--border);
+      padding:10px 0;
+    }
+    details:first-of-type{border-top:none;padding-top:0;}
+    summary{
+      cursor:pointer;
+      font-size:13px;
+      font-weight:600;
+      list-style:none;
+    }
+    summary::-webkit-details-marker{display:none;}
+    .faq p{
+      margin:8px 0 0;
+      font-size:12.8px;
+      color:#4b5563;
+      line-height:1.6;
+    }
+
+    /* Footer */
+    footer{
+      border-top:1px solid var(--border);
+      padding:14px 20px 22px;
+      font-size:12px;
+      color:#6b7280;
+      text-align:center;
+      margin-top:auto;
+    }
+    footer a{text-decoration:underline;color:inherit;}
+
+    @media(max-width:768px){
+      .page{padding:12px 16px 28px;}
+      .reality{grid-template-columns:1fr;}
+      .checklists{grid-template-columns:1fr;}
+      .spotlight,.spotlight.alt{grid-template-columns:1fr;}
+    }
+  </style>
+</head>
+
+<body>
+  <div class="page">
+    <header class="nav">
+      <div class="nav-left">
+        <a href="https://www.lolaelo.com">
+          <img src="https://www.lolaelo.com/logo.png?cb=logo-1x" alt="Lolaelo" class="logo-img">
+        </a>
+      </div>
+      <nav class="nav-right">
+        <a class="nav-link-back" href="/destinations/elnido/index.html">
+          <span class="nav-back-arrow">←</span><span>El Nido guide</span>
+        </a>
+      </nav>
+    </header>
+
+    <div class="crumbs">
+      <span>Big & Small Lagoon</span>
+    </div>
+
+    <main class="content">
+      <section class="hero">
+        <div class="hero-inner">
+          <h1 class="hero-title">Big & Small Lagoon</h1>
+          <p class="hero-sub">
+            These are the signature visuals of El Nido. They are also the most timing-sensitive stops in Bacuit Bay.
+          </p>
+          <div class="hero-actions">
+            <a class="btn btn-primary" href="https://lolaelo-api.onrender.com/catalog.html?q=elnido">Browse stays</a>
+            <a class="btn btn-secondary" href="/destinations/elnido/index.html#top10">Jump to Top 10</a>
+            <a class="btn btn-ghost" href="/destinations/elnido/index.html">Back to guide</a>
+          </div>
+        </div>
+      </section>
+
+      <!-- Reality Check -->
+      <section class="reality">
+        <div class="card section">
+          <h3>What it is</h3>
+          <p class="muted">
+A dramatic limestone lagoon with calm water, usually reached by kayak.
+When timed right, it is genuinely memorable.
+          </p>
+        </div>
+        <div class="card section">
+          <h3>What it is not</h3>
+          <p class="muted">
+A quiet, empty escape.
+Midday crowds and queueing can flatten the experience fast.
+          </p>
+        </div>
+      </section>
+
+      <!-- Route -->
+      <section class="card section route">
+        <h2 class="section-title">The plan that works</h2>
+        <ul>
+          <li>Go early. This matters more here than anywhere else.</li>
+          <li>Enter, paddle, and exit before the bulk of boats arrive.</li>
+          <li>Spend your time in the water, not waiting on the platform.</li>
+        </ul>
+      </section>
+
+      <!-- Checklists -->
+      <section class="checklists">
+        <div class="card section">
+          <h3>Bring</h3>
+          <ul>
+            <li>Dry bag</li>
+            <li>Water shoes</li>
+            <li>Sun protection</li>
+          </ul>
+        </div>
+        <div class="card section">
+          <h3>Nice to have</h3>
+          <ul>
+            <li>Kayak gloves</li>
+            <li>Snorkel mask</li>
+            <li>Light towel</li>
+          </ul>
+        </div>
+        <div class="card section">
+          <h3>Skip</h3>
+          <ul>
+            <li>Bulky backpacks</li>
+            <li>Expectations of solitude</li>
+            <li>Late arrival plans</li>
+          </ul>
+        </div>
+      </section>
+
+      <!-- Mistakes -->
+      <section class="card section mistakes">
+        <h2 class="section-title">Mistakes that ruin this stop</h2>
+        <p class="muted">
+Showing up late, rushing through for photos, and stacking this with too many other stops in one day.
+This is a timing play, not a checklist item.
+        </p>
+      </section>
+
+      <!-- Spotlights -->
+      <section class="spotlights">
+        <div class="card spotlight">
+          <div class="spotlight-img" style="background-image:url('/images/elnido/elnido-spotlight-lagoon.jpg');"></div>
+          <div>
+            <h3>Early entry changes everything</h3>
+            <p class="muted">
+The same lagoon feels completely different at 8am versus noon.
+            </p>
+          </div>
+        </div>
+
+        <div class="card spotlight alt">
+          <div>
+            <h3>Less time, better memory</h3>
+            <p class="muted">
+You do not need long here. You need the right window.
+            </p>
+          </div>
+          <div class="spotlight-img" style="background-image:url('/images/elnido/elnido-spotlight-beach.jpg');"></div>
+        </div>
+      </section>
+
+      <!-- FAQ -->
+      <section class="card faq">
+        <h2 class="section-title">FAQ</h2>
+
+        <details>
+          <summary>Big Lagoon or Small Lagoon?</summary>
+          <p>If you only do one, Big Lagoon. If timing is good, doing both back to back works.</p>
+        </details>
+
+        <details>
+          <summary>Is kayaking required?</summary>
+          <p>Usually yes. That is part of the experience and part of the bottleneck.</p>
+        </details>
+
+        <details>
+          <summary>Is this good for kids?</summary>
+          <p>Yes, if conditions are calm and you go early. Avoid peak hours.</p>
+        </details>
+      </section>
+    </main>
+  </div>
+
+  <footer>
+    © <span id="year"></span> Lolaelo ·
+    <a href="https://lolaelo-api.onrender.com/privacy.html">Privacy</a>
+    <a href="https://lolaelo-api.onrender.com/terms.html">Terms</a>
+  </footer>
+
+  <script>
+    document.getElementById("year").textContent = new Date().getFullYear();
+  </script>
+</body>
+</html>

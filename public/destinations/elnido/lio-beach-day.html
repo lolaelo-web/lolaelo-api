@@ -1,0 +1,481 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Lio Beach Day | El Nido Easy Mode (Lolaelo)</title>
+  <meta name="description" content="A practical guide to Lio Beach day trip in El Nido: who it’s for, a simple timeline, do/don’t rules, and how to keep it frictionless." />
+
+  <link rel="icon" href="https://www.lolaelo.com/logo2.png" />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+
+  <style>
+    :root{
+      --bg:#ffffff;
+      --fg:#111827;
+      --muted:#6b7280;
+      --brand:#064e3b;
+      --accent:#ff6a3d;
+      --border:#e5e7eb;
+      --max-width:960px;
+      --shadow:0 12px 30px rgba(15,23,42,0.10);
+      --shadow2:0 10px 24px rgba(15,23,42,0.06);
+    }
+
+    *{box-sizing:border-box;}
+    html,body{margin:0;padding:0;height:100%;}
+    body{
+      font-family:Inter,ui-sans-serif,system-ui,-apple-system,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
+      background:var(--bg);
+      color:var(--fg);
+      display:flex;
+      flex-direction:column;
+      min-height:100vh;
+    }
+    a{color:inherit;text-decoration:none;}
+
+    .page{
+      width:100%;
+      max-width:var(--max-width);
+      margin:0 auto;
+      padding:16px 20px 40px;
+      display:flex;
+      flex-direction:column;
+      flex:1;
+    }
+
+    /* Header (LOCKED) */
+    .nav{
+      display:flex;
+      align-items:center;
+      justify-content:space-between;
+      padding:4px 0 12px;
+    }
+    .nav-left{display:flex;align-items:center;gap:8px;}
+    .logo-img{height:32px;width:auto;display:block;}
+    .nav-right{
+      display:flex;
+      align-items:center;
+      gap:20px;
+      font-size:14px;
+    }
+    .nav-link-back{
+      display:inline-flex;
+      align-items:center;
+      gap:6px;
+      color:var(--brand);
+      font-weight:500;
+    }
+    .nav-back-arrow{
+      font-size:16px;
+      transform:translateY(1px);
+    }
+    .nav-link-back:hover span:last-child{text-decoration:underline;}
+    .nav-link-back:hover .nav-back-arrow{
+      transform:translate(-2px,1px);
+      transition:transform 0.15s ease-out;
+    }
+
+    /* Breadcrumb */
+    .crumbs{
+      margin-top:8px;
+      font-size:12px;
+      color:var(--muted);
+    }
+
+    /* Hero Pattern A (LOCKED) */
+    .hero{
+      margin-top:14px;
+      border-radius:18px;
+      overflow:hidden;
+      min-height:280px;
+      background-image:url("/images/elnido/elnido-hero.jpg");
+      background-size:cover;
+      background-position:center;
+      position:relative;
+      box-shadow:var(--shadow);
+    }
+    .hero::before{
+      content:"";
+      position:absolute;
+      inset:0;
+      background:linear-gradient(to top, rgba(0,0,0,0.55), rgba(0,0,0,0.18));
+    }
+    .hero-inner{
+      position:relative;
+      padding:18px;
+      min-height:280px;
+      display:flex;
+      flex-direction:column;
+      justify-content:flex-end;
+      gap:10px;
+    }
+    .hero-title{
+      margin:0;
+      color:#fff;
+      font-size:clamp(28px,4vw,40px);
+      font-weight:600;
+      line-height:1.15;
+      text-shadow:0 2px 6px rgba(0,0,0,0.35);
+    }
+    .hero-sub{
+      margin:0;
+      color:rgba(255,255,255,0.92);
+      font-size:14.5px;
+      max-width:78ch;
+      line-height:1.45;
+    }
+    .hero-actions{
+      display:flex;
+      gap:10px;
+      flex-wrap:wrap;
+      margin-top:6px;
+    }
+    .btn{
+      border-radius:999px;
+      padding:9px 14px;
+      font-size:14px;
+      font-weight:500;
+      border:1px solid transparent;
+      cursor:pointer;
+      display:inline-flex;
+      align-items:center;
+      justify-content:center;
+    }
+    .btn-primary{background:var(--accent);color:#fff;}
+    .btn-secondary{background:rgba(229,242,255,0.95);color:var(--brand);}
+    .btn-ghost{background:rgba(255,255,255,0.14);color:#fff;border:1px solid rgba(255,255,255,0.18);}
+
+    /* Base cards */
+    .content{margin-top:18px;}
+    .card{
+      border:1px solid var(--border);
+      border-radius:16px;
+      background:#fff;
+      box-shadow:var(--shadow2);
+    }
+    .section{
+      margin-top:14px;
+      padding:14px 16px;
+    }
+    .section-title{
+      margin:0 0 8px;
+      font-size:15px;
+      font-weight:600;
+      color:var(--brand);
+    }
+    .muted{
+      font-size:12.8px;
+      color:#4b5563;
+      line-height:1.6;
+      white-space:pre-line;
+      margin:0;
+    }
+
+    /* Decision strips */
+    .decisions{
+      margin-top:14px;
+      display:grid;
+      grid-template-columns:1fr 1fr;
+      gap:14px;
+    }
+    .strip{
+      padding:14px 16px;
+      border-radius:16px;
+      border:1px solid var(--border);
+      background:#ffffff;
+      box-shadow:var(--shadow2);
+    }
+    .strip h3{
+      margin:0 0 8px;
+      font-size:13px;
+      font-weight:600;
+      color:#111827;
+    }
+    .strip ul{
+      margin:0;
+      padding-left:18px;
+      font-size:12.5px;
+      color:#4b5563;
+      line-height:1.55;
+    }
+    .strip li{margin-bottom:6px;}
+
+    /* Timeline blocks */
+    .timeline{
+      margin-top:14px;
+      display:grid;
+      grid-template-columns:repeat(3,1fr);
+      gap:14px;
+    }
+    .timebox h3{
+      margin:0 0 8px;
+      font-size:13px;
+      font-weight:600;
+      color:#111827;
+    }
+    .timebox p{
+      margin:0;
+      font-size:12.8px;
+      color:#4b5563;
+      line-height:1.6;
+      white-space:pre-line;
+    }
+
+    /* Do / Don't panels */
+    .dos{
+      margin-top:14px;
+      display:grid;
+      grid-template-columns:1fr 1fr;
+      gap:14px;
+    }
+    .dos h3{
+      margin:0 0 10px;
+      font-size:13px;
+      font-weight:600;
+      color:#111827;
+    }
+    .dos ul{
+      margin:0;
+      padding-left:18px;
+      font-size:12.5px;
+      color:#4b5563;
+      line-height:1.55;
+    }
+
+    /* Spotlights */
+    .spotlights{
+      margin-top:14px;
+      display:grid;
+      gap:14px;
+    }
+    .spotlight{
+      display:grid;
+      grid-template-columns:120px 1fr;
+      gap:14px;
+      align-items:center;
+      padding:14px 16px;
+    }
+    .spotlight.alt{
+      grid-template-columns:1fr 120px;
+    }
+    .spotlight-img{
+      width:120px;
+      height:120px;
+      border-radius:999px;
+      background-size:cover;
+      background-position:center;
+      box-shadow:0 18px 40px rgba(15,23,42,0.18);
+      border:1px solid rgba(229,231,235,0.9);
+    }
+
+    /* FAQ */
+    .faq{margin-top:14px;padding:14px 16px;}
+    details{
+      border-top:1px solid var(--border);
+      padding:10px 0;
+    }
+    details:first-of-type{border-top:none;padding-top:0;}
+    summary{
+      cursor:pointer;
+      font-size:13px;
+      font-weight:600;
+      list-style:none;
+    }
+    summary::-webkit-details-marker{display:none;}
+    .faq p{
+      margin:8px 0 0;
+      font-size:12.8px;
+      color:#4b5563;
+      line-height:1.6;
+    }
+
+    /* Footer */
+    footer{
+      border-top:1px solid var(--border);
+      padding:14px 20px 22px;
+      font-size:12px;
+      color:#6b7280;
+      text-align:center;
+      margin-top:auto;
+    }
+    footer a{text-decoration:underline;color:inherit;}
+
+    @media(max-width:768px){
+      .page{padding:12px 16px 28px;}
+      .decisions{grid-template-columns:1fr;}
+      .timeline{grid-template-columns:1fr;}
+      .dos{grid-template-columns:1fr;}
+      .spotlight,.spotlight.alt{grid-template-columns:1fr;}
+    }
+  </style>
+</head>
+
+<body>
+  <div class="page">
+    <header class="nav">
+      <div class="nav-left">
+        <a href="https://www.lolaelo.com">
+          <img src="https://www.lolaelo.com/logo.png?cb=logo-1x" alt="Lolaelo" class="logo-img">
+        </a>
+      </div>
+      <nav class="nav-right">
+        <a class="nav-link-back" href="/destinations/elnido/index.html">
+          <span class="nav-back-arrow">←</span><span>El Nido guide</span>
+        </a>
+      </nav>
+    </header>
+
+    <div class="crumbs">
+      <span>Lio Beach day</span>
+    </div>
+
+    <main class="content">
+      <section class="hero">
+        <div class="hero-inner">
+          <h1 class="hero-title">Lio Beach day</h1>
+          <p class="hero-sub">
+            This is El Nido on easy mode. Clean, low friction, and family-friendly. When you want a simple day that still feels good, go here.
+          </p>
+          <div class="hero-actions">
+            <a class="btn btn-primary" href="https://lolaelo-api.onrender.com/catalog.html?q=elnido">Browse stays</a>
+            <a class="btn btn-secondary" href="/destinations/elnido/index.html#top10">Jump to Top 10</a>
+            <a class="btn btn-ghost" href="/destinations/elnido/index.html">Back to guide</a>
+          </div>
+        </div>
+      </section>
+
+      <section class="card section">
+        <h2 class="section-title">Why Lio works</h2>
+        <p class="muted">
+Lio is the “no drama” option.
+It’s a clean beach day without the feeling that you need to grind through logistics.
+It’s also one of the best fallback plans when weather is unstable.
+        </p>
+      </section>
+
+      <!-- Decision strips -->
+      <section class="decisions">
+        <div class="strip">
+          <h3>Do this if...</h3>
+          <ul>
+            <li>You want a clean, easy beach day.</li>
+            <li>You’re with kids or a mixed-energy group.</li>
+            <li>Weather is questionable and you want a low-risk plan.</li>
+          </ul>
+        </div>
+
+        <div class="strip">
+          <h3>Skip this if...</h3>
+          <ul>
+            <li>You only have one day and want the signature lagoons.</li>
+            <li>You’re chasing a “remote beach” vibe (Nacpan fits better).</li>
+            <li>You’re already overloaded with beach days and need variety.</li>
+          </ul>
+        </div>
+      </section>
+
+      <!-- Timeline -->
+      <section class="timeline">
+        <div class="card section timebox">
+          <h3>Before</h3>
+          <p>
+Pack light.
+Bring shade, hydration, and one simple snack.
+Decide your “leave time” in advance.
+          </p>
+        </div>
+
+        <div class="card section timebox">
+          <h3>During</h3>
+          <p>
+Set up once and stay.
+Swim, walk, eat, reset.
+Keep it slow on purpose.
+          </p>
+        </div>
+
+        <div class="card section timebox">
+          <h3>After</h3>
+          <p>
+Early dinner in town or keep it simple and rest.
+If tomorrow is a tour day, protect your sleep.
+          </p>
+        </div>
+      </section>
+
+      <!-- Do / Don't -->
+      <section class="dos">
+        <div class="card section">
+          <h3>Do</h3>
+          <ul>
+            <li>Use this as your weather backup plan.</li>
+            <li>Protect a real “do nothing” block.</li>
+            <li>Bring shade and hydration.</li>
+            <li>Leave before you’re exhausted.</li>
+          </ul>
+        </div>
+
+        <div class="card section">
+          <h3>Don’t</h3>
+          <ul>
+            <li>Overthink it.</li>
+            <li>Try to stack this with a tour.</li>
+            <li>Carry heavy gear around all day.</li>
+            <li>Turn it into a “content mission.”</li>
+          </ul>
+        </div>
+      </section>
+
+      <!-- Spotlights -->
+      <section class="spotlights">
+        <div class="card spotlight">
+          <div class="spotlight-img" style="background-image:url('/images/elnido/elnido-lio-beach.jpg');"></div>
+          <div>
+            <h3>Best fallback day in El Nido</h3>
+            <p class="muted">When conditions aren’t right for a boat day, Lio keeps the trip moving without stress.</p>
+          </div>
+        </div>
+
+        <div class="card spotlight alt">
+          <div>
+            <h3>Easy does not mean “less valuable”</h3>
+            <p class="muted">A low-friction day can be the difference between a great trip and a tiring one.</p>
+          </div>
+          <div class="spotlight-img" style="background-image:url('/images/elnido/elnido-spotlight-sunset.jpg');"></div>
+        </div>
+      </section>
+
+      <!-- FAQ -->
+      <section class="card faq">
+        <h2 class="section-title">FAQ</h2>
+
+        <details>
+          <summary>Lio or Nacpan?</summary>
+          <p>Lio is easier and cleaner. Nacpan is bigger and more “beach day” feeling. If you want zero friction, pick Lio.</p>
+        </details>
+
+        <details>
+          <summary>Is this good for kids?</summary>
+          <p>Yes. It’s one of the easiest family-friendly beach options around El Nido.</p>
+        </details>
+
+        <details>
+          <summary>What’s the most common mistake?</summary>
+          <p>Trying to turn it into a packed itinerary. The value is the simplicity. Keep it simple.</p>
+        </details>
+      </section>
+    </main>
+  </div>
+
+  <footer>
+    © <span id="year"></span> Lolaelo ·
+    <a href="https://lolaelo-api.onrender.com/privacy.html">Privacy</a>
+    <a href="https://lolaelo-api.onrender.com/terms.html">Terms</a>
+  </footer>
+
+  <script>
+    document.getElementById("year").textContent = new Date().getFullYear();
+  </script>
+</body>
+</html>
