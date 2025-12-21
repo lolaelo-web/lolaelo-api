@@ -1,0 +1,280 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Manila Bay Sunset Walk Guide | Manila (Lolaelo)</title>
+  <meta name="description" content="A practical Manila Bay sunset plan: when to show up, where to walk, what to avoid, and how to pair it with dinner without wasting time." />
+
+  <link rel="icon" href="https://www.lolaelo.com/logo2.png" />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+
+  <style>
+    :root{
+      --bg:#ffffff;
+      --fg:#111827;
+      --muted:#6b7280;
+      --brand:#064e3b;
+      --accent:#ff6a3d;
+      --border:#e5e7eb;
+      --max: 980px;
+      --shadow: 0 12px 30px rgba(15,23,42,0.10);
+      --radius: 18px;
+    }
+    *{ box-sizing:border-box; }
+    body{
+      margin:0;
+      font-family: Inter, system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, sans-serif;
+      background:var(--bg);
+      color:var(--fg);
+      min-height:100vh;
+      display:flex;
+      flex-direction:column;
+    }
+    a{ color:inherit; text-decoration:none; }
+    .page{ max-width:var(--max); margin:0 auto; padding:16px 20px 40px; flex:1; }
+
+    .nav{ display:flex; justify-content:space-between; padding:4px 0 12px; }
+    .logo-img{ height:32px; }
+    .back-link{ display:inline-flex; align-items:center; gap:8px; color:var(--brand); font-size:14px; font-weight:500; }
+    .back-link:hover span:last-child{ text-decoration:underline; }
+    .back-arrow{ font-size:16px; transform: translateY(1px); }
+
+    .crumbs{ margin-top:8px; font-size:12px; color:var(--muted); }
+
+    .hero-grid{ margin-top:14px; display:grid; grid-template-columns:1.05fr 0.95fr; gap:14px; align-items:stretch; }
+    .hero-img{ border-radius:var(--radius); overflow:hidden; border:1px solid var(--border); box-shadow:var(--shadow); min-height:330px; }
+    .hero-img img{ width:100%; height:100%; object-fit:cover; display:block; }
+    .hero-card{ border-radius:var(--radius); border:1px solid var(--border); box-shadow:var(--shadow); padding:16px 16px 14px; display:flex; flex-direction:column; gap:10px; min-height:330px; background:#fff; }
+
+    .hero-title{ margin:0; font-size:28px; font-weight:600; letter-spacing:-0.01em; }
+    .hero-lede{ font-size:13.5px; color:#4b5563; line-height:1.6; margin:0; }
+
+    .chips{ display:flex; flex-wrap:wrap; gap:8px; }
+    .chip{ font-size:12px; padding:6px 10px; border-radius:999px; border:1px solid var(--border); background:#fafafa; }
+
+    .kpis{ display:grid; grid-template-columns:repeat(2,1fr); gap:10px; }
+    .kpi{ border:1px solid var(--border); border-radius:14px; padding:10px; }
+    .kpi .label{ font-size:11px; color:var(--muted); }
+    .kpi .val{ font-size:13px; font-weight:600; }
+
+    .cta-row{ margin-top:auto; display:flex; gap:10px; flex-wrap:wrap; }
+    .btn{ border-radius:999px; padding:9px 14px; font-size:14px; font-weight:500; border:1px solid transparent; display:inline-flex; align-items:center; justify-content:center; }
+    .btn-primary{ background:var(--accent); color:#fff; }
+    .btn-secondary{ border-color:var(--border); color:var(--brand); background:#fff; }
+
+    /* Layout: Decision Strips + Timeline + Do/Don't (adapted for sunset) */
+    .strips{
+      margin-top:16px;
+      display:grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap:14px;
+    }
+    .strip{
+      border:1px solid var(--border);
+      border-radius:16px;
+      padding:14px 14px;
+      background:#ffffff;
+      box-shadow: 0 10px 24px rgba(15,23,42,0.06);
+    }
+    .strip .title{ font-size:13px; font-weight:600; margin:0 0 8px; color:#111827; }
+    .strip .text{ margin:0; font-size:12.8px; line-height:1.6; color:#4b5563; white-space:pre-line; }
+
+    .timeline{
+      margin-top:14px;
+      border:1px solid var(--border);
+      border-radius:16px;
+      padding:14px 16px;
+      background:#ffffff;
+      box-shadow: 0 10px 24px rgba(15,23,42,0.06);
+    }
+    .timeline h2{ margin:0 0 10px; font-size:15px; color:var(--brand); font-weight:600; }
+    .tl{
+      display:grid;
+      grid-template-columns: 110px 1fr;
+      gap:10px 14px;
+      align-items:start;
+    }
+    .time{
+      font-size:12px;
+      color:#6b7280;
+      font-weight:600;
+      padding-top:2px;
+    }
+    .event{
+      border-left:2px solid rgba(6,78,59,0.25);
+      padding-left:12px;
+      margin-left:2px;
+    }
+    .event .t{ margin:0 0 4px; font-size:13px; font-weight:600; color:#111827; }
+    .event .d{ margin:0; font-size:12.8px; line-height:1.6; color:#4b5563; white-space:pre-line; }
+
+    .spotlights{ margin-top:14px; display:grid; grid-template-columns:repeat(2,1fr); gap:14px; }
+    .spot{ border:1px solid var(--border); border-radius:18px; overflow:hidden; box-shadow:var(--shadow); }
+    .spot img{ width:100%; height:220px; object-fit:cover; display:block; }
+    .spot .body{ padding:12px 14px; }
+    .spot .title{ font-size:14px; font-weight:600; margin:0 0 6px; }
+    .spot .text{ margin:0; font-size:12.8px; color:#4b5563; line-height:1.6; white-space:pre-line; }
+
+    .grid-2{ margin-top:14px; display:grid; grid-template-columns:1fr 1fr; gap:14px; }
+    .card{ border:1px solid var(--border); border-radius:16px; padding:14px 16px; background:#fff; box-shadow:0 10px 24px rgba(15,23,42,0.06); }
+    .card h2{ margin:0 0 10px; font-size:15px; color:var(--brand); font-weight:600; }
+    .card ul{ margin:0; padding-left:18px; font-size:12.6px; color:#4b5563; line-height:1.6; }
+    .card li{ margin-bottom:6px; }
+
+    footer{ border-top:1px solid var(--border); padding:14px 20px 22px; font-size:12px; color:var(--muted); text-align:center; }
+    footer a{ color:inherit; text-decoration:underline; }
+
+    @media(max-width:860px){
+      .hero-grid{ grid-template-columns:1fr; }
+      .strips{ grid-template-columns:1fr; }
+      .spotlights,.grid-2{ grid-template-columns:1fr; }
+      .tl{ grid-template-columns: 1fr; }
+      .time{ padding-top:0; }
+    }
+  </style>
+</head>
+
+<body>
+  <div class="page">
+    <header class="nav">
+      <a href="https://www.lolaelo.com" aria-label="Lolaelo home">
+        <img src="https://www.lolaelo.com/logo.png?cb=logo-1x" class="logo-img" alt="Lolaelo" loading="eager">
+      </a>
+      <a class="back-link" href="/destinations/manila/index.html" aria-label="Back to Manila guide">
+        <span class="back-arrow">←</span>
+        <span>Manila guide</span>
+      </a>
+    </header>
+
+    <div class="crumbs" aria-label="Breadcrumb">Manila Bay sunset</div>
+
+    <main role="main">
+      <section class="hero-grid" aria-label="Hero">
+        <div class="hero-img">
+          <img src="/images/manila/hero-manila-bay-sunset.jpg" alt="Manila Bay sunset">
+        </div>
+        <div class="hero-card">
+          <h1 class="hero-title">Manila Bay sunset walk</h1>
+          <p class="hero-lede">
+            This is one of the easiest wins in Manila. Show up with time, walk slow, and go straight to dinner.
+          </p>
+
+          <div class="chips">
+            <span class="chip">Best time: sunset</span>
+            <span class="chip">Duration: 60 to 90 min</span>
+            <span class="chip">Effort: low</span>
+            <span class="chip">Vibe: calm</span>
+          </div>
+
+          <div class="kpis">
+            <div class="kpi"><div class="label">Show up</div><div class="val">30 to 45 min early</div></div>
+            <div class="kpi"><div class="label">Walk length</div><div class="val">short and easy</div></div>
+            <div class="kpi"><div class="label">Best combo</div><div class="val">after museums</div></div>
+            <div class="kpi"><div class="label">Hard rule</div><div class="val">do not rush</div></div>
+          </div>
+
+          <div class="cta-row">
+            <a class="btn btn-primary" href="https://lolaelo-api.onrender.com/catalog.html?q=manila">Browse stays</a>
+            <a class="btn btn-secondary" href="/destinations/manila/index.html">Back to Manila guide</a>
+          </div>
+        </div>
+      </section>
+
+      <section class="strips" aria-label="Decision strips">
+        <div class="strip">
+          <p class="title">If the sky looks gray</p>
+          <p class="text">Go anyway. The walk still works. Just shorten it and end with dinner.</p>
+        </div>
+        <div class="strip">
+          <p class="title">If you are tired</p>
+          <p class="text">Sit for 10 minutes first. Then walk a short lane. Do not force distance.</p>
+        </div>
+        <div class="strip">
+          <p class="title">If you want photos</p>
+          <p class="text">Pick two angles and commit. Chasing every shot kills the vibe.</p>
+        </div>
+      </section>
+
+      <section class="timeline" aria-label="Timeline">
+        <h2>Simple sunset timeline</h2>
+        <div class="tl">
+          <div class="time">T-45</div>
+          <div class="event">
+            <p class="t">Arrive and reset</p>
+            <p class="d">Water, shade, and a quick check of where dinner is after.</p>
+          </div>
+
+          <div class="time">T-25</div>
+          <div class="event">
+            <p class="t">Start the walk</p>
+            <p class="d">Walk slow. Keep it light. The point is calm, not steps.</p>
+          </div>
+
+          <div class="time">Sunset</div>
+          <div class="event">
+            <p class="t">Stop and watch</p>
+            <p class="d">Stand still for 5 minutes. You will remember this more than the walking.</p>
+          </div>
+
+          <div class="time">T+15</div>
+          <div class="event">
+            <p class="t">Exit clean</p>
+            <p class="d">Do not linger too long. Go straight to dinner while the mood is strong.</p>
+          </div>
+        </div>
+      </section>
+
+      <section class="spotlights" aria-label="Spotlights">
+        <article class="spot">
+          <img src="/images/manila/spot-manila-bay-walk.jpg" alt="Manila Bay walk" loading="lazy">
+          <div class="body">
+            <h3 class="title">Walk lane</h3>
+            <p class="text">Pick one clean stretch and repeat it. This prevents “aimless wandering.”</p>
+          </div>
+        </article>
+
+        <article class="spot">
+          <img src="/images/manila/spot-manila-bay-skyline.jpg" alt="Manila Bay skyline" loading="lazy">
+          <div class="body">
+            <h3 class="title">Two-photo rule</h3>
+            <p class="text">Get one wide shot and one close shot. Then stop. Enjoy the rest.</p>
+          </div>
+        </article>
+      </section>
+
+      <section class="grid-2" aria-label="Do and don't">
+        <div class="card">
+          <h2>Do</h2>
+          <ul>
+            <li>Arrive early and walk slow</li>
+            <li>Keep a dinner plan ready</li>
+            <li>Bring water and a light layer</li>
+            <li>Use ride-hail after dark</li>
+          </ul>
+        </div>
+
+        <div class="card">
+          <h2>Do not</h2>
+          <ul>
+            <li>Show up last-minute and sprint for photos</li>
+            <li>Over-walk when you are tired</li>
+            <li>Get stuck deciding dinner after sunset</li>
+            <li>Turn this into a cross-city commute</li>
+          </ul>
+        </div>
+      </section>
+    </main>
+  </div>
+
+  <footer>
+    © <span id="year"></span> Lolaelo ·
+    <a href="https://lolaelo-api.onrender.com/privacy.html" target="_blank" rel="noopener">Privacy</a>
+    <a href="https://lolaelo-api.onrender.com/terms.html" target="_blank" rel="noopener">Terms</a>
+  </footer>
+
+  <script>
+    document.getElementById("year").textContent = new Date().getFullYear();
+  </script>
+</body>
+</html>

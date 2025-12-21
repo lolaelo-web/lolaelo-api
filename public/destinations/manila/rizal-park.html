@@ -1,0 +1,484 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Rizal Park Guide | Manila (Lolaelo)</title>
+  <meta name="description" content="A simple, practical Rizal Park visit. What to do, what to skip, best time to go, and how to pair it with museums and Manila Bay." />
+
+  <link rel="icon" href="https://www.lolaelo.com/logo2.png" />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+
+  <style>
+    :root{
+      --bg:#ffffff;
+      --fg:#111827;
+      --muted:#6b7280;
+      --brand:#064e3b;
+      --accent:#ff6a3d;
+      --border:#e5e7eb;
+      --max: 980px;
+      --shadow: 0 12px 30px rgba(15,23,42,0.10);
+      --radius: 18px;
+    }
+
+    *{ box-sizing:border-box; }
+    html,body{ margin:0; padding:0; }
+    body{
+      font-family: Inter, ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+      background:var(--bg);
+      color:var(--fg);
+      min-height:100vh;
+      display:flex;
+      flex-direction:column;
+    }
+
+    a{ color:inherit; text-decoration:none; }
+
+    .page{
+      width:100%;
+      max-width:var(--max);
+      margin:0 auto;
+      padding:16px 20px 40px;
+      flex:1;
+    }
+
+    /* Header (canonical) */
+    .nav{
+      display:flex;
+      align-items:center;
+      justify-content:space-between;
+      padding:4px 0 12px;
+    }
+    .logo-img{ height:32px; width:auto; display:block; }
+    .back-link{
+      display:inline-flex;
+      align-items:center;
+      gap:8px;
+      color:var(--brand);
+      font-size:14px;
+      font-weight:500;
+    }
+    .back-link:hover span:last-child{ text-decoration:underline; }
+    .back-arrow{
+      font-size:16px;
+      line-height:1;
+      transform: translateY(1px);
+      transition: transform .15s ease-out;
+      text-decoration:none !important;
+    }
+    .back-link:hover .back-arrow{ transform: translate(-2px, 1px); }
+
+    /* Breadcrumb */
+    .crumbs{
+      margin-top:8px;
+      font-size:12px;
+      color:var(--muted);
+    }
+
+    /* HeroGrid */
+    .hero-grid{
+      margin-top:14px;
+      display:grid;
+      grid-template-columns: 1.05fr 0.95fr;
+      gap:14px;
+      align-items:stretch;
+    }
+
+    .hero-img{
+      border-radius:var(--radius);
+      overflow:hidden;
+      border:1px solid var(--border);
+      box-shadow:var(--shadow);
+      background:#f8fafc;
+      min-height:330px;
+    }
+    .hero-img img{
+      width:100%;
+      height:100%;
+      object-fit:cover;
+      display:block;
+    }
+
+    .hero-card{
+      border-radius:var(--radius);
+      border:1px solid var(--border);
+      background:#ffffff;
+      box-shadow:var(--shadow);
+      padding:16px 16px 14px;
+      display:flex;
+      flex-direction:column;
+      gap:10px;
+      min-height:330px;
+    }
+
+    .hero-title{
+      margin:0;
+      font-size:28px;
+      line-height:1.15;
+      letter-spacing:-0.01em;
+      font-weight:600;
+    }
+
+    .hero-lede{
+      margin:0;
+      font-size:13.5px;
+      line-height:1.6;
+      color:#4b5563;
+    }
+
+    .chips{ display:flex; flex-wrap:wrap; gap:8px; margin-top:2px; }
+    .chip{
+      font-size:12px;
+      padding:6px 10px;
+      border-radius:999px;
+      border:1px solid var(--border);
+      color:#374151;
+      background:#fafafa;
+    }
+
+    .kpis{
+      display:grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap:10px;
+      margin-top:2px;
+    }
+    .kpi{
+      border:1px solid var(--border);
+      border-radius:14px;
+      padding:10px 10px;
+      background:#ffffff;
+    }
+    .kpi .label{ font-size:11px; color:#6b7280; margin-bottom:4px; }
+    .kpi .val{ font-size:13px; font-weight:600; color:#111827; }
+
+    .cta-row{
+      display:flex;
+      gap:10px;
+      flex-wrap:wrap;
+      margin-top:auto;
+      padding-top:4px;
+    }
+    .btn{
+      border-radius:999px;
+      padding:9px 14px;
+      font-size:14px;
+      font-weight:500;
+      border:1px solid transparent;
+      display:inline-flex;
+      align-items:center;
+      justify-content:center;
+      gap:8px;
+      white-space:nowrap;
+      cursor:pointer;
+    }
+    .btn-primary{ background:var(--accent); color:#ffffff; }
+    .btn-secondary{ background: rgba(229,242,255,0.95); color: var(--brand); border-color: rgba(229,242,255,0.65); }
+
+    /* Layout: Reality Check + Route + Checklists + Mistakes (light version) */
+    .grid-2{
+      margin-top:16px;
+      display:grid;
+      grid-template-columns: 1fr 1fr;
+      gap:14px;
+      align-items:start;
+    }
+    .card{
+      border:1px solid var(--border);
+      border-radius:16px;
+      padding:14px 16px;
+      background:#ffffff;
+      box-shadow: 0 10px 24px rgba(15,23,42,0.06);
+    }
+    .card h2, .card h3{
+      margin:0 0 10px;
+      font-size:15px;
+      color:var(--brand);
+      font-weight:600;
+    }
+    .card h3{ font-size:13px; color:#111827; }
+    .card p{
+      margin:0 0 10px;
+      font-size:12.8px;
+      line-height:1.65;
+      color:#4b5563;
+      white-space:pre-line;
+    }
+    .card p:last-child{ margin-bottom:0; }
+    .card ul{
+      margin:0;
+      padding-left:18px;
+      font-size:12.6px;
+      line-height:1.6;
+      color:#4b5563;
+    }
+    .card li{ margin-bottom:6px; }
+
+    .route{
+      margin-top:14px;
+      border:1px solid var(--border);
+      border-radius:16px;
+      padding:14px 16px;
+      background:#ffffff;
+      box-shadow: 0 10px 24px rgba(15,23,42,0.06);
+    }
+    .route h2{
+      margin:0 0 10px;
+      font-size:15px;
+      color:var(--brand);
+      font-weight:600;
+    }
+
+    .steps{
+      display:grid;
+      grid-template-columns: repeat(3, minmax(0,1fr));
+      gap:12px;
+    }
+    .step{
+      border:1px solid var(--border);
+      border-radius:14px;
+      padding:12px 12px;
+      background:#ffffff;
+    }
+    .step .num{
+      font-size:11px;
+      color:#6b7280;
+      margin-bottom:6px;
+    }
+    .step .title{
+      font-size:13px;
+      font-weight:600;
+      margin:0 0 6px;
+      color:#111827;
+    }
+    .step .text{
+      margin:0;
+      font-size:12.6px;
+      line-height:1.55;
+      color:#4b5563;
+      white-space:pre-line;
+    }
+
+    .spotlights{
+      margin-top:14px;
+      display:grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap:14px;
+    }
+    .spot{
+      border:1px solid var(--border);
+      border-radius:18px;
+      overflow:hidden;
+      background:#ffffff;
+      box-shadow:var(--shadow);
+    }
+    .spot img{
+      width:100%;
+      height:220px;
+      object-fit:cover;
+      display:block;
+    }
+    .spot .body{ padding:12px 14px 14px; }
+    .spot .title{
+      margin:0 0 6px;
+      font-size:14px;
+      font-weight:600;
+      color:#111827;
+      letter-spacing:-0.01em;
+    }
+    .spot .text{
+      margin:0;
+      font-size:12.8px;
+      line-height:1.6;
+      color:#4b5563;
+      white-space:pre-line;
+    }
+
+    footer{
+      border-top:1px solid var(--border);
+      padding:14px 20px 22px;
+      font-size:12px;
+      color:#6b7280;
+      text-align:center;
+    }
+    footer a{ color:inherit; text-decoration:underline; }
+
+    @media (max-width: 860px){
+      .hero-grid{ grid-template-columns: 1fr; }
+      .hero-img{ min-height: 260px; }
+      .hero-card{ min-height: auto; }
+      .grid-2{ grid-template-columns: 1fr; }
+      .steps{ grid-template-columns: 1fr; }
+      .spotlights{ grid-template-columns: 1fr; }
+      .page{ padding:12px 16px 28px; }
+    }
+  </style>
+</head>
+
+<body>
+  <div class="page">
+    <header class="nav">
+      <a href="https://www.lolaelo.com" aria-label="Lolaelo home">
+        <img
+          src="https://www.lolaelo.com/logo.png?cb=logo-1x"
+          alt="Lolaelo"
+          class="logo-img"
+          decoding="async"
+          loading="eager"
+        >
+      </a>
+
+      <nav aria-label="Top navigation">
+        <a class="back-link" href="/destinations/manila/index.html" aria-label="Back to Manila guide">
+          <span class="back-arrow">←</span>
+          <span>Manila guide</span>
+        </a>
+      </nav>
+    </header>
+
+    <div class="crumbs" aria-label="Breadcrumb">
+      <span>Rizal Park</span>
+    </div>
+
+    <main role="main">
+      <section class="hero-grid" aria-label="Hero">
+        <div class="hero-img">
+          <img src="/images/manila/hero-rizal-park.jpg" alt="Rizal Park Manila" loading="eager" decoding="async">
+        </div>
+
+        <div class="hero-card">
+          <h1 class="hero-title">Rizal Park as a clean reset</h1>
+          <p class="hero-lede">
+            Rizal Park is not a “whole afternoon” destination. It is a reset: open space, quick landmarks, and breathing room between heavier stops.
+          </p>
+
+          <div class="chips" aria-label="Quick chips">
+            <span class="chip">Best time: late afternoon</span>
+            <span class="chip">Duration: 45 to 90 min</span>
+            <span class="chip">Effort: low</span>
+            <span class="chip">Great for: families</span>
+          </div>
+
+          <div class="kpis" aria-label="KPIs">
+            <div class="kpi">
+              <div class="label">Ideal sequencing</div>
+              <div class="val">after museums</div>
+            </div>
+            <div class="kpi">
+              <div class="label">Time cap</div>
+              <div class="val">90 minutes</div>
+            </div>
+            <div class="kpi">
+              <div class="label">Best pairing</div>
+              <div class="val">Manila Bay sunset</div>
+            </div>
+            <div class="kpi">
+              <div class="label">Skip if rushed</div>
+              <div class="val">wandering deep</div>
+            </div>
+          </div>
+
+          <div class="cta-row" aria-label="CTA row">
+            <a class="btn btn-primary" href="https://lolaelo-api.onrender.com/catalog.html?q=manila">Browse stays</a>
+            <a class="btn btn-secondary" href="/destinations/manila/index.html">Back to Manila guide</a>
+          </div>
+        </div>
+      </section>
+
+      <section class="route" aria-label="Route card">
+        <h2>Simple route (3 steps)</h2>
+        <div class="steps">
+          <div class="step">
+            <div class="num">Step 1</div>
+            <p class="title">Monument and quick context</p>
+            <p class="text">Do the core landmark first. Photo, read the plaque, move.</p>
+          </div>
+          <div class="step">
+            <div class="num">Step 2</div>
+            <p class="title">Slow loop and shade</p>
+            <p class="text">Take one calm loop. Sit for 5 minutes. Reset your brain.</p>
+          </div>
+          <div class="step">
+            <div class="num">Step 3</div>
+            <p class="title">Decide your next move</p>
+            <p class="text">If the day still has energy: museums. If it is sunset time: Manila Bay.</p>
+          </div>
+        </div>
+      </section>
+
+      <section class="spotlights" aria-label="Spotlights">
+        <article class="spot">
+          <img src="/images/manila/spot-rizal-park-monument.jpg" alt="Rizal Monument" loading="lazy" decoding="async">
+          <div class="body">
+            <h3 class="title">Monument first, then you relax</h3>
+            <p class="text">
+Get the core landmark done early so you are not circling later.
+Then you can actually enjoy the park.
+            </p>
+          </div>
+        </article>
+
+        <article class="spot">
+          <img src="/images/manila/spot-rizal-park-walk.jpg" alt="Rizal Park walk" loading="lazy" decoding="async">
+          <div class="body">
+            <h3 class="title">A short walk beats a long wander</h3>
+            <p class="text">
+Keep the loop short. Your goal is a reset, not a marathon.
+Leave while it still feels easy.
+            </p>
+          </div>
+        </article>
+      </section>
+
+      <section class="grid-2" aria-label="Checklists">
+        <div class="card">
+          <h2>Reality check</h2>
+          <p>
+If you show up mid-day in heat and crowds, you will not love it.
+This place is best as a late-afternoon calm block or a quick family stop.
+          </p>
+        </div>
+
+        <div class="card">
+          <h2>Do and do not</h2>
+          <ul>
+            <li><strong>Do:</strong> keep a time cap and pair it with museums or Manila Bay</li>
+            <li><strong>Do:</strong> use ride-hail if you are moving on quickly</li>
+            <li><strong>Do not:</strong> force a long loop when it is hot</li>
+            <li><strong>Do not:</strong> make this your “main event” day</li>
+          </ul>
+        </div>
+      </section>
+
+      <section class="grid-2" aria-label="Mistakes">
+        <div class="card">
+          <h2>Common mistakes</h2>
+          <ul>
+            <li>Arriving with no plan and wandering until you are tired</li>
+            <li>Trying to do too much here instead of using it as a connector stop</li>
+            <li>Skipping water and shade, then blaming the park</li>
+          </ul>
+        </div>
+
+        <div class="card">
+          <h2>Smart combo</h2>
+          <p>
+National Museum complex, then Rizal Park for air and space, then Manila Bay sunset.
+That sequence usually works even on a crowded day.
+          </p>
+        </div>
+      </section>
+    </main>
+  </div>
+
+  <footer>
+    © <span id="year"></span> Lolaelo ·
+    <a href="https://lolaelo-api.onrender.com/privacy.html" target="_blank" rel="noopener">Privacy</a>
+    <a href="https://lolaelo-api.onrender.com/terms.html" target="_blank" rel="noopener">Terms</a>
+  </footer>
+
+  <script>
+    document.getElementById("year").textContent = new Date().getFullYear();
+  </script>
+</body>
+</html>
