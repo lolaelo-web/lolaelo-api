@@ -1,0 +1,812 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+
+  <title>Surfing lessons (Cloud 9) | Siargao Experiences | Lolaelo</title>
+  <meta name="description" content="Siargao surfing lessons guide: where to go (Cloud 9 and Jacking Horse), best time, what to expect, safety rules, and what to bring." />
+
+  <link rel="icon" href="https://www.lolaelo.com/logo2.png" />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+
+  <meta property="og:title" content="Surfing lessons (Cloud 9) | Siargao Experiences | Lolaelo" />
+  <meta property="og:description" content="Practical guide to taking a surf lesson in Siargao: timing, conditions, safety, and a simple plan that works." />
+  <meta property="og:type" content="website" />
+  <meta property="og:image" content="/images/siargao/siargao-surf-cloud9.jpg" />
+
+  <style>
+    :root{
+      --bg:#ffffff;
+      --fg:#111827;
+      --muted:#6b7280;
+
+      --brand:#064e3b;    /* site green */
+      --accent:#ff6a3d;   /* Lolaelo orange */
+      --border:#e5e7eb;
+
+      --max:1100px;
+      --shadow: 0 12px 30px rgba(15,23,42,0.10);
+      --shadow2: 0 16px 40px rgba(15,23,42,0.18);
+
+      --radius:18px;
+      --radius2:22px;
+
+      --font: Inter, ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+    }
+
+    *{box-sizing:border-box}
+    html, body{margin:0; padding:0}
+    body{
+      font-family: var(--font);
+      background: var(--bg);
+      color: var(--fg);
+      line-height: 1.5;
+    }
+    a{color:inherit; text-decoration:none}
+
+    .wrap{
+      max-width: var(--max);
+      margin: 0 auto;
+      padding: 16px 20px 40px;
+    }
+
+    /* Header (must remain consistent) */
+    .nav{
+      display:flex;
+      align-items:center;
+      justify-content:space-between;
+      padding: 4px 0 12px;
+    }
+    .nav-left{display:flex; align-items:center; gap:8px}
+    .logo-img{height:32px; width:auto; display:block}
+
+    .nav-right{
+      display:flex;
+      align-items:center;
+      gap: 20px;
+      font-size: 14px;
+    }
+    .nav-link{
+      color: var(--brand);
+      padding: 4px 0;
+      font-weight: 500;
+    }
+    .nav-link-back{
+      display:inline-flex;
+      align-items:center;
+      gap: 6px;
+    }
+    .nav-back-arrow{
+      font-size: 16px;
+      line-height: 1;
+      transform: translateY(1px);
+    }
+    .nav-link-back:hover span:last-child{ text-decoration: underline; }
+    .nav-link-back:hover .nav-back-arrow{
+      transform: translate(-2px, 1px);
+      transition: transform 0.15s ease-out;
+    }
+
+    /* Minimal breadcrumb */
+    .crumbs{
+      margin-top: 8px;
+      font-size: 12px;
+      color: var(--muted);
+      display:flex;
+      gap:8px;
+      align-items:center;
+      flex-wrap:wrap;
+    }
+    .crumbs span{
+      display:inline-block;
+      padding: 6px 10px;
+      border: 1px solid var(--border);
+      border-radius: 999px;
+      background: #ffffff;
+    }
+
+    /* Hero card (must remain consistent) */
+    .hero{
+      margin-top: 14px;
+      border-radius: 18px;
+      overflow:hidden;
+      border: 1px solid var(--border);
+      background: #ffffff;
+      box-shadow: var(--shadow);
+    }
+    .heroGrid{
+      display:grid;
+      grid-template-columns: 1.12fr .88fr;
+      gap:0;
+    }
+    .heroMedia{
+      min-height: 340px;
+      position: relative;
+      background: #f3f4f6;
+    }
+    .heroMedia img{
+      width:100%;
+      height:100%;
+      object-fit: cover;
+      display:block;
+    }
+    .heroMedia::after{
+      content:"";
+      position:absolute;
+      inset:0;
+      background: linear-gradient(90deg, rgba(0,0,0,0.05), rgba(0,0,0,0.22));
+      pointer-events:none;
+    }
+    .heroBody{
+      padding: 22px 22px 20px;
+      display:flex;
+      flex-direction: column;
+      gap: 12px;
+    }
+    h1{
+      margin:0;
+      font-size: 34px;
+      line-height: 1.15;
+      letter-spacing: -0.01em;
+      font-weight: 600;
+    }
+    .lede{
+      margin:0;
+      color: var(--muted);
+      font-size: 14.5px;
+      line-height: 1.55;
+    }
+
+    .chips{
+      display:flex;
+      flex-wrap:wrap;
+      gap: 8px;
+      margin-top: 2px;
+    }
+    .chip{
+      display:inline-flex;
+      gap:8px;
+      align-items:center;
+      padding: 6px 10px;
+      border: 1px solid var(--border);
+      border-radius: 999px;
+      background: #fafafa;
+      color: #374151;
+      font-size: 12px;
+    }
+    .dot{
+      width: 8px;
+      height: 8px;
+      border-radius: 999px;
+      background: var(--accent);
+      box-shadow: 0 0 0 4px rgba(255,106,61,0.14);
+      flex: 0 0 auto;
+    }
+
+    .kpi{
+      display:grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 10px;
+      margin-top: 4px;
+    }
+    .kpi .item{
+      border: 1px solid var(--border);
+      border-radius: 14px;
+      background: #ffffff;
+      padding: 10px 10px;
+      box-shadow: 0 10px 24px rgba(15,23,42,0.06);
+    }
+    .kpi .lbl{
+      font-size: 12px;
+      color: var(--muted);
+    }
+    .kpi .val{
+      font-size: 13.5px;
+      font-weight: 600;
+      margin-top: 3px;
+      color: #111827;
+    }
+
+    .ctaRow{
+      display:flex;
+      flex-wrap:wrap;
+      gap: 10px;
+      align-items:center;
+      margin-top: 4px;
+    }
+
+    .btn{
+      border-radius: 999px;
+      padding: 9px 14px;
+      font-size: 14px;
+      font-weight: 500;
+      border: 1px solid transparent;
+      cursor: pointer;
+      display:inline-flex;
+      align-items:center;
+      justify-content:center;
+      gap: 8px;
+      white-space: nowrap;
+    }
+    .btn.primary{ background: var(--accent); color: #ffffff; }
+    .btn.secondary{ background: rgba(229,242,255,0.95); color: var(--brand); border-color: rgba(229,242,255,0.65); }
+    .btn.ghost{ background: #ffffff; color: var(--brand); border-color: var(--border); }
+    .btn:hover{ box-shadow: var(--shadow); }
+
+    /* Sections */
+    .section{ margin-top: 18px; }
+
+    .grid2{
+      display:grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 14px;
+      align-items: start;
+    }
+
+    .panel{
+      border: 1px solid var(--border);
+      border-radius: 16px;
+      padding: 14px 16px;
+      background: #ffffff;
+      box-shadow: 0 10px 24px rgba(15,23,42,0.06);
+    }
+    .panel h2{
+      margin: 0 0 10px;
+      font-size: 15px;
+      font-weight: 600;
+      color: var(--brand);
+    }
+    .panel p{
+      margin: 0;
+      font-size: 12.8px;
+      line-height: 1.6;
+      color: #4b5563;
+      white-space: pre-line;
+    }
+    .list{
+      margin: 10px 0 0;
+      padding-left: 18px;
+      font-size: 12.5px;
+      line-height: 1.55;
+      color: #4b5563;
+    }
+    .list li{ margin-bottom: 6px; }
+
+    /* Spotlight (kept consistent with template styling) */
+    .spotlight{
+      margin-top: 14px;
+      display:grid;
+      grid-template-columns: 1.05fr 0.95fr;
+      gap: 14px;
+      align-items:center;
+    }
+    .spotlight-reverse{
+      grid-template-columns: 0.95fr 1.05fr;
+    }
+
+    .spotText{
+      border: 1px solid var(--border);
+      border-radius: 18px;
+      background: #ffffff;
+      box-shadow: var(--shadow);
+      padding: 16px 16px 14px;
+    }
+    .spotText h2{
+      margin: 0 0 10px;
+      font-size: 15px;
+      font-weight: 600;
+      color: var(--brand);
+    }
+    .spotText p{
+      margin:0;
+      font-size: 12.8px;
+      line-height: 1.6;
+      color: #4b5563;
+      white-space: pre-line;
+    }
+    .mini{
+      margin-top: 12px;
+      padding-top: 12px;
+      border-top: 1px solid var(--border);
+      display:grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 10px;
+      color: #4b5563;
+      font-size: 12.5px;
+    }
+
+    .spotImgWrap{
+      display:flex;
+      justify-content:center;
+      align-items:center;
+      padding: 6px;
+    }
+    .spotImg{
+      width: 320px;
+      height: 320px;
+      border-radius: 999px;
+      overflow:hidden;
+      border: 1px solid rgba(229,231,235,0.95);
+      box-shadow: 0 18px 44px rgba(15,23,42,0.18);
+      background: #f3f4f6;
+    }
+    .spotImg img{
+      width:100%;
+      height:100%;
+      object-fit: cover;
+      display:block;
+    }
+
+    /* Plan 6 blocks */
+    .callout{
+      border: 1px solid rgba(255,106,61,0.35);
+      background: rgba(255,106,61,0.08);
+      border-radius: 16px;
+      padding: 14px 16px;
+      box-shadow: 0 10px 24px rgba(15,23,42,0.06);
+    }
+    .callout h2{
+      margin:0 0 8px;
+      font-size: 15px;
+      font-weight: 700;
+      color: #111827;
+    }
+    .callout p{
+      margin:0;
+      font-size: 12.8px;
+      line-height: 1.6;
+      color: #374151;
+      white-space: pre-line;
+    }
+
+    .steps{
+      display:grid;
+      grid-template-columns: 1fr;
+      gap: 10px;
+      margin-top: 10px;
+    }
+    .step{
+      border: 1px solid var(--border);
+      border-radius: 14px;
+      background: #ffffff;
+      padding: 12px 12px;
+      box-shadow: 0 10px 24px rgba(15,23,42,0.06);
+      display:flex;
+      gap: 10px;
+      align-items:flex-start;
+    }
+    .stepNum{
+      width: 26px;
+      height: 26px;
+      border-radius: 999px;
+      background: var(--accent);
+      color:#fff;
+      font-weight:700;
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      flex: 0 0 auto;
+      transform: translateY(1px);
+    }
+    .stepBody h3{
+      margin:0;
+      font-size: 13.5px;
+      font-weight: 700;
+      color:#111827;
+    }
+    .stepBody p{
+      margin:6px 0 0;
+      font-size: 12.8px;
+      line-height: 1.6;
+      color: #4b5563;
+    }
+
+    .grid3{
+      display:grid;
+      grid-template-columns: 1fr 1fr 1fr;
+      gap: 12px;
+      align-items: start;
+      margin-top: 12px;
+    }
+    .tag{
+      font-size: 12px;
+      color: var(--muted);
+      margin-top: -6px;
+      margin-bottom: 10px;
+    }
+
+    /* FAQ */
+    .faq{
+      margin-top: 22px;
+      border: 1px solid var(--border);
+      border-radius: 16px;
+      padding: 14px 16px;
+      background: #ffffff;
+      box-shadow: 0 10px 24px rgba(15,23,42,0.06);
+    }
+    .faq h2{
+      margin: 0 0 8px;
+      font-size: 15px;
+      font-weight: 600;
+      color: var(--brand);
+    }
+
+    details{
+      border-top: 1px solid var(--border);
+      padding: 10px 0;
+    }
+    details:first-of-type{ border-top:none; padding-top:0; }
+    summary{
+      cursor:pointer;
+      list-style:none;
+      font-size: 13px;
+      font-weight: 600;
+      color:#111827;
+    }
+    summary::-webkit-details-marker{ display:none; }
+    .faq p{
+      margin: 8px 0 0;
+      font-size: 12.8px;
+      line-height: 1.6;
+      color: #4b5563;
+    }
+
+    footer{
+      border-top: 1px solid var(--border);
+      padding: 14px 20px 22px;
+      font-size: 12px;
+      color: #6b7280;
+      text-align: center;
+      margin-top: 26px;
+    }
+    footer a{ color: inherit; text-decoration: underline; }
+
+    @media (max-width: 920px){
+      .wrap{ padding: 12px 16px 28px; }
+      .heroGrid{ grid-template-columns: 1fr; }
+      .heroMedia{ min-height: 260px; }
+      .grid2{ grid-template-columns: 1fr; }
+      .spotlight, .spotlight-reverse{ grid-template-columns: 1fr; }
+      .spotImg{ width: 240px; height: 240px; }
+      .grid3{ grid-template-columns: 1fr; }
+      h1{ font-size: 30px; }
+    }
+  </style>
+
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "FAQPage",
+    "mainEntity": [
+      {
+        "@type": "Question",
+        "name": "Where should I take my first surf lesson in Siargao?",
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": "Cloud 9 and the nearby beginner areas (often called Jacking Horse) are the usual first lesson zones. Your instructor will pick the spot based on conditions."
+        }
+      },
+      {
+        "@type": "Question",
+        "name": "Do I need to be fit to take a surf lesson?",
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": "You do not need to be an athlete. You need basic comfort in the water, the ability to follow instructions, and patience. Expect your arms and core to work."
+        }
+      },
+      {
+        "@type": "Question",
+        "name": "What should I bring to a surf lesson?",
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": "Rash guard or shirt, water, reef safe sunscreen, and cash. Leave valuables dry and simple."
+        }
+      },
+      {
+        "@type": "Question",
+        "name": "What is the biggest beginner mistake?",
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": "Trying to stand too early. First you learn board control, paddling rhythm, and pop up timing. The standing comes after the basics."
+        }
+      }
+    ]
+  }
+  </script>
+</head>
+
+<body>
+  <div class="wrap">
+    <header class="nav">
+      <div class="nav-left">
+        <a href="https://www.lolaelo.com" aria-label="Lolaelo home">
+          <img
+            src="https://www.lolaelo.com/logo.png?cb=logo-1x"
+            alt="Lolaelo"
+            class="logo-img"
+            decoding="async"
+            loading="eager"
+          >
+        </a>
+      </div>
+
+      <nav class="nav-right" aria-label="Primary">
+        <a class="nav-link nav-link-back" href="/destinations/siargao/index.html" aria-label="Back to Siargao guide">
+          <span class="nav-back-arrow">←</span>
+          <span>Siargao guide</span>
+        </a>
+      </nav>
+    </header>
+
+    <div class="crumbs" aria-label="Breadcrumb">
+      <span>Surfing lessons</span>
+    </div>
+
+    <main class="content" role="main">
+      <section class="hero" aria-label="Surfing lessons in Siargao">
+        <div class="heroGrid">
+          <div class="heroMedia">
+            <img src="/images/siargao/siargao-surf-cloud9.jpg" alt="Siargao surf at Cloud 9, waves and boardwalk" loading="eager" />
+          </div>
+
+          <div class="heroBody">
+            <h1>Surfing lessons</h1>
+            <p class="lede">
+              This is Siargao. Do one proper lesson, learn the basics, then decide if you want a second session.
+            </p>
+
+            <div class="chips" aria-label="Quick facts">
+              <div class="chip"><span class="dot"></span>Best for: first timers</div>
+              <div class="chip"><span class="dot"></span>Time: 60 to 120 minutes</div>
+              <div class="chip"><span class="dot"></span>Bring: rash guard, water</div>
+              <div class="chip"><span class="dot"></span>Goal: one clean pop up</div>
+            </div>
+
+            <div class="kpi" aria-label="Planning snapshot">
+              <div class="item">
+                <div class="lbl">Ideal timing</div>
+                <div class="val">Early morning or late afternoon</div>
+              </div>
+              <div class="item">
+                <div class="lbl">Where</div>
+                <div class="val">Cloud 9 area</div>
+              </div>
+              <div class="item">
+                <div class="lbl">Effort level</div>
+                <div class="val">Moderate, arms will feel it</div>
+              </div>
+              <div class="item">
+                <div class="lbl">Kid friendly</div>
+                <div class="val">Only with instructor focus</div>
+              </div>
+            </div>
+
+            <div class="ctaRow">
+              <a class="btn primary" href="https://lolaelo-api.onrender.com/catalog.html?q=siargao">Browse Siargao stays</a>
+              <a class="btn ghost" href="/destinations/siargao/index.html#top10">Back to Siargao top 10</a>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- Plan 6: Water Readiness -->
+      <section class="section callout" aria-label="Water readiness">
+        <h2>Read the water first</h2>
+        <p>
+If the water looks chaotic, do not force it. The right first lesson day is simple: clean lines, manageable size, and an instructor who moves you to the correct spot.
+Your win condition is not standing for Instagram. Your win is control.
+        </p>
+      </section>
+
+      <section class="section grid2" aria-label="Conditions check and simple rules">
+        <div class="panel">
+          <h2>Green flags (go)</h2>
+          <p>
+You want a day where you can repeat the basics without getting worked.
+          </p>
+          <ul class="list">
+            <li>Small to medium waves you can paddle into.</li>
+            <li>Clear lineup zones with space to learn.</li>
+            <li>Instructor is specific, not hype.</li>
+          </ul>
+        </div>
+
+        <div class="panel">
+          <h2>Red flags (adjust)</h2>
+          <p>
+If these are present, still do the lesson, but ask to shift location or shorten the session.
+          </p>
+          <ul class="list">
+            <li>Strong currents pulling you sideways.</li>
+            <li>Crowded lineup with experienced surfers only.</li>
+            <li>Sharp reef exposure at low tide.</li>
+          </ul>
+        </div>
+      </section>
+
+      <!-- Blueprint -->
+      <section class="section panel" aria-label="Lesson blueprint">
+        <h2>Lesson blueprint</h2>
+        <div class="tag">Three stages. Keep it simple.</div>
+
+        <div class="steps" aria-label="Three step plan">
+          <div class="step">
+            <div class="stepNum">1</div>
+            <div class="stepBody">
+              <h3>Get setup right</h3>
+              <p>Warm up, learn board position, and practice pop up on sand. This is where the “stand up” gets built correctly.</p>
+            </div>
+          </div>
+
+          <div class="step">
+            <div class="stepNum">2</div>
+            <div class="stepBody">
+              <h3>Control before standing</h3>
+              <p>In the water you learn paddling rhythm, how to angle the board, and how to safely fall. No ego, no shortcuts.</p>
+            </div>
+          </div>
+
+          <div class="step">
+            <div class="stepNum">3</div>
+            <div class="stepBody">
+              <h3>One clean ride</h3>
+              <p>Pick one simple target: one controlled takeoff, one stable stance, then exit safely. Repeat. That is the real progress.</p>
+            </div>
+          </div>
+        </div>
+
+        <div class="ctaRow" style="margin-top: 12px;">
+          <a class="btn secondary" href="https://lolaelo-api.onrender.com/catalog.html?q=siargao">Browse Siargao stays</a>
+          <a class="btn ghost" href="/destinations/siargao/index.html">Back to Siargao guide</a>
+        </div>
+      </section>
+
+      <!-- Safety + Comfort -->
+      <section class="section" aria-label="Safety and comfort rules">
+        <div class="grid3">
+          <div class="panel">
+            <h2>Safety rules</h2>
+            <ul class="list" style="margin-top: 0;">
+              <li>Never dive headfirst. Protect your neck.</li>
+              <li>Fall flat, away from the board.</li>
+              <li>If you lose the board, cover your head.</li>
+              <li>Listen to your instructor on where to paddle.</li>
+            </ul>
+          </div>
+
+          <div class="panel">
+            <h2>Comfort rules</h2>
+            <ul class="list" style="margin-top: 0;">
+              <li>Drink water before and after. You will cramp if you do not.</li>
+              <li>Use reef safe sunscreen and reapply.</li>
+              <li>Rash guard is not optional. It saves your skin.</li>
+              <li>Stop early if you are gassed. You will learn faster next session.</li>
+            </ul>
+          </div>
+
+          <div class="panel">
+            <h2>Common beginner mistake</h2>
+            <p>
+Trying to stand too early, then getting slammed, then calling it “hard.”
+Slow it down. Get the setup right. Repeat basics until it clicks.
+            </p>
+          </div>
+        </div>
+      </section>
+
+      <!-- Spotlights -->
+      <section class="section" aria-label="Spotlight one">
+        <div class="spotlight">
+          <div class="spotImgWrap" aria-hidden="true">
+            <div class="spotImg">
+              <img src="/images/siargao/siargao-surf-lesson.jpg" alt="" loading="lazy" />
+            </div>
+          </div>
+
+          <div class="spotText">
+            <h2>Pick the right instructor</h2>
+            <p>
+You want clear coaching, not noise. A good instructor fixes your stance, your timing, and your panic.
+If they cannot explain what to do with your hands and feet, find another one.
+            </p>
+            <div class="mini">
+              <div>Ask: where will we paddle?</div>
+              <div>Ask: what is the one goal today?</div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section class="section" aria-label="Spotlight two">
+        <div class="spotlight spotlight-reverse">
+          <div class="spotText">
+            <h2>Gear you actually need</h2>
+            <p>
+For a first lesson, keep it basic. Most setups are included.
+Your job is to show up protected and hydrated.
+            </p>
+            <div class="mini">
+              <div>Bring: rash guard, water, cash</div>
+              <div>Skip: valuables, heavy bags</div>
+            </div>
+          </div>
+
+          <div class="spotImgWrap" aria-hidden="true">
+            <div class="spotImg">
+              <img src="/images/siargao/siargao-surf-board-rack.jpg" alt="" loading="lazy" />
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- Gear grid -->
+      <section class="section panel" aria-label="Gear checklist">
+        <h2>Gear checklist</h2>
+        <div class="grid3" style="margin-top: 10px;">
+          <div class="panel" style="box-shadow:none;">
+            <h2>Must</h2>
+            <ul class="list" style="margin-top: 0;">
+              <li>Rash guard or shirt</li>
+              <li>Water</li>
+              <li>Cash (small bills)</li>
+            </ul>
+          </div>
+
+          <div class="panel" style="box-shadow:none;">
+            <h2>Nice to have</h2>
+            <ul class="list" style="margin-top: 0;">
+              <li>Reef safe sunscreen</li>
+              <li>Hat for after</li>
+              <li>Dry bag</li>
+            </ul>
+          </div>
+
+          <div class="panel" style="box-shadow:none;">
+            <h2>Skip</h2>
+            <ul class="list" style="margin-top: 0;">
+              <li>Jewelry</li>
+              <li>Wallet full of cards</li>
+              <li>Anything you cannot lose</li>
+            </ul>
+          </div>
+        </div>
+      </section>
+
+      <section class="faq" aria-label="FAQ">
+        <h2>FAQ</h2>
+
+        <details>
+          <summary>Where should I take my first surf lesson in Siargao?</summary>
+          <p>Cloud 9 and the nearby beginner zones (often called Jacking Horse) are the usual starting points. Your instructor will pick the safest spot based on conditions.</p>
+        </details>
+
+        <details>
+          <summary>How long should my first session be?</summary>
+          <p>60 to 120 minutes is the sweet spot. Long enough to learn the sequence, short enough to keep form from collapsing.</p>
+        </details>
+
+        <details>
+          <summary>Is reef a real concern?</summary>
+          <p>Yes. Ask about tide and entry points. Follow your instructor’s fall and exit guidance. Do not freestyle it.</p>
+        </details>
+
+        <details>
+          <summary>What should I do after the lesson?</summary>
+          <p>Hydrate, stretch your shoulders, and do a short debrief. If you enjoyed it, book session two while the muscle memory is fresh.</p>
+        </details>
+      </section>
+    </main>
+
+    <footer>
+      © <span id="year"></span> Lolaelo ·
+      <a href="https://lolaelo-api.onrender.com/privacy.html" target="_blank" rel="noopener">Privacy</a>
+      <a href="https://lolaelo-api.onrender.com/terms.html" target="_blank" rel="noopener">Terms</a>
+    </footer>
+  </div>
+
+  <script>
+    document.getElementById("year").textContent = new Date().getFullYear();
+  </script>
+</body>
+</html>

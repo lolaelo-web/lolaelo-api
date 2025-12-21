@@ -1,0 +1,720 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+
+  <title>Island hopping (Guyam, Daku, Naked) | Siargao Experiences | Lolaelo</title>
+  <meta name="description" content="Siargao island hopping guide: Guyam, Daku, and Naked Island. A simple route, timing tips, what to bring, and how to keep it smooth." />
+
+  <link rel="icon" href="https://www.lolaelo.com/logo2.png" />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+
+  <meta property="og:title" content="Island hopping (Guyam, Daku, Naked) | Siargao Experiences | Lolaelo" />
+  <meta property="og:description" content="A clean, practical island-hopping plan for Siargao. Timing, route, costs mindset, and what to pack." />
+  <meta property="og:type" content="website" />
+  <meta property="og:image" content="/images/siargao/siargao-island-boat" />
+
+  <style>
+    :root{
+      --bg:#ffffff;
+      --fg:#111827;
+      --muted:#6b7280;
+
+      --brand:#064e3b;
+      --accent:#ff6a3d;
+      --border:#e5e7eb;
+
+      --max:1100px;
+      --shadow: 0 12px 30px rgba(15,23,42,0.10);
+      --shadow2: 0 16px 40px rgba(15,23,42,0.18);
+
+      --radius:18px;
+      --radius2:22px;
+
+      --font: Inter, ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+    }
+
+    *{box-sizing:border-box}
+    html, body{margin:0; padding:0}
+    body{
+      font-family: var(--font);
+      background: var(--bg);
+      color: var(--fg);
+      line-height: 1.5;
+    }
+    a{color:inherit; text-decoration:none}
+
+    .wrap{
+      max-width: var(--max);
+      margin: 0 auto;
+      padding: 16px 20px 40px;
+    }
+
+    /* Header (keep consistent) */
+    .nav{
+      display:flex;
+      align-items:center;
+      justify-content:space-between;
+      padding: 4px 0 12px;
+    }
+    .nav-left{display:flex; align-items:center; gap:8px}
+    .logo-img{height:32px; width:auto; display:block}
+
+    .nav-right{
+      display:flex;
+      align-items:center;
+      gap: 20px;
+      font-size: 14px;
+    }
+    .nav-link{
+      color: var(--brand);
+      padding: 4px 0;
+      font-weight: 500;
+    }
+    .nav-link-back{
+      display:inline-flex;
+      align-items:center;
+      gap: 6px;
+    }
+    .nav-back-arrow{
+      font-size: 16px;
+      line-height: 1;
+      transform: translateY(1px);
+    }
+    .nav-link-back:hover span:last-child{ text-decoration: underline; }
+    .nav-link-back:hover .nav-back-arrow{
+      transform: translate(-2px, 1px);
+      transition: transform 0.15s ease-out;
+    }
+
+    /* Minimal breadcrumb */
+    .crumbs{
+      margin-top: 8px;
+      font-size: 12px;
+      color: var(--muted);
+      display:flex;
+      gap:8px;
+      align-items:center;
+      flex-wrap:wrap;
+    }
+    .crumbs span{
+      display:inline-block;
+      padding: 6px 10px;
+      border: 1px solid var(--border);
+      border-radius: 999px;
+      background: #ffffff;
+    }
+
+    /* Hero (keep consistent) */
+    .hero{
+      margin-top: 14px;
+      border-radius: 18px;
+      overflow:hidden;
+      border: 1px solid var(--border);
+      background: #ffffff;
+      box-shadow: var(--shadow);
+    }
+    .heroGrid{
+      display:grid;
+      grid-template-columns: 1.12fr .88fr;
+      gap:0;
+    }
+    .heroMedia{
+      min-height: 340px;
+      position: relative;
+      background: #f3f4f6;
+    }
+    .heroMedia img{
+      width:100%;
+      height:100%;
+      object-fit: cover;
+      display:block;
+    }
+    .heroMedia::after{
+      content:"";
+      position:absolute;
+      inset:0;
+      background: linear-gradient(90deg, rgba(0,0,0,0.05), rgba(0,0,0,0.22));
+      pointer-events:none;
+    }
+    .heroBody{
+      padding: 22px 22px 20px;
+      display:flex;
+      flex-direction: column;
+      gap: 12px;
+    }
+    h1{
+      margin:0;
+      font-size: 34px;
+      line-height: 1.15;
+      letter-spacing: -0.01em;
+      font-weight: 600;
+    }
+    .lede{
+      margin:0;
+      color: var(--muted);
+      font-size: 14.5px;
+      line-height: 1.55;
+    }
+
+    .chips{
+      display:flex;
+      flex-wrap:wrap;
+      gap: 8px;
+      margin-top: 2px;
+    }
+    .chip{
+      display:inline-flex;
+      gap:8px;
+      align-items:center;
+      padding: 6px 10px;
+      border: 1px solid var(--border);
+      border-radius: 999px;
+      background: #fafafa;
+      color: #374151;
+      font-size: 12px;
+    }
+    .dot{
+      width: 8px;
+      height: 8px;
+      border-radius: 999px;
+      background: var(--accent);
+      box-shadow: 0 0 0 4px rgba(255,106,61,0.14);
+      flex: 0 0 auto;
+    }
+
+    .kpi{
+      display:grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 10px;
+      margin-top: 4px;
+    }
+    .kpi .item{
+      border: 1px solid var(--border);
+      border-radius: 14px;
+      background: #ffffff;
+      padding: 10px 10px;
+      box-shadow: 0 10px 24px rgba(15,23,42,0.06);
+    }
+    .kpi .lbl{
+      font-size: 12px;
+      color: var(--muted);
+    }
+    .kpi .val{
+      font-size: 13.5px;
+      font-weight: 600;
+      margin-top: 3px;
+      color: #111827;
+    }
+
+    .ctaRow{
+      display:flex;
+      flex-wrap:wrap;
+      gap: 10px;
+      align-items:center;
+      margin-top: 4px;
+    }
+
+    .btn{
+      border-radius: 999px;
+      padding: 9px 14px;
+      font-size: 14px;
+      font-weight: 500;
+      border: 1px solid transparent;
+      cursor: pointer;
+      display:inline-flex;
+      align-items:center;
+      justify-content:center;
+      gap: 8px;
+      white-space: nowrap;
+    }
+    .btn.primary{ background: var(--accent); color: #ffffff; }
+    .btn.secondary{ background: rgba(229,242,255,0.95); color: var(--brand); border-color: rgba(229,242,255,0.65); }
+    .btn.ghost{ background: #ffffff; color: var(--brand); border-color: var(--border); }
+    .btn:hover{ box-shadow: var(--shadow); }
+
+    /* Sections */
+    .section{ margin-top: 18px; }
+
+    .grid2{
+      display:grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 14px;
+      align-items: start;
+    }
+
+    .panel{
+      border: 1px solid var(--border);
+      border-radius: 16px;
+      padding: 14px 16px;
+      background: #ffffff;
+      box-shadow: 0 10px 24px rgba(15,23,42,0.06);
+    }
+    .panel h2{
+      margin: 0 0 10px;
+      font-size: 15px;
+      font-weight: 600;
+      color: var(--brand);
+    }
+    .panel p{
+      margin: 0;
+      font-size: 12.8px;
+      line-height: 1.6;
+      color: #4b5563;
+      white-space: pre-line;
+    }
+    .list{
+      margin: 10px 0 0;
+      padding-left: 18px;
+      font-size: 12.5px;
+      line-height: 1.55;
+      color: #4b5563;
+    }
+    .list li{ margin-bottom: 6px; }
+
+    /* Route steps */
+    .steps{
+      margin-top: 10px;
+      display:grid;
+      gap: 10px;
+    }
+    .step{
+      border: 1px solid var(--border);
+      border-radius: 14px;
+      background: #ffffff;
+      padding: 12px 12px;
+      box-shadow: 0 10px 24px rgba(15,23,42,0.06);
+      display:flex;
+      gap: 10px;
+      align-items:flex-start;
+    }
+    .stepNum{
+      width: 26px;
+      height: 26px;
+      border-radius: 999px;
+      background: var(--accent);
+      color:#fff;
+      font-weight:700;
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      flex: 0 0 auto;
+      transform: translateY(1px);
+    }
+    .stepBody h3{
+      margin:0;
+      font-size: 13.5px;
+      font-weight: 700;
+      color:#111827;
+    }
+    .stepBody p{
+      margin:6px 0 0;
+      font-size: 12.8px;
+      line-height: 1.6;
+      color: #4b5563;
+    }
+
+    /* Spotlight */
+    .spotlight{
+      margin-top: 14px;
+      display:grid;
+      grid-template-columns: 1.05fr 0.95fr;
+      gap: 14px;
+      align-items:center;
+    }
+    .spotlight-reverse{
+      grid-template-columns: 0.95fr 1.05fr;
+    }
+
+    .spotText{
+      border: 1px solid var(--border);
+      border-radius: 18px;
+      background: #ffffff;
+      box-shadow: var(--shadow);
+      padding: 16px 16px 14px;
+    }
+    .spotText h2{
+      margin: 0 0 10px;
+      font-size: 15px;
+      font-weight: 600;
+      color: var(--brand);
+    }
+    .spotText p{
+      margin:0;
+      font-size: 12.8px;
+      line-height: 1.6;
+      color: #4b5563;
+      white-space: pre-line;
+    }
+    .mini{
+      margin-top: 12px;
+      padding-top: 12px;
+      border-top: 1px solid var(--border);
+      display:grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 10px;
+      color: #4b5563;
+      font-size: 12.5px;
+    }
+
+    .spotImgWrap{
+      display:flex;
+      justify-content:center;
+      align-items:center;
+      padding: 6px;
+    }
+    .spotImg{
+      width: 320px;
+      height: 320px;
+      border-radius: 999px;
+      overflow:hidden;
+      border: 1px solid rgba(229,231,235,0.95);
+      box-shadow: 0 18px 44px rgba(15,23,42,0.18);
+      background: #f3f4f6;
+    }
+    .spotImg img{
+      width:100%;
+      height:100%;
+      object-fit: cover;
+      display:block;
+    }
+
+    /* FAQ */
+    .faq{
+      margin-top: 22px;
+      border: 1px solid var(--border);
+      border-radius: 16px;
+      padding: 14px 16px;
+      background: #ffffff;
+      box-shadow: 0 10px 24px rgba(15,23,42,0.06);
+    }
+    .faq h2{
+      margin: 0 0 8px;
+      font-size: 15px;
+      font-weight: 600;
+      color: var(--brand);
+    }
+
+    details{
+      border-top: 1px solid var(--border);
+      padding: 10px 0;
+    }
+    details:first-of-type{ border-top:none; padding-top:0; }
+    summary{
+      cursor:pointer;
+      list-style:none;
+      font-size: 13px;
+      font-weight: 600;
+      color:#111827;
+    }
+    summary::-webkit-details-marker{ display:none; }
+    .faq p{
+      margin: 8px 0 0;
+      font-size: 12.8px;
+      line-height: 1.6;
+      color: #4b5563;
+    }
+
+    footer{
+      border-top: 1px solid var(--border);
+      padding: 14px 20px 22px;
+      font-size: 12px;
+      color: #6b7280;
+      text-align: center;
+      margin-top: 26px;
+    }
+    footer a{ color: inherit; text-decoration: underline; }
+
+    @media (max-width: 920px){
+      .wrap{ padding: 12px 16px 28px; }
+      .heroGrid{ grid-template-columns: 1fr; }
+      .heroMedia{ min-height: 260px; }
+      .grid2{ grid-template-columns: 1fr; }
+      .spotlight, .spotlight-reverse{ grid-template-columns: 1fr; }
+      .spotImg{ width: 240px; height: 240px; }
+      h1{ font-size: 30px; }
+    }
+  </style>
+
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "FAQPage",
+    "mainEntity": [
+      {
+        "@type": "Question",
+        "name": "Which islands are in the classic Siargao island hopping route?",
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": "The common route is Guyam Island, Daku Island, and Naked Island. Most tours run this trio as a half-day trip."
+        }
+      },
+      {
+        "@type": "Question",
+        "name": "What time should we start?",
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": "Start earlier to keep the water calmer and the pace smoother. Morning departures also help you avoid the peak heat."
+        }
+      },
+      {
+        "@type": "Question",
+        "name": "What should we bring?",
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": "Water, cash, sun protection, and a dry bag. Keep valuables minimal and bring small bills."
+        }
+      },
+      {
+        "@type": "Question",
+        "name": "How do we keep the day from feeling rushed?",
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": "Pick a simple order, do fewer stops well, and avoid stacking extra side-trips. Treat it as a reset day, not a checklist."
+        }
+      }
+    ]
+  }
+  </script>
+</head>
+
+<body>
+  <div class="wrap">
+    <header class="nav">
+      <div class="nav-left">
+        <a href="https://www.lolaelo.com" aria-label="Lolaelo home">
+          <img
+            src="https://www.lolaelo.com/logo.png?cb=logo-1x"
+            alt="Lolaelo"
+            class="logo-img"
+            decoding="async"
+            loading="eager"
+          >
+        </a>
+      </div>
+
+      <nav class="nav-right" aria-label="Primary">
+        <a class="nav-link nav-link-back" href="/destinations/siargao/index.html" aria-label="Back to Siargao guide">
+          <span class="nav-back-arrow">←</span>
+          <span>Siargao guide</span>
+        </a>
+      </nav>
+    </header>
+
+    <div class="crumbs" aria-label="Breadcrumb">
+      <span>Island hopping</span>
+    </div>
+
+    <main class="content" role="main">
+      <section class="hero" aria-label="Island hopping in Siargao">
+        <div class="heroGrid">
+          <div class="heroMedia">
+            <img src="/images/siargao/siargao-island-boat" alt="Siargao island hopping boat on clear water" loading="eager" />
+          </div>
+
+          <div class="heroBody">
+            <h1>Island hopping</h1>
+            <p class="lede">
+              The classic trio. Do it early, keep it simple, and treat it like a reset day, not a checklist.
+            </p>
+
+            <div class="chips" aria-label="Quick facts">
+              <div class="chip"><span class="dot"></span>Best for: first-timers</div>
+              <div class="chip"><span class="dot"></span>Time: half day</div>
+              <div class="chip"><span class="dot"></span>Bring: dry bag + water</div>
+              <div class="chip"><span class="dot"></span>Goal: calm pace</div>
+            </div>
+
+            <div class="kpi" aria-label="Planning snapshot">
+              <div class="item">
+                <div class="lbl">Ideal start</div>
+                <div class="val">Morning departure</div>
+              </div>
+              <div class="item">
+                <div class="lbl">Stops</div>
+                <div class="val">Guyam, Daku, Naked</div>
+              </div>
+              <div class="item">
+                <div class="lbl">On water</div>
+                <div class="val">3 to 5 hours</div>
+              </div>
+              <div class="item">
+                <div class="lbl">Kid friendly</div>
+                <div class="val">Yes, with shade breaks</div>
+              </div>
+            </div>
+
+            <div class="ctaRow">
+              <a class="btn primary" href="https://lolaelo-api.onrender.com/catalog.html?q=siargao">Browse Siargao stays</a>
+              <a class="btn ghost" href="/destinations/siargao/index.html#top10">Back to Siargao top 10</a>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- Layout Plan 2: Route Card -->
+      <section class="section panel" aria-label="Route plan">
+        <h2>Route that works</h2>
+        <p>
+Three stops. No extra detours. This keeps the day smooth, especially if you are with family or a mixed group.
+        </p>
+
+        <div class="steps" aria-label="Three step route">
+          <div class="step">
+            <div class="stepNum">1</div>
+            <div class="stepBody">
+              <h3>Guyam: quick swim + photos</h3>
+              <p>Small, clean, fast. Do not camp here for hours. Use it as the “warm-up” stop.</p>
+            </div>
+          </div>
+
+          <div class="step">
+            <div class="stepNum">2</div>
+            <div class="stepBody">
+              <h3>Daku: food + shade break</h3>
+              <p>This is where you slow down. Eat, rehydrate, let kids decompress. This is the anchor stop.</p>
+            </div>
+          </div>
+
+          <div class="step">
+            <div class="stepNum">3</div>
+            <div class="stepBody">
+              <h3>Naked: quick sandbar hit</h3>
+              <p>Short, fun, clean. It is a sandbar, not a full beach day. Get in, get the moment, get out.</p>
+            </div>
+          </div>
+        </div>
+
+        <div class="ctaRow" style="margin-top: 12px;">
+          <a class="btn secondary" href="https://lolaelo-api.onrender.com/catalog.html?q=siargao">Browse Siargao stays</a>
+          <a class="btn ghost" href="/destinations/siargao/index.html">Back to Siargao guide</a>
+        </div>
+      </section>
+
+      <section class="section grid2" aria-label="What to bring and what to avoid">
+        <div class="panel">
+          <h2>Bring</h2>
+          <ul class="list" style="margin-top: 0;">
+            <li>Dry bag (or at least a sealed pouch for phone + cash)</li>
+            <li>Water + snacks</li>
+            <li>Sun protection (hat or long sleeve)</li>
+            <li>Cash in small bills</li>
+          </ul>
+        </div>
+
+        <div class="panel">
+          <h2>Avoid</h2>
+          <ul class="list" style="margin-top: 0;">
+            <li>Overpacking valuables</li>
+            <li>Stacking “extra islands” just to say you did more</li>
+            <li>Late starts that turn into heat + crowd management</li>
+            <li>No shade plan if you have kids</li>
+          </ul>
+        </div>
+      </section>
+
+      <!-- Spotlights (alternate images) -->
+      <section class="section" aria-label="Spotlight one">
+        <div class="spotlight">
+          <div class="spotImgWrap" aria-hidden="true">
+            <div class="spotImg">
+              <img src="/images/siargao/siargao-island-guyam" alt="" loading="lazy" />
+            </div>
+          </div>
+
+          <div class="spotText">
+            <h2>Guyam: keep it quick</h2>
+            <p>
+Guyam is the clean opener. Swim, take the shot, get your bearings.
+Do not burn the whole morning here. You want momentum.
+            </p>
+            <div class="mini">
+              <div>Best use: warm-up stop</div>
+              <div>Skip: “long hang”</div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section class="section" aria-label="Spotlight two">
+        <div class="spotlight spotlight-reverse">
+          <div class="spotText">
+            <h2>Daku: the real break</h2>
+            <p>
+This is where you eat and chill. If the day starts to feel chaotic, fix it here.
+Hydrate, shade, and a slower pace resets the whole group.
+            </p>
+            <div class="mini">
+              <div>Do: food + shade</div>
+              <div>Do: reapply sunblock</div>
+            </div>
+          </div>
+
+          <div class="spotImgWrap" aria-hidden="true">
+            <div class="spotImg">
+              <img src="/images/siargao/siargao-island-daku" alt="" loading="lazy" />
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section class="section" aria-label="Spotlight three">
+        <div class="spotlight">
+          <div class="spotImgWrap" aria-hidden="true">
+            <div class="spotImg">
+              <img src="/images/siargao/siargao-island-naked" alt="" loading="lazy" />
+            </div>
+          </div>
+
+          <div class="spotText">
+            <h2>Naked: treat it like a moment</h2>
+            <p>
+It is a sandbar. The magic is that it is simple.
+Go when the light is good, enjoy it, then move on before it becomes uncomfortable.
+            </p>
+            <div class="mini">
+              <div>Best: quick swim</div>
+              <div>Watch: sun exposure</div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section class="faq" aria-label="FAQ">
+        <h2>FAQ</h2>
+
+        <details>
+          <summary>How long is the island hopping trip?</summary>
+          <p>Plan on a half day. The water time is usually a few hours, plus some buffer for meet-up and return.</p>
+        </details>
+
+        <details>
+          <summary>Can we do this with kids?</summary>
+          <p>Yes. The key is shade breaks, water, and not pushing the pace. Make Daku your long stop.</p>
+        </details>
+
+        <details>
+          <summary>Is there a “best order” for the islands?</summary>
+          <p>Guyam first, Daku second, Naked last works well. It keeps the day structured and prevents decision fatigue.</p>
+        </details>
+
+        <details>
+          <summary>What ruins the experience?</summary>
+          <p>Late starts, overpacking, and stacking extra stops. Keep it simple and the day stays clean.</p>
+        </details>
+      </section>
+    </main>
+
+    <footer>
+      © <span id="year"></span> Lolaelo ·
+      <a href="https://lolaelo-api.onrender.com/privacy.html" target="_blank" rel="noopener">Privacy</a>
+      <a href="https://lolaelo-api.onrender.com/terms.html" target="_blank" rel="noopener">Terms</a>
+    </footer>
+  </div>
+
+  <script>
+    document.getElementById("year").textContent = new Date().getFullYear();
+  </script>
+</body>
+</html>
