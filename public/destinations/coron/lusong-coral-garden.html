@@ -1,0 +1,761 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+
+  <title>Lusong Coral Garden | Coron Experiences | Lolaelo</title>
+  <meta name="description" content="Lusong Coral Garden in Coron: a simple 3-step plan, timing, comfort rules, and the easy way to get a great snorkel session." />
+
+  <link rel="icon" href="https://www.lolaelo.com/logo2.png" />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+
+  <meta property="og:title" content="Lusong Coral Garden | Coron Experiences | Lolaelo" />
+  <meta property="og:description" content="Practical Lusong Coral Garden guide: route, timing, gear, and safety basics." />
+  <meta property="og:type" content="website" />
+  <meta property="og:image" content="/images/coron/hero-lusong-coral-garden.jpg" />
+
+  <style>
+    :root{
+      --bg:#ffffff;
+      --fg:#111827;
+      --muted:#6b7280;
+
+      --brand:#064e3b;
+      --accent:#ff6a3d;
+      --border:#e5e7eb;
+
+      --max:1100px;
+      --shadow: 0 12px 30px rgba(15,23,42,0.10);
+      --shadow2: 0 16px 40px rgba(15,23,42,0.18);
+
+      --font: Inter, ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+    }
+
+    *{box-sizing:border-box}
+    html, body{margin:0; padding:0}
+    body{
+      font-family: var(--font);
+      background: var(--bg);
+      color: var(--fg);
+      line-height: 1.5;
+    }
+    a{color:inherit; text-decoration:none}
+
+    .wrap{
+      max-width: var(--max);
+      margin: 0 auto;
+      padding: 16px 20px 40px;
+    }
+
+    /* Header (copied from template) */
+    .nav{
+      display:flex;
+      align-items:center;
+      justify-content:space-between;
+      padding: 4px 0 12px;
+    }
+    .nav-left{display:flex; align-items:center; gap:8px}
+    .logo-img{height:32px; width:auto; display:block}
+
+    .nav-right{
+      display:flex;
+      align-items:center;
+      gap: 20px;
+      font-size: 14px;
+    }
+    .nav-link{
+      color: var(--brand);
+      padding: 4px 0;
+      font-weight: 500;
+    }
+    .nav-link-back{
+      display:inline-flex;
+      align-items:center;
+      gap: 6px;
+    }
+    .nav-back-arrow{
+      font-size: 16px;
+      line-height: 1;
+      transform: translateY(1px);
+    }
+    .nav-link-back:hover span:last-child{ text-decoration: underline; }
+    .nav-link-back:hover .nav-back-arrow{
+      transform: translate(-2px, 1px);
+      transition: transform 0.15s ease-out;
+    }
+
+    /* Minimal breadcrumb (copied from template) */
+    .crumbs{
+      margin-top: 8px;
+      font-size: 12px;
+      color: var(--muted);
+      display:flex;
+      gap:8px;
+      align-items:center;
+      flex-wrap:wrap;
+    }
+    .crumbs span{
+      display:inline-block;
+      padding: 6px 10px;
+      border: 1px solid var(--border);
+      border-radius: 999px;
+      background: #ffffff;
+    }
+
+    /* Hero card (copied from template) */
+    .hero{
+      margin-top: 14px;
+      border-radius: 18px;
+      overflow:hidden;
+      border: 1px solid var(--border);
+      background: #ffffff;
+      box-shadow: var(--shadow);
+    }
+    .heroGrid{
+      display:grid;
+      grid-template-columns: 1.12fr .88fr;
+      gap:0;
+    }
+    .heroMedia{
+      min-height: 340px;
+      position: relative;
+      background: #f3f4f6;
+    }
+    .heroMedia img{
+      width:100%;
+      height:100%;
+      object-fit: cover;
+      display:block;
+    }
+    .heroMedia::after{
+      content:"";
+      position:absolute;
+      inset:0;
+      background: linear-gradient(90deg, rgba(0,0,0,0.05), rgba(0,0,0,0.22));
+      pointer-events:none;
+    }
+    .heroBody{
+      padding: 22px 22px 20px;
+      display:flex;
+      flex-direction: column;
+      gap: 12px;
+    }
+    h1{
+      margin:0;
+      font-size: 34px;
+      line-height: 1.15;
+      letter-spacing: -0.01em;
+      font-weight: 600;
+    }
+    .lede{
+      margin:0;
+      color: var(--muted);
+      font-size: 14.5px;
+      line-height: 1.55;
+    }
+
+    .chips{
+      display:flex;
+      flex-wrap:wrap;
+      gap: 8px;
+      margin-top: 2px;
+    }
+    .chip{
+      display:inline-flex;
+      gap:8px;
+      align-items:center;
+      padding: 6px 10px;
+      border: 1px solid var(--border);
+      border-radius: 999px;
+      background: #fafafa;
+      color: #374151;
+      font-size: 12px;
+    }
+    .dot{
+      width: 8px;
+      height: 8px;
+      border-radius: 999px;
+      background: var(--accent);
+      box-shadow: 0 0 0 4px rgba(255,106,61,0.14);
+      flex: 0 0 auto;
+    }
+
+    .kpi{
+      display:grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 10px;
+      margin-top: 4px;
+    }
+    .kpi .item{
+      border: 1px solid var(--border);
+      border-radius: 14px;
+      background: #ffffff;
+      padding: 10px 10px;
+      box-shadow: 0 10px 24px rgba(15,23,42,0.06);
+    }
+    .kpi .lbl{
+      font-size: 12px;
+      color: var(--muted);
+    }
+    .kpi .val{
+      font-size: 13.5px;
+      font-weight: 600;
+      margin-top: 3px;
+      color: #111827;
+    }
+
+    .ctaRow{
+      display:flex;
+      flex-wrap:wrap;
+      gap: 10px;
+      align-items:center;
+      margin-top: 4px;
+    }
+
+    .btn{
+      border-radius: 999px;
+      padding: 9px 14px;
+      font-size: 14px;
+      font-weight: 500;
+      border: 1px solid transparent;
+      cursor: pointer;
+      display:inline-flex;
+      align-items:center;
+      justify-content:center;
+      gap: 8px;
+      white-space: nowrap;
+    }
+    .btn.primary{ background: var(--accent); color: #ffffff; }
+    .btn.secondary{ background: rgba(229,242,255,0.95); color: var(--brand); border-color: rgba(229,242,255,0.65); }
+    .btn.ghost{ background: #ffffff; color: var(--brand); border-color: var(--border); }
+    .btn:hover{ box-shadow: var(--shadow); }
+
+    /* Sections */
+    .section{ margin-top: 18px; }
+
+    .panel{
+      border: 1px solid var(--border);
+      border-radius: 16px;
+      padding: 14px 16px;
+      background: #ffffff;
+      box-shadow: 0 10px 24px rgba(15,23,42,0.06);
+    }
+    .panel h2{
+      margin: 0 0 10px;
+      font-size: 15px;
+      font-weight: 600;
+      color: var(--brand);
+    }
+    .panel p{
+      margin: 0;
+      font-size: 12.8px;
+      line-height: 1.6;
+      color: #4b5563;
+      white-space: pre-line;
+    }
+
+    /* Route */
+    .route{
+      margin-top: 14px;
+      border: 1px solid var(--border);
+      border-radius: 16px;
+      background: #ffffff;
+      box-shadow: 0 10px 24px rgba(15,23,42,0.06);
+      overflow:hidden;
+    }
+    .routeHead{
+      padding: 12px 14px;
+      border-bottom: 1px solid var(--border);
+      display:flex;
+      align-items:center;
+      justify-content: space-between;
+      gap: 10px;
+    }
+    .routeHead h2{
+      margin:0;
+      font-size: 15px;
+      font-weight: 600;
+      color: var(--brand);
+    }
+    .routeHead .tag{
+      font-size: 12px;
+      color: #374151;
+      background: #fafafa;
+      border: 1px solid var(--border);
+      padding: 6px 10px;
+      border-radius: 999px;
+      white-space: nowrap;
+    }
+    .steps{
+      display:grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 0;
+    }
+    .step{
+      padding: 12px 14px 14px;
+      border-right: 1px solid var(--border);
+    }
+    .step:last-child{ border-right:none; }
+    .step .n{
+      font-size: 12px;
+      color: var(--muted);
+      margin-bottom: 6px;
+    }
+    .step .t{
+      font-size: 13px;
+      font-weight: 600;
+      color: #111827;
+      margin-bottom: 6px;
+    }
+    .step .d{
+      font-size: 12.6px;
+      color: #4b5563;
+      line-height: 1.55;
+      white-space: pre-line;
+    }
+
+    /* Supporting cards */
+    .cards3{
+      margin-top: 14px;
+      display:grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 14px;
+      align-items: stretch;
+    }
+    .card{
+      border: 1px solid var(--border);
+      border-radius: 16px;
+      background: #ffffff;
+      padding: 14px 16px;
+      box-shadow: 0 10px 24px rgba(15,23,42,0.06);
+    }
+    .card h3{
+      margin:0 0 8px;
+      font-size: 13px;
+      font-weight: 600;
+      color:#111827;
+    }
+    .card p{
+      margin:0;
+      font-size: 12.8px;
+      line-height: 1.6;
+      color: #4b5563;
+      white-space: pre-line;
+    }
+    .card ul{
+      margin: 10px 0 0;
+      padding-left: 18px;
+      font-size: 12.5px;
+      line-height: 1.55;
+      color: #4b5563;
+    }
+    .card li{ margin-bottom: 6px; }
+
+    /* Spotlight */
+    .spotlight{
+      margin-top: 14px;
+      display:grid;
+      grid-template-columns: 1.05fr 0.95fr;
+      gap: 14px;
+      align-items:center;
+    }
+    .spotlight-reverse{
+      grid-template-columns: 0.95fr 1.05fr;
+    }
+    .spotText{
+      border: 1px solid var(--border);
+      border-radius: 18px;
+      background: #ffffff;
+      box-shadow: var(--shadow);
+      padding: 16px 16px 14px;
+    }
+    .spotText h2{
+      margin: 0 0 10px;
+      font-size: 15px;
+      font-weight: 600;
+      color: var(--brand);
+    }
+    .spotText p{
+      margin:0;
+      font-size: 12.8px;
+      line-height: 1.6;
+      color: #4b5563;
+      white-space: pre-line;
+    }
+    .mini{
+      margin-top: 12px;
+      padding-top: 12px;
+      border-top: 1px solid var(--border);
+      display:grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 10px;
+      color: #4b5563;
+      font-size: 12.5px;
+    }
+    .spotImgWrap{
+      display:flex;
+      justify-content:center;
+      align-items:center;
+      padding: 6px;
+    }
+    .spotImg{
+      width: 320px;
+      height: 320px;
+      border-radius: 999px;
+      overflow:hidden;
+      border: 1px solid rgba(229,231,235,0.95);
+      box-shadow: 0 18px 44px rgba(15,23,42,0.18);
+      background: #f3f4f6;
+    }
+    .spotImg img{
+      width:100%;
+      height:100%;
+      object-fit: cover;
+      display:block;
+    }
+
+    /* FAQ */
+    .faq{
+      margin-top: 22px;
+      border: 1px solid var(--border);
+      border-radius: 16px;
+      padding: 14px 16px;
+      background: #ffffff;
+      box-shadow: 0 10px 24px rgba(15,23,42,0.06);
+    }
+    .faq h2{
+      margin: 0 0 8px;
+      font-size: 15px;
+      font-weight: 600;
+      color: var(--brand);
+    }
+    details{
+      border-top: 1px solid var(--border);
+      padding: 10px 0;
+    }
+    details:first-of-type{ border-top:none; padding-top:0; }
+    summary{
+      cursor:pointer;
+      list-style:none;
+      font-size: 13px;
+      font-weight: 600;
+      color:#111827;
+    }
+    summary::-webkit-details-marker{ display:none; }
+    .faq p{
+      margin: 8px 0 0;
+      font-size: 12.8px;
+      line-height: 1.6;
+      color: #4b5563;
+    }
+
+    footer{
+      border-top: 1px solid var(--border);
+      padding: 14px 20px 22px;
+      font-size: 12px;
+      color: #6b7280;
+      text-align: center;
+      margin-top: 26px;
+    }
+    footer a{ color: inherit; text-decoration: underline; }
+
+    @media (max-width: 920px){
+      .wrap{ padding: 12px 16px 28px; }
+      .heroGrid{ grid-template-columns: 1fr; }
+      .heroMedia{ min-height: 260px; }
+      h1{ font-size: 30px; }
+
+      .steps{ grid-template-columns: 1fr; }
+      .step{ border-right:none; border-top: 1px solid var(--border); }
+      .step:first-child{ border-top:none; }
+      .cards3{ grid-template-columns: 1fr; }
+      .spotlight, .spotlight-reverse{ grid-template-columns: 1fr; }
+      .spotImg{ width: 240px; height: 240px; }
+    }
+  </style>
+
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "FAQPage",
+    "mainEntity": [
+      {
+        "@type": "Question",
+        "name": "How long do you need at Lusong Coral Garden?",
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": "Plan 45 to 90 minutes. It is a straightforward snorkel stop and works best when you keep it efficient."
+        }
+      },
+      {
+        "@type": "Question",
+        "name": "What is the best timing?",
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": "Midday can be great for light and visibility. If it is crowded or choppy, shorten the session."
+        }
+      },
+      {
+        "@type": "Question",
+        "name": "Is it beginner friendly?",
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": "Yes if you keep it conservative, stay near your exit, and use flotation if needed."
+        }
+      },
+      {
+        "@type": "Question",
+        "name": "What is the biggest mistake?",
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": "Overstaying in heat or choppy conditions. Short sessions feel better and stay safer."
+        }
+      }
+    ]
+  }
+  </script>
+</head>
+
+<body>
+  <div class="wrap">
+    <header class="nav">
+      <div class="nav-left">
+        <a href="https://www.lolaelo.com" aria-label="Lolaelo home">
+          <img
+            src="https://www.lolaelo.com/logo.png?cb=logo-1x"
+            alt="Lolaelo"
+            class="logo-img"
+            decoding="async"
+            loading="eager"
+          >
+        </a>
+      </div>
+
+      <nav class="nav-right" aria-label="Primary">
+        <a class="nav-link nav-link-back" href="/destinations/coron/index.html" aria-label="Back to Coron guide">
+          <span class="nav-back-arrow">←</span>
+          <span>Coron guide</span>
+        </a>
+      </nav>
+    </header>
+
+    <div class="crumbs" aria-label="Breadcrumb">
+      <span>Lusong Coral Garden</span>
+    </div>
+
+    <main class="content" role="main">
+      <!-- HERO: keep structure identical to template -->
+      <section class="hero" aria-label="Lusong Coral Garden in Coron">
+        <div class="heroGrid">
+          <div class="heroMedia">
+            <img src="/images/coron/hero-lusong-coral-garden.jpg" alt="Lusong Coral Garden snorkeling in Coron with coral and clear water" loading="eager" />
+          </div>
+
+          <div class="heroBody">
+            <h1>Lusong Coral Garden</h1>
+            <p class="lede">
+              This is a clean snorkel stop. The win is short, comfortable water time with good light and low stress.
+            </p>
+
+            <div class="chips" aria-label="Quick facts">
+              <div class="chip"><span class="dot"></span>Best for: easy reef time</div>
+              <div class="chip"><span class="dot"></span>Time: 45 to 90 minutes</div>
+              <div class="chip"><span class="dot"></span>Bring: mask, fins if you use them</div>
+              <div class="chip"><span class="dot"></span>Rule: short session beats long session</div>
+            </div>
+
+            <div class="kpi" aria-label="Planning snapshot">
+              <div class="item">
+                <div class="lbl">Ideal timing</div>
+                <div class="val">Midday for light</div>
+              </div>
+              <div class="item">
+                <div class="lbl">Water time</div>
+                <div class="val">30 to 60 minutes</div>
+              </div>
+              <div class="item">
+                <div class="lbl">Effort</div>
+                <div class="val">Low to medium</div>
+              </div>
+              <div class="item">
+                <div class="lbl">Risk</div>
+                <div class="val">Low if conservative</div>
+              </div>
+            </div>
+
+            <div class="ctaRow">
+              <a class="btn primary" href="https://lolaelo-api.onrender.com/catalog.html?q=coron">Browse Coron stays</a>
+              <a class="btn ghost" href="/destinations/coron/index.html#top10">Back to Coron top 10</a>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- BODY: Layout Plan 2 -->
+      <section class="section" aria-label="Route card">
+        <div class="panel">
+          <h2>Quick answer</h2>
+          <p>
+If you want a simple snorkel stop with strong payoff, Lusong is a good pick.
+Keep it short, stay comfortable, and take advantage of the light.
+          </p>
+        </div>
+
+        <div class="route">
+          <div class="routeHead">
+            <h2>3-step route</h2>
+            <div class="tag">Target: 60 minutes</div>
+          </div>
+
+          <div class="steps" aria-label="3 steps">
+            <div class="step">
+              <div class="n">Step 1</div>
+              <div class="t">Prep fast</div>
+              <div class="d">
+Mask fit. Defog. Dry bag ready.
+No overpacking. No drama.
+              </div>
+            </div>
+
+            <div class="step">
+              <div class="n">Step 2</div>
+              <div class="t">Short swim lane</div>
+              <div class="d">
+Pick a conservative lane near your exit.
+Reset often. Float and breathe calmly.
+              </div>
+            </div>
+
+            <div class="step">
+              <div class="n">Step 3</div>
+              <div class="t">Exit clean</div>
+              <div class="d">
+Leave while you still feel good.
+Save the energy for the next stop or the ride back.
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section class="section" aria-label="Supporting cards">
+        <div class="cards3">
+          <div class="card">
+            <h3>Order strategy</h3>
+            <p>
+This works best when you are not already cooked.
+If you feel tired, shorten it and move on.
+            </p>
+            <ul>
+              <li>Earlier water time feels easier</li>
+              <li>Midday light can be a big win</li>
+              <li>Do not overstack stops</li>
+            </ul>
+          </div>
+
+          <div class="card">
+            <h3>Comfort rules</h3>
+            <p>
+Comfort is your safety margin. Treat it that way.
+            </p>
+            <ul>
+              <li>Reset if breathing gets tight</li>
+              <li>Exit if you feel overheated</li>
+              <li>Short sessions stay fun</li>
+            </ul>
+          </div>
+
+          <div class="card">
+            <h3>Gear basics</h3>
+            <p>
+Fit beats fancy. Bring what reduces friction.
+            </p>
+            <ul>
+              <li>Mask that fits</li>
+              <li>Fins if you are comfortable</li>
+              <li>Dry bag + water</li>
+            </ul>
+          </div>
+        </div>
+      </section>
+
+      <section class="section" aria-label="Spotlights">
+        <div class="spotlight">
+          <div class="spotImgWrap" aria-hidden="true">
+            <div class="spotImg">
+              <img src="/images/coron/spot-lusong-snorkel.jpg" alt="" loading="lazy" />
+            </div>
+          </div>
+
+          <div class="spotText">
+            <h2>Short and clean beats long and messy</h2>
+            <p>
+This is the kind of stop you can ruin by overstaying.
+Take the win and move on. Your day gets better.
+            </p>
+            <div class="mini">
+              <div>Target: 30 to 45 minutes water time</div>
+              <div>Rule: exit when comfort drops</div>
+            </div>
+          </div>
+        </div>
+
+        <div class="spotlight spotlight-reverse">
+          <div class="spotText">
+            <h2>Use the light</h2>
+            <p>
+Visibility is a huge part of the experience.
+When the light is good, this place pops. When it is not, keep it short.
+            </p>
+            <div class="mini">
+              <div>Win: good light + calm breathing</div>
+              <div>Skip: chasing “one more lap”</div>
+            </div>
+          </div>
+
+          <div class="spotImgWrap" aria-hidden="true">
+            <div class="spotImg">
+              <img src="/images/coron/spot-lusong-coral.jpg" alt="" loading="lazy" />
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section class="faq" aria-label="FAQ">
+        <h2>FAQ</h2>
+
+        <details>
+          <summary>How long do you need here?</summary>
+          <p>Plan 45 to 90 minutes. Keep water time to 30 to 60 minutes.</p>
+        </details>
+
+        <details>
+          <summary>What is the best timing?</summary>
+          <p>Midday can be great for light and visibility. If it is crowded or choppy, shorten the session.</p>
+        </details>
+
+        <details>
+          <summary>Is it beginner friendly?</summary>
+          <p>Yes if you stay conservative and use flotation if needed. Comfort first.</p>
+        </details>
+
+        <details>
+          <summary>What is the biggest mistake?</summary>
+          <p>Overstaying in heat or choppy conditions. Short sessions stay fun and safe.</p>
+        </details>
+      </section>
+    </main>
+
+    <footer>
+      © <span id="year"></span> Lolaelo ·
+      <a href="https://lolaelo-api.onrender.com/privacy.html" target="_blank" rel="noopener">Privacy</a>
+      <a href="https://lolaelo-api.onrender.com/terms.html" target="_blank" rel="noopener">Terms</a>
+    </footer>
+  </div>
+
+  <script>
+    document.getElementById("year").textContent = new Date().getFullYear();
+  </script>
+</body>
+</html>

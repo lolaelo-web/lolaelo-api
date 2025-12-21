@@ -1,0 +1,870 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+
+  <title>WWII Wreck Diving | Coron Experiences | Lolaelo</title>
+  <meta name="description" content="WWII wreck diving in Coron: pick your lane (certified vs discover), safety-first protocol, and how to avoid bad decisions on a big dive day." />
+
+  <link rel="icon" href="https://www.lolaelo.com/logo2.png" />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+
+  <meta property="og:title" content="WWII Wreck Diving | Coron Experiences | Lolaelo" />
+  <meta property="og:description" content="Coron wreck diving: the practical plan and safety guardrails." />
+  <meta property="og:type" content="website" />
+  <meta property="og:image" content="/images/coron/hero-coron-wreck-diving.jpg" />
+
+  <style>
+    :root{
+      --bg:#ffffff;
+      --fg:#111827;
+      --muted:#6b7280;
+
+      --brand:#064e3b;
+      --accent:#ff6a3d;
+      --border:#e5e7eb;
+
+      --max:1100px;
+      --shadow: 0 12px 30px rgba(15,23,42,0.10);
+      --shadow2: 0 16px 40px rgba(15,23,42,0.18);
+
+      --font: Inter, ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+    }
+
+    *{box-sizing:border-box}
+    html, body{margin:0; padding:0}
+    body{
+      font-family: var(--font);
+      background: var(--bg);
+      color: var(--fg);
+      line-height: 1.5;
+    }
+    a{color:inherit; text-decoration:none}
+
+    .wrap{
+      max-width: var(--max);
+      margin: 0 auto;
+      padding: 16px 20px 40px;
+    }
+
+    /* Header (copied from template) */
+    .nav{
+      display:flex;
+      align-items:center;
+      justify-content:space-between;
+      padding: 4px 0 12px;
+    }
+    .nav-left{display:flex; align-items:center; gap:8px}
+    .logo-img{height:32px; width:auto; display:block}
+
+    .nav-right{
+      display:flex;
+      align-items:center;
+      gap: 20px;
+      font-size: 14px;
+    }
+    .nav-link{
+      color: var(--brand);
+      padding: 4px 0;
+      font-weight: 500;
+    }
+    .nav-link-back{
+      display:inline-flex;
+      align-items:center;
+      gap: 6px;
+    }
+    .nav-back-arrow{
+      font-size: 16px;
+      line-height: 1;
+      transform: translateY(1px);
+    }
+    .nav-link-back:hover span:last-child{ text-decoration: underline; }
+    .nav-link-back:hover .nav-back-arrow{
+      transform: translate(-2px, 1px);
+      transition: transform 0.15s ease-out;
+    }
+
+    /* Minimal breadcrumb (copied from template) */
+    .crumbs{
+      margin-top: 8px;
+      font-size: 12px;
+      color: var(--muted);
+      display:flex;
+      gap:8px;
+      align-items:center;
+      flex-wrap:wrap;
+    }
+    .crumbs span{
+      display:inline-block;
+      padding: 6px 10px;
+      border: 1px solid var(--border);
+      border-radius: 999px;
+      background: #ffffff;
+    }
+
+    /* Hero card (copied from template) */
+    .hero{
+      margin-top: 14px;
+      border-radius: 18px;
+      overflow:hidden;
+      border: 1px solid var(--border);
+      background: #ffffff;
+      box-shadow: var(--shadow);
+    }
+    .heroGrid{
+      display:grid;
+      grid-template-columns: 1.12fr .88fr;
+      gap:0;
+    }
+    .heroMedia{
+      min-height: 340px;
+      position: relative;
+      background: #f3f4f6;
+    }
+    .heroMedia img{
+      width:100%;
+      height:100%;
+      object-fit: cover;
+      display:block;
+    }
+    .heroMedia::after{
+      content:"";
+      position:absolute;
+      inset:0;
+      background: linear-gradient(90deg, rgba(0,0,0,0.05), rgba(0,0,0,0.22));
+      pointer-events:none;
+    }
+    .heroBody{
+      padding: 22px 22px 20px;
+      display:flex;
+      flex-direction: column;
+      gap: 12px;
+    }
+    h1{
+      margin:0;
+      font-size: 34px;
+      line-height: 1.15;
+      letter-spacing: -0.01em;
+      font-weight: 600;
+    }
+    .lede{
+      margin:0;
+      color: var(--muted);
+      font-size: 14.5px;
+      line-height: 1.55;
+    }
+
+    .chips{
+      display:flex;
+      flex-wrap:wrap;
+      gap: 8px;
+      margin-top: 2px;
+    }
+    .chip{
+      display:inline-flex;
+      gap:8px;
+      align-items:center;
+      padding: 6px 10px;
+      border: 1px solid var(--border);
+      border-radius: 999px;
+      background: #fafafa;
+      color: #374151;
+      font-size: 12px;
+    }
+    .dot{
+      width: 8px;
+      height: 8px;
+      border-radius: 999px;
+      background: var(--accent);
+      box-shadow: 0 0 0 4px rgba(255,106,61,0.14);
+      flex: 0 0 auto;
+    }
+
+    .kpi{
+      display:grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 10px;
+      margin-top: 4px;
+    }
+    .kpi .item{
+      border: 1px solid var(--border);
+      border-radius: 14px;
+      background: #ffffff;
+      padding: 10px 10px;
+      box-shadow: 0 10px 24px rgba(15,23,42,0.06);
+    }
+    .kpi .lbl{
+      font-size: 12px;
+      color: var(--muted);
+    }
+    .kpi .val{
+      font-size: 13.5px;
+      font-weight: 600;
+      margin-top: 3px;
+      color: #111827;
+    }
+
+    .ctaRow{
+      display:flex;
+      flex-wrap:wrap;
+      gap: 10px;
+      align-items:center;
+      margin-top: 4px;
+    }
+
+    .btn{
+      border-radius: 999px;
+      padding: 9px 14px;
+      font-size: 14px;
+      font-weight: 500;
+      border: 1px solid transparent;
+      cursor: pointer;
+      display:inline-flex;
+      align-items:center;
+      justify-content:center;
+      gap: 8px;
+      white-space: nowrap;
+    }
+    .btn.primary{ background: var(--accent); color: #ffffff; }
+    .btn.secondary{ background: rgba(229,242,255,0.95); color: var(--brand); border-color: rgba(229,242,255,0.65); }
+    .btn.ghost{ background: #ffffff; color: var(--brand); border-color: var(--border); }
+    .btn:hover{ box-shadow: var(--shadow); }
+
+    /* Sections */
+    .section{ margin-top: 18px; }
+
+    .panel{
+      border: 1px solid var(--border);
+      border-radius: 16px;
+      padding: 14px 16px;
+      background: #ffffff;
+      box-shadow: 0 10px 24px rgba(15,23,42,0.06);
+    }
+    .panel h2{
+      margin: 0 0 10px;
+      font-size: 15px;
+      font-weight: 600;
+      color: var(--brand);
+    }
+    .panel p{
+      margin: 0;
+      font-size: 12.8px;
+      line-height: 1.6;
+      color: #4b5563;
+      white-space: pre-line;
+    }
+
+    /* Lanes */
+    .lanes{
+      display:grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 14px;
+      align-items: stretch;
+      margin-top: 14px;
+    }
+    .lane{
+      border: 1px solid var(--border);
+      border-radius: 16px;
+      background: #ffffff;
+      padding: 14px 16px;
+      box-shadow: 0 10px 24px rgba(15,23,42,0.06);
+      display:flex;
+      flex-direction: column;
+      gap: 10px;
+    }
+    .lane .top{
+      display:flex;
+      align-items:flex-start;
+      justify-content: space-between;
+      gap: 10px;
+    }
+    .lane h3{
+      margin:0;
+      font-size: 13px;
+      font-weight: 600;
+      color: #111827;
+    }
+    .badge{
+      font-size: 12px;
+      color: #374151;
+      background: #fafafa;
+      border: 1px solid var(--border);
+      padding: 6px 10px;
+      border-radius: 999px;
+      white-space: nowrap;
+    }
+    .lane p{
+      margin:0;
+      font-size: 12.8px;
+      line-height: 1.6;
+      color: #4b5563;
+      white-space: pre-line;
+    }
+    .lane ul{
+      margin: 0;
+      padding-left: 18px;
+      font-size: 12.5px;
+      line-height: 1.55;
+      color: #4b5563;
+    }
+    .lane li{ margin-bottom: 6px; }
+    .lane.good{ border-color: rgba(6,78,59,0.28); background: rgba(6,78,59,0.04); }
+    .lane.warn{ border-color: rgba(255,106,61,0.28); background: rgba(255,106,61,0.04); }
+
+    /* Matrix */
+    .matrix{
+      margin-top: 14px;
+      border: 1px solid var(--border);
+      border-radius: 16px;
+      overflow:hidden;
+      background: #ffffff;
+      box-shadow: 0 10px 24px rgba(15,23,42,0.06);
+    }
+    .matrixHead{
+      padding: 12px 14px;
+      border-bottom: 1px solid var(--border);
+      display:flex;
+      align-items:center;
+      justify-content: space-between;
+      gap: 10px;
+    }
+    .matrixHead h2{
+      margin:0;
+      font-size: 15px;
+      font-weight: 600;
+      color: var(--brand);
+    }
+    .matrixHead .tag{
+      font-size: 12px;
+      color: #374151;
+      background: #fafafa;
+      border: 1px solid var(--border);
+      padding: 6px 10px;
+      border-radius: 999px;
+      white-space: nowrap;
+    }
+    .table{
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 12.6px;
+      color: #4b5563;
+    }
+    .table th, .table td{
+      border-top: 1px solid var(--border);
+      padding: 10px 12px;
+      text-align: left;
+      vertical-align: top;
+    }
+    .table th{
+      color: #111827;
+      font-weight: 600;
+      background: #fafafa;
+    }
+
+    /* Protocol + safety */
+    .protocol{
+      border: 1px solid rgba(6,78,59,0.28);
+      background: rgba(6,78,59,0.04);
+      border-radius: 16px;
+      padding: 14px 16px;
+      box-shadow: 0 10px 24px rgba(15,23,42,0.06);
+    }
+    .protocol h2{
+      margin: 0 0 8px;
+      font-size: 15px;
+      font-weight: 600;
+      color: #111827;
+    }
+    .protocol ol{
+      margin: 0;
+      padding-left: 18px;
+      font-size: 12.7px;
+      line-height: 1.6;
+      color: #4b5563;
+    }
+    .protocol li{ margin-bottom: 8px; }
+
+    .rules{
+      display:grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 14px;
+      margin-top: 14px;
+    }
+    .ruleBox{
+      border: 1px solid var(--border);
+      border-radius: 16px;
+      background: #ffffff;
+      padding: 14px 16px;
+      box-shadow: 0 10px 24px rgba(15,23,42,0.06);
+    }
+    .ruleBox h3{
+      margin:0 0 8px;
+      font-size: 13px;
+      font-weight: 600;
+      color: #111827;
+    }
+    .ruleBox ul{
+      margin:0;
+      padding-left: 18px;
+      font-size: 12.5px;
+      line-height: 1.55;
+      color: #4b5563;
+    }
+    .ruleBox li{ margin-bottom: 6px; }
+
+    /* Spotlight */
+    .spotlight{
+      margin-top: 14px;
+      display:grid;
+      grid-template-columns: 1.05fr 0.95fr;
+      gap: 14px;
+      align-items:center;
+    }
+    .spotlight-reverse{
+      grid-template-columns: 0.95fr 1.05fr;
+    }
+    .spotText{
+      border: 1px solid var(--border);
+      border-radius: 18px;
+      background: #ffffff;
+      box-shadow: var(--shadow);
+      padding: 16px 16px 14px;
+    }
+    .spotText h2{
+      margin: 0 0 10px;
+      font-size: 15px;
+      font-weight: 600;
+      color: var(--brand);
+    }
+    .spotText p{
+      margin:0;
+      font-size: 12.8px;
+      line-height: 1.6;
+      color: #4b5563;
+      white-space: pre-line;
+    }
+    .mini{
+      margin-top: 12px;
+      padding-top: 12px;
+      border-top: 1px solid var(--border);
+      display:grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 10px;
+      color: #4b5563;
+      font-size: 12.5px;
+    }
+    .spotImgWrap{
+      display:flex;
+      justify-content:center;
+      align-items:center;
+      padding: 6px;
+    }
+    .spotImg{
+      width: 320px;
+      height: 320px;
+      border-radius: 999px;
+      overflow:hidden;
+      border: 1px solid rgba(229,231,235,0.95);
+      box-shadow: 0 18px 44px rgba(15,23,42,0.18);
+      background: #f3f4f6;
+    }
+    .spotImg img{
+      width:100%;
+      height:100%;
+      object-fit: cover;
+      display:block;
+    }
+
+    /* FAQ */
+    .faq{
+      margin-top: 22px;
+      border: 1px solid var(--border);
+      border-radius: 16px;
+      padding: 14px 16px;
+      background: #ffffff;
+      box-shadow: 0 10px 24px rgba(15,23,42,0.06);
+    }
+    .faq h2{
+      margin: 0 0 8px;
+      font-size: 15px;
+      font-weight: 600;
+      color: var(--brand);
+    }
+    details{
+      border-top: 1px solid var(--border);
+      padding: 10px 0;
+    }
+    details:first-of-type{ border-top:none; padding-top:0; }
+    summary{
+      cursor:pointer;
+      list-style:none;
+      font-size: 13px;
+      font-weight: 600;
+      color:#111827;
+    }
+    summary::-webkit-details-marker{ display:none; }
+    .faq p{
+      margin: 8px 0 0;
+      font-size: 12.8px;
+      line-height: 1.6;
+      color: #4b5563;
+    }
+
+    footer{
+      border-top: 1px solid var(--border);
+      padding: 14px 20px 22px;
+      font-size: 12px;
+      color: #6b7280;
+      text-align: center;
+      margin-top: 26px;
+    }
+    footer a{ color: inherit; text-decoration: underline; }
+
+    @media (max-width: 920px){
+      .wrap{ padding: 12px 16px 28px; }
+      .heroGrid{ grid-template-columns: 1fr; }
+      .heroMedia{ min-height: 260px; }
+      h1{ font-size: 30px; }
+
+      .lanes{ grid-template-columns: 1fr; }
+      .rules{ grid-template-columns: 1fr; }
+      .matrix{ overflow:auto; }
+      .spotlight, .spotlight-reverse{ grid-template-columns: 1fr; }
+      .spotImg{ width: 240px; height: 240px; }
+    }
+  </style>
+
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "FAQPage",
+    "mainEntity": [
+      {
+        "@type": "Question",
+        "name": "Can beginners do Coron wreck diving?",
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": "Some operators offer discover-style experiences, but wreck environments are serious. If you are not certified, stay within the program rules and do not attempt penetration."
+        }
+      },
+      {
+        "@type": "Question",
+        "name": "What is the best way to choose a wreck day?",
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": "Choose based on your certification, comfort, and recent dive history. Conservative plans are the best plans."
+        }
+      },
+      {
+        "@type": "Question",
+        "name": "What is the biggest mistake people make?",
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": "Trying to do dives that exceed their training or comfort. Wrecks are not the place to improvise."
+        }
+      },
+      {
+        "@type": "Question",
+        "name": "Do I need special gear?",
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": "It depends on depth, wreck type, and conditions. Follow the dive shop’s guidance and keep it within your training."
+        }
+      }
+    ]
+  }
+  </script>
+</head>
+
+<body>
+  <div class="wrap">
+    <header class="nav">
+      <div class="nav-left">
+        <a href="https://www.lolaelo.com" aria-label="Lolaelo home">
+          <img
+            src="https://www.lolaelo.com/logo.png?cb=logo-1x"
+            alt="Lolaelo"
+            class="logo-img"
+            decoding="async"
+            loading="eager"
+          >
+        </a>
+      </div>
+
+      <nav class="nav-right" aria-label="Primary">
+        <a class="nav-link nav-link-back" href="/destinations/coron/index.html" aria-label="Back to Coron guide">
+          <span class="nav-back-arrow">←</span>
+          <span>Coron guide</span>
+        </a>
+      </nav>
+    </header>
+
+    <div class="crumbs" aria-label="Breadcrumb">
+      <span>WWII wreck diving</span>
+    </div>
+
+    <main class="content" role="main">
+      <!-- HERO: keep structure identical to template -->
+      <section class="hero" aria-label="WWII wreck diving in Coron">
+        <div class="heroGrid">
+          <div class="heroMedia">
+            <img src="/images/coron/hero-coron-wreck-diving.jpg" alt="WWII wreck diving in Coron with a diver near a shipwreck" loading="eager" />
+          </div>
+
+          <div class="heroBody">
+            <h1>WWII wreck diving</h1>
+            <p class="lede">
+              Coron wrecks are a serious lane. The win is staying within training and keeping decisions conservative.
+            </p>
+
+            <div class="chips" aria-label="Quick facts">
+              <div class="chip"><span class="dot"></span>Best for: certified divers</div>
+              <div class="chip"><span class="dot"></span>Time: half to full day</div>
+              <div class="chip"><span class="dot"></span>Risk: high if you push limits</div>
+              <div class="chip"><span class="dot"></span>Rule: no improvising</div>
+            </div>
+
+            <div class="kpi" aria-label="Planning snapshot">
+              <div class="item">
+                <div class="lbl">Ideal timing</div>
+                <div class="val">Morning starts</div>
+              </div>
+              <div class="item">
+                <div class="lbl">Effort</div>
+                <div class="val">High</div>
+              </div>
+              <div class="item">
+                <div class="lbl">Skill</div>
+                <div class="val">Certification dependent</div>
+              </div>
+              <div class="item">
+                <div class="lbl">Outcome</div>
+                <div class="val">Iconic Coron lane</div>
+              </div>
+            </div>
+
+            <div class="ctaRow">
+              <a class="btn primary" href="https://lolaelo-api.onrender.com/catalog.html?q=coron">Browse Coron stays</a>
+              <a class="btn ghost" href="/destinations/coron/index.html#top10">Back to Coron top 10</a>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- BODY -->
+      <section class="section" aria-label="Reality check">
+        <div class="panel">
+          <h2>Reality check</h2>
+          <p>
+Wrecks are not “just another dive.” There are overhead risks, depth considerations, and visibility variables.
+Your best dive is the one you finish comfortably.
+          </p>
+        </div>
+      </section>
+
+      <section class="section" aria-label="Pick your lane">
+        <div class="panel">
+          <h2>Pick your lane</h2>
+          <p>
+Choose based on training and comfort. Not vibes.
+          </p>
+
+          <div class="lanes" aria-label="Diving lanes">
+            <div class="lane good">
+              <div class="top">
+                <h3>Certified: conservative wreck tour</h3>
+                <span class="badge">Best default</span>
+              </div>
+              <p>For: certified divers who want the experience without pushing limits.</p>
+              <ul>
+                <li>No penetration unless trained</li>
+                <li>Stay with guide and group plan</li>
+                <li>Prioritize buoyancy and calm pace</li>
+              </ul>
+            </div>
+
+            <div class="lane warn">
+              <div class="top">
+                <h3>Advanced: depth + complexity</h3>
+                <span class="badge">Only if ready</span>
+              </div>
+              <p>For: experienced divers with recent dives and comfort at depth.</p>
+              <ul>
+                <li>Be honest about recent dive history</li>
+                <li>Plan gas conservatively</li>
+                <li>Abort early if anything feels off</li>
+              </ul>
+            </div>
+
+            <div class="lane warn">
+              <div class="top">
+                <h3>Not certified: discover programs</h3>
+                <span class="badge">Strict rules</span>
+              </div>
+              <p>For: beginners under a formal program with instructor control.</p>
+              <ul>
+                <li>Stay shallow and supervised</li>
+                <li>No penetration, no independence</li>
+                <li>If you feel fear, you stop</li>
+              </ul>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section class="section" aria-label="Decision matrix">
+        <div class="matrix">
+          <div class="matrixHead">
+            <h2>Decision matrix</h2>
+            <div class="tag">Use this to stay smart</div>
+          </div>
+
+          <table class="table" aria-label="Wreck diving decision matrix">
+            <thead>
+              <tr>
+                <th>If this is true...</th>
+                <th>Do this</th>
+                <th>Don’t do this</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td>You have not dived recently</td>
+                <td>Choose conservative sites and stay shallow.</td>
+                <td>Jump into depth or complex wrecks.</td>
+              </tr>
+              <tr>
+                <td>You are not trained for penetration</td>
+                <td>Stay outside. Enjoy structure and marine life.</td>
+                <td>Follow anyone inside a wreck.</td>
+              </tr>
+              <tr>
+                <td>Visibility is poor or current feels strong</td>
+                <td>Shorten the plan, follow guide, stay close.</td>
+                <td>Try to “make it work” by pushing.</td>
+              </tr>
+              <tr>
+                <td>You feel anxious on descent</td>
+                <td>Abort early. Reset. Safety first.</td>
+                <td>Force yourself deeper.</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </section>
+
+      <section class="section" aria-label="Protocol">
+        <div class="protocol">
+          <h2>Safety-first protocol</h2>
+          <ol>
+            <li><strong>Be honest at the shop.</strong> Certification, recent dives, comfort, equalize issues.</li>
+            <li><strong>Confirm the plan.</strong> Depth, time, current, wreck type, and whether penetration is involved.</li>
+            <li><strong>Conservative gas planning.</strong> Leave margin. Do not chase “one more look.”</li>
+            <li><strong>Stay with the guide.</strong> Group discipline is a safety tool.</li>
+            <li><strong>Abort early if needed.</strong> Pride is not part of the dive plan.</li>
+          </ol>
+        </div>
+
+        <div class="rules" aria-label="Rules">
+          <div class="ruleBox">
+            <h3>Hard rules</h3>
+            <ul>
+              <li>No penetration unless trained and planned</li>
+              <li>No solo decisions</li>
+              <li>Abort if gear issues appear</li>
+              <li>Respect depth and no-deco limits</li>
+            </ul>
+          </div>
+
+          <div class="ruleBox">
+            <h3>Comfort rules</h3>
+            <ul>
+              <li>If anxiety rises, stop and signal</li>
+              <li>Slow descent, slow ascent</li>
+              <li>Warm up with an easier dive if needed</li>
+              <li>Leave before fatigue hits</li>
+            </ul>
+          </div>
+        </div>
+      </section>
+
+      <section class="section" aria-label="Spotlights">
+        <div class="spotlight">
+          <div class="spotImgWrap" aria-hidden="true">
+            <div class="spotImg">
+              <img src="/images/coron/spot-wreck-boat.jpg" alt="" loading="lazy" />
+            </div>
+          </div>
+
+          <div class="spotText">
+            <h2>Choose the operator, not just the wreck list</h2>
+            <p>
+A good operator keeps the day conservative, organized, and calm.
+That is what makes this experience feel iconic instead of risky.
+            </p>
+            <div class="mini">
+              <div>Win: calm briefing + disciplined plan</div>
+              <div>Loss: vague plan + “we’ll figure it out”</div>
+            </div>
+          </div>
+        </div>
+
+        <div class="spotlight spotlight-reverse">
+          <div class="spotText">
+            <h2>The best dive is the one you finish comfortable</h2>
+            <p>
+If anything feels off, you do not negotiate.
+You abort early and you keep your safety margin intact.
+            </p>
+            <div class="mini">
+              <div>Rule: abort early, not late</div>
+              <div>Skip: pushing to prove something</div>
+            </div>
+          </div>
+
+          <div class="spotImgWrap" aria-hidden="true">
+            <div class="spotImg">
+              <img src="/images/coron/spot-wreck-underwater.jpg" alt="" loading="lazy" />
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section class="faq" aria-label="FAQ">
+        <h2>FAQ</h2>
+
+        <details>
+          <summary>Can beginners do Coron wreck diving?</summary>
+          <p>Some operators offer discover-style experiences, but wreck environments are serious. Follow program rules and do not attempt penetration.</p>
+        </details>
+
+        <details>
+          <summary>How do I choose the right wreck day?</summary>
+          <p>Choose based on certification, comfort, and recent dive history. Conservative plans are the best plans.</p>
+        </details>
+
+        <details>
+          <summary>What is the biggest mistake?</summary>
+          <p>Trying dives that exceed training or comfort. Wrecks are not the place to improvise.</p>
+        </details>
+
+        <details>
+          <summary>Do I need special gear?</summary>
+          <p>Depends on depth and conditions. Follow the dive shop’s guidance and stay within your training.</p>
+        </details>
+      </section>
+    </main>
+
+    <footer>
+      © <span id="year"></span> Lolaelo ·
+      <a href="https://lolaelo-api.onrender.com/privacy.html" target="_blank" rel="noopener">Privacy</a>
+      <a href="https://lolaelo-api.onrender.com/terms.html" target="_blank" rel="noopener">Terms</a>
+    </footer>
+  </div>
+
+  <script>
+    document.getElementById("year").textContent = new Date().getFullYear();
+  </script>
+</body>
+</html>
