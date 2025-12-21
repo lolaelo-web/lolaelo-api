@@ -1,0 +1,809 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+
+  <title>Maquinit Hot Spring | Coron Experiences | Lolaelo</title>
+  <meta name="description" content="Maquinit Hot Spring in Coron: recovery lanes, timing, a simple protocol, and how to avoid turning a reset into a sweat marathon." />
+
+  <link rel="icon" href="https://www.lolaelo.com/logo2.png" />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+
+  <meta property="og:title" content="Maquinit Hot Spring | Coron Experiences | Lolaelo" />
+  <meta property="og:description" content="The practical Maquinit plan: go late, keep it short, and use it to sleep better." />
+  <meta property="og:type" content="website" />
+  <meta property="og:image" content="/images/coron/hero-maquinit-hot-spring.jpg" />
+
+  <style>
+    :root{
+      --bg:#ffffff;
+      --fg:#111827;
+      --muted:#6b7280;
+
+      --brand:#064e3b;
+      --accent:#ff6a3d;
+      --border:#e5e7eb;
+
+      --max:1100px;
+      --shadow: 0 12px 30px rgba(15,23,42,0.10);
+      --shadow2: 0 16px 40px rgba(15,23,42,0.18);
+
+      --font: Inter, ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+    }
+
+    *{box-sizing:border-box}
+    html, body{margin:0; padding:0}
+    body{
+      font-family: var(--font);
+      background: var(--bg);
+      color: var(--fg);
+      line-height: 1.5;
+    }
+    a{color:inherit; text-decoration:none}
+
+    .wrap{
+      max-width: var(--max);
+      margin: 0 auto;
+      padding: 16px 20px 40px;
+    }
+
+    /* Header (copied from template) */
+    .nav{
+      display:flex;
+      align-items:center;
+      justify-content:space-between;
+      padding: 4px 0 12px;
+    }
+    .nav-left{display:flex; align-items:center; gap:8px}
+    .logo-img{height:32px; width:auto; display:block}
+
+    .nav-right{
+      display:flex;
+      align-items:center;
+      gap: 20px;
+      font-size: 14px;
+    }
+    .nav-link{
+      color: var(--brand);
+      padding: 4px 0;
+      font-weight: 500;
+    }
+    .nav-link-back{
+      display:inline-flex;
+      align-items:center;
+      gap: 6px;
+    }
+    .nav-back-arrow{
+      font-size: 16px;
+      line-height: 1;
+      transform: translateY(1px);
+    }
+    .nav-link-back:hover span:last-child{ text-decoration: underline; }
+    .nav-link-back:hover .nav-back-arrow{
+      transform: translate(-2px, 1px);
+      transition: transform 0.15s ease-out;
+    }
+
+    /* Minimal breadcrumb (copied from template) */
+    .crumbs{
+      margin-top: 8px;
+      font-size: 12px;
+      color: var(--muted);
+      display:flex;
+      gap:8px;
+      align-items:center;
+      flex-wrap:wrap;
+    }
+    .crumbs span{
+      display:inline-block;
+      padding: 6px 10px;
+      border: 1px solid var(--border);
+      border-radius: 999px;
+      background: #ffffff;
+    }
+
+    /* Hero card (copied from template) */
+    .hero{
+      margin-top: 14px;
+      border-radius: 18px;
+      overflow:hidden;
+      border: 1px solid var(--border);
+      background: #ffffff;
+      box-shadow: var(--shadow);
+    }
+    .heroGrid{
+      display:grid;
+      grid-template-columns: 1.12fr .88fr;
+      gap:0;
+    }
+    .heroMedia{
+      min-height: 340px;
+      position: relative;
+      background: #f3f4f6;
+    }
+    .heroMedia img{
+      width:100%;
+      height:100%;
+      object-fit: cover;
+      display:block;
+    }
+    .heroMedia::after{
+      content:"";
+      position:absolute;
+      inset:0;
+      background: linear-gradient(90deg, rgba(0,0,0,0.05), rgba(0,0,0,0.22));
+      pointer-events:none;
+    }
+    .heroBody{
+      padding: 22px 22px 20px;
+      display:flex;
+      flex-direction: column;
+      gap: 12px;
+    }
+    h1{
+      margin:0;
+      font-size: 34px;
+      line-height: 1.15;
+      letter-spacing: -0.01em;
+      font-weight: 600;
+    }
+    .lede{
+      margin:0;
+      color: var(--muted);
+      font-size: 14.5px;
+      line-height: 1.55;
+    }
+
+    .chips{
+      display:flex;
+      flex-wrap:wrap;
+      gap: 8px;
+      margin-top: 2px;
+    }
+    .chip{
+      display:inline-flex;
+      gap:8px;
+      align-items:center;
+      padding: 6px 10px;
+      border: 1px solid var(--border);
+      border-radius: 999px;
+      background: #fafafa;
+      color: #374151;
+      font-size: 12px;
+    }
+    .dot{
+      width: 8px;
+      height: 8px;
+      border-radius: 999px;
+      background: var(--accent);
+      box-shadow: 0 0 0 4px rgba(255,106,61,0.14);
+      flex: 0 0 auto;
+    }
+
+    .kpi{
+      display:grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 10px;
+      margin-top: 4px;
+    }
+    .kpi .item{
+      border: 1px solid var(--border);
+      border-radius: 14px;
+      background: #ffffff;
+      padding: 10px 10px;
+      box-shadow: 0 10px 24px rgba(15,23,42,0.06);
+    }
+    .kpi .lbl{
+      font-size: 12px;
+      color: var(--muted);
+    }
+    .kpi .val{
+      font-size: 13.5px;
+      font-weight: 600;
+      margin-top: 3px;
+      color: #111827;
+    }
+
+    .ctaRow{
+      display:flex;
+      flex-wrap:wrap;
+      gap: 10px;
+      align-items:center;
+      margin-top: 4px;
+    }
+
+    .btn{
+      border-radius: 999px;
+      padding: 9px 14px;
+      font-size: 14px;
+      font-weight: 500;
+      border: 1px solid transparent;
+      cursor: pointer;
+      display:inline-flex;
+      align-items:center;
+      justify-content:center;
+      gap: 8px;
+      white-space: nowrap;
+    }
+    .btn.primary{ background: var(--accent); color: #ffffff; }
+    .btn.secondary{ background: rgba(229,242,255,0.95); color: var(--brand); border-color: rgba(229,242,255,0.65); }
+    .btn.ghost{ background: #ffffff; color: var(--brand); border-color: var(--border); }
+    .btn:hover{ box-shadow: var(--shadow); }
+
+    /* Sections */
+    .section{ margin-top: 18px; }
+
+    .panel{
+      border: 1px solid var(--border);
+      border-radius: 16px;
+      padding: 14px 16px;
+      background: #ffffff;
+      box-shadow: 0 10px 24px rgba(15,23,42,0.06);
+    }
+    .panel h2{
+      margin: 0 0 10px;
+      font-size: 15px;
+      font-weight: 600;
+      color: var(--brand);
+    }
+    .panel p{
+      margin: 0;
+      font-size: 12.8px;
+      line-height: 1.6;
+      color: #4b5563;
+      white-space: pre-line;
+    }
+
+    /* Lanes */
+    .lanes{
+      display:grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 14px;
+      align-items: stretch;
+      margin-top: 14px;
+    }
+    .lane{
+      border: 1px solid var(--border);
+      border-radius: 16px;
+      background: #ffffff;
+      padding: 14px 16px;
+      box-shadow: 0 10px 24px rgba(15,23,42,0.06);
+      display:flex;
+      flex-direction: column;
+      gap: 10px;
+    }
+    .lane .top{
+      display:flex;
+      align-items:flex-start;
+      justify-content: space-between;
+      gap: 10px;
+    }
+    .lane h3{
+      margin:0;
+      font-size: 13px;
+      font-weight: 600;
+      color: #111827;
+    }
+    .badge{
+      font-size: 12px;
+      color: #374151;
+      background: #fafafa;
+      border: 1px solid var(--border);
+      padding: 6px 10px;
+      border-radius: 999px;
+      white-space: nowrap;
+    }
+    .lane p{
+      margin:0;
+      font-size: 12.8px;
+      line-height: 1.6;
+      color: #4b5563;
+      white-space: pre-line;
+    }
+    .lane ul{
+      margin: 0;
+      padding-left: 18px;
+      font-size: 12.5px;
+      line-height: 1.55;
+      color: #4b5563;
+    }
+    .lane li{ margin-bottom: 6px; }
+    .lane.good{ border-color: rgba(6,78,59,0.28); background: rgba(6,78,59,0.04); }
+    .lane.warn{ border-color: rgba(255,106,61,0.28); background: rgba(255,106,61,0.04); }
+
+    /* Matrix */
+    .matrix{
+      margin-top: 14px;
+      border: 1px solid var(--border);
+      border-radius: 16px;
+      overflow:hidden;
+      background: #ffffff;
+      box-shadow: 0 10px 24px rgba(15,23,42,0.06);
+    }
+    .matrixHead{
+      padding: 12px 14px;
+      border-bottom: 1px solid var(--border);
+      display:flex;
+      align-items:center;
+      justify-content: space-between;
+      gap: 10px;
+    }
+    .matrixHead h2{
+      margin:0;
+      font-size: 15px;
+      font-weight: 600;
+      color: var(--brand);
+    }
+    .matrixHead .tag{
+      font-size: 12px;
+      color: #374151;
+      background: #fafafa;
+      border: 1px solid var(--border);
+      padding: 6px 10px;
+      border-radius: 999px;
+      white-space: nowrap;
+    }
+    .table{
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 12.6px;
+      color: #4b5563;
+    }
+    .table th, .table td{
+      border-top: 1px solid var(--border);
+      padding: 10px 12px;
+      text-align: left;
+      vertical-align: top;
+    }
+    .table th{
+      color: #111827;
+      font-weight: 600;
+      background: #fafafa;
+    }
+
+    /* Protocol callout */
+    .protocol{
+      border: 1px solid rgba(6,78,59,0.28);
+      background: rgba(6,78,59,0.04);
+      border-radius: 16px;
+      padding: 14px 16px;
+      box-shadow: 0 10px 24px rgba(15,23,42,0.06);
+    }
+    .protocol h2{
+      margin: 0 0 8px;
+      font-size: 15px;
+      font-weight: 600;
+      color: #111827;
+    }
+    .protocol ol{
+      margin: 0;
+      padding-left: 18px;
+      font-size: 12.7px;
+      line-height: 1.6;
+      color: #4b5563;
+    }
+    .protocol li{ margin-bottom: 8px; }
+
+    /* Spotlight */
+    .spotlight{
+      margin-top: 14px;
+      display:grid;
+      grid-template-columns: 1.05fr 0.95fr;
+      gap: 14px;
+      align-items:center;
+    }
+    .spotlight-reverse{
+      grid-template-columns: 0.95fr 1.05fr;
+    }
+    .spotText{
+      border: 1px solid var(--border);
+      border-radius: 18px;
+      background: #ffffff;
+      box-shadow: var(--shadow);
+      padding: 16px 16px 14px;
+    }
+    .spotText h2{
+      margin: 0 0 10px;
+      font-size: 15px;
+      font-weight: 600;
+      color: var(--brand);
+    }
+    .spotText p{
+      margin:0;
+      font-size: 12.8px;
+      line-height: 1.6;
+      color: #4b5563;
+      white-space: pre-line;
+    }
+    .mini{
+      margin-top: 12px;
+      padding-top: 12px;
+      border-top: 1px solid var(--border);
+      display:grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 10px;
+      color: #4b5563;
+      font-size: 12.5px;
+    }
+    .spotImgWrap{
+      display:flex;
+      justify-content:center;
+      align-items:center;
+      padding: 6px;
+    }
+    .spotImg{
+      width: 320px;
+      height: 320px;
+      border-radius: 999px;
+      overflow:hidden;
+      border: 1px solid rgba(229,231,235,0.95);
+      box-shadow: 0 18px 44px rgba(15,23,42,0.18);
+      background: #f3f4f6;
+    }
+    .spotImg img{
+      width:100%;
+      height:100%;
+      object-fit: cover;
+      display:block;
+    }
+
+    /* FAQ */
+    .faq{
+      margin-top: 22px;
+      border: 1px solid var(--border);
+      border-radius: 16px;
+      padding: 14px 16px;
+      background: #ffffff;
+      box-shadow: 0 10px 24px rgba(15,23,42,0.06);
+    }
+    .faq h2{
+      margin: 0 0 8px;
+      font-size: 15px;
+      font-weight: 600;
+      color: var(--brand);
+    }
+    details{
+      border-top: 1px solid var(--border);
+      padding: 10px 0;
+    }
+    details:first-of-type{ border-top:none; padding-top:0; }
+    summary{
+      cursor:pointer;
+      list-style:none;
+      font-size: 13px;
+      font-weight: 600;
+      color:#111827;
+    }
+    summary::-webkit-details-marker{ display:none; }
+    .faq p{
+      margin: 8px 0 0;
+      font-size: 12.8px;
+      line-height: 1.6;
+      color: #4b5563;
+    }
+
+    footer{
+      border-top: 1px solid var(--border);
+      padding: 14px 20px 22px;
+      font-size: 12px;
+      color: #6b7280;
+      text-align: center;
+      margin-top: 26px;
+    }
+    footer a{ color: inherit; text-decoration: underline; }
+
+    @media (max-width: 920px){
+      .wrap{ padding: 12px 16px 28px; }
+      .heroGrid{ grid-template-columns: 1fr; }
+      .heroMedia{ min-height: 260px; }
+      h1{ font-size: 30px; }
+
+      .lanes{ grid-template-columns: 1fr; }
+      .spotlight, .spotlight-reverse{ grid-template-columns: 1fr; }
+      .spotImg{ width: 240px; height: 240px; }
+    }
+  </style>
+
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "FAQPage",
+    "mainEntity": [
+      {
+        "@type": "Question",
+        "name": "When is the best time to go to Maquinit Hot Spring?",
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": "Late afternoon to early evening. It works best as a recovery reset after a boat day."
+        }
+      },
+      {
+        "@type": "Question",
+        "name": "How long should I stay?",
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": "Keep it short: 30 to 60 minutes in the water. The goal is recovery, not endurance."
+        }
+      },
+      {
+        "@type": "Question",
+        "name": "What is the biggest mistake people make?",
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": "Staying too long and dehydrating. Leave while you still feel good."
+        }
+      },
+      {
+        "@type": "Question",
+        "name": "Is it kid friendly?",
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": "Yes with supervision. Keep sessions shorter and prioritize hydration."
+        }
+      }
+    ]
+  }
+  </script>
+</head>
+
+<body>
+  <div class="wrap">
+    <header class="nav">
+      <div class="nav-left">
+        <a href="https://www.lolaelo.com" aria-label="Lolaelo home">
+          <img
+            src="https://www.lolaelo.com/logo.png?cb=logo-1x"
+            alt="Lolaelo"
+            class="logo-img"
+            decoding="async"
+            loading="eager"
+          >
+        </a>
+      </div>
+
+      <nav class="nav-right" aria-label="Primary">
+        <a class="nav-link nav-link-back" href="/destinations/coron/index.html" aria-label="Back to Coron guide">
+          <span class="nav-back-arrow">←</span>
+          <span>Coron guide</span>
+        </a>
+      </nav>
+    </header>
+
+    <div class="crumbs" aria-label="Breadcrumb">
+      <span>Maquinit Hot Spring</span>
+    </div>
+
+    <main class="content" role="main">
+      <!-- HERO: keep structure identical to template -->
+      <section class="hero" aria-label="Maquinit Hot Spring in Coron">
+        <div class="heroGrid">
+          <div class="heroMedia">
+            <img src="/images/coron/hero-maquinit-hot-spring.jpg" alt="Maquinit Hot Spring in Coron, warm pools and evening vibe" loading="eager" />
+          </div>
+
+          <div class="heroBody">
+            <h1>Maquinit Hot Spring</h1>
+            <p class="lede">
+              This is your recovery lever. Go late, keep it short, and use it to sleep better. That’s the whole point.
+            </p>
+
+            <div class="chips" aria-label="Quick facts">
+              <div class="chip"><span class="dot"></span>Best for: recovery + reset</div>
+              <div class="chip"><span class="dot"></span>Time: 60 to 120 minutes total</div>
+              <div class="chip"><span class="dot"></span>Go: late afternoon to evening</div>
+              <div class="chip"><span class="dot"></span>Rule: leave before you overheat</div>
+            </div>
+
+            <div class="kpi" aria-label="Planning snapshot">
+              <div class="item">
+                <div class="lbl">Ideal timing</div>
+                <div class="val">Late afternoon</div>
+              </div>
+              <div class="item">
+                <div class="lbl">Water time</div>
+                <div class="val">30 to 60 minutes</div>
+              </div>
+              <div class="item">
+                <div class="lbl">Effort</div>
+                <div class="val">Low</div>
+              </div>
+              <div class="item">
+                <div class="lbl">Outcome</div>
+                <div class="val">Recovery + sleep</div>
+              </div>
+            </div>
+
+            <div class="ctaRow">
+              <a class="btn primary" href="https://lolaelo-api.onrender.com/catalog.html?q=coron">Browse Coron stays</a>
+              <a class="btn ghost" href="/destinations/coron/index.html#top10">Back to Coron top 10</a>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- BODY: Layout Plan 5 -->
+      <section class="section" aria-label="Pick your lane">
+        <div class="panel">
+          <h2>Pick your lane</h2>
+          <p>
+Choose the version that matches your body and your day.
+The hot spring is a tool. Use it like one.
+          </p>
+
+          <div class="lanes" aria-label="Recovery lanes">
+            <div class="lane good">
+              <div class="top">
+                <h3>Quick reset</h3>
+                <span class="badge">45 to 60 min total</span>
+              </div>
+              <p>For: you want the benefit without the fatigue.</p>
+              <ul>
+                <li>1 short soak cycle</li>
+                <li>Hydrate before and after</li>
+                <li>Leave while you still feel fresh</li>
+              </ul>
+            </div>
+
+            <div class="lane good">
+              <div class="top">
+                <h3>Full recovery</h3>
+                <span class="badge">75 to 110 min total</span>
+              </div>
+              <p>For: post-boat day soreness or a heavy itinerary.</p>
+              <ul>
+                <li>2 controlled soak cycles</li>
+                <li>Cool down between cycles</li>
+                <li>Light dinner after, then sleep</li>
+              </ul>
+            </div>
+
+            <div class="lane warn">
+              <div class="top">
+                <h3>Family mode</h3>
+                <span class="badge">30 to 60 min total</span>
+              </div>
+              <p>For: kids or anyone who overheats fast.</p>
+              <ul>
+                <li>Shorter cycles, more breaks</li>
+                <li>Keep water time conservative</li>
+                <li>Hydration is the priority</li>
+              </ul>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section class="section" aria-label="Decision matrix">
+        <div class="matrix">
+          <div class="matrixHead">
+            <h2>Decision matrix</h2>
+            <div class="tag">Use this to keep it clean</div>
+          </div>
+
+          <table class="table" aria-label="Hot spring decision matrix">
+            <thead>
+              <tr>
+                <th>Situation</th>
+                <th>Do this</th>
+                <th>Don’t do this</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td>You just finished a boat day</td>
+                <td>Go late afternoon. Do 1 to 2 short cycles.</td>
+                <td>Go at midday heat and stay too long.</td>
+              </tr>
+              <tr>
+                <td>You feel dehydrated or lightheaded</td>
+                <td>Hydrate first. Shorten the session. Leave early.</td>
+                <td>Try to “push through” for the experience.</td>
+              </tr>
+              <tr>
+                <td>You are with kids</td>
+                <td>Short cycles + frequent breaks.</td>
+                <td>Make it a long hang or force “one more soak.”</td>
+              </tr>
+              <tr>
+                <td>You want better sleep tonight</td>
+                <td>Keep it moderate and finish earlier.</td>
+                <td>Overheat and leave your body stressed.</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </section>
+
+      <section class="section" aria-label="Protocol">
+        <div class="protocol">
+          <h2>The Maquinit protocol</h2>
+          <ol>
+            <li><strong>Hydrate first.</strong> Water before you enter. You are not negotiating this.</li>
+            <li><strong>Cycle, don’t bake.</strong> 10 to 15 minutes in, then 5 minutes out.</li>
+            <li><strong>Listen for overheating.</strong> If you feel even slightly off, you stop.</li>
+            <li><strong>Exit clean.</strong> Leave while you still feel good, not when you feel drained.</li>
+            <li><strong>Finish with simple food.</strong> Light dinner, then sleep.</li>
+          </ol>
+        </div>
+      </section>
+
+      <section class="section" aria-label="Spotlights">
+        <div class="spotlight">
+          <div class="spotImgWrap" aria-hidden="true">
+            <div class="spotImg">
+              <img src="/images/coron/spot-maquinit-pools.jpg" alt="" loading="lazy" />
+            </div>
+          </div>
+
+          <div class="spotText">
+            <h2>Short sessions beat long sessions</h2>
+            <p>
+People ruin this by treating it like a challenge.
+The benefit comes from controlled heat exposure, not suffering.
+            </p>
+            <div class="mini">
+              <div>Win: you leave feeling lighter</div>
+              <div>Loss: you leave dehydrated</div>
+            </div>
+          </div>
+        </div>
+
+        <div class="spotlight spotlight-reverse">
+          <div class="spotText">
+            <h2>Best timing is late afternoon</h2>
+            <p>
+If you go earlier, you stack heat on top of heat.
+Late afternoon is when it turns into recovery instead of punishment.
+            </p>
+            <div class="mini">
+              <div>Best play: post-boat day</div>
+              <div>Skip: midday as a main event</div>
+            </div>
+          </div>
+
+          <div class="spotImgWrap" aria-hidden="true">
+            <div class="spotImg">
+              <img src="/images/coron/spot-maquinit-evening.jpg" alt="" loading="lazy" />
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section class="faq" aria-label="FAQ">
+        <h2>FAQ</h2>
+
+        <details>
+          <summary>When is the best time to go?</summary>
+          <p>Late afternoon to early evening. It works best as a recovery reset after a boat day.</p>
+        </details>
+
+        <details>
+          <summary>How long should I stay?</summary>
+          <p>Keep water time to 30 to 60 minutes. The goal is recovery, not endurance.</p>
+        </details>
+
+        <details>
+          <summary>What is the biggest mistake?</summary>
+          <p>Staying too long and dehydrating. Leave while you still feel good.</p>
+        </details>
+
+        <details>
+          <summary>Is it kid friendly?</summary>
+          <p>Yes with supervision. Keep sessions shorter and prioritize hydration.</p>
+        </details>
+      </section>
+    </main>
+
+    <footer>
+      © <span id="year"></span> Lolaelo ·
+      <a href="https://lolaelo-api.onrender.com/privacy.html" target="_blank" rel="noopener">Privacy</a>
+      <a href="https://lolaelo-api.onrender.com/terms.html" target="_blank" rel="noopener">Terms</a>
+    </footer>
+  </div>
+
+  <script>
+    document.getElementById("year").textContent = new Date().getFullYear();
+  </script>
+</body>
+</html>

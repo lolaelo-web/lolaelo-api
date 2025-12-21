@@ -1,0 +1,827 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+
+  <title>Mount Tapyas Sunset | Coron Experiences | Lolaelo</title>
+  <meta name="description" content="Mount Tapyas sunset in Coron: a clean route plan, what to bring, pacing rules, and the mistakes that turn a good view into a bad time." />
+
+  <link rel="icon" href="https://www.lolaelo.com/logo2.png" />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+
+  <meta property="og:title" content="Mount Tapyas Sunset | Coron Experiences | Lolaelo" />
+  <meta property="og:description" content="The practical Mount Tapyas plan: timing, pacing, what to bring, and how to make sunset feel easy." />
+  <meta property="og:type" content="website" />
+  <meta property="og:image" content="/images/coron/hero-mount-tapyas.jpg" />
+
+  <style>
+    :root{
+      --bg:#ffffff;
+      --fg:#111827;
+      --muted:#6b7280;
+
+      --brand:#064e3b;
+      --accent:#ff6a3d;
+      --border:#e5e7eb;
+
+      --max:1100px;
+      --shadow: 0 12px 30px rgba(15,23,42,0.10);
+      --shadow2: 0 16px 40px rgba(15,23,42,0.18);
+
+      --font: Inter, ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+    }
+
+    *{box-sizing:border-box}
+    html, body{margin:0; padding:0}
+    body{
+      font-family: var(--font);
+      background: var(--bg);
+      color: var(--fg);
+      line-height: 1.5;
+    }
+    a{color:inherit; text-decoration:none}
+
+    .wrap{
+      max-width: var(--max);
+      margin: 0 auto;
+      padding: 16px 20px 40px;
+    }
+
+    /* Header (copied from template) */
+    .nav{
+      display:flex;
+      align-items:center;
+      justify-content:space-between;
+      padding: 4px 0 12px;
+    }
+    .nav-left{display:flex; align-items:center; gap:8px}
+    .logo-img{height:32px; width:auto; display:block}
+
+    .nav-right{
+      display:flex;
+      align-items:center;
+      gap: 20px;
+      font-size: 14px;
+    }
+    .nav-link{
+      color: var(--brand);
+      padding: 4px 0;
+      font-weight: 500;
+    }
+    .nav-link-back{
+      display:inline-flex;
+      align-items:center;
+      gap: 6px;
+    }
+    .nav-back-arrow{
+      font-size: 16px;
+      line-height: 1;
+      transform: translateY(1px);
+    }
+    .nav-link-back:hover span:last-child{ text-decoration: underline; }
+    .nav-link-back:hover .nav-back-arrow{
+      transform: translate(-2px, 1px);
+      transition: transform 0.15s ease-out;
+    }
+
+    /* Minimal breadcrumb (copied from template) */
+    .crumbs{
+      margin-top: 8px;
+      font-size: 12px;
+      color: var(--muted);
+      display:flex;
+      gap:8px;
+      align-items:center;
+      flex-wrap:wrap;
+    }
+    .crumbs span{
+      display:inline-block;
+      padding: 6px 10px;
+      border: 1px solid var(--border);
+      border-radius: 999px;
+      background: #ffffff;
+    }
+
+    /* Hero card (copied from template) */
+    .hero{
+      margin-top: 14px;
+      border-radius: 18px;
+      overflow:hidden;
+      border: 1px solid var(--border);
+      background: #ffffff;
+      box-shadow: var(--shadow);
+    }
+    .heroGrid{
+      display:grid;
+      grid-template-columns: 1.12fr .88fr;
+      gap:0;
+    }
+    .heroMedia{
+      min-height: 340px;
+      position: relative;
+      background: #f3f4f6;
+    }
+    .heroMedia img{
+      width:100%;
+      height:100%;
+      object-fit: cover;
+      display:block;
+    }
+    .heroMedia::after{
+      content:"";
+      position:absolute;
+      inset:0;
+      background: linear-gradient(90deg, rgba(0,0,0,0.05), rgba(0,0,0,0.22));
+      pointer-events:none;
+    }
+    .heroBody{
+      padding: 22px 22px 20px;
+      display:flex;
+      flex-direction: column;
+      gap: 12px;
+    }
+    h1{
+      margin:0;
+      font-size: 34px;
+      line-height: 1.15;
+      letter-spacing: -0.01em;
+      font-weight: 600;
+    }
+    .lede{
+      margin:0;
+      color: var(--muted);
+      font-size: 14.5px;
+      line-height: 1.55;
+    }
+
+    .chips{
+      display:flex;
+      flex-wrap:wrap;
+      gap: 8px;
+      margin-top: 2px;
+    }
+    .chip{
+      display:inline-flex;
+      gap:8px;
+      align-items:center;
+      padding: 6px 10px;
+      border: 1px solid var(--border);
+      border-radius: 999px;
+      background: #fafafa;
+      color: #374151;
+      font-size: 12px;
+    }
+    .dot{
+      width: 8px;
+      height: 8px;
+      border-radius: 999px;
+      background: var(--accent);
+      box-shadow: 0 0 0 4px rgba(255,106,61,0.14);
+      flex: 0 0 auto;
+    }
+
+    .kpi{
+      display:grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 10px;
+      margin-top: 4px;
+    }
+    .kpi .item{
+      border: 1px solid var(--border);
+      border-radius: 14px;
+      background: #ffffff;
+      padding: 10px 10px;
+      box-shadow: 0 10px 24px rgba(15,23,42,0.06);
+    }
+    .kpi .lbl{
+      font-size: 12px;
+      color: var(--muted);
+    }
+    .kpi .val{
+      font-size: 13.5px;
+      font-weight: 600;
+      margin-top: 3px;
+      color: #111827;
+    }
+
+    .ctaRow{
+      display:flex;
+      flex-wrap:wrap;
+      gap: 10px;
+      align-items:center;
+      margin-top: 4px;
+    }
+
+    .btn{
+      border-radius: 999px;
+      padding: 9px 14px;
+      font-size: 14px;
+      font-weight: 500;
+      border: 1px solid transparent;
+      cursor: pointer;
+      display:inline-flex;
+      align-items:center;
+      justify-content:center;
+      gap: 8px;
+      white-space: nowrap;
+    }
+    .btn.primary{ background: var(--accent); color: #ffffff; }
+    .btn.secondary{ background: rgba(229,242,255,0.95); color: var(--brand); border-color: rgba(229,242,255,0.65); }
+    .btn.ghost{ background: #ffffff; color: var(--brand); border-color: var(--border); }
+    .btn:hover{ box-shadow: var(--shadow); }
+
+    /* Sections */
+    .section{ margin-top: 18px; }
+
+    .panel{
+      border: 1px solid var(--border);
+      border-radius: 16px;
+      padding: 14px 16px;
+      background: #ffffff;
+      box-shadow: 0 10px 24px rgba(15,23,42,0.06);
+    }
+    .panel h2{
+      margin: 0 0 10px;
+      font-size: 15px;
+      font-weight: 600;
+      color: var(--brand);
+    }
+    .panel p{
+      margin: 0;
+      font-size: 12.8px;
+      line-height: 1.6;
+      color: #4b5563;
+      white-space: pre-line;
+    }
+
+    /* Reality tiles */
+    .tiles{
+      display:grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 12px;
+      margin-top: 14px;
+    }
+    .tile{
+      border: 1px solid var(--border);
+      border-radius: 16px;
+      background: #ffffff;
+      padding: 12px 12px;
+      box-shadow: 0 10px 24px rgba(15,23,42,0.06);
+    }
+    .tile .k{
+      font-size: 12px;
+      color: var(--muted);
+      margin-bottom: 6px;
+    }
+    .tile .v{
+      font-size: 13px;
+      font-weight: 600;
+      color: #111827;
+      line-height: 1.35;
+    }
+    .tile .s{
+      margin-top: 8px;
+      font-size: 12.6px;
+      color: #4b5563;
+      line-height: 1.55;
+      white-space: pre-line;
+    }
+
+    /* Route */
+    .route{
+      margin-top: 14px;
+      border: 1px solid var(--border);
+      border-radius: 16px;
+      background: #ffffff;
+      box-shadow: 0 10px 24px rgba(15,23,42,0.06);
+      overflow:hidden;
+    }
+    .routeHead{
+      padding: 12px 14px;
+      border-bottom: 1px solid var(--border);
+      display:flex;
+      align-items:center;
+      justify-content: space-between;
+      gap: 10px;
+    }
+    .routeHead h2{
+      margin:0;
+      font-size: 15px;
+      font-weight: 600;
+      color: var(--brand);
+    }
+    .routeHead .tag{
+      font-size: 12px;
+      color: #374151;
+      background: #fafafa;
+      border: 1px solid var(--border);
+      padding: 6px 10px;
+      border-radius: 999px;
+      white-space: nowrap;
+    }
+    .steps{
+      display:grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 0;
+    }
+    .step{
+      padding: 12px 14px 14px;
+      border-right: 1px solid var(--border);
+    }
+    .step:last-child{ border-right:none; }
+    .step .n{
+      font-size: 12px;
+      color: var(--muted);
+      margin-bottom: 6px;
+    }
+    .step .t{
+      font-size: 13px;
+      font-weight: 600;
+      color: #111827;
+      margin-bottom: 6px;
+    }
+    .step .d{
+      font-size: 12.6px;
+      color: #4b5563;
+      line-height: 1.55;
+      white-space: pre-line;
+    }
+
+    /* Checklists */
+    .checkGrid{
+      margin-top: 14px;
+      display:grid;
+      grid-template-columns: 1fr 1fr 1fr;
+      gap: 14px;
+      align-items: start;
+    }
+    .check h3{
+      margin:0 0 8px;
+      font-size: 13px;
+      font-weight: 600;
+      color: #111827;
+    }
+    .check ul{
+      margin:0;
+      padding-left: 18px;
+      font-size: 12.5px;
+      line-height: 1.55;
+      color: #4b5563;
+    }
+    .check li{ margin-bottom: 6px; }
+
+    .callout{
+      border: 1px solid rgba(255,106,61,0.35);
+      background: rgba(255,106,61,0.06);
+      border-radius: 16px;
+      padding: 14px 16px;
+      box-shadow: 0 10px 24px rgba(15,23,42,0.06);
+    }
+    .callout h2{
+      margin: 0 0 8px;
+      font-size: 15px;
+      font-weight: 600;
+      color: #111827;
+    }
+    .callout p{
+      margin:0;
+      font-size: 12.8px;
+      line-height: 1.6;
+      color: #4b5563;
+      white-space: pre-line;
+    }
+
+    /* Spotlight */
+    .spotlight{
+      margin-top: 14px;
+      display:grid;
+      grid-template-columns: 1.05fr 0.95fr;
+      gap: 14px;
+      align-items:center;
+    }
+    .spotlight-reverse{
+      grid-template-columns: 0.95fr 1.05fr;
+    }
+    .spotText{
+      border: 1px solid var(--border);
+      border-radius: 18px;
+      background: #ffffff;
+      box-shadow: var(--shadow);
+      padding: 16px 16px 14px;
+    }
+    .spotText h2{
+      margin: 0 0 10px;
+      font-size: 15px;
+      font-weight: 600;
+      color: var(--brand);
+    }
+    .spotText p{
+      margin:0;
+      font-size: 12.8px;
+      line-height: 1.6;
+      color: #4b5563;
+      white-space: pre-line;
+    }
+    .mini{
+      margin-top: 12px;
+      padding-top: 12px;
+      border-top: 1px solid var(--border);
+      display:grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 10px;
+      color: #4b5563;
+      font-size: 12.5px;
+    }
+    .spotImgWrap{
+      display:flex;
+      justify-content:center;
+      align-items:center;
+      padding: 6px;
+    }
+    .spotImg{
+      width: 320px;
+      height: 320px;
+      border-radius: 999px;
+      overflow:hidden;
+      border: 1px solid rgba(229,231,235,0.95);
+      box-shadow: 0 18px 44px rgba(15,23,42,0.18);
+      background: #f3f4f6;
+    }
+    .spotImg img{
+      width:100%;
+      height:100%;
+      object-fit: cover;
+      display:block;
+    }
+
+    /* FAQ */
+    .faq{
+      margin-top: 22px;
+      border: 1px solid var(--border);
+      border-radius: 16px;
+      padding: 14px 16px;
+      background: #ffffff;
+      box-shadow: 0 10px 24px rgba(15,23,42,0.06);
+    }
+    .faq h2{
+      margin: 0 0 8px;
+      font-size: 15px;
+      font-weight: 600;
+      color: var(--brand);
+    }
+    details{
+      border-top: 1px solid var(--border);
+      padding: 10px 0;
+    }
+    details:first-of-type{ border-top:none; padding-top:0; }
+    summary{
+      cursor:pointer;
+      list-style:none;
+      font-size: 13px;
+      font-weight: 600;
+      color:#111827;
+    }
+    summary::-webkit-details-marker{ display:none; }
+    .faq p{
+      margin: 8px 0 0;
+      font-size: 12.8px;
+      line-height: 1.6;
+      color: #4b5563;
+    }
+
+    footer{
+      border-top: 1px solid var(--border);
+      padding: 14px 20px 22px;
+      font-size: 12px;
+      color: #6b7280;
+      text-align: center;
+      margin-top: 26px;
+    }
+    footer a{ color: inherit; text-decoration: underline; }
+
+    @media (max-width: 920px){
+      .wrap{ padding: 12px 16px 28px; }
+      .heroGrid{ grid-template-columns: 1fr; }
+      .heroMedia{ min-height: 260px; }
+      h1{ font-size: 30px; }
+
+      .tiles{ grid-template-columns: 1fr; }
+      .steps{ grid-template-columns: 1fr; }
+      .step{ border-right:none; border-top: 1px solid var(--border); }
+      .step:first-child{ border-top:none; }
+      .checkGrid{ grid-template-columns: 1fr; }
+      .spotlight, .spotlight-reverse{ grid-template-columns: 1fr; }
+      .spotImg{ width: 240px; height: 240px; }
+    }
+  </style>
+
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "FAQPage",
+    "mainEntity": [
+      {
+        "@type": "Question",
+        "name": "How long does the Mount Tapyas hike take?",
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": "Most people plan 60 to 120 minutes total including the climb, photos, and sitting at the top."
+        }
+      },
+      {
+        "@type": "Question",
+        "name": "When should I go for sunset?",
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": "Go early enough to climb without rushing. The goal is arriving before the best light, not sprinting up during it."
+        }
+      },
+      {
+        "@type": "Question",
+        "name": "Is it kid friendly?",
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": "Yes with supervision. It is stairs and heat. Bring water and go slower than you think."
+        }
+      },
+      {
+        "@type": "Question",
+        "name": "What is the biggest mistake?",
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": "Going too late and rushing the climb. You want a calm arrival, not a breathless scramble."
+        }
+      }
+    ]
+  }
+  </script>
+</head>
+
+<body>
+  <div class="wrap">
+    <header class="nav">
+      <div class="nav-left">
+        <a href="https://www.lolaelo.com" aria-label="Lolaelo home">
+          <img
+            src="https://www.lolaelo.com/logo.png?cb=logo-1x"
+            alt="Lolaelo"
+            class="logo-img"
+            decoding="async"
+            loading="eager"
+          >
+        </a>
+      </div>
+
+      <nav class="nav-right" aria-label="Primary">
+        <a class="nav-link nav-link-back" href="/destinations/coron/index.html" aria-label="Back to Coron guide">
+          <span class="nav-back-arrow">←</span>
+          <span>Coron guide</span>
+        </a>
+      </nav>
+    </header>
+
+    <div class="crumbs" aria-label="Breadcrumb">
+      <span>Mount Tapyas sunset</span>
+    </div>
+
+    <main class="content" role="main">
+      <!-- HERO: keep structure identical to template -->
+      <section class="hero" aria-label="Mount Tapyas sunset in Coron">
+        <div class="heroGrid">
+          <div class="heroMedia">
+            <img src="/images/coron/hero-mount-tapyas.jpg" alt="Mount Tapyas viewpoint in Coron during sunset" loading="eager" />
+          </div>
+
+          <div class="heroBody">
+            <h1>Mount Tapyas sunset</h1>
+            <p class="lede">
+              It’s stairs, breeze, and a wide view. The win is pacing. The loss is rushing it and arriving stressed.
+            </p>
+
+            <div class="chips" aria-label="Quick facts">
+              <div class="chip"><span class="dot"></span>Best for: sunset + town view</div>
+              <div class="chip"><span class="dot"></span>Time: 60 to 120 minutes</div>
+              <div class="chip"><span class="dot"></span>Bring: water, light layer</div>
+              <div class="chip"><span class="dot"></span>Rule: arrive early, not breathless</div>
+            </div>
+
+            <div class="kpi" aria-label="Planning snapshot">
+              <div class="item">
+                <div class="lbl">Ideal timing</div>
+                <div class="val">Before sunset light</div>
+              </div>
+              <div class="item">
+                <div class="lbl">Total time</div>
+                <div class="val">60 to 120 minutes</div>
+              </div>
+              <div class="item">
+                <div class="lbl">Effort</div>
+                <div class="val">Medium</div>
+              </div>
+              <div class="item">
+                <div class="lbl">Risk</div>
+                <div class="val">Low (unless you rush)</div>
+              </div>
+            </div>
+
+            <div class="ctaRow">
+              <a class="btn primary" href="https://lolaelo-api.onrender.com/catalog.html?q=coron">Browse Coron stays</a>
+              <a class="btn ghost" href="/destinations/coron/index.html#top10">Back to Coron top 10</a>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- BODY: Layout Plan 4 -->
+      <section class="section" aria-label="Reality check">
+        <div class="panel">
+          <h2>Reality check</h2>
+          <p>
+Mount Tapyas is not complicated. It is stairs and heat.
+If you plan it like a calm walk, it feels easy. If you plan it like a last-minute sprint, it feels bad.
+          </p>
+
+          <div class="tiles" aria-label="Reality tiles">
+            <div class="tile">
+              <div class="k">What it is</div>
+              <div class="v">A clean sunset mission</div>
+              <div class="s">Climb, sit, view, leave. Simple.</div>
+            </div>
+            <div class="tile">
+              <div class="k">What it is not</div>
+              <div class="v">A “hard hike” flex</div>
+              <div class="s">The only enemy is rushing and dehydration.</div>
+            </div>
+            <div class="tile">
+              <div class="k">How you win</div>
+              <div class="v">Early arrival + water</div>
+              <div class="s">You want calm breathing at the top when the light turns.</div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section class="section" aria-label="Route plan">
+        <div class="route">
+          <div class="routeHead">
+            <h2>Route that works</h2>
+            <div class="tag">Target: calm arrival</div>
+          </div>
+
+          <div class="steps" aria-label="3-step route">
+            <div class="step">
+              <div class="n">Step 1</div>
+              <div class="t">Start earlier than you think</div>
+              <div class="d">
+You want buffer time. You do not want “we’re late” energy.
+Bring water. No hero mode.
+              </div>
+            </div>
+
+            <div class="step">
+              <div class="n">Step 2</div>
+              <div class="t">Climb at a steady pace</div>
+              <div class="d">
+Small breaks are allowed.
+The goal is arriving calm, not winning a race.
+              </div>
+            </div>
+
+            <div class="step">
+              <div class="n">Step 3</div>
+              <div class="t">Sit and let the view land</div>
+              <div class="d">
+Take a couple photos, then stop.
+Enjoy the breeze. Then exit before you get drained.
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section class="section" aria-label="Checklists">
+        <div class="checkGrid">
+          <div class="panel check">
+            <h2>Bring</h2>
+            <ul>
+              <li>Water (non-negotiable)</li>
+              <li>Light layer (breeze up top)</li>
+              <li>Comfortable shoes</li>
+              <li>Phone with enough battery for photos</li>
+            </ul>
+          </div>
+
+          <div class="panel check">
+            <h2>Nice to have</h2>
+            <ul>
+              <li>Small snack</li>
+              <li>Hat for the first part of the climb</li>
+              <li>Wet wipes</li>
+              <li>Minimal cash</li>
+            </ul>
+          </div>
+
+          <div class="panel check">
+            <h2>Skip</h2>
+            <ul>
+              <li>Overpacking</li>
+              <li>Anything that makes you sweat more</li>
+              <li>Starting “right at sunset time”</li>
+              <li>Turning it into a big group production</li>
+            </ul>
+          </div>
+        </div>
+      </section>
+
+      <section class="section" aria-label="Mistakes">
+        <div class="callout">
+          <h2>Mistakes that ruin it</h2>
+          <p>
+1) Starting too late and rushing the climb.
+2) No water, then acting surprised you feel awful.
+3) Spending the whole time taking photos, then leaving without enjoying it.
+4) Staying until you’re tired, then making the walk down annoying.
+          </p>
+        </div>
+      </section>
+
+      <section class="section" aria-label="Spotlights">
+        <div class="spotlight">
+          <div class="spotImgWrap" aria-hidden="true">
+            <div class="spotImg">
+              <img src="/images/coron/spot-mount-tapyas-steps.jpg" alt="" loading="lazy" />
+            </div>
+          </div>
+
+          <div class="spotText">
+            <h2>Pacing beats fitness</h2>
+            <p>
+Even fit people can make this miserable by rushing.
+Steady pace, small breaks, calm breathing. That is the whole play.
+            </p>
+            <div class="mini">
+              <div>Rule: never sprint stairs</div>
+              <div>Win: arrive calm and present</div>
+            </div>
+          </div>
+        </div>
+
+        <div class="spotlight spotlight-reverse">
+          <div class="spotText">
+            <h2>Get the photo, then stop</h2>
+            <p>
+The sunset is not a content farm.
+Take the shots you want, then put the phone away and let the view do its job.
+            </p>
+            <div class="mini">
+              <div>Best play: 2 quick shots, then sit</div>
+              <div>Skip: endless retakes</div>
+            </div>
+          </div>
+
+          <div class="spotImgWrap" aria-hidden="true">
+            <div class="spotImg">
+              <img src="/images/coron/spot-mount-tapyas-sunset.jpg" alt="" loading="lazy" />
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section class="faq" aria-label="FAQ">
+        <h2>FAQ</h2>
+
+        <details>
+          <summary>How long does the hike take?</summary>
+          <p>Plan 60 to 120 minutes total including the climb, photos, and sitting at the top.</p>
+        </details>
+
+        <details>
+          <summary>When should I go for sunset?</summary>
+          <p>Go early enough to climb without rushing. You want to arrive before the best light, not during it.</p>
+        </details>
+
+        <details>
+          <summary>Is it kid friendly?</summary>
+          <p>Yes with supervision. It is stairs and heat. Bring water and go slower than you think.</p>
+        </details>
+
+        <details>
+          <summary>What is the biggest mistake?</summary>
+          <p>Going too late and rushing the climb. Calm arrival is the whole point.</p>
+        </details>
+      </section>
+    </main>
+
+    <footer>
+      © <span id="year"></span> Lolaelo ·
+      <a href="https://lolaelo-api.onrender.com/privacy.html" target="_blank" rel="noopener">Privacy</a>
+      <a href="https://lolaelo-api.onrender.com/terms.html" target="_blank" rel="noopener">Terms</a>
+    </footer>
+  </div>
+
+  <script>
+    document.getElementById("year").textContent = new Date().getFullYear();
+  </script>
+</body>
+</html>

@@ -1,0 +1,866 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+
+  <title>Kayangan Lake | Coron Experiences | Lolaelo</title>
+  <meta name="description" content="Kayangan Lake in Coron: timing, what to expect, route strategy, crowd control, what to bring, and the mistakes that ruin the stop." />
+
+  <link rel="icon" href="https://www.lolaelo.com/logo2.png" />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+
+  <meta property="og:title" content="Kayangan Lake | Coron Experiences | Lolaelo" />
+  <meta property="og:description" content="Practical guide to Kayangan Lake: best timing, how to keep it efficient, what to bring, and what to avoid." />
+  <meta property="og:type" content="website" />
+  <meta property="og:image" content="/images/coron/hero-kayangan-lake.jpg" />
+
+  <style>
+    :root{
+      --bg:#ffffff;
+      --fg:#111827;
+      --muted:#6b7280;
+
+      --brand:#064e3b;
+      --accent:#ff6a3d;
+      --border:#e5e7eb;
+
+      --max:1100px;
+      --shadow: 0 12px 30px rgba(15,23,42,0.10);
+      --shadow2: 0 16px 40px rgba(15,23,42,0.18);
+
+      --radius:18px;
+      --radius2:22px;
+
+      --font: Inter, ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+    }
+
+    *{box-sizing:border-box}
+    html, body{margin:0; padding:0}
+    body{
+      font-family: var(--font);
+      background: var(--bg);
+      color: var(--fg);
+      line-height: 1.5;
+    }
+    a{color:inherit; text-decoration:none}
+
+    .wrap{
+      max-width: var(--max);
+      margin: 0 auto;
+      padding: 16px 20px 40px;
+    }
+
+    /* Header (copied from template) */
+    .nav{
+      display:flex;
+      align-items:center;
+      justify-content:space-between;
+      padding: 4px 0 12px;
+    }
+    .nav-left{display:flex; align-items:center; gap:8px}
+    .logo-img{height:32px; width:auto; display:block}
+
+    .nav-right{
+      display:flex;
+      align-items:center;
+      gap: 20px;
+      font-size: 14px;
+    }
+    .nav-link{
+      color: var(--brand);
+      padding: 4px 0;
+      font-weight: 500;
+    }
+    .nav-link-back{
+      display:inline-flex;
+      align-items:center;
+      gap: 6px;
+    }
+    .nav-back-arrow{
+      font-size: 16px;
+      line-height: 1;
+      transform: translateY(1px);
+    }
+    .nav-link-back:hover span:last-child{ text-decoration: underline; }
+    .nav-link-back:hover .nav-back-arrow{
+      transform: translate(-2px, 1px);
+      transition: transform 0.15s ease-out;
+    }
+
+    /* Minimal breadcrumb (copied from template) */
+    .crumbs{
+      margin-top: 8px;
+      font-size: 12px;
+      color: var(--muted);
+      display:flex;
+      gap:8px;
+      align-items:center;
+      flex-wrap:wrap;
+    }
+    .crumbs span{
+      display:inline-block;
+      padding: 6px 10px;
+      border: 1px solid var(--border);
+      border-radius: 999px;
+      background: #ffffff;
+    }
+
+    /* Hero card (copied from template) */
+    .hero{
+      margin-top: 14px;
+      border-radius: 18px;
+      overflow:hidden;
+      border: 1px solid var(--border);
+      background: #ffffff;
+      box-shadow: var(--shadow);
+    }
+    .heroGrid{
+      display:grid;
+      grid-template-columns: 1.12fr .88fr;
+      gap:0;
+    }
+    .heroMedia{
+      min-height: 340px;
+      position: relative;
+      background: #f3f4f6;
+    }
+    .heroMedia img{
+      width:100%;
+      height:100%;
+      object-fit: cover;
+      display:block;
+    }
+    .heroMedia::after{
+      content:"";
+      position:absolute;
+      inset:0;
+      background: linear-gradient(90deg, rgba(0,0,0,0.05), rgba(0,0,0,0.22));
+      pointer-events:none;
+    }
+    .heroBody{
+      padding: 22px 22px 20px;
+      display:flex;
+      flex-direction: column;
+      gap: 12px;
+    }
+    h1{
+      margin:0;
+      font-size: 34px;
+      line-height: 1.15;
+      letter-spacing: -0.01em;
+      font-weight: 600;
+    }
+    .lede{
+      margin:0;
+      color: var(--muted);
+      font-size: 14.5px;
+      line-height: 1.55;
+    }
+
+    .chips{
+      display:flex;
+      flex-wrap:wrap;
+      gap: 8px;
+      margin-top: 2px;
+    }
+    .chip{
+      display:inline-flex;
+      gap:8px;
+      align-items:center;
+      padding: 6px 10px;
+      border: 1px solid var(--border);
+      border-radius: 999px;
+      background: #fafafa;
+      color: #374151;
+      font-size: 12px;
+    }
+    .dot{
+      width: 8px;
+      height: 8px;
+      border-radius: 999px;
+      background: var(--accent);
+      box-shadow: 0 0 0 4px rgba(255,106,61,0.14);
+      flex: 0 0 auto;
+    }
+
+    .kpi{
+      display:grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 10px;
+      margin-top: 4px;
+    }
+    .kpi .item{
+      border: 1px solid var(--border);
+      border-radius: 14px;
+      background: #ffffff;
+      padding: 10px 10px;
+      box-shadow: 0 10px 24px rgba(15,23,42,0.06);
+    }
+    .kpi .lbl{
+      font-size: 12px;
+      color: var(--muted);
+    }
+    .kpi .val{
+      font-size: 13.5px;
+      font-weight: 600;
+      margin-top: 3px;
+      color: #111827;
+    }
+
+    .ctaRow{
+      display:flex;
+      flex-wrap:wrap;
+      gap: 10px;
+      align-items:center;
+      margin-top: 4px;
+    }
+
+    .btn{
+      border-radius: 999px;
+      padding: 9px 14px;
+      font-size: 14px;
+      font-weight: 500;
+      border: 1px solid transparent;
+      cursor: pointer;
+      display:inline-flex;
+      align-items:center;
+      justify-content:center;
+      gap: 8px;
+      white-space: nowrap;
+    }
+    .btn.primary{ background: var(--accent); color: #ffffff; }
+    .btn.secondary{ background: rgba(229,242,255,0.95); color: var(--brand); border-color: rgba(229,242,255,0.65); }
+    .btn.ghost{ background: #ffffff; color: var(--brand); border-color: var(--border); }
+    .btn:hover{ box-shadow: var(--shadow); }
+
+    /* Sections (template base) */
+    .section{ margin-top: 18px; }
+
+    .grid2{
+      display:grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 14px;
+      align-items: start;
+    }
+
+    .panel{
+      border: 1px solid var(--border);
+      border-radius: 16px;
+      padding: 14px 16px;
+      background: #ffffff;
+      box-shadow: 0 10px 24px rgba(15,23,42,0.06);
+    }
+    .panel h2{
+      margin: 0 0 10px;
+      font-size: 15px;
+      font-weight: 600;
+      color: var(--brand);
+    }
+    .panel p{
+      margin: 0;
+      font-size: 12.8px;
+      line-height: 1.6;
+      color: #4b5563;
+      white-space: pre-line;
+    }
+    .list{
+      margin: 10px 0 0;
+      padding-left: 18px;
+      font-size: 12.5px;
+      line-height: 1.55;
+      color: #4b5563;
+    }
+    .list li{ margin-bottom: 6px; }
+
+    .spotlight{
+      margin-top: 14px;
+      display:grid;
+      grid-template-columns: 1.05fr 0.95fr;
+      gap: 14px;
+      align-items:center;
+    }
+    .spotlight-reverse{
+      grid-template-columns: 0.95fr 1.05fr;
+    }
+
+    .spotText{
+      border: 1px solid var(--border);
+      border-radius: 18px;
+      background: #ffffff;
+      box-shadow: var(--shadow);
+      padding: 16px 16px 14px;
+    }
+    .spotText h2{
+      margin: 0 0 10px;
+      font-size: 15px;
+      font-weight: 600;
+      color: var(--brand);
+    }
+    .spotText p{
+      margin:0;
+      font-size: 12.8px;
+      line-height: 1.6;
+      color: #4b5563;
+      white-space: pre-line;
+    }
+    .mini{
+      margin-top: 12px;
+      padding-top: 12px;
+      border-top: 1px solid var(--border);
+      display:grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 10px;
+      color: #4b5563;
+      font-size: 12.5px;
+    }
+
+    .spotImgWrap{
+      display:flex;
+      justify-content:center;
+      align-items:center;
+      padding: 6px;
+    }
+    .spotImg{
+      width: 320px;
+      height: 320px;
+      border-radius: 999px;
+      overflow:hidden;
+      border: 1px solid rgba(229,231,235,0.95);
+      box-shadow: 0 18px 44px rgba(15,23,42,0.18);
+      background: #f3f4f6;
+    }
+    .spotImg img{
+      width:100%;
+      height:100%;
+      object-fit: cover;
+      display:block;
+    }
+
+    /* Extra layout bits for this page */
+    .tiles{
+      display:grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 12px;
+      margin-top: 14px;
+    }
+    .tile{
+      border: 1px solid var(--border);
+      border-radius: 16px;
+      background: #ffffff;
+      padding: 12px 12px;
+      box-shadow: 0 10px 24px rgba(15,23,42,0.06);
+    }
+    .tile .k{
+      font-size: 12px;
+      color: var(--muted);
+      margin-bottom: 6px;
+    }
+    .tile .v{
+      font-size: 13px;
+      font-weight: 600;
+      color: #111827;
+      line-height: 1.35;
+    }
+    .tile .s{
+      margin-top: 8px;
+      font-size: 12.6px;
+      color: #4b5563;
+      line-height: 1.55;
+      white-space: pre-line;
+    }
+
+    .route{
+      margin-top: 14px;
+      border: 1px solid var(--border);
+      border-radius: 16px;
+      background: #ffffff;
+      box-shadow: 0 10px 24px rgba(15,23,42,0.06);
+      overflow:hidden;
+    }
+    .routeHead{
+      padding: 12px 14px;
+      border-bottom: 1px solid var(--border);
+      display:flex;
+      align-items:center;
+      justify-content: space-between;
+      gap: 10px;
+    }
+    .routeHead h2{
+      margin:0;
+      font-size: 15px;
+      font-weight: 600;
+      color: var(--brand);
+    }
+    .routeHead .tag{
+      font-size: 12px;
+      color: #374151;
+      background: #fafafa;
+      border: 1px solid var(--border);
+      padding: 6px 10px;
+      border-radius: 999px;
+      white-space: nowrap;
+    }
+    .steps{
+      display:grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 0;
+    }
+    .step{
+      padding: 12px 14px 14px;
+      border-right: 1px solid var(--border);
+    }
+    .step:last-child{ border-right:none; }
+    .step .n{
+      font-size: 12px;
+      color: var(--muted);
+      margin-bottom: 6px;
+    }
+    .step .t{
+      font-size: 13px;
+      font-weight: 600;
+      color: #111827;
+      margin-bottom: 6px;
+    }
+    .step .d{
+      font-size: 12.6px;
+      color: #4b5563;
+      line-height: 1.55;
+      white-space: pre-line;
+    }
+
+    .checkGrid{
+      margin-top: 14px;
+      display:grid;
+      grid-template-columns: 1fr 1fr 1fr;
+      gap: 14px;
+      align-items: start;
+    }
+    .check h3{
+      margin:0 0 8px;
+      font-size: 13px;
+      font-weight: 600;
+      color: #111827;
+    }
+    .check ul{
+      margin:0;
+      padding-left: 18px;
+      font-size: 12.5px;
+      line-height: 1.55;
+      color: #4b5563;
+    }
+    .check li{ margin-bottom: 6px; }
+
+    .callout{
+      border: 1px solid rgba(255,106,61,0.35);
+      background: rgba(255,106,61,0.06);
+      border-radius: 16px;
+      padding: 14px 16px;
+      box-shadow: 0 10px 24px rgba(15,23,42,0.06);
+    }
+    .callout h2{
+      margin: 0 0 8px;
+      font-size: 15px;
+      font-weight: 600;
+      color: #111827;
+    }
+    .callout p{
+      margin:0;
+      font-size: 12.8px;
+      line-height: 1.6;
+      color: #4b5563;
+      white-space: pre-line;
+    }
+
+    /* FAQ (copied from template) */
+    .faq{
+      margin-top: 22px;
+      border: 1px solid var(--border);
+      border-radius: 16px;
+      padding: 14px 16px;
+      background: #ffffff;
+      box-shadow: 0 10px 24px rgba(15,23,42,0.06);
+    }
+    .faq h2{
+      margin: 0 0 8px;
+      font-size: 15px;
+      font-weight: 600;
+      color: var(--brand);
+    }
+
+    details{
+      border-top: 1px solid var(--border);
+      padding: 10px 0;
+    }
+    details:first-of-type{ border-top:none; padding-top:0; }
+    summary{
+      cursor:pointer;
+      list-style:none;
+      font-size: 13px;
+      font-weight: 600;
+      color:#111827;
+    }
+    summary::-webkit-details-marker{ display:none; }
+    .faq p{
+      margin: 8px 0 0;
+      font-size: 12.8px;
+      line-height: 1.6;
+      color: #4b5563;
+    }
+
+    footer{
+      border-top: 1px solid var(--border);
+      padding: 14px 20px 22px;
+      font-size: 12px;
+      color: #6b7280;
+      text-align: center;
+      margin-top: 26px;
+    }
+    footer a{ color: inherit; text-decoration: underline; }
+
+    @media (max-width: 920px){
+      .wrap{ padding: 12px 16px 28px; }
+      .heroGrid{ grid-template-columns: 1fr; }
+      .heroMedia{ min-height: 260px; }
+      .grid2{ grid-template-columns: 1fr; }
+      .spotlight, .spotlight-reverse{ grid-template-columns: 1fr; }
+      .spotImg{ width: 240px; height: 240px; }
+      h1{ font-size: 30px; }
+
+      .tiles{ grid-template-columns: 1fr; }
+      .steps{ grid-template-columns: 1fr; }
+      .step{ border-right:none; border-top: 1px solid var(--border); }
+      .step:first-child{ border-top:none; }
+      .checkGrid{ grid-template-columns: 1fr; }
+    }
+  </style>
+
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "FAQPage",
+    "mainEntity": [
+      {
+        "@type": "Question",
+        "name": "When is the best time to do Kayangan Lake?",
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": "Earlier is better. The goal is calmer pacing, fewer lines, and less heat. If you arrive late, keep the stop short and do not fight the crowd."
+        }
+      },
+      {
+        "@type": "Question",
+        "name": "Is it kid friendly?",
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": "Yes with supervision. There are steps, docks, and boat ladders. Keep kids close near edges and prioritize comfort over forcing long swim time."
+        }
+      },
+      {
+        "@type": "Question",
+        "name": "Do I need a tour to visit?",
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": "Most visitors go by boat tour. Choose a route that fits your pace and confirm what is included so you are not surprised by add-on fees."
+        }
+      },
+      {
+        "@type": "Question",
+        "name": "What ruins this stop the most?",
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": "Trying to stretch it. Overstaying in peak crowds, not bringing basics, and chasing perfect photos instead of enjoying the swim are the common failures."
+        }
+      }
+    ]
+  }
+  </script>
+</head>
+
+<body>
+  <div class="wrap">
+    <header class="nav">
+      <div class="nav-left">
+        <a href="https://www.lolaelo.com" aria-label="Lolaelo home">
+          <img
+            src="https://www.lolaelo.com/logo.png?cb=logo-1x"
+            alt="Lolaelo"
+            class="logo-img"
+            decoding="async"
+            loading="eager"
+          >
+        </a>
+      </div>
+
+      <nav class="nav-right" aria-label="Primary">
+        <a class="nav-link nav-link-back" href="/destinations/coron/index.html" aria-label="Back to Coron guide">
+          <span class="nav-back-arrow">←</span>
+          <span>Coron guide</span>
+        </a>
+      </nav>
+    </header>
+
+    <div class="crumbs" aria-label="Breadcrumb">
+      <span>Kayangan Lake</span>
+    </div>
+
+    <main class="content" role="main">
+      <!-- HERO: keep structure identical to template -->
+      <section class="hero" aria-label="Kayangan Lake in Coron">
+        <div class="heroGrid">
+          <div class="heroMedia">
+            <img src="/images/coron/hero-kayangan-lake.jpg" alt="Kayangan Lake in Coron, clear water and limestone cliffs" loading="eager" />
+          </div>
+
+          <div class="heroBody">
+            <h1>Kayangan Lake</h1>
+            <p class="lede">
+              This is the iconic Coron stop. The trick is doing it early and doing it efficiently so it stays fun.
+            </p>
+
+            <div class="chips" aria-label="Quick facts">
+              <div class="chip"><span class="dot"></span>Best for: first time Coron moment</div>
+              <div class="chip"><span class="dot"></span>Time: 45 to 90 minutes on site</div>
+              <div class="chip"><span class="dot"></span>Bring: water shoes, dry bag</div>
+              <div class="chip"><span class="dot"></span>Go: earlier for fewer lines</div>
+            </div>
+
+            <div class="kpi" aria-label="Planning snapshot">
+              <div class="item">
+                <div class="lbl">Ideal timing</div>
+                <div class="val">First half of the day</div>
+              </div>
+              <div class="item">
+                <div class="lbl">On site time</div>
+                <div class="val">45 to 90 minutes</div>
+              </div>
+              <div class="item">
+                <div class="lbl">Effort</div>
+                <div class="val">Medium</div>
+              </div>
+              <div class="item">
+                <div class="lbl>">Crowds</div>
+                <div class="val">High (peak hours)</div>
+              </div>
+            </div>
+
+            <div class="ctaRow">
+              <a class="btn primary" href="https://lolaelo-api.onrender.com/catalog.html?q=coron">Browse Coron stays</a>
+              <a class="btn ghost" href="/destinations/coron/index.html#top10">Back to Coron top 10</a>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- BODY: flipped layout -->
+      <section class="section" aria-label="Reality check">
+        <div class="panel">
+          <h2>Reality check</h2>
+          <p>
+Kayangan is worth it. It is also busy. If you treat it like a quick mission, you win.
+If you treat it like a full afternoon hang, you get heat, lines, and frustration.
+          </p>
+
+          <div class="tiles" aria-label="Reality tiles">
+            <div class="tile">
+              <div class="k">What it is</div>
+              <div class="v">A high-impact stop</div>
+              <div class="s">Icon photo, short swim, fast payoff when timed right.</div>
+            </div>
+            <div class="tile">
+              <div class="k">What it is not</div>
+              <div class="v">A quiet private lake day</div>
+              <div class="s">Expect people, stairs, and “move with the flow” logistics.</div>
+            </div>
+            <div class="tile">
+              <div class="k">How you win</div>
+              <div class="v">Early arrival + short stay</div>
+              <div class="s">Get your photo, swim, reset, leave before it turns into traffic.</div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section class="section" aria-label="Route that works">
+        <div class="route">
+          <div class="routeHead">
+            <h2>Route that works</h2>
+            <div class="tag">Target: 90 minutes total</div>
+          </div>
+
+          <div class="steps" aria-label="3-step route">
+            <div class="step">
+              <div class="n">Step 1</div>
+              <div class="t">Arrive and keep it tight</div>
+              <div class="d">
+Pay fees. Do not wander. Lock your essentials.
+If the line is already building, commit to a short stop.
+              </div>
+            </div>
+
+            <div class="step">
+              <div class="n">Step 2</div>
+              <div class="t">Photo, then water time</div>
+              <div class="d">
+Take your viewpoint photo fast. Then go swim.
+Do not spend 20 minutes negotiating a photo angle.
+              </div>
+            </div>
+
+            <div class="step">
+              <div class="n">Step 3</div>
+              <div class="t">Exit clean</div>
+              <div class="d">
+Dry off, regroup, and leave before fatigue hits.
+Save “slow time” for a less crowded stop later.
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section class="section" aria-label="Checklists">
+        <div class="checkGrid">
+          <div class="panel check">
+            <h2>Bring</h2>
+            <ul>
+              <li>Water shoes (dock, rocks, slippery spots)</li>
+              <li>Dry bag (phone, cash, small towel)</li>
+              <li>Water and something small to eat</li>
+              <li>Sun protection (hat, sunscreen)</li>
+            </ul>
+          </div>
+
+          <div class="panel check">
+            <h2>Nice to have</h2>
+            <ul>
+              <li>Snorkel mask (if you already own one)</li>
+              <li>Light rash guard or swim shirt</li>
+              <li>Small anti-fog spray or baby shampoo trick</li>
+              <li>Extra plastic bag for wet items</li>
+            </ul>
+          </div>
+
+          <div class="panel check">
+            <h2>Skip</h2>
+            <ul>
+              <li>Overpacking valuables</li>
+              <li>Big fragile camera setups in crowds</li>
+              <li>Forcing long swim time in peak heat</li>
+              <li>Trying to make this your “relax day”</li>
+            </ul>
+          </div>
+        </div>
+      </section>
+
+      <section class="section" aria-label="Mistakes that ruin it">
+        <div class="callout">
+          <h2>Mistakes that ruin this stop</h2>
+          <p>
+1) Arriving late and still trying to stretch it.
+2) Treating the viewpoint photo like a production.
+3) Not bringing basics, then buying your way out of discomfort.
+4) Letting one crowded stop drain your entire boat day.
+          </p>
+        </div>
+      </section>
+
+      <section class="section" aria-label="Spotlight one">
+        <div class="spotlight">
+          <div class="spotImgWrap" aria-hidden="true">
+            <div class="spotImg">
+              <img src="/images/coron/spot-kayangan-viewpoint.jpg" alt="" loading="lazy" />
+            </div>
+          </div>
+
+          <div class="spotText">
+            <h2>Get the photo fast, then leave the platform</h2>
+            <p>
+The platform is the bottleneck. The move is simple: take one wide shot, one close shot, then get out.
+Your best memories come from the swim, not the queue.
+            </p>
+            <div class="mini">
+              <div>Best play: wide lens, then crop later</div>
+              <div>Rule: if it feels crowded, shorten the stop</div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section class="section" aria-label="Spotlight two">
+        <div class="spotlight spotlight-reverse">
+          <div class="spotText">
+            <h2>Comfort beats hero mode</h2>
+            <p>
+If you are hot, hungry, or dealing with kids, don’t force extra minutes in the water.
+Do the clean version, then spend your energy where it matters next.
+            </p>
+            <div class="mini">
+              <div>Keep: water + shade plan</div>
+              <div>Skip: forcing “one more lap”</div>
+            </div>
+          </div>
+
+          <div class="spotImgWrap" aria-hidden="true">
+            <div class="spotImg">
+              <img src="/images/coron/spot-kayangan-swim.jpg" alt="" loading="lazy" />
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section class="section panel" aria-label="Costs and timing">
+        <h2>Costs and timing</h2>
+        <p>
+Fees can change. Assume there is an entrance fee. Tour pricing varies by route and inclusions.
+Your real control lever is timing. Earlier keeps it simple. Later makes it feel like traffic.
+        </p>
+        <ul class="list">
+          <li>Choose a tour route that does not cram too many stops.</li>
+          <li>If the crowd is heavy, shorten the visit and move on.</li>
+          <li>Use the hot spring or a slow dinner later to recover the day.</li>
+        </ul>
+
+        <div class="ctaRow" style="margin-top: 10px;">
+          <a class="btn ghost" href="/destinations/coron/index.html">Back to Coron guide</a>
+          <a class="btn secondary" href="https://lolaelo-api.onrender.com/catalog.html?q=coron">Browse Coron stays</a>
+        </div>
+      </section>
+
+      <section class="faq" aria-label="FAQ">
+        <h2>FAQ</h2>
+
+        <details>
+          <summary>When is the best time to do Kayangan Lake?</summary>
+          <p>Earlier is better. You want fewer lines and less heat. If you arrive late, shorten the stop and move on.</p>
+        </details>
+
+        <details>
+          <summary>Is it kid friendly?</summary>
+          <p>Yes with supervision. There are steps, docks, and boat ladders. Keep kids close near edges and prioritize comfort.</p>
+        </details>
+
+        <details>
+          <summary>Do I need a tour?</summary>
+          <p>Most people go by boat tour. Pick a route that matches your pace and confirm what is included.</p>
+        </details>
+
+        <details>
+          <summary>What is the #1 mistake?</summary>
+          <p>Trying to make it longer than it needs to be. Get the photo, get the swim, exit clean.</p>
+        </details>
+      </section>
+    </main>
+
+    <footer>
+      © <span id="year"></span> Lolaelo ·
+      <a href="https://lolaelo-api.onrender.com/privacy.html" target="_blank" rel="noopener">Privacy</a>
+      <a href="https://lolaelo-api.onrender.com/terms.html" target="_blank" rel="noopener">Terms</a>
+    </footer>
+  </div>
+
+  <script>
+    document.getElementById("year").textContent = new Date().getFullYear();
+  </script>
+</body>
+</html>

@@ -1,0 +1,849 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+
+  <title>Barracuda Lake | Coron Experiences | Lolaelo</title>
+  <meta name="description" content="Barracuda Lake in Coron: conditions, comfort rules, safety rules, a simple 3-stage blueprint, and the gear that matters." />
+
+  <link rel="icon" href="https://www.lolaelo.com/logo2.png" />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+
+  <meta property="og:title" content="Barracuda Lake | Coron Experiences | Lolaelo" />
+  <meta property="og:description" content="A practical Barracuda Lake guide: how to read the water, plan your swim, and stay safe and comfortable." />
+  <meta property="og:type" content="website" />
+  <meta property="og:image" content="/images/coron/hero-barracuda-lake.jpg" />
+
+  <style>
+    :root{
+      --bg:#ffffff;
+      --fg:#111827;
+      --muted:#6b7280;
+
+      --brand:#064e3b;
+      --accent:#ff6a3d;
+      --border:#e5e7eb;
+
+      --max:1100px;
+      --shadow: 0 12px 30px rgba(15,23,42,0.10);
+      --shadow2: 0 16px 40px rgba(15,23,42,0.18);
+
+      --font: Inter, ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+    }
+
+    *{box-sizing:border-box}
+    html, body{margin:0; padding:0}
+    body{
+      font-family: var(--font);
+      background: var(--bg);
+      color: var(--fg);
+      line-height: 1.5;
+    }
+    a{color:inherit; text-decoration:none}
+
+    .wrap{
+      max-width: var(--max);
+      margin: 0 auto;
+      padding: 16px 20px 40px;
+    }
+
+    /* Header (copied from template) */
+    .nav{
+      display:flex;
+      align-items:center;
+      justify-content:space-between;
+      padding: 4px 0 12px;
+    }
+    .nav-left{display:flex; align-items:center; gap:8px}
+    .logo-img{height:32px; width:auto; display:block}
+
+    .nav-right{
+      display:flex;
+      align-items:center;
+      gap: 20px;
+      font-size: 14px;
+    }
+    .nav-link{
+      color: var(--brand);
+      padding: 4px 0;
+      font-weight: 500;
+    }
+    .nav-link-back{
+      display:inline-flex;
+      align-items:center;
+      gap: 6px;
+    }
+    .nav-back-arrow{
+      font-size: 16px;
+      line-height: 1;
+      transform: translateY(1px);
+    }
+    .nav-link-back:hover span:last-child{ text-decoration: underline; }
+    .nav-link-back:hover .nav-back-arrow{
+      transform: translate(-2px, 1px);
+      transition: transform 0.15s ease-out;
+    }
+
+    /* Minimal breadcrumb (copied from template) */
+    .crumbs{
+      margin-top: 8px;
+      font-size: 12px;
+      color: var(--muted);
+      display:flex;
+      gap:8px;
+      align-items:center;
+      flex-wrap:wrap;
+    }
+    .crumbs span{
+      display:inline-block;
+      padding: 6px 10px;
+      border: 1px solid var(--border);
+      border-radius: 999px;
+      background: #ffffff;
+    }
+
+    /* Hero card (copied from template) */
+    .hero{
+      margin-top: 14px;
+      border-radius: 18px;
+      overflow:hidden;
+      border: 1px solid var(--border);
+      background: #ffffff;
+      box-shadow: var(--shadow);
+    }
+    .heroGrid{
+      display:grid;
+      grid-template-columns: 1.12fr .88fr;
+      gap:0;
+    }
+    .heroMedia{
+      min-height: 340px;
+      position: relative;
+      background: #f3f4f6;
+    }
+    .heroMedia img{
+      width:100%;
+      height:100%;
+      object-fit: cover;
+      display:block;
+    }
+    .heroMedia::after{
+      content:"";
+      position:absolute;
+      inset:0;
+      background: linear-gradient(90deg, rgba(0,0,0,0.05), rgba(0,0,0,0.22));
+      pointer-events:none;
+    }
+    .heroBody{
+      padding: 22px 22px 20px;
+      display:flex;
+      flex-direction: column;
+      gap: 12px;
+    }
+    h1{
+      margin:0;
+      font-size: 34px;
+      line-height: 1.15;
+      letter-spacing: -0.01em;
+      font-weight: 600;
+    }
+    .lede{
+      margin:0;
+      color: var(--muted);
+      font-size: 14.5px;
+      line-height: 1.55;
+    }
+
+    .chips{
+      display:flex;
+      flex-wrap:wrap;
+      gap: 8px;
+      margin-top: 2px;
+    }
+    .chip{
+      display:inline-flex;
+      gap:8px;
+      align-items:center;
+      padding: 6px 10px;
+      border: 1px solid var(--border);
+      border-radius: 999px;
+      background: #fafafa;
+      color: #374151;
+      font-size: 12px;
+    }
+    .dot{
+      width: 8px;
+      height: 8px;
+      border-radius: 999px;
+      background: var(--accent);
+      box-shadow: 0 0 0 4px rgba(255,106,61,0.14);
+      flex: 0 0 auto;
+    }
+
+    .kpi{
+      display:grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 10px;
+      margin-top: 4px;
+    }
+    .kpi .item{
+      border: 1px solid var(--border);
+      border-radius: 14px;
+      background: #ffffff;
+      padding: 10px 10px;
+      box-shadow: 0 10px 24px rgba(15,23,42,0.06);
+    }
+    .kpi .lbl{
+      font-size: 12px;
+      color: var(--muted);
+    }
+    .kpi .val{
+      font-size: 13.5px;
+      font-weight: 600;
+      margin-top: 3px;
+      color: #111827;
+    }
+
+    .ctaRow{
+      display:flex;
+      flex-wrap:wrap;
+      gap: 10px;
+      align-items:center;
+      margin-top: 4px;
+    }
+
+    .btn{
+      border-radius: 999px;
+      padding: 9px 14px;
+      font-size: 14px;
+      font-weight: 500;
+      border: 1px solid transparent;
+      cursor: pointer;
+      display:inline-flex;
+      align-items:center;
+      justify-content:center;
+      gap: 8px;
+      white-space: nowrap;
+    }
+    .btn.primary{ background: var(--accent); color: #ffffff; }
+    .btn.secondary{ background: rgba(229,242,255,0.95); color: var(--brand); border-color: rgba(229,242,255,0.65); }
+    .btn.ghost{ background: #ffffff; color: var(--brand); border-color: var(--border); }
+    .btn:hover{ box-shadow: var(--shadow); }
+
+    /* Sections */
+    .section{ margin-top: 18px; }
+
+    .panel{
+      border: 1px solid var(--border);
+      border-radius: 16px;
+      padding: 14px 16px;
+      background: #ffffff;
+      box-shadow: 0 10px 24px rgba(15,23,42,0.06);
+    }
+    .panel h2{
+      margin: 0 0 10px;
+      font-size: 15px;
+      font-weight: 600;
+      color: var(--brand);
+    }
+    .panel p{
+      margin: 0;
+      font-size: 12.8px;
+      line-height: 1.6;
+      color: #4b5563;
+      white-space: pre-line;
+    }
+
+    .grid2{
+      display:grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 14px;
+      align-items: start;
+    }
+
+    /* Status callout */
+    .status{
+      border: 1px solid rgba(6,78,59,0.28);
+      background: rgba(6,78,59,0.04);
+      border-radius: 16px;
+      padding: 14px 16px;
+      box-shadow: 0 10px 24px rgba(15,23,42,0.06);
+    }
+    .status h2{
+      margin: 0 0 8px;
+      font-size: 15px;
+      font-weight: 600;
+      color: #111827;
+    }
+    .status p{
+      margin:0;
+      font-size: 12.8px;
+      line-height: 1.6;
+      color: #4b5563;
+      white-space: pre-line;
+    }
+    .pills{
+      display:flex;
+      flex-wrap:wrap;
+      gap: 8px;
+      margin-top: 10px;
+    }
+    .pill{
+      font-size: 12px;
+      padding: 6px 10px;
+      border-radius: 999px;
+      border: 1px solid var(--border);
+      color: #374151;
+      background: #ffffff;
+    }
+
+    /* Blueprint */
+    .route{
+      margin-top: 14px;
+      border: 1px solid var(--border);
+      border-radius: 16px;
+      background: #ffffff;
+      box-shadow: 0 10px 24px rgba(15,23,42,0.06);
+      overflow:hidden;
+    }
+    .routeHead{
+      padding: 12px 14px;
+      border-bottom: 1px solid var(--border);
+      display:flex;
+      align-items:center;
+      justify-content: space-between;
+      gap: 10px;
+    }
+    .routeHead h2{
+      margin:0;
+      font-size: 15px;
+      font-weight: 600;
+      color: var(--brand);
+    }
+    .routeHead .tag{
+      font-size: 12px;
+      color: #374151;
+      background: #fafafa;
+      border: 1px solid var(--border);
+      padding: 6px 10px;
+      border-radius: 999px;
+      white-space: nowrap;
+    }
+    .steps{
+      display:grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 0;
+    }
+    .step{
+      padding: 12px 14px 14px;
+      border-right: 1px solid var(--border);
+    }
+    .step:last-child{ border-right:none; }
+    .step .n{
+      font-size: 12px;
+      color: var(--muted);
+      margin-bottom: 6px;
+    }
+    .step .t{
+      font-size: 13px;
+      font-weight: 600;
+      color: #111827;
+      margin-bottom: 6px;
+    }
+    .step .d{
+      font-size: 12.6px;
+      color: #4b5563;
+      line-height: 1.55;
+      white-space: pre-line;
+    }
+
+    /* Rules boxes */
+    .ruleBox{
+      border: 1px solid var(--border);
+      border-radius: 16px;
+      background: #ffffff;
+      padding: 14px 16px;
+      box-shadow: 0 10px 24px rgba(15,23,42,0.06);
+    }
+    .ruleBox h3{
+      margin:0 0 8px;
+      font-size: 13px;
+      font-weight: 600;
+      color: #111827;
+    }
+    .ruleBox ul{
+      margin:0;
+      padding-left: 18px;
+      font-size: 12.5px;
+      line-height: 1.55;
+      color: #4b5563;
+    }
+    .ruleBox li{ margin-bottom: 6px; }
+
+    /* Gear grid */
+    .gear{
+      margin-top: 14px;
+      display:grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 12px;
+    }
+    .gearItem{
+      border: 1px solid var(--border);
+      border-radius: 16px;
+      background: #ffffff;
+      padding: 12px 12px;
+      box-shadow: 0 10px 24px rgba(15,23,42,0.06);
+    }
+    .gearItem .k{
+      font-size: 12px;
+      color: var(--muted);
+      margin-bottom: 6px;
+    }
+    .gearItem .v{
+      font-size: 13px;
+      font-weight: 600;
+      color: #111827;
+      line-height: 1.35;
+    }
+    .gearItem .s{
+      margin-top: 8px;
+      font-size: 12.6px;
+      color: #4b5563;
+      line-height: 1.55;
+      white-space: pre-line;
+    }
+
+    /* Spotlight */
+    .spotlight{
+      margin-top: 14px;
+      display:grid;
+      grid-template-columns: 1.05fr 0.95fr;
+      gap: 14px;
+      align-items:center;
+    }
+    .spotlight-reverse{
+      grid-template-columns: 0.95fr 1.05fr;
+    }
+    .spotText{
+      border: 1px solid var(--border);
+      border-radius: 18px;
+      background: #ffffff;
+      box-shadow: var(--shadow);
+      padding: 16px 16px 14px;
+    }
+    .spotText h2{
+      margin: 0 0 10px;
+      font-size: 15px;
+      font-weight: 600;
+      color: var(--brand);
+    }
+    .spotText p{
+      margin:0;
+      font-size: 12.8px;
+      line-height: 1.6;
+      color: #4b5563;
+      white-space: pre-line;
+    }
+    .mini{
+      margin-top: 12px;
+      padding-top: 12px;
+      border-top: 1px solid var(--border);
+      display:grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 10px;
+      color: #4b5563;
+      font-size: 12.5px;
+    }
+    .spotImgWrap{
+      display:flex;
+      justify-content:center;
+      align-items:center;
+      padding: 6px;
+    }
+    .spotImg{
+      width: 320px;
+      height: 320px;
+      border-radius: 999px;
+      overflow:hidden;
+      border: 1px solid rgba(229,231,235,0.95);
+      box-shadow: 0 18px 44px rgba(15,23,42,0.18);
+      background: #f3f4f6;
+    }
+    .spotImg img{
+      width:100%;
+      height:100%;
+      object-fit: cover;
+      display:block;
+    }
+
+    /* FAQ */
+    .faq{
+      margin-top: 22px;
+      border: 1px solid var(--border);
+      border-radius: 16px;
+      padding: 14px 16px;
+      background: #ffffff;
+      box-shadow: 0 10px 24px rgba(15,23,42,0.06);
+    }
+    .faq h2{
+      margin: 0 0 8px;
+      font-size: 15px;
+      font-weight: 600;
+      color: var(--brand);
+    }
+    details{
+      border-top: 1px solid var(--border);
+      padding: 10px 0;
+    }
+    details:first-of-type{ border-top:none; padding-top:0; }
+    summary{
+      cursor:pointer;
+      list-style:none;
+      font-size: 13px;
+      font-weight: 600;
+      color:#111827;
+    }
+    summary::-webkit-details-marker{ display:none; }
+    .faq p{
+      margin: 8px 0 0;
+      font-size: 12.8px;
+      line-height: 1.6;
+      color: #4b5563;
+    }
+
+    footer{
+      border-top: 1px solid var(--border);
+      padding: 14px 20px 22px;
+      font-size: 12px;
+      color: #6b7280;
+      text-align: center;
+      margin-top: 26px;
+    }
+    footer a{ color: inherit; text-decoration: underline; }
+
+    @media (max-width: 920px){
+      .wrap{ padding: 12px 16px 28px; }
+      .heroGrid{ grid-template-columns: 1fr; }
+      .heroMedia{ min-height: 260px; }
+      h1{ font-size: 30px; }
+
+      .grid2{ grid-template-columns: 1fr; }
+      .steps{ grid-template-columns: 1fr; }
+      .step{ border-right:none; border-top: 1px solid var(--border); }
+      .step:first-child{ border-top:none; }
+      .gear{ grid-template-columns: 1fr; }
+      .spotlight, .spotlight-reverse{ grid-template-columns: 1fr; }
+      .spotImg{ width: 240px; height: 240px; }
+    }
+  </style>
+
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "FAQPage",
+    "mainEntity": [
+      {
+        "@type": "Question",
+        "name": "Is Barracuda Lake good for non-swimmers?",
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": "It can be, if you stay in your comfort zone and use a flotation device. Do not push deeper sections or long swims if you are not confident."
+        }
+      },
+      {
+        "@type": "Question",
+        "name": "How long do you need at Barracuda Lake?",
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": "45 to 90 minutes is enough. The experience is about the feel of the water and the setting, not staying forever."
+        }
+      },
+      {
+        "@type": "Question",
+        "name": "What is the best time to visit?",
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": "Earlier is typically smoother for pacing and comfort. If it feels crowded or hot, shorten the stop and move on."
+        }
+      },
+      {
+        "@type": "Question",
+        "name": "What gear matters most?",
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": "Water shoes, a dry bag, and a mask if you own one. A rash guard helps with sun and comfort."
+        }
+      }
+    ]
+  }
+  </script>
+</head>
+
+<body>
+  <div class="wrap">
+    <header class="nav">
+      <div class="nav-left">
+        <a href="https://www.lolaelo.com" aria-label="Lolaelo home">
+          <img
+            src="https://www.lolaelo.com/logo.png?cb=logo-1x"
+            alt="Lolaelo"
+            class="logo-img"
+            decoding="async"
+            loading="eager"
+          >
+        </a>
+      </div>
+
+      <nav class="nav-right" aria-label="Primary">
+        <a class="nav-link nav-link-back" href="/destinations/coron/index.html" aria-label="Back to Coron guide">
+          <span class="nav-back-arrow">←</span>
+          <span>Coron guide</span>
+        </a>
+      </nav>
+    </header>
+
+    <div class="crumbs" aria-label="Breadcrumb">
+      <span>Barracuda Lake</span>
+    </div>
+
+    <main class="content" role="main">
+      <!-- HERO: keep structure identical to template -->
+      <section class="hero" aria-label="Barracuda Lake in Coron">
+        <div class="heroGrid">
+          <div class="heroMedia">
+            <img src="/images/coron/hero-barracuda-lake.jpg" alt="Barracuda Lake in Coron, limestone cliffs and clear lake water" loading="eager" />
+          </div>
+
+          <div class="heroBody">
+            <h1>Barracuda Lake</h1>
+            <p class="lede">
+              This is a “feel the water” stop. Comfort and safety matter more than chasing depth or showing off.
+            </p>
+
+            <div class="chips" aria-label="Quick facts">
+              <div class="chip"><span class="dot"></span>Best for: unique lake swim</div>
+              <div class="chip"><span class="dot"></span>Time: 45 to 90 minutes</div>
+              <div class="chip"><span class="dot"></span>Bring: shoes, dry bag, rash guard</div>
+              <div class="chip"><span class="dot"></span>Rule: stay in your comfort zone</div>
+            </div>
+
+            <div class="kpi" aria-label="Planning snapshot">
+              <div class="item">
+                <div class="lbl">Ideal timing</div>
+                <div class="val">Earlier for smoother pacing</div>
+              </div>
+              <div class="item">
+                <div class="lbl">On site time</div>
+                <div class="val">45 to 90 minutes</div>
+              </div>
+              <div class="item">
+                <div class="lbl">Effort</div>
+                <div class="val">Medium</div>
+              </div>
+              <div class="item">
+                <div class="lbl">Risk</div>
+                <div class="val">Medium (if you push it)</div>
+              </div>
+            </div>
+
+            <div class="ctaRow">
+              <a class="btn primary" href="https://lolaelo-api.onrender.com/catalog.html?q=coron">Browse Coron stays</a>
+              <a class="btn ghost" href="/destinations/coron/index.html#top10">Back to Coron top 10</a>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- BODY: Layout Plan 6 -->
+      <section class="section" aria-label="Water readiness">
+        <div class="status">
+          <h2>Water readiness</h2>
+          <p>
+Before you get in, do a quick scan:
+If you feel rushed, overheated, or off-balance, you do the simple version.
+This stop punishes ego. It rewards calm.
+          </p>
+          <div class="pills" aria-label="Readiness checks">
+            <span class="pill">Hydrated</span>
+            <span class="pill">Feet protected (shoes)</span>
+            <span class="pill">Mask defogged</span>
+            <span class="pill">Exit plan clear</span>
+            <span class="pill">No pressure to go deep</span>
+          </div>
+        </div>
+      </section>
+
+      <section class="section" aria-label="Blueprint">
+        <div class="route">
+          <div class="routeHead">
+            <h2>Blueprint: 3 stages</h2>
+            <div class="tag">Target: 60 minutes</div>
+          </div>
+
+          <div class="steps" aria-label="3-stage plan">
+            <div class="step">
+              <div class="n">Stage 1</div>
+              <div class="t">Settle in</div>
+              <div class="d">
+Enter slowly. Get your breathing and comfort right.
+Stay near the easy zone first.
+              </div>
+            </div>
+
+            <div class="step">
+              <div class="n">Stage 2</div>
+              <div class="t">Explore the “wow”</div>
+              <div class="d">
+Move only as far as you still feel calm.
+If you feel stress, you stop and reset.
+              </div>
+            </div>
+
+            <div class="step">
+              <div class="n">Stage 3</div>
+              <div class="t">Exit clean</div>
+              <div class="d">
+Leave while you still feel good.
+Do not wait until you are tired, shaky, or overheated.
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section class="section" aria-label="Safety and comfort rules">
+        <div class="grid2">
+          <div class="ruleBox">
+            <h3>Safety rules</h3>
+            <ul>
+              <li>Stay in your comfort zone, no exceptions</li>
+              <li>If you are not confident, use a flotation device</li>
+              <li>Do not push depth or long swims</li>
+              <li>Keep awareness of ladders, edges, and other swimmers</li>
+            </ul>
+          </div>
+
+          <div class="ruleBox">
+            <h3>Comfort rules</h3>
+            <ul>
+              <li>Start slow, do not shock your system</li>
+              <li>Mask fog ruins the experience, fix it early</li>
+              <li>Keep water time short if heat is high</li>
+              <li>One calm lap beats ten forced minutes</li>
+            </ul>
+          </div>
+        </div>
+      </section>
+
+      <section class="section" aria-label="Gear that matters">
+        <div class="panel">
+          <h2>Gear that matters</h2>
+          <p>
+Keep it simple. The best gear is the stuff that prevents discomfort and sloppy mistakes.
+          </p>
+          <div class="gear" aria-label="Gear grid">
+            <div class="gearItem">
+              <div class="k">Must</div>
+              <div class="v">Water shoes</div>
+              <div class="s">For docks, rocks, and safe footing.</div>
+            </div>
+            <div class="gearItem">
+              <div class="k">Must</div>
+              <div class="v">Dry bag</div>
+              <div class="s">Phone, cash, small towel, no drama.</div>
+            </div>
+            <div class="gearItem">
+              <div class="k">Strong</div>
+              <div class="v">Rash guard</div>
+              <div class="s">Sun protection and comfort.</div>
+            </div>
+            <div class="gearItem">
+              <div class="k">Optional</div>
+              <div class="v">Mask you trust</div>
+              <div class="s">If you own one, bring it. Fit beats rentals.</div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section class="section" aria-label="Spotlights">
+        <div class="spotlight">
+          <div class="spotImgWrap" aria-hidden="true">
+            <div class="spotImg">
+              <img src="/images/coron/spot-barracuda-dock.jpg" alt="" loading="lazy" />
+            </div>
+          </div>
+
+          <div class="spotText">
+            <h2>Do the calm version, not the flex version</h2>
+            <p>
+This is not a competition. The moment is the setting and the water feel.
+If you keep it calm, you walk away feeling good.
+If you push it, you get tension, not memory.
+            </p>
+            <div class="mini">
+              <div>Rule: stop when comfort drops</div>
+              <div>Win: leave while you still feel strong</div>
+            </div>
+          </div>
+        </div>
+
+        <div class="spotlight spotlight-reverse">
+          <div class="spotText">
+            <h2>Short stop, high payoff</h2>
+            <p>
+A clean 45 to 60 minutes here beats dragging it out.
+Save the extra energy for your next stop or your recovery plan later.
+            </p>
+            <div class="mini">
+              <div>Best play: efficient pacing</div>
+              <div>Skip: overstaying in heat</div>
+            </div>
+          </div>
+
+          <div class="spotImgWrap" aria-hidden="true">
+            <div class="spotImg">
+              <img src="/images/coron/spot-barracuda-water.jpg" alt="" loading="lazy" />
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section class="faq" aria-label="FAQ">
+        <h2>FAQ</h2>
+
+        <details>
+          <summary>Is Barracuda Lake good for non-swimmers?</summary>
+          <p>It can be if you stay in your comfort zone and use flotation. Do not push deeper areas or long swims.</p>
+        </details>
+
+        <details>
+          <summary>How long do you need?</summary>
+          <p>45 to 90 minutes is enough. It is about the feel of the place, not staying forever.</p>
+        </details>
+
+        <details>
+          <summary>What is the best time to visit?</summary>
+          <p>Earlier is typically smoother for pacing and comfort. If it feels crowded or hot, shorten the stop.</p>
+        </details>
+
+        <details>
+          <summary>What gear matters most?</summary>
+          <p>Water shoes, a dry bag, and a rash guard. A mask you trust helps, but only if you already own one.</p>
+        </details>
+      </section>
+    </main>
+
+    <footer>
+      © <span id="year"></span> Lolaelo ·
+      <a href="https://lolaelo-api.onrender.com/privacy.html" target="_blank" rel="noopener">Privacy</a>
+      <a href="https://lolaelo-api.onrender.com/terms.html" target="_blank" rel="noopener">Terms</a>
+    </footer>
+  </div>
+
+  <script>
+    document.getElementById("year").textContent = new Date().getFullYear();
+  </script>
+</body>
+</html>

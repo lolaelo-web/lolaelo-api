@@ -1,0 +1,793 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+
+  <title>Twin Lagoon | Coron Experiences | Lolaelo</title>
+  <meta name="description" content="Twin Lagoon in Coron: the clean way to do it. Timing, swim strategy, pace plan, do/don't rules, and what to bring." />
+
+  <link rel="icon" href="https://www.lolaelo.com/logo2.png" />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+
+  <meta property="og:title" content="Twin Lagoon | Coron Experiences | Lolaelo" />
+  <meta property="og:description" content="Practical guide to Twin Lagoon: timing, swim strategy, and how to avoid the bottlenecks." />
+  <meta property="og:type" content="website" />
+  <meta property="og:image" content="/images/coron/hero-twin-lagoon.jpg" />
+
+  <style>
+    :root{
+      --bg:#ffffff;
+      --fg:#111827;
+      --muted:#6b7280;
+
+      --brand:#064e3b;
+      --accent:#ff6a3d;
+      --border:#e5e7eb;
+
+      --max:1100px;
+      --shadow: 0 12px 30px rgba(15,23,42,0.10);
+      --shadow2: 0 16px 40px rgba(15,23,42,0.18);
+
+      --radius:18px;
+      --radius2:22px;
+
+      --font: Inter, ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+    }
+
+    *{box-sizing:border-box}
+    html, body{margin:0; padding:0}
+    body{
+      font-family: var(--font);
+      background: var(--bg);
+      color: var(--fg);
+      line-height: 1.5;
+    }
+    a{color:inherit; text-decoration:none}
+
+    .wrap{
+      max-width: var(--max);
+      margin: 0 auto;
+      padding: 16px 20px 40px;
+    }
+
+    /* Header (copied from template) */
+    .nav{
+      display:flex;
+      align-items:center;
+      justify-content:space-between;
+      padding: 4px 0 12px;
+    }
+    .nav-left{display:flex; align-items:center; gap:8px}
+    .logo-img{height:32px; width:auto; display:block}
+
+    .nav-right{
+      display:flex;
+      align-items:center;
+      gap: 20px;
+      font-size: 14px;
+    }
+    .nav-link{
+      color: var(--brand);
+      padding: 4px 0;
+      font-weight: 500;
+    }
+    .nav-link-back{
+      display:inline-flex;
+      align-items:center;
+      gap: 6px;
+    }
+    .nav-back-arrow{
+      font-size: 16px;
+      line-height: 1;
+      transform: translateY(1px);
+    }
+    .nav-link-back:hover span:last-child{ text-decoration: underline; }
+    .nav-link-back:hover .nav-back-arrow{
+      transform: translate(-2px, 1px);
+      transition: transform 0.15s ease-out;
+    }
+
+    /* Minimal breadcrumb (copied from template) */
+    .crumbs{
+      margin-top: 8px;
+      font-size: 12px;
+      color: var(--muted);
+      display:flex;
+      gap:8px;
+      align-items:center;
+      flex-wrap:wrap;
+    }
+    .crumbs span{
+      display:inline-block;
+      padding: 6px 10px;
+      border: 1px solid var(--border);
+      border-radius: 999px;
+      background: #ffffff;
+    }
+
+    /* Hero card (copied from template) */
+    .hero{
+      margin-top: 14px;
+      border-radius: 18px;
+      overflow:hidden;
+      border: 1px solid var(--border);
+      background: #ffffff;
+      box-shadow: var(--shadow);
+    }
+    .heroGrid{
+      display:grid;
+      grid-template-columns: 1.12fr .88fr;
+      gap:0;
+    }
+    .heroMedia{
+      min-height: 340px;
+      position: relative;
+      background: #f3f4f6;
+    }
+    .heroMedia img{
+      width:100%;
+      height:100%;
+      object-fit: cover;
+      display:block;
+    }
+    .heroMedia::after{
+      content:"";
+      position:absolute;
+      inset:0;
+      background: linear-gradient(90deg, rgba(0,0,0,0.05), rgba(0,0,0,0.22));
+      pointer-events:none;
+    }
+    .heroBody{
+      padding: 22px 22px 20px;
+      display:flex;
+      flex-direction: column;
+      gap: 12px;
+    }
+    h1{
+      margin:0;
+      font-size: 34px;
+      line-height: 1.15;
+      letter-spacing: -0.01em;
+      font-weight: 600;
+    }
+    .lede{
+      margin:0;
+      color: var(--muted);
+      font-size: 14.5px;
+      line-height: 1.55;
+    }
+
+    .chips{
+      display:flex;
+      flex-wrap:wrap;
+      gap: 8px;
+      margin-top: 2px;
+    }
+    .chip{
+      display:inline-flex;
+      gap:8px;
+      align-items:center;
+      padding: 6px 10px;
+      border: 1px solid var(--border);
+      border-radius: 999px;
+      background: #fafafa;
+      color: #374151;
+      font-size: 12px;
+    }
+    .dot{
+      width: 8px;
+      height: 8px;
+      border-radius: 999px;
+      background: var(--accent);
+      box-shadow: 0 0 0 4px rgba(255,106,61,0.14);
+      flex: 0 0 auto;
+    }
+
+    .kpi{
+      display:grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 10px;
+      margin-top: 4px;
+    }
+    .kpi .item{
+      border: 1px solid var(--border);
+      border-radius: 14px;
+      background: #ffffff;
+      padding: 10px 10px;
+      box-shadow: 0 10px 24px rgba(15,23,42,0.06);
+    }
+    .kpi .lbl{
+      font-size: 12px;
+      color: var(--muted);
+    }
+    .kpi .val{
+      font-size: 13.5px;
+      font-weight: 600;
+      margin-top: 3px;
+      color: #111827;
+    }
+
+    .ctaRow{
+      display:flex;
+      flex-wrap:wrap;
+      gap: 10px;
+      align-items:center;
+      margin-top: 4px;
+    }
+
+    .btn{
+      border-radius: 999px;
+      padding: 9px 14px;
+      font-size: 14px;
+      font-weight: 500;
+      border: 1px solid transparent;
+      cursor: pointer;
+      display:inline-flex;
+      align-items:center;
+      justify-content:center;
+      gap: 8px;
+      white-space: nowrap;
+    }
+    .btn.primary{ background: var(--accent); color: #ffffff; }
+    .btn.secondary{ background: rgba(229,242,255,0.95); color: var(--brand); border-color: rgba(229,242,255,0.65); }
+    .btn.ghost{ background: #ffffff; color: var(--brand); border-color: var(--border); }
+    .btn:hover{ box-shadow: var(--shadow); }
+
+    /* Sections */
+    .section{ margin-top: 18px; }
+
+    .panel{
+      border: 1px solid var(--border);
+      border-radius: 16px;
+      padding: 14px 16px;
+      background: #ffffff;
+      box-shadow: 0 10px 24px rgba(15,23,42,0.06);
+    }
+    .panel h2{
+      margin: 0 0 10px;
+      font-size: 15px;
+      font-weight: 600;
+      color: var(--brand);
+    }
+    .panel p{
+      margin: 0;
+      font-size: 12.8px;
+      line-height: 1.6;
+      color: #4b5563;
+      white-space: pre-line;
+    }
+
+    /* Decision strips */
+    .strips{
+      display:grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 14px;
+      align-items: stretch;
+    }
+    .strip{
+      border: 1px solid var(--border);
+      border-radius: 16px;
+      background: #ffffff;
+      padding: 14px 16px;
+      box-shadow: 0 10px 24px rgba(15,23,42,0.06);
+    }
+    .strip h3{
+      margin: 0 0 8px;
+      font-size: 13px;
+      font-weight: 600;
+      color: #111827;
+    }
+    .strip p{
+      margin: 0;
+      font-size: 12.8px;
+      line-height: 1.6;
+      color: #4b5563;
+      white-space: pre-line;
+    }
+    .strip.good{
+      border-color: rgba(6,78,59,0.28);
+      background: rgba(6,78,59,0.04);
+    }
+    .strip.skip{
+      border-color: rgba(255,106,61,0.28);
+      background: rgba(255,106,61,0.04);
+    }
+
+    /* Timeline */
+    .timeline{
+      margin-top: 14px;
+      border: 1px solid var(--border);
+      border-radius: 16px;
+      overflow:hidden;
+      background: #ffffff;
+      box-shadow: 0 10px 24px rgba(15,23,42,0.06);
+    }
+    .timelineHead{
+      padding: 12px 14px;
+      border-bottom: 1px solid var(--border);
+      display:flex;
+      align-items:center;
+      justify-content: space-between;
+      gap: 10px;
+    }
+    .timelineHead h2{
+      margin:0;
+      font-size: 15px;
+      font-weight: 600;
+      color: var(--brand);
+    }
+    .timelineHead .tag{
+      font-size: 12px;
+      color: #374151;
+      background: #fafafa;
+      border: 1px solid var(--border);
+      padding: 6px 10px;
+      border-radius: 999px;
+      white-space: nowrap;
+    }
+    .rows{
+      display:flex;
+      flex-direction: column;
+    }
+    .row{
+      display:grid;
+      grid-template-columns: 140px 1fr;
+      gap: 12px;
+      padding: 12px 14px;
+      border-top: 1px solid var(--border);
+    }
+    .row:first-child{ border-top:none; }
+    .time{
+      font-size: 12px;
+      color: var(--muted);
+      padding-top: 2px;
+      white-space: nowrap;
+    }
+    .what .t{
+      font-size: 13px;
+      font-weight: 600;
+      color: #111827;
+      margin-bottom: 4px;
+    }
+    .what .d{
+      font-size: 12.8px;
+      line-height: 1.6;
+      color: #4b5563;
+      white-space: pre-line;
+    }
+
+    /* Do/Don't grid */
+    .doDont{
+      margin-top: 14px;
+      display:grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 14px;
+    }
+    .doBox{
+      border: 1px solid var(--border);
+      border-radius: 16px;
+      background: #ffffff;
+      padding: 14px 16px;
+      box-shadow: 0 10px 24px rgba(15,23,42,0.06);
+    }
+    .doBox h3{
+      margin: 0 0 8px;
+      font-size: 13px;
+      font-weight: 600;
+      color: #111827;
+    }
+    .doBox ul{
+      margin: 0;
+      padding-left: 18px;
+      font-size: 12.5px;
+      line-height: 1.55;
+      color: #4b5563;
+    }
+    .doBox li{ margin-bottom: 6px; }
+
+    /* Spotlight (circle image) */
+    .spotlight{
+      margin-top: 14px;
+      display:grid;
+      grid-template-columns: 1.05fr 0.95fr;
+      gap: 14px;
+      align-items:center;
+    }
+    .spotlight-reverse{
+      grid-template-columns: 0.95fr 1.05fr;
+    }
+    .spotText{
+      border: 1px solid var(--border);
+      border-radius: 18px;
+      background: #ffffff;
+      box-shadow: var(--shadow);
+      padding: 16px 16px 14px;
+    }
+    .spotText h2{
+      margin: 0 0 10px;
+      font-size: 15px;
+      font-weight: 600;
+      color: var(--brand);
+    }
+    .spotText p{
+      margin:0;
+      font-size: 12.8px;
+      line-height: 1.6;
+      color: #4b5563;
+      white-space: pre-line;
+    }
+    .mini{
+      margin-top: 12px;
+      padding-top: 12px;
+      border-top: 1px solid var(--border);
+      display:grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 10px;
+      color: #4b5563;
+      font-size: 12.5px;
+    }
+    .spotImgWrap{
+      display:flex;
+      justify-content:center;
+      align-items:center;
+      padding: 6px;
+    }
+    .spotImg{
+      width: 320px;
+      height: 320px;
+      border-radius: 999px;
+      overflow:hidden;
+      border: 1px solid rgba(229,231,235,0.95);
+      box-shadow: 0 18px 44px rgba(15,23,42,0.18);
+      background: #f3f4f6;
+    }
+    .spotImg img{
+      width:100%;
+      height:100%;
+      object-fit: cover;
+      display:block;
+    }
+
+    /* FAQ (copied from template) */
+    .faq{
+      margin-top: 22px;
+      border: 1px solid var(--border);
+      border-radius: 16px;
+      padding: 14px 16px;
+      background: #ffffff;
+      box-shadow: 0 10px 24px rgba(15,23,42,0.06);
+    }
+    .faq h2{
+      margin: 0 0 8px;
+      font-size: 15px;
+      font-weight: 600;
+      color: var(--brand);
+    }
+    details{
+      border-top: 1px solid var(--border);
+      padding: 10px 0;
+    }
+    details:first-of-type{ border-top:none; padding-top:0; }
+    summary{
+      cursor:pointer;
+      list-style:none;
+      font-size: 13px;
+      font-weight: 600;
+      color:#111827;
+    }
+    summary::-webkit-details-marker{ display:none; }
+    .faq p{
+      margin: 8px 0 0;
+      font-size: 12.8px;
+      line-height: 1.6;
+      color: #4b5563;
+    }
+
+    footer{
+      border-top: 1px solid var(--border);
+      padding: 14px 20px 22px;
+      font-size: 12px;
+      color: #6b7280;
+      text-align: center;
+      margin-top: 26px;
+    }
+    footer a{ color: inherit; text-decoration: underline; }
+
+    @media (max-width: 920px){
+      .wrap{ padding: 12px 16px 28px; }
+      .heroGrid{ grid-template-columns: 1fr; }
+      .heroMedia{ min-height: 260px; }
+      h1{ font-size: 30px; }
+      .strips{ grid-template-columns: 1fr; }
+      .row{ grid-template-columns: 1fr; }
+      .spotlight, .spotlight-reverse{ grid-template-columns: 1fr; }
+      .spotImg{ width: 240px; height: 240px; }
+      .doDont{ grid-template-columns: 1fr; }
+    }
+  </style>
+
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "FAQPage",
+    "mainEntity": [
+      {
+        "@type": "Question",
+        "name": "How long do you need at Twin Lagoon?",
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": "Plan 45 to 90 minutes. The experience is high-impact but it bottlenecks. The win is timing and pace, not length."
+        }
+      },
+      {
+        "@type": "Question",
+        "name": "What is the best timing for Twin Lagoon?",
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": "Earlier is cleaner. If you arrive late, shorten the stop and avoid fighting for space at the entry points."
+        }
+      },
+      {
+        "@type": "Question",
+        "name": "Is Twin Lagoon kid friendly?",
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": "Yes with supervision. There are boat ladders and tight entry points. Keep kids close and prioritize comfort."
+        }
+      },
+      {
+        "@type": "Question",
+        "name": "What should I bring?",
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": "Water shoes, dry bag, and a snorkel mask if you already own one. Keep valuables minimal."
+        }
+      }
+    ]
+  }
+  </script>
+</head>
+
+<body>
+  <div class="wrap">
+    <header class="nav">
+      <div class="nav-left">
+        <a href="https://www.lolaelo.com" aria-label="Lolaelo home">
+          <img
+            src="https://www.lolaelo.com/logo.png?cb=logo-1x"
+            alt="Lolaelo"
+            class="logo-img"
+            decoding="async"
+            loading="eager"
+          >
+        </a>
+      </div>
+
+      <nav class="nav-right" aria-label="Primary">
+        <a class="nav-link nav-link-back" href="/destinations/coron/index.html" aria-label="Back to Coron guide">
+          <span class="nav-back-arrow">←</span>
+          <span>Coron guide</span>
+        </a>
+      </nav>
+    </header>
+
+    <div class="crumbs" aria-label="Breadcrumb">
+      <span>Twin Lagoon</span>
+    </div>
+
+    <main class="content" role="main">
+      <!-- HERO: keep structure identical to template -->
+      <section class="hero" aria-label="Twin Lagoon in Coron">
+        <div class="heroGrid">
+          <div class="heroMedia">
+            <img src="/images/coron/hero-twin-lagoon.jpg" alt="Twin Lagoon in Coron, limestone walls and calm lagoon water" loading="eager" />
+          </div>
+
+          <div class="heroBody">
+            <h1>Twin Lagoon</h1>
+            <p class="lede">
+              The lagoon is the reward. The bottleneck is the entry and the crowd stack. Timing and pace win.
+            </p>
+
+            <div class="chips" aria-label="Quick facts">
+              <div class="chip"><span class="dot"></span>Best for: lagoon swim + photos</div>
+              <div class="chip"><span class="dot"></span>Time: 45 to 90 minutes</div>
+              <div class="chip"><span class="dot"></span>Bring: water shoes, dry bag</div>
+              <div class="chip"><span class="dot"></span>Go: early to avoid stacks</div>
+            </div>
+
+            <div class="kpi" aria-label="Planning snapshot">
+              <div class="item">
+                <div class="lbl">Ideal timing</div>
+                <div class="val">First half of the day</div>
+              </div>
+              <div class="item">
+                <div class="lbl">On site time</div>
+                <div class="val">45 to 90 minutes</div>
+              </div>
+              <div class="item">
+                <div class="lbl">Effort</div>
+                <div class="val">Medium</div>
+              </div>
+              <div class="item">
+                <div class="lbl">Crowds</div>
+                <div class="val">High (peak hours)</div>
+              </div>
+            </div>
+
+            <div class="ctaRow">
+              <a class="btn primary" href="https://lolaelo-api.onrender.com/catalog.html?q=coron">Browse Coron stays</a>
+              <a class="btn ghost" href="/destinations/coron/index.html#top10">Back to Coron top 10</a>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- BODY: Layout Plan 3 -->
+      <section class="section" aria-label="Decision strips">
+        <div class="strips">
+          <div class="strip good">
+            <h3>Do this if</h3>
+            <p>
+You want a classic Coron lagoon moment.
+You are ok with tight entry points and short queue bursts.
+You are ready to keep the stop efficient.
+            </p>
+          </div>
+          <div class="strip skip">
+            <h3>Skip or shorten if</h3>
+            <p>
+You arrive late and it is stacked with boats.
+You have very small kids and entry points are already chaotic.
+You are already fatigued and chasing “one more stop.”
+            </p>
+          </div>
+        </div>
+      </section>
+
+      <section class="section" aria-label="Timeline plan">
+        <div class="timeline">
+          <div class="timelineHead">
+            <h2>Timeline that works</h2>
+            <div class="tag">Target: 60 minutes</div>
+          </div>
+
+          <div class="rows">
+            <div class="row">
+              <div class="time">0 to 10 min</div>
+              <div class="what">
+                <div class="t">Arrive, prep, simplify</div>
+                <div class="d">Dry bag, shoes, mask. Do not overpack. Get in the flow fast.</div>
+              </div>
+            </div>
+
+            <div class="row">
+              <div class="time">10 to 30 min</div>
+              <div class="what">
+                <div class="t">Enter, get your photos, move through</div>
+                <div class="d">Take your shots early, then prioritize swimming. Avoid the platform drama.</div>
+              </div>
+            </div>
+
+            <div class="row">
+              <div class="time">30 to 55 min</div>
+              <div class="what">
+                <div class="t">Swim time</div>
+                <div class="d">This is the best part. Keep it calm. Do not push comfort limits.</div>
+              </div>
+            </div>
+
+            <div class="row">
+              <div class="time">55 to 75 min</div>
+              <div class="what">
+                <div class="t">Exit clean</div>
+                <div class="d">Regroup, hydrate, and move on before the crowd stack catches up.</div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section class="section" aria-label="Do and don't">
+        <div class="doDont">
+          <div class="doBox">
+            <h3>Do</h3>
+            <ul>
+              <li>Go early and treat it like a short mission</li>
+              <li>Bring water shoes and a dry bag</li>
+              <li>Take photos fast, then swim</li>
+              <li>Keep kids within arm’s reach near ladders and edges</li>
+            </ul>
+          </div>
+          <div class="doBox">
+            <h3>Don’t</h3>
+            <ul>
+              <li>Wait forever for a perfect angle</li>
+              <li>Overstay when it is already stacked</li>
+              <li>Bring a bunch of valuables</li>
+              <li>Let one crowded stop drain the rest of your boat day</li>
+            </ul>
+          </div>
+        </div>
+      </section>
+
+      <section class="section" aria-label="Spotlights">
+        <div class="spotlight">
+          <div class="spotImgWrap" aria-hidden="true">
+            <div class="spotImg">
+              <img src="/images/coron/spot-twin-lagoon-entry.jpg" alt="" loading="lazy" />
+            </div>
+          </div>
+
+          <div class="spotText">
+            <h2>Entry points are the whole game</h2>
+            <p>
+Twin Lagoon feels “crowded” when people pile up at the same choke point.
+If it is stacked, shorten the stop. If it is smooth, enjoy the swim.
+            </p>
+            <div class="mini">
+              <div>Rule: keep the stop short if lines start forming</div>
+              <div>Tip: prep your gear before you reach the entry</div>
+            </div>
+          </div>
+        </div>
+
+        <div class="spotlight spotlight-reverse">
+          <div class="spotText">
+            <h2>Don’t turn it into a photo shoot</h2>
+            <p>
+If you want great photos, get them early, then stop thinking about it.
+The best “wow” is being in the water without stress.
+            </p>
+            <div class="mini">
+              <div>Best play: 2 quick shots, then swim</div>
+              <div>Skip: fighting for platform space</div>
+            </div>
+          </div>
+
+          <div class="spotImgWrap" aria-hidden="true">
+            <div class="spotImg">
+              <img src="/images/coron/spot-twin-lagoon-swim.jpg" alt="" loading="lazy" />
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section class="faq" aria-label="FAQ">
+        <h2>FAQ</h2>
+
+        <details>
+          <summary>How long do you need at Twin Lagoon?</summary>
+          <p>45 to 90 minutes. It is a high-impact stop, but it bottlenecks. Timing beats length.</p>
+        </details>
+
+        <details>
+          <summary>What is the best timing?</summary>
+          <p>Earlier is cleaner. Late arrivals should shorten the stop and avoid fighting for space.</p>
+        </details>
+
+        <details>
+          <summary>Is it kid friendly?</summary>
+          <p>Yes with supervision. There are ladders and tight entry points. Keep kids close and prioritize comfort.</p>
+        </details>
+
+        <details>
+          <summary>What should I bring?</summary>
+          <p>Water shoes, dry bag, and a snorkel mask if you already own one. Keep valuables minimal.</p>
+        </details>
+      </section>
+    </main>
+
+    <footer>
+      © <span id="year"></span> Lolaelo ·
+      <a href="https://lolaelo-api.onrender.com/privacy.html" target="_blank" rel="noopener">Privacy</a>
+      <a href="https://lolaelo-api.onrender.com/terms.html" target="_blank" rel="noopener">Terms</a>
+    </footer>
+  </div>
+
+  <script>
+    document.getElementById("year").textContent = new Date().getFullYear();
+  </script>
+</body>
+</html>
