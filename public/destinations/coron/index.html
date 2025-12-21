@@ -1,0 +1,895 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Coron Travel Guide | Top 10 Experiences (Lolaelo)</title>
+  <meta name="description" content="A clean, curated guide to Coron. The 10 experiences that actually matter, plus quick picks, timing tips, and where to stay." />
+
+  <link rel="icon" href="https://www.lolaelo.com/logo2.png" />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+
+  <style>
+    :root {
+      --bg: #ffffff;
+      --fg: #111827;
+      --muted: #6b7280;
+      --brand: #064e3b;
+      --accent: #ff6a3d;
+      --border: #e5e7eb;
+      --max-width: 960px;
+      --card-shadow: 0 12px 30px rgba(15,23,42,0.10);
+      --card-shadow-hover: 0 16px 40px rgba(15,23,42,0.18);
+    }
+
+    * { box-sizing: border-box; }
+    html, body { margin: 0; padding: 0; height: 100%; }
+    body {
+      font-family: Inter, ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+      background: var(--bg);
+      color: var(--fg);
+      display: flex;
+      flex-direction: column;
+      min-height: 100vh;
+    }
+
+    a { color: inherit; text-decoration: none; }
+
+    .page {
+      width: 100%;
+      max-width: var(--max-width);
+      margin: 0 auto;
+      padding: 16px 20px 40px;
+      display: flex;
+      flex-direction: column;
+      flex: 1;
+    }
+
+    /* Top nav (match destinations.html) */
+    .nav {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 4px 0 12px;
+    }
+
+    .nav-left { display: flex; align-items: center; gap: 8px; }
+
+    .logo-img { height: 32px; width: auto; display: block; }
+
+    .nav-right {
+      display: flex;
+      align-items: center;
+      gap: 20px;
+      font-size: 14px;
+    }
+
+    .nav-link {
+      color: var(--brand);
+      padding: 4px 0;
+      font-weight: 500;
+      text-decoration: none;
+    }
+
+    .nav-link-back {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      text-decoration: none;
+    }
+
+    .nav-back-arrow {
+      font-size: 16px;
+      line-height: 1;
+      transform: translateY(1px);
+      text-decoration: none !important;
+    }
+
+    .nav-link-back span:last-child { text-decoration: none; }
+
+    .nav-link-back:hover span:last-child { text-decoration: underline; }
+
+    .nav-link-back:hover .nav-back-arrow {
+      transform: translate(-2px, 1px);
+      transition: transform 0.15s ease-out;
+    }
+
+    /* Breadcrumbs */
+    .crumbs {
+      margin-top: 8px;
+      font-size: 12px;
+      color: var(--muted);
+      display: flex;
+      gap: 8px;
+      align-items: center;
+      flex-wrap: wrap;
+    }
+    .crumbs a { color: var(--muted); text-decoration: underline; }
+    .crumbs .sep { color: #9ca3af; }
+
+    /* Hero */
+    .hero {
+      margin-top: 14px;
+      border-radius: 18px;
+      overflow: hidden;
+      min-height: 280px;
+      background-image: url("/images/coron/coron-hero.jpg");
+      background-size: cover;
+      background-position: center;
+      background-repeat: no-repeat;
+      position: relative;
+      box-shadow: var(--card-shadow);
+    }
+
+    .hero::before {
+      content: "";
+      position: absolute;
+      inset: 0;
+      background: linear-gradient(to top, rgba(0,0,0,0.55), rgba(0,0,0,0.18));
+    }
+
+    .hero-inner {
+      position: relative;
+      padding: 18px 18px 16px;
+      display: flex;
+      flex-direction: column;
+      justify-content: flex-end;
+      min-height: 280px;
+      gap: 10px;
+    }
+
+    .hero-title {
+      margin: 0;
+      color: #ffffff;
+      font-size: clamp(28px, 4vw, 40px);
+      line-height: 1.15;
+      font-weight: 600;
+      text-shadow: 0 2px 6px rgba(0,0,0,0.35);
+      letter-spacing: -0.01em;
+    }
+
+    .hero-sub {
+      margin: 0;
+      color: rgba(255,255,255,0.92);
+      font-size: 14.5px;
+      line-height: 1.45;
+      max-width: 78ch;
+    }
+
+    .hero-actions {
+      display: flex;
+      gap: 10px;
+      flex-wrap: wrap;
+      margin-top: 6px;
+    }
+
+    .btn {
+      border-radius: 999px;
+      padding: 9px 14px;
+      font-size: 14px;
+      font-weight: 500;
+      border: 1px solid transparent;
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      white-space: nowrap;
+    }
+
+    .btn-primary { background: var(--accent); color: #ffffff; }
+    .btn-secondary { background: rgba(229,242,255,0.95); color: var(--brand); border-color: rgba(229,242,255,0.65); }
+    .btn-ghost { background: rgba(255,255,255,0.14); color: #ffffff; border-color: rgba(255,255,255,0.18); }
+
+    /* Content */
+    .content { margin-top: 18px; }
+
+    .intro {
+      margin-top: 14px;
+      padding: 14px 16px;
+      border: 1px solid var(--border);
+      border-radius: 16px;
+      background: #ffffff;
+      box-shadow: 0 10px 24px rgba(15,23,42,0.06);
+    }
+
+    .intro h2 {
+      margin: 0 0 8px;
+      font-size: 15px;
+      color: var(--brand);
+      font-weight: 600;
+    }
+
+    .intro p {
+      margin: 0 0 8px;
+      font-size: 12.8px;
+      line-height: 1.6;
+      color: #4b5563;
+      white-space: pre-line;
+    }
+
+    .split {
+      margin-top: 14px;
+      display: grid;
+      grid-template-columns: 1.2fr 0.8fr;
+      gap: 14px;
+      align-items: start;
+    }
+
+    .panel {
+      border: 1px solid var(--border);
+      border-radius: 16px;
+      padding: 14px 16px;
+      background: #ffffff;
+      box-shadow: 0 10px 24px rgba(15,23,42,0.06);
+    }
+
+    .panel h3 {
+      margin: 0 0 10px;
+      font-size: 13px;
+      font-weight: 600;
+      color: #111827;
+    }
+
+    .pills {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      margin-top: 10px;
+    }
+
+    .pill {
+      font-size: 12px;
+      padding: 6px 10px;
+      border-radius: 999px;
+      border: 1px solid var(--border);
+      color: #374151;
+      background: #fafafa;
+    }
+
+    .panel ul {
+      margin: 0;
+      padding-left: 18px;
+      font-size: 12.5px;
+      line-height: 1.55;
+      color: #4b5563;
+    }
+
+    .panel li { margin-bottom: 6px; }
+
+    /* Experiences list */
+    .section-title {
+      margin: 22px 0 10px;
+      font-size: 15px;
+      font-weight: 600;
+      color: var(--brand);
+    }
+
+    .cards {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 14px;
+    }
+
+    .card {
+      border-radius: 18px;
+      border: 1px solid var(--border);
+      overflow: hidden;
+      background: #ffffff;
+      box-shadow: var(--card-shadow);
+      transition: transform 0.2s ease-out, box-shadow 0.2s ease-out;
+    }
+
+    .card:hover {
+      transform: translateY(-2px);
+      box-shadow: var(--card-shadow-hover);
+    }
+
+    .card-media {
+      width: 300px;
+      height: 300px;
+      border-radius: 999px;
+      background-size: cover;
+      background-position: center;
+      background-repeat: no-repeat;
+      margin: 18px auto 12px;
+      box-shadow: 0 18px 40px rgba(15,23,42,0.18);
+      border: 1px solid rgba(229,231,235,0.9);
+    }
+
+    .card-media::before { display: none; content: none; }
+
+    .card-body {
+      padding: 8px 18px 18px;
+      text-align: left;
+    }
+
+    .card { border-radius: 22px; }
+    .cards { align-items: stretch; }
+
+    .card-kicker {
+      font-size: 12px;
+      color: #6b7280;
+      margin: 0 0 4px;
+    }
+
+    .card-title {
+      margin: 0 0 8px;
+      font-size: 16px;
+      font-weight: 600;
+      color: #111827;
+      letter-spacing: -0.01em;
+    }
+
+    .card-text {
+      margin: 0 0 10px;
+      font-size: 12.8px;
+      line-height: 1.6;
+      color: #4b5563;
+      white-space: pre-line;
+    }
+
+    .card { min-height: 420px; }
+
+    .card-title {
+      display: -webkit-box;
+      line-clamp: 2;
+      -webkit-line-clamp: 2;
+      -webkit-box-orient: vertical;
+      overflow: hidden;
+    }
+
+    .card-text {
+      display: -webkit-box;
+      line-clamp: 4;
+      -webkit-line-clamp: 4;
+      -webkit-box-orient: vertical;
+      overflow: hidden;
+    }
+
+    .meta-row {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      margin-top: 8px;
+    }
+
+    .meta {
+      font-size: 12px;
+      padding: 6px 10px;
+      border-radius: 999px;
+      border: 1px solid var(--border);
+      background: #ffffff;
+      color: #374151;
+    }
+
+    .meta strong { font-weight: 600; }
+
+    .card-cta {
+      margin-top: 12px;
+      display: flex;
+      gap: 10px;
+      flex-wrap: wrap;
+    }
+
+    .link {
+      font-size: 13px;
+      color: var(--brand);
+      font-weight: 500;
+      text-decoration: underline;
+      cursor: pointer;
+    }
+
+    .card-clickable { cursor: pointer; }
+    .card-clickable a {
+      position: relative;
+      z-index: 2;
+    }
+
+    /* FAQ */
+    .faq {
+      margin-top: 22px;
+      border: 1px solid var(--border);
+      border-radius: 16px;
+      padding: 14px 16px;
+      background: #ffffff;
+      box-shadow: 0 10px 24px rgba(15,23,42,0.06);
+    }
+
+    details {
+      border-top: 1px solid var(--border);
+      padding: 10px 0;
+    }
+
+    details:first-of-type { border-top: none; padding-top: 0; }
+
+    summary {
+      cursor: pointer;
+      list-style: none;
+      font-size: 13px;
+      font-weight: 600;
+      color: #111827;
+    }
+
+    summary::-webkit-details-marker { display: none; }
+
+    .faq p {
+      margin: 8px 0 0;
+      font-size: 12.8px;
+      line-height: 1.6;
+      color: #4b5563;
+    }
+
+    /* Footer */
+    footer {
+      border-top: 1px solid var(--border);
+      padding: 14px 20px 22px;
+      font-size: 12px;
+      color: #6b7280;
+      text-align: center;
+      margin-top: auto;
+    }
+
+    footer a { color: inherit; text-decoration: underline; }
+
+    /* Responsive */
+    @media (max-width: 768px) {
+      .page { padding: 12px 16px 28px; }
+      .split { grid-template-columns: 1fr; }
+      .hero-inner { min-height: 260px; }
+      .cards { grid-template-columns: 1fr; }
+      .card-media { width: 220px; height: 220px; margin: 14px auto 10px; }
+    }
+  </style>
+
+  <!-- FAQ structured data (basic) -->
+  <script type="application/ld+json">
+  {
+    "@context":"https://schema.org",
+    "@type":"FAQPage",
+    "mainEntity":[
+      {
+        "@type":"Question",
+        "name":"How many days do you need in Coron?",
+        "acceptedAnswer":{"@type":"Answer","text":"Three to five days is the sweet spot. Three days covers the main boat day highlights. Five days gives you room for a rest day, hot spring, and a second water day without rushing."}
+      },
+      {
+        "@type":"Question",
+        "name":"What is the best way to plan Coron?",
+        "acceptedAnswer":{"@type":"Answer","text":"Anchor one early boat day, one flexible day, and one sunset or recovery block. Keep mornings for water. Use afternoons for town, food, and hot spring."}
+      },
+      {
+        "@type":"Question",
+        "name":"Is Coron kid friendly?",
+        "acceptedAnswer":{"@type":"Answer","text":"Yes, but choose the right stops. Some lagoons and boat ladders can be awkward with small kids. Build in a rest day and keep your boat day efficient."}
+      },
+      {
+        "@type":"Question",
+        "name":"What should I prioritize if I only do one tour day?",
+        "acceptedAnswer":{"@type":"Answer","text":"Pick a route that includes one iconic lake or lagoon and a couple of easy swim stops. The goal is water time, not a checklist."}
+      }
+    ]
+  }
+  </script>
+</head>
+
+<body>
+  <div class="page">
+    <header class="nav">
+      <div class="nav-left">
+        <a href="https://www.lolaelo.com" aria-label="Lolaelo home">
+          <img
+            src="https://www.lolaelo.com/logo.png?cb=logo-1x"
+            alt="Lolaelo"
+            class="logo-img"
+            decoding="async"
+            loading="eager"
+          >
+        </a>
+      </div>
+
+      <nav class="nav-right" aria-label="Primary">
+        <a class="nav-link nav-link-back" href="/destinations.html" aria-label="Back to destinations">
+          <span class="nav-back-arrow">←</span>
+          <span>Destinations</span>
+        </a>
+      </nav>
+    </header>
+
+    <div class="crumbs" aria-label="Breadcrumb">
+      <span>Coron</span>
+    </div>
+
+    <main class="content" role="main">
+      <section class="hero" aria-label="Coron hero">
+        <div class="hero-inner">
+          <h1 class="hero-title">Coron: the 10 experiences that define the trip</h1>
+          <p class="hero-sub">
+            The water is the point. Plan one strong boat day, protect your energy, and let the rest stay simple.
+          </p>
+          <div class="hero-actions">
+            <a class="btn btn-primary" href="https://lolaelo-api.onrender.com/catalog.html?q=coron">View stays in Coron</a>
+            <a class="btn btn-secondary" href="#top10">Jump to top 10</a>
+            <a class="btn btn-ghost" href="/destinations.html">Back to destinations</a>
+          </div>
+        </div>
+      </section>
+
+      <section class="intro" aria-label="How to use this guide">
+        <h2>How to use this guide</h2>
+        <p>
+Coron is easy to overbook with “stops.” Don’t do that.
+Build one early boat day, one recovery block, and one sunset moment. Everything else is bonus.
+        </p>
+        <div class="pills" aria-label="Quick tags">
+          <span class="pill">Best trip length: 3 to 5 days</span>
+          <span class="pill">Style: water, lagoons, wrecks</span>
+          <span class="pill">Effort: medium (boat day)</span>
+        </div>
+      </section>
+
+      <section class="split" aria-label="Quick picks and timing">
+        <div class="panel">
+          <h3>Quick picks</h3>
+          <ul>
+            <li><strong>First time:</strong> #1 Kayangan, #2 Twin Lagoon, #9 Beach trio day</li>
+            <li><strong>Families:</strong> #4 Hot spring, #5 Mount Tapyas sunset, #10 Town essentials</li>
+            <li><strong>Active:</strong> #8 Wreck diving, #6 Siete Pecados, #7 Lusong Coral Garden</li>
+            <li><strong>Chill:</strong> #4 Hot spring, #10 Town essentials, repeat an easy swim stop</li>
+          </ul>
+        </div>
+
+        <div class="panel">
+          <h3>Timing that matters</h3>
+          <ul>
+            <li><strong>Boat days:</strong> start early for calmer water and cleaner pacing</li>
+            <li><strong>Heat:</strong> protect midday, plan shade and water</li>
+            <li><strong>Sunset:</strong> Mount Tapyas is best when you go with intention</li>
+            <li><strong>Recovery:</strong> hot spring late afternoon is the cleanest reset</li>
+          </ul>
+        </div>
+      </section>
+
+      <h2 class="section-title" id="top10">Top 10 experiences</h2>
+
+      <section class="cards" aria-label="Coron experiences list">
+
+        <!-- 1 -->
+        <article
+          class="card card-clickable"
+          id="exp-1"
+          role="link"
+          tabindex="0"
+          aria-label="Open full guide: Kayangan Lake"
+          onclick="window.location.href='/destinations/coron/kayangan-lake.html';"
+          onkeydown="if(event.key==='Enter'){window.location.href='/destinations/coron/kayangan-lake.html';}"
+        >
+          <div class="card-media" style="background-image:url('/images/coron/thumb-kayangan-lake.jpg');"></div>
+          <div class="card-body">
+            <p class="card-kicker">1 of 10</p>
+            <h3 class="card-title">Kayangan Lake</h3>
+            <p class="card-text">
+The iconic Coron moment. Go early, keep the stop efficient, and prioritize swim time over waiting for the perfect photo slot.
+            </p>
+            <div class="meta-row">
+              <span class="meta"><strong>Duration:</strong> half day route</span>
+              <span class="meta"><strong>Best time:</strong> morning</span>
+              <span class="meta"><strong>Effort:</strong> medium</span>
+              <span class="meta"><strong>Crowds:</strong> high</span>
+            </div>
+            <div class="card-cta">
+              <a class="link" href="/destinations/coron/kayangan-lake.html">Full guide</a>
+              <a class="link" href="https://lolaelo-api.onrender.com/catalog.html?q=coron">Stays that make early departures easier</a>
+            </div>
+          </div>
+        </article>
+
+        <!-- 2 -->
+        <article
+          class="card card-clickable"
+          id="exp-2"
+          role="link"
+          tabindex="0"
+          aria-label="Open full guide: Twin Lagoon"
+          onclick="window.location.href='/destinations/coron/twin-lagoon.html';"
+          onkeydown="if(event.key==='Enter'){window.location.href='/destinations/coron/twin-lagoon.html';}"
+        >
+          <div class="card-media" style="background-image:url('/images/coron/thumb-twin-lagoon.jpg');"></div>
+          <div class="card-body">
+            <p class="card-kicker">2 of 10</p>
+            <h3 class="card-title">Twin Lagoon</h3>
+            <p class="card-text">
+A classic lagoon swim. The win is not “time spent,” it’s choosing the right timing so you’re not stacked behind other boats.
+            </p>
+            <div class="meta-row">
+              <span class="meta"><strong>Duration:</strong> 45 to 90 min</span>
+              <span class="meta"><strong>Best time:</strong> earlier</span>
+              <span class="meta"><strong>Effort:</strong> medium</span>
+              <span class="meta"><strong>Bring:</strong> water shoes</span>
+            </div>
+            <div class="card-cta">
+              <a class="link" href="/destinations/coron/twin-lagoon.html">Full guide</a>
+              <a class="link" href="https://lolaelo-api.onrender.com/catalog.html?q=coron">Browse Coron stays</a>
+            </div>
+          </div>
+        </article>
+
+        <!-- 3 -->
+        <article
+          class="card card-clickable"
+          id="exp-3"
+          role="link"
+          tabindex="0"
+          aria-label="Open full guide: Barracuda Lake"
+          onclick="window.location.href='/destinations/coron/barracuda-lake.html';"
+          onkeydown="if(event.key==='Enter'){window.location.href='/destinations/coron/barracuda-lake.html';}"
+        >
+          <div class="card-media" style="background-image:url('/images/coron/thumb-barracuda-lake.jpg');"></div>
+          <div class="card-body">
+            <p class="card-kicker">3 of 10</p>
+            <h3 class="card-title">Barracuda Lake</h3>
+            <p class="card-text">
+A different kind of swim. Keep it calm, keep it safe, and treat it like a “feel the place” stop, not a flex.
+            </p>
+            <div class="meta-row">
+              <span class="meta"><strong>Duration:</strong> 45 to 90 min</span>
+              <span class="meta"><strong>Best time:</strong> morning</span>
+              <span class="meta"><strong>Effort:</strong> medium</span>
+              <span class="meta"><strong>Vibe:</strong> quiet</span>
+            </div>
+            <div class="card-cta">
+              <a class="link" href="/destinations/coron/barracuda-lake.html">Full guide</a>
+              <a class="link" href="https://lolaelo-api.onrender.com/catalog.html?q=coron">Browse Coron stays</a>
+            </div>
+          </div>
+        </article>
+
+        <!-- 4 -->
+        <article
+          class="card card-clickable"
+          id="exp-4"
+          role="link"
+          tabindex="0"
+          aria-label="Open full guide: Maquinit Hot Spring"
+          onclick="window.location.href='/destinations/coron/maquinit-hot-spring.html';"
+          onkeydown="if(event.key==='Enter'){window.location.href='/destinations/coron/maquinit-hot-spring.html';}"
+        >
+          <div class="card-media" style="background-image:url('/images/coron/thumb-maquinit-hot-spring.jpg');"></div>
+          <div class="card-body">
+            <p class="card-kicker">4 of 10</p>
+            <h3 class="card-title">Maquinit Hot Spring</h3>
+            <p class="card-text">
+Your best recovery play. Go late afternoon, keep it short, and don’t turn it into a sweaty endurance session.
+            </p>
+            <div class="meta-row">
+              <span class="meta"><strong>Duration:</strong> 60 to 120 min</span>
+              <span class="meta"><strong>Best time:</strong> late afternoon</span>
+              <span class="meta"><strong>Effort:</strong> low</span>
+              <span class="meta"><strong>Result:</strong> better sleep</span>
+            </div>
+            <div class="card-cta">
+              <a class="link" href="/destinations/coron/maquinit-hot-spring.html">Full guide</a>
+              <a class="link" href="https://lolaelo-api.onrender.com/catalog.html?q=coron">Browse Coron stays</a>
+            </div>
+          </div>
+        </article>
+
+        <!-- 5 -->
+        <article
+          class="card card-clickable"
+          id="exp-5"
+          role="link"
+          tabindex="0"
+          aria-label="Open full guide: Mount Tapyas sunset"
+          onclick="window.location.href='/destinations/coron/mount-tapyas-sunset.html';"
+          onkeydown="if(event.key==='Enter'){window.location.href='/destinations/coron/mount-tapyas-sunset.html';}"
+        >
+          <div class="card-media" style="background-image:url('/images/coron/thumb-mount-tapyas-sunset.jpg');"></div>
+          <div class="card-body">
+            <p class="card-kicker">5 of 10</p>
+            <h3 class="card-title">Mount Tapyas sunset</h3>
+            <p class="card-text">
+A straightforward mission: stairs, breeze, wide view. Go with water and a clean pace. Don’t overthink it.
+            </p>
+            <div class="meta-row">
+              <span class="meta"><strong>Duration:</strong> 60 to 120 min</span>
+              <span class="meta"><strong>Best time:</strong> sunset</span>
+              <span class="meta"><strong>Effort:</strong> medium</span>
+              <span class="meta"><strong>Tip:</strong> go earlier to beat the rush</span>
+            </div>
+            <div class="card-cta">
+              <a class="link" href="/destinations/coron/mount-tapyas-sunset.html">Full guide</a>
+              <a class="link" href="https://lolaelo-api.onrender.com/catalog.html?q=coron">Browse Coron stays</a>
+            </div>
+          </div>
+        </article>
+
+        <!-- 6 -->
+        <article
+          class="card card-clickable"
+          id="exp-6"
+          role="link"
+          tabindex="0"
+          aria-label="Open full guide: Siete Pecados snorkeling"
+          onclick="window.location.href='/destinations/coron/siete-pecados-snorkeling.html';"
+          onkeydown="if(event.key==='Enter'){window.location.href='/destinations/coron/siete-pecados-snorkeling.html';}"
+        >
+          <div class="card-media" style="background-image:url('/images/coron/thumb-siete-pecados.jpg');"></div>
+          <div class="card-body">
+            <p class="card-kicker">6 of 10</p>
+            <h3 class="card-title">Siete Pecados snorkeling</h3>
+            <p class="card-text">
+Near-town snorkeling that actually feels worth it when conditions cooperate. Keep it safe and keep it comfortable.
+            </p>
+            <div class="meta-row">
+              <span class="meta"><strong>Duration:</strong> 1 to 2 hrs</span>
+              <span class="meta"><strong>Best time:</strong> morning</span>
+              <span class="meta"><strong>Effort:</strong> low to medium</span>
+              <span class="meta"><strong>Tip:</strong> fins help</span>
+            </div>
+            <div class="card-cta">
+              <a class="link" href="/destinations/coron/siete-pecados-snorkeling.html">Full guide</a>
+              <a class="link" href="https://lolaelo-api.onrender.com/catalog.html?q=coron">Browse Coron stays</a>
+            </div>
+          </div>
+        </article>
+
+        <!-- 7 -->
+        <article
+          class="card card-clickable"
+          id="exp-7"
+          role="link"
+          tabindex="0"
+          aria-label="Open full guide: Lusong Coral Garden"
+          onclick="window.location.href='/destinations/coron/lusong-coral-garden.html';"
+          onkeydown="if(event.key==='Enter'){window.location.href='/destinations/coron/lusong-coral-garden.html';}"
+        >
+          <div class="card-media" style="background-image:url('/images/coron/thumb-lusong-coral-garden.jpg');"></div>
+          <div class="card-body">
+            <p class="card-kicker">7 of 10</p>
+            <h3 class="card-title">Lusong Coral Garden</h3>
+            <p class="card-text">
+A clean, simple snorkel stop. The win is doing it when you still have energy and the light is good.
+            </p>
+            <div class="meta-row">
+              <span class="meta"><strong>Duration:</strong> 45 to 90 min</span>
+              <span class="meta"><strong>Best time:</strong> midday (good light)</span>
+              <span class="meta"><strong>Effort:</strong> low to medium</span>
+              <span class="meta"><strong>Vibe:</strong> easy water time</span>
+            </div>
+            <div class="card-cta">
+              <a class="link" href="/destinations/coron/lusong-coral-garden.html">Full guide</a>
+              <a class="link" href="https://lolaelo-api.onrender.com/catalog.html?q=coron">Browse Coron stays</a>
+            </div>
+          </div>
+        </article>
+
+        <!-- 8 -->
+        <article
+          class="card card-clickable"
+          id="exp-8"
+          role="link"
+          tabindex="0"
+          aria-label="Open full guide: WWII wreck diving"
+          onclick="window.location.href='/destinations/coron/wwii-wreck-diving.html';"
+          onkeydown="if(event.key==='Enter'){window.location.href='/destinations/coron/wwii-wreck-diving.html';}"
+        >
+          <div class="card-media" style="background-image:url('/images/coron/thumb-wwii-wreck-diving.jpg');"></div>
+          <div class="card-body">
+            <p class="card-kicker">8 of 10</p>
+            <h3 class="card-title">WWII wreck diving</h3>
+            <p class="card-text">
+One of Coron’s signature lanes. If you’re certified, this is the “real reason” Coron ranks differently than other islands.
+            </p>
+            <div class="meta-row">
+              <span class="meta"><strong>Duration:</strong> half to full day</span>
+              <span class="meta"><strong>Best time:</strong> morning</span>
+              <span class="meta"><strong>Effort:</strong> high</span>
+              <span class="meta"><strong>Note:</strong> certification rules apply</span>
+            </div>
+            <div class="card-cta">
+              <a class="link" href="/destinations/coron/wwii-wreck-diving.html">Full guide</a>
+              <a class="link" href="https://lolaelo-api.onrender.com/catalog.html?q=coron">Browse Coron stays</a>
+            </div>
+          </div>
+        </article>
+
+        <!-- 9 -->
+        <article
+          class="card card-clickable"
+          id="exp-9"
+          role="link"
+          tabindex="0"
+          aria-label="Open full guide: Malcapuya + Banana + Bulog Dos"
+          onclick="window.location.href='/destinations/coron/malcapuya-banana-bulogdos.html';"
+          onkeydown="if(event.key==='Enter'){window.location.href='/destinations/coron/malcapuya-banana-bulogdos.html';}"
+        >
+          <div class="card-media" style="background-image:url('/images/coron/thumb-malcapuya-banana-bulogdos.jpg');"></div>
+          <div class="card-body">
+            <p class="card-kicker">9 of 10</p>
+            <h3 class="card-title">Malcapuya + Banana + Bulog Dos beach day</h3>
+            <p class="card-text">
+The clean “beach trio” day. Don’t rush it. Bring shade, snacks, and treat it like a calm beach reset with boat transport.
+            </p>
+            <div class="meta-row">
+              <span class="meta"><strong>Duration:</strong> full day</span>
+              <span class="meta"><strong>Best time:</strong> sunny day</span>
+              <span class="meta"><strong>Effort:</strong> medium</span>
+              <span class="meta"><strong>Vibe:</strong> slow beach time</span>
+            </div>
+            <div class="card-cta">
+              <a class="link" href="/destinations/coron/malcapuya-banana-bulogdos.html">Full guide</a>
+              <a class="link" href="https://lolaelo-api.onrender.com/catalog.html?q=coron">Browse Coron stays</a>
+            </div>
+          </div>
+        </article>
+
+        <!-- 10 -->
+        <article
+          class="card card-clickable"
+          id="exp-10"
+          role="link"
+          tabindex="0"
+          aria-label="Open full guide: Pass Island beach day"
+          onclick="window.location.href='/destinations/coron/pass-island.html';"
+          onkeydown="if(event.key==='Enter'){window.location.href='/destinations/coron/pass-island.html';}"
+        >
+          <div class="card-media" style="background-image:url('/images/coron/thumb-pass-island.jpg');"></div>
+          <div class="card-body">
+            <p class="card-kicker">10 of 10</p>
+            <h3 class="card-title">Pass Island beach day</h3>
+            <p class="card-text">
+        A clean, low-drama beach day when you want white sand and real downtime. Do it on a good weather day and protect the midday heat.
+            </p>
+            <div class="meta-row">
+              <span class="meta"><strong>Duration:</strong> full day</span>
+              <span class="meta"><strong>Best time:</strong> sunny day</span>
+              <span class="meta"><strong>Effort:</strong> medium</span>
+              <span class="meta"><strong>Vibe:</strong> slow beach time</span>
+            </div>
+            <div class="card-cta">
+              <a class="link" href="/destinations/coron/pass-island.html">Full guide</a>
+              <a class="link" href="https://lolaelo-api.onrender.com/catalog.html?q=coron">Browse Coron stays</a>
+            </div>
+          </div>
+        </article>
+
+      </section>
+
+      <section class="faq" aria-label="Coron FAQ">
+        <h2 class="section-title" style="margin:0 0 8px;">FAQ</h2>
+
+        <details>
+          <summary>How many days do you need in Coron?</summary>
+          <p>Three to five days is the sweet spot. Three days covers the main highlights. Five days lets you slow down and still feel rested.</p>
+        </details>
+
+        <details>
+          <summary>What is the best way to plan Coron?</summary>
+          <p>Protect mornings for water, keep afternoons flexible, and plan one recovery block (hot spring or slow town day) so the trip doesn’t feel like a grind.</p>
+        </details>
+
+        <details>
+          <summary>Is Coron good for families?</summary>
+          <p>Yes, but choose stops that match your kids and your comfort with ladders and boat logistics. Build in a rest day and keep your boat day efficient.</p>
+        </details>
+
+        <details>
+          <summary>What should I prioritize if I only do one tour day?</summary>
+          <p>Pick a route that includes one iconic lake or lagoon plus a couple of easy swim stops. The goal is water time, not a checklist.</p>
+        </details>
+      </section>
+    </main>
+  </div>
+
+  <footer>
+    © <span id="year"></span> Lolaelo ·
+    <a href="https://lolaelo-api.onrender.com/privacy.html" target="_blank" rel="noopener">Privacy</a>
+    <a href="https://lolaelo-api.onrender.com/terms.html" target="_blank" rel="noopener">Terms</a>
+  </footer>
+
+  <script>
+    document.getElementById("year").textContent = new Date().getFullYear();
+  </script>
+</body>
+</html>
