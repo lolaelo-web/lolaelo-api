@@ -27,7 +27,7 @@
       font-family:Inter,system-ui,-apple-system,Segoe UI,Roboto,Arial,sans-serif;
       color:var(--text);
       background:var(--bg);
-      line-height:1.45;
+      line-height:1.5;
     }
     a{color:inherit}
     .wrap{max-width:1100px;margin:0 auto;padding:0 18px}
@@ -43,7 +43,7 @@
     .brand{display:flex;align-items:center;gap:12px;text-decoration:none}
     .brand img{height:28px;width:auto;display:block}
     .top-actions a{text-decoration:none;color:var(--green);font-weight:600}
-    .crumbs{padding:10px 0 0 0;color:var(--muted);font-size:14px}
+    .crumbs{padding:10px 0 0 0;color:var(--muted);font-size:12px}
 
     /* HERO GRID (same pattern across Cebu pages) */
     .hero{padding:18px 0 8px 0}
@@ -58,17 +58,28 @@
       padding:18px 18px 16px 18px;background:var(--card);
       display:flex;flex-direction:column;justify-content:space-between;min-height:320px;
     }
-    .hero-title{font-size:30px;line-height:1.15;margin:0 0 8px 0;letter-spacing:-.02em}
-    .hero-lede{margin:0 0 12px 0;color:var(--muted);font-size:15px}
+    .hero-title{
+      font-size:34px;
+      line-height:1.15;
+      margin:0 0 8px 0;
+      letter-spacing:-0.01em;
+      font-weight:600;
+    }
+    .hero-lede{
+      margin:0 0 12px 0;
+      color:var(--muted);
+      font-size:14.5px;
+      line-height:1.55;
+    }
     .chips{display:flex;flex-wrap:wrap;gap:8px;margin:0 0 12px 0}
     .chip{
       display:inline-flex;align-items:center;gap:6px;padding:7px 10px;
-      border:1px solid var(--border);border-radius:999px;font-size:13px;color:#0b1220;background:#fff;
+      border:1px solid var(--border);border-radius:999px;font-size:12px;color:#0b1220;background:#fff;
     }
     .kpis{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin:0 0 14px 0}
     .kpi{border:1px solid var(--border);border-radius:14px;padding:10px 12px;background:#fff}
     .kpi .label{font-size:12px;color:var(--muted);margin-bottom:4px}
-    .kpi .val{font-weight:700}
+    .kpi .val{font-size:13.5px;font-weight:600}
     .cta-row{display:flex;flex-wrap:wrap;gap:10px;margin-top:6px}
     .btn{
       display:inline-flex;align-items:center;justify-content:center;gap:8px;
@@ -80,8 +91,8 @@
 
     /* BODY (rotated layout: timeline + checklist + mistakes + quick math) */
     .section{padding:22px 0}
-    .section h2{margin:0 0 10px 0;font-size:20px;letter-spacing:-.01em;color:var(--green)}
-    .muted{color:var(--muted)}
+    .section h2{margin:0 0 10px 0;font-size:15px;letter-spacing:0;color:var(--green);font-weight:600}
+    .muted{color:var(--muted);font-size:12.8px;line-height:1.6}
     .card{
       background:var(--card);
       border:1px solid var(--border);
@@ -89,10 +100,10 @@
       box-shadow:var(--shadow);
       padding:14px;
     }
-    .card h3{margin:0 0 8px 0;font-size:16px}
+    .card h3{margin:0 0 8px 0;font-size:13px;font-weight:600}
     .grid-2{display:grid;grid-template-columns:1fr 1fr;gap:14px}
     .grid-3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:14px}
-    .list{margin:0;padding-left:18px;color:var(--muted)}
+    .list{margin:0;padding-left:18px;color:var(--muted);font-size:12.5px;line-height:1.55}
     .list li{margin:6px 0}
 
     .timeline{display:grid;gap:10px}
@@ -110,7 +121,7 @@
       color:#0b1220;
       letter-spacing:-.01em;
     }
-    .trow .desc{color:var(--muted)}
+    .trow .desc{color:var(--muted);font-size:12.8px;line-height:1.6}
     .tag{
       display:inline-flex;align-items:center;justify-content:center;
       padding:5px 10px;border-radius:999px;
@@ -137,11 +148,11 @@
 
     .faq{display:grid;gap:10px}
     details{border:1px solid var(--border);border-radius:16px;padding:12px;background:#fff}
-    summary{cursor:pointer;font-weight:800;color:#0b1220;list-style:none}
+    summary{cursor:pointer;font-weight:600;color:#0b1220;list-style:none;font-size:13px}
     summary::-webkit-details-marker{display:none}
-    details p{margin:10px 0 0 0;color:var(--muted)}
+    details p{margin:10px 0 0 0;color:var(--muted);font-size:12.8px;line-height:1.6}
 
-    footer{border-top:1px solid var(--border);padding:18px 0;color:var(--muted);font-size:14px}
+    footer{border-top:1px solid var(--border);padding:18px 0;color:var(--muted);font-size:12px}
     footer a{color:var(--green);text-decoration:none;font-weight:600}
     .foot-row{display:flex;align-items:center;justify-content:space-between;gap:14px;flex-wrap:wrap}
 
