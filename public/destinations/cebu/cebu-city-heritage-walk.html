@@ -1,246 +1,584 @@
-<!doctype html>
+<!DOCTYPE html>
+
 <html lang="en">
 <head>
-  <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>Cebu City Heritage Walk | Lolaelo</title>
-  <link rel="icon" href="/favicon.ico" />
-  <style>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1" name="viewport"/>
+<title>Viewpoint Moment (Mount Luho) | Boracay Experiences | Lolaelo</title>
+<meta content="Mount Luho viewpoint in Boracay: how to go, best time, what to expect, costs, and practical tips for a quick scenic stop." name="description"/>
+<link href="https://www.lolaelo.com/logo2.png" rel="icon"/>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&amp;display=swap" rel="stylesheet"/>
+<meta content="Viewpoint Moment (Mount Luho) | Boracay Experiences | Lolaelo" property="og:title"/>
+<meta content="Practical guide to Mount Luho: timing, transport options, fees, and what to bring." property="og:description"/>
+<meta content="website" property="og:type"/>
+<meta content="/images/boracay/boracay-mount-luho.jpg" property="og:image"/>
+<style>
     :root{
-      --accent:#ff6a3d;
-      --green:#064e3b;
-      --ink:#0f172a;
-      --muted:#475569;
       --bg:#ffffff;
-      --card:#ffffff;
-      --line:rgba(15,23,42,.12);
-      --shadow:0 10px 30px rgba(2,6,23,.08);
-      --shadow2:0 6px 18px rgba(2,6,23,.08);
+      --fg:#111827;
+      --muted:#6b7280;
+
+      --brand:#064e3b;    /* site green */
+      --accent:#ff6a3d;   /* Lolaelo orange */
+      --border:#e5e7eb;
+
+      --max:1100px;
+      --shadow: 0 12px 30px rgba(15,23,42,0.10);
+      --shadow2: 0 16px 40px rgba(15,23,42,0.18);
+
       --radius:18px;
-      --radius2:14px;
-      --max:1120px;
+      --radius2:22px;
+
+      --font: Inter, ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
     }
+
     *{box-sizing:border-box}
+    html, body{margin:0; padding:0}
     body{
-      margin:0;
-      font-family: Inter, system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif;
-      color:var(--ink);
-      background:var(--bg);
+      font-family: var(--font);
+      background: var(--bg);
+      color: var(--fg);
+      line-height: 1.5;
     }
-    a{color:inherit}
-    .wrap{max-width:var(--max); margin:0 auto; padding:0 20px;}
-    .topbar{
-      border-bottom:1px solid var(--line);
-      background:#fff;
-      position:sticky;
-      top:0;
-      z-index:30;
+    a{color:inherit; text-decoration:none}
+
+    .wrap{
+      max-width: var(--max);
+      margin: 0 auto;
+      padding: 16px 20px 40px;
     }
-    .topbar-inner{
+
+    /* Header (match rest of site style) */
+    .nav{
       display:flex;
       align-items:center;
       justify-content:space-between;
-      padding:14px 0;
-      gap:12px;
+      padding: 4px 0 12px;
     }
-    .brand{display:flex; align-items:center; gap:12px; text-decoration:none}
-    .brand img{height:30px}
-    .backlink{
-      text-decoration:none;
-      font-weight:650;
-      color:var(--green);
-      padding:10px 12px;
-      border-radius:999px;
-      border:1px solid rgba(6,78,59,.20);
-      background:rgba(6,78,59,.04);
-    }
-    .crumbs{padding:0 0 14px 0; color:var(--muted); font-size:13px}
+    .nav-left{display:flex; align-items:center; gap:8px}
+    .logo-img{height:32px; width:auto; display:block}
 
-    /* HeroGrid B */
-    .hero{padding:26px 0 10px 0}
-    .hero-grid{
-      display:grid;
-      grid-template-columns:1.25fr 1fr;
-      gap:18px;
-      align-items:stretch;
-    }
-    .hero-media{
-      border-radius:var(--radius);
-      overflow:hidden;
-      border:1px solid var(--line);
-      box-shadow:var(--shadow2);
-      min-height:320px;
-    }
-    .hero-media img{width:100%; height:100%; object-fit:cover}
-    .hero-card{
-      border-radius:var(--radius);
-      border:1px solid var(--line);
-      box-shadow:var(--shadow);
-      padding:18px;
+    .nav-right{
       display:flex;
-      flex-direction:column;
-      gap:12px;
+      align-items:center;
+      gap: 20px;
+      font-size: 14px;
     }
-    .hero-title{margin:0; font-size:32px; line-height:1.1}
-    .hero-lede{margin:0; color:var(--muted); line-height:1.55}
-    .chips{display:flex; gap:8px; flex-wrap:wrap}
+    .nav-link{
+      color: var(--brand);
+      padding: 4px 0;
+      font-weight: 500;
+    }
+    .nav-link-back{
+      display:inline-flex;
+      align-items:center;
+      gap: 6px;
+    }
+    .nav-back-arrow{
+      font-size: 16px;
+      line-height: 1;
+      transform: translateY(1px);
+    }
+    .nav-link-back:hover span:last-child{ text-decoration: underline; }
+    .nav-link-back:hover .nav-back-arrow{
+      transform: translate(-2px, 1px);
+      transition: transform 0.15s ease-out;
+    }
+
+    /* Minimal breadcrumb */
+    .crumbs{
+      margin-top: 8px;
+      font-size: 12px;
+      color: var(--muted);
+      display:flex;
+      gap:8px;
+      align-items:center;
+      flex-wrap:wrap;
+    }
+    .crumbs span{
+      display:inline-block;
+      padding: 6px 10px;
+      border: 1px solid var(--border);
+      border-radius: 999px;
+      background: #ffffff;
+    }
+
+    /* Hero card (keep dark-layout structure, light theme) */
+    .hero{
+      margin-top: 14px;
+      border-radius: 18px;
+      overflow:hidden;
+      border: 1px solid var(--border);
+      background: #ffffff;
+      box-shadow: var(--shadow);
+    }
+    .heroGrid{
+      display:grid;
+      grid-template-columns: 1.12fr .88fr;
+      gap:0;
+    }
+    .heroMedia{
+      min-height: 340px;
+      position: relative;
+      background: #f3f4f6;
+    }
+    .heroMedia img{
+      width:100%;
+      height:100%;
+      object-fit: cover;
+      display:block;
+    }
+    .heroMedia::after{
+      content:"";
+      position:absolute;
+      inset:0;
+      background: linear-gradient(90deg, rgba(0,0,0,0.05), rgba(0,0,0,0.22));
+      pointer-events:none;
+    }
+    .heroBody{
+      padding: 22px 22px 20px;
+      display:flex;
+      flex-direction: column;
+      gap: 12px;
+    }
+    h1{
+      margin:0;
+      font-size: 34px;
+      line-height: 1.15;
+      letter-spacing: -0.01em;
+      font-weight: 600;
+    }
+    .lede{
+      margin:0;
+      color: var(--muted);
+      font-size: 14.5px;
+      line-height: 1.55;
+    }
+
+    .chips{
+      display:flex;
+      flex-wrap:wrap;
+      gap: 8px;
+      margin-top: 2px;
+    }
     .chip{
-      font-size:12px;
-      padding:7px 10px;
-      border-radius:999px;
-      border:1px solid var(--line);
-      background:#fff;
+      display:inline-flex;
+      gap:8px;
+      align-items:center;
+      padding: 6px 10px;
+      border: 1px solid var(--border);
+      border-radius: 999px;
+      background: #fafafa;
+      color: #374151;
+      font-size: 12px;
     }
-    .cta-row{display:flex; gap:10px; margin-top:auto; flex-wrap:wrap}
-    .btn{
-      padding:12px 14px;
-      border-radius:12px;
-      font-weight:750;
-      text-decoration:none;
-      border:1px solid var(--line);
-      background:#fff;
+    .dot{
+      width: 8px;
+      height: 8px;
+      border-radius: 999px;
+      background: var(--accent);
+      box-shadow: 0 0 0 4px rgba(255,106,61,0.14);
+      flex: 0 0 auto;
     }
-    .btn-primary{background:var(--accent); color:#1b120c}
-    .btn-secondary{color:var(--green); border-color:rgba(6,78,59,.24)}
 
-    .section{padding:22px 0}
-    h2{color:var(--green); font-size:20px; margin:0 0 10px 0}
-    p{color:var(--muted); line-height:1.6}
-
-    /* Intro + Split + Spotlights layout */
-    .split{
+    .kpi{
       display:grid;
-      grid-template-columns:1fr 1fr;
-      gap:16px;
-      align-items:stretch;
+      grid-template-columns: 1fr 1fr;
+      gap: 10px;
+      margin-top: 4px;
     }
-    .spot{
-      border:1px solid var(--line);
-      border-radius:var(--radius);
-      overflow:hidden;
-      box-shadow:var(--shadow2);
-      background:#fff;
+    .kpi .item{
+      border: 1px solid var(--border);
+      border-radius: 14px;
+      background: #ffffff;
+      padding: 10px 10px;
+      box-shadow: 0 10px 24px rgba(15,23,42,0.06);
+    }
+    .kpi .lbl{
+      font-size: 12px;
+      color: var(--muted);
+    }
+    .kpi .val{
+      font-size: 13.5px;
+      font-weight: 600;
+      margin-top: 3px;
+      color: #111827;
+    }
+
+    .ctaRow{
       display:flex;
-      flex-direction:column;
+      flex-wrap:wrap;
+      gap: 10px;
+      align-items:center;
+      margin-top: 4px;
     }
-    .spot img{width:100%; height:180px; object-fit:cover}
-    .spot .body{padding:14px}
-    .spot h3{margin:0 0 6px 0; font-size:16px}
-    .spot p{margin:0; font-size:13.5px}
+
+    .btn{
+      border-radius: 999px;
+      padding: 9px 14px;
+      font-size: 14px;
+      font-weight: 500;
+      border: 1px solid transparent;
+      cursor: pointer;
+      display:inline-flex;
+      align-items:center;
+      justify-content:center;
+      gap: 8px;
+      white-space: nowrap;
+    }
+    .btn.primary{ background: var(--accent); color: #ffffff; }
+    .btn.secondary{ background: rgba(229,242,255,0.95); color: var(--brand); border-color: rgba(229,242,255,0.65); }
+    .btn.ghost{ background: #ffffff; color: var(--brand); border-color: var(--border); }
+    .btn:hover{ box-shadow: var(--shadow); }
+
+    /* Sections */
+    .section{ margin-top: 18px; }
+
+    .grid2{
+      display:grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 14px;
+      align-items: start;
+    }
+
+    .panel{
+      border: 1px solid var(--border);
+      border-radius: 16px;
+      padding: 14px 16px;
+      background: #ffffff;
+      box-shadow: 0 10px 24px rgba(15,23,42,0.06);
+    }
+    .panel h2{
+      margin: 0 0 10px;
+      font-size: 15px;
+      font-weight: 600;
+      color: var(--brand);
+    }
+    .panel p{
+      margin: 0;
+      font-size: 12.8px;
+      line-height: 1.6;
+      color: #4b5563;
+      white-space: pre-line;
+    }
+    .list{
+      margin: 10px 0 0;
+      padding-left: 18px;
+      font-size: 12.5px;
+      line-height: 1.55;
+      color: #4b5563;
+    }
+    .list li{ margin-bottom: 6px; }
+
+    /* Spotlight (keep same layout logic as dark version, light styling) */
+    .spotlight{
+      margin-top: 14px;
+      display:grid;
+      grid-template-columns: 1.05fr 0.95fr;
+      gap: 14px;
+      align-items:center;
+    }
+    .spotlight-reverse{
+      grid-template-columns: 0.95fr 1.05fr;
+    }
+
+    .spotText{
+      border: 1px solid var(--border);
+      border-radius: 18px;
+      background: #ffffff;
+      box-shadow: var(--shadow);
+      padding: 16px 16px 14px;
+    }
+    .spotText h2{
+      margin: 0 0 10px;
+      font-size: 15px;
+      font-weight: 600;
+      color: var(--brand);
+    }
+    .spotText p{
+      margin:0;
+      font-size: 12.8px;
+      line-height: 1.6;
+      color: #4b5563;
+      white-space: pre-line;
+    }
+    .mini{
+      margin-top: 12px;
+      padding-top: 12px;
+      border-top: 1px solid var(--border);
+      display:grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 10px;
+      color: #4b5563;
+      font-size: 12.5px;
+    }
+
+    .spotImgWrap{
+      display:flex;
+      justify-content:center;
+      align-items:center;
+      padding: 6px;
+    }
+    .spotImg{
+      width: 320px;
+      height: 320px;
+      border-radius: 999px;
+      overflow:hidden;
+      border: 1px solid rgba(229,231,235,0.95);
+      box-shadow: 0 18px 44px rgba(15,23,42,0.18);
+      background: #f3f4f6;
+    }
+    .spotImg img{
+      width:100%;
+      height:100%;
+      object-fit: cover;
+      display:block;
+    }
+
+    /* FAQ (simple + light) */
+    .faq{
+      margin-top: 22px;
+      border: 1px solid var(--border);
+      border-radius: 16px;
+      padding: 14px 16px;
+      background: #ffffff;
+      box-shadow: 0 10px 24px rgba(15,23,42,0.06);
+    }
+    .faq h2{
+      margin: 0 0 8px;
+      font-size: 15px;
+      font-weight: 600;
+      color: var(--brand);
+    }
+
+    details{
+      border-top: 1px solid var(--border);
+      padding: 10px 0;
+    }
+    details:first-of-type{ border-top:none; padding-top:0; }
+    summary{
+      cursor:pointer;
+      list-style:none;
+      font-size: 13px;
+      font-weight: 600;
+      color:#111827;
+    }
+    summary::-webkit-details-marker{ display:none; }
+    .faq p{
+      margin: 8px 0 0;
+      font-size: 12.8px;
+      line-height: 1.6;
+      color: #4b5563;
+    }
 
     footer{
-      margin-top:26px;
-      border-top:1px solid var(--line);
-      padding:18px 0 26px 0;
-      color:var(--muted);
-      font-size:13px;
+      border-top: 1px solid var(--border);
+      padding: 14px 20px 22px;
+      font-size: 12px;
+      color: #6b7280;
+      text-align: center;
+      margin-top: 26px;
     }
-    footer a{color:var(--green); text-decoration:none}
+    footer a{ color: inherit; text-decoration: underline; }
 
-    @media(max-width:900px){
-      .hero-grid,.split{grid-template-columns:1fr}
+    @media (max-width: 920px){
+      .wrap{ padding: 12px 16px 28px; }
+      .heroGrid{ grid-template-columns: 1fr; }
+      .heroMedia{ min-height: 260px; }
+      .grid2{ grid-template-columns: 1fr; }
+      .spotlight, .spotlight-reverse{ grid-template-columns: 1fr; }
+      .spotImg{ width: 240px; height: 240px; }
+      h1{ font-size: 30px; }
     }
   </style>
+<script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "FAQPage",
+    "mainEntity": [
+      {
+        "@type": "Question",
+        "name": "Is Mount Luho worth it if I have limited time?",
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": "Yes. It is one of the fastest ways to get a full island view. Plan for 45 to 90 minutes on site, plus transport time."
+        }
+      },
+      {
+        "@type": "Question",
+        "name": "When is the best time to go?",
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": "Go earlier for clearer visibility and softer heat. Late afternoon can be nice too, but clouds and haze are more common."
+        }
+      },
+      {
+        "@type": "Question",
+        "name": "How do I get to Mount Luho?",
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": "You can go by e-trike, tricycle, or as part of a short inland tour. Confirm the driver will wait and include the viewpoint stop."
+        }
+      },
+      {
+        "@type": "Question",
+        "name": "What should I bring?",
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": "Cash for entrance fees, water, and sun protection. If you have kids, bring a hat and keep a hand on them near railings."
+        }
+      }
+    ]
+  }
+  </script>
 </head>
 <body>
-
-<div class="topbar">
-  <div class="wrap">
-    <div class="topbar-inner">
-      <a class="brand" href="/">
-        <img src="https://www.lolaelo.com/logo.png?cb=logo-1x" alt="Lolaelo" />
-      </a>
-      <a class="backlink" href="/destinations/cebu/index.html">← Cebu guide</a>
-    </div>
-    <div class="crumbs"><span>Cebu City heritage walk</span></div>
-  </div>
+<div class="wrap">
+<header class="nav">
+<div class="nav-left">
+<a aria-label="Lolaelo home" href="https://www.lolaelo.com">
+<img alt="Lolaelo" class="logo-img" decoding="async" loading="eager" src="https://www.lolaelo.com/logo.png?cb=logo-1x"/>
+</a>
 </div>
-
-<header class="hero">
-  <div class="wrap">
-    <div class="hero-grid">
-      <div class="hero-media">
-        <img src="/images/cebu/hero-cebu-city-heritage.jpg" alt="Cebu City heritage" />
-      </div>
-      <div class="hero-card">
-        <h1 class="hero-title">Cebu City Heritage Walk</h1>
-        <p class="hero-lede">
-          This is Cebu in short form. Dense history, minimal logistics, and a clean way to orient yourself
-          before heading south or offshore.
-        </p>
-        <div class="chips">
-          <span class="chip">Half day</span>
-          <span class="chip">Walkable</span>
-          <span class="chip">Low effort</span>
-        </div>
-        <div class="cta-row">
-          <a class="btn btn-primary" href="/catalog.html?destination=cebu">Browse stays</a>
-          <a class="btn btn-secondary" href="/destinations/cebu/index.html">Back to guide</a>
-        </div>
-      </div>
-    </div>
-  </div>
+<nav aria-label="Primary" class="nav-right">
+<a aria-label="Back to Cebu guide" class="nav-link nav-link-back" href="/destinations/cebu/index.html">
+<span class="nav-back-arrow">←</span>
+<span>Cebu guide</span>
+</a>
+</nav>
 </header>
-
-<section class="section">
-  <div class="wrap">
-    <h2>What this walk gives you</h2>
-    <p>
-      Cebu City’s heritage zone is compact. You can see the core sites without turning it into a full-day
-      commitment. That matters because Cebu rewards energy management.
-    </p>
-
-    <div class="split">
-      <div class="spot">
-        <img src="/images/cebu/spot-magellans-cross.jpg" alt="Magellan’s Cross" />
-        <div class="body">
-          <h3>Magellan’s Cross</h3>
-          <p>Quick stop, heavy symbolism. See it, understand it, move on.</p>
-        </div>
-      </div>
-      <div class="spot">
-        <img src="/images/cebu/spot-basilica-santo-nino.jpg" alt="Basilica del Santo Niño" />
-        <div class="body">
-          <h3>Basilica del Santo Niño</h3>
-          <p>The emotional center of Cebu. Respectful pacing goes a long way.</p>
-        </div>
-      </div>
-      <div class="spot">
-        <img src="/images/cebu/spot-fort-san-pedro.jpg" alt="Fort San Pedro" />
-        <div class="body">
-          <h3>Fort San Pedro</h3>
-          <p>Small fort, clear context. Easy add-on without fatigue.</p>
-        </div>
-      </div>
-      <div class="spot">
-        <img src="/images/cebu/spot-colon-street.jpg" alt="Colon Street" />
-        <div class="body">
-          <h3>Colon Street</h3>
-          <p>Oldest street in the country. Controlled chaos, best taken briefly.</p>
-        </div>
-      </div>
-    </div>
-  </div>
+<div aria-label="Breadcrumb" class="crumbs">
+<span>Cebu City heritage walk</span>
+</div>
+<main class="content" role="main">
+<section aria-label="Cebu City heritage walk" class="hero">
+<div class="heroGrid">
+<div class="heroMedia">
+<img alt="Cebu City heritage walk" loading="eager" src="/images/cebu/hero-cebu-city-heritage.jpg">
+</img></div>
+<div class="heroBody">
+<h1>Cebu City heritage walk</h1>
+<p class="lede">A tight loop through Cebu’s oldest landmarks. Do it early, keep it simple, and use it as your city orientation day.</p>
+<div aria-label="Quick facts" class="chips">
+<div class="chip"><span class="dot"></span>Best for: panoramic views</div>
+<div class="chip"><span class="dot"></span>Time: 1 to 2 hours total</div>
+<div class="chip"><span class="dot"></span>Bring: cash and water</div>
+<div class="chip"><span class="dot"></span>Go: morning for clarity</div>
+</div>
+<div aria-label="Planning snapshot" class="kpi">
+<div class="item">
+<div class="lbl">Ideal timing</div>
+<div class="val">8:00 to 10:30</div>
+</div>
+<div class="item">
+<div class="lbl">Transport</div>
+<div class="val">E-trike or tricycle</div>
+</div>
+<div class="item">
+<div class="lbl">On site time</div>
+<div class="val">45 to 90 minutes</div>
+</div>
+<div class="item">
+<div class="lbl">Kid friendly</div>
+<div class="val">Yes, watch railings</div>
+</div>
+</div>
+<div class="ctaRow">
+<a class="btn primary" href="https://lolaelo-api.onrender.com/catalog.html?q=cebu">Browse stays</a>
+<a class="btn ghost" href="/destinations/cebu/index.html#top10">Back to Cebu top 10</a>
+</div>
+</div>
+</div>
 </section>
-
+<section aria-label="What to expect and quick plan" class="section grid2">
+<div class="panel">
+<h2>What to expect</h2>
+<p>This is your Cebu reset button. Knock out one clean loop, get your bearings, then decide how hard you’re going on South Cebu.</p>
+<ul class="list"><li>Start before 9:00 to beat heat and crowds.</li><li>Wear closed shoes. Sidewalks are uneven in spots.</li><li>Carry small cash for entrances and snacks.</li><li>If it’s packed, shorten the loop. Doing less well is a win.</li></ul>
+</div>
+<div class="panel">
+<h2>Quick plan that works</h2>
+<p>
+Treat it like a 90-minute mission. Go early, take photos, then leave. Ask your driver to wait. Agree on total time and total price before you depart.
+          </p>
+<ul class="list">
+<li>Target arrival before late morning.</li>
+<li>Bring water, pay the fee, take your shots, exit.</li>
+<li>Return to Station 1 or 2 for a calmer mid day beach slot.</li>
+</ul>
+</div>
+</section>
+<section aria-label="Spotlight one" class="section">
+<div class="spotlight">
+<div aria-hidden="true" class="spotImgWrap">
+<div class="spotImg">
+<img alt="Magellan’s Cross in Cebu" loading="lazy" src="/images/cebu/spot-magellans-cross.jpg"/>
+</div>
+</div>
+<div class="spotText">
+<h2>Route blueprint</h2>
+<p>Three anchors. Tight distances. Keep momentum. If one stop is slammed, skip it and keep moving.</p>
+<div class="mini"><div>Step 1: Magellan’s Cross (10-20 min)</div><div>Step 2: Basilica del Santo Niño (30-60 min)</div><div>Step 3: Fort San Pedro (30-45 min)</div></div>
+</div>
+</div>
+</section>
+<section aria-label="Spotlight two" class="section">
+<div class="spotlight spotlight-reverse">
+<div class="spotText">
+<h2>Getting around without drama</h2>
+<p>Walk the core early. Use a short Grab only when heat or crowds start to drag you down. The goal is a clean loop, not a perfect tour.</p>
+<div class="mini"><div>Walk: the core loop works best early</div><div>Exit: Grab back to hotel when you’re done</div></div>
+</div>
+<div aria-hidden="true" class="spotImgWrap">
+<div class="spotImg">
+<img alt="Colon Street area in Cebu" loading="lazy" src="/images/cebu/spot-colon-street.jpg"/>
+</div>
+</div>
+</div>
+</section>
+<section aria-label="Costs and timing" class="section panel">
+<h2>Costs, timing, and realistic pacing</h2>
+<p>
+Fees can change. Assume there is an entrance fee at the viewpoint. Transport cost depends on distance, wait time, and negotiation. The best control you have is timing: go earlier and keep the stop tight.
+        </p>
+<ul class="list">
+<li>Go early for better visibility and cooler temps.</li>
+<li>Agree on total transport price and total time up front.</li>
+<li>If it is hazy, treat it as a quick look, then head back down.</li>
+</ul>
+<div class="ctaRow" style="margin-top: 10px;">
+<a class="btn ghost" href="/destinations/boracay/index.html">Back to Boracay guide</a>
+<a class="btn secondary" href="https://lolaelo-api.onrender.com/catalog.html?q=boracay">Browse Boracay stays</a>
+</div>
+</section>
+<section aria-label="FAQ" class="faq">
+<h2>FAQ</h2>
+<details>
+<summary>Is Mount Luho worth it if I have limited time?</summary>
+<p>Yes. It is one of the fastest ways to get a full island view. Plan for 45 to 90 minutes on site, plus transport time.</p>
+</details>
+<details>
+<summary>When is the best time to go?</summary>
+<p>Go earlier for clearer visibility and softer heat. Late afternoon can be nice too, but clouds and haze are more common.</p>
+</details>
+<details>
+<summary>How do I get to Mount Luho?</summary>
+<p>You can go by e-trike, tricycle, or as part of a short inland tour. Confirm the driver will wait and include the viewpoint stop.</p>
+</details>
+<details>
+<summary>What should I bring?</summary>
+<p>Cash for entrance fees, water, and sun protection. If you have kids, bring a hat and keep a hand on them near railings.</p>
+</details>
+</section>
+</main>
 <footer>
-  <div class="wrap">
-    <div style="display:flex; justify-content:space-between; flex-wrap:wrap; gap:10px;">
-      <div>© <span id="y"></span> Lolaelo</div>
-      <div>
-        <a href="https://lolaelo-api.onrender.com/privacy.html">Privacy</a> ·
-        <a href="https://lolaelo-api.onrender.com/terms.html">Terms</a>
-      </div>
-    </div>
-  </div>
+      © <span id="year"></span> Lolaelo ·
+      <a href="https://lolaelo-api.onrender.com/privacy.html" rel="noopener" target="_blank">Privacy</a>
+<a href="https://lolaelo-api.onrender.com/terms.html" rel="noopener" target="_blank">Terms</a>
 </footer>
-
+</div>
 <script>
-(function(){
-  var el=document.getElementById("y");
-  if(el) el.textContent=new Date().getFullYear();
-})();
-</script>
-
+    document.getElementById("year").textContent = new Date().getFullYear();
+  </script>
 </body>
 </html>
