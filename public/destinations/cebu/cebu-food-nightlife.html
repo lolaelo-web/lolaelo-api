@@ -1,0 +1,316 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Cebu Food + Nightlife Lane | Lolaelo</title>
+  <link rel="icon" href="/favicon.ico" />
+  <style>
+    :root{
+      --accent:#ff6a3d;
+      --green:#064e3b;
+      --ink:#0f172a;
+      --muted:#475569;
+      --bg:#ffffff;
+      --card:#ffffff;
+      --line:rgba(15,23,42,.12);
+      --shadow:0 10px 30px rgba(2,6,23,.08);
+      --shadow2:0 6px 18px rgba(2,6,23,.08);
+      --radius:18px;
+      --radius2:14px;
+      --max:1120px;
+    }
+    *{box-sizing:border-box}
+    body{
+      margin:0;
+      font-family: Inter, system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif;
+      color:var(--ink);
+      background:var(--bg);
+    }
+    a{color:inherit}
+    .wrap{max-width:var(--max); margin:0 auto; padding:0 20px;}
+    .topbar{
+      border-bottom:1px solid var(--line);
+      background:#fff;
+      position:sticky;
+      top:0;
+      z-index:30;
+    }
+    .topbar-inner{
+      display:flex;
+      align-items:center;
+      justify-content:space-between;
+      padding:14px 0;
+      gap:12px;
+    }
+    .brand img{height:30px}
+    .backlink{
+      text-decoration:none;
+      font-weight:650;
+      color:var(--green);
+      padding:10px 12px;
+      border-radius:999px;
+      border:1px solid rgba(6,78,59,.20);
+      background:rgba(6,78,59,.04);
+      white-space:nowrap;
+    }
+    .crumbs{padding:0 0 14px 0; color:var(--muted); font-size:13px}
+
+    /* HeroGrid B */
+    .hero{padding:26px 0 10px 0}
+    .hero-grid{
+      display:grid;
+      grid-template-columns:1.25fr 1fr;
+      gap:18px;
+      align-items:stretch;
+    }
+    .hero-media{
+      border-radius:var(--radius);
+      overflow:hidden;
+      border:1px solid var(--line);
+      box-shadow:var(--shadow2);
+      min-height:320px;
+      background:#f8fafc;
+    }
+    .hero-media img{width:100%; height:100%; object-fit:cover; display:block}
+    .hero-card{
+      border-radius:var(--radius);
+      border:1px solid var(--line);
+      box-shadow:var(--shadow);
+      padding:18px;
+      display:flex;
+      flex-direction:column;
+      gap:12px;
+      background:#fff;
+    }
+    .hero-title{margin:0; font-size:32px; line-height:1.1}
+    .hero-lede{margin:0; color:var(--muted); line-height:1.55}
+    .chips{display:flex; gap:8px; flex-wrap:wrap}
+    .chip{
+      font-size:12px;
+      padding:7px 10px;
+      border-radius:999px;
+      border:1px solid var(--line);
+      background:#fff;
+      white-space:nowrap;
+    }
+    .cta-row{display:flex; gap:10px; margin-top:auto; flex-wrap:wrap}
+    .btn{
+      padding:12px 14px;
+      border-radius:12px;
+      font-weight:750;
+      text-decoration:none;
+      border:1px solid var(--line);
+      background:#fff;
+      display:inline-flex;
+      align-items:center;
+      justify-content:center;
+      gap:8px;
+    }
+    .btn-primary{background:var(--accent); color:#1b120c; border-color:rgba(0,0,0,.06)}
+    .btn-secondary{color:var(--green); border-color:rgba(6,78,59,.24)}
+
+    .section{padding:22px 0}
+    h2{color:var(--green); font-size:20px; margin:0 0 10px 0}
+    .sub{margin:0 0 14px 0; color:var(--muted); line-height:1.6}
+
+    /* Decision Strips + Timeline + Do/Don't */
+    .strips{
+      display:grid;
+      grid-template-columns:repeat(3,1fr);
+      gap:14px;
+    }
+    .strip{
+      border:1px solid var(--line);
+      border-radius:var(--radius);
+      box-shadow:var(--shadow2);
+      background:#fff;
+      padding:14px;
+    }
+    .strip h3{margin:0 0 6px 0; font-size:16px}
+    .strip p{margin:0; color:var(--muted); font-size:13.5px; line-height:1.6}
+
+    .timeline{
+      margin-top:14px;
+      border:1px solid var(--line);
+      border-radius:var(--radius);
+      overflow:hidden;
+      box-shadow:var(--shadow2);
+      background:#fff;
+    }
+    .trow{
+      display:grid;
+      grid-template-columns:.6fr 1.4fr;
+      border-bottom:1px solid var(--line);
+    }
+    .trow:last-child{border-bottom:none}
+    .tcell{
+      padding:12px;
+      font-size:13.5px;
+      color:var(--muted);
+    }
+    .tlabel{
+      font-weight:800;
+      color:var(--ink);
+      background:rgba(2,6,23,.03);
+    }
+
+    .dos{
+      margin-top:14px;
+      display:grid;
+      grid-template-columns:1fr 1fr;
+      gap:14px;
+    }
+    .do, .dont{
+      border:1px solid var(--line);
+      border-radius:var(--radius);
+      box-shadow:var(--shadow2);
+      background:#fff;
+      padding:14px;
+    }
+    .do h3{color:#166534; margin:0 0 6px 0}
+    .dont h3{color:#b91c1c; margin:0 0 6px 0}
+    .do ul, .dont ul{margin:8px 0 0 18px; color:var(--muted); font-size:13.5px; line-height:1.6}
+    .do li, .dont li{margin:4px 0}
+
+    footer{
+      margin-top:26px;
+      border-top:1px solid var(--line);
+      padding:18px 0 26px 0;
+      color:var(--muted);
+      font-size:13px;
+    }
+    footer a{color:var(--green); text-decoration:none}
+
+    @media(max-width:980px){
+      .hero-grid{grid-template-columns:1fr}
+      .strips{grid-template-columns:1fr}
+      .trow{grid-template-columns:1fr}
+      .dos{grid-template-columns:1fr}
+    }
+  </style>
+</head>
+<body>
+
+<div class="topbar">
+  <div class="wrap">
+    <div class="topbar-inner">
+      <a class="brand" href="/">
+        <img src="https://www.lolaelo.com/logo.png?cb=logo-1x" alt="Lolaelo" />
+      </a>
+      <a class="backlink" href="/destinations/cebu/index.html">← Cebu guide</a>
+    </div>
+    <div class="crumbs"><span>Cebu food + nightlife lane</span></div>
+  </div>
+</div>
+
+<header class="hero">
+  <div class="wrap">
+    <div class="hero-grid">
+      <div class="hero-media">
+        <img src="/images/cebu/hero-cebu-food-nightlife.jpg" alt="Cebu food and nightlife" />
+      </div>
+      <div class="hero-card">
+        <h1 class="hero-title">Cebu Food and Nightlife Lane</h1>
+        <p class="hero-lede">
+          This lane is about decisions, not coverage. Eat well, pick one night out, and keep the next morning intact.
+        </p>
+        <div class="chips">
+          <span class="chip">Phase 1</span>
+          <span class="chip">Flexible</span>
+          <span class="chip">Evenings</span>
+        </div>
+        <div class="cta-row">
+          <a class="btn btn-primary" href="/catalog.html?destination=cebu">Browse stays</a>
+          <a class="btn btn-secondary" href="/destinations/cebu/index.html">Back to guide</a>
+        </div>
+      </div>
+    </div>
+  </div>
+</header>
+
+<section class="section">
+  <div class="wrap">
+    <h2>Decision strips</h2>
+    <p class="sub">
+      Cebu’s food scene is broad. The mistake is trying to do everything in one night.
+      Pick a lane and stop.
+    </p>
+
+    <div class="strips">
+      <div class="strip">
+        <h3>Local staples</h3>
+        <p>Lechon, grilled meats, and simple comfort food. Heavy, satisfying, early finish.</p>
+      </div>
+      <div class="strip">
+        <h3>Casual bars</h3>
+        <p>Rooftops and neighborhood spots. Social without turning the night into a mission.</p>
+      </div>
+      <div class="strip">
+        <h3>Late energy</h3>
+        <p>Clusters like Mango Square. Commit only if the next day is light.</p>
+      </div>
+    </div>
+
+    <div class="timeline" aria-label="Sample timeline">
+      <div class="trow">
+        <div class="tcell tlabel">18:00</div>
+        <div class="tcell">Dinner (local or casual)</div>
+      </div>
+      <div class="trow">
+        <div class="tcell tlabel">20:00</div>
+        <div class="tcell">Bar or walk</div>
+      </div>
+      <div class="trow">
+        <div class="tcell tlabel">22:00</div>
+        <div class="tcell">Decision point: continue or call it</div>
+      </div>
+      <div class="trow">
+        <div class="tcell tlabel">23:30</div>
+        <div class="tcell">Finish clean</div>
+      </div>
+    </div>
+
+    <div class="dos">
+      <div class="do">
+        <h3>Do</h3>
+        <ul>
+          <li>Eat first, drink second</li>
+          <li>Check tomorrow’s start time</li>
+          <li>Leave while it is still fun</li>
+        </ul>
+      </div>
+      <div class="dont">
+        <h3>Don’t</h3>
+        <ul>
+          <li>Stack multiple nightlife zones</li>
+          <li>Ignore transport home</li>
+          <li>Burn a south Cebu morning</li>
+        </ul>
+      </div>
+    </div>
+
+  </div>
+</section>
+
+<footer>
+  <div class="wrap">
+    <div style="display:flex; justify-content:space-between; flex-wrap:wrap; gap:10px;">
+      <div>© <span id="y"></span> Lolaelo</div>
+      <div>
+        <a href="https://lolaelo-api.onrender.com/privacy.html">Privacy</a> ·
+        <a href="https://lolaelo-api.onrender.com/terms.html">Terms</a>
+      </div>
+    </div>
+  </div>
+</footer>
+
+<script>
+(function(){
+  var el=document.getElementById("y");
+  if(el) el.textContent=new Date().getFullYear();
+})();
+</script>
+
+</body>
+</html>

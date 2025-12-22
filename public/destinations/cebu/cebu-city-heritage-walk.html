@@ -1,0 +1,246 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Cebu City Heritage Walk | Lolaelo</title>
+  <link rel="icon" href="/favicon.ico" />
+  <style>
+    :root{
+      --accent:#ff6a3d;
+      --green:#064e3b;
+      --ink:#0f172a;
+      --muted:#475569;
+      --bg:#ffffff;
+      --card:#ffffff;
+      --line:rgba(15,23,42,.12);
+      --shadow:0 10px 30px rgba(2,6,23,.08);
+      --shadow2:0 6px 18px rgba(2,6,23,.08);
+      --radius:18px;
+      --radius2:14px;
+      --max:1120px;
+    }
+    *{box-sizing:border-box}
+    body{
+      margin:0;
+      font-family: Inter, system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif;
+      color:var(--ink);
+      background:var(--bg);
+    }
+    a{color:inherit}
+    .wrap{max-width:var(--max); margin:0 auto; padding:0 20px;}
+    .topbar{
+      border-bottom:1px solid var(--line);
+      background:#fff;
+      position:sticky;
+      top:0;
+      z-index:30;
+    }
+    .topbar-inner{
+      display:flex;
+      align-items:center;
+      justify-content:space-between;
+      padding:14px 0;
+      gap:12px;
+    }
+    .brand{display:flex; align-items:center; gap:12px; text-decoration:none}
+    .brand img{height:30px}
+    .backlink{
+      text-decoration:none;
+      font-weight:650;
+      color:var(--green);
+      padding:10px 12px;
+      border-radius:999px;
+      border:1px solid rgba(6,78,59,.20);
+      background:rgba(6,78,59,.04);
+    }
+    .crumbs{padding:0 0 14px 0; color:var(--muted); font-size:13px}
+
+    /* HeroGrid B */
+    .hero{padding:26px 0 10px 0}
+    .hero-grid{
+      display:grid;
+      grid-template-columns:1.25fr 1fr;
+      gap:18px;
+      align-items:stretch;
+    }
+    .hero-media{
+      border-radius:var(--radius);
+      overflow:hidden;
+      border:1px solid var(--line);
+      box-shadow:var(--shadow2);
+      min-height:320px;
+    }
+    .hero-media img{width:100%; height:100%; object-fit:cover}
+    .hero-card{
+      border-radius:var(--radius);
+      border:1px solid var(--line);
+      box-shadow:var(--shadow);
+      padding:18px;
+      display:flex;
+      flex-direction:column;
+      gap:12px;
+    }
+    .hero-title{margin:0; font-size:32px; line-height:1.1}
+    .hero-lede{margin:0; color:var(--muted); line-height:1.55}
+    .chips{display:flex; gap:8px; flex-wrap:wrap}
+    .chip{
+      font-size:12px;
+      padding:7px 10px;
+      border-radius:999px;
+      border:1px solid var(--line);
+      background:#fff;
+    }
+    .cta-row{display:flex; gap:10px; margin-top:auto; flex-wrap:wrap}
+    .btn{
+      padding:12px 14px;
+      border-radius:12px;
+      font-weight:750;
+      text-decoration:none;
+      border:1px solid var(--line);
+      background:#fff;
+    }
+    .btn-primary{background:var(--accent); color:#1b120c}
+    .btn-secondary{color:var(--green); border-color:rgba(6,78,59,.24)}
+
+    .section{padding:22px 0}
+    h2{color:var(--green); font-size:20px; margin:0 0 10px 0}
+    p{color:var(--muted); line-height:1.6}
+
+    /* Intro + Split + Spotlights layout */
+    .split{
+      display:grid;
+      grid-template-columns:1fr 1fr;
+      gap:16px;
+      align-items:stretch;
+    }
+    .spot{
+      border:1px solid var(--line);
+      border-radius:var(--radius);
+      overflow:hidden;
+      box-shadow:var(--shadow2);
+      background:#fff;
+      display:flex;
+      flex-direction:column;
+    }
+    .spot img{width:100%; height:180px; object-fit:cover}
+    .spot .body{padding:14px}
+    .spot h3{margin:0 0 6px 0; font-size:16px}
+    .spot p{margin:0; font-size:13.5px}
+
+    footer{
+      margin-top:26px;
+      border-top:1px solid var(--line);
+      padding:18px 0 26px 0;
+      color:var(--muted);
+      font-size:13px;
+    }
+    footer a{color:var(--green); text-decoration:none}
+
+    @media(max-width:900px){
+      .hero-grid,.split{grid-template-columns:1fr}
+    }
+  </style>
+</head>
+<body>
+
+<div class="topbar">
+  <div class="wrap">
+    <div class="topbar-inner">
+      <a class="brand" href="/">
+        <img src="https://www.lolaelo.com/logo.png?cb=logo-1x" alt="Lolaelo" />
+      </a>
+      <a class="backlink" href="/destinations/cebu/index.html">← Cebu guide</a>
+    </div>
+    <div class="crumbs"><span>Cebu City heritage walk</span></div>
+  </div>
+</div>
+
+<header class="hero">
+  <div class="wrap">
+    <div class="hero-grid">
+      <div class="hero-media">
+        <img src="/images/cebu/hero-cebu-city-heritage.jpg" alt="Cebu City heritage" />
+      </div>
+      <div class="hero-card">
+        <h1 class="hero-title">Cebu City Heritage Walk</h1>
+        <p class="hero-lede">
+          This is Cebu in short form. Dense history, minimal logistics, and a clean way to orient yourself
+          before heading south or offshore.
+        </p>
+        <div class="chips">
+          <span class="chip">Half day</span>
+          <span class="chip">Walkable</span>
+          <span class="chip">Low effort</span>
+        </div>
+        <div class="cta-row">
+          <a class="btn btn-primary" href="/catalog.html?destination=cebu">Browse stays</a>
+          <a class="btn btn-secondary" href="/destinations/cebu/index.html">Back to guide</a>
+        </div>
+      </div>
+    </div>
+  </div>
+</header>
+
+<section class="section">
+  <div class="wrap">
+    <h2>What this walk gives you</h2>
+    <p>
+      Cebu City’s heritage zone is compact. You can see the core sites without turning it into a full-day
+      commitment. That matters because Cebu rewards energy management.
+    </p>
+
+    <div class="split">
+      <div class="spot">
+        <img src="/images/cebu/spot-magellans-cross.jpg" alt="Magellan’s Cross" />
+        <div class="body">
+          <h3>Magellan’s Cross</h3>
+          <p>Quick stop, heavy symbolism. See it, understand it, move on.</p>
+        </div>
+      </div>
+      <div class="spot">
+        <img src="/images/cebu/spot-basilica-santo-nino.jpg" alt="Basilica del Santo Niño" />
+        <div class="body">
+          <h3>Basilica del Santo Niño</h3>
+          <p>The emotional center of Cebu. Respectful pacing goes a long way.</p>
+        </div>
+      </div>
+      <div class="spot">
+        <img src="/images/cebu/spot-fort-san-pedro.jpg" alt="Fort San Pedro" />
+        <div class="body">
+          <h3>Fort San Pedro</h3>
+          <p>Small fort, clear context. Easy add-on without fatigue.</p>
+        </div>
+      </div>
+      <div class="spot">
+        <img src="/images/cebu/spot-colon-street.jpg" alt="Colon Street" />
+        <div class="body">
+          <h3>Colon Street</h3>
+          <p>Oldest street in the country. Controlled chaos, best taken briefly.</p>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<footer>
+  <div class="wrap">
+    <div style="display:flex; justify-content:space-between; flex-wrap:wrap; gap:10px;">
+      <div>© <span id="y"></span> Lolaelo</div>
+      <div>
+        <a href="https://lolaelo-api.onrender.com/privacy.html">Privacy</a> ·
+        <a href="https://lolaelo-api.onrender.com/terms.html">Terms</a>
+      </div>
+    </div>
+  </div>
+</footer>
+
+<script>
+(function(){
+  var el=document.getElementById("y");
+  if(el) el.textContent=new Date().getFullYear();
+})();
+</script>
+
+</body>
+</html>
