@@ -1,0 +1,284 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>BGC & Poblacion Nightlife Guide | Manila (Lolaelo)</title>
+  <meta name="description" content="A controlled nightlife plan for BGC and Poblacion. Where to start, when to switch zones, how to bar hop, and how to end the night clean." />
+
+  <link rel="icon" href="https://www.lolaelo.com/logo2.png" />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+
+  <style>
+    :root{
+      --bg:#ffffff;
+      --fg:#111827;
+      --muted:#6b7280;
+      --brand:#064e3b;
+      --accent:#ff6a3d;
+      --border:#e5e7eb;
+      --max: 980px;
+      --shadow: 0 12px 30px rgba(15,23,42,0.10);
+      --radius: 18px;
+    }
+    *{ box-sizing:border-box; }
+    body{
+      margin:0;
+      font-family: Inter, system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, sans-serif;
+      background:var(--bg);
+      color:var(--fg);
+      min-height:100vh;
+      display:flex;
+      flex-direction:column;
+    }
+    a{ color:inherit; text-decoration:none; }
+    .page{ max-width:var(--max); margin:0 auto; padding:16px 20px 40px; flex:1; }
+
+    .nav{ display:flex; justify-content:space-between; padding:4px 0 12px; }
+    .logo-img{ height:32px; }
+    .back-link{ display:inline-flex; align-items:center; gap:8px; color:var(--brand); font-size:14px; font-weight:500; }
+    .back-arrow{ font-size:16px; transform: translateY(1px); }
+
+    .crumbs{ margin-top:8px; font-size:12px; color:var(--muted); }
+
+    .hero-grid{ margin-top:14px; display:grid; grid-template-columns:1.05fr 0.95fr; gap:14px; align-items:stretch; }
+    .hero-img{ border-radius:var(--radius); overflow:hidden; border:1px solid var(--border); box-shadow:var(--shadow); min-height:330px; }
+    .hero-img img{ width:100%; height:100%; object-fit:cover; display:block; }
+    .hero-card{ border-radius:var(--radius); border:1px solid var(--border); box-shadow:var(--shadow); padding:16px 16px 14px; display:flex; flex-direction:column; gap:10px; min-height:330px; background:#fff; }
+
+    .hero-title{ margin:0; font-size:28px; font-weight:600; letter-spacing:-0.01em; }
+    .hero-lede{ font-size:13.5px; color:#4b5563; line-height:1.6; margin:0; }
+
+    .chips{ display:flex; flex-wrap:wrap; gap:8px; }
+    .chip{ font-size:12px; padding:6px 10px; border-radius:999px; border:1px solid var(--border); background:#fafafa; }
+
+    .kpis{ display:grid; grid-template-columns:repeat(2,1fr); gap:10px; }
+    .kpi{ border:1px solid var(--border); border-radius:14px; padding:10px; }
+    .kpi .label{ font-size:11px; color:var(--muted); }
+    .kpi .val{ font-size:13px; font-weight:600; }
+
+    .cta-row{ margin-top:auto; display:flex; gap:10px; flex-wrap:wrap; }
+    .btn{ border-radius:999px; padding:9px 14px; font-size:14px; font-weight:500; border:1px solid transparent; display:inline-flex; align-items:center; justify-content:center; }
+    .btn-primary{ background:var(--accent); color:#fff; }
+    .btn-secondary{ border-color:var(--border); color:var(--brand); background:#fff; }
+
+    /* Layout: Decision Strips + Timeline + Do/Don't */
+    .strips{
+      margin-top:16px;
+      display:grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap:14px;
+    }
+    .strip{
+      border:1px solid var(--border);
+      border-radius:16px;
+      padding:14px 14px;
+      background:#ffffff;
+      box-shadow: 0 10px 24px rgba(15,23,42,0.06);
+    }
+    .strip .title{ font-size:13px; font-weight:600; margin:0 0 8px; color:#111827; }
+    .strip .text{ margin:0; font-size:12.8px; line-height:1.6; color:#4b5563; white-space:pre-line; }
+
+    .timeline{
+      margin-top:14px;
+      border:1px solid var(--border);
+      border-radius:16px;
+      padding:14px 16px;
+      background:#ffffff;
+      box-shadow: 0 10px 24px rgba(15,23,42,0.06);
+    }
+    .timeline h2{ margin:0 0 10px; font-size:15px; color:var(--brand); font-weight:600; }
+    .tl{
+      display:grid;
+      grid-template-columns: 110px 1fr;
+      gap:10px 14px;
+      align-items:start;
+    }
+    .time{
+      font-size:12px;
+      color:#6b7280;
+      font-weight:600;
+      padding-top:2px;
+    }
+    .event{
+      border-left:2px solid rgba(6,78,59,0.25);
+      padding-left:12px;
+      margin-left:2px;
+    }
+    .event .t{ margin:0 0 4px; font-size:13px; font-weight:600; color:#111827; }
+    .event .d{ margin:0; font-size:12.8px; line-height:1.6; color:#4b5563; white-space:pre-line; }
+
+    .spotlights{ margin-top:14px; display:grid; grid-template-columns:repeat(2,1fr); gap:14px; }
+    .spot{ border:1px solid var(--border); border-radius:18px; overflow:hidden; box-shadow:var(--shadow); }
+    .spot img{ width:100%; height:220px; object-fit:cover; display:block; }
+    .spot .body{ padding:12px 14px; }
+    .spot .title{ font-size:14px; font-weight:600; margin:0 0 6px; }
+    .spot .text{ margin:0; font-size:12.8px; color:#4b5563; line-height:1.6; white-space:pre-line; }
+
+    .grid-2{ margin-top:14px; display:grid; grid-template-columns:1fr 1fr; gap:14px; }
+    .card{ border:1px solid var(--border); border-radius:16px; padding:14px 16px; background:#fff; box-shadow:0 10px 24px rgba(15,23,42,0.06); }
+    .card h2{ margin:0 0 10px; font-size:15px; color:var(--brand); font-weight:600; }
+    .card ul{ margin:0; padding-left:18px; font-size:12.6px; color:#4b5563; line-height:1.6; }
+    .card li{ margin-bottom:6px; }
+
+    footer{ border-top:1px solid var(--border); padding:14px 20px 22px; font-size:12px; color:var(--muted); text-align:center; }
+    footer a{ color:inherit; text-decoration:underline; }
+
+    @media(max-width:860px){
+      .hero-grid{ grid-template-columns:1fr; }
+      .strips,.spotlights,.grid-2{ grid-template-columns:1fr; }
+      .tl{ grid-template-columns:1fr; }
+    }
+  </style>
+</head>
+
+<body>
+  <div class="page">
+    <header class="nav">
+      <a href="https://www.lolaelo.com" aria-label="Lolaelo home">
+        <img src="https://www.lolaelo.com/logo.png?cb=logo-1x" class="logo-img" alt="Lolaelo">
+      </a>
+      <a class="back-link" href="/destinations/manila/index.html">
+        <span class="back-arrow">←</span>
+        <span>Manila guide</span>
+      </a>
+    </header>
+
+    <div class="crumbs">BGC & Poblacion nightlife</div>
+
+    <main role="main">
+      <section class="hero-grid">
+        <div class="hero-img">
+          <img src="/images/manila/hero-bgc-poblacion-nightlife.jpg" alt="BGC and Poblacion nightlife">
+        </div>
+        <div class="hero-card">
+          <h1 class="hero-title">BGC + Poblacion nightlife, done right</h1>
+          <p class="hero-lede">
+            This is a two-zone night. Start clean in BGC, then switch to Poblacion if the energy is still there.
+            Decide your finish time early.
+          </p>
+
+          <div class="chips">
+            <span class="chip">Best time: after dinner</span>
+            <span class="chip">Duration: 3 to 5 hrs</span>
+            <span class="chip">Effort: medium</span>
+            <span class="chip">Rule: ride-hail only</span>
+          </div>
+
+          <div class="kpis">
+            <div class="kpi"><div class="label">Start zone</div><div class="val">BGC</div></div>
+            <div class="kpi"><div class="label">Second zone</div><div class="val">Poblacion</div></div>
+            <div class="kpi"><div class="label">Switch time</div><div class="val">10:30 to 11:00</div></div>
+            <div class="kpi"><div class="label">Hard stop</div><div class="val">before 2:00</div></div>
+          </div>
+
+          <div class="cta-row">
+            <a class="btn btn-primary" href="https://lolaelo-api.onrender.com/catalog.html?q=manila">Browse stays</a>
+            <a class="btn btn-secondary" href="/destinations/manila/index.html">Back to Manila guide</a>
+          </div>
+        </div>
+      </section>
+
+      <section class="strips" aria-label="Decision strips">
+        <div class="strip">
+          <p class="title">If BGC feels enough</p>
+          <p class="text">Stay put. Palace complex alone can carry a full night.</p>
+        </div>
+        <div class="strip">
+          <p class="title">If energy is high</p>
+          <p class="text">Switch zones once. Multiple hops waste time.</p>
+        </div>
+        <div class="strip">
+          <p class="title">If crowds spike</p>
+          <p class="text">Shorten the night. Leaving early beats chaos.</p>
+        </div>
+      </section>
+
+      <section class="timeline">
+        <h2>Night timeline</h2>
+        <div class="tl">
+          <div class="time">8:30</div>
+          <div class="event">
+            <p class="t">Dinner nearby</p>
+            <p class="d">Eat first. Nightlife is better when you are not hungry.</p>
+          </div>
+
+          <div class="time">9:30</div>
+          <div class="event">
+            <p class="t">BGC start</p>
+            <p class="d">Palace complex or one clean venue. Do not rush.</p>
+          </div>
+
+          <div class="time">10:45</div>
+          <div class="event">
+            <p class="t">Decision point</p>
+            <p class="d">If switching, do it once and commit to Poblacion.</p>
+          </div>
+
+          <div class="time">11:15</div>
+          <div class="event">
+            <p class="t">Poblacion bar hop</p>
+            <p class="d">2 to 3 bars max. Keep your circle tight.</p>
+          </div>
+
+          <div class="time">1:30</div>
+          <div class="event">
+            <p class="t">Exit clean</p>
+            <p class="d">Ride-hail home before things get messy.</p>
+          </div>
+        </div>
+      </section>
+
+      <section class="spotlights">
+        <article class="spot">
+          <img src="/images/manila/spot-bgc-palace-compound.jpg" alt="The Palace BGC" loading="lazy">
+          <div class="body">
+            <h3 class="title">Palace complex</h3>
+            <p class="text">High-energy, contained, and easy to manage if you stay focused.</p>
+          </div>
+        </article>
+
+        <article class="spot">
+          <img src="/images/manila/spot-poblacion-bar-hop.jpg" alt="Poblacion bar hopping" loading="lazy">
+          <div class="body">
+            <h3 class="title">Poblacion lanes</h3>
+            <p class="text">Pick a short cluster. Avoid long walks between bars.</p>
+          </div>
+        </article>
+      </section>
+
+      <section class="grid-2">
+        <div class="card">
+          <h2>Do</h2>
+          <ul>
+            <li>Use ride-hail both ways</li>
+            <li>Set a finish time early</li>
+            <li>Stick with your group</li>
+            <li>Drink water between rounds</li>
+          </ul>
+        </div>
+
+        <div class="card">
+          <h2>Do not</h2>
+          <ul>
+            <li>Zone-hop multiple times</li>
+            <li>Split into separate cars late</li>
+            <li>Chase every venue</li>
+            <li>Push past fatigue</li>
+          </ul>
+        </div>
+      </section>
+    </main>
+  </div>
+
+  <footer>
+    © <span id="year"></span> Lolaelo ·
+    <a href="https://lolaelo-api.onrender.com/privacy.html">Privacy</a>
+    <a href="https://lolaelo-api.onrender.com/terms.html">Terms</a>
+  </footer>
+
+  <script>
+    document.getElementById("year").textContent = new Date().getFullYear();
+  </script>
+</body>
+</html>

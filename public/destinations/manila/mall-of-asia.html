@@ -1,0 +1,250 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Mall of Asia Guide | Manila (Lolaelo)</title>
+  <meta name="description" content="A practical Mall of Asia block. What to do, how long to stay, how to keep it from becoming a time sink, and how to pair it with your Manila plan." />
+
+  <link rel="icon" href="https://www.lolaelo.com/logo2.png" />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+
+  <style>
+    :root{
+      --bg:#ffffff;
+      --fg:#111827;
+      --muted:#6b7280;
+      --brand:#064e3b;
+      --accent:#ff6a3d;
+      --border:#e5e7eb;
+      --max: 980px;
+      --shadow: 0 12px 30px rgba(15,23,42,0.10);
+      --radius: 18px;
+    }
+    *{ box-sizing:border-box; }
+    body{
+      margin:0;
+      font-family: Inter, system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, sans-serif;
+      background:var(--bg);
+      color:var(--fg);
+      min-height:100vh;
+      display:flex;
+      flex-direction:column;
+    }
+    a{ color:inherit; text-decoration:none; }
+    .page{ max-width:var(--max); margin:0 auto; padding:16px 20px 40px; flex:1; }
+
+    .nav{ display:flex; justify-content:space-between; padding:4px 0 12px; }
+    .logo-img{ height:32px; }
+    .back-link{ display:inline-flex; align-items:center; gap:8px; color:var(--brand); font-size:14px; font-weight:500; }
+    .back-link:hover span:last-child{ text-decoration:underline; }
+    .back-arrow{ font-size:16px; transform: translateY(1px); }
+
+    .crumbs{ margin-top:8px; font-size:12px; color:var(--muted); }
+
+    .hero-grid{ margin-top:14px; display:grid; grid-template-columns:1.05fr 0.95fr; gap:14px; align-items:stretch; }
+    .hero-img{ border-radius:var(--radius); overflow:hidden; border:1px solid var(--border); box-shadow:var(--shadow); min-height:330px; }
+    .hero-img img{ width:100%; height:100%; object-fit:cover; display:block; }
+    .hero-card{ border-radius:var(--radius); border:1px solid var(--border); box-shadow:var(--shadow); padding:16px 16px 14px; display:flex; flex-direction:column; gap:10px; min-height:330px; background:#fff; }
+
+    .hero-title{ margin:0; font-size:28px; font-weight:600; letter-spacing:-0.01em; }
+    .hero-lede{ font-size:13.5px; color:#4b5563; line-height:1.6; margin:0; }
+
+    .chips{ display:flex; flex-wrap:wrap; gap:8px; }
+    .chip{ font-size:12px; padding:6px 10px; border-radius:999px; border:1px solid var(--border); background:#fafafa; }
+
+    .kpis{ display:grid; grid-template-columns:repeat(2,1fr); gap:10px; }
+    .kpi{ border:1px solid var(--border); border-radius:14px; padding:10px; }
+    .kpi .label{ font-size:11px; color:var(--muted); }
+    .kpi .val{ font-size:13px; font-weight:600; }
+
+    .cta-row{ margin-top:auto; display:flex; gap:10px; flex-wrap:wrap; }
+    .btn{ border-radius:999px; padding:9px 14px; font-size:14px; font-weight:500; border:1px solid transparent; display:inline-flex; align-items:center; justify-content:center; }
+    .btn-primary{ background:var(--accent); color:#fff; }
+    .btn-secondary{ border-color:var(--border); color:var(--brand); background:#fff; }
+
+    /* Layout: Pick Your Lane + Matrix + Protocol */
+    .lane{
+      margin-top:16px;
+      border:1px solid var(--border);
+      border-radius:16px;
+      padding:14px 16px;
+      background:#fff;
+      box-shadow:0 10px 24px rgba(15,23,42,0.06);
+    }
+    .lane h2{ margin:0 0 10px; font-size:15px; color:var(--brand); font-weight:600; }
+    .lane p{ margin:0; font-size:12.8px; color:#4b5563; line-height:1.6; }
+
+    .matrix{
+      margin-top:14px;
+      display:grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap:14px;
+    }
+    .mcard{
+      border:1px solid var(--border);
+      border-radius:16px;
+      padding:14px 14px;
+      background:#ffffff;
+      box-shadow: 0 10px 24px rgba(15,23,42,0.06);
+    }
+    .mcard .title{ margin:0 0 8px; font-size:13px; font-weight:600; color:#111827; }
+    .mcard .text{ margin:0 0 10px; font-size:12.8px; color:#4b5563; line-height:1.6; }
+    .mcard ul{ margin:0; padding-left:18px; font-size:12.6px; color:#4b5563; line-height:1.6; }
+    .mcard li{ margin-bottom:6px; }
+
+    .spotlights{ margin-top:14px; display:grid; grid-template-columns:repeat(2,1fr); gap:14px; }
+    .spot{ border:1px solid var(--border); border-radius:18px; overflow:hidden; box-shadow:var(--shadow); }
+    .spot img{ width:100%; height:220px; object-fit:cover; display:block; }
+    .spot .body{ padding:12px 14px; }
+    .spot .title{ font-size:14px; font-weight:600; margin:0 0 6px; }
+    .spot .text{ margin:0; font-size:12.8px; color:#4b5563; line-height:1.6; white-space:pre-line; }
+
+    .protocol{
+      margin-top:14px;
+      border:1px solid var(--border);
+      border-radius:16px;
+      padding:14px 16px;
+      background:#fff;
+      box-shadow:0 10px 24px rgba(15,23,42,0.06);
+    }
+    .protocol h2{ margin:0 0 10px; font-size:15px; color:var(--brand); font-weight:600; }
+    .protocol ol{ margin:0; padding-left:18px; font-size:12.6px; color:#4b5563; line-height:1.6; }
+    .protocol li{ margin-bottom:6px; }
+
+    footer{ border-top:1px solid var(--border); padding:14px 20px 22px; font-size:12px; color:var(--muted); text-align:center; }
+    footer a{ color:inherit; text-decoration:underline; }
+
+    @media(max-width:860px){
+      .hero-grid{ grid-template-columns:1fr; }
+      .matrix,.spotlights{ grid-template-columns:1fr; }
+    }
+  </style>
+</head>
+
+<body>
+  <div class="page">
+    <header class="nav">
+      <a href="https://www.lolaelo.com" aria-label="Lolaelo home">
+        <img src="https://www.lolaelo.com/logo.png?cb=logo-1x" class="logo-img" alt="Lolaelo">
+      </a>
+      <a class="back-link" href="/destinations/manila/index.html">
+        <span class="back-arrow">←</span>
+        <span>Manila guide</span>
+      </a>
+    </header>
+
+    <div class="crumbs">Mall of Asia</div>
+
+    <main role="main">
+      <section class="hero-grid">
+        <div class="hero-img">
+          <img src="/images/manila/hero-mall-of-asia.jpg" alt="Mall of Asia">
+        </div>
+        <div class="hero-card">
+          <h1 class="hero-title">Mall of Asia as an aircon reset</h1>
+          <p class="hero-lede">
+            MOA is not a “must-see.” It is a tool. Use it when heat, rain, or fatigue starts stealing your trip.
+          </p>
+
+          <div class="chips">
+            <span class="chip">Best time: midday</span>
+            <span class="chip">Duration: 2 to 4 hrs</span>
+            <span class="chip">Effort: low</span>
+            <span class="chip">Great for: families</span>
+          </div>
+
+          <div class="kpis">
+            <div class="kpi"><div class="label">Goal</div><div class="val">reset + food</div></div>
+            <div class="kpi"><div class="label">Time cap</div><div class="val">4 hours</div></div>
+            <div class="kpi"><div class="label">Good add-on</div><div class="val">esplanade</div></div>
+            <div class="kpi"><div class="label">Risk</div><div class="val">time sink</div></div>
+          </div>
+
+          <div class="cta-row">
+            <a class="btn btn-primary" href="https://lolaelo-api.onrender.com/catalog.html?q=manila">Browse stays</a>
+            <a class="btn btn-secondary" href="/destinations/manila/index.html">Back to Manila guide</a>
+          </div>
+        </div>
+      </section>
+
+      <section class="lane">
+        <h2>Pick your lane</h2>
+        <p>
+Choose one lane. If you try to do everything, you lose half a day.
+        </p>
+      </section>
+
+      <section class="matrix" aria-label="Lane matrix">
+        <div class="mcard">
+          <p class="title">Family lane</p>
+          <p class="text">Keep it easy and predictable.</p>
+          <ul>
+            <li>Food first</li>
+            <li>One activity</li>
+            <li>Short esplanade walk</li>
+          </ul>
+        </div>
+
+        <div class="mcard">
+          <p class="title">Shopping lane</p>
+          <p class="text">Come in with targets.</p>
+          <ul>
+            <li>Two stores max</li>
+            <li>Budget cap</li>
+            <li>Exit clean</li>
+          </ul>
+        </div>
+
+        <div class="mcard">
+          <p class="title">Rain lane</p>
+          <p class="text">Use MOA to protect your day.</p>
+          <ul>
+            <li>Food + coffee</li>
+            <li>Walk indoors</li>
+            <li>Call it early</li>
+          </ul>
+        </div>
+      </section>
+
+      <section class="spotlights">
+        <article class="spot">
+          <img src="/images/manila/spot-mall-of-asia-esplanade.jpg" alt="MOA esplanade" loading="lazy">
+          <div class="body">
+            <h3 class="title">Esplanade short loop</h3>
+            <p class="text">A quick outdoor walk is enough. Do not turn it into a long mission.</p>
+          </div>
+        </article>
+
+        <article class="spot">
+          <img src="/images/manila/spot-mall-of-asia-interior.jpg" alt="MOA interior" loading="lazy">
+          <div class="body">
+            <h3 class="title">Indoor reset</h3>
+            <p class="text">Aircon, food, and predictable logistics. Then you leave and keep your trip moving.</p>
+          </div>
+        </article>
+      </section>
+
+      <section class="protocol">
+        <h2>Protocol (so this does not eat your day)</h2>
+        <ol>
+          <li>Arrive with a lane: family, shopping, or rain</li>
+          <li>Set a time cap before you enter</li>
+          <li>Do food early so decisions do not pile up later</li>
+          <li>Exit clean once your goal is achieved</li>
+        </ol>
+      </section>
+    </main>
+  </div>
+
+  <footer>
+    © <span id="year"></span> Lolaelo ·
+    <a href="https://lolaelo-api.onrender.com/privacy.html">Privacy</a>
+    <a href="https://lolaelo-api.onrender.com/terms.html">Terms</a>
+  </footer>
+
+  <script>
+    document.getElementById("year").textContent = new Date().getFullYear();
+  </script>
+</body>
+</html>

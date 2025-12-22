@@ -1,0 +1,208 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Baclaran Church Guide | Manila (Lolaelo)</title>
+  <meta name="description" content="A grounded visit to Baclaran Church. What to expect, when to go, how long to stay, and how to move respectfully through the crowd." />
+
+  <link rel="icon" href="https://www.lolaelo.com/logo2.png" />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+
+  <style>
+    :root{
+      --bg:#ffffff;
+      --fg:#111827;
+      --muted:#6b7280;
+      --brand:#064e3b;
+      --accent:#ff6a3d;
+      --border:#e5e7eb;
+      --max: 980px;
+      --shadow: 0 12px 30px rgba(15,23,42,0.10);
+      --radius: 18px;
+    }
+    *{ box-sizing:border-box; }
+    body{
+      margin:0;
+      font-family: Inter, system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, sans-serif;
+      background:var(--bg);
+      color:var(--fg);
+      min-height:100vh;
+      display:flex;
+      flex-direction:column;
+    }
+    a{ color:inherit; text-decoration:none; }
+    .page{ max-width:var(--max); margin:0 auto; padding:16px 20px 40px; flex:1; }
+
+    .nav{ display:flex; justify-content:space-between; padding:4px 0 12px; }
+    .logo-img{ height:32px; }
+    .back-link{ display:inline-flex; align-items:center; gap:8px; color:var(--brand); font-size:14px; font-weight:500; }
+    .back-arrow{ font-size:16px; transform: translateY(1px); }
+
+    .crumbs{ margin-top:8px; font-size:12px; color:var(--muted); }
+
+    .hero-grid{ margin-top:14px; display:grid; grid-template-columns:1.05fr 0.95fr; gap:14px; align-items:stretch; }
+    .hero-img{ border-radius:var(--radius); overflow:hidden; border:1px solid var(--border); box-shadow:var(--shadow); min-height:330px; }
+    .hero-img img{ width:100%; height:100%; object-fit:cover; display:block; }
+    .hero-card{ border-radius:var(--radius); border:1px solid var(--border); box-shadow:var(--shadow); padding:16px 16px 14px; display:flex; flex-direction:column; gap:10px; min-height:330px; background:#fff; }
+
+    .hero-title{ margin:0; font-size:28px; font-weight:600; letter-spacing:-0.01em; }
+    .hero-lede{ font-size:13.5px; color:#4b5563; line-height:1.6; margin:0; }
+
+    .chips{ display:flex; flex-wrap:wrap; gap:8px; }
+    .chip{ font-size:12px; padding:6px 10px; border-radius:999px; border:1px solid var(--border); background:#fafafa; }
+
+    .kpis{ display:grid; grid-template-columns:repeat(2,1fr); gap:10px; }
+    .kpi{ border:1px solid var(--border); border-radius:14px; padding:10px; }
+    .kpi .label{ font-size:11px; color:var(--muted); }
+    .kpi .val{ font-size:13px; font-weight:600; }
+
+    .cta-row{ margin-top:auto; display:flex; gap:10px; flex-wrap:wrap; }
+    .btn{ border-radius:999px; padding:9px 14px; font-size:14px; font-weight:500; border:1px solid transparent; display:inline-flex; align-items:center; justify-content:center; }
+    .btn-primary{ background:var(--accent); color:#fff; }
+    .btn-secondary{ border-color:var(--border); color:var(--brand); background:#fff; }
+
+    .section{ margin-top:16px; border:1px solid var(--border); border-radius:16px; padding:14px 16px; background:#fff; box-shadow:0 10px 24px rgba(15,23,42,0.06); }
+    .section h2{ margin:0 0 10px; font-size:15px; color:var(--brand); font-weight:600; }
+    .section p{ margin:0 0 10px; font-size:12.8px; color:#4b5563; line-height:1.6; }
+
+    .split{ margin-top:14px; display:grid; grid-template-columns:1.2fr 0.8fr; gap:14px; }
+    .panel{ border:1px solid var(--border); border-radius:16px; padding:14px 16px; background:#fff; box-shadow:0 10px 24px rgba(15,23,42,0.06); }
+    .panel h3{ margin:0 0 10px; font-size:13px; font-weight:600; color:#111827; }
+    .panel ul{ margin:0; padding-left:18px; font-size:12.6px; color:#4b5563; line-height:1.6; }
+    .panel li{ margin-bottom:6px; }
+
+    .spotlights{ margin-top:14px; display:grid; grid-template-columns:repeat(2,1fr); gap:14px; }
+    .spot{ border:1px solid var(--border); border-radius:18px; overflow:hidden; box-shadow:var(--shadow); }
+    .spot img{ width:100%; height:220px; object-fit:cover; display:block; }
+    .spot .body{ padding:12px 14px; }
+    .spot .title{ font-size:14px; font-weight:600; }
+    .spot .text{ font-size:12.8px; color:#4b5563; line-height:1.6; }
+
+    footer{ border-top:1px solid var(--border); padding:14px 20px 22px; font-size:12px; color:var(--muted); text-align:center; }
+    footer a{ color:inherit; text-decoration:underline; }
+
+    @media(max-width:860px){
+      .hero-grid{ grid-template-columns:1fr; }
+      .split,.spotlights{ grid-template-columns:1fr; }
+    }
+  </style>
+</head>
+
+<body>
+  <div class="page">
+    <header class="nav">
+      <a href="https://www.lolaelo.com" aria-label="Lolaelo home">
+        <img src="https://www.lolaelo.com/logo.png?cb=logo-1x" class="logo-img" alt="Lolaelo">
+      </a>
+      <a class="back-link" href="/destinations/manila/index.html">
+        <span class="back-arrow">←</span>
+        <span>Manila guide</span>
+      </a>
+    </header>
+
+    <div class="crumbs">Baclaran Church</div>
+
+    <main role="main">
+      <section class="hero-grid">
+        <div class="hero-img">
+          <img src="/images/manila/hero-baclaran-church.jpg" alt="Baclaran Church">
+        </div>
+        <div class="hero-card">
+          <h1 class="hero-title">Baclaran Church, done respectfully</h1>
+          <p class="hero-lede">
+            This is a living religious landmark with constant movement. Go with respect, stay aware, and keep your visit grounded.
+          </p>
+
+          <div class="chips">
+            <span class="chip">Best time: morning</span>
+            <span class="chip">Duration: 60 to 120 min</span>
+            <span class="chip">Effort: low</span>
+            <span class="chip">Crowds: high</span>
+          </div>
+
+          <div class="kpis">
+            <div class="kpi"><div class="label">Dress code</div><div class="val">modest</div></div>
+            <div class="kpi"><div class="label">Noise level</div><div class="val">low inside</div></div>
+            <div class="kpi"><div class="label">Best day</div><div class="val">weekday</div></div>
+            <div class="kpi"><div class="label">Pair with</div><div class="val">short city stop</div></div>
+          </div>
+
+          <div class="cta-row">
+            <a class="btn btn-primary" href="https://lolaelo-api.onrender.com/catalog.html?q=manila">Browse stays</a>
+            <a class="btn btn-secondary" href="/destinations/manila/index.html">Back to Manila guide</a>
+          </div>
+        </div>
+      </section>
+
+      <section class="section">
+        <h2>What to expect</h2>
+        <p>
+Baclaran Church is active from early morning onward. People come to pray, make offerings, and move through quickly.
+You are stepping into daily life, not a quiet museum.
+        </p>
+      </section>
+
+      <section class="split">
+        <div class="panel">
+          <h3>How to move</h3>
+          <ul>
+            <li>Enter calmly and follow the flow</li>
+            <li>Keep your phone and valuables secure</li>
+            <li>Observe before taking photos</li>
+            <li>Step outside if it feels overwhelming</li>
+          </ul>
+        </div>
+        <div class="panel">
+          <h3>What to bring</h3>
+          <ul>
+            <li>Light clothing with coverage</li>
+            <li>Small cash for candles or donations</li>
+            <li>Patience and awareness</li>
+            <li>A short time cap</li>
+          </ul>
+        </div>
+      </section>
+
+      <section class="spotlights">
+        <article class="spot">
+          <img src="/images/manila/spot-baclaran-faithful.jpg" alt="Baclaran faithful">
+          <div class="body">
+            <h3 class="title">Flow over friction</h3>
+            <p class="text">
+Move with the crowd, not against it. The visit feels calmer when you follow the rhythm.
+            </p>
+          </div>
+        </article>
+        <article class="spot">
+          <img src="/images/manila/spot-baclaran-interior.jpg" alt="Baclaran interior">
+          <div class="body">
+            <h3 class="title">Quiet moments inside</h3>
+            <p class="text">
+Even with crowds, there are still pockets of stillness. Pause briefly, then exit clean.
+            </p>
+          </div>
+        </article>
+      </section>
+
+      <section class="section">
+        <h2>Reality check</h2>
+        <p>
+This is not a long stay attraction. A respectful, focused visit is better than lingering too long.
+If crowds spike, step away and continue your day elsewhere.
+        </p>
+      </section>
+    </main>
+  </div>
+
+  <footer>
+    © <span id="year"></span> Lolaelo ·
+    <a href="https://lolaelo-api.onrender.com/privacy.html">Privacy</a>
+    <a href="https://lolaelo-api.onrender.com/terms.html">Terms</a>
+  </footer>
+
+  <script>
+    document.getElementById("year").textContent = new Date().getFullYear();
+  </script>
+</body>
+</html>
