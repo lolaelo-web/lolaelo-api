@@ -3,360 +3,566 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>Tops Lookout + Busay Hills | Lolaelo</title>
-  <link rel="icon" href="/favicon.ico" />
+  <title>Tops Lookout + Busay Hills | Cebu - Lolaelo</title>
+
+  <!-- Keep CSS + tokens consistent with your Boracay index/template. -->
+  <!-- If your template uses a shared CSS file, keep that exact link. -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+
+  <!-- NOTE: This page intentionally mirrors your template header/breadcrumb/hero structure.
+       If your template uses an external stylesheet, swap the inline CSS below for your exact template link. -->
   <style>
     :root{
       --accent:#ff6a3d;
       --green:#064e3b;
-      --ink:#0f172a;
+      --text:#0f172a;
       --muted:#475569;
-      --bg:#ffffff;
+      --border:rgba(15,23,42,.12);
       --card:#ffffff;
-      --line:rgba(15,23,42,.12);
+      --bg:#ffffff;
       --shadow:0 10px 30px rgba(2,6,23,.08);
-      --shadow2:0 6px 18px rgba(2,6,23,.08);
       --radius:18px;
-      --radius2:14px;
-      --max:1120px;
     }
     *{box-sizing:border-box}
     body{
       margin:0;
-      font-family: Inter, system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif;
-      color:var(--ink);
+      font-family:Inter,system-ui,-apple-system,Segoe UI,Roboto,Arial,sans-serif;
+      color:var(--text);
       background:var(--bg);
+      line-height:1.45;
     }
     a{color:inherit}
-    .wrap{max-width:var(--max); margin:0 auto; padding:0 20px;}
+    .wrap{max-width:1100px;margin:0 auto;padding:0 18px}
     .topbar{
-      border-bottom:1px solid var(--line);
-      background:#fff;
-      position:sticky;
-      top:0;
-      z-index:30;
+      position:sticky;top:0;z-index:50;
+      background:rgba(255,255,255,.9);
+      backdrop-filter:saturate(1.2) blur(10px);
+      border-bottom:1px solid var(--border);
     }
     .topbar-inner{
-      display:flex;
-      align-items:center;
-      justify-content:space-between;
+      display:flex;align-items:center;justify-content:space-between;
       padding:14px 0;
-      gap:12px;
     }
-    .brand{display:flex; align-items:center; gap:12px; text-decoration:none}
-    .brand img{height:30px}
-    .backlink{
+    .brand{
+      display:flex;align-items:center;gap:12px;text-decoration:none;
+    }
+    .brand img{height:28px;width:auto;display:block}
+    .top-actions a{
       text-decoration:none;
-      font-weight:650;
       color:var(--green);
-      padding:10px 12px;
-      border-radius:999px;
-      border:1px solid rgba(6,78,59,.20);
-      background:rgba(6,78,59,.04);
-      white-space:nowrap;
+      font-weight:600;
     }
-    .crumbs{padding:0 0 14px 0; color:var(--muted); font-size:13px}
+    .crumbs{
+      padding:10px 0 0 0;
+      color:var(--muted);
+      font-size:14px;
+    }
 
-    /* HeroGrid B */
-    .hero{padding:26px 0 10px 0}
+    /* HERO GRID - keep structure identical across Cebu pages */
+    .hero{
+      padding:18px 0 8px 0;
+    }
     .hero-grid{
       display:grid;
-      grid-template-columns:1.25fr 1fr;
+      grid-template-columns: 1.15fr .85fr;
       gap:18px;
       align-items:stretch;
     }
     .hero-media{
-      border-radius:var(--radius);
+      border-radius:24px;
       overflow:hidden;
-      border:1px solid var(--line);
-      box-shadow:var(--shadow2);
+      box-shadow:var(--shadow);
+      border:1px solid var(--border);
       min-height:320px;
       background:#f8fafc;
     }
-    .hero-media img{width:100%; height:100%; object-fit:cover; display:block}
-    .hero-card{
-      border-radius:var(--radius);
-      border:1px solid var(--line);
+    .hero-media img{
+      width:100%;height:100%;
+      object-fit:cover;display:block;
+    }
+    .hero-panel{
+      border-radius:24px;
+      border:1px solid var(--border);
       box-shadow:var(--shadow);
-      padding:18px;
+      padding:18px 18px 16px 18px;
+      background:var(--card);
       display:flex;
       flex-direction:column;
-      gap:12px;
-      background:#fff;
+      justify-content:space-between;
+      min-height:320px;
     }
-    .hero-title{margin:0; font-size:32px; line-height:1.1}
-    .hero-lede{margin:0; color:var(--muted); line-height:1.55}
-    .chips{display:flex; gap:8px; flex-wrap:wrap}
+    .hero-title{
+      font-size:30px;
+      line-height:1.15;
+      margin:0 0 8px 0;
+      letter-spacing:-.02em;
+    }
+    .hero-lede{
+      margin:0 0 12px 0;
+      color:var(--muted);
+      font-size:15px;
+    }
+    .chips{display:flex;flex-wrap:wrap;gap:8px;margin:0 0 12px 0}
     .chip{
-      font-size:12px;
+      display:inline-flex;align-items:center;gap:6px;
       padding:7px 10px;
+      border:1px solid var(--border);
       border-radius:999px;
-      border:1px solid var(--line);
+      font-size:13px;
+      color:#0b1220;
       background:#fff;
-      white-space:nowrap;
     }
     .kpis{
       display:grid;
-      grid-template-columns:repeat(3,1fr);
+      grid-template-columns:1fr 1fr;
       gap:10px;
-      margin-top:4px;
+      margin:0 0 14px 0;
     }
     .kpi{
-      border:1px solid var(--line);
-      border-radius:var(--radius2);
-      padding:10px;
-      background:rgba(2,6,23,.02);
+      border:1px solid var(--border);
+      border-radius:14px;
+      padding:10px 12px;
+      background:#fff;
     }
-    .kpi .k{margin:0 0 4px 0; font-size:12px; color:var(--muted)}
-    .kpi .v{margin:0; font-size:14px; font-weight:780}
-
-    .cta-row{display:flex; gap:10px; margin-top:auto; flex-wrap:wrap}
+    .kpi .label{font-size:12px;color:var(--muted);margin-bottom:4px}
+    .kpi .val{font-weight:700}
+    .cta-row{
+      display:flex;flex-wrap:wrap;gap:10px;
+      margin-top:6px;
+    }
     .btn{
-      padding:12px 14px;
-      border-radius:12px;
-      font-weight:750;
-      text-decoration:none;
-      border:1px solid var(--line);
-      background:#fff;
-      display:inline-flex;
-      align-items:center;
-      justify-content:center;
+      display:inline-flex;align-items:center;justify-content:center;
       gap:8px;
-    }
-    .btn-primary{background:var(--accent); color:#1b120c; border-color:rgba(0,0,0,.06)}
-    .btn-secondary{color:var(--green); border-color:rgba(6,78,59,.24)}
-
-    .section{padding:22px 0}
-    h2{color:var(--green); font-size:20px; margin:0 0 10px 0}
-    .sub{margin:0 0 14px 0; color:var(--muted); line-height:1.6}
-
-    /* Route Card layout (3-4 steps) + supporting cards */
-    .route{
-      border:1px solid var(--line);
-      border-radius:var(--radius);
-      box-shadow:var(--shadow2);
-      overflow:hidden;
+      padding:11px 14px;
+      border-radius:12px;
+      border:1px solid var(--border);
+      text-decoration:none;
+      font-weight:700;
+      font-size:14px;
       background:#fff;
     }
-    .route-head{
-      padding:14px 14px 10px 14px;
-      border-bottom:1px solid var(--line);
-      display:flex;
-      align-items:flex-start;
-      justify-content:space-between;
-      gap:12px;
-      flex-wrap:wrap;
+    .btn.primary{
+      background:var(--accent);
+      border-color:rgba(0,0,0,.06);
+      color:#fff;
     }
-    .route-head h3{margin:0; font-size:16px}
-    .route-head p{margin:0; color:var(--muted); font-size:13.5px; line-height:1.6}
-    .steps{
-      display:grid;
-      grid-template-columns:repeat(4,1fr);
-      gap:0;
+    .btn.link{
+      color:var(--green);
+      background:#fff;
     }
-    .step{
-      padding:14px;
-      border-right:1px solid var(--line);
-      min-height:130px;
-    }
-    .step:last-child{border-right:none}
-    .badge{
-      display:inline-flex;
-      font-size:12px;
-      font-weight:800;
-      padding:6px 10px;
-      border-radius:999px;
-      background:rgba(255,106,61,.14);
-      border:1px solid rgba(255,106,61,.24);
-      color:#402014;
-    }
-    .step h4{margin:10px 0 6px 0; font-size:14px}
-    .step p{margin:0; color:var(--muted); font-size:13.5px; line-height:1.6}
 
-    .support{
+    /* BODY (rotated layout) */
+    .section{padding:22px 0}
+    .section h2{
+      margin:0 0 10px 0;
+      font-size:20px;
+      letter-spacing:-.01em;
+      color:var(--green);
+    }
+    .muted{color:var(--muted)}
+    .grid-3{
       display:grid;
-      grid-template-columns:repeat(3,1fr);
+      grid-template-columns:1.1fr .95fr .95fr;
       gap:14px;
-      margin-top:14px;
     }
     .card{
-      border:1px solid var(--line);
+      background:var(--card);
+      border:1px solid var(--border);
       border-radius:var(--radius);
-      overflow:hidden;
-      box-shadow:var(--shadow2);
-      background:#fff;
-      display:flex;
-      flex-direction:column;
+      box-shadow:var(--shadow);
+      padding:14px;
     }
-    .card .media{height:170px; background:#f8fafc}
-    .card .media img{width:100%; height:100%; object-fit:cover; display:block}
-    .card .body{padding:14px}
-    .card h3{margin:0 0 6px 0; font-size:16px}
-    .card p{margin:0; color:var(--muted); font-size:13.5px; line-height:1.6}
+    .card h3{margin:0 0 8px 0;font-size:16px}
+    .list{margin:0;padding-left:18px;color:var(--muted)}
+    .list li{margin:6px 0}
+    .strip{
+      display:flex;flex-wrap:wrap;gap:10px;
+    }
+    .strip .pill{
+      flex:1 1 240px;
+      border:1px solid var(--border);
+      border-radius:14px;
+      padding:12px;
+      background:#fff;
+    }
+    .pill b{color:#0b1220}
+    .route{
+      display:grid;
+      grid-template-columns:1fr;
+      gap:10px;
+    }
+    .step{
+      display:flex;gap:12px;
+      border:1px solid var(--border);
+      border-radius:16px;
+      padding:12px;
+      background:#fff;
+    }
+    .step .num{
+      width:34px;height:34px;border-radius:10px;
+      display:flex;align-items:center;justify-content:center;
+      font-weight:800;
+      background:rgba(255,106,61,.12);
+      color:var(--accent);
+      flex:0 0 auto;
+    }
+    .step .body{flex:1}
+    .step .title{font-weight:800;margin:0 0 4px 0}
+    .split{
+      display:grid;
+      grid-template-columns:1fr 1fr;
+      gap:14px;
+      align-items:stretch;
+    }
+    .media{
+      border-radius:18px;
+      overflow:hidden;
+      border:1px solid var(--border);
+      background:#f8fafc;
+      min-height:210px;
+    }
+    .media img{width:100%;height:100%;object-fit:cover;display:block}
+
+    .dos{
+      display:grid;
+      grid-template-columns:1fr 1fr;
+      gap:14px;
+    }
+    .badge{
+      display:inline-flex;align-items:center;gap:8px;
+      font-size:12px;font-weight:800;
+      padding:6px 10px;border-radius:999px;
+      border:1px solid var(--border);
+      background:#fff;
+      margin-bottom:10px;
+    }
+    .badge.do{color:var(--green)}
+    .badge.dont{color:#b42318}
+
+    /* FAQ */
+    .faq{
+      display:grid;gap:10px;
+    }
+    details{
+      border:1px solid var(--border);
+      border-radius:16px;
+      padding:12px 12px;
+      background:#fff;
+    }
+    summary{
+      cursor:pointer;
+      font-weight:800;
+      color:#0b1220;
+      list-style:none;
+    }
+    summary::-webkit-details-marker{display:none}
+    details p{margin:10px 0 0 0;color:var(--muted)}
 
     footer{
-      margin-top:26px;
-      border-top:1px solid var(--line);
-      padding:18px 0 26px 0;
+      border-top:1px solid var(--border);
+      padding:18px 0;
       color:var(--muted);
-      font-size:13px;
+      font-size:14px;
     }
-    footer a{color:var(--green); text-decoration:none}
+    footer a{color:var(--green);text-decoration:none;font-weight:600}
+    .foot-row{display:flex;align-items:center;justify-content:space-between;gap:14px;flex-wrap:wrap}
 
-    @media(max-width:980px){
+    @media (max-width: 980px){
       .hero-grid{grid-template-columns:1fr}
+      .grid-3{grid-template-columns:1fr}
+      .split{grid-template-columns:1fr}
+      .dos{grid-template-columns:1fr}
+      .kpis{grid-template-columns:1fr 1fr}
+    }
+    @media (max-width: 520px){
       .kpis{grid-template-columns:1fr}
-      .steps{grid-template-columns:1fr}
-      .step{border-right:none; border-bottom:1px solid var(--line)}
-      .step:last-child{border-bottom:none}
-      .support{grid-template-columns:1fr}
     }
   </style>
 </head>
+
 <body>
-
-<div class="topbar">
-  <div class="wrap">
-    <div class="topbar-inner">
-      <a class="brand" href="/">
-        <img src="https://www.lolaelo.com/logo.png?cb=logo-1x" alt="Lolaelo" />
-      </a>
-      <a class="backlink" href="/destinations/cebu/index.html">← Cebu guide</a>
-    </div>
-    <div class="crumbs"><span>Tops Lookout + Busay hills</span></div>
-  </div>
-</div>
-
-<header class="hero">
-  <div class="wrap">
-    <div class="hero-grid">
-      <div class="hero-media">
-        <img src="/images/cebu/hero-tops-lookout.jpg" alt="Tops Lookout" />
+  <!-- HEADER (mirror template structure) -->
+  <div class="topbar">
+    <div class="wrap">
+      <div class="topbar-inner">
+        <a class="brand" href="/destinations/cebu/index.html" aria-label="Cebu guide home">
+          <img src="https://www.lolaelo.com/logo.png?cb=logo-1x" alt="Lolaelo" />
+        </a>
+        <div class="top-actions">
+          <a href="/destinations/cebu/index.html">← Cebu guide</a>
+        </div>
       </div>
-      <div class="hero-card">
-        <h1 class="hero-title">Tops Lookout and Busay Hills</h1>
-        <p class="hero-lede">
-          This is your clean, low-effort viewpoint day. Easy logistics, big skyline payoff, and a good way to
-          bookend a heritage morning or reset before south Cebu.
+
+      <!-- Breadcrumb (single label) -->
+      <div class="crumbs" aria-label="Breadcrumb">
+        <span>Tops Lookout + Busay hills</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- HERO (keep identical pattern across Cebu pages) -->
+  <section class="hero">
+    <div class="wrap">
+      <div class="hero-grid">
+        <div class="hero-media">
+          <img src="/images/cebu/hero-tops-lookout.jpg" alt="View from Tops Lookout in Cebu" />
+        </div>
+
+        <div class="hero-panel">
+          <div>
+            <h1 class="hero-title">Tops Lookout + Busay hills</h1>
+            <p class="hero-lede">
+              This is the clean, high-return Cebu City half-day. Quick elevation, cooler air, and the best skyline view
+              without committing to a full south Cebu mission.
+            </p>
+
+            <div class="chips" aria-label="Quick tags">
+              <span class="chip">Half-day</span>
+              <span class="chip">Best at sunset</span>
+              <span class="chip">Short drive</span>
+              <span class="chip">Low effort</span>
+            </div>
+
+            <div class="kpis" aria-label="Key info">
+              <div class="kpi">
+                <div class="label">Time needed</div>
+                <div class="val">3 to 5 hours</div>
+              </div>
+              <div class="kpi">
+                <div class="label">Best window</div>
+                <div class="val">4:30 pm to 7:30 pm</div>
+              </div>
+              <div class="kpi">
+                <div class="label">Difficulty</div>
+                <div class="val">Easy</div>
+              </div>
+              <div class="kpi">
+                <div class="label">Cost level</div>
+                <div class="val">Low to medium</div>
+              </div>
+            </div>
+          </div>
+
+          <div class="cta-row">
+            <a class="btn primary" href="/catalog.html">Browse stays</a>
+            <a class="btn link" href="/destinations/cebu/index.html">Back to Cebu guide</a>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- BODY (rotated layout - different from heritage page all the way to FAQ) -->
+
+  <!-- 1) Reality check + expectations -->
+  <section class="section">
+    <div class="wrap">
+      <div class="grid-3">
+        <div class="card">
+          <h3>Reality check</h3>
+          <ul class="list">
+            <li>Traffic controls the whole plan. Build buffer time.</li>
+            <li>Sunset is busy. Earlier is calmer, night is cooler.</li>
+            <li>This is not a "full day." Treat it as a clean win.</li>
+          </ul>
+        </div>
+
+        <div class="card">
+          <h3>What to aim for</h3>
+          <ul class="list">
+            <li>Arrive before the rush if you want photos.</li>
+            <li>Stay long enough to see the city lights flip on.</li>
+            <li>Pair with a Busay dinner and call it a night.</li>
+          </ul>
+        </div>
+
+        <div class="card">
+          <h3>What to avoid</h3>
+          <ul class="list">
+            <li>Trying to stack too many stops in one run.</li>
+            <li>Leaving Cebu City at peak rush without a plan.</li>
+            <li>Overpaying for weak view spots. The view is the product.</li>
+          </ul>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 2) Route card (3 steps) -->
+  <section class="section">
+    <div class="wrap">
+      <h2>Simple route (3 steps)</h2>
+      <p class="muted">Do this in order. It keeps the drive logical and the timing clean.</p>
+
+      <div class="route">
+        <div class="step">
+          <div class="num">1</div>
+          <div class="body">
+            <div class="title">Depart Cebu City</div>
+            <div class="muted">Target departure: 3:30 pm to 4:30 pm for sunset. Earlier if you hate crowds.</div>
+          </div>
+        </div>
+
+        <div class="step">
+          <div class="num">2</div>
+          <div class="body">
+            <div class="title">Busay hills stop (optional)</div>
+            <div class="muted">
+              Short stop for snacks, coffee, or a quick viewpoint. If traffic is heavy, skip this and go straight to Tops.
+            </div>
+          </div>
+        </div>
+
+        <div class="step">
+          <div class="num">3</div>
+          <div class="body">
+            <div class="title">Tops Lookout for golden hour + city lights</div>
+            <div class="muted">
+              Stay long enough to get both daylight and night skyline. That is the entire point of this trip.
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 3) Decision strips -->
+  <section class="section">
+    <div class="wrap">
+      <h2>Pick your timing lane</h2>
+      <div class="strip">
+        <div class="pill">
+          <b>Lane A: Photo-first</b>
+          <div class="muted">Go earlier. Less people. Cleaner framing. You leave before it gets chaotic.</div>
+        </div>
+        <div class="pill">
+          <b>Lane B: Sunset-first</b>
+          <div class="muted">Go for the full glow. Expect crowds. Commit to the wait and you get the payoff.</div>
+        </div>
+        <div class="pill">
+          <b>Lane C: Night-first</b>
+          <div class="muted">Go later. Cooler air, fewer tour groups. City lights and calmer pacing.</div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 4) Split with images -->
+  <section class="section">
+    <div class="wrap">
+      <h2>What it actually feels like</h2>
+
+      <div class="split">
+        <div class="card">
+          <h3>Busay drive is the filter</h3>
+          <p class="muted">
+            This is the part that decides your mood. If you're moving smoothly, this is easy. If you're trapped, you need
+            to lower expectations and keep it simple.
+          </p>
+          <div class="media" aria-label="Busay road">
+            <img src="/images/cebu/spot-busay-hills-road.jpg" alt="Busay hills road approaching Tops" />
+          </div>
+        </div>
+
+        <div class="card">
+          <h3>Tops is the payoff</h3>
+          <p class="muted">
+            You are here for one thing: the skyline. Get the view, get the photos, then decide if you want a Busay dinner.
+          </p>
+          <div class="media" aria-label="Tops platform">
+            <img src="/images/cebu/spot-tops-platform.jpg" alt="Viewing platform at Tops Lookout" />
+          </div>
+        </div>
+      </div>
+
+      <div style="height:14px"></div>
+
+      <div class="card">
+        <h3>Best moment</h3>
+        <p class="muted">
+          When the sun drops and the city lights switch on. If you only stay for one phase, stay for this one.
         </p>
-        <div class="chips">
-          <span class="chip">Golden hour</span>
-          <span class="chip">Low effort</span>
-          <span class="chip">Great first day</span>
-        </div>
-
-        <div class="kpis" aria-label="Quick facts">
-          <div class="kpi"><p class="k">Best time</p><p class="v">Late afternoon</p></div>
-          <div class="kpi"><p class="k">Effort</p><p class="v">Light</p></div>
-          <div class="kpi"><p class="k">Pairs with</p><p class="v">City heritage</p></div>
-        </div>
-
-        <div class="cta-row">
-          <a class="btn btn-primary" href="/catalog.html?destination=cebu">Browse stays</a>
-          <a class="btn btn-secondary" href="/destinations/cebu/index.html">Back to guide</a>
+        <div class="media" aria-label="Sunset skyline">
+          <img src="/images/cebu/spot-cebu-city-view-sunset.jpg" alt="Cebu City skyline at sunset" />
         </div>
       </div>
     </div>
-  </div>
-</header>
+  </section>
 
-<section class="section">
-  <div class="wrap">
-    <h2>Route plan (simple, on purpose)</h2>
-    <p class="sub">
-      Do not overbuild this day. The win is timing and flow, not cramming stops.
-      Use this as a clean Phase 1 experience that keeps your energy intact.
-    </p>
+  <!-- 5) Do / Don't -->
+  <section class="section">
+    <div class="wrap">
+      <h2>Do / Don't</h2>
 
-    <div class="route">
-      <div class="route-head">
+      <div class="dos">
+        <div class="card">
+          <div class="badge do">DO</div>
+          <ul class="list">
+            <li>Start earlier than you think you need to.</li>
+            <li>Bring water and something light to eat.</li>
+            <li>Keep your plan short and clean. This is a half-day win.</li>
+            <li>Stay long enough to see the lights come on.</li>
+          </ul>
+        </div>
+
+        <div class="card">
+          <div class="badge dont">DON'T</div>
+          <ul class="list">
+            <li>Stack this with a south Cebu day. Different mission, different fatigue.</li>
+            <li>Try to rush sunset timing without buffer. You'll lose the whole point.</li>
+            <li>Over-plan stops just to fill time. It creates friction.</li>
+            <li>Assume parking and entry are instant. Build patience into the plan.</li>
+          </ul>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- FAQ (final section) -->
+  <section class="section">
+    <div class="wrap">
+      <h2>FAQ</h2>
+      <div class="faq">
+        <details>
+          <summary>Is this worth it if the weather is bad?</summary>
+          <p>If visibility is low, the view is the product and the product is compromised. On cloudy days, go earlier, keep it short, and treat it as a quick city break.</p>
+        </details>
+
+        <details>
+          <summary>How long should we stay at Tops?</summary>
+          <p>Plan for 45 to 90 minutes. If you want daylight and city lights, stay longer and commit to the transition.</p>
+        </details>
+
+        <details>
+          <summary>Can I do this with kids?</summary>
+          <p>Yes. This is one of the most family-friendly Cebu outings. Keep the timing earlier if you want less crowd stress.</p>
+        </details>
+
+        <details>
+          <summary>What should we pair this with?</summary>
+          <p>Simple: dinner in Busay or back in the city. Do not over-stack. The win is low friction with a clean payoff.</p>
+        </details>
+      </div>
+    </div>
+  </section>
+
+  <footer>
+    <div class="wrap">
+      <div class="foot-row">
+        <div>© <span id="y"></span> Lolaelo</div>
         <div>
-          <h3>3-step route</h3>
-          <p>Short transfers, one main viewpoint, then a calm exit.</p>
-        </div>
-        <div class="chips" aria-label="Route chips">
-          <span class="chip">Phase 1</span>
-          <span class="chip">Viewpoint</span>
-          <span class="chip">Flexible</span>
-        </div>
-      </div>
-
-      <div class="steps">
-        <div class="step">
-          <span class="badge">Step 1</span>
-          <h4>Start in the city</h4>
-          <p>Set a simple departure window. Traffic determines the whole vibe.</p>
-        </div>
-        <div class="step">
-          <span class="badge">Step 2</span>
-          <h4>Busay hills drive</h4>
-          <p>Keep it steady. The road is part of the transition from city noise to open views.</p>
-        </div>
-        <div class="step">
-          <span class="badge">Step 3</span>
-          <h4>Tops Lookout</h4>
-          <p>Commit to the light. Stay for the shift from day to night if you can.</p>
-        </div>
-        <div class="step">
-          <span class="badge">Exit</span>
-          <h4>Return clean</h4>
-          <p>Eat nearby or head back. Don’t turn this into a late-night mission if you have a south day next.</p>
+          <a href="https://lolaelo-api.onrender.com/privacy.html">Privacy</a>
+          <span class="muted"> | </span>
+          <a href="https://lolaelo-api.onrender.com/terms.html">Terms</a>
         </div>
       </div>
     </div>
+  </footer>
 
-    <div class="support">
-      <article class="card">
-        <div class="media">
-          <img src="/images/cebu/spot-busay-hills-road.jpg" alt="Busay hills road" />
-        </div>
-        <div class="body">
-          <h3>Busay hills road</h3>
-          <p>Expect curves and mixed traffic. Keep your timing realistic and your plan light.</p>
-        </div>
-      </article>
-
-      <article class="card">
-        <div class="media">
-          <img src="/images/cebu/spot-cebu-city-view-sunset.jpg" alt="Cebu city view at sunset" />
-        </div>
-        <div class="body">
-          <h3>Skyline at golden hour</h3>
-          <p>The payoff is the light change. If you show up too early, it feels flat.</p>
-        </div>
-      </article>
-
-      <article class="card">
-        <div class="media">
-          <img src="/images/cebu/spot-tops-platform.jpg" alt="Tops Lookout platform" />
-        </div>
-        <div class="body">
-          <h3>Viewpoint pacing</h3>
-          <p>Give yourself time to settle. The best photos happen after you stop rushing.</p>
-        </div>
-      </article>
-    </div>
-  </div>
-</section>
-
-<footer>
-  <div class="wrap">
-    <div style="display:flex; justify-content:space-between; flex-wrap:wrap; gap:10px;">
-      <div>© <span id="y"></span> Lolaelo</div>
-      <div>
-        <a href="https://lolaelo-api.onrender.com/privacy.html">Privacy</a> ·
-        <a href="https://lolaelo-api.onrender.com/terms.html">Terms</a>
-      </div>
-    </div>
-  </div>
-</footer>
-
-<script>
-(function(){
-  var el=document.getElementById("y");
-  if(el) el.textContent=new Date().getFullYear();
-})();
-</script>
-
+  <script>
+    document.getElementById("y").textContent = new Date().getFullYear();
+  </script>
 </body>
 </html>

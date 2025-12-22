@@ -3,424 +3,464 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>Oslob Whale Sharks + South Cebu Loop | Lolaelo</title>
-  <link rel="icon" href="/favicon.ico" />
+  <title>Oslob Whale Sharks + South Loop | Cebu - Lolaelo</title>
+
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+
   <style>
     :root{
       --accent:#ff6a3d;
       --green:#064e3b;
-      --ink:#0f172a;
+      --text:#0f172a;
       --muted:#475569;
-      --bg:#ffffff;
+      --border:rgba(15,23,42,.12);
       --card:#ffffff;
-      --line:rgba(15,23,42,.12);
+      --bg:#ffffff;
       --shadow:0 10px 30px rgba(2,6,23,.08);
-      --shadow2:0 6px 18px rgba(2,6,23,.08);
       --radius:18px;
-      --radius2:14px;
-      --max:1120px;
-      --warn:#a16207;
     }
     *{box-sizing:border-box}
     body{
       margin:0;
-      font-family: Inter, system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif;
-      color:var(--ink);
+      font-family:Inter,system-ui,-apple-system,Segoe UI,Roboto,Arial,sans-serif;
+      color:var(--text);
       background:var(--bg);
+      line-height:1.45;
     }
     a{color:inherit}
-    .wrap{max-width:var(--max); margin:0 auto; padding:0 20px;}
+    .wrap{max-width:1100px;margin:0 auto;padding:0 18px}
+
+    /* HEADER */
     .topbar{
-      border-bottom:1px solid var(--line);
-      background:#fff;
-      position:sticky;
-      top:0;
-      z-index:30;
+      position:sticky;top:0;z-index:50;
+      background:rgba(255,255,255,.9);
+      backdrop-filter:saturate(1.2) blur(10px);
+      border-bottom:1px solid var(--border);
     }
-    .topbar-inner{
-      display:flex;
-      align-items:center;
-      justify-content:space-between;
-      padding:14px 0;
-      gap:12px;
-    }
-    .brand img{height:30px}
-    .backlink{
-      text-decoration:none;
-      font-weight:650;
-      color:var(--green);
-      padding:10px 12px;
-      border-radius:999px;
-      border:1px solid rgba(6,78,59,.20);
-      background:rgba(6,78,59,.04);
-      white-space:nowrap;
-    }
-    .crumbs{padding:0 0 14px 0; color:var(--muted); font-size:13px}
+    .topbar-inner{display:flex;align-items:center;justify-content:space-between;padding:14px 0}
+    .brand{display:flex;align-items:center;gap:12px;text-decoration:none}
+    .brand img{height:28px;width:auto;display:block}
+    .top-actions a{text-decoration:none;color:var(--green);font-weight:600}
+    .crumbs{padding:10px 0 0 0;color:var(--muted);font-size:14px}
 
-    /* HeroGrid B */
-    .hero{padding:26px 0 10px 0}
-    .hero-grid{
-      display:grid;
-      grid-template-columns:1.25fr 1fr;
-      gap:18px;
-      align-items:stretch;
-    }
+    /* HERO GRID (same pattern across Cebu pages) */
+    .hero{padding:18px 0 8px 0}
+    .hero-grid{display:grid;grid-template-columns:1.15fr .85fr;gap:18px;align-items:stretch}
     .hero-media{
-      border-radius:var(--radius);
-      overflow:hidden;
-      border:1px solid var(--line);
-      box-shadow:var(--shadow2);
-      min-height:320px;
-      background:#f8fafc;
+      border-radius:24px;overflow:hidden;box-shadow:var(--shadow);
+      border:1px solid var(--border);min-height:320px;background:#f8fafc;
     }
-    .hero-media img{width:100%; height:100%; object-fit:cover; display:block}
-    .hero-card{
-      border-radius:var(--radius);
-      border:1px solid var(--line);
-      box-shadow:var(--shadow);
-      padding:18px;
-      display:flex;
-      flex-direction:column;
-      gap:12px;
-      background:#fff;
+    .hero-media img{width:100%;height:100%;object-fit:cover;display:block}
+    .hero-panel{
+      border-radius:24px;border:1px solid var(--border);box-shadow:var(--shadow);
+      padding:18px 18px 16px 18px;background:var(--card);
+      display:flex;flex-direction:column;justify-content:space-between;min-height:320px;
     }
-    .hero-title{margin:0; font-size:32px; line-height:1.1}
-    .hero-lede{margin:0; color:var(--muted); line-height:1.55}
-    .chips{display:flex; gap:8px; flex-wrap:wrap}
+    .hero-title{font-size:30px;line-height:1.15;margin:0 0 8px 0;letter-spacing:-.02em}
+    .hero-lede{margin:0 0 12px 0;color:var(--muted);font-size:15px}
+    .chips{display:flex;flex-wrap:wrap;gap:8px;margin:0 0 12px 0}
     .chip{
-      font-size:12px;
-      padding:7px 10px;
-      border-radius:999px;
-      border:1px solid var(--line);
-      background:#fff;
-      white-space:nowrap;
+      display:inline-flex;align-items:center;gap:6px;padding:7px 10px;
+      border:1px solid var(--border);border-radius:999px;font-size:13px;color:#0b1220;background:#fff;
     }
-    .cta-row{display:flex; gap:10px; margin-top:auto; flex-wrap:wrap}
+    .kpis{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin:0 0 14px 0}
+    .kpi{border:1px solid var(--border);border-radius:14px;padding:10px 12px;background:#fff}
+    .kpi .label{font-size:12px;color:var(--muted);margin-bottom:4px}
+    .kpi .val{font-weight:700}
+    .cta-row{display:flex;flex-wrap:wrap;gap:10px;margin-top:6px}
     .btn{
-      padding:12px 14px;
-      border-radius:12px;
-      font-weight:750;
-      text-decoration:none;
-      border:1px solid var(--line);
-      background:#fff;
-      display:inline-flex;
-      align-items:center;
-      justify-content:center;
-      gap:8px;
+      display:inline-flex;align-items:center;justify-content:center;gap:8px;
+      padding:11px 14px;border-radius:12px;border:1px solid var(--border);
+      text-decoration:none;font-weight:700;font-size:14px;background:#fff;
     }
-    .btn-primary{background:var(--accent); color:#1b120c; border-color:rgba(0,0,0,.06)}
-    .btn-secondary{color:var(--green); border-color:rgba(6,78,59,.24)}
+    .btn.primary{background:var(--accent);border-color:rgba(0,0,0,.06);color:#fff}
+    .btn.link{color:var(--green);background:#fff}
 
+    /* BODY (rotated layout - ethics + tradeoffs + route + alternatives) */
     .section{padding:22px 0}
-    h2{color:var(--green); font-size:20px; margin:0 0 10px 0}
-    .sub{margin:0 0 14px 0; color:var(--muted); line-height:1.6}
-
-    /* Reality Check + Route + Mistakes (ethics-sensitive, neutral tone) */
-    .panel{
-      border:1px solid var(--line);
+    .section h2{margin:0 0 10px 0;font-size:20px;letter-spacing:-.01em;color:var(--green)}
+    .muted{color:var(--muted)}
+    .card{
+      background:var(--card);
+      border:1px solid var(--border);
       border-radius:var(--radius);
-      box-shadow:var(--shadow2);
-      background:#fff;
-      overflow:hidden;
-    }
-    .panel .head{
+      box-shadow:var(--shadow);
       padding:14px;
-      border-bottom:1px solid var(--line);
-      display:flex;
-      align-items:flex-start;
-      justify-content:space-between;
-      gap:12px;
-      flex-wrap:wrap;
     }
-    .panel .head h3{margin:0; font-size:16px}
-    .panel .head p{margin:0; color:var(--muted); font-size:13.5px; line-height:1.6}
+    .card h3{margin:0 0 8px 0;font-size:16px}
+    .grid-2{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+    .grid-3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:14px}
+    .list{margin:0;padding-left:18px;color:var(--muted)}
+    .list li{margin:6px 0}
 
-    .strips{
-      display:grid;
-      grid-template-columns:repeat(3,1fr);
-      gap:12px;
+    .banner{
+      border:1px solid rgba(6,78,59,.22);
+      background:rgba(6,78,59,.06);
+      border-radius:18px;
       padding:14px;
+      box-shadow:var(--shadow);
     }
-    .strip{
-      border:1px solid var(--line);
-      border-radius:var(--radius2);
-      padding:12px;
-      background:rgba(2,6,23,.02);
+    .banner b{color:var(--green)}
+    .warn{
+      border:1px solid rgba(255,106,61,.30);
+      background:rgba(255,106,61,.08);
+      border-radius:18px;
+      padding:14px;
+      box-shadow:var(--shadow);
     }
-    .strip h4{margin:0 0 6px 0; font-size:14px}
-    .strip p{margin:0; color:var(--muted); font-size:13.5px; line-height:1.6}
-    .strip.ethics h4{color:var(--warn)}
+    .warn b{color:#8a2d13}
 
     .route{
-      display:grid;
-      grid-template-columns:1.05fr .95fr;
-      gap:14px;
-      padding:14px;
-      border-top:1px solid var(--line);
-    }
-    .route .img{
-      border-radius:var(--radius);
-      overflow:hidden;
-      border:1px solid var(--line);
-      min-height:240px;
-      background:#f8fafc;
-    }
-    .route .img img{width:100%; height:100%; object-fit:cover; display:block}
-    .route .steps{
-      border:1px solid var(--line);
-      border-radius:var(--radius);
-      overflow:hidden;
-      background:#fff;
+      display:grid;gap:10px;
     }
     .step{
+      display:flex;gap:12px;
+      border:1px solid var(--border);
+      border-radius:16px;
       padding:12px;
-      border-bottom:1px solid var(--line);
-    }
-    .step:last-child{border-bottom:none}
-    .badge{
-      display:inline-flex;
-      font-size:12px;
-      font-weight:850;
-      padding:6px 10px;
-      border-radius:999px;
-      background:rgba(255,106,61,.14);
-      border:1px solid rgba(255,106,61,.24);
-      color:#402014;
-    }
-    .step h4{margin:10px 0 6px 0; font-size:14px}
-    .step p{margin:0; color:var(--muted); font-size:13.5px; line-height:1.6}
-
-    .mistakes{
-      padding:14px;
-      border-top:1px solid var(--line);
-      display:grid;
-      grid-template-columns:repeat(3,1fr);
-      gap:12px;
-    }
-    .mistake{
-      border:1px solid rgba(161,98,7,.22);
-      border-radius:var(--radius);
-      padding:12px;
-      background:rgba(161,98,7,.06);
-    }
-    .mistake h4{margin:0 0 6px 0; font-size:14px; color:var(--warn)}
-    .mistake p{margin:0; color:var(--muted); font-size:13.5px; line-height:1.6}
-
-    .alts{
-      display:grid;
-      grid-template-columns:repeat(3,1fr);
-      gap:14px;
-      margin-top:14px;
-    }
-    .alt{
-      border:1px solid var(--line);
-      border-radius:var(--radius);
-      overflow:hidden;
-      box-shadow:var(--shadow2);
       background:#fff;
-      display:flex;
-      flex-direction:column;
     }
-    .alt .media{height:170px; background:#f8fafc}
-    .alt .media img{width:100%; height:100%; object-fit:cover; display:block}
-    .alt .body{padding:14px}
-    .alt h3{margin:0 0 6px 0; font-size:16px}
-    .alt p{margin:0; color:var(--muted); font-size:13.5px; line-height:1.6}
-
-    footer{
-      margin-top:26px;
-      border-top:1px solid var(--line);
-      padding:18px 0 26px 0;
-      color:var(--muted);
-      font-size:13px;
+    .step .num{
+      width:34px;height:34px;border-radius:10px;
+      display:flex;align-items:center;justify-content:center;
+      font-weight:800;
+      background:rgba(255,106,61,.12);
+      color:var(--accent);
+      flex:0 0 auto;
     }
-    footer a{color:var(--green); text-decoration:none}
+    .step .body{flex:1}
+    .step .title{font-weight:800;margin:0 0 4px 0}
 
-    @media(max-width:980px){
+    .media{
+      border-radius:18px;overflow:hidden;border:1px solid var(--border);
+      background:#f8fafc;min-height:220px;
+    }
+    .media img{width:100%;height:100%;object-fit:cover;display:block}
+
+    .faq{display:grid;gap:10px}
+    details{border:1px solid var(--border);border-radius:16px;padding:12px;background:#fff}
+    summary{cursor:pointer;font-weight:800;color:#0b1220;list-style:none}
+    summary::-webkit-details-marker{display:none}
+    details p{margin:10px 0 0 0;color:var(--muted)}
+
+    footer{border-top:1px solid var(--border);padding:18px 0;color:var(--muted);font-size:14px}
+    footer a{color:var(--green);text-decoration:none;font-weight:600}
+    .foot-row{display:flex;align-items:center;justify-content:space-between;gap:14px;flex-wrap:wrap}
+
+    @media (max-width: 980px){
       .hero-grid{grid-template-columns:1fr}
-      .strips{grid-template-columns:1fr}
-      .route{grid-template-columns:1fr}
-      .mistakes{grid-template-columns:1fr}
-      .alts{grid-template-columns:1fr}
+      .grid-2{grid-template-columns:1fr}
+      .grid-3{grid-template-columns:1fr}
+      .kpis{grid-template-columns:1fr 1fr}
+    }
+    @media (max-width: 520px){
+      .kpis{grid-template-columns:1fr}
     }
   </style>
 </head>
+
 <body>
-
-<div class="topbar">
-  <div class="wrap">
-    <div class="topbar-inner">
-      <a class="brand" href="/">
-        <img src="https://www.lolaelo.com/logo.png?cb=logo-1x" alt="Lolaelo" />
-      </a>
-      <a class="backlink" href="/destinations/cebu/index.html">← Cebu guide</a>
-    </div>
-    <div class="crumbs"><span>Oslob whale sharks + South Cebu loop</span></div>
-  </div>
-</div>
-
-<header class="hero">
-  <div class="wrap">
-    <div class="hero-grid">
-      <div class="hero-media">
-        <img src="/images/cebu/hero-oslob-whale-sharks.jpg" alt="Oslob whale sharks" />
+  <div class="topbar">
+    <div class="wrap">
+      <div class="topbar-inner">
+        <a class="brand" href="/destinations/cebu/index.html" aria-label="Cebu guide home">
+          <img src="https://www.lolaelo.com/logo.png?cb=logo-1x" alt="Lolaelo" />
+        </a>
+        <div class="top-actions">
+          <a href="/destinations/cebu/index.html">← Cebu guide</a>
+        </div>
       </div>
-      <div class="hero-card">
-        <h1 class="hero-title">Oslob Whale Sharks and South Cebu Loop</h1>
-        <p class="hero-lede">
-          This is a high-demand stop with real tradeoffs. The day can work, but only if you start early,
-          keep the route simple, and make your own decision with clear context.
-        </p>
-        <div class="chips">
-          <span class="chip">Phase 2</span>
-          <span class="chip">Very early start</span>
-          <span class="chip">Ethics-sensitive</span>
-        </div>
-        <div class="cta-row">
-          <a class="btn btn-primary" href="/catalog.html?destination=cebu">Browse stays</a>
-          <a class="btn btn-secondary" href="/destinations/cebu/index.html">Back to guide</a>
-        </div>
+
+      <div class="crumbs" aria-label="Breadcrumb">
+        <span>Oslob whale sharks + South loop</span>
       </div>
     </div>
   </div>
-</header>
 
-<section class="section">
-  <div class="wrap">
-    <h2>Neutral framing, clear context</h2>
-    <p class="sub">
-      People choose Oslob for proximity and predictability. Others avoid it due to ethical concerns around wildlife interaction.
-      This page is not here to glamorize it. It is here to lay out what the day looks like and what your alternatives are.
-    </p>
-
-    <div class="panel">
-      <div class="head">
-        <div>
-          <h3>Reality check</h3>
-          <p>Start early, expect queues, and plan for a long coastal day.</p>
+  <section class="hero">
+    <div class="wrap">
+      <div class="hero-grid">
+        <div class="hero-media">
+          <img src="/images/cebu/hero-oslob-whale-sharks-south-loop.jpg" alt="South Cebu coastline near Oslob" />
         </div>
-        <div class="chips">
-          <span class="chip">Do less well</span>
-          <span class="chip">No overpacking</span>
-          <span class="chip">Clean exit</span>
+
+        <div class="hero-panel">
+          <div>
+            <h1 class="hero-title">Oslob whale sharks + South loop</h1>
+            <p class="hero-lede">
+              This is the most debated South Cebu day. If you do it, do it with open eyes.
+              We keep the framing neutral: tradeoffs, ethics, and alternatives are part of the plan.
+            </p>
+
+            <div class="chips" aria-label="Quick tags">
+              <span class="chip">Very early start</span>
+              <span class="chip">South Cebu</span>
+              <span class="chip">Crowds possible</span>
+              <span class="chip">Ethics matter</span>
+            </div>
+
+            <div class="kpis" aria-label="Key info">
+              <div class="kpi">
+                <div class="label">Time needed</div>
+                <div class="val">12 to 15 hours</div>
+              </div>
+              <div class="kpi">
+                <div class="label">Start time</div>
+                <div class="val">Before sunrise</div>
+              </div>
+              <div class="kpi">
+                <div class="label">Difficulty</div>
+                <div class="val">Medium</div>
+              </div>
+              <div class="kpi">
+                <div class="label">Pace</div>
+                <div class="val">Long drive day</div>
+              </div>
+            </div>
+          </div>
+
+          <div class="cta-row">
+            <a class="btn primary" href="/catalog.html">Browse stays</a>
+            <a class="btn link" href="/destinations/cebu/index.html">Back to Cebu guide</a>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- BODY (rotated layout: neutral ethics framing + tradeoffs + route + alternatives + mistakes, then FAQ) -->
+
+  <section class="section">
+    <div class="wrap">
+      <div class="banner">
+        <b>Neutral framing:</b>
+        <span class="muted">
+          People choose Oslob for a rare encounter. People avoid it due to concerns about animal welfare and crowd behavior.
+          Both positions are valid. This page gives you the facts and the cleanest way to run the day if you choose to go.
+        </span>
+      </div>
+    </div>
+  </section>
+
+  <section class="section">
+    <div class="wrap">
+      <h2>Tradeoffs (no sugarcoating)</h2>
+      <div class="grid-3">
+        <div class="card">
+          <h3>What you get</h3>
+          <ul class="list">
+            <li>A rare close encounter.</li>
+            <li>A “once in a lifetime” moment for many travelers.</li>
+            <li>A clear itinerary that fits a South loop.</li>
+          </ul>
+        </div>
+        <div class="card">
+          <h3>What it costs</h3>
+          <ul class="list">
+            <li>Very early start and long drive time.</li>
+            <li>Queues and crowd behavior can reduce the experience.</li>
+            <li>Ethical discomfort is real for some visitors.</li>
+          </ul>
+        </div>
+        <div class="card">
+          <h3>What you control</h3>
+          <ul class="list">
+            <li>How you behave in water and around animals.</li>
+            <li>How you choose providers and timing.</li>
+            <li>Whether you pivot to alternatives.</li>
+          </ul>
         </div>
       </div>
 
-      <div class="strips">
-        <div class="strip">
-          <h4>South Cebu reality</h4>
-          <p>Drive time is the hidden cost. If you stack stops, you lose control of the day.</p>
-        </div>
-        <div class="strip ethics">
-          <h4>Ethics and tradeoffs</h4>
-          <p>Interaction quality varies. If this feels wrong for you, choose a different underwater experience.</p>
-        </div>
-        <div class="strip">
-          <h4>What good looks like</h4>
-          <p>Short interaction window, calm behavior, and no pressure decisions inside the moment.</p>
-        </div>
+      <div style="height:14px"></div>
+
+      <div class="warn">
+        <b>South Cebu reality:</b>
+        <span class="muted">
+          If you try to stack too much, you will spend the entire day in a car and end up frustrated.
+          Doing less well is the win.
+        </span>
       </div>
+    </div>
+  </section>
+
+  <section class="section">
+    <div class="wrap">
+      <h2>How to run the South loop (clean sequence)</h2>
+      <p class="muted">This blueprint is built around timing, queues, and minimizing dead time.</p>
 
       <div class="route">
-        <div class="img">
-          <img src="/images/cebu/spot-south-cebu-coastal-road.jpg" alt="South Cebu coastal road" />
+        <div class="step">
+          <div class="num">1</div>
+          <div class="body">
+            <div class="title">Depart Cebu City extremely early</div>
+            <div class="muted">You are trying to beat the queue, not chase it.</div>
+          </div>
         </div>
-        <div class="steps" aria-label="Route steps">
-          <div class="step">
-            <span class="badge">Step 1</span>
-            <h4>Depart before sunrise</h4>
-            <p>This is not optional if you want a controlled day.</p>
+
+        <div class="step">
+          <div class="num">2</div>
+          <div class="body">
+            <div class="title">Oslob encounter window</div>
+            <div class="muted">If the line is heavy, decide fast: wait or pivot. Do not drift and burn hours.</div>
           </div>
-          <div class="step">
-            <span class="badge">Step 2</span>
-            <h4>Oslob window</h4>
-            <p>Expect a system and a line. Keep your time box tight.</p>
+        </div>
+
+        <div class="step">
+          <div class="num">3</div>
+          <div class="body">
+            <div class="title">One supporting stop only</div>
+            <div class="muted">Choose one: a viewpoint, a short beach reset, or a simple meal stop. Do not add more just to “maximize.”</div>
           </div>
-          <div class="step">
-            <span class="badge">Step 3</span>
-            <h4>Pick one add-on</h4>
-            <p>One. Not three. Your second stop is where the day breaks.</p>
-          </div>
-          <div class="step">
-            <span class="badge">Exit</span>
-            <h4>Return clean</h4>
-            <p>If you are tired, end it. The win is finishing without chaos.</p>
+        </div>
+
+        <div class="step">
+          <div class="num">4</div>
+          <div class="body">
+            <div class="title">Return with buffer</div>
+            <div class="muted">Expect the drive back to feel longer than the drive down. That is normal.</div>
           </div>
         </div>
       </div>
 
-      <div class="mistakes">
-        <div class="mistake">
-          <h4>Mistake: stacking stops</h4>
-          <p>Oslob plus multiple far stops turns into a 14-hour day fast.</p>
+      <div style="height:14px"></div>
+
+      <div class="grid-2">
+        <div class="card">
+          <h3>What the day looks like</h3>
+          <p class="muted">A long coastal push, a short high-intensity window, then a controlled exit plan.</p>
+          <div class="media">
+            <img src="/images/cebu/spot-south-cebu-road.jpg" alt="South Cebu coastal road" />
+          </div>
         </div>
-        <div class="mistake">
-          <h4>Mistake: late start</h4>
-          <p>Arriving late amplifies crowds, pressure, and poor experience quality.</p>
+        <div class="card">
+          <h3>The encounter (if you choose it)</h3>
+          <p class="muted">Keep distance. Move calmly. Do not chase or crowd. Your behavior matters.</p>
+          <div class="media">
+            <img src="/images/cebu/spot-oslob-whale-sharks.jpg" alt="Whale shark encounter in Oslob" />
+          </div>
         </div>
-        <div class="mistake">
-          <h4>Mistake: deciding on the spot</h4>
-          <p>Make the ethics decision before you show up. No pressure in the moment.</p>
+      </div>
+
+      <div style="height:14px"></div>
+
+      <div class="card">
+        <h3>Behavior rules (non-negotiable if you participate)</h3>
+        <div class="grid-3">
+          <div class="card" style="box-shadow:none">
+            <h3 style="margin-top:0">No chasing</h3>
+            <p class="muted">If the animal moves away, you let it go. You do not pursue.</p>
+          </div>
+          <div class="card" style="box-shadow:none">
+            <h3 style="margin-top:0">No crowding</h3>
+            <p class="muted">Keep space. If it becomes chaotic, exit and reset.</p>
+          </div>
+          <div class="card" style="box-shadow:none">
+            <h3 style="margin-top:0">No touching</h3>
+            <p class="muted">Touching is not a “moment.” It is harm risk. Do not do it.</p>
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </section>
+
+  <section class="section">
+    <div class="wrap">
+      <h2>Alternatives (if you skip Oslob)</h2>
+      <div class="grid-2">
+        <div class="card">
+          <h3>Moalboal water day</h3>
+          <p class="muted">Sardines, reef time, and a calmer experience with less moral conflict for many travelers.</p>
+          <ul class="list">
+            <li>Best for: snorkel-friendly, low drama</li>
+            <li>Tradeoff: you do not get the whale shark encounter</li>
+          </ul>
+        </div>
+        <div class="card">
+          <h3>Highlands day instead</h3>
+          <p class="muted">Osmeña Peak or Dalaguete, especially if water conditions or queues look bad.</p>
+          <ul class="list">
+            <li>Best for: views, cooler air, lower crowd friction</li>
+            <li>Tradeoff: longer hike component</li>
+          </ul>
+        </div>
+      </div>
+
+      <div style="height:14px"></div>
+
+      <div class="grid-3">
+        <div class="card">
+          <h3>Common mistake: sunk-cost waiting</h3>
+          <p class="muted">People wait “because they drove here.” That is how the whole day collapses. Decide early.</p>
+        </div>
+        <div class="card">
+          <h3>Common mistake: stacking stops</h3>
+          <p class="muted">South Cebu punishes overplanning. One supporting stop is enough.</p>
+        </div>
+        <div class="card">
+          <h3>Common mistake: pretending ethics do not exist</h3>
+          <p class="muted">If you feel uncomfortable, honor it. Choose an alternative and enjoy the day.</p>
+        </div>
+      </div>
+
+      <div style="height:14px"></div>
+
+      <div class="card">
+        <h3>Optional calm reset stop</h3>
+        <p class="muted">If you need a decompression point after the drive, choose a simple viewpoint or beach pause. Keep it short.</p>
+        <div class="media">
+          <img src="/images/cebu/spot-sumilon-view.jpg" alt="View near Sumilon area in South Cebu" />
+        </div>
+      </div>
+
+    </div>
+  </section>
+
+  <section class="section">
+    <div class="wrap">
+      <h2>FAQ</h2>
+      <div class="faq">
+        <details>
+          <summary>Is Oslob ethical?</summary>
+          <p>There is no single answer. Some travelers avoid it due to animal welfare concerns and crowd behavior. Others choose it for the encounter. This is a personal decision, and you should make it with full context.</p>
+        </details>
+
+        <details>
+          <summary>What time should we leave Cebu City?</summary>
+          <p>Before sunrise. The point is to beat queues and reduce wasted hours.</p>
+        </details>
+
+        <details>
+          <summary>If the queue is long, what should we do?</summary>
+          <p>Decide quickly. Wait only if you can still preserve the rest of your day. Otherwise pivot to Moalboal or keep the loop simple and controlled.</p>
+        </details>
+
+        <details>
+          <summary>Can we combine Oslob with Kawasan in one day?</summary>
+          <p>It is possible but often turns into an overpacked, stressful day. Cebu rewards doing less well. Choose one main objective and protect your energy.</p>
+        </details>
+      </div>
+    </div>
+  </section>
+
+  <footer>
+    <div class="wrap">
+      <div class="foot-row">
+        <div>© <span id="y"></span> Lolaelo</div>
+        <div>
+          <a href="https://lolaelo-api.onrender.com/privacy.html">Privacy</a>
+          <span class="muted"> | </span>
+          <a href="https://lolaelo-api.onrender.com/terms.html">Terms</a>
         </div>
       </div>
     </div>
+  </footer>
 
-    <h2 style="margin-top:18px;">Alternatives if you skip Oslob</h2>
-    <p class="sub">If the interaction does not sit right with you, you still have strong underwater options in Cebu.</p>
-
-    <div class="alts">
-      <article class="alt">
-        <div class="media">
-          <img src="/images/cebu/spot-oslob-alternative-snorkel.jpg" alt="Alternative snorkeling" />
-        </div>
-        <div class="body">
-          <h3>Moalboal sardine run</h3>
-          <p>High payoff, low barrier, and less ethically loaded for most travelers.</p>
-        </div>
-      </article>
-
-      <article class="alt">
-        <div class="media">
-          <img src="/images/cebu/spot-moalboal-reef.jpg" alt="Moalboal reef" />
-        </div>
-        <div class="body">
-          <h3>Reef snorkeling days</h3>
-          <p>Build a calm water day instead of a high-demand queue experience.</p>
-        </div>
-      </article>
-
-      <article class="alt">
-        <div class="media">
-          <img src="/images/cebu/spot-panagsama-beach.jpg" alt="Panagsama Beach" />
-        </div>
-        <div class="body">
-          <h3>South Cebu reset</h3>
-          <p>Swap the mission for a slower coastal day. You still win.</p>
-        </div>
-      </article>
-    </div>
-
-  </div>
-</section>
-
-<footer>
-  <div class="wrap">
-    <div style="display:flex; justify-content:space-between; flex-wrap:wrap; gap:10px;">
-      <div>© <span id="y"></span> Lolaelo</div>
-      <div>
-        <a href="https://lolaelo-api.onrender.com/privacy.html">Privacy</a> ·
-        <a href="https://lolaelo-api.onrender.com/terms.html">Terms</a>
-      </div>
-    </div>
-  </div>
-</footer>
-
-<script>
-(function(){
-  var el=document.getElementById("y");
-  if(el) el.textContent=new Date().getFullYear();
-})();
-</script>
-
+  <script>
+    document.getElementById("y").textContent = new Date().getFullYear();
+  </script>
 </body>
 </html>

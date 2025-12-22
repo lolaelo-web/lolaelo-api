@@ -3,427 +3,510 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>Kawasan Falls + Badian Canyoneering | Lolaelo</title>
-  <link rel="icon" href="/favicon.ico" />
+  <title>Kawasan Falls + Badian Canyoneering | Cebu - Lolaelo</title>
+
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+
   <style>
     :root{
       --accent:#ff6a3d;
       --green:#064e3b;
-      --ink:#0f172a;
+      --text:#0f172a;
       --muted:#475569;
-      --bg:#ffffff;
+      --border:rgba(15,23,42,.12);
       --card:#ffffff;
-      --line:rgba(15,23,42,.12);
+      --bg:#ffffff;
       --shadow:0 10px 30px rgba(2,6,23,.08);
-      --shadow2:0 6px 18px rgba(2,6,23,.08);
       --radius:18px;
-      --radius2:14px;
-      --max:1120px;
-      --danger:#b91c1c;
-      --warn:#a16207;
-      --ok:#166534;
     }
     *{box-sizing:border-box}
     body{
       margin:0;
-      font-family: Inter, system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif;
-      color:var(--ink);
+      font-family:Inter,system-ui,-apple-system,Segoe UI,Roboto,Arial,sans-serif;
+      color:var(--text);
       background:var(--bg);
+      line-height:1.45;
     }
     a{color:inherit}
-    .wrap{max-width:var(--max); margin:0 auto; padding:0 20px;}
+    .wrap{max-width:1100px;margin:0 auto;padding:0 18px}
+
+    /* HEADER */
     .topbar{
-      border-bottom:1px solid var(--line);
-      background:#fff;
-      position:sticky;
-      top:0;
-      z-index:30;
+      position:sticky;top:0;z-index:50;
+      background:rgba(255,255,255,.9);
+      backdrop-filter:saturate(1.2) blur(10px);
+      border-bottom:1px solid var(--border);
     }
     .topbar-inner{
-      display:flex;
-      align-items:center;
-      justify-content:space-between;
+      display:flex;align-items:center;justify-content:space-between;
       padding:14px 0;
-      gap:12px;
     }
-    .brand{display:flex; align-items:center; text-decoration:none}
-    .brand img{height:30px}
-    .backlink{
-      text-decoration:none;
-      font-weight:650;
-      color:var(--green);
-      padding:10px 12px;
-      border-radius:999px;
-      border:1px solid rgba(6,78,59,.20);
-      background:rgba(6,78,59,.04);
-      white-space:nowrap;
-    }
-    .crumbs{padding:0 0 14px 0; color:var(--muted); font-size:13px}
+    .brand{display:flex;align-items:center;gap:12px;text-decoration:none}
+    .brand img{height:28px;width:auto;display:block}
+    .top-actions a{text-decoration:none;color:var(--green);font-weight:600}
+    .crumbs{padding:10px 0 0 0;color:var(--muted);font-size:14px}
 
-    /* HeroGrid B */
-    .hero{padding:26px 0 10px 0}
+    /* HERO GRID (keep identical pattern across Cebu pages) */
+    .hero{padding:18px 0 8px 0}
     .hero-grid{
       display:grid;
-      grid-template-columns:1.25fr 1fr;
+      grid-template-columns: 1.15fr .85fr;
       gap:18px;
       align-items:stretch;
     }
     .hero-media{
-      border-radius:var(--radius);
+      border-radius:24px;
       overflow:hidden;
-      border:1px solid var(--line);
-      box-shadow:var(--shadow2);
+      box-shadow:var(--shadow);
+      border:1px solid var(--border);
       min-height:320px;
       background:#f8fafc;
     }
-    .hero-media img{width:100%; height:100%; object-fit:cover; display:block}
-    .hero-card{
-      border-radius:var(--radius);
-      border:1px solid var(--line);
+    .hero-media img{width:100%;height:100%;object-fit:cover;display:block}
+    .hero-panel{
+      border-radius:24px;
+      border:1px solid var(--border);
       box-shadow:var(--shadow);
-      padding:18px;
+      padding:18px 18px 16px 18px;
+      background:var(--card);
       display:flex;
       flex-direction:column;
-      gap:12px;
-      background:#fff;
-    }
-    .hero-title{margin:0; font-size:32px; line-height:1.1}
-    .hero-lede{margin:0; color:var(--muted); line-height:1.55}
-    .chips{display:flex; gap:8px; flex-wrap:wrap}
-    .chip{
-      font-size:12px;
-      padding:7px 10px;
-      border-radius:999px;
-      border:1px solid var(--line);
-      background:#fff;
-      white-space:nowrap;
-    }
-    .cta-row{display:flex; gap:10px; margin-top:auto; flex-wrap:wrap}
-    .btn{
-      padding:12px 14px;
-      border-radius:12px;
-      font-weight:750;
-      text-decoration:none;
-      border:1px solid var(--line);
-      background:#fff;
-      display:inline-flex;
-      align-items:center;
-      justify-content:center;
-      gap:8px;
-    }
-    .btn-primary{background:var(--accent); color:#1b120c; border-color:rgba(0,0,0,.06)}
-    .btn-secondary{color:var(--green); border-color:rgba(6,78,59,.24)}
-
-    .section{padding:22px 0}
-    h2{color:var(--green); font-size:20px; margin:0 0 10px 0}
-    .sub{margin:0 0 14px 0; color:var(--muted); line-height:1.6}
-
-    /* Reality Check + Route + Mistakes (safety forward) */
-    .panel{
-      border:1px solid var(--line);
-      border-radius:var(--radius);
-      box-shadow:var(--shadow2);
-      background:#fff;
-      overflow:hidden;
-    }
-    .panel .head{
-      padding:14px;
-      border-bottom:1px solid var(--line);
-      display:flex;
-      align-items:flex-start;
       justify-content:space-between;
-      gap:12px;
-      flex-wrap:wrap;
+      min-height:320px;
     }
-    .panel .head h3{margin:0; font-size:16px}
-    .panel .head p{margin:0; color:var(--muted); font-size:13.5px; line-height:1.6}
-
-    .alerts{
-      display:grid;
-      grid-template-columns:repeat(3,1fr);
-      gap:12px;
-      padding:14px;
+    .hero-title{font-size:30px;line-height:1.15;margin:0 0 8px 0;letter-spacing:-.02em}
+    .hero-lede{margin:0 0 12px 0;color:var(--muted);font-size:15px}
+    .chips{display:flex;flex-wrap:wrap;gap:8px;margin:0 0 12px 0}
+    .chip{
+      display:inline-flex;align-items:center;gap:6px;
+      padding:7px 10px;border:1px solid var(--border);
+      border-radius:999px;font-size:13px;color:#0b1220;background:#fff;
     }
-    .alert{
-      border:1px solid var(--line);
-      border-radius:var(--radius2);
-      padding:12px;
-      background:rgba(2,6,23,.02);
+    .kpis{
+      display:grid;grid-template-columns:1fr 1fr;
+      gap:10px;margin:0 0 14px 0;
     }
-    .alert .t{margin:0 0 6px 0; font-weight:850; font-size:13px}
-    .alert .b{margin:0; color:var(--muted); font-size:13.5px; line-height:1.6}
-    .danger .t{color:var(--danger)}
-    .warn .t{color:var(--warn)}
-    .ok .t{color:var(--ok)}
-
-    .route{
-      display:grid;
-      grid-template-columns:1.1fr .9fr;
-      gap:14px;
-      padding:14px;
-      border-top:1px solid var(--line);
-    }
-    .route .img{
-      border-radius:var(--radius);
-      overflow:hidden;
-      border:1px solid var(--line);
-      min-height:240px;
-      background:#f8fafc;
-    }
-    .route .img img{width:100%; height:100%; object-fit:cover; display:block}
-    .route .steps{
-      border:1px solid var(--line);
-      border-radius:var(--radius);
-      overflow:hidden;
+    .kpi{
+      border:1px solid var(--border);
+      border-radius:14px;
+      padding:10px 12px;
       background:#fff;
+    }
+    .kpi .label{font-size:12px;color:var(--muted);margin-bottom:4px}
+    .kpi .val{font-weight:700}
+    .cta-row{display:flex;flex-wrap:wrap;gap:10px;margin-top:6px}
+    .btn{
+      display:inline-flex;align-items:center;justify-content:center;
+      gap:8px;
+      padding:11px 14px;border-radius:12px;border:1px solid var(--border);
+      text-decoration:none;font-weight:700;font-size:14px;background:#fff;
+    }
+    .btn.primary{background:var(--accent);border-color:rgba(0,0,0,.06);color:#fff}
+    .btn.link{color:var(--green);background:#fff}
+
+    /* BODY (rotated layout - safety forward) */
+    .section{padding:22px 0}
+    .section h2{margin:0 0 10px 0;font-size:20px;letter-spacing:-.01em;color:var(--green)}
+    .muted{color:var(--muted)}
+    .card{
+      background:var(--card);
+      border:1px solid var(--border);
+      border-radius:var(--radius);
+      box-shadow:var(--shadow);
+      padding:14px;
+    }
+    .card h3{margin:0 0 8px 0;font-size:16px}
+    .grid-2{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+    .grid-3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:14px}
+    .list{margin:0;padding-left:18px;color:var(--muted)}
+    .list li{margin:6px 0}
+
+    .alert{
+      border-radius:18px;
+      border:1px solid rgba(180,35,24,.20);
+      background:rgba(180,35,24,.06);
+      padding:14px;
+      box-shadow:var(--shadow);
+    }
+    .alert b{color:#b42318}
+    .proto{
+      display:grid;
+      grid-template-columns:1fr;
+      gap:10px;
     }
     .step{
-      padding:12px 12px 12px 12px;
-      border-bottom:1px solid var(--line);
-    }
-    .step:last-child{border-bottom:none}
-    .badge{
-      display:inline-flex;
-      font-size:12px;
-      font-weight:850;
-      padding:6px 10px;
-      border-radius:999px;
-      background:rgba(255,106,61,.14);
-      border:1px solid rgba(255,106,61,.24);
-      color:#402014;
-    }
-    .step h4{margin:10px 0 6px 0; font-size:14px}
-    .step p{margin:0; color:var(--muted); font-size:13.5px; line-height:1.6}
-
-    .mistakes{
-      padding:14px;
-      border-top:1px solid var(--line);
-      display:grid;
-      grid-template-columns:repeat(3,1fr);
-      gap:12px;
-    }
-    .mistake{
-      border:1px solid rgba(185,28,28,.18);
-      border-radius:var(--radius);
+      display:flex;gap:12px;
+      border:1px solid var(--border);
+      border-radius:16px;
       padding:12px;
-      background:rgba(185,28,28,.04);
+      background:#fff;
     }
-    .mistake h4{margin:0 0 6px 0; font-size:14px; color:var(--danger)}
-    .mistake p{margin:0; color:var(--muted); font-size:13.5px; line-height:1.6}
+    .step .num{
+      width:34px;height:34px;border-radius:10px;
+      display:flex;align-items:center;justify-content:center;
+      font-weight:800;
+      background:rgba(255,106,61,.12);
+      color:var(--accent);
+      flex:0 0 auto;
+    }
+    .step .body{flex:1}
+    .step .title{font-weight:800;margin:0 0 4px 0}
 
-    .gear{
+    .media{
+      border-radius:18px;
+      overflow:hidden;
+      border:1px solid var(--border);
+      background:#f8fafc;
+      min-height:220px;
+    }
+    .media img{width:100%;height:100%;object-fit:cover;display:block}
+
+    .checks{
       display:grid;
       grid-template-columns:1fr 1fr;
       gap:14px;
-      margin-top:14px;
     }
-    .gear .card{
-      border:1px solid var(--line);
-      border-radius:var(--radius);
-      overflow:hidden;
-      box-shadow:var(--shadow2);
+    .badge{
+      display:inline-flex;align-items:center;gap:8px;
+      font-size:12px;font-weight:800;
+      padding:6px 10px;border-radius:999px;
+      border:1px solid var(--border);
       background:#fff;
-      display:flex;
-      flex-direction:column;
+      margin-bottom:10px;
     }
-    .gear .media{height:190px; background:#f8fafc}
-    .gear .media img{width:100%; height:100%; object-fit:cover; display:block}
-    .gear .body{padding:14px}
-    .gear h3{margin:0 0 6px 0; font-size:16px}
-    .gear ul{margin:8px 0 0 18px; color:var(--muted); line-height:1.6; font-size:13.5px}
-    .gear li{margin:4px 0}
+    .badge.ready{color:var(--green)}
+    .badge.skip{color:#b42318}
+
+    .faq{display:grid;gap:10px}
+    details{
+      border:1px solid var(--border);
+      border-radius:16px;
+      padding:12px 12px;
+      background:#fff;
+    }
+    summary{
+      cursor:pointer;
+      font-weight:800;
+      color:#0b1220;
+      list-style:none;
+    }
+    summary::-webkit-details-marker{display:none}
+    details p{margin:10px 0 0 0;color:var(--muted)}
 
     footer{
-      margin-top:26px;
-      border-top:1px solid var(--line);
-      padding:18px 0 26px 0;
+      border-top:1px solid var(--border);
+      padding:18px 0;
       color:var(--muted);
-      font-size:13px;
+      font-size:14px;
     }
-    footer a{color:var(--green); text-decoration:none}
+    footer a{color:var(--green);text-decoration:none;font-weight:600}
+    .foot-row{display:flex;align-items:center;justify-content:space-between;gap:14px;flex-wrap:wrap}
 
-    @media(max-width:980px){
+    @media (max-width: 980px){
       .hero-grid{grid-template-columns:1fr}
-      .alerts{grid-template-columns:1fr}
-      .route{grid-template-columns:1fr}
-      .mistakes{grid-template-columns:1fr}
-      .gear{grid-template-columns:1fr}
+      .grid-2{grid-template-columns:1fr}
+      .grid-3{grid-template-columns:1fr}
+      .checks{grid-template-columns:1fr}
+      .kpis{grid-template-columns:1fr 1fr}
+    }
+    @media (max-width: 520px){
+      .kpis{grid-template-columns:1fr}
     }
   </style>
 </head>
+
 <body>
-
-<div class="topbar">
-  <div class="wrap">
-    <div class="topbar-inner">
-      <a class="brand" href="/">
-        <img src="https://www.lolaelo.com/logo.png?cb=logo-1x" alt="Lolaelo" />
-      </a>
-      <a class="backlink" href="/destinations/cebu/index.html">← Cebu guide</a>
-    </div>
-    <div class="crumbs"><span>Kawasan Falls + Badian canyoneering</span></div>
-  </div>
-</div>
-
-<header class="hero">
-  <div class="wrap">
-    <div class="hero-grid">
-      <div class="hero-media">
-        <img src="/images/cebu/hero-kawasan-falls.jpg" alt="Kawasan Falls" />
+  <div class="topbar">
+    <div class="wrap">
+      <div class="topbar-inner">
+        <a class="brand" href="/destinations/cebu/index.html" aria-label="Cebu guide home">
+          <img src="https://www.lolaelo.com/logo.png?cb=logo-1x" alt="Lolaelo" />
+        </a>
+        <div class="top-actions">
+          <a href="/destinations/cebu/index.html">← Cebu guide</a>
+        </div>
       </div>
-      <div class="hero-card">
-        <h1 class="hero-title">Kawasan Falls and Badian Canyoneering</h1>
-        <p class="hero-lede">
-          This is a real adventure day. Water exposure, slippery terrain, jumps, and sustained movement.
-          If you are not ready, skip it. If you are ready, plan it like a mission and keep it clean.
-        </p>
-        <div class="chips">
-          <span class="chip">Phase 2</span>
-          <span class="chip">High effort</span>
-          <span class="chip">Water and risk</span>
-        </div>
-        <div class="cta-row">
-          <a class="btn btn-primary" href="/catalog.html?destination=cebu">Browse stays</a>
-          <a class="btn btn-secondary" href="/destinations/cebu/index.html">Back to guide</a>
-        </div>
+
+      <div class="crumbs" aria-label="Breadcrumb">
+        <span>Kawasan Falls + Badian canyoneering</span>
       </div>
     </div>
   </div>
-</header>
 
-<section class="section">
-  <div class="wrap">
-    <h2>Reality check</h2>
-    <p class="sub">
-      This is not a casual waterfall photo stop. The best day comes from discipline: early start, conservative choices,
-      and no ego jumps. If your group has mixed ability, plan around the weakest link.
-    </p>
+  <section class="hero">
+    <div class="wrap">
+      <div class="hero-grid">
+        <div class="hero-media">
+          <img src="/images/cebu/hero-kawasan-badian-canyoneering.jpg" alt="Kawasan Falls in Cebu" />
+        </div>
 
-    <div class="panel">
-      <div class="head">
+        <div class="hero-panel">
+          <div>
+            <h1 class="hero-title">Kawasan Falls + Badian canyoneering</h1>
+            <p class="hero-lede">
+              This is the signature South Cebu adventure, but treat it like a real activity, not a casual swim.
+              If you do the prep right, it is worth it. If you do it sloppy, you are gambling.
+            </p>
+
+            <div class="chips" aria-label="Quick tags">
+              <span class="chip">Full day</span>
+              <span class="chip">High exposure</span>
+              <span class="chip">Wet and physical</span>
+              <span class="chip">Guide required</span>
+            </div>
+
+            <div class="kpis" aria-label="Key info">
+              <div class="kpi">
+                <div class="label">Time needed</div>
+                <div class="val">10 to 14 hours</div>
+              </div>
+              <div class="kpi">
+                <div class="label">Start time</div>
+                <div class="val">Very early</div>
+              </div>
+              <div class="kpi">
+                <div class="label">Difficulty</div>
+                <div class="val">Moderate to hard</div>
+              </div>
+              <div class="kpi">
+                <div class="label">Safety priority</div>
+                <div class="val">High</div>
+              </div>
+            </div>
+          </div>
+
+          <div class="cta-row">
+            <a class="btn primary" href="/catalog.html">Browse stays</a>
+            <a class="btn link" href="/destinations/cebu/index.html">Back to Cebu guide</a>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- BODY LAYOUT (rotated, safety forward, different from prior pages all the way to FAQ) -->
+
+  <section class="section">
+    <div class="wrap">
+      <div class="alert">
+        <b>Reality check:</b>
+        <span class="muted">
+          Canyoneering is not a sightseeing stop. You will be jumping, climbing, swimming, and navigating current.
+          If you are not ready today, skip it today.
+        </span>
+      </div>
+    </div>
+  </section>
+
+  <section class="section">
+    <div class="wrap">
+      <h2>Readiness check</h2>
+      <div class="grid-3">
+        <div class="card">
+          <h3>Fitness baseline</h3>
+          <ul class="list">
+            <li>You can handle sustained movement for 2 to 4 hours.</li>
+            <li>You are comfortable in water, even when tired.</li>
+            <li>You can keep calm when things get loud and fast.</li>
+          </ul>
+        </div>
+        <div class="card">
+          <h3>Weather awareness</h3>
+          <ul class="list">
+            <li>Rain changes water flow and risk.</li>
+            <li>Do not assume conditions are stable.</li>
+            <li>If guides cancel, accept it and pivot.</li>
+          </ul>
+        </div>
+        <div class="card">
+          <h3>Kid and family note</h3>
+          <ul class="list">
+            <li>This is not ideal with small kids in tow.</li>
+            <li>If you are traveling as a family, split the day or choose a calmer alternative.</li>
+            <li>Do not force it for the photo.</li>
+          </ul>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section class="section">
+    <div class="wrap">
+      <h2>Safety protocol that actually matters</h2>
+      <div class="grid-2">
+        <div class="card">
+          <h3>Gear is not optional</h3>
+          <p class="muted">Helmet, life vest, and proper footwear are the minimum. If a provider is casual about gear, walk.</p>
+          <div class="media">
+            <img src="/images/cebu/spot-gear-helmet-lifevest.jpg" alt="Helmet and life vest for canyoneering" />
+          </div>
+        </div>
+        <div class="card">
+          <h3>Water rules</h3>
+          <ul class="list">
+            <li>Never jump unless your guide clears it.</li>
+            <li>Never assume depth or landing zone.</li>
+            <li>Do not fight current. Follow guide line and spacing.</li>
+            <li>If you feel panic, signal early. Do not wait.</li>
+          </ul>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section class="section">
+    <div class="wrap">
+      <h2>Blueprint: how the day should run</h2>
+      <p class="muted">This sequencing protects your energy and keeps your risk decisions clean.</p>
+      <div class="proto">
+        <div class="step">
+          <div class="num">1</div>
+          <div class="body">
+            <div class="title">Early depart from Cebu City</div>
+            <div class="muted">Treat this as a South Cebu mission. Leave before the day gets heavy.</div>
+          </div>
+        </div>
+        <div class="step">
+          <div class="num">2</div>
+          <div class="body">
+            <div class="title">Provider check and briefing</div>
+            <div class="muted">Confirm gear, confirm route, confirm what happens if weather turns.</div>
+          </div>
+        </div>
+        <div class="step">
+          <div class="num">3</div>
+          <div class="body">
+            <div class="title">Canyoneering first</div>
+            <div class="muted">Do the physical part while you are fresh. Save relaxing for after.</div>
+          </div>
+        </div>
+        <div class="step">
+          <div class="num">4</div>
+          <div class="body">
+            <div class="title">Kawasan Falls as the decompression</div>
+            <div class="muted">Once the high exposure part is done, enjoy the water and the scenery.</div>
+          </div>
+        </div>
+        <div class="step">
+          <div class="num">5</div>
+          <div class="body">
+            <div class="title">Return with buffer</div>
+            <div class="muted">South Cebu traffic can flip late. Do not book tight dinner reservations.</div>
+          </div>
+        </div>
+      </div>
+
+      <div style="height:14px"></div>
+
+      <div class="grid-2">
+        <div class="card">
+          <h3>What you are here for</h3>
+          <p class="muted">The water color, the canyon route, and the final falls. It is a real payoff if you respect it.</p>
+          <div class="media">
+            <img src="/images/cebu/spot-kawasan-falls.jpg" alt="Kawasan Falls water and cascades" />
+          </div>
+        </div>
+        <div class="card">
+          <h3>What the route looks like</h3>
+          <p class="muted">Expect wet movement, uneven footing, and a sequence of decisions. Stay inside your limits.</p>
+          <div class="media">
+            <img src="/images/cebu/spot-badian-canyoneering.jpg" alt="Badian canyoneering route in Cebu" />
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section class="section">
+    <div class="wrap">
+      <h2>Who should skip this</h2>
+      <div class="checks">
+        <div class="card">
+          <div class="badge skip">SKIP TODAY</div>
+          <ul class="list">
+            <li>You do not swim confidently.</li>
+            <li>You have a recent injury or limited mobility.</li>
+            <li>You are exhausted from travel or poor sleep.</li>
+            <li>You are not comfortable with height or jump decisions.</li>
+          </ul>
+        </div>
+        <div class="card">
+          <div class="badge ready">GOOD TO GO</div>
+          <ul class="list">
+            <li>You are rested and can focus.</li>
+            <li>You follow instructions well.</li>
+            <li>You can stay calm in moving water.</li>
+            <li>You are okay saying no to a jump if it is not right for you.</li>
+          </ul>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section class="section">
+    <div class="wrap">
+      <h2>Common mistakes</h2>
+      <div class="grid-3">
+        <div class="card">
+          <h3>Overpacking the day</h3>
+          <p class="muted">Do not add extra stops. This already takes the full day.</p>
+        </div>
+        <div class="card">
+          <h3>Choosing the cheapest provider</h3>
+          <p class="muted">If they cut corners on gear or briefing, that is your warning.</p>
+        </div>
+        <div class="card">
+          <h3>Trying to prove something</h3>
+          <p class="muted">If you are hesitant, do not jump. There is no prize for forcing it.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section class="section">
+    <div class="wrap">
+      <h2>FAQ</h2>
+      <div class="faq">
+        <details>
+          <summary>Is canyoneering safe?</summary>
+          <p>It can be managed safely with proper guides, gear, and decision discipline. It becomes unsafe fast when people rush, ignore instructions, or go in bad conditions.</p>
+        </details>
+
+        <details>
+          <summary>Can I do this without a guide?</summary>
+          <p>No. Treat this as guide required. If you are being told you can do it casually without supervision, that is a bad sign.</p>
+        </details>
+
+        <details>
+          <summary>What should I wear?</summary>
+          <p>Secure footwear with grip, comfortable activewear that can get soaked, and nothing you would be upset to lose. Leave valuables behind.</p>
+        </details>
+
+        <details>
+          <summary>What is a calmer alternative in South Cebu?</summary>
+          <p>Choose a snorkeling day in Moalboal, a falls visit without the canyoneering route, or a highlands day like Osmeña Peak if weather is stable.</p>
+        </details>
+      </div>
+    </div>
+  </section>
+
+  <footer>
+    <div class="wrap">
+      <div class="foot-row">
+        <div>© <span id="y"></span> Lolaelo</div>
         <div>
-          <h3>Read this before you commit</h3>
-          <p>Clear tradeoffs, clear expectations, and a clean plan.</p>
-        </div>
-        <div class="chips" aria-label="Key notes">
-          <span class="chip">Early start</span>
-          <span class="chip">Guide required</span>
-          <span class="chip">Do less well</span>
-        </div>
-      </div>
-
-      <div class="alerts">
-        <div class="alert danger">
-          <p class="t">Who should skip</p>
-          <p class="b">Non-swimmers, recent injuries, low mobility, panic in water, or anyone not comfortable with heights.</p>
-        </div>
-        <div class="alert warn">
-          <p class="t">Common failures</p>
-          <p class="b">Late start, overconfidence, poor footwear, and turning the day into multiple add-ons.</p>
-        </div>
-        <div class="alert ok">
-          <p class="t">What good looks like</p>
-          <p class="b">Start early, follow guide protocol, take the safe line, and finish with energy left.</p>
-        </div>
-      </div>
-
-      <div class="route">
-        <div class="img">
-          <img src="/images/cebu/spot-badian-canyoneering-river.jpg" alt="Canyoneering river" />
-        </div>
-        <div class="steps" aria-label="Route steps">
-          <div class="step">
-            <span class="badge">Step 1</span>
-            <h4>Position in Badian</h4>
-            <p>Make the morning easy. If you are coming from Cebu City, expect a long day and plan accordingly.</p>
-          </div>
-          <div class="step">
-            <span class="badge">Step 2</span>
-            <h4>Safety briefing and gear</h4>
-            <p>Helmet, vest, footwear. Listen. Ask questions. If something feels off, say it.</p>
-          </div>
-          <div class="step">
-            <span class="badge">Step 3</span>
-            <h4>Canyoneering run</h4>
-            <p>Choose conservative lines. Skip jumps you do not want. Nobody cares. Finish safe.</p>
-          </div>
-          <div class="step">
-            <span class="badge">Step 4</span>
-            <h4>Kawasan payoff</h4>
-            <p>Enjoy the falls after the work. Keep this as the finish line, not the midpoint.</p>
-          </div>
-        </div>
-      </div>
-
-      <div class="mistakes">
-        <div class="mistake">
-          <h4>Mistake: stacking the day</h4>
-          <p>Do not add extra stops. This already takes the full day if done right.</p>
-        </div>
-        <div class="mistake">
-          <h4>Mistake: ego decisions</h4>
-          <p>If you are debating a jump, that is your answer. Take the safe route.</p>
-        </div>
-        <div class="mistake">
-          <h4>Mistake: wrong footwear</h4>
-          <p>Slips are the fastest way to end the day. Prioritize grip and stability.</p>
+          <a href="https://lolaelo-api.onrender.com/privacy.html">Privacy</a>
+          <span class="muted"> | </span>
+          <a href="https://lolaelo-api.onrender.com/terms.html">Terms</a>
         </div>
       </div>
     </div>
+  </footer>
 
-    <div class="gear">
-      <div class="card">
-        <div class="media">
-          <img src="/images/cebu/spot-canyoneering-gear.jpg" alt="Canyoneering gear" />
-        </div>
-        <div class="body">
-          <h3>Readiness and gear</h3>
-          <ul>
-            <li>Secure footwear with grip (not smooth water shoes).</li>
-            <li>Dry bag or waterproof pouch for essentials only.</li>
-            <li>Hydrate before you start. Bring minimal items.</li>
-            <li>Skip if you feel unwell, tired, or uncertain.</li>
-          </ul>
-        </div>
-      </div>
-
-      <div class="card">
-        <div class="media">
-          <img src="/images/cebu/spot-badian-canyoneering-jump.jpg" alt="Canyoneering jump" />
-        </div>
-        <div class="body">
-          <h3>Safety protocol</h3>
-          <ul>
-            <li>Follow guide instructions immediately.</li>
-            <li>One person per action point. No crowding edges.</li>
-            <li>No jumps without explicit guide confirmation.</li>
-            <li>If you opt out, you are done. No pressure.</li>
-          </ul>
-        </div>
-      </div>
-    </div>
-
-  </div>
-</section>
-
-<footer>
-  <div class="wrap">
-    <div style="display:flex; justify-content:space-between; flex-wrap:wrap; gap:10px;">
-      <div>© <span id="y"></span> Lolaelo</div>
-      <div>
-        <a href="https://lolaelo-api.onrender.com/privacy.html">Privacy</a> ·
-        <a href="https://lolaelo-api.onrender.com/terms.html">Terms</a>
-      </div>
-    </div>
-  </div>
-</footer>
-
-<script>
-(function(){
-  var el=document.getElementById("y");
-  if(el) el.textContent=new Date().getFullYear();
-})();
-</script>
-
+  <script>
+    document.getElementById("y").textContent = new Date().getFullYear();
+  </script>
 </body>
 </html>

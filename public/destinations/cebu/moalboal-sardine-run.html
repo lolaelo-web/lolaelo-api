@@ -3,289 +3,446 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>Moalboal Sardine Run + Snorkeling | Lolaelo</title>
-  <link rel="icon" href="/favicon.ico" />
+  <title>Moalboal Sardine Run | Cebu - Lolaelo</title>
+
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+
   <style>
     :root{
       --accent:#ff6a3d;
       --green:#064e3b;
-      --ink:#0f172a;
+      --text:#0f172a;
       --muted:#475569;
-      --bg:#ffffff;
+      --border:rgba(15,23,42,.12);
       --card:#ffffff;
-      --line:rgba(15,23,42,.12);
+      --bg:#ffffff;
       --shadow:0 10px 30px rgba(2,6,23,.08);
-      --shadow2:0 6px 18px rgba(2,6,23,.08);
       --radius:18px;
-      --radius2:14px;
-      --max:1120px;
-      --ok:#166534;
-      --warn:#a16207;
     }
     *{box-sizing:border-box}
     body{
       margin:0;
-      font-family: Inter, system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif;
-      color:var(--ink);
+      font-family:Inter,system-ui,-apple-system,Segoe UI,Roboto,Arial,sans-serif;
+      color:var(--text);
       background:var(--bg);
+      line-height:1.45;
     }
     a{color:inherit}
-    .wrap{max-width:var(--max); margin:0 auto; padding:0 20px;}
+    .wrap{max-width:1100px;margin:0 auto;padding:0 18px}
+
+    /* HEADER (mirror) */
     .topbar{
-      border-bottom:1px solid var(--line);
-      background:#fff;
-      position:sticky;
-      top:0;
-      z-index:30;
+      position:sticky;top:0;z-index:50;
+      background:rgba(255,255,255,.9);
+      backdrop-filter:saturate(1.2) blur(10px);
+      border-bottom:1px solid var(--border);
     }
-    .topbar-inner{
-      display:flex;
-      align-items:center;
-      justify-content:space-between;
-      padding:14px 0;
-      gap:12px;
-    }
-    .brand img{height:30px}
-    .backlink{
-      text-decoration:none;
-      font-weight:650;
-      color:var(--green);
-      padding:10px 12px;
-      border-radius:999px;
-      border:1px solid rgba(6,78,59,.20);
-      background:rgba(6,78,59,.04);
-      white-space:nowrap;
-    }
-    .crumbs{padding:0 0 14px 0; color:var(--muted); font-size:13px}
+    .topbar-inner{display:flex;align-items:center;justify-content:space-between;padding:14px 0}
+    .brand{display:flex;align-items:center;gap:12px;text-decoration:none}
+    .brand img{height:28px;width:auto;display:block}
+    .top-actions a{text-decoration:none;color:var(--green);font-weight:600}
+    .crumbs{padding:10px 0 0 0;color:var(--muted);font-size:14px}
 
-    /* HeroGrid B */
-    .hero{padding:26px 0 10px 0}
-    .hero-grid{
-      display:grid;
-      grid-template-columns:1.25fr 1fr;
-      gap:18px;
-      align-items:stretch;
-    }
+    /* HERO GRID (same pattern as other Cebu pages) */
+    .hero{padding:18px 0 8px 0}
+    .hero-grid{display:grid;grid-template-columns:1.15fr .85fr;gap:18px;align-items:stretch}
     .hero-media{
-      border-radius:var(--radius);
-      overflow:hidden;
-      border:1px solid var(--line);
-      box-shadow:var(--shadow2);
-      min-height:320px;
-      background:#f8fafc;
+      border-radius:24px;overflow:hidden;box-shadow:var(--shadow);
+      border:1px solid var(--border);min-height:320px;background:#f8fafc;
     }
-    .hero-media img{width:100%; height:100%; object-fit:cover; display:block}
-    .hero-card{
-      border-radius:var(--radius);
-      border:1px solid var(--line);
-      box-shadow:var(--shadow);
-      padding:18px;
-      display:flex;
-      flex-direction:column;
-      gap:12px;
-      background:#fff;
+    .hero-media img{width:100%;height:100%;object-fit:cover;display:block}
+    .hero-panel{
+      border-radius:24px;border:1px solid var(--border);box-shadow:var(--shadow);
+      padding:18px 18px 16px 18px;background:var(--card);
+      display:flex;flex-direction:column;justify-content:space-between;min-height:320px;
     }
-    .hero-title{margin:0; font-size:32px; line-height:1.1}
-    .hero-lede{margin:0; color:var(--muted); line-height:1.55}
-    .chips{display:flex; gap:8px; flex-wrap:wrap}
+    .hero-title{font-size:30px;line-height:1.15;margin:0 0 8px 0;letter-spacing:-.02em}
+    .hero-lede{margin:0 0 12px 0;color:var(--muted);font-size:15px}
+    .chips{display:flex;flex-wrap:wrap;gap:8px;margin:0 0 12px 0}
     .chip{
-      font-size:12px;
-      padding:7px 10px;
-      border-radius:999px;
-      border:1px solid var(--line);
-      background:#fff;
-      white-space:nowrap;
+      display:inline-flex;align-items:center;gap:6px;padding:7px 10px;
+      border:1px solid var(--border);border-radius:999px;font-size:13px;color:#0b1220;background:#fff;
     }
-    .cta-row{display:flex; gap:10px; margin-top:auto; flex-wrap:wrap}
+    .kpis{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin:0 0 14px 0}
+    .kpi{border:1px solid var(--border);border-radius:14px;padding:10px 12px;background:#fff}
+    .kpi .label{font-size:12px;color:var(--muted);margin-bottom:4px}
+    .kpi .val{font-weight:700}
+    .cta-row{display:flex;flex-wrap:wrap;gap:10px;margin-top:6px}
     .btn{
-      padding:12px 14px;
-      border-radius:12px;
-      font-weight:750;
-      text-decoration:none;
-      border:1px solid var(--line);
-      background:#fff;
-      display:inline-flex;
-      align-items:center;
-      justify-content:center;
-      gap:8px;
+      display:inline-flex;align-items:center;justify-content:center;gap:8px;
+      padding:11px 14px;border-radius:12px;border:1px solid var(--border);
+      text-decoration:none;font-weight:700;font-size:14px;background:#fff;
     }
-    .btn-primary{background:var(--accent); color:#1b120c; border-color:rgba(0,0,0,.06)}
-    .btn-secondary{color:var(--green); border-color:rgba(6,78,59,.24)}
+    .btn.primary{background:var(--accent);border-color:rgba(0,0,0,.06);color:#fff}
+    .btn.link{color:var(--green);background:#fff}
 
+    /* BODY (rotated layout - matrix + lanes + protocol) */
     .section{padding:22px 0}
-    h2{color:var(--green); font-size:20px; margin:0 0 10px 0}
-    .sub{margin:0 0 14px 0; color:var(--muted); line-height:1.6}
-
-    /* Readiness + Blueprint + Safety */
-    .grid{
-      display:grid;
-      grid-template-columns:1fr 1fr;
-      gap:14px;
-    }
+    .section h2{margin:0 0 10px 0;font-size:20px;letter-spacing:-.01em;color:var(--green)}
+    .muted{color:var(--muted)}
     .card{
-      border:1px solid var(--line);
+      background:var(--card);
+      border:1px solid var(--border);
       border-radius:var(--radius);
-      box-shadow:var(--shadow2);
-      background:#fff;
-      overflow:hidden;
-      display:flex;
-      flex-direction:column;
+      box-shadow:var(--shadow);
+      padding:14px;
     }
-    .media{height:190px; background:#f8fafc}
-    .media img{width:100%; height:100%; object-fit:cover; display:block}
-    .body{padding:14px}
-    .body h3{margin:0 0 6px 0; font-size:16px}
-    .body p{margin:0; color:var(--muted); font-size:13.5px; line-height:1.6}
-    ul{margin:8px 0 0 18px; color:var(--muted); line-height:1.6; font-size:13.5px}
-    li{margin:4px 0}
+    .card h3{margin:0 0 8px 0;font-size:16px}
+    .grid-2{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+    .grid-3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:14px}
+    .list{margin:0;padding-left:18px;color:var(--muted)}
+    .list li{margin:6px 0}
 
-    .callouts{
-      display:grid;
-      grid-template-columns:repeat(3,1fr);
-      gap:12px;
-      margin-top:14px;
-    }
-    .call{
-      border:1px solid var(--line);
-      border-radius:var(--radius2);
+    .lane{
+      border:1px solid var(--border);
+      border-radius:16px;
       padding:12px;
+      background:#fff;
+    }
+    .lane b{color:#0b1220}
+    .lanes{display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px}
+
+    .matrix{
+      width:100%;
+      border-collapse:separate;
+      border-spacing:0;
+      overflow:hidden;
+      border:1px solid var(--border);
+      border-radius:16px;
+      background:#fff;
+      box-shadow:var(--shadow);
+    }
+    .matrix th,.matrix td{
+      padding:12px 12px;
+      border-bottom:1px solid var(--border);
+      vertical-align:top;
+      font-size:14px;
+    }
+    .matrix th{
+      text-align:left;
+      color:#0b1220;
       background:rgba(2,6,23,.02);
+      font-weight:800;
     }
-    .call.ok h4{color:var(--ok)}
-    .call.warn h4{color:var(--warn)}
-    .call h4{margin:0 0 6px 0; font-size:14px}
-    .call p{margin:0; color:var(--muted); font-size:13.5px; line-height:1.6}
-
-    footer{
-      margin-top:26px;
-      border-top:1px solid var(--line);
-      padding:18px 0 26px 0;
-      color:var(--muted);
-      font-size:13px;
+    .matrix tr:last-child td{border-bottom:none}
+    .tag{
+      display:inline-flex;align-items:center;justify-content:center;
+      padding:5px 10px;border-radius:999px;
+      border:1px solid var(--border);
+      font-size:12px;font-weight:800;
+      background:#fff;
+      color:var(--green);
     }
-    footer a{color:var(--green); text-decoration:none}
 
-    @media(max-width:980px){
+    .proto{display:grid;gap:10px}
+    .step{
+      display:flex;gap:12px;
+      border:1px solid var(--border);
+      border-radius:16px;
+      padding:12px;
+      background:#fff;
+    }
+    .step .num{
+      width:34px;height:34px;border-radius:10px;
+      display:flex;align-items:center;justify-content:center;
+      font-weight:800;
+      background:rgba(255,106,61,.12);
+      color:var(--accent);
+      flex:0 0 auto;
+    }
+    .step .body{flex:1}
+    .step .title{font-weight:800;margin:0 0 4px 0}
+
+    .media{
+      border-radius:18px;overflow:hidden;border:1px solid var(--border);
+      background:#f8fafc;min-height:220px;
+    }
+    .media img{width:100%;height:100%;object-fit:cover;display:block}
+
+    .faq{display:grid;gap:10px}
+    details{border:1px solid var(--border);border-radius:16px;padding:12px;background:#fff}
+    summary{cursor:pointer;font-weight:800;color:#0b1220;list-style:none}
+    summary::-webkit-details-marker{display:none}
+    details p{margin:10px 0 0 0;color:var(--muted)}
+
+    footer{border-top:1px solid var(--border);padding:18px 0;color:var(--muted);font-size:14px}
+    footer a{color:var(--green);text-decoration:none;font-weight:600}
+    .foot-row{display:flex;align-items:center;justify-content:space-between;gap:14px;flex-wrap:wrap}
+
+    @media (max-width: 980px){
       .hero-grid{grid-template-columns:1fr}
-      .grid{grid-template-columns:1fr}
-      .callouts{grid-template-columns:1fr}
+      .grid-2{grid-template-columns:1fr}
+      .grid-3{grid-template-columns:1fr}
+      .lanes{grid-template-columns:1fr}
+      .kpis{grid-template-columns:1fr 1fr}
+    }
+    @media (max-width: 520px){
+      .kpis{grid-template-columns:1fr}
+      .matrix th,.matrix td{font-size:13px}
     }
   </style>
 </head>
+
 <body>
-
-<div class="topbar">
-  <div class="wrap">
-    <div class="topbar-inner">
-      <a class="brand" href="/">
-        <img src="https://www.lolaelo.com/logo.png?cb=logo-1x" alt="Lolaelo" />
-      </a>
-      <a class="backlink" href="/destinations/cebu/index.html">← Cebu guide</a>
-    </div>
-    <div class="crumbs"><span>Moalboal sardine run + snorkeling</span></div>
-  </div>
-</div>
-
-<header class="hero">
-  <div class="wrap">
-    <div class="hero-grid">
-      <div class="hero-media">
-        <img src="/images/cebu/hero-moalboal-sardine-run.jpg" alt="Moalboal sardine run" />
+  <div class="topbar">
+    <div class="wrap">
+      <div class="topbar-inner">
+        <a class="brand" href="/destinations/cebu/index.html" aria-label="Cebu guide home">
+          <img src="https://www.lolaelo.com/logo.png?cb=logo-1x" alt="Lolaelo" />
+        </a>
+        <div class="top-actions">
+          <a href="/destinations/cebu/index.html">← Cebu guide</a>
+        </div>
       </div>
-      <div class="hero-card">
-        <h1 class="hero-title">Moalboal Sardine Run and Snorkeling</h1>
-        <p class="hero-lede">
-          One of the highest payoff-to-effort experiences in Cebu. No boats required, no certification needed,
-          and still genuinely impressive if done calmly.
-        </p>
-        <div class="chips">
-          <span class="chip">Phase 2</span>
-          <span class="chip">Low barrier</span>
-          <span class="chip">Underwater</span>
-        </div>
-        <div class="cta-row">
-          <a class="btn btn-primary" href="/catalog.html?destination=cebu">Browse stays</a>
-          <a class="btn btn-secondary" href="/destinations/cebu/index.html">Back to guide</a>
-        </div>
+
+      <div class="crumbs" aria-label="Breadcrumb">
+        <span>Moalboal sardine run</span>
       </div>
     </div>
   </div>
-</header>
 
-<section class="section">
-  <div class="wrap">
-    <h2>How this works</h2>
-    <p class="sub">
-      The sardines gather just off the shoreline in Moalboal. You swim out, drop below the surface,
-      and the school moves around you. No chasing, no touching, no drama.
-    </p>
+  <section class="hero">
+    <div class="wrap">
+      <div class="hero-grid">
+        <div class="hero-media">
+          <img src="/images/cebu/hero-moalboal-sardine-run.jpg" alt="Moalboal sardine run underwater" />
+        </div>
 
-    <div class="grid">
+        <div class="hero-panel">
+          <div>
+            <h1 class="hero-title">Moalboal sardine run</h1>
+            <p class="hero-lede">
+              One of the highest payoff water experiences in Cebu. No boat needed for the main event.
+              Do it early, keep it clean, and leave room for a relaxed afternoon.
+            </p>
+
+            <div class="chips" aria-label="Quick tags">
+              <span class="chip">South Cebu</span>
+              <span class="chip">Snorkel friendly</span>
+              <span class="chip">Best in the morning</span>
+              <span class="chip">Low logistics</span>
+            </div>
+
+            <div class="kpis" aria-label="Key info">
+              <div class="kpi">
+                <div class="label">Time needed</div>
+                <div class="val">6 to 10 hours</div>
+              </div>
+              <div class="kpi">
+                <div class="label">Water level</div>
+                <div class="val">Moderate</div>
+              </div>
+              <div class="kpi">
+                <div class="label">Family fit</div>
+                <div class="val">Depends</div>
+              </div>
+              <div class="kpi">
+                <div class="label">Cost level</div>
+                <div class="val">Low to medium</div>
+              </div>
+            </div>
+          </div>
+
+          <div class="cta-row">
+            <a class="btn primary" href="/catalog.html">Browse stays</a>
+            <a class="btn link" href="/destinations/cebu/index.html">Back to Cebu guide</a>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- BODY (rotated layout: lanes + matrix + protocol + safety, then FAQ) -->
+
+  <section class="section">
+    <div class="wrap">
+      <h2>Pick your lane</h2>
+      <p class="muted">Choose a style based on your comfort level. This keeps the day smooth.</p>
+
+      <div class="lanes">
+        <div class="lane">
+          <b>Lane A: First-timers</b>
+          <div class="muted">Snorkel only. Stay close to shore. Focus on confidence and calm breathing.</div>
+        </div>
+        <div class="lane">
+          <b>Lane B: Comfortable swimmers</b>
+          <div class="muted">Snorkel plus a short reef loop. Add an easy beach break.</div>
+        </div>
+        <div class="lane">
+          <b>Lane C: Strong swimmers</b>
+          <div class="muted">Longer water time, optional freedive dips. Keep your spacing. Avoid fatigue ego.</div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section class="section">
+    <div class="wrap">
+      <h2>Decision matrix</h2>
+
+      <table class="matrix" aria-label="Moalboal decision matrix">
+        <thead>
+          <tr>
+            <th style="width:28%">Situation</th>
+            <th style="width:36%">Do this</th>
+            <th style="width:36%">Avoid this</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td><span class="tag">Crowded shore</span></td>
+            <td class="muted">Start earlier. Shorten your session. Move in and out efficiently.</td>
+            <td class="muted">Waiting around geared up in heat and stress.</td>
+          </tr>
+          <tr>
+            <td><span class="tag">Choppy water</span></td>
+            <td class="muted">Stay closer, shorter sessions, and focus on breathing rhythm.</td>
+            <td class="muted">Pushing distance just to "get the shot."</td>
+          </tr>
+          <tr>
+            <td><span class="tag">Kids present</span></td>
+            <td class="muted">Keep it simple. One adult stays shore-ready. Rotate sessions.</td>
+            <td class="muted">All adults in water at once. No buffer.</td>
+          </tr>
+          <tr>
+            <td><span class="tag">You feel fatigue</span></td>
+            <td class="muted">Exit, hydrate, reset. Come back only if you feel stable.</td>
+            <td class="muted">Staying in water to "finish strong."</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+  <section class="section">
+    <div class="wrap">
+      <h2>How to run the day (clean blueprint)</h2>
+      <p class="muted">This sequencing pairs South Cebu reality with a low friction experience.</p>
+
+      <div class="proto">
+        <div class="step">
+          <div class="num">1</div>
+          <div class="body">
+            <div class="title">Early depart from Cebu City</div>
+            <div class="muted">Morning water is calmer and clearer. It also beats crowds and heat.</div>
+          </div>
+        </div>
+        <div class="step">
+          <div class="num">2</div>
+          <div class="body">
+            <div class="title">Sardine run first</div>
+            <div class="muted">Do the main event while you are fresh. Short, focused, and safe.</div>
+          </div>
+        </div>
+        <div class="step">
+          <div class="num">3</div>
+          <div class="body">
+            <div class="title">Reef / snorkel extension</div>
+            <div class="muted">Only if conditions feel clean. Otherwise, save energy and enjoy the coast.</div>
+          </div>
+        </div>
+        <div class="step">
+          <div class="num">4</div>
+          <div class="body">
+            <div class="title">Lunch and decompress</div>
+            <div class="muted">Hydrate and reset. This is where the day stays fun and not forced.</div>
+          </div>
+        </div>
+        <div class="step">
+          <div class="num">5</div>
+          <div class="body">
+            <div class="title">Return with buffer</div>
+            <div class="muted">South Cebu drive time is real. Do not schedule tight plans after.</div>
+          </div>
+        </div>
+      </div>
+
+      <div style="height:14px"></div>
+
+      <div class="grid-2">
+        <div class="card">
+          <h3>What you are here for</h3>
+          <p class="muted">That dense, moving wall of fish. Keep sessions short and controlled for the best experience.</p>
+          <div class="media">
+            <img src="/images/cebu/spot-sardine-run.jpg" alt="Sardines swirling in Moalboal" />
+          </div>
+        </div>
+        <div class="card">
+          <h3>Where your day lives</h3>
+          <p class="muted">This is the coastal zone where you stage, gear up, and keep the plan simple.</p>
+          <div class="media">
+            <img src="/images/cebu/spot-panagsama-beach.jpg" alt="Panagsama area in Moalboal" />
+          </div>
+        </div>
+      </div>
+
+      <div style="height:14px"></div>
+
       <div class="card">
-        <div class="media">
-          <img src="/images/cebu/spot-sardine-ball.jpg" alt="Sardine ball" />
-        </div>
-        <div class="body">
-          <h3>Readiness</h3>
-          <ul>
-            <li>Comfortable swimmer</li>
-            <li>Basic mask and snorkel</li>
-            <li>Ability to stay calm underwater</li>
-          </ul>
+        <h3>Safety basics (keep it non-negotiable)</h3>
+        <div class="grid-3">
+          <div class="card" style="box-shadow:none">
+            <h3 style="margin-top:0">Buddy rule</h3>
+            <p class="muted">No solo sessions. One buddy stays close enough to actually help.</p>
+          </div>
+          <div class="card" style="box-shadow:none">
+            <h3 style="margin-top:0">Breathing first</h3>
+            <p class="muted">If you are breathless, you are done. Exit, reset, and decide calmly.</p>
+          </div>
+          <div class="card" style="box-shadow:none">
+            <h3 style="margin-top:0">Gear fit</h3>
+            <p class="muted">Mask seal and fins fit matter more than photos. Fix it before you enter.</p>
+          </div>
         </div>
       </div>
 
-      <div class="card">
-        <div class="media">
-          <img src="/images/cebu/spot-moalboal-snorkeling.jpg" alt="Moalboal snorkeling" />
-        </div>
-        <div class="body">
-          <h3>Blueprint</h3>
-          <ul>
-            <li>Arrive early morning for calm water</li>
-            <li>Enter from Panagsama Beach</li>
-            <li>Float first, then duck dive gently</li>
-          </ul>
+    </div>
+  </section>
+
+  <section class="section">
+    <div class="wrap">
+      <h2>FAQ</h2>
+      <div class="faq">
+        <details>
+          <summary>Do I need a boat to see the sardines?</summary>
+          <p>No. The main sardine run experience is commonly accessible from shore. Conditions and exact spots can shift, so keep expectations realistic.</p>
+        </details>
+
+        <details>
+          <summary>Is this okay for non-swimmers?</summary>
+          <p>Not ideal. If you are not comfortable in water, skip the deep zone and choose a calmer coastal plan. Do not force it.</p>
+        </details>
+
+        <details>
+          <summary>What is the best time of day?</summary>
+          <p>Morning. Better light, calmer water, and less crowd stress.</p>
+        </details>
+
+        <details>
+          <summary>What should we pair this with?</summary>
+          <p>Keep it light. A relaxed lunch and an easy coast stop. Do not overpack the day just because you "made the drive."</p>
+        </details>
+      </div>
+    </div>
+  </section>
+
+  <footer>
+    <div class="wrap">
+      <div class="foot-row">
+        <div>© <span id="y"></span> Lolaelo</div>
+        <div>
+          <a href="https://lolaelo-api.onrender.com/privacy.html">Privacy</a>
+          <span class="muted"> | </span>
+          <a href="https://lolaelo-api.onrender.com/terms.html">Terms</a>
         </div>
       </div>
     </div>
+  </footer>
 
-    <div class="callouts">
-      <div class="call ok">
-        <h4>What good looks like</h4>
-        <p>Slow movements, steady breathing, and letting the school pass around you.</p>
-      </div>
-      <div class="call warn">
-        <h4>Common mistakes</h4>
-        <p>Chasing the fish, splashing, or crowding other swimmers.</p>
-      </div>
-      <div class="call">
-        <h4>When to skip</h4>
-        <p>Rough seas, poor visibility, or if you are already exhausted from a long south Cebu day.</p>
-      </div>
-    </div>
-
-  </div>
-</section>
-
-<footer>
-  <div class="wrap">
-    <div style="display:flex; justify-content:space-between; flex-wrap:wrap; gap:10px;">
-      <div>© <span id="y"></span> Lolaelo</div>
-      <div>
-        <a href="https://lolaelo-api.onrender.com/privacy.html">Privacy</a> ·
-        <a href="https://lolaelo-api.onrender.com/terms.html">Terms</a>
-      </div>
-    </div>
-  </div>
-</footer>
-
-<script>
-(function(){
-  var el=document.getElementById("y");
-  if(el) el.textContent=new Date().getFullYear();
-})();
-</script>
-
+  <script>
+    document.getElementById("y").textContent = new Date().getFullYear();
+  </script>
 </body>
 </html>
