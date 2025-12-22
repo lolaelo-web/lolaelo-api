@@ -3,324 +3,391 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>Camotes Islands | Lolaelo</title>
-  <link rel="icon" href="/favicon.ico" />
+  <title>Camotes Islands | Cebu - Lolaelo</title>
+
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+
   <style>
     :root{
       --accent:#ff6a3d;
       --green:#064e3b;
-      --ink:#0f172a;
+      --text:#0f172a;
       --muted:#475569;
-      --bg:#ffffff;
+      --border:rgba(15,23,42,.12);
       --card:#ffffff;
-      --line:rgba(15,23,42,.12);
+      --bg:#ffffff;
       --shadow:0 10px 30px rgba(2,6,23,.08);
-      --shadow2:0 6px 18px rgba(2,6,23,.08);
       --radius:18px;
-      --radius2:14px;
-      --max:1120px;
     }
     *{box-sizing:border-box}
     body{
       margin:0;
-      font-family: Inter, system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif;
-      color:var(--ink);
+      font-family:Inter,system-ui,-apple-system,Segoe UI,Roboto,Arial,sans-serif;
+      color:var(--text);
       background:var(--bg);
+      line-height:1.45;
     }
     a{color:inherit}
-    .wrap{max-width:var(--max); margin:0 auto; padding:0 20px;}
+    .wrap{max-width:1100px;margin:0 auto;padding:0 18px}
+
+    /* HEADER */
     .topbar{
-      border-bottom:1px solid var(--line);
-      background:#fff;
-      position:sticky;
-      top:0;
-      z-index:30;
+      position:sticky;top:0;z-index:50;
+      background:rgba(255,255,255,.9);
+      backdrop-filter:saturate(1.2) blur(10px);
+      border-bottom:1px solid var(--border);
     }
-    .topbar-inner{
-      display:flex;
-      align-items:center;
-      justify-content:space-between;
-      padding:14px 0;
-      gap:12px;
-    }
-    .brand img{height:30px}
-    .backlink{
-      text-decoration:none;
-      font-weight:650;
-      color:var(--green);
-      padding:10px 12px;
-      border-radius:999px;
-      border:1px solid rgba(6,78,59,.20);
-      background:rgba(6,78,59,.04);
-      white-space:nowrap;
-    }
-    .crumbs{padding:0 0 14px 0; color:var(--muted); font-size:13px}
+    .topbar-inner{display:flex;align-items:center;justify-content:space-between;padding:14px 0}
+    .brand{display:flex;align-items:center;gap:12px;text-decoration:none}
+    .brand img{height:28px;width:auto;display:block}
+    .top-actions a{text-decoration:none;color:var(--green);font-weight:600}
+    .crumbs{padding:10px 0 0 0;color:var(--muted);font-size:14px}
 
-    /* HeroGrid B */
-    .hero{padding:26px 0 10px 0}
-    .hero-grid{
-      display:grid;
-      grid-template-columns:1.25fr 1fr;
-      gap:18px;
-      align-items:stretch;
-    }
+    /* HERO GRID (same pattern across Cebu pages) */
+    .hero{padding:18px 0 8px 0}
+    .hero-grid{display:grid;grid-template-columns:1.15fr .85fr;gap:18px;align-items:stretch}
     .hero-media{
-      border-radius:var(--radius);
-      overflow:hidden;
-      border:1px solid var(--line);
-      box-shadow:var(--shadow2);
-      min-height:320px;
-      background:#f8fafc;
+      border-radius:24px;overflow:hidden;box-shadow:var(--shadow);
+      border:1px solid var(--border);min-height:320px;background:#f8fafc;
     }
-    .hero-media img{width:100%; height:100%; object-fit:cover; display:block}
-    .hero-card{
-      border-radius:var(--radius);
-      border:1px solid var(--line);
-      box-shadow:var(--shadow);
-      padding:18px;
-      display:flex;
-      flex-direction:column;
-      gap:12px;
-      background:#fff;
+    .hero-media img{width:100%;height:100%;object-fit:cover;display:block}
+    .hero-panel{
+      border-radius:24px;border:1px solid var(--border);box-shadow:var(--shadow);
+      padding:18px 18px 16px 18px;background:var(--card);
+      display:flex;flex-direction:column;justify-content:space-between;min-height:320px;
     }
-    .hero-title{margin:0; font-size:32px; line-height:1.1}
-    .hero-lede{margin:0; color:var(--muted); line-height:1.55}
-    .chips{display:flex; gap:8px; flex-wrap:wrap}
+    .hero-title{font-size:30px;line-height:1.15;margin:0 0 8px 0;letter-spacing:-.02em}
+    .hero-lede{margin:0 0 12px 0;color:var(--muted);font-size:15px}
+    .chips{display:flex;flex-wrap:wrap;gap:8px;margin:0 0 12px 0}
     .chip{
-      font-size:12px;
-      padding:7px 10px;
-      border-radius:999px;
-      border:1px solid var(--line);
-      background:#fff;
-      white-space:nowrap;
+      display:inline-flex;align-items:center;gap:6px;padding:7px 10px;
+      border:1px solid var(--border);border-radius:999px;font-size:13px;color:#0b1220;background:#fff;
     }
-    .cta-row{display:flex; gap:10px; margin-top:auto; flex-wrap:wrap}
+    .kpis{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin:0 0 14px 0}
+    .kpi{border:1px solid var(--border);border-radius:14px;padding:10px 12px;background:#fff}
+    .kpi .label{font-size:12px;color:var(--muted);margin-bottom:4px}
+    .kpi .val{font-weight:700}
+    .cta-row{display:flex;flex-wrap:wrap;gap:10px;margin-top:6px}
     .btn{
-      padding:12px 14px;
-      border-radius:12px;
-      font-weight:750;
-      text-decoration:none;
-      border:1px solid var(--line);
-      background:#fff;
-      display:inline-flex;
-      align-items:center;
-      justify-content:center;
-      gap:8px;
+      display:inline-flex;align-items:center;justify-content:center;gap:8px;
+      padding:11px 14px;border-radius:12px;border:1px solid var(--border);
+      text-decoration:none;font-weight:700;font-size:14px;background:#fff;
     }
-    .btn-primary{background:var(--accent); color:#1b120c; border-color:rgba(0,0,0,.06)}
-    .btn-secondary{color:var(--green); border-color:rgba(6,78,59,.24)}
+    .btn.primary{background:var(--accent);border-color:rgba(0,0,0,.06);color:#fff}
+    .btn.link{color:var(--green);background:#fff}
 
+    /* BODY (rotated layout: island loop + pick your lane + route logic + mistakes) */
     .section{padding:22px 0}
-    h2{color:var(--green); font-size:20px; margin:0 0 10px 0}
-    .sub{margin:0 0 14px 0; color:var(--muted); line-height:1.6}
-
-    /* Pick Your Lane + Matrix + Protocol */
-    .lanes{
-      display:grid;
-      grid-template-columns:1fr 1fr;
-      gap:14px;
-    }
-    .lane{
-      border:1px solid var(--line);
+    .section h2{margin:0 0 10px 0;font-size:20px;letter-spacing:-.01em;color:var(--green)}
+    .muted{color:var(--muted)}
+    .card{
+      background:var(--card);
+      border:1px solid var(--border);
       border-radius:var(--radius);
-      box-shadow:var(--shadow2);
-      background:#fff;
-      overflow:hidden;
-      display:flex;
-      flex-direction:column;
-    }
-    .lane .media{height:190px; background:#f8fafc}
-    .lane .media img{width:100%; height:100%; object-fit:cover; display:block}
-    .lane .body{padding:14px}
-    .lane h3{margin:0 0 6px 0; font-size:16px}
-    .lane p{margin:0; color:var(--muted); font-size:13.5px; line-height:1.6}
-    .lane ul{margin:8px 0 0 18px; color:var(--muted); font-size:13.5px; line-height:1.6}
-    .lane li{margin:4px 0}
-
-    .matrix{
-      margin-top:14px;
-      border:1px solid var(--line);
-      border-radius:var(--radius);
-      overflow:hidden;
-      box-shadow:var(--shadow2);
-      background:#fff;
-    }
-    .row{
-      display:grid;
-      grid-template-columns:1.2fr .8fr .8fr;
-      border-bottom:1px solid var(--line);
-    }
-    .row:last-child{border-bottom:none}
-    .cell{
-      padding:12px;
-      font-size:13.5px;
-      color:var(--muted);
-    }
-    .head{
-      background:rgba(2,6,23,.03);
-      font-weight:800;
-      color:var(--ink);
-    }
-
-    .protocol{
-      margin-top:14px;
-      border:1px solid var(--line);
-      border-radius:var(--radius);
-      box-shadow:var(--shadow2);
-      background:#fff;
+      box-shadow:var(--shadow);
       padding:14px;
     }
-    .protocol h3{margin:0 0 6px 0; font-size:16px}
-    .protocol ul{margin:8px 0 0 18px; color:var(--muted); font-size:13.5px; line-height:1.6}
-    .protocol li{margin:4px 0}
+    .card h3{margin:0 0 8px 0;font-size:16px}
+    .grid-2{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+    .grid-3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:14px}
+    .list{margin:0;padding-left:18px;color:var(--muted)}
+    .list li{margin:6px 0}
 
-    footer{
-      margin-top:26px;
-      border-top:1px solid var(--line);
-      padding:18px 0 26px 0;
-      color:var(--muted);
-      font-size:13px;
+    .lanes{display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px}
+    .lane{
+      border:1px solid var(--border);
+      border-radius:16px;
+      padding:12px;
+      background:#fff;
     }
-    footer a{color:var(--green); text-decoration:none}
+    .lane b{color:#0b1220}
 
-    @media(max-width:980px){
+    .route{
+      display:grid;gap:10px;
+    }
+    .step{
+      display:flex;gap:12px;
+      border:1px solid var(--border);
+      border-radius:16px;
+      padding:12px;
+      background:#fff;
+    }
+    .step .num{
+      width:34px;height:34px;border-radius:10px;
+      display:flex;align-items:center;justify-content:center;
+      font-weight:800;
+      background:rgba(255,106,61,.12);
+      color:var(--accent);
+      flex:0 0 auto;
+    }
+    .step .body{flex:1}
+    .step .title{font-weight:800;margin:0 0 4px 0}
+
+    .media{
+      border-radius:18px;overflow:hidden;border:1px solid var(--border);
+      background:#f8fafc;min-height:220px;
+    }
+    .media img{width:100%;height:100%;object-fit:cover;display:block}
+
+    .faq{display:grid;gap:10px}
+    details{border:1px solid var(--border);border-radius:16px;padding:12px;background:#fff}
+    summary{cursor:pointer;font-weight:800;color:#0b1220;list-style:none}
+    summary::-webkit-details-marker{display:none}
+    details p{margin:10px 0 0 0;color:var(--muted)}
+
+    footer{border-top:1px solid var(--border);padding:18px 0;color:var(--muted);font-size:14px}
+    footer a{color:var(--green);text-decoration:none;font-weight:600}
+    .foot-row{display:flex;align-items:center;justify-content:space-between;gap:14px;flex-wrap:wrap}
+
+    @media (max-width: 980px){
       .hero-grid{grid-template-columns:1fr}
+      .grid-2{grid-template-columns:1fr}
+      .grid-3{grid-template-columns:1fr}
       .lanes{grid-template-columns:1fr}
-      .row{grid-template-columns:1fr}
+      .kpis{grid-template-columns:1fr 1fr}
+    }
+    @media (max-width: 520px){
+      .kpis{grid-template-columns:1fr}
     }
   </style>
 </head>
+
 <body>
-
-<div class="topbar">
-  <div class="wrap">
-    <div class="topbar-inner">
-      <a class="brand" href="/">
-        <img src="https://www.lolaelo.com/logo.png?cb=logo-1x" alt="Lolaelo" />
-      </a>
-      <a class="backlink" href="/destinations/cebu/index.html">← Cebu guide</a>
-    </div>
-    <div class="crumbs"><span>Camotes Islands</span></div>
-  </div>
-</div>
-
-<header class="hero">
-  <div class="wrap">
-    <div class="hero-grid">
-      <div class="hero-media">
-        <img src="/images/cebu/hero-camotes-islands.jpg" alt="Camotes Islands" />
+  <div class="topbar">
+    <div class="wrap">
+      <div class="topbar-inner">
+        <a class="brand" href="/destinations/cebu/index.html" aria-label="Cebu guide home">
+          <img src="https://www.lolaelo.com/logo.png?cb=logo-1x" alt="Lolaelo" />
+        </a>
+        <div class="top-actions">
+          <a href="/destinations/cebu/index.html">← Cebu guide</a>
+        </div>
       </div>
-      <div class="hero-card">
-        <h1 class="hero-title">Camotes Islands</h1>
-        <p class="hero-lede">
-          A quieter reward phase. Light adventure, open roads, and fewer crowds.
-          This is where Cebu slows down if you let it.
-        </p>
-        <div class="chips">
-          <span class="chip">Phase 3</span>
-          <span class="chip">Low crowds</span>
-          <span class="chip">Reset days</span>
-        </div>
-        <div class="cta-row">
-          <a class="btn btn-primary" href="/catalog.html?destination=cebu">Browse stays</a>
-          <a class="btn btn-secondary" href="/destinations/cebu/index.html">Back to guide</a>
-        </div>
+
+      <div class="crumbs" aria-label="Breadcrumb">
+        <span>Camotes Islands</span>
       </div>
     </div>
   </div>
-</header>
 
-<section class="section">
-  <div class="wrap">
-    <h2>Pick your pace</h2>
-    <p class="sub">
-      Camotes works best when you choose calm over coverage. Decide how much movement you want
-      before you arrive.
-    </p>
+  <section class="hero">
+    <div class="wrap">
+      <div class="hero-grid">
+        <div class="hero-media">
+          <img src="/images/cebu/hero-camotes-islands.jpg" alt="Camotes Islands coastline" />
+        </div>
 
-    <div class="lanes">
-      <article class="lane">
+        <div class="hero-panel">
+          <div>
+            <h1 class="hero-title">Camotes Islands</h1>
+            <p class="hero-lede">
+              A low-drama island escape east of Cebu. This works best when you want space, quiet beaches,
+              and a self-paced island loop without pressure.
+            </p>
+
+            <div class="chips" aria-label="Quick tags">
+              <span class="chip">Island escape</span>
+              <span class="chip">Low crowds</span>
+              <span class="chip">Best overnight</span>
+              <span class="chip">Self-paced</span>
+            </div>
+
+            <div class="kpis" aria-label="Key info">
+              <div class="kpi">
+                <div class="label">Time needed</div>
+                <div class="val">1 to 2 days</div>
+              </div>
+              <div class="kpi">
+                <div class="label">Best fit</div>
+                <div class="val">Overnight</div>
+              </div>
+              <div class="kpi">
+                <div class="label">Effort level</div>
+                <div class="val">Low</div>
+              </div>
+              <div class="kpi">
+                <div class="label">Crowds</div>
+                <div class="val">Low</div>
+              </div>
+            </div>
+          </div>
+
+          <div class="cta-row">
+            <a class="btn primary" href="/catalog.html">Browse stays</a>
+            <a class="btn link" href="/destinations/cebu/index.html">Back to Cebu guide</a>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- BODY (rotated layout) -->
+
+  <section class="section">
+    <div class="wrap">
+      <h2>Why Camotes works</h2>
+      <div class="grid-3">
+        <div class="card">
+          <h3>Space</h3>
+          <p class="muted">Beaches feel open. You are not competing for room or time slots.</p>
+        </div>
+        <div class="card">
+          <h3>Control</h3>
+          <p class="muted">You decide the pace. No forced tours or stacked stops.</p>
+        </div>
+        <div class="card">
+          <h3>Reset value</h3>
+          <p class="muted">This is where Cebu decompresses. It feels quieter than the west coast.</p>
+        </div>
+      </div>
+
+      <div style="height:14px"></div>
+
+      <div class="grid-2">
+        <div class="card">
+          <h3>Signature beach</h3>
+          <div class="media">
+            <img src="/images/cebu/spot-camotes-santiago-bay.jpg" alt="Santiago Bay in Camotes" />
+          </div>
+        </div>
+        <div class="card">
+          <h3>Freshwater contrast</h3>
+          <div class="media">
+            <img src="/images/cebu/spot-camotes-lake-danao.jpg" alt="Lake Danao in Camotes" />
+          </div>
+        </div>
+      </div>
+
+      <div style="height:14px"></div>
+
+      <div class="card">
+        <h3>Natural stop</h3>
         <div class="media">
-          <img src="/images/cebu/spot-camotes-lake-danao.jpg" alt="Lake Danao" />
+          <img src="/images/cebu/spot-camotes-cave.jpg" alt="Cave attraction in Camotes" />
         </div>
-        <div class="body">
-          <h3>Light adventure</h3>
-          <ul>
-            <li>Lake Danao</li>
-            <li>Cave pools</li>
-            <li>Short island drives</li>
-          </ul>
-        </div>
-      </article>
-
-      <article class="lane">
-        <div class="media">
-          <img src="/images/cebu/spot-camotes-beach.jpg" alt="Camotes beach" />
-        </div>
-        <div class="body">
-          <h3>Pure reset</h3>
-          <ul>
-            <li>Beach mornings</li>
-            <li>Slow meals</li>
-            <li>Early nights</li>
-          </ul>
-        </div>
-      </article>
-    </div>
-
-    <div class="matrix" aria-label="Decision matrix">
-      <div class="row head">
-        <div class="cell">Question</div>
-        <div class="cell">Explore</div>
-        <div class="cell">Relax</div>
-      </div>
-      <div class="row">
-        <div class="cell">Daily movement</div>
-        <div class="cell">Moderate</div>
-        <div class="cell">Minimal</div>
-      </div>
-      <div class="row">
-        <div class="cell">Transport</div>
-        <div class="cell">Motorbike or car</div>
-        <div class="cell">Walk and beach</div>
-      </div>
-      <div class="row">
-        <div class="cell">Payoff</div>
-        <div class="cell">Variety</div>
-        <div class="cell">Recovery</div>
       </div>
     </div>
+  </section>
 
-    <div class="protocol">
-      <h3>Island protocol</h3>
-      <ul>
-        <li>Plan ferry timing before you commit to activities.</li>
-        <li>Fuel up early. Stations are sparse.</li>
-        <li>Keep evenings light. Power outages happen.</li>
-      </ul>
-    </div>
-
-  </div>
-</section>
-
-<footer>
-  <div class="wrap">
-    <div style="display:flex; justify-content:space-between; flex-wrap:wrap; gap:10px;">
-      <div>© <span id="y"></span> Lolaelo</div>
-      <div>
-        <a href="https://lolaelo-api.onrender.com/privacy.html">Privacy</a> ·
-        <a href="https://lolaelo-api.onrender.com/terms.html">Terms</a>
+  <section class="section">
+    <div class="wrap">
+      <h2>Pick your lane</h2>
+      <div class="lanes">
+        <div class="lane">
+          <b>Lane A: Beach-first</b>
+          <div class="muted">Minimal driving. One main beach. Long swim, long nap.</div>
+        </div>
+        <div class="lane">
+          <b>Lane B: Island loop</b>
+          <div class="muted">Beach, lake, cave. Keep it light and spaced out.</div>
+        </div>
+        <div class="lane">
+          <b>Lane C: Full reset</b>
+          <div class="muted">Overnight stay, sunset beach, slow morning exit.</div>
+        </div>
       </div>
     </div>
-  </div>
-</footer>
+  </section>
 
-<script>
-(function(){
-  var el=document.getElementById("y");
-  if(el) el.textContent=new Date().getFullYear();
-})();
-</script>
+  <section class="section">
+    <div class="wrap">
+      <h2>Clean island loop</h2>
+      <p class="muted">Do not rush this. The value is in spacing.</p>
 
+      <div class="route">
+        <div class="step">
+          <div class="num">1</div>
+          <div class="body">
+            <div class="title">Arrive and check in</div>
+            <div class="muted">Drop bags, hydrate, and slow down.</div>
+          </div>
+        </div>
+        <div class="step">
+          <div class="num">2</div>
+          <div class="body">
+            <div class="title">One main beach stop</div>
+            <div class="muted">Swim, rest, eat. This is the core of the day.</div>
+          </div>
+        </div>
+        <div class="step">
+          <div class="num">3</div>
+          <div class="body">
+            <div class="title">Optional inland contrast</div>
+            <div class="muted">Lake or cave only if energy is good.</div>
+          </div>
+        </div>
+        <div class="step">
+          <div class="num">4</div>
+          <div class="body">
+            <div class="title">Sunset and early night</div>
+            <div class="muted">Protect the calm. This is the payoff.</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section class="section">
+    <div class="wrap">
+      <h2>Common mistakes</h2>
+      <div class="grid-3">
+        <div class="card">
+          <h3>Overplanning</h3>
+          <p class="muted">Camotes loses value when treated like a checklist.</p>
+        </div>
+        <div class="card">
+          <h3>Skipping the overnight</h3>
+          <p class="muted">Day trips compress the experience too much.</p>
+        </div>
+        <div class="card">
+          <h3>Chasing “hidden spots”</h3>
+          <p class="muted">Simple beaches beat forced detours.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section class="section">
+    <div class="wrap">
+      <h2>FAQ</h2>
+      <div class="faq">
+        <details>
+          <summary>Is Camotes worth it without a motorbike?</summary>
+          <p>Yes. Tricycles and short hires work fine if you keep your plan simple.</p>
+        </details>
+        <details>
+          <summary>Can this be a day trip?</summary>
+          <p>It can, but the experience improves significantly with at least one overnight.</p>
+        </details>
+        <details>
+          <summary>What kind of traveler fits Camotes?</summary>
+          <p>People who want space, quiet, and control over pace rather than packed itineraries.</p>
+        </details>
+        <details>
+          <summary>What pairs well after Camotes?</summary>
+          <p>Return to Cebu City for rest or continue to another island leg with a fresh reset.</p>
+        </details>
+      </div>
+    </div>
+  </section>
+
+  <footer>
+    <div class="wrap">
+      <div class="foot-row">
+        <div>© <span id="y"></span> Lolaelo</div>
+        <div>
+          <a href="https://lolaelo-api.onrender.com/privacy.html">Privacy</a>
+          <span class="muted"> | </span>
+          <a href="https://lolaelo-api.onrender.com/terms.html">Terms</a>
+        </div>
+      </div>
+    </div>
+  </footer>
+
+  <script>
+    document.getElementById("y").textContent = new Date().getFullYear();
+  </script>
 </body>
 </html>
