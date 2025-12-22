@@ -1,661 +1,948 @@
-<!doctype html>
+<!DOCTYPE html>
 <html lang="en">
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>Cebu Island Guide | Lolaelo</title>
-  <link rel="icon" href="/favicon.ico" />
+  <title>Cebu Island Travel Guide | Top 10 Experiences (Lolaelo)</title>
+  <meta name="description" content="A clean, curated guide to Cebu Island. The 10 experiences that actually matter, plus quick picks, sequencing tips, and where to stay." />
+
+  <link rel="icon" href="https://www.lolaelo.com/logo2.png" />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+
   <style>
-    :root{
-      --accent:#ff6a3d;
-      --green:#064e3b;
-      --ink:#0f172a;
-      --muted:#475569;
-      --bg:#ffffff;
-      --card:#ffffff;
-      --line:rgba(15,23,42,.12);
-      --shadow:0 10px 30px rgba(2,6,23,.08);
-      --shadow2:0 6px 18px rgba(2,6,23,.08);
-      --radius:18px;
-      --radius2:14px;
-      --max:1120px;
-    }
-    *{box-sizing:border-box}
-    body{
-      margin:0;
-      font-family: Inter, system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif;
-      color:var(--ink);
-      background:var(--bg);
-    }
-    a{color:inherit}
-    .wrap{max-width:var(--max); margin:0 auto; padding:0 20px;}
-    .topbar{
-      border-bottom:1px solid var(--line);
-      background:#fff;
-      position:sticky;
-      top:0;
-      z-index:30;
-    }
-    .topbar-inner{
-      display:flex;
-      align-items:center;
-      justify-content:space-between;
-      padding:14px 0;
-      gap:12px;
-    }
-    .brand{
-      display:flex;
-      align-items:center;
-      gap:12px;
-      text-decoration:none;
-    }
-    .brand img{height:30px; width:auto; display:block}
-    .backlink{
-      text-decoration:none;
-      font-weight:650;
-      color:var(--green);
-      padding:10px 12px;
-      border-radius:999px;
-      border:1px solid rgba(6,78,59,.20);
-      background:rgba(6,78,59,.04);
-      white-space:nowrap;
-    }
-    .crumbs{
-      padding:0 0 14px 0;
-      color:var(--muted);
-      font-size:13px;
+    :root {
+      --bg: #ffffff;
+      --fg: #111827;
+      --muted: #6b7280;
+      --brand: #064e3b;
+      --accent: #ff6a3d;
+      --border: #e5e7eb;
+      --max-width: 960px;
+      --card-shadow: 0 12px 30px rgba(15,23,42,0.10);
+      --card-shadow-hover: 0 16px 40px rgba(15,23,42,0.18);
     }
 
-    /* HeroGrid pattern B */
-    .hero{
-      padding:26px 0 10px 0;
-    }
-    .hero-grid{
-      display:grid;
-      grid-template-columns: 1.25fr 1fr;
-      gap:18px;
-      align-items:stretch;
-    }
-    .hero-media{
-      border-radius:var(--radius);
-      overflow:hidden;
-      border:1px solid var(--line);
-      box-shadow:var(--shadow2);
-      min-height:330px;
-      background:#f8fafc;
-    }
-    .hero-media img{
-      width:100%;
-      height:100%;
-      object-fit:cover;
-      display:block;
-    }
-    .hero-card{
-      border-radius:var(--radius);
-      border:1px solid var(--line);
-      box-shadow:var(--shadow);
-      padding:18px;
-      background:var(--card);
-      display:flex;
-      flex-direction:column;
-      gap:12px;
-      min-height:330px;
-    }
-    .hero-title{
-      margin:0;
-      font-size:34px;
-      line-height:1.08;
-      letter-spacing:-.02em;
-    }
-    .hero-lede{
-      margin:0;
-      color:var(--muted);
-      font-size:15px;
-      line-height:1.55;
-    }
-    .chips{
-      display:flex;
-      flex-wrap:wrap;
-      gap:8px;
-      margin-top:2px;
-    }
-    .chip{
-      font-size:12px;
-      padding:7px 10px;
-      border-radius:999px;
-      border:1px solid var(--line);
-      background:#fff;
-      color:var(--ink);
-      white-space:nowrap;
-    }
-    .kpis{
-      display:grid;
-      grid-template-columns: repeat(3, 1fr);
-      gap:10px;
-      margin-top:6px;
-    }
-    .kpi{
-      border:1px solid var(--line);
-      border-radius:var(--radius2);
-      padding:10px;
-      background:rgba(2,6,23,.02);
-    }
-    .kpi .k{
-      font-size:12px;
-      color:var(--muted);
-      margin:0 0 4px 0;
-    }
-    .kpi .v{
-      font-size:14px;
-      font-weight:750;
-      margin:0;
-      color:var(--ink);
-    }
-    .cta-row{
-      display:flex;
-      gap:10px;
-      margin-top:auto;
-      flex-wrap:wrap;
-    }
-    .btn{
-      display:inline-flex;
-      align-items:center;
-      justify-content:center;
-      gap:8px;
-      padding:12px 14px;
-      border-radius:12px;
-      font-weight:750;
-      text-decoration:none;
-      border:1px solid var(--line);
-      background:#fff;
-    }
-    .btn-primary{
-      background:var(--accent);
-      border-color:rgba(0,0,0,.06);
-      color:#1b120c;
-    }
-    .btn-secondary{
-      background:#fff;
-      color:var(--green);
-      border-color:rgba(6,78,59,.24);
+    * { box-sizing: border-box; }
+    html, body { margin: 0; padding: 0; height: 100%; }
+    body {
+      font-family: Inter, ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+      background: var(--bg);
+      color: var(--fg);
+      display: flex;
+      flex-direction: column;
+      min-height: 100vh;
     }
 
-    .section{
-      padding:22px 0;
-    }
-    .section h2{
-      margin:0 0 10px 0;
-      color:var(--green);
-      font-size:20px;
-      letter-spacing:-.01em;
-    }
-    .subtext{
-      margin:0 0 14px 0;
-      color:var(--muted);
-      line-height:1.6;
-      font-size:14px;
+    a { color: inherit; text-decoration: none; }
+
+    .page {
+      width: 100%;
+      max-width: var(--max-width);
+      margin: 0 auto;
+      padding: 16px 20px 40px;
+      display: flex;
+      flex-direction: column;
+      flex: 1;
     }
 
-    .phase-grid{
-      display:grid;
-      grid-template-columns: repeat(3, 1fr);
-      gap:12px;
-    }
-    .phase{
-      border:1px solid var(--line);
-      border-radius:var(--radius);
-      padding:14px;
-      background:#fff;
-      box-shadow:var(--shadow2);
-      position:relative;
-      overflow:hidden;
-    }
-    .phase .tag{
-      display:inline-flex;
-      font-size:12px;
-      font-weight:750;
-      padding:6px 10px;
-      border-radius:999px;
-      background:rgba(255,106,61,.14);
-      border:1px solid rgba(255,106,61,.24);
-      color:#402014;
-    }
-    .phase h3{
-      margin:10px 0 6px 0;
-      font-size:16px;
-      letter-spacing:-.01em;
-    }
-    .phase p{margin:0; color:var(--muted); line-height:1.6; font-size:13.5px;}
-
-    .cards{
-      display:grid;
-      grid-template-columns: repeat(3, 1fr);
-      gap:14px;
-    }
-    .card{
-      border:1px solid var(--line);
-      border-radius:var(--radius);
-      overflow:hidden;
-      background:#fff;
-      box-shadow:var(--shadow2);
-      display:flex;
-      flex-direction:column;
-      min-height:320px;
-    }
-    .card .media{
-      height:170px;
-      background:#f8fafc;
-    }
-    .card .media img{
-      width:100%;
-      height:100%;
-      object-fit:cover;
-      display:block;
-    }
-    .card .body{
-      padding:14px;
-      display:flex;
-      flex-direction:column;
-      gap:10px;
-      flex:1;
-    }
-    .card .title{
-      margin:0;
-      font-size:16px;
-      letter-spacing:-.01em;
-    }
-    .card .desc{
-      margin:0;
-      color:var(--muted);
-      font-size:13.5px;
-      line-height:1.6;
-    }
-    .card .meta{
-      margin-top:auto;
-      display:flex;
-      flex-wrap:wrap;
-      gap:8px;
-      align-items:center;
-      justify-content:space-between;
-    }
-    .pill{
-      font-size:12px;
-      padding:6px 10px;
-      border-radius:999px;
-      border:1px solid var(--line);
-      color:var(--muted);
-      background:#fff;
-    }
-    .card .go{
-      display:inline-flex;
-      align-items:center;
-      justify-content:center;
-      font-weight:800;
-      text-decoration:none;
-      padding:10px 12px;
-      border-radius:12px;
-      border:1px solid rgba(255,106,61,.26);
-      background:rgba(255,106,61,.12);
-      color:#2b160f;
-      white-space:nowrap;
+    /* Top nav (match destinations.html) */
+    .nav {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 4px 0 12px;
     }
 
-    .map-strip{
-      border:1px solid var(--line);
-      border-radius:var(--radius);
-      overflow:hidden;
-      box-shadow:var(--shadow2);
-      background:#fff;
-    }
-    .map-strip .inner{
-      display:grid;
-      grid-template-columns: 1fr 1.2fr;
-      gap:0;
-      align-items:stretch;
-    }
-    .map-strip .img{
-      min-height:240px;
-      background:#f8fafc;
-    }
-    .map-strip .img img{width:100%; height:100%; object-fit:cover; display:block;}
-    .map-strip .txt{
-      padding:16px;
-      display:flex;
-      flex-direction:column;
-      gap:10px;
-    }
-    .map-strip .txt h3{margin:0; font-size:16px; letter-spacing:-.01em;}
-    .map-strip .txt p{margin:0; color:var(--muted); line-height:1.6; font-size:13.5px;}
-    .map-strip .txt .row{display:flex; gap:10px; flex-wrap:wrap; margin-top:auto;}
+    .nav-left { display: flex; align-items: center; gap: 8px; }
 
-    footer{
-      margin-top:26px;
-      border-top:1px solid var(--line);
-      padding:18px 0 26px 0;
-      color:var(--muted);
-      font-size:13px;
-    }
-    footer .f{
-      display:flex;
-      align-items:center;
-      justify-content:space-between;
-      gap:10px;
-      flex-wrap:wrap;
-    }
-    footer a{color:var(--green); text-decoration:none}
-    footer a:hover{text-decoration:underline}
+    .logo-img { height: 32px; width: auto; display: block; }
 
-    @media (max-width: 980px){
-      .hero-grid{grid-template-columns:1fr}
-      .hero-media, .hero-card{min-height:unset}
-      .kpis{grid-template-columns:1fr}
-      .phase-grid{grid-template-columns:1fr}
-      .cards{grid-template-columns:1fr}
-      .map-strip .inner{grid-template-columns:1fr}
-      .card{min-height:unset}
+    .nav-right {
+      display: flex;
+      align-items: center;
+      gap: 20px;
+      font-size: 14px;
+    }
+
+    .nav-link {
+      color: var(--brand);
+      padding: 4px 0;
+      font-weight: 500;
+      text-decoration: none;
+    }
+
+    .nav-link-back {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      text-decoration: none;
+    }
+
+    .nav-back-arrow {
+      font-size: 16px;
+      line-height: 1;
+      transform: translateY(1px);
+      text-decoration: none !important;
+    }
+
+    .nav-link-back span:last-child { text-decoration: none; }
+
+    .nav-link-back:hover span:last-child { text-decoration: underline; }
+
+    .nav-link-back:hover .nav-back-arrow {
+      transform: translate(-2px, 1px);
+      transition: transform 0.15s ease-out;
+    }
+
+    /* Breadcrumbs */
+    .crumbs {
+      margin-top: 8px;
+      font-size: 12px;
+      color: var(--muted);
+      display: flex;
+      gap: 8px;
+      align-items: center;
+      flex-wrap: wrap;
+    }
+    .crumbs a { color: var(--muted); text-decoration: underline; }
+    .crumbs .sep { color: #9ca3af; }
+
+    /* Hero */
+    .hero {
+      margin-top: 14px;
+      border-radius: 18px;
+      overflow: hidden;
+      min-height: 280px;
+      background-image: url("/images/cebu/hero-cebu-island.jpg");
+      background-size: cover;
+      background-position: center;
+      background-repeat: no-repeat;
+      position: relative;
+      box-shadow: var(--card-shadow);
+    }
+
+    .hero::before {
+      content: "";
+      position: absolute;
+      inset: 0;
+      background: linear-gradient(to top, rgba(0,0,0,0.55), rgba(0,0,0,0.18));
+    }
+
+    .hero-inner {
+      position: relative;
+      padding: 18px 18px 16px;
+      display: flex;
+      flex-direction: column;
+      justify-content: flex-end;
+      min-height: 280px;
+      gap: 10px;
+    }
+
+    .hero-title {
+      margin: 0;
+      color: #ffffff;
+      font-size: clamp(28px, 4vw, 40px);
+      line-height: 1.15;
+      font-weight: 600;
+      text-shadow: 0 2px 6px rgba(0,0,0,0.35);
+      letter-spacing: -0.01em;
+    }
+
+    .hero-sub {
+      margin: 0;
+      color: rgba(255,255,255,0.92);
+      font-size: 14.5px;
+      line-height: 1.45;
+      max-width: 78ch;
+    }
+
+    .hero-actions {
+      display: flex;
+      gap: 10px;
+      flex-wrap: wrap;
+      margin-top: 6px;
+    }
+
+    .btn {
+      border-radius: 999px;
+      padding: 9px 14px;
+      font-size: 14px;
+      font-weight: 500;
+      border: 1px solid transparent;
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      white-space: nowrap;
+    }
+
+    .btn-primary { background: var(--accent); color: #ffffff; }
+    .btn-secondary { background: rgba(229,242,255,0.95); color: var(--brand); border-color: rgba(229,242,255,0.65); }
+    .btn-ghost { background: rgba(255,255,255,0.14); color: #ffffff; border-color: rgba(255,255,255,0.18); }
+
+    /* Content */
+    .content { margin-top: 18px; }
+
+    .intro {
+      margin-top: 14px;
+      padding: 14px 16px;
+      border: 1px solid var(--border);
+      border-radius: 16px;
+      background: #ffffff;
+      box-shadow: 0 10px 24px rgba(15,23,42,0.06);
+    }
+
+    .intro h2 {
+      margin: 0 0 8px;
+      font-size: 15px;
+      color: var(--brand);
+      font-weight: 600;
+    }
+
+    .intro p {
+      margin: 0 0 8px;
+      font-size: 12.8px;
+      line-height: 1.6;
+      color: #4b5563;
+      white-space: pre-line;
+    }
+
+    .split {
+      margin-top: 14px;
+      display: grid;
+      grid-template-columns: 1.2fr 0.8fr;
+      gap: 14px;
+      align-items: start;
+    }
+
+    .panel {
+      border: 1px solid var(--border);
+      border-radius: 16px;
+      padding: 14px 16px;
+      background: #ffffff;
+      box-shadow: 0 10px 24px rgba(15,23,42,0.06);
+    }
+
+    .panel h3 {
+      margin: 0 0 10px;
+      font-size: 13px;
+      font-weight: 600;
+      color: #111827;
+    }
+
+    .pills {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      margin-top: 10px;
+    }
+
+    .pill {
+      font-size: 12px;
+      padding: 6px 10px;
+      border-radius: 999px;
+      border: 1px solid var(--border);
+      color: #374151;
+      background: #fafafa;
+    }
+
+    .panel ul {
+      margin: 0;
+      padding-left: 18px;
+      font-size: 12.5px;
+      line-height: 1.55;
+      color: #4b5563;
+    }
+
+    .panel li { margin-bottom: 6px; }
+
+    /* Experiences list */
+    .section-title {
+      margin: 22px 0 10px;
+      font-size: 15px;
+      font-weight: 600;
+      color: var(--brand);
+    }
+
+    .cards {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 14px;
+    }
+
+    .card {
+      border-radius: 18px;
+      border: 1px solid var(--border);
+      overflow: hidden;
+      background: #ffffff;
+      box-shadow: var(--card-shadow);
+      transition: transform 0.2s ease-out, box-shadow 0.2s ease-out;
+    }
+
+    .card:hover {
+      transform: translateY(-2px);
+      box-shadow: var(--card-shadow-hover);
+    }
+
+    .card-media {
+      width: 300px;
+      height: 300px;
+      border-radius: 999px;
+      background-size: cover;
+      background-position: center;
+      background-repeat: no-repeat;
+      margin: 18px auto 12px;
+      box-shadow: 0 18px 40px rgba(15,23,42,0.18);
+      border: 1px solid rgba(229,231,235,0.9);
+    }
+
+    /* remove the overlay for circle tiles */
+    .card-media::before { display: none; content: none; }
+
+    .card-body {
+      padding: 8px 18px 18px;
+      text-align: left;
+    }
+
+    .card {
+      border-radius: 22px;
+    }
+
+    .cards {
+      align-items: stretch;
+    }
+
+    .card-kicker {
+      font-size: 12px;
+      color: #6b7280;
+      margin: 0 0 4px;
+    }
+
+    .card-title {
+      margin: 0 0 8px;
+      font-size: 16px;
+      font-weight: 600;
+      color: #111827;
+      letter-spacing: -0.01em;
+    }
+
+    .card-text {
+      margin: 0 0 10px;
+      font-size: 12.8px;
+      line-height: 1.6;
+      color: #4b5563;
+      white-space: pre-line;
+    }
+
+    .card {
+      min-height: 420px;
+    }
+
+    /* optional: clamp without touching typography */
+    .card-title {
+      display: -webkit-box;
+      line-clamp: 2;
+      -webkit-line-clamp: 2;
+      -webkit-box-orient: vertical;
+      overflow: hidden;
+    }
+
+    .card-text {
+      display: -webkit-box;
+      line-clamp: 4;
+      -webkit-line-clamp: 4;
+      -webkit-box-orient: vertical;
+      overflow: hidden;
+    }
+
+    .meta-row {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      margin-top: 8px;
+    }
+
+    .meta {
+      font-size: 12px;
+      padding: 6px 10px;
+      border-radius: 999px;
+      border: 1px solid var(--border);
+      background: #ffffff;
+      color: #374151;
+    }
+
+    .meta strong { font-weight: 600; }
+
+    .card-cta {
+      margin-top: 12px;
+      display: flex;
+      gap: 10px;
+      flex-wrap: wrap;
+    }
+
+    .link {
+      font-size: 13px;
+      color: var(--brand);
+      font-weight: 500;
+      text-decoration: underline;
+      cursor: pointer;
+    }
+
+    .card-clickable {
+      cursor: pointer;
+    }
+
+    .card-clickable a {
+      position: relative;
+      z-index: 2; /* ensures links still work normally */
+    }
+
+    /* FAQ */
+    .faq {
+      margin-top: 22px;
+      border: 1px solid var(--border);
+      border-radius: 16px;
+      padding: 14px 16px;
+      background: #ffffff;
+      box-shadow: 0 10px 24px rgba(15,23,42,0.06);
+    }
+
+    details {
+      border-top: 1px solid var(--border);
+      padding: 10px 0;
+    }
+
+    details:first-of-type { border-top: none; padding-top: 0; }
+    summary {
+      cursor: pointer;
+      list-style: none;
+      font-size: 13px;
+      font-weight: 600;
+      color: #111827;
+    }
+
+    summary::-webkit-details-marker { display: none; }
+
+    .faq p {
+      margin: 8px 0 0;
+      font-size: 12.8px;
+      line-height: 1.6;
+      color: #4b5563;
+    }
+
+    /* Footer */
+    footer {
+      border-top: 1px solid var(--border);
+      padding: 14px 20px 22px;
+      font-size: 12px;
+      color: #6b7280;
+      text-align: center;
+      margin-top: auto;
+    }
+
+    footer a { color: inherit; text-decoration: underline; }
+
+    /* Responsive */
+    @media (max-width: 768px) {
+      .page { padding: 12px 16px 28px; }
+      .split { grid-template-columns: 1fr; }
+      .hero-inner { min-height: 260px; }
+      .cards { grid-template-columns: 1fr; }
+      .card-media { width: 220px; height: 220px; margin: 14px auto 10px; }
     }
   </style>
+
+  <!-- FAQ structured data (basic) -->
+  <script type="application/ld+json">
+  {
+    "@context":"https://schema.org",
+    "@type":"FAQPage",
+    "mainEntity":[
+      {
+        "@type":"Question",
+        "name":"How many days do you need in Cebu?",
+        "acceptedAnswer":{"@type":"Answer","text":"Four to seven days is the sweet spot. Four days covers city orientation plus one south Cebu adventure day. A week lets you add an island reward phase like Malapascua, Camotes, or Bantayan."}
+      },
+      {
+        "@type":"Question",
+        "name":"What is the best way to structure a Cebu trip?",
+        "acceptedAnswer":{"@type":"Answer","text":"Do Cebu in phases: city orientation first, then south Cebu for high-effort adventure days, then finish with an island reward phase to slow down and recover."}
+      },
+      {
+        "@type":"Question",
+        "name":"Is Kawasan canyoneering safe?",
+        "acceptedAnswer":{"@type":"Answer","text":"It can be safe with the right guide and conservative choices. Start early, follow safety protocol, and skip jumps you do not want. If your group has mixed ability, plan around the weakest link."}
+      },
+      {
+        "@type":"Question",
+        "name":"Should you do Oslob whale sharks?",
+        "acceptedAnswer":{"@type":"Answer","text":"It is a personal decision with tradeoffs. Some travelers choose it for predictability and proximity, others avoid it due to ethical concerns. Decide before you arrive and consider alternatives like Moalboal."}
+      }
+    ]
+  }
+  </script>
 </head>
 
 <body>
-  <!-- Canonical header (consistent across Cebu pages) -->
-  <div class="topbar">
-    <div class="wrap">
-      <div class="topbar-inner">
-        <a class="brand" href="/">
-          <img src="https://www.lolaelo.com/logo.png?cb=logo-1x" alt="Lolaelo" />
+  <div class="page">
+    <header class="nav">
+      <div class="nav-left">
+        <a href="https://www.lolaelo.com" aria-label="Lolaelo home">
+          <img
+          src="https://www.lolaelo.com/logo.png?cb=logo-1x"
+          alt="Lolaelo"
+          class="logo-img"
+          decoding="async"
+          loading="eager"
+        >
         </a>
-        <a class="backlink" href="/destinations/cebu/index.html" aria-label="Back to Cebu guide">← Cebu guide</a>
       </div>
-      <div class="crumbs" aria-label="Breadcrumb">
-        <span>Cebu</span>
-      </div>
-    </div>
-  </div>
 
-  <!-- HeroGrid (Pattern B) -->
-  <header class="hero">
-    <div class="wrap">
-      <div class="hero-grid">
-        <div class="hero-media">
-          <img src="/images/cebu/hero-cebu-island.jpg" alt="Cebu Island" />
+      <nav class="nav-right" aria-label="Primary">
+        <a class="nav-link nav-link-back" href="/destinations.html" aria-label="Back to destinations">
+          <span class="nav-back-arrow">←</span>
+          <span>Destinations</span>
+        </a>
+      </nav>
+    </header>
+
+    <div class="crumbs" aria-label="Breadcrumb">
+      <span>Cebu</span>
+    </div>
+
+    <main class="content" role="main">
+      <section class="hero" aria-label="Cebu hero">
+        <div class="hero-inner">
+          <h1 class="hero-title">Cebu: the full-island plan that actually works</h1>
+          <p class="hero-sub">
+            Cebu is easy to overbook. City is the entry point, south Cebu is the adventure core, and the islands are the reward phase.
+            Doing less well is the win.
+          </p>
+          <div class="hero-actions">
+            <a class="btn btn-primary" href="https://lolaelo-api.onrender.com/catalog.html?q=cebu">View stays in Cebu</a>
+            <a class="btn btn-secondary" href="#top10">Jump to top 10</a>
+            <a class="btn btn-ghost" href="/destinations.html">Back to destinations</a>
+          </div>
+        </div>
+      </section>
+
+      <section class="intro" aria-label="How to use this guide">
+        <h2>How to use this guide</h2>
+        <p>
+Cebu is not a single-city trip. It is an island trip with real drive times.
+Use this list as a menu. Choose what fits your phase, then stop.
+
+If you only have 4 days, prioritize: Cebu City orientation, one south Cebu adventure day, and one recovery day.
+        </p>
+        <div class="pills" aria-label="Quick tags">
+          <span class="pill">Best trip length: 4 to 7 days</span>
+          <span class="pill">Style: city, water, highlands, islands</span>
+          <span class="pill">Effort: mixed</span>
+        </div>
+      </section>
+
+      <section class="split" aria-label="Quick picks and sequencing">
+        <div class="panel">
+          <h3>Quick picks</h3>
+          <ul>
+            <li><strong>First time:</strong> #1 Heritage walk, #2 Tops Lookout, #4 Moalboal sardines</li>
+            <li><strong>Families:</strong> #1 Heritage walk, #9 Food lane, #8 Camotes (slower pace)</li>
+            <li><strong>Adventure:</strong> #3 Kawasan canyoneering, #4 Moalboal, #6 Osmeña Peak</li>
+            <li><strong>Reward phase:</strong> #7 Malapascua, #8 Camotes, #10 Bantayan jump point</li>
+          </ul>
         </div>
 
-        <div class="hero-card">
-          <h1 class="hero-title">Cebu Island</h1>
-          <p class="hero-lede">
-            Cebu works best in phases. Start with city orientation, go south for the adventure core, then earn your island reward.
-            If your plan is packed, it will feel rushed. Doing less well is a win here.
+        <div class="panel">
+          <h3>Sequencing that matters</h3>
+          <ul>
+            <li><strong>City first:</strong> orient before you commit to long drives</li>
+            <li><strong>South days:</strong> early starts are non-negotiable</li>
+            <li><strong>Do less well:</strong> stacking stops breaks the day</li>
+            <li><strong>Islands last:</strong> use them as recovery, not another mission</li>
+          </ul>
+        </div>
+      </section>
+
+      <h2 class="section-title" id="top10">Top 10 experiences</h2>
+
+      <section class="cards" aria-label="Cebu experiences list">
+
+      <!-- 1 -->
+      <article
+        class="card card-clickable"
+        id="exp-1"
+        role="link"
+        tabindex="0"
+        aria-label="Open full guide: Cebu City heritage walk"
+        onclick="window.location.href='/destinations/cebu/cebu-city-heritage-walk.html';"
+        onkeydown="if(event.key==='Enter'){window.location.href='/destinations/cebu/cebu-city-heritage-walk.html';}"
+      >
+        <div class="card-media" style="background-image:url('/images/cebu/hero-cebu-city-heritage.jpg');"></div>
+
+        <div class="card-body">
+          <p class="card-kicker">1 of 10</p>
+          <h3 class="card-title">Cebu City heritage walk</h3>
+
+          <p class="card-text">
+Quick context without burning a day. Best as your first half-day or a recovery morning.
           </p>
 
-          <div class="chips" aria-label="Highlights">
-            <span class="chip">City orientation</span>
-            <span class="chip">South Cebu adventure</span>
-            <span class="chip">Island reward phase</span>
-            <span class="chip">Loops, not chaos</span>
+          <div class="meta-row">
+            <span class="meta"><strong>Duration:</strong> half day</span>
+            <span class="meta"><strong>Best time:</strong> morning</span>
+            <span class="meta"><strong>Effort:</strong> low</span>
+            <span class="meta"><strong>Phase:</strong> 1</span>
           </div>
 
-          <div class="kpis" aria-label="Quick facts">
-            <div class="kpi">
-              <p class="k">Best structure</p>
-              <p class="v">3-phase trip</p>
-            </div>
-            <div class="kpi">
-              <p class="k">Reality check</p>
-              <p class="v">Early starts</p>
-            </div>
-            <div class="kpi">
-              <p class="k">Big payoff</p>
-              <p class="v">Islands after south</p>
-            </div>
-          </div>
-
-          <div class="cta-row" aria-label="Primary actions">
-            <!-- NOTE: keep this query consistent with your catalog/search page conventions -->
-            <a class="btn btn-primary" href="/catalog.html?destination=cebu">Browse stays</a>
-            <a class="btn btn-secondary" href="/destinations/cebu/index.html">Back to Cebu guide</a>
+          <div class="card-cta">
+            <a class="link" href="/destinations/cebu/cebu-city-heritage-walk.html">Full guide</a>
+            <a class="link" href="https://lolaelo-api.onrender.com/catalog.html?q=cebu">Browse Cebu stays</a>
           </div>
         </div>
-      </div>
-    </div>
-  </header>
+      </article>
 
-  <!-- Sequencing philosophy -->
-  <section class="section">
-    <div class="wrap">
-      <h2>How to do Cebu without burning out</h2>
-      <p class="subtext">
-        Cebu is not a single city trip. It is an island trip with real drive times. The clean plan is simple:
-        orient in the city, commit to south Cebu for the high effort days, then switch to island mode to recover.
-      </p>
+      <!-- 2 -->
+      <article
+        class="card card-clickable"
+        id="exp-2"
+        role="link"
+        tabindex="0"
+        aria-label="Open full guide: Tops Lookout and Busay hills"
+        onclick="window.location.href='/destinations/cebu/tops-lookout-busay.html';"
+        onkeydown="if(event.key==='Enter'){window.location.href='/destinations/cebu/tops-lookout-busay.html';}"
+      >
+        <div class="card-media" style="background-image:url('/images/cebu/hero-tops-lookout.jpg');"></div>
 
-      <div class="phase-grid">
-        <div class="phase">
-          <span class="tag">Phase 1</span>
-          <h3>City orientation</h3>
-          <p>Short walks, viewpoints, food lanes. Low effort, high context. Do not over-schedule.</p>
-        </div>
-        <div class="phase">
-          <span class="tag">Phase 2</span>
-          <h3>South Cebu adventure</h3>
-          <p>Early starts, water exposure, and long transfers. Plan like it is a workday, not a casual outing.</p>
-        </div>
-        <div class="phase">
-          <span class="tag">Phase 3</span>
-          <h3>Island reward</h3>
-          <p>Malapascua, Camotes, Bantayan. Slow down, reset, and enjoy the payoff after the south.</p>
-        </div>
-      </div>
-    </div>
-  </section>
+        <div class="card-body">
+          <p class="card-kicker">2 of 10</p>
+          <h3 class="card-title">Tops Lookout and Busay hills</h3>
 
-  <!-- Map / loop strip -->
-  <section class="section">
-    <div class="wrap">
-      <div class="map-strip">
-        <div class="inner">
-          <div class="img">
-            <img src="/images/cebu/spot-cebu-map-overview.jpg" alt="Cebu map overview" />
+          <p class="card-text">
+A clean viewpoint day. Easy logistics, big skyline payoff, minimal effort.
+          </p>
+
+          <div class="meta-row">
+            <span class="meta"><strong>Duration:</strong> 2 to 4 hrs</span>
+            <span class="meta"><strong>Best time:</strong> late afternoon</span>
+            <span class="meta"><strong>Effort:</strong> low</span>
+            <span class="meta"><strong>Phase:</strong> 1</span>
           </div>
-          <div class="txt">
-            <h3>Think in loops, not random pins</h3>
-            <p>
-              The best Cebu days are sequenced. You move in one direction, hit the main objective, then exit clean.
-              If you keep adding side quests, you will lose the day.
-            </p>
-            <p>
-              Use the experiences below as a menu. Pick what fits your phase, then stop.
-            </p>
-            <div class="row">
-              <a class="btn btn-primary" href="/catalog.html?destination=cebu">Browse stays</a>
-              <a class="btn btn-secondary" href="/destinations/cebu/index.html">Open guide</a>
-            </div>
+
+          <div class="card-cta">
+            <a class="link" href="/destinations/cebu/tops-lookout-busay.html">Full guide</a>
+            <a class="link" href="https://lolaelo-api.onrender.com/catalog.html?q=cebu">Browse Cebu stays</a>
           </div>
         </div>
-      </div>
-    </div>
-  </section>
+      </article>
 
-  <!-- Experiences grid -->
-  <section class="section">
-    <div class="wrap">
-      <h2>Top experiences across the whole island</h2>
-      <p class="subtext">
-        Entry point, adventure core, then reward phases. Each page keeps the same Cebu header and hero system,
-        but rotates the layout below to match the activity.
-      </p>
+      <!-- 3 -->
+      <article
+        class="card card-clickable"
+        id="exp-3"
+        role="link"
+        tabindex="0"
+        aria-label="Open full guide: Kawasan Falls and Badian canyoneering"
+        onclick="window.location.href='/destinations/cebu/kawasan-badian-canyoneering.html';"
+        onkeydown="if(event.key==='Enter'){window.location.href='/destinations/cebu/kawasan-badian-canyoneering.html';}"
+      >
+        <div class="card-media" style="background-image:url('/images/cebu/hero-kawasan-falls.jpg');"></div>
 
-      <div class="cards">
-        <!-- 1 -->
-        <article class="card">
-          <div class="media">
-            <img src="/images/cebu/hero-cebu-city-heritage.jpg" alt="Cebu City heritage walk" />
-          </div>
-          <div class="body">
-            <h3 class="title">Cebu City heritage walk</h3>
-            <p class="desc">History you can knock out fast. Perfect as your first half-day or a recovery morning.</p>
-            <div class="meta">
-              <span class="pill">Phase 1</span>
-              <a class="go" href="/destinations/cebu/cebu-city-heritage-walk.html">Open</a>
-            </div>
-          </div>
-        </article>
+        <div class="card-body">
+          <p class="card-kicker">3 of 10</p>
+          <h3 class="card-title">Kawasan Falls and Badian canyoneering</h3>
 
-        <!-- 2 -->
-        <article class="card">
-          <div class="media">
-            <img src="/images/cebu/hero-tops-lookout.jpg" alt="Tops Lookout and Busay hills" />
-          </div>
-          <div class="body">
-            <h3 class="title">Tops Lookout and Busay hills</h3>
-            <p class="desc">A clean viewpoint day. Easy win, good light, minimal logistics.</p>
-            <div class="meta">
-              <span class="pill">Phase 1</span>
-              <a class="go" href="/destinations/cebu/tops-lookout-busay.html">Open</a>
-            </div>
-          </div>
-        </article>
+          <p class="card-text">
+High effort, high reward. Plan it like a mission, follow safety protocol, skip ego choices.
+          </p>
 
-        <!-- 3 -->
-        <article class="card">
-          <div class="media">
-            <img src="/images/cebu/hero-kawasan-falls.jpg" alt="Kawasan Falls and Badian canyoneering" />
+          <div class="meta-row">
+            <span class="meta"><strong>Duration:</strong> full day</span>
+            <span class="meta"><strong>Best time:</strong> early start</span>
+            <span class="meta"><strong>Effort:</strong> high</span>
+            <span class="meta"><strong>Phase:</strong> 2</span>
           </div>
-          <div class="body">
-            <h3 class="title">Kawasan Falls and Badian canyoneering</h3>
-            <p class="desc">High effort, high reward. Readiness, safety, and timing matter here.</p>
-            <div class="meta">
-              <span class="pill">Phase 2</span>
-              <a class="go" href="/destinations/cebu/kawasan-badian-canyoneering.html">Open</a>
-            </div>
-          </div>
-        </article>
 
-        <!-- 4 -->
-        <article class="card">
-          <div class="media">
-            <img src="/images/cebu/hero-moalboal-sardine-run.jpg" alt="Moalboal sardine run and snorkeling" />
+          <div class="card-cta">
+            <a class="link" href="/destinations/cebu/kawasan-badian-canyoneering.html">Full guide</a>
+            <a class="link" href="https://lolaelo-api.onrender.com/catalog.html?q=cebu">Stays that make early starts easier</a>
           </div>
-          <div class="body">
-            <h3 class="title">Moalboal sardine run and snorkeling</h3>
-            <p class="desc">The most accessible underwater payoff. Strong option even for non-divers.</p>
-            <div class="meta">
-              <span class="pill">Phase 2</span>
-              <a class="go" href="/destinations/cebu/moalboal-sardine-run.html">Open</a>
-            </div>
-          </div>
-        </article>
+        </div>
+      </article>
 
-        <!-- 5 -->
-        <article class="card">
-          <div class="media">
-            <img src="/images/cebu/hero-oslob-whale-sharks.jpg" alt="Oslob whale sharks and South Cebu loop" />
-          </div>
-          <div class="body">
-            <h3 class="title">Oslob whale sharks and South Cebu loop</h3>
-            <p class="desc">Neutral framing, real tradeoffs. Early starts and ethics deserve clear context.</p>
-            <div class="meta">
-              <span class="pill">Phase 2</span>
-              <a class="go" href="/destinations/cebu/oslob-whale-sharks-south-loop.html">Open</a>
-            </div>
-          </div>
-        </article>
+      <!-- 4 -->
+      <article
+        class="card card-clickable"
+        id="exp-4"
+        role="link"
+        tabindex="0"
+        aria-label="Open full guide: Moalboal sardine run and snorkeling"
+        onclick="window.location.href='/destinations/cebu/moalboal-sardine-run.html';"
+        onkeydown="if(event.key==='Enter'){window.location.href='/destinations/cebu/moalboal-sardine-run.html';}"
+      >
+        <div class="card-media" style="background-image:url('/images/cebu/hero-moalboal-sardine-run.jpg');"></div>
 
-        <!-- 6 -->
-        <article class="card">
-          <div class="media">
-            <img src="/images/cebu/hero-osmena-peak.jpg" alt="Osmeña Peak and Dalaguete highlands" />
-          </div>
-          <div class="body">
-            <h3 class="title">Osmeña Peak and Dalaguete highlands</h3>
-            <p class="desc">Cooler air, ridge views, and a different Cebu. Great reset between water days.</p>
-            <div class="meta">
-              <span class="pill">Phase 2</span>
-              <a class="go" href="/destinations/cebu/osmena-peak-dalaguete.html">Open</a>
-            </div>
-          </div>
-        </article>
+        <div class="card-body">
+          <p class="card-kicker">4 of 10</p>
+          <h3 class="card-title">Moalboal sardine run and snorkeling</h3>
 
-        <!-- 7 -->
-        <article class="card">
-          <div class="media">
-            <img src="/images/cebu/hero-malapascua-island.jpg" alt="Malapascua Island" />
-          </div>
-          <div class="body">
-            <h3 class="title">Malapascua Island</h3>
-            <p class="desc">Reward phase. Thresher sharks for divers, calm beach time for everyone else.</p>
-            <div class="meta">
-              <span class="pill">Phase 3</span>
-              <a class="go" href="/destinations/cebu/malapascua-island.html">Open</a>
-            </div>
-          </div>
-        </article>
+          <p class="card-text">
+One of the best payoff-to-effort experiences in Cebu. Calm beats chasing.
+          </p>
 
-        <!-- 8 -->
-        <article class="card">
-          <div class="media">
-            <img src="/images/cebu/hero-camotes-islands.jpg" alt="Camotes Islands" />
+          <div class="meta-row">
+            <span class="meta"><strong>Duration:</strong> 2 to 4 hrs</span>
+            <span class="meta"><strong>Best time:</strong> morning</span>
+            <span class="meta"><strong>Effort:</strong> low to medium</span>
+            <span class="meta"><strong>Phase:</strong> 2</span>
           </div>
-          <div class="body">
-            <h3 class="title">Camotes Islands</h3>
-            <p class="desc">Light adventure and quiet roads. Easy choice when you want space and calm.</p>
-            <div class="meta">
-              <span class="pill">Phase 3</span>
-              <a class="go" href="/destinations/cebu/camotes-islands.html">Open</a>
-            </div>
-          </div>
-        </article>
 
-        <!-- 9 -->
-        <article class="card">
-          <div class="media">
-            <img src="/images/cebu/hero-cebu-food-nightlife.jpg" alt="Cebu food and nightlife lane" />
+          <div class="card-cta">
+            <a class="link" href="/destinations/cebu/moalboal-sardine-run.html">Full guide</a>
+            <a class="link" href="https://lolaelo-api.onrender.com/catalog.html?q=cebu">Browse Cebu stays</a>
           </div>
-          <div class="body">
-            <h3 class="title">Cebu food and nightlife lane</h3>
-            <p class="desc">Decision strips, quick wins, and a flexible timeline. Keep it simple and clean.</p>
-            <div class="meta">
-              <span class="pill">Phase 1</span>
-              <a class="go" href="/destinations/cebu/cebu-food-nightlife.html">Open</a>
-            </div>
-          </div>
-        </article>
+        </div>
+      </article>
 
-        <!-- 10 -->
-        <article class="card">
-          <div class="media">
-            <img src="/images/cebu/hero-bantayan-island.jpg" alt="Cebu to Bantayan Island" />
+      <!-- 5 -->
+      <article
+        class="card card-clickable"
+        id="exp-5"
+        role="link"
+        tabindex="0"
+        aria-label="Open full guide: Oslob whale sharks and South Cebu loop"
+        onclick="window.location.href='/destinations/cebu/oslob-whale-sharks-south-loop.html';"
+        onkeydown="if(event.key==='Enter'){window.location.href='/destinations/cebu/oslob-whale-sharks-south-loop.html';}"
+      >
+        <div class="card-media" style="background-image:url('/images/cebu/hero-oslob-whale-sharks.jpg');"></div>
+
+        <div class="card-body">
+          <p class="card-kicker">5 of 10</p>
+          <h3 class="card-title">Oslob whale sharks and South Cebu loop</h3>
+
+          <p class="card-text">
+Neutral framing, real tradeoffs. Decide before you arrive. Consider alternatives if it does not sit right.
+          </p>
+
+          <div class="meta-row">
+            <span class="meta"><strong>Duration:</strong> full day</span>
+            <span class="meta"><strong>Best time:</strong> very early</span>
+            <span class="meta"><strong>Effort:</strong> high</span>
+            <span class="meta"><strong>Phase:</strong> 2</span>
           </div>
-          <div class="body">
-            <h3 class="title">Jump point: Cebu to Bantayan Island</h3>
-            <p class="desc">Transition page. How to exit Cebu clean and enter island mode without stress.</p>
-            <div class="meta">
-              <span class="pill">Phase 3</span>
-              <a class="go" href="/destinations/cebu/cebu-to-bantayan.html">Open</a>
-            </div>
+
+          <div class="card-cta">
+            <a class="link" href="/destinations/cebu/oslob-whale-sharks-south-loop.html">Full guide</a>
+            <a class="link" href="https://lolaelo-api.onrender.com/catalog.html?q=cebu">Browse Cebu stays</a>
           </div>
-        </article>
-      </div>
-    </div>
-  </section>
+        </div>
+      </article>
+
+      <!-- 6 -->
+      <article
+        class="card card-clickable"
+        id="exp-6"
+        role="link"
+        tabindex="0"
+        aria-label="Open full guide: Osmeña Peak and Dalaguete highlands"
+        onclick="window.location.href='/destinations/cebu/osmena-peak-dalaguete.html';"
+        onkeydown="if(event.key==='Enter'){window.location.href='/destinations/cebu/osmena-peak-dalaguete.html';}"
+      >
+        <div class="card-media" style="background-image:url('/images/cebu/hero-osmena-peak.jpg');"></div>
+
+        <div class="card-body">
+          <p class="card-kicker">6 of 10</p>
+          <h3 class="card-title">Osmeña Peak and Dalaguete highlands</h3>
+
+          <p class="card-text">
+Cooler air and ridge views. Strong reset day between water-heavy excursions.
+          </p>
+
+          <div class="meta-row">
+            <span class="meta"><strong>Duration:</strong> half to full day</span>
+            <span class="meta"><strong>Best time:</strong> morning</span>
+            <span class="meta"><strong>Effort:</strong> medium</span>
+            <span class="meta"><strong>Phase:</strong> 2</span>
+          </div>
+
+          <div class="card-cta">
+            <a class="link" href="/destinations/cebu/osmena-peak-dalaguete.html">Full guide</a>
+            <a class="link" href="https://lolaelo-api.onrender.com/catalog.html?q=cebu">Browse Cebu stays</a>
+          </div>
+        </div>
+      </article>
+
+      <!-- 7 -->
+      <article
+        class="card card-clickable"
+        id="exp-7"
+        role="link"
+        tabindex="0"
+        aria-label="Open full guide: Malapascua Island"
+        onclick="window.location.href='/destinations/cebu/malapascua-island.html';"
+        onkeydown="if(event.key==='Enter'){window.location.href='/destinations/cebu/malapascua-island.html';}"
+      >
+        <div class="card-media" style="background-image:url('/images/cebu/hero-malapascua-island.jpg');"></div>
+
+        <div class="card-body">
+          <p class="card-kicker">7 of 10</p>
+          <h3 class="card-title">Malapascua Island</h3>
+
+          <p class="card-text">
+Reward phase. Divers chase threshers. Non-divers slow down and enjoy island rhythm.
+          </p>
+
+          <div class="meta-row">
+            <span class="meta"><strong>Duration:</strong> 2 to 4 days</span>
+            <span class="meta"><strong>Best time:</strong> after south</span>
+            <span class="meta"><strong>Effort:</strong> low to medium</span>
+            <span class="meta"><strong>Phase:</strong> 3</span>
+          </div>
+
+          <div class="card-cta">
+            <a class="link" href="/destinations/cebu/malapascua-island.html">Full guide</a>
+            <a class="link" href="https://lolaelo-api.onrender.com/catalog.html?q=cebu">Browse Cebu stays</a>
+          </div>
+        </div>
+      </article>
+
+      <!-- 8 -->
+      <article
+        class="card card-clickable"
+        id="exp-8"
+        role="link"
+        tabindex="0"
+        aria-label="Open full guide: Camotes Islands"
+        onclick="window.location.href='/destinations/cebu/camotes-islands.html';"
+        onkeydown="if(event.key==='Enter'){window.location.href='/destinations/cebu/camotes-islands.html';}"
+      >
+        <div class="card-media" style="background-image:url('/images/cebu/hero-camotes-islands.jpg');"></div>
+
+        <div class="card-body">
+          <p class="card-kicker">8 of 10</p>
+          <h3 class="card-title">Camotes Islands</h3>
+
+          <p class="card-text">
+Quieter reward phase. Light adventure, fewer crowds, and clean reset days.
+          </p>
+
+          <div class="meta-row">
+            <span class="meta"><strong>Duration:</strong> 2 to 3 days</span>
+            <span class="meta"><strong>Best time:</strong> after south</span>
+            <span class="meta"><strong>Effort:</strong> low</span>
+            <span class="meta"><strong>Phase:</strong> 3</span>
+          </div>
+
+          <div class="card-cta">
+            <a class="link" href="/destinations/cebu/camotes-islands.html">Full guide</a>
+            <a class="link" href="https://lolaelo-api.onrender.com/catalog.html?q=cebu">Browse Cebu stays</a>
+          </div>
+        </div>
+      </article>
+
+      <!-- 9 -->
+      <article
+        class="card card-clickable"
+        id="exp-9"
+        role="link"
+        tabindex="0"
+        aria-label="Open full guide: Cebu food and nightlife lane"
+        onclick="window.location.href='/destinations/cebu/cebu-food-nightlife.html';"
+        onkeydown="if(event.key==='Enter'){window.location.href='/destinations/cebu/cebu-food-nightlife.html';}"
+      >
+        <div class="card-media" style="background-image:url('/images/cebu/hero-cebu-food-nightlife.jpg');"></div>
+
+        <div class="card-body">
+          <p class="card-kicker">9 of 10</p>
+          <h3 class="card-title">Cebu food and nightlife lane</h3>
+
+          <p class="card-text">
+Decision strips and a clean timeline. Eat well, pick one night out, keep tomorrow intact.
+          </p>
+
+          <div class="meta-row">
+            <span class="meta"><strong>Duration:</strong> evening</span>
+            <span class="meta"><strong>Best time:</strong> after dinner</span>
+            <span class="meta"><strong>Effort:</strong> low</span>
+            <span class="meta"><strong>Phase:</strong> 1</span>
+          </div>
+
+          <div class="card-cta">
+            <a class="link" href="/destinations/cebu/cebu-food-nightlife.html">Full guide</a>
+            <a class="link" href="https://lolaelo-api.onrender.com/catalog.html?q=cebu">Browse Cebu stays</a>
+          </div>
+        </div>
+      </article>
+
+      <!-- 10 -->
+      <article
+        class="card card-clickable"
+        id="exp-10"
+        role="link"
+        tabindex="0"
+        aria-label="Open full guide: Jump point Cebu to Bantayan Island"
+        onclick="window.location.href='/destinations/cebu/cebu-to-bantayan.html';"
+        onkeydown="if(event.key==='Enter'){window.location.href='/destinations/cebu/cebu-to-bantayan.html';}"
+      >
+        <div class="card-media" style="background-image:url('/images/cebu/hero-bantayan-island.jpg');"></div>
+
+        <div class="card-body">
+          <p class="card-kicker">10 of 10</p>
+          <h3 class="card-title">Jump point: Cebu to Bantayan Island</h3>
+
+          <p class="card-text">
+A transition page. Exit Cebu clean, move through the port without chaos, enter island mode.
+          </p>
+
+          <div class="meta-row">
+            <span class="meta"><strong>Duration:</strong> travel day</span>
+            <span class="meta"><strong>Best time:</strong> early start</span>
+            <span class="meta"><strong>Effort:</strong> medium</span>
+            <span class="meta"><strong>Phase:</strong> 3</span>
+          </div>
+
+          <div class="card-cta">
+            <a class="link" href="/destinations/cebu/cebu-to-bantayan.html">Full guide</a>
+            <a class="link" href="https://lolaelo-api.onrender.com/catalog.html?q=cebu">Browse Cebu stays</a>
+          </div>
+        </div>
+      </article>
+      </section>
+
+      <section class="faq" aria-label="Cebu FAQ">
+        <h2 class="section-title" style="margin:0 0 8px;">FAQ</h2>
+
+        <details>
+          <summary>How many days do you need in Cebu?</summary>
+          <p>Four to seven days is the sweet spot. Four days covers city orientation plus one south Cebu adventure day. A week lets you add an island reward phase.</p>
+        </details>
+
+        <details>
+          <summary>What is the best way to structure a Cebu trip?</summary>
+          <p>Do it in phases: city orientation first, then south Cebu for high-effort days, then finish with an island reward phase to slow down.</p>
+        </details>
+
+        <details>
+          <summary>Is south Cebu doable as a day trip from Cebu City?</summary>
+          <p>It is doable, but it becomes a very long day. If you can, base closer to the south for your adventure days to reduce drive fatigue.</p>
+        </details>
+
+        <details>
+          <summary>Should you do Oslob whale sharks?</summary>
+          <p>It is a personal decision with tradeoffs. Some travelers choose it for predictability and proximity, others avoid it due to ethical concerns. Decide before you arrive and consider alternatives like Moalboal.</p>
+        </details>
+      </section>
+    </main>
+  </div>
 
   <footer>
-    <div class="wrap">
-      <div class="f">
-        <div>© <span id="y"></span> Lolaelo</div>
-        <div style="display:flex; gap:14px; align-items:center; flex-wrap:wrap;">
-          <a href="https://lolaelo-api.onrender.com/privacy.html">Privacy</a>
-          <a href="https://lolaelo-api.onrender.com/terms.html">Terms</a>
-        </div>
-      </div>
-    </div>
+    © <span id="year"></span> Lolaelo ·
+    <a href="https://lolaelo-api.onrender.com/privacy.html" target="_blank" rel="noopener">Privacy</a>
+    <a href="https://lolaelo-api.onrender.com/terms.html" target="_blank" rel="noopener">Terms</a>
   </footer>
 
   <script>
-    (function(){
-      var el = document.getElementById("y");
-      if (el) el.textContent = String(new Date().getFullYear());
-    })();
+    document.getElementById("year").textContent = new Date().getFullYear();
   </script>
 </body>
 </html>
