@@ -150,6 +150,11 @@
     }
     .media img{width:100%;height:100%;object-fit:cover;display:block}
 
+    /* Fix: shorten Dalaguete highlands image tile */
+    .media.media-short{
+      min-height:180px;
+    }
+
     .faq{display:grid;gap:10px}
     details{border:1px solid var(--border);border-radius:16px;padding:12px;background:#fff}
     summary{cursor:pointer;font-weight:600;color:#0b1220;list-style:none;font-size:13px}
@@ -342,7 +347,7 @@
         <div class="card">
           <h3>What the day looks like</h3>
           <p class="muted">A long coastal push, a short high-intensity window, then a controlled exit plan.</p>
-          <div class="media">
+          <div class="media media-short">
             <img src="/images/cebu/spot-south-cebu-coastal-road.jpg" alt="South Cebu coastal road" />
           </div>
         </div>

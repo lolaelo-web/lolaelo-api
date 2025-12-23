@@ -228,6 +228,11 @@
     }
     .media img{width:100%;height:100%;object-fit:cover;display:block}
 
+    /* Fix: shorten Dalaguete highlands image tile */
+    .media.media-short{
+      min-height:180px;
+    }
+
     .dos{
       display:grid;
       grid-template-columns:1fr 1fr;
@@ -465,7 +470,7 @@
             This is the part that decides your mood. If you're moving smoothly, this is easy. If you're trapped, you need
             to lower expectations and keep it simple.
           </p>
-          <div class="media" aria-label="Busay road">
+          <div class="media media-short">
             <img src="/images/cebu/spot-busay-hills-road.jpg" alt="Busay hills road approaching Tops" />
           </div>
         </div>

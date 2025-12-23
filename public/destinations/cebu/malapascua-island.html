@@ -124,6 +124,12 @@
     }
 
     .proto{display:grid;gap:10px}
+
+    /* Fix: shorten non-diving image tile to remove bottom dead space */
+    .media.media-short{
+      min-height:180px;
+    }
+
     .step{
       display:flex;gap:12px;
       border:1px solid var(--border);
@@ -320,7 +326,7 @@
         <div class="card">
           <h3>If you are not diving</h3>
           <p class="muted">Still worth it if you want a quieter island pace. Just do not force a packed itinerary.</p>
-          <div class="media">
+          <div class="media media-short">
             <img src="/images/cebu/spot-malapascua-island.jpg" alt="Malapascua island shoreline" />
           </div>
         </div>
