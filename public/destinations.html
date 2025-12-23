@@ -848,71 +848,81 @@
 
     const ASSET_BASE = "https://www.lolaelo.com/assets/";
 
-    // Config per destination (note: thumbs currently only for Boracay)
+    // Config per destination
     const destConfig = {
       "boracay": {
         name: "Boracay",
         headerImage: ASSET_BASE + "dest-boracay.jpg",
         subtitle: "White sand, turquoise water, and island energy.",
         body: `
-Boracay hits you the moment your feet touch the sand. The island keeps showing up in global “best beaches” lists for a reason - it has that mix of easy access, soft sand, and clear water that actually matches the photos you see online.
+    Boracay hits you the moment your feet touch the sand. The island keeps showing up in global “best beaches” lists for a reason - it has that mix of easy access, soft sand, and clear water that actually matches the photos you see online.
 
-What makes Boracay special to me is how effortless it is. The sand is ridiculously fine - almost like powder - and the water stays warm and shallow far out into the shoreline. It is also one of the easiest islands to reach. Caticlan (MPH) is the fastest and most convenient route. Kalibo (KLO) is usually cheaper, but you trade it for a longer land transfer. Either way, getting here is simple.
+    What makes Boracay special to me is how effortless it is. The sand is ridiculously fine - almost like powder - and the water stays warm and shallow far out into the shoreline. It is also one of the easiest islands to reach. Caticlan (MPH) is the fastest and most convenient route. Kalibo (KLO) is usually cheaper, but you trade it for a longer land transfer. Either way, getting here is simple.
 
-Boracay changes during typhoon season - bigger waves, stronger wind, and that dramatic, cinematic kind of rain. It makes you appreciate how powerful nature is. As long as you follow local advisories and respect the ocean, the island stays safe and still worth the trip.
+    Boracay changes during typhoon season - bigger waves, stronger wind, and that dramatic, cinematic kind of rain. It makes you appreciate how powerful nature is. As long as you follow local advisories and respect the ocean, the island stays safe and still worth the trip.
 
-It is one of the few destinations in the Philippines that works for everyone: couples, families, groups of friends, solo travelers, and even the “do nothing all day” crowd. Boracay adjusts to your energy.
+    It is one of the few destinations in the Philippines that works for everyone: couples, families, groups of friends, solo travelers, and even the “do nothing all day” crowd. Boracay adjusts to your energy.
 
-<div class="exp-strip" role="group" aria-label="Boracay experiences">
-  <a class="exp-pill" href="/destinations/boracay/index.html" aria-label="Explore Boracay experiences: Island hopping">
-    <span class="exp-img" style="background-image:url('/images/boracay/boracay-island-hopping.jpg');"></span>
-    <span class="exp-label">Island hopping</span>
-  </a>
+    <div class="exp-strip" role="group" aria-label="Boracay experiences">
+      <a class="exp-pill" href="/destinations/boracay/island-hopping.html" aria-label="Boracay experience: Island hopping">
+        <span class="exp-img" style="background-image:url('/images/boracay/boracay-island-hopping.jpg');"></span>
+        <span class="exp-label">Island hopping</span>
+      </a>
 
-  <a class="exp-pill" href="/destinations/boracay/index.html" aria-label="Explore Boracay experiences: Paraw sailing">
-    <span class="exp-img" style="background-image:url('/images/boracay/boracay-sunset-sail.jpg');"></span>
-    <span class="exp-label">Paraw sailing</span>
-  </a>
+      <a class="exp-pill" href="/destinations/boracay/paraw-sunset-sailing.html" aria-label="Boracay experience: Paraw sailing">
+        <span class="exp-img" style="background-image:url('/images/boracay/boracay-sunset-sail.jpg');"></span>
+        <span class="exp-label">Paraw sailing</span>
+      </a>
 
-  <a class="exp-pill" href="/destinations/boracay/index.html" aria-label="Explore Boracay experiences: Snorkeling">
-    <span class="exp-img" style="background-image:url('/images/boracay/boracay-snorkeling.jpg');"></span>
-    <span class="exp-label">Snorkeling</span>
-  </a>
+      <a class="exp-pill" href="/destinations/boracay/snorkeling.html" aria-label="Boracay experience: Snorkeling">
+        <span class="exp-img" style="background-image:url('/images/boracay/boracay-snorkeling.jpg');"></span>
+        <span class="exp-label">Snorkeling</span>
+      </a>
 
-  <a class="exp-pill" href="/destinations/boracay/index.html" aria-label="Explore Boracay experiences: Nightlife">
-    <span class="exp-img" style="background-image:url('/images/boracay/boracay-nightlife.jpg');"></span>
-    <span class="exp-label">Nightlife</span>
-  </a>
+      <a class="exp-pill" href="/destinations/boracay/nightlife.html" aria-label="Boracay experience: Nightlife">
+        <span class="exp-img" style="background-image:url('/images/boracay/boracay-nightlife.jpg');"></span>
+        <span class="exp-label">Nightlife</span>
+      </a>
 
-  <a class="exp-pill" href="/destinations/boracay/index.html" aria-label="Explore Boracay experiences: Puka Beach">
-    <span class="exp-img" style="background-image:url('/images/boracay/boracay-beach-white-sand.jpg');"></span>
-    <span class="exp-label">Puka Beach</span>
-  </a>
+      <a class="exp-pill" href="/destinations/boracay/puka-beach.html" aria-label="Boracay experience: Puka Beach">
+        <span class="exp-img" style="background-image:url('/images/boracay/boracay-beach-white-sand.jpg');"></span>
+        <span class="exp-label">Puka Beach</span>
+      </a>
 
-  <a class="exp-pill" href="/destinations/boracay/index.html" aria-label="Explore Boracay experiences: Food crawl">
-    <span class="exp-img" style="background-image:url('/images/boracay/boracay-food-dining.jpg');"></span>
-    <span class="exp-label">Food crawl</span>
-  </a>
-</div>
+      <a class="exp-pill" href="/destinations/boracay/food-crawl.html" aria-label="Boracay experience: Food crawl">
+        <span class="exp-img" style="background-image:url('/images/boracay/boracay-food-dining.jpg');"></span>
+        <span class="exp-label">Food crawl</span>
+      </a>
 
-<div class="modal-exp-footer">
-  <a class="exp-cta-link" href="/destinations/boracay/index.html"> 
-    <br>
-    Explore the full Boracay experiences guide <span aria-hidden="true">›</span>
-  </a>
-</div>
+      <a class="exp-pill" href="/destinations/boracay/dmall.html" aria-label="Boracay experience: D'Mall">
+        <span class="exp-img" style="background-image:url('/images/boracay/boracay-dmall.jpg');"></span>
+        <span class="exp-label">D'Mall</span>
+      </a>
 
-Major events and seasons:
-• Love Boracay (formerly Laboracay) around April 30 - May 1
-• Dragon Boat Festival usually around late April to May
-• Dry season sweet spot from November to May
-• Holy Week, Christmas and New Year: busier, but great if you like a livelier crowd
+      <a class="exp-pill" href="/destinations/boracay/crystal-cove.html" aria-label="Boracay experience: Crystal Cove">
+        <span class="exp-img" style="background-image:url('/images/boracay/boracay-crystal-cove.jpg');"></span>
+        <span class="exp-label">Crystal Cove</span>
+      </a>
+    </div>
 
-Quick snapshot:
-• Best for: couples, groups, families
-• Vibe: lively, social, easy, walkable
-• Trip length: 3 - 5 days
-• Known for: sunsets, island-hopping, nightlife, very fine sand
+    <div class="modal-exp-footer">
+      <a class="exp-cta-link" href="/destinations/boracay/index.html">
+        <br>
+        Explore the full Boracay experiences guide <span aria-hidden="true">›</span>
+      </a>
+    </div>
+
+    Major events and seasons:
+    • Love Boracay (formerly Laboracay) around April 30 - May 1
+    • Dragon Boat Festival usually around late April to May
+    • Dry season sweet spot from November to May
+    • Holy Week, Christmas and New Year: busier, but great if you like a livelier crowd
+
+    Quick snapshot:
+    • Best for: couples, groups, families
+    • Vibe: lively, social, easy, walkable
+    • Trip length: 3 - 5 days
+    • Known for: sunsets, island-hopping, nightlife, very fine sand
         `,
         staysUrl: "https://lolaelo-api.onrender.com/catalog.html?city=Boracay&cityCode=BORACAY",
         thumbs: [
@@ -930,28 +940,63 @@ Quick snapshot:
         headerImage: ASSET_BASE + "dest-el-nido.jpg",
         subtitle: "Limestone cliffs, slow days on the water, and my first love.",
         body: `
-El Nido is my first love. It is the place where someone once told me I was “meant to be Filipino,” and for the first time in my life, those words actually carried weight. Sitting on a bangka in the middle of those limestone cliffs, I understood why.
+    El Nido is my first love. It is the place where someone once told me I was “meant to be Filipino,” and for the first time in my life, those words actually carried weight. Sitting on a bangka in the middle of those limestone cliffs, I understood why.
 
-Everything here moves at a slower pace - quiet mornings, flat water, sunlight breaking over Bacuit Bay. You pick an island-hopping route, get on the boat, and the whole day just unfolds around you. Lagoons, sandbars, cliff lines, grilled lunch on the beach - you do not force anything here.
+    Everything here moves at a slower pace - quiet mornings, flat water, sunlight breaking over Bacuit Bay. You pick an island-hopping route, get on the boat, and the whole day just unfolds around you. Lagoons, sandbars, cliff lines, grilled lunch on the beach - you do not force anything here.
 
-El Nido feels romantic, calm, and reflective. Less nightlife, more “talk about life on a boat and nap later” energy. It is a good fit if you want nature and quiet time to be the main event.
+    El Nido feels romantic, calm, and reflective. Less nightlife, more “talk about life on a boat and nap later” energy. It is a good fit if you want nature and quiet time to be the main event.
 
-Activities I recommend:
-• Island-hopping routes (Tour A and C are the usual favorites)
-• Kayaking inside the lagoons when the water is calm
-• Sunrise or sunset viewpoints over Bacuit Bay
-• Simple beachfront dinners at night
-• Side trip to Nacpan Beach if you have extra time
+    <div class="exp-strip" role="group" aria-label="El Nido experiences">
+      <a class="exp-pill" href="/destinations/elnido/tour-a.html" aria-label="El Nido experience: Tour A">
+        <span class="exp-img" style="background-image:url('/images/elnido/hero-tour-a.jpg');"></span>
+        <span class="exp-label">Tour A</span>
+      </a>
+      <a class="exp-pill" href="/destinations/elnido/tour-c.html" aria-label="El Nido experience: Tour C">
+        <span class="exp-img" style="background-image:url('/images/elnido/hero-tour-c.jpg');"></span>
+        <span class="exp-label">Tour C</span>
+      </a>
+      <a class="exp-pill" href="/destinations/elnido/big-lagoon.html" aria-label="El Nido experience: Big Lagoon">
+        <span class="exp-img" style="background-image:url('/images/elnido/hero-big-lagoon.jpg');"></span>
+        <span class="exp-label">Big Lagoon</span>
+      </a>
+      <a class="exp-pill" href="/destinations/elnido/small-lagoon.html" aria-label="El Nido experience: Small Lagoon">
+        <span class="exp-img" style="background-image:url('/images/elnido/hero-small-lagoon.jpg');"></span>
+        <span class="exp-label">Small Lagoon</span>
+      </a>
+      <a class="exp-pill" href="/destinations/elnido/nacpan-beach.html" aria-label="El Nido experience: Nacpan Beach">
+        <span class="exp-img" style="background-image:url('/images/elnido/hero-nacpan-beach.jpg');"></span>
+        <span class="exp-label">Nacpan</span>
+      </a>
+      <a class="exp-pill" href="/destinations/elnido/las-cabanas-sunset.html" aria-label="El Nido experience: Las Cabanas">
+        <span class="exp-img" style="background-image:url('/images/elnido/hero-las-cabanas.jpg');"></span>
+        <span class="exp-label">Las Cabanas</span>
+      </a>
+      <a class="exp-pill" href="/destinations/elnido/taraw-cliff.html" aria-label="El Nido experience: Taraw Cliff">
+        <span class="exp-img" style="background-image:url('/images/elnido/hero-taraw-cliff.jpg');"></span>
+        <span class="exp-label">Taraw Cliff</span>
+      </a>
+      <a class="exp-pill" href="/destinations/elnido/beachfront-dinner.html" aria-label="El Nido experience: Beach dinner">
+        <span class="exp-img" style="background-image:url('/images/elnido/hero-beachfront-dinner.jpg');"></span>
+        <span class="exp-label">Beach dinner</span>
+      </a>
+    </div>
 
-Major events and seasons:
-• Dry season from roughly November to May for more reliable boat days
-• Holidays like Christmas, New Year, and Holy Week bring more visitors but it still feels small-town compared to big city crowds
+    <div class="modal-exp-footer">
+      <a class="exp-cta-link" href="/destinations/elnido/index.html">
+        <br>
+        Explore the full El Nido experiences guide <span aria-hidden="true">›</span>
+      </a>
+    </div>
 
-Quick snapshot:
-• Best for: couples, small groups, honeymooners
-• Vibe: slow, scenic, reflective
-• Trip length: at least 3 - 4 days
-• Known for: limestone cliffs, lagoons, clear water, quiet nights
+    Major events and seasons:
+    • Dry season from roughly November to May for more reliable boat days
+    • Holidays like Christmas, New Year, and Holy Week bring more visitors but it still feels small-town compared to big city crowds
+
+    Quick snapshot:
+    • Best for: couples, small groups, honeymooners
+    • Vibe: slow, scenic, reflective
+    • Trip length: at least 3 - 4 days
+    • Known for: limestone cliffs, lagoons, clear water, quiet nights
         `,
         staysUrl: "https://lolaelo-api.onrender.com/catalog.html?city=El%20Nido&cityCode=ELNIDO",
         thumbs: [
@@ -969,28 +1014,63 @@ Quick snapshot:
         headerImage: ASSET_BASE + "dest-coron.jpg",
         subtitle: "Clear lakes, deep water, and the “Dream Team” of island views.",
         body: `
-Coron reminds me of the 1992 Dream Team - the best of the best all in one place. Lakes, lagoons, cliffs, wrecks, viewpoints… every day feels like another highlight reel. You do not come here for one thing; you come because everything is stacked.
+    Coron reminds me of the 1992 Dream Team - the best of the best all in one place. Lakes, lagoons, cliffs, wrecks, viewpoints… every day feels like another highlight reel. You do not come here for one thing; you come because everything is stacked.
 
-The water is absurdly clear. Kayangan Lake, Twin Lagoon, the shallow wrecks - it all looks like HD mode in real life. Coron is the spot for divers, snorkelers, and anyone who loves dramatic scenery and clean, high-impact visuals.
+    The water is absurdly clear. Kayangan Lake, Twin Lagoon, the shallow wrecks - it all looks like HD mode in real life. Coron is the spot for divers, snorkelers, and anyone who loves dramatic scenery and clean, high-impact visuals.
 
-The island itself does not try to be fancy. It is simple, outdoorsy, and quiet once you are off the water. Each day feels like one big main event.
+    The island itself does not try to be fancy. It is simple, outdoorsy, and quiet once you are off the water. Each day feels like one big main event.
 
-Activities I recommend:
-• Kayangan Lake and Twin Lagoon (touristy but absolutely worth it)
-• Snorkeling over the shallow shipwrecks if you do not dive
-• Diving the deeper wrecks if you are certified
-• Sunset from Mt. Tapyas
-• Maquinit Hot Spring after a full day on the boat
+    <div class="exp-strip" role="group" aria-label="Coron experiences">
+      <a class="exp-pill" href="/destinations/coron/kayangan-lake.html" aria-label="Coron experience: Kayangan Lake">
+        <span class="exp-img" style="background-image:url('/images/coron/hero-kayangan-lake.jpg');"></span>
+        <span class="exp-label">Kayangan</span>
+      </a>
+      <a class="exp-pill" href="/destinations/coron/twin-lagoon.html" aria-label="Coron experience: Twin Lagoon">
+        <span class="exp-img" style="background-image:url('/images/coron/hero-twin-lagoon.jpg');"></span>
+        <span class="exp-label">Twin Lagoon</span>
+      </a>
+      <a class="exp-pill" href="/destinations/coron/island-hopping.html" aria-label="Coron experience: Island hopping">
+        <span class="exp-img" style="background-image:url('/images/coron/hero-island-hopping.jpg');"></span>
+        <span class="exp-label">Island hop</span>
+      </a>
+      <a class="exp-pill" href="/destinations/coron/shipwrecks.html" aria-label="Coron experience: Shipwrecks">
+        <span class="exp-img" style="background-image:url('/images/coron/hero-shipwrecks.jpg');"></span>
+        <span class="exp-label">Wrecks</span>
+      </a>
+      <a class="exp-pill" href="/destinations/coron/mt-tapyas.html" aria-label="Coron experience: Mt. Tapyas">
+        <span class="exp-img" style="background-image:url('/images/coron/hero-mt-tapyas.jpg');"></span>
+        <span class="exp-label">Mt. Tapyas</span>
+      </a>
+      <a class="exp-pill" href="/destinations/coron/maquinit-hot-spring.html" aria-label="Coron experience: Maquinit Hot Spring">
+        <span class="exp-img" style="background-image:url('/images/coron/hero-maquinit-hot-spring.jpg');"></span>
+        <span class="exp-label">Hot spring</span>
+      </a>
+      <a class="exp-pill" href="/destinations/coron/pass-island.html" aria-label="Coron experience: Pass Island">
+        <span class="exp-img" style="background-image:url('/images/coron/hero-pass-island.jpg');"></span>
+        <span class="exp-label">Pass Island</span>
+      </a>
+      <a class="exp-pill" href="/destinations/coron/snorkeling.html" aria-label="Coron experience: Snorkeling">
+        <span class="exp-img" style="background-image:url('/images/coron/hero-snorkeling.jpg');"></span>
+        <span class="exp-label">Snorkeling</span>
+      </a>
+    </div>
 
-Major events and seasons:
-• Dry season from November to May for calmer seas and clearer days
-• Philippine holidays (Christmas, New Year, Holy Week) bring more people but it still feels lighter than Boracay
+    <div class="modal-exp-footer">
+      <a class="exp-cta-link" href="/destinations/coron/index.html">
+        <br>
+        Explore the full Coron experiences guide <span aria-hidden="true">›</span>
+      </a>
+    </div>
 
-Quick snapshot:
-• Best for: divers, adventure-leaning travelers, “photo people”
-• Vibe: scenic, slightly rugged, one big highlight per day
-• Trip length: 3 - 5 days
-• Known for: lakes, lagoons, wreck dives, clear water
+    Major events and seasons:
+    • Dry season from November to May for calmer seas and clearer days
+    • Philippine holidays (Christmas, New Year, Holy Week) bring more people but it still feels lighter than Boracay
+
+    Quick snapshot:
+    • Best for: divers, adventure-leaning travelers, “photo people”
+    • Vibe: scenic, slightly rugged, one big highlight per day
+    • Trip length: 3 - 5 days
+    • Known for: lakes, lagoons, wreck dives, clear water
         `,
         staysUrl: "https://lolaelo-api.onrender.com/catalog.html?city=Coron&cityCode=CORON",
         thumbs: [
@@ -1008,29 +1088,64 @@ Quick snapshot:
         headerImage: ASSET_BASE + "dest-siargao.jpg",
         subtitle: "Surf breaks, palm roads, and the love that got away.",
         body: `
-Siargao is the love that got away. It is the island that shows up in your head on random days - the scooter rides, the 4 PM light hitting the palms, the quiet spots that felt way more emotional than they should have.
+    Siargao is the love that got away. It is the island that shows up in your head on random days - the scooter rides, the 4 PM light hitting the palms, the quiet spots that felt way more emotional than they should have.
 
-You feel the surf culture even if you do not surf. Barefoot people carrying boards, slow cafés, small restaurants where everyone looks like they have accidentally stayed longer than planned. When Siargao started showing up as one of the top islands in the world in travel lists, it made sense - the place hits people in a very real way.
+    You feel the surf culture even if you do not surf. Barefoot people carrying boards, slow cafés, small restaurants where everyone looks like they have accidentally stayed longer than planned. When Siargao started showing up as one of the top islands in the world in travel lists, it made sense - the place hits people in a very real way.
 
-What I like about Siargao is how emotional the small moments can feel. Eating simple food after a long day, driving through coconut roads, getting caught in a random rain shower - it all sticks with you.
+    What I like about Siargao is how emotional the small moments can feel. Eating simple food after a long day, driving through coconut roads, getting caught in a random rain shower - it all sticks with you.
 
-Activities I recommend:
-• Cloud 9 boardwalk and a surf lesson if you are up for it
-• Island hopping to Guyam, Daku, and Naked Island
-• Sugba Lagoon for paddleboarding or just floating around
-• Motorbike rides through the Coconut Road and around the island
-• Finding your own favorite café or bar and going back every day
+    <div class="exp-strip" role="group" aria-label="Siargao experiences">
+      <a class="exp-pill" href="/destinations/siargao/cloud-9-surf.html" aria-label="Siargao experience: Cloud 9">
+        <span class="exp-img" style="background-image:url('/images/siargao/hero-cloud-9.jpg');"></span>
+        <span class="exp-label">Cloud 9</span>
+      </a>
+      <a class="exp-pill" href="/destinations/siargao/island-hopping.html" aria-label="Siargao experience: Island hopping">
+        <span class="exp-img" style="background-image:url('/images/siargao/hero-island-hopping.jpg');"></span>
+        <span class="exp-label">Island hop</span>
+      </a>
+      <a class="exp-pill" href="/destinations/siargao/sugba-lagoon.html" aria-label="Siargao experience: Sugba Lagoon">
+        <span class="exp-img" style="background-image:url('/images/siargao/hero-sugba-lagoon.jpg');"></span>
+        <span class="exp-label">Sugba</span>
+      </a>
+      <a class="exp-pill" href="/destinations/siargao/sohoton-cove.html" aria-label="Siargao experience: Sohoton Cove">
+        <span class="exp-img" style="background-image:url('/images/siargao/hero-sohoton.jpg');"></span>
+        <span class="exp-label">Sohoton</span>
+      </a>
+      <a class="exp-pill" href="/destinations/siargao/coconut-road.html" aria-label="Siargao experience: Coconut Road">
+        <span class="exp-img" style="background-image:url('/images/siargao/hero-coconut-road.jpg');"></span>
+        <span class="exp-label">Coconut Rd</span>
+      </a>
+      <a class="exp-pill" href="/destinations/siargao/magpupungko.html" aria-label="Siargao experience: Magpupungko">
+        <span class="exp-img" style="background-image:url('/images/siargao/hero-magpupungko.jpg');"></span>
+        <span class="exp-label">Magpupungko</span>
+      </a>
+      <a class="exp-pill" href="/destinations/siargao/maasin-river.html" aria-label="Siargao experience: Maasin River">
+        <span class="exp-img" style="background-image:url('/images/siargao/hero-maasin-river.jpg');"></span>
+        <span class="exp-label">Maasin</span>
+      </a>
+      <a class="exp-pill" href="/destinations/siargao/nightlife.html" aria-label="Siargao experience: Nightlife">
+        <span class="exp-img" style="background-image:url('/images/siargao/hero-nightlife.jpg');"></span>
+        <span class="exp-label">Nightlife</span>
+      </a>
+    </div>
 
-Major events and seasons:
-• Stronger surf conditions generally from August to November
-• You will still see surfers and waves year-round
-• Christmas, New Year, and long weekends bring more people but the island keeps a laid-back feel
+    <div class="modal-exp-footer">
+      <a class="exp-cta-link" href="/destinations/siargao/index.html">
+        <br>
+        Explore the full Siargao experiences guide <span aria-hidden="true">›</span>
+      </a>
+    </div>
 
-Quick snapshot:
-• Best for: surfers, remote workers, people who like feelings as much as views
-• Vibe: raw, emotional, laid-back
-• Trip length: 4 - 7 days (easy to extend)
-• Known for: surf breaks, coconut roads, island-hopping, sunsets
+    Major events and seasons:
+    • Stronger surf conditions generally from August to November
+    • You will still see surfers and waves year-round
+    • Christmas, New Year, and long weekends bring more people but the island keeps a laid-back feel
+
+    Quick snapshot:
+    • Best for: surfers, remote workers, people who like feelings as much as views
+    • Vibe: raw, emotional, laid-back
+    • Trip length: 4 - 7 days (easy to extend)
+    • Known for: surf breaks, coconut roads, island-hopping, sunsets
         `,
         staysUrl: "https://lolaelo-api.onrender.com/catalog.html?city=Siargao&cityCode=SIARGAO",
         thumbs: [
@@ -1048,25 +1163,61 @@ Quick snapshot:
         headerImage: ASSET_BASE + "dest-manila.jpg",
         subtitle: "City energy, food, and short hops to the islands.",
         body: `
-Manila is where most trips to the Philippines begin and end. It is not a beach destination, but it is where the stories, families, and late-night conversations usually start.
+    Manila is where most trips to the Philippines begin and end. It is not a beach destination, but it is where the stories, families, and late-night conversations usually start.
 
-The city is a mix of old and new. Intramuros, Binondo, and the older districts show you what Manila has carried through the years. BGC, Makati, and Ortigas give you the busy, modern city energy with malls, cafés, and restaurants in every direction. It is a good place to reset between island runs, meet people, and get things done.
+    The city is a mix of old and new. Intramuros, Binondo, and the older districts show you what Manila has carried through the years. BGC, Makati, and Ortigas give you the busy, modern city energy with malls, cafés, and restaurants in every direction. It is a good place to reset between island runs, meet people, and get things done.
 
-Activities I recommend:
-• Walk around Intramuros with a simple guided or DIY tour
-• Food crawl in Binondo or a local neighborhood spot
-• Sunset at Manila Bay or a skyline view from a rooftop bar
-• Short side trips around Metro Manila if you have extra days
+    <div class="exp-strip" role="group" aria-label="Manila experiences">
+      <a class="exp-pill" href="/destinations/manila/intramuros.html" aria-label="Manila experience: Intramuros">
+        <span class="exp-img" style="background-image:url('/images/manila/hero-intramuros.jpg');"></span>
+        <span class="exp-label">Intramuros</span>
+      </a>
+      <a class="exp-pill" href="/destinations/manila/binondo-food-crawl.html" aria-label="Manila experience: Binondo">
+        <span class="exp-img" style="background-image:url('/images/manila/hero-binondo.jpg');"></span>
+        <span class="exp-label">Binondo</span>
+      </a>
+      <a class="exp-pill" href="/destinations/manila/national-museum.html" aria-label="Manila experience: National Museum">
+        <span class="exp-img" style="background-image:url('/images/manila/hero-national-museum.jpg');"></span>
+        <span class="exp-label">Museum</span>
+      </a>
+      <a class="exp-pill" href="/destinations/manila/bgc.html" aria-label="Manila experience: BGC">
+        <span class="exp-img" style="background-image:url('/images/manila/hero-bgc.jpg');"></span>
+        <span class="exp-label">BGC</span>
+      </a>
+      <a class="exp-pill" href="/destinations/manila/makati.html" aria-label="Manila experience: Makati">
+        <span class="exp-img" style="background-image:url('/images/manila/hero-makati.jpg');"></span>
+        <span class="exp-label">Makati</span>
+      </a>
+      <a class="exp-pill" href="/destinations/manila/mall-of-asia.html" aria-label="Manila experience: Mall of Asia">
+        <span class="exp-img" style="background-image:url('/images/manila/hero-mall-of-asia.jpg');"></span>
+        <span class="exp-label">MOA</span>
+      </a>
+      <a class="exp-pill" href="/destinations/manila/manila-bay-sunset.html" aria-label="Manila experience: Manila Bay">
+        <span class="exp-img" style="background-image:url('/images/manila/hero-manila-bay.jpg');"></span>
+        <span class="exp-label">Manila Bay</span>
+      </a>
+      <a class="exp-pill" href="/destinations/manila/poblacion-nightlife.html" aria-label="Manila experience: Poblacion nightlife">
+        <span class="exp-img" style="background-image:url('/images/manila/hero-poblacion.jpg');"></span>
+        <span class="exp-label">Nightlife</span>
+      </a>
+    </div>
 
-Major events and seasons:
-• Christmas season starts early and runs long, with heavy traffic but a lot of lights and celebrations
-• Rainy season can mean heavier downpours, so plan extra time for transfers
+    <div class="modal-exp-footer">
+      <a class="exp-cta-link" href="/destinations/manila/index.html">
+        <br>
+        Explore the full Manila experiences guide <span aria-hidden="true">›</span>
+      </a>
+    </div>
 
-Quick snapshot:
-• Best for: first and last nights, city breaks, food and nightlife
-• Vibe: loud, busy, direct
-• Trip length: 1 - 3 days
-• Known for: food, malls, traffic, city views
+    Major events and seasons:
+    • Christmas season starts early and runs long, with heavy traffic but a lot of lights and celebrations
+    • Rainy season can mean heavier downpours, so plan extra time for transfers
+
+    Quick snapshot:
+    • Best for: first and last nights, city breaks, food and nightlife
+    • Vibe: loud, busy, direct
+    • Trip length: 1 - 3 days
+    • Known for: food, malls, traffic, city views
         `,
         staysUrl: "https://lolaelo-api.onrender.com/catalog.html?city=Manila&cityCode=MANILA",
         thumbs: [
@@ -1084,25 +1235,61 @@ Quick snapshot:
         headerImage: ASSET_BASE + "dest-cebu.jpg",
         subtitle: "City, islands, and easy access in one hub.",
         body: `
-Cebu gives you a bit of everything in one place. You get a real city with malls, restaurants, and neighborhoods, and you are also a jump away from beaches, waterfalls, and island days.
+    Cebu gives you a bit of everything in one place. You get a real city with malls, restaurants, and neighborhoods, and you are also a jump away from beaches, waterfalls, and island days.
 
-Mactan and nearby islands give you the easy beach escape without flying again. Head south and you reach places with waterfalls, sardine runs, and quieter coastal towns. Cebu works well for people who want options and do not want every day to look the same.
+    Mactan and nearby islands give you the easy beach escape without flying again. Head south and you reach places with waterfalls, sardine runs, and quieter coastal towns. Cebu works well for people who want options and do not want every day to look the same.
 
-Activities I recommend:
-• A day or two on Mactan or nearby islands for simple beach time
-• City food runs and mall time in Cebu City
-• Day trips or overnights to the south for waterfalls and coastal spots
-• Island hopping if you want more time on the water
+    <div class="exp-strip" role="group" aria-label="Cebu experiences">
+      <a class="exp-pill" href="/destinations/cebu/kawasan-falls.html" aria-label="Cebu experience: Kawasan Falls">
+        <span class="exp-img" style="background-image:url('/images/cebu/hero-kawasan-falls.jpg');"></span>
+        <span class="exp-label">Kawasan</span>
+      </a>
+      <a class="exp-pill" href="/destinations/cebu/canyoneering.html" aria-label="Cebu experience: Canyoneering">
+        <span class="exp-img" style="background-image:url('/images/cebu/hero-canyoneering.jpg');"></span>
+        <span class="exp-label">Canyoneer</span>
+      </a>
+      <a class="exp-pill" href="/destinations/cebu/oslob-whale-sharks.html" aria-label="Cebu experience: Oslob whale sharks">
+        <span class="exp-img" style="background-image:url('/images/cebu/hero-oslob.jpg');"></span>
+        <span class="exp-label">Oslob</span>
+      </a>
+      <a class="exp-pill" href="/destinations/cebu/moalboal-sardines.html" aria-label="Cebu experience: Moalboal sardines">
+        <span class="exp-img" style="background-image:url('/images/cebu/hero-moalboal.jpg');"></span>
+        <span class="exp-label">Moalboal</span>
+      </a>
+      <a class="exp-pill" href="/destinations/cebu/temple-of-leah.html" aria-label="Cebu experience: Temple of Leah">
+        <span class="exp-img" style="background-image:url('/images/cebu/hero-temple-of-leah.jpg');"></span>
+        <span class="exp-label">Temple</span>
+      </a>
+      <a class="exp-pill" href="/destinations/cebu/tops-lookout.html" aria-label="Cebu experience: Tops Lookout">
+        <span class="exp-img" style="background-image:url('/images/cebu/hero-tops-lookout.jpg');"></span>
+        <span class="exp-label">Tops</span>
+      </a>
+      <a class="exp-pill" href="/destinations/cebu/simala-shrine.html" aria-label="Cebu experience: Simala Shrine">
+        <span class="exp-img" style="background-image:url('/images/cebu/hero-simala.jpg');"></span>
+        <span class="exp-label">Simala</span>
+      </a>
+      <a class="exp-pill" href="/destinations/cebu/bantayan-jump-point.html" aria-label="Cebu experience: Bantayan jump point">
+        <span class="exp-img" style="background-image:url('/images/cebu/hero-bantayan-jump-point.jpg');"></span>
+        <span class="exp-label">Bantayan</span>
+      </a>
+    </div>
 
-Major events and seasons:
-• Sinulog Festival in January brings huge crowds, so book early if you plan to visit then
-• Dry months work best for day trips outside the city
+    <div class="modal-exp-footer">
+      <a class="exp-cta-link" href="/destinations/cebu/index.html">
+        <br>
+        Explore the full Cebu experiences guide <span aria-hidden="true">›</span>
+      </a>
+    </div>
 
-Quick snapshot:
-• Best for: people who want city and nature in one hub
-• Vibe: practical, flexible, varied
-• Trip length: 3 - 5 days
-• Known for: access, food, festivals, nearby beaches and waterfalls
+    Major events and seasons:
+    • Sinulog Festival in January brings huge crowds, so book early if you plan to visit then
+    • Dry months work best for day trips outside the city
+
+    Quick snapshot:
+    • Best for: people who want city and nature in one hub
+    • Vibe: practical, flexible, varied
+    • Trip length: 3 - 5 days
+    • Known for: access, food, festivals, nearby beaches and waterfalls
         `,
         staysUrl: "https://lolaelo-api.onrender.com/catalog.html?city=Cebu&cityCode=CEBU",
         thumbs: [
@@ -1114,7 +1301,6 @@ Quick snapshot:
           ASSET_BASE + "dest-cebu-5.jpg"
         ]
       }
-
     };
 
     let currentStaysUrl = null;
