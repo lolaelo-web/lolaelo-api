@@ -1131,6 +1131,15 @@ app.post("/api/payments/create-checkout-session", async (req: Request, res: Resp
   }
 });
 
+// ANCHOR: DEPLOY_FINGERPRINT
+app.get("/api/_fingerprint", (req: Request, res: Response) => {
+  res.json({
+    ok: true,
+    ts: new Date().toISOString(),
+    commit: process.env.RENDER_GIT_COMMIT || null,
+  });
+});
+
 // ANCHOR: BOOKINGS_BY_SESSION_ROUTE
 app.get("/api/bookings/by-session", async (req: Request, res: Response) => {
   let client: Client | null = null;
