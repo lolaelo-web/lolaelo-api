@@ -377,6 +377,19 @@ app.get("/api/bookings/by-session", async (req: Request, res: Response) => {
 
     await client.connect();
 
+    // TEMP DEBUG: confirms the DB and that extranet."Booking" exists
+    const dbName =
+      (await client.query(`select current_database() as db`)).rows?.[0]?.db || null;
+
+    const schemaHit =
+      (await client.query(`
+        select exists(
+          select 1
+          from information_schema.tables
+          where table_schema='extranet' and table_name='Booking'
+        ) as ok
+      `)).rows?.[0]?.ok ?? null;
+
     const { rows } = await client.query(
       `
       SELECT
@@ -394,15 +407,23 @@ app.get("/api/bookings/by-session", async (req: Request, res: Response) => {
     );
 
     if (!rows || rows.length === 0) {
-      return res.status(404).json({ error: "Booking not found" });
+      return res.status(404).json({
+        error: "Booking not found",
+        debug: { dbName, schemaHit, sessionIdLen: sessionId.length },
+      });
     }
 
-    return res.json(rows[0]);
+    return res.json({
+      ...rows[0],
+      debug: { dbName, schemaHit, sessionIdLen: sessionId.length },
+    });
   } catch (e: any) {
     console.error("GET /api/bookings/by-session failed:", e?.message || e);
     return res.status(500).json({ error: "Server error" });
   } finally {
-    try { if (client) await client.end(); } catch {}
+    try {
+      if (client) await client.end();
+    } catch {}
   }
 });
 
@@ -1187,57 +1208,6 @@ app.get("/api/_fingerprint", (req: Request, res: Response) => {
     ts: new Date().toISOString(),
     commit: process.env.RENDER_GIT_COMMIT || null,
   });
-});
-
-// ANCHOR: BOOKINGS_BY_SESSION_ROUTE
-app.get("/api/bookings/by-session", async (req: Request, res: Response) => {
-  let client: Client | null = null;
-
-  try {
-    res.set("Cache-Control", "no-store");
-
-    const sessionId = String(req.query.session_id || "").trim();
-    if (!sessionId) return res.status(400).json({ error: "Missing session_id" });
-
-    const cs = process.env.DATABASE_URL as string;
-    if (!cs) return res.status(500).json({ error: "Missing DATABASE_URL" });
-
-    client = new Client({
-      connectionString: cs,
-      ssl: wantsSSL(cs) ? { rejectUnauthorized: false } : undefined,
-    });
-
-    await client.connect();
-
-    const { rows } = await client.query(
-      `
-      SELECT
-        "bookingRef",
-        status,
-        "pendingConfirmExpiresAt",
-        "refundDeadlineAt",
-        "createdAt"
-      FROM extranet."Booking"
-      WHERE "providerPaymentId" = $1
-      ORDER BY id DESC
-      LIMIT 1
-      `,
-      [sessionId]
-    );
-
-    if (!rows || rows.length === 0) {
-      return res.status(404).json({ error: "Booking not found" });
-    }
-
-    return res.json(rows[0]);
-  } catch (e: any) {
-    console.error("GET /api/bookings/by-session failed:", e?.message || e);
-    return res.status(500).json({ error: "Server error" });
-  } finally {
-    try {
-      if (client) await client.end();
-    } catch {}
-  }
 });
 
 export default app;
