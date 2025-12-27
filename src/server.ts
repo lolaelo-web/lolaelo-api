@@ -359,7 +359,7 @@ app.use(express.static(pubPath, { extensions: ["html"], maxAge: "1h", etag: true
 
 // ---- Health ----
 app.get("/health", (_req, res) => {
-  res.type("text/plain").send("OK v-ROUTES-32");
+  res.type("text/plain").send("OK v-ROUTES-32 BYSESSION-ON");
 });
 
 // ANCHOR: HEALTHZ_ROUTE
