@@ -7,6 +7,7 @@ import { fileURLToPath, pathToFileURL } from "node:url";
 import { Client } from "pg";
 import { requireWriteToken } from "./middleware/requireWriteToken.js";
 import Stripe from "stripe";
+import crypto from "node:crypto";
 
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY as string);
 
@@ -200,6 +201,154 @@ app.options("*", cors(corsOpts));
 
 // ---- Core ----
 app.set("trust proxy", 1);
+// ---- Stripe webhook (verified) ----
+// MUST be registered BEFORE express.json(), so req.body stays raw for signature verification
+app.post("/api/payments/webhook", express.raw({ type: "application/json" }), async (req: Request, res: Response) => {
+  const sig = req.headers["stripe-signature"] as string | undefined;
+  if (!sig) return res.status(400).send("Missing Stripe signature");
+
+  let event: Stripe.Event;
+  try {
+    event = Stripe.webhooks.constructEvent(
+      req.body,
+      sig,
+      process.env.STRIPE_WEBHOOK_SECRET as string
+    );
+  } catch (err: any) {
+    console.error("[WH] invalid signature:", err?.message || err);
+    return res.status(400).send("Invalid signature");
+  }
+
+  if (event.type !== "checkout.session.completed") {
+    return res.json({ received: true });
+  }
+
+  const session = event.data.object as Stripe.Checkout.Session;
+  const providerPaymentId = session.id;
+
+  try {
+    const cs = process.env.DATABASE_URL || "";
+    if (!cs) throw new Error("DATABASE_URL missing");
+
+    const client = new Client({
+      connectionString: cs,
+      ssl: wantsSSL(cs) ? { rejectUnauthorized: false } : undefined,
+    });
+    await client.connect();
+
+    try {
+      // Idempotent guard
+      const exists = await client.query(
+        `SELECT id FROM extranet."Booking" WHERE "providerPaymentId" = $1 LIMIT 1`,
+        [providerPaymentId]
+      );
+      if (exists.rows.length) {
+        await client.end();
+        return res.json({ received: true });
+      }
+
+      const md = session.metadata || {};
+
+      // Accept either the new keys or the old ones (fallback)
+      const partnerId  = Number(md.partnerId  || md.propertyId);
+      const roomTypeId = Number(md.roomTypeId || md.roomId);
+      const ratePlanId = Number(md.ratePlanId);
+      const checkInDate  = md.checkInDate ? new Date(md.checkInDate) : (md.start ? new Date(md.start) : null);
+      const checkOutDate = md.checkOutDate ? new Date(md.checkOutDate) : (md.end ? new Date(md.end) : null);
+      const qty    = Number(md.qty || 1);
+      const guests = md.guests ? Number(md.guests) : null;
+
+      if (!partnerId || !roomTypeId || !ratePlanId || !checkInDate || !checkOutDate) {
+        console.error("[WH] missing metadata:", md);
+        await client.end();
+        return res.status(400).send("Missing booking metadata");
+      }
+
+      const now = new Date();
+      const pendingConfirmExpiresAt = new Date(now.getTime() + 24 * 60 * 60 * 1000);
+      const refundDeadlineAt        = new Date(pendingConfirmExpiresAt.getTime() + 48 * 60 * 60 * 1000);
+
+      // Booking ref LL-XXXXXX
+      const chars = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
+      let bookingRef = "LL-";
+      for (let i = 0; i < 6; i++) bookingRef += chars[Math.floor(Math.random() * chars.length)];
+
+      const name = (session.customer_details?.name || "").trim();
+      const firstName = name ? name.split(" ")[0] : null;
+      const lastName  = name ? (name.split(" ").slice(1).join(" ") || null) : null;
+
+      const travelerEmail = session.customer_details?.email || "";
+      if (!travelerEmail) {
+        console.error("[WH] missing traveler email, session:", session.id);
+        await client.end();
+        return res.status(400).send("Missing traveler email");
+      }
+
+      const currency = (session.currency || "php").toUpperCase();
+      const amountPaid = (session.amount_total || 0) / 100;
+
+      const ins = await client.query(
+        `
+        INSERT INTO extranet."Booking" (
+          "bookingRef","partnerId","roomTypeId","ratePlanId",
+          "checkInDate","checkOutDate","qty","guests",
+          "travelerFirstName","travelerLastName","travelerEmail","travelerPhone",
+          "currency","amountPaid",
+          "paymentProvider","providerPaymentId","providerCustomerId",
+          "status","createdAt","updatedAt",
+          "pendingConfirmExpiresAt","refundDeadlineAt",
+          "refundStatus","refundAttemptCount"
+        )
+        VALUES (
+          $1,$2,$3,$4,
+          $5,$6,$7,$8,
+          $9,$10,$11,$12,
+          $13,$14,
+          'STRIPE',$15,$16,
+          'PENDING_HOTEL_CONFIRMATION',$17,$18,
+          $19,$20,
+          'NOT_STARTED',0
+        )
+        RETURNING id
+        `,
+        [
+          bookingRef, partnerId, roomTypeId, ratePlanId,
+          checkInDate, checkOutDate, (Number.isFinite(qty) && qty > 0 ? qty : 1), guests,
+          firstName, lastName, travelerEmail, session.customer_details?.phone || null,
+          currency, amountPaid,
+          providerPaymentId, (typeof session.customer === "string" ? session.customer : null),
+          now, now,
+          pendingConfirmExpiresAt, refundDeadlineAt
+        ]
+      );
+
+      const bookingId = ins.rows[0].id as number;
+
+      const token = crypto.randomBytes(24).toString("hex");
+      await client.query(
+        `INSERT INTO extranet."BookingConfirmToken" ("bookingId","token","expiresAt","createdAt")
+         VALUES ($1,$2,$3,$4)`,
+        [bookingId, token, pendingConfirmExpiresAt, now]
+      );
+
+      await client.query(
+        `INSERT INTO extranet."BookingEvent" ("bookingId","fromStatus","toStatus","actorType","actorId","note","createdAt")
+         VALUES ($1, NULL, 'PENDING_HOTEL_CONFIRMATION', 'SYSTEM', NULL, $2, $3)`,
+        [bookingId, "Payment confirmed via Stripe Checkout", now]
+      );
+
+      await client.end();
+      return res.json({ received: true });
+    } catch (e) {
+      try { await client.end(); } catch {}
+      throw e;
+    }
+  } catch (err) {
+    console.error("[WH] booking create failed:", err);
+    return res.status(500).send("Webhook processing failed");
+  }
+});
+
 app.use(express.json({ limit: "2mb" }));
 app.use(express.urlencoded({ extended: true }));
 
@@ -927,13 +1076,6 @@ app.post("/api/payments/create-checkout-session", async (req: Request, res: Resp
       message: err?.message ?? "Unknown error",
     });
   }
-});
-
-// ---- Stripe webhook (test stub) ----
-app.post("/api/payments/webhook", (req: Request, res: Response) => {
-  console.log("Stripe webhook hit:", req.body?.type ?? "no type");
-  // We will add proper signature verification and booking linkage later
-  res.json({ received: true });
 });
 
 export default app;
