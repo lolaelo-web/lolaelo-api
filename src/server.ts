@@ -998,6 +998,59 @@ app.post("/api/payments/create-checkout-session", async (req: Request, res: Resp
     const ratePlanId = body.ratePlanId ?? null;
     const rawAddons  = Array.isArray(body.addons) ? body.addons : [];
 
+    // Resolve ratePlanId to a real DB id (avoid FK failures at webhook insert time)
+    let resolvedRatePlanId: number | null = (ratePlanId != null ? Number(ratePlanId) : null);
+    if (!Number.isFinite(resolvedRatePlanId as any)) resolvedRatePlanId = null;
+
+    const cs = process.env.DATABASE_URL || "";
+    if (!cs) throw new Error("DATABASE_URL missing");
+
+    const client = new Client({
+      connectionString: cs,
+      ssl: wantsSSL(cs) ? { rejectUnauthorized: false } : undefined,
+    });
+
+    await client.connect();
+
+    try {
+      // 1) If the provided ratePlanId exists, accept it
+      if (resolvedRatePlanId != null) {
+        const ok = await client.query(
+          `SELECT id FROM extranet."RatePlan" WHERE id = $1 LIMIT 1`,
+          [resolvedRatePlanId]
+        );
+        if (!ok.rows.length) resolvedRatePlanId = null;
+      }
+
+      // 2) Fallback: pick a default-ish plan for this partner/roomType if available
+      // NOTE: we map partnerId <- propertyId and roomTypeId <- roomId in this phase
+      if (resolvedRatePlanId == null) {
+        const q = await client.query(
+          `
+          SELECT id
+          FROM extranet."RatePlan"
+          WHERE "partnerId" = $1
+          ORDER BY
+            COALESCE("isDefault", false) DESC,
+            COALESCE("active", true) DESC,
+            id ASC
+          LIMIT 1
+          `,
+          [Number(propertyId)]
+        );
+        if (q.rows.length) resolvedRatePlanId = Number(q.rows[0].id);
+      }
+    } finally {
+      await client.end();
+    }
+
+    if (resolvedRatePlanId == null) {
+      return res.status(400).json({
+        error: "no_rateplan",
+        message: "No valid rate plan found for this booking. Please pick another plan or contact support.",
+      });
+    }
+
     // Light sanitization of add-ons so we can safely attach to metadata / logs
     const addons = rawAddons.map((a: any) => ({
       index: typeof a.index === "number" ? a.index : null,
@@ -1034,7 +1087,7 @@ app.post("/api/payments/create-checkout-session", async (req: Request, res: Resp
       roomId: roomId != null ? String(roomId) : "",
       start: start != null ? String(start) : "",
       end: end != null ? String(end) : "",
-      ratePlanId: ratePlanId != null ? String(ratePlanId) : "",
+      ratePlanId: String(resolvedRatePlanId),
     };
 
     try {
