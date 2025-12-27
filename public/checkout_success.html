@@ -3,11 +3,9 @@
 <head>
   <meta charset="UTF-8" />
   <title>Lolaelo - Booking status</title>
-  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <style>
     body {
-      margin: 0;
-      padding: 0;
       font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
       background: #f9fafb;
       color: #0f172a;
@@ -15,68 +13,91 @@
       align-items: center;
       justify-content: center;
       min-height: 100vh;
+      margin: 0;
+      padding: 0;
     }
     .card {
       background: #ffffff;
       padding: 24px 28px;
-      border-radius: 16px;
-      box-shadow: 0 12px 30px rgba(15, 23, 42, 0.08);
-      max-width: 520px;
+      border-radius: 14px;
+      box-shadow: 0 10px 28px rgba(15, 23, 42, 0.08);
+      max-width: 560px;
       width: calc(100% - 28px);
       text-align: left;
     }
-    h1 { font-size: 18px; margin: 0 0 8px; }
-    p { font-size: 14px; color: #475569; margin: 6px 0; }
-    .muted { color: #6b7280; }
-    .row { margin-top: 10px; padding-top: 10px; border-top: 1px solid rgba(15,23,42,.08); }
-    .kv { display: flex; justify-content: space-between; gap: 10px; font-size: 14px; margin: 6px 0; }
-    .kv span:first-child { color: #64748b; }
-    .kv span:last-child { color: #0f172a; font-weight: 600; }
-    .btns { display: flex; gap: 10px; margin-top: 14px; flex-wrap: wrap; }
+    h1 {
+      margin: 0 0 8px;
+      font-size: 18px;
+    }
+    p {
+      margin: 6px 0;
+      font-size: 14px;
+      color: #475569;
+      line-height: 1.45;
+    }
+    .row {
+      margin-top: 14px;
+      padding-top: 12px;
+      border-top: 1px solid rgba(15,23,42,.08);
+    }
+    .kv {
+      display: flex;
+      justify-content: space-between;
+      gap: 12px;
+      margin: 8px 0;
+      font-size: 14px;
+    }
+    .k { color: #64748b; }
+    .v { color: #0f172a; font-weight: 600; }
+    code {
+      font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", monospace;
+      font-size: 12px;
+      background: rgba(15,23,42,.06);
+      padding: 2px 6px;
+      border-radius: 6px;
+    }
+    .btns {
+      display: flex;
+      gap: 10px;
+      margin-top: 14px;
+      flex-wrap: wrap;
+    }
     a.btn {
       display: inline-block;
       padding: 9px 14px;
       border-radius: 999px;
-      background: #ff6a3d;
-      color: #ffffff;
       text-decoration: none;
       font-size: 14px;
-      font-weight: 600;
-    }
-    a.btn.secondary {
-      background: transparent;
-      color: #0f172a;
+      font-weight: 650;
       border: 1px solid rgba(15,23,42,.18);
-      font-weight: 600;
-    }
-    code {
-      font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", monospace;
-      font-size: 12px;
       color: #0f172a;
-      background: rgba(15,23,42,.06);
-      padding: 2px 6px;
-      border-radius: 6px;
+      background: transparent;
+    }
+    a.btn.primary {
+      background: #ff6a3d;
+      border-color: #ff6a3d;
+      color: #ffffff;
     }
   </style>
 </head>
 <body>
   <div class="card">
     <h1 id="headline">Booking received</h1>
-    <p id="statusLine" class="muted">Loading booking details...</p>
+    <p id="statusLine">Loading booking details...</p>
 
     <div class="row">
-      <div class="kv"><span>Booking reference</span><span id="bookingRef">-</span></div>
-      <div class="kv"><span>Status</span><span id="bookingStatus">-</span></div>
-      <div class="kv"><span>Hotel confirmation window ends</span><span id="confirmBy">-</span></div>
-      <div class="kv"><span>Refund guarantee deadline</span><span id="refundBy">-</span></div>
-      <p class="muted" id="sessionHint" style="margin-top:10px; display:none;">
+      <div class="kv"><span class="k">Booking reference</span><span class="v" id="bookingRef">-</span></div>
+      <div class="kv"><span class="k">Status</span><span class="v" id="bookingStatus">-</span></div>
+      <div class="kv"><span class="k">Hotel confirmation window ends</span><span class="v" id="confirmBy">-</span></div>
+      <div class="kv"><span class="k">Refund guarantee deadline</span><span class="v" id="refundBy">-</span></div>
+      <p id="sessionLine" style="display:none; margin-top:10px;">
         Stripe session: <code id="sessionId">-</code>
       </p>
     </div>
 
     <div class="btns">
-      <a class="btn secondary" href="/index.html">Back to homepage</a>
-      <a class="btn" href="#" id="receiptBtn" style="display:none;">Download receipt</a>
+      <a class="btn" href="/index.html">Back to homepage</a>
+      <a class="btn primary" id="receiptBtn" href="#" style="display:none;">Download receipt</a>
     </div>
   </div>
 
@@ -86,6 +107,21 @@
 
       function qs(name) {
         return new URLSearchParams(window.location.search).get(name);
+      }
+
+      function setText(id, txt) {
+        var el = document.getElementById(id);
+        if (el) el.textContent = (txt == null || txt === "") ? "-" : String(txt);
+      }
+
+      function setHeadline(txt) {
+        var el = document.getElementById("headline");
+        if (el) el.textContent = txt;
+      }
+
+      function setLine(txt) {
+        var el = document.getElementById("statusLine");
+        if (el) el.textContent = txt;
       }
 
       function fmtLocal(dt) {
@@ -100,43 +136,24 @@
         });
       }
 
-      function setText(id, txt) {
-        var el = document.getElementById(id);
-        if (el) el.textContent = (txt == null || txt === "") ? "-" : String(txt);
-      }
-
-      function setLine(txt) {
-        var el = document.getElementById("statusLine");
-        if (el) el.textContent = txt;
-      }
-
-      function setHeadline(txt) {
-        var el = document.getElementById("headline");
-        if (el) el.textContent = txt;
-      }
-
-      function show(id, on) {
-        var el = document.getElementById(id);
-        if (el) el.style.display = on ? "" : "none";
-      }
-
       async function load() {
         var sessionId = qs("session_id");
         if (!sessionId) {
           setHeadline("Missing session id");
-          setLine("This page needs ?session_id= from Stripe success redirect.");
+          setLine("This page needs the Stripe redirect param: ?session_id=...");
           return;
         }
 
         setText("sessionId", sessionId);
-        show("sessionHint", true);
+        var sl = document.getElementById("sessionLine");
+        if (sl) sl.style.display = "";
 
         var url = API_BASE + "/api/bookings/by-session?session_id=" + encodeURIComponent(sessionId);
         var resp = await fetch(url, { method: "GET" });
 
         if (!resp.ok) {
           setHeadline("Could not load booking");
-          setLine("Server returned " + resp.status + " for booking lookup.");
+          setLine("Booking lookup failed (" + resp.status + ").");
           return;
         }
 
@@ -148,8 +165,8 @@
         setText("refundBy", b.refundDeadlineAt ? fmtLocal(b.refundDeadlineAt) : "-");
 
         if (b.status === "PENDING_HOTEL_CONFIRMATION") {
-          setHeadline("Booking pending hotel confirmation");
-          setLine("We received your payment. The hotel has up to 24 hours to confirm. If they do not respond, you are protected by the refund guarantee.");
+          setHeadline("Pending hotel confirmation");
+          setLine("Payment received. The hotel has up to 24 hours to confirm. If they do not respond, you are protected by the refund guarantee.");
         } else if (b.status === "CONFIRMED") {
           setHeadline("Booking confirmed");
           setLine("The hotel confirmed your booking.");
@@ -160,8 +177,9 @@
           setLine("Booking loaded.");
         }
 
-        // Receipt button: placeholder for now (wire later when you decide your receipt source)
-        show("receiptBtn", false);
+        // Receipt: keep hidden for now. We can wire this once you decide the source (Stripe receipt URL vs PDF).
+        var rb = document.getElementById("receiptBtn");
+        if (rb) rb.style.display = "none";
       }
 
       load().catch(function (e) {
