@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <title>Lolaelo – Booking confirmed</title>
+  <title>Lolaelo - Booking status</title>
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <style>
     body {
@@ -21,30 +21,155 @@
       padding: 24px 28px;
       border-radius: 16px;
       box-shadow: 0 12px 30px rgba(15, 23, 42, 0.08);
-      max-width: 420px;
-      text-align: center;
+      max-width: 520px;
+      width: calc(100% - 28px);
+      text-align: left;
     }
-    h1 { font-size: 20px; margin-bottom: 8px; }
-    p { font-size: 14px; color: #6b7280; }
-    a {
+    h1 { font-size: 18px; margin: 0 0 8px; }
+    p { font-size: 14px; color: #475569; margin: 6px 0; }
+    .muted { color: #6b7280; }
+    .row { margin-top: 10px; padding-top: 10px; border-top: 1px solid rgba(15,23,42,.08); }
+    .kv { display: flex; justify-content: space-between; gap: 10px; font-size: 14px; margin: 6px 0; }
+    .kv span:first-child { color: #64748b; }
+    .kv span:last-child { color: #0f172a; font-weight: 600; }
+    .btns { display: flex; gap: 10px; margin-top: 14px; flex-wrap: wrap; }
+    a.btn {
       display: inline-block;
-      margin-top: 14px;
-      padding: 9px 18px;
+      padding: 9px 14px;
       border-radius: 999px;
       background: #ff6a3d;
       color: #ffffff;
       text-decoration: none;
       font-size: 14px;
-      font-weight: 500;
+      font-weight: 600;
+    }
+    a.btn.secondary {
+      background: transparent;
+      color: #0f172a;
+      border: 1px solid rgba(15,23,42,.18);
+      font-weight: 600;
+    }
+    code {
+      font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", monospace;
+      font-size: 12px;
+      color: #0f172a;
+      background: rgba(15,23,42,.06);
+      padding: 2px 6px;
+      border-radius: 6px;
     }
   </style>
 </head>
 <body>
   <div class="card">
-    <h1>Booking confirmed (test)</h1>
-    <p>Your payment was processed successfully in Stripe sandbox.</p>
-    <p>You can close this tab or return to the Lolaelo site.</p>
-    <a href="/index.html">Back to homepage</a>
+    <h1 id="headline">Booking received</h1>
+    <p id="statusLine" class="muted">Loading booking details...</p>
+
+    <div class="row">
+      <div class="kv"><span>Booking reference</span><span id="bookingRef">-</span></div>
+      <div class="kv"><span>Status</span><span id="bookingStatus">-</span></div>
+      <div class="kv"><span>Hotel confirmation window ends</span><span id="confirmBy">-</span></div>
+      <div class="kv"><span>Refund guarantee deadline</span><span id="refundBy">-</span></div>
+      <p class="muted" id="sessionHint" style="margin-top:10px; display:none;">
+        Stripe session: <code id="sessionId">-</code>
+      </p>
+    </div>
+
+    <div class="btns">
+      <a class="btn secondary" href="/index.html">Back to homepage</a>
+      <a class="btn" href="#" id="receiptBtn" style="display:none;">Download receipt</a>
+    </div>
   </div>
+
+  <script>
+    (function () {
+      var API_BASE = "https://lolaelo-api.onrender.com";
+
+      function qs(name) {
+        return new URLSearchParams(window.location.search).get(name);
+      }
+
+      function fmtLocal(dt) {
+        var d = new Date(dt);
+        if (!isFinite(d.getTime())) return "-";
+        return d.toLocaleString(undefined, {
+          year: "numeric",
+          month: "short",
+          day: "2-digit",
+          hour: "2-digit",
+          minute: "2-digit",
+        });
+      }
+
+      function setText(id, txt) {
+        var el = document.getElementById(id);
+        if (el) el.textContent = (txt == null || txt === "") ? "-" : String(txt);
+      }
+
+      function setLine(txt) {
+        var el = document.getElementById("statusLine");
+        if (el) el.textContent = txt;
+      }
+
+      function setHeadline(txt) {
+        var el = document.getElementById("headline");
+        if (el) el.textContent = txt;
+      }
+
+      function show(id, on) {
+        var el = document.getElementById(id);
+        if (el) el.style.display = on ? "" : "none";
+      }
+
+      async function load() {
+        var sessionId = qs("session_id");
+        if (!sessionId) {
+          setHeadline("Missing session id");
+          setLine("This page needs ?session_id= from Stripe success redirect.");
+          return;
+        }
+
+        setText("sessionId", sessionId);
+        show("sessionHint", true);
+
+        var url = API_BASE + "/api/bookings/by-session?session_id=" + encodeURIComponent(sessionId);
+        var resp = await fetch(url, { method: "GET" });
+
+        if (!resp.ok) {
+          setHeadline("Could not load booking");
+          setLine("Server returned " + resp.status + " for booking lookup.");
+          return;
+        }
+
+        var b = await resp.json();
+
+        setText("bookingRef", b.bookingRef);
+        setText("bookingStatus", (b.status || "").replaceAll("_", " "));
+        setText("confirmBy", b.pendingConfirmExpiresAt ? fmtLocal(b.pendingConfirmExpiresAt) : "-");
+        setText("refundBy", b.refundDeadlineAt ? fmtLocal(b.refundDeadlineAt) : "-");
+
+        if (b.status === "PENDING_HOTEL_CONFIRMATION") {
+          setHeadline("Booking pending hotel confirmation");
+          setLine("We received your payment. The hotel has up to 24 hours to confirm. If they do not respond, you are protected by the refund guarantee.");
+        } else if (b.status === "CONFIRMED") {
+          setHeadline("Booking confirmed");
+          setLine("The hotel confirmed your booking.");
+        } else if (b.status) {
+          setHeadline("Booking status updated");
+          setLine("Current status: " + String(b.status).replaceAll("_", " ") + ".");
+        } else {
+          setLine("Booking loaded.");
+        }
+
+        // Receipt button: placeholder for now (wire later when you decide your receipt source)
+        show("receiptBtn", false);
+      }
+
+      load().catch(function (e) {
+        console.error(e);
+        setHeadline("Error");
+        setLine("Something went wrong loading your booking.");
+      });
+    })();
+  </script>
 </body>
 </html>

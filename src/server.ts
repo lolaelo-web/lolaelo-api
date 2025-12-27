@@ -1131,4 +1131,55 @@ app.post("/api/payments/create-checkout-session", async (req: Request, res: Resp
   }
 });
 
+// ANCHOR: BOOKINGS_BY_SESSION_ROUTE
+app.get("/api/bookings/by-session", async (req: Request, res: Response) => {
+  let client: Client | null = null;
+
+  try {
+    res.set("Cache-Control", "no-store");
+
+    const sessionId = String(req.query.session_id || "").trim();
+    if (!sessionId) return res.status(400).json({ error: "Missing session_id" });
+
+    const cs = process.env.DATABASE_URL as string;
+    if (!cs) return res.status(500).json({ error: "Missing DATABASE_URL" });
+
+    client = new Client({
+      connectionString: cs,
+      ssl: wantsSSL(cs) ? { rejectUnauthorized: false } : undefined,
+    });
+
+    await client.connect();
+
+    const { rows } = await client.query(
+      `
+      SELECT
+        "bookingRef",
+        status,
+        "pendingConfirmExpiresAt",
+        "refundDeadlineAt",
+        "createdAt"
+      FROM extranet."Booking"
+      WHERE "providerPaymentId" = $1
+      ORDER BY id DESC
+      LIMIT 1
+      `,
+      [sessionId]
+    );
+
+    if (!rows || rows.length === 0) {
+      return res.status(404).json({ error: "Booking not found" });
+    }
+
+    return res.json(rows[0]);
+  } catch (e: any) {
+    console.error("GET /api/bookings/by-session failed:", e?.message || e);
+    return res.status(500).json({ error: "Server error" });
+  } finally {
+    try {
+      if (client) await client.end();
+    } catch {}
+  }
+});
+
 export default app;
