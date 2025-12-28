@@ -2,13 +2,14 @@
 import "dotenv/config";
 import express, { type Router, type Request, type Response, type NextFunction } from "express";
 import cors, { type CorsOptions } from "cors";
-import path from "node:path";
 import { fileURLToPath, pathToFileURL } from "node:url";
 import { Client } from "pg";
 import { requireWriteToken } from "./middleware/requireWriteToken.js";
 import Stripe from "stripe";
 import crypto from "node:crypto";
 import PDFDocument from "pdfkit";
+import path from "path";
+import fs from "fs";
 
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY as string);
 
@@ -451,6 +452,23 @@ app.get("/api/bookings/receipt.pdf", async (req: Request, res: Response) => {
     }
 
     const b = rows[0];
+    // Timezone for formatting (passed from browser as IANA tz, ex: America/New_York)
+    const tz = String(req.query.tz || "UTC").trim() || "UTC";
+
+    function fmtInTz(d: any) {
+      if (!d) return "-";
+      const dt = new Date(d);
+      if (!Number.isFinite(dt.getTime())) return "-";
+      return dt.toLocaleString("en-US", {
+        timeZone: tz,
+        year: "numeric",
+        month: "2-digit",
+        day: "2-digit",
+        hour: "2-digit",
+        minute: "2-digit",
+        hour12: true,
+      });
+    }
 
     // Lazy import so server still boots if something goes wrong in install
     // but you should still install pdfkit.
@@ -463,11 +481,14 @@ app.get("/api/bookings/receipt.pdf", async (req: Request, res: Response) => {
     const doc = new PDFDocument({ size: "LETTER", margin: 54 });
     doc.pipe(res);
 
-    // Simple branded header
-    doc.fontSize(20).text("Lolaelo", { continued: true });
-    doc.fillColor("#ff6a3d").text(" Receipt");
+    // Header: logo + title
+    const logoPath = path.join(process.cwd(), "public", "images", "logo.png");
+    if (fs.existsSync(logoPath)) {
+      doc.image(logoPath, 54, 48, { width: 32, height: 32 });
+    }
+    doc.fontSize(20).fillColor("#0f172a").text("Receipt", 96, 52);
     doc.fillColor("#0f172a");
-    doc.moveDown(0.6);
+    doc.moveDown(1.2);
 
     doc.fontSize(12).fillColor("#475569").text("Booking receipt (pending hotel confirmation where applicable).");
     doc.fillColor("#0f172a");
@@ -476,9 +497,11 @@ app.get("/api/bookings/receipt.pdf", async (req: Request, res: Response) => {
     // Key fields
     doc.fontSize(12).text(`Booking reference: ${b.bookingRef || "-"}`);
     doc.text(`Status: ${(b.status || "-").replaceAll("_", " ")}`);
-    doc.text(`Created: ${b.createdAt ? new Date(b.createdAt).toLocaleString() : "-"}`);
-    doc.text(`Hotel confirmation window ends: ${b.pendingConfirmExpiresAt ? new Date(b.pendingConfirmExpiresAt).toLocaleString() : "-"}`);
-    doc.text(`Refund guarantee deadline: ${b.refundDeadlineAt ? new Date(b.refundDeadlineAt).toLocaleString() : "-"}`);
+    doc.text(`Timezone: ${tz}`);
+    doc.moveDown(0.2);
+    doc.text(`Created: ${fmtInTz(b.createdAt)}`);
+    doc.text(`Hotel confirmation window ends: ${fmtInTz(b.pendingConfirmExpiresAt)}`);
+    doc.text(`Refund guarantee deadline: ${fmtInTz(b.refundDeadlineAt)}`);
     doc.moveDown(1);
 
     doc.fillColor("#475569").fontSize(11).text(`Stripe session: ${b.providerPaymentId || "-"}`);

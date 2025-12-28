@@ -464,7 +464,8 @@
         if (receiptBtn) {
           receiptBtn.disabled = false;
           receiptBtn.addEventListener("click", function () {
-            var pdfUrl = API_BASE + "/api/bookings/receipt.pdf?session_id=" + encodeURIComponent(sessionId);
+            var tz = Intl.DateTimeFormat().resolvedOptions().timeZone || "UTC";
+            var pdfUrl = API_BASE + "/api/bookings/receipt.pdf?session_id=" + encodeURIComponent(sessionId) + "&tz=" + encodeURIComponent(tz);
             window.open(pdfUrl, "_blank");
           }, { once: true });
         }
