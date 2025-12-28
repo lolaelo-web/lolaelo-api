@@ -454,16 +454,6 @@ app.get("/api/bookings/receipt.pdf", async (req: Request, res: Response) => {
 
     // Lazy import so server still boots if something goes wrong in install
     // but you should still install pdfkit.
-    // eslint-disable-next-line @typescript-eslint/no-var-requires
-    // eslint-disable-next-line @typescript-eslint/no-var-requires
-    const PdfKitMod = require("pdfkit");
-
-    // Handle both CommonJS and ESM default export shapes
-    const PDFDocumentCtor = PdfKitMod?.default ? PdfKitMod.default : PdfKitMod;
-    if (!PDFDocumentCtor) {
-      return res.status(500).json({ error: "PDF engine not available" });
-    }
-
     res.setHeader("Content-Type", "application/pdf");
     res.setHeader(
       "Content-Disposition",
