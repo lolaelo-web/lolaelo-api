@@ -359,6 +359,172 @@ const pubPath = path.join(__dirname, "..", "public");
 app.use("/public", express.static(pubPath, { maxAge: "1h", etag: true }));
 app.use(express.static(pubPath, { extensions: ["html"], maxAge: "1h", etag: true }));
 
+// ANCHOR: BOOKING_CONFIRM_LINK_ENDPOINTS
+function redirectToManageBookings(res: Response, result: string, bookingRef?: string) {
+  const qs = new URLSearchParams();
+  qs.set("result", result);
+  if (bookingRef) qs.set("bookingRef", bookingRef);
+  return res.redirect(302, `/partners_manage_bookings.html?${qs.toString()}`);
+}
+
+async function withDb<T>(fn: (client: Client) => Promise<T>): Promise<T> {
+  const cs = process.env.DATABASE_URL || "";
+  if (!cs) throw new Error("DATABASE_URL missing");
+
+  const client = new Client({
+    connectionString: cs,
+    ssl: wantsSSL(cs) ? { rejectUnauthorized: false } : undefined,
+  });
+
+  await client.connect();
+  try {
+    return await fn(client);
+  } finally {
+    try { await client.end(); } catch {}
+  }
+}
+
+async function handleBookingDecision(req: Request, res: Response, decision: "CONFIRM" | "DECLINE") {
+  const token = String(req.query.token || "").trim();
+  if (!token) return redirectToManageBookings(res, "invalid");
+
+  const now = new Date();
+
+  return withDb(async (client) => {
+    // 1) Load token + bookingRef for validation messaging
+    const pre = await client.query(
+      `
+      SELECT
+        t.id,
+        t."bookingId",
+        t."expiresAt",
+        t."usedAt",
+        b."bookingRef",
+        b.status AS "bookingStatus"
+      FROM extranet."BookingConfirmToken" t
+      JOIN extranet."Booking" b ON b.id = t."bookingId"
+      WHERE t.token = $1
+      LIMIT 1
+      `,
+      [token]
+    );
+
+    if (!pre.rows.length) return redirectToManageBookings(res, "invalid");
+
+    const row = pre.rows[0];
+    const bookingId = Number(row.bookingId);
+    const bookingRef = String(row.bookingRef || "");
+    const expiresAt = row.expiresAt ? new Date(row.expiresAt) : null;
+    const usedAt = row.usedAt ? new Date(row.usedAt) : null;
+
+    if (usedAt) return redirectToManageBookings(res, "used", bookingRef);
+    if (expiresAt && expiresAt.getTime() <= now.getTime()) return redirectToManageBookings(res, "expired", bookingRef);
+
+    // 2) Transaction: mark token used (idempotency lock) -> update booking -> insert event
+    await client.query("BEGIN");
+    try {
+      // Mark token used ONLY if still unused and not expired (this is your idempotency lock)
+      const lock = await client.query(
+        `
+        UPDATE extranet."BookingConfirmToken"
+        SET "usedAt" = $2
+        WHERE token = $1
+          AND "usedAt" IS NULL
+          AND "expiresAt" > $2
+        RETURNING "bookingId"
+        `,
+        [token, now]
+      );
+
+      if (lock.rowCount === 0) {
+        await client.query("ROLLBACK");
+
+        // Determine whether it became used or expired
+        const chk = await client.query(
+          `
+          SELECT t."usedAt", t."expiresAt", b."bookingRef"
+          FROM extranet."BookingConfirmToken" t
+          JOIN extranet."Booking" b ON b.id = t."bookingId"
+          WHERE t.token = $1
+          LIMIT 1
+          `,
+          [token]
+        );
+
+        if (!chk.rows.length) return redirectToManageBookings(res, "invalid", bookingRef);
+
+        const used = chk.rows[0].usedAt != null;
+        const exp = chk.rows[0].expiresAt ? new Date(chk.rows[0].expiresAt) : null;
+
+        if (used) return redirectToManageBookings(res, "used", bookingRef);
+        if (exp && exp.getTime() <= now.getTime()) return redirectToManageBookings(res, "expired", bookingRef);
+
+        return redirectToManageBookings(res, "invalid", bookingRef);
+      }
+
+      const lockedBookingId = Number(lock.rows[0].bookingId);
+
+      // Get current status for event logging (lock row)
+      const cur = await client.query(
+        `SELECT status FROM extranet."Booking" WHERE id = $1 FOR UPDATE`,
+        [lockedBookingId]
+      );
+      const fromStatus = cur.rows.length ? (cur.rows[0].status as string) : null;
+
+      const toStatus = decision === "CONFIRM" ? "CONFIRMED" : "DECLINED_BY_HOTEL";
+
+      // Update booking status + timestamps
+      await client.query(
+        `
+        UPDATE extranet."Booking"
+        SET
+          status = $2,
+          "confirmedAt" = CASE WHEN $2 = 'CONFIRMED' THEN $3 ELSE "confirmedAt" END,
+          "declinedAt"  = CASE WHEN $2 = 'DECLINED_BY_HOTEL' THEN $3 ELSE "declinedAt" END,
+          "updatedAt"   = $3
+        WHERE id = $1
+        `,
+        [lockedBookingId, toStatus, now]
+      );
+
+      // Insert BookingEvent (matches your existing schema usage)
+      await client.query(
+        `
+        INSERT INTO extranet."BookingEvent"
+          ("bookingId","fromStatus","toStatus","actorType","actorId","note","createdAt")
+        VALUES
+          ($1, $2, $3, 'HOTEL', NULL, $4, $5)
+        `,
+        [
+          lockedBookingId,
+          fromStatus,
+          toStatus,
+          decision === "CONFIRM" ? "Hotel confirmed via email link" : "Hotel declined via email link",
+          now
+        ]
+      );
+
+      await client.query("COMMIT");
+      return redirectToManageBookings(res, decision === "CONFIRM" ? "confirmed" : "declined", bookingRef);
+    } catch (e) {
+      try { await client.query("ROLLBACK"); } catch {}
+      console.error("[confirm-link] tx failed:", e);
+      return redirectToManageBookings(res, "invalid", String(row.bookingRef || ""));
+    }
+  });
+}
+
+// GET /api/bookings/confirm?token=...
+app.get("/api/bookings/confirm", async (req: Request, res: Response) => {
+  return handleBookingDecision(req, res, "CONFIRM");
+});
+
+// GET /api/bookings/decline?token=...
+app.get("/api/bookings/decline", async (req: Request, res: Response) => {
+  return handleBookingDecision(req, res, "DECLINE");
+});
+// ANCHOR: BOOKING_CONFIRM_LINK_ENDPOINTS END
+
 // ANCHOR: BOOKINGS_BY_SESSION_ROUTE (LIVE)
 app.get("/api/bookings/by-session", async (req: Request, res: Response) => {
   let client: Client | null = null;
