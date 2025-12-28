@@ -10,6 +10,7 @@ import crypto from "node:crypto";
 import PDFDocument from "pdfkit";
 import path from "path";
 import fs from "fs";
+import nodemailer from "nodemailer";
 
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY as string);
 
@@ -353,6 +354,56 @@ app.post("/api/payments/webhook", express.raw({ type: "application/json" }), asy
         [bookingId, token, pendingConfirmExpiresAt, now]
       );
 
+      // ANCHOR: SEND_HOTEL_CONFIRM_EMAIL_AFTER_TOKEN
+      try {
+        // Look up hotel email from Partner (company profile)
+        const hotelEmail = await getPartnerEmail(partnerId);
+        const toEmail = hotelEmail || "bookings@lolaelo.com"; // safety fallback
+
+        const base = process.env.PUBLIC_BASE_URL || "https://lolaelo-api.onrender.com";
+
+        const confirmUrl = `${base}/api/bookings/confirm?token=${encodeURIComponent(token)}`;
+        const declineUrl = `${base}/api/bookings/decline?token=${encodeURIComponent(token)}`;
+
+        const qGuest = await client.query(
+          `SELECT "travelerFirstName","travelerLastName" FROM extranet."Booking" WHERE id = $1 LIMIT 1`,
+          [bookingId]
+        );
+        const travelerFirst = qGuest.rows?.[0]?.travelerFirstName || "";
+        const travelerLast  = qGuest.rows?.[0]?.travelerLastName || "";
+
+        const guestName =
+          [travelerFirst, travelerLast].filter(Boolean).join(" ").trim() || "Traveler";
+
+        const subject = `Action needed: confirm booking ${bookingRef}`;
+
+        const html = hotelConfirmEmailHtml({
+          bookingRef,
+          guestName,
+          checkIn: String(checkInDate).slice(0, 10),
+          checkOut: String(checkOutDate).slice(0, 10),
+          qty: Number(qty || 1),
+          amountPaid: `${currency} ${Number(amountPaid).toFixed(2)}`,
+          respondBy: String(pendingConfirmExpiresAt).replace("T", " ").slice(0, 19),
+          confirmUrl,
+          declineUrl,
+        });
+
+        // ⚠️ IMPORTANT: replace sendMail with your real mail function name
+        await sendMailReal({
+          from: "bookings@lolaelo.com",
+          to: toEmail,
+          subject,
+          html,
+        });
+        console.log("[booking-email] sent:", { to: toEmail, bookingRef });
+
+        console.log("[booking-email] sent:", { to: toEmail, bookingRef });
+      } catch (e) {
+        console.error("[booking-email] failed:", e);
+      }
+      // ANCHOR: SEND_HOTEL_CONFIRM_EMAIL_AFTER_TOKEN END
+
       await client.query(
         `INSERT INTO extranet."BookingEvent" ("bookingId","fromStatus","toStatus","actorType","actorId","note","createdAt")
          VALUES ($1, NULL, 'PENDING_HOTEL_CONFIRMATION', 'SYSTEM', NULL, $2, $3)`,
@@ -403,6 +454,107 @@ async function withDb<T>(fn: (client: Client) => Promise<T>): Promise<T> {
     try { await client.end(); } catch {}
   }
 }
+
+// ANCHOR: GET_PARTNER_EMAIL
+async function getPartnerEmail(partnerId: number): Promise<string> {
+  return withDb(async (client) => {
+    const q = await client.query(
+      `SELECT email FROM extranet."Partner" WHERE id = $1 LIMIT 1`,
+      [partnerId]
+    );
+    const email = q.rows?.[0]?.email ? String(q.rows[0].email).trim() : "";
+    return email;
+  });
+}
+// ANCHOR: GET_PARTNER_EMAIL END
+
+// ANCHOR: HOTEL_CONFIRM_EMAIL_TEMPLATE
+function hotelConfirmEmailHtml(args: {
+  bookingRef: string;
+  guestName: string;
+  checkIn: string;
+  checkOut: string;
+  qty: number;
+  amountPaid: string;
+  respondBy: string;
+  confirmUrl: string;
+  declineUrl: string;
+}) {
+  return `
+  <div style="font-family:Inter,system-ui,Segoe UI,Roboto,Arial; line-height:1.45; color:#0f172a;">
+    <h2 style="margin:0 0 10px;">
+      Booking request: <span style="color:#ff6a3d;">${args.bookingRef}</span>
+    </h2>
+
+    <p style="margin:0 0 12px;">
+      Please confirm or decline this booking request. If no action is taken before the deadline, it will expire automatically.
+    </p>
+
+    <div style="padding:12px 14px; border:1px solid rgba(15,23,42,.12); border-radius:12px; background:#fff;">
+      <div><b>Guest:</b> ${args.guestName}</div>
+      <div><b>Stay:</b> ${args.checkIn} to ${args.checkOut}</div>
+      <div><b>Rooms:</b> ${args.qty}</div>
+      <div><b>Amount paid:</b> ${args.amountPaid}</div>
+      <div><b>Respond by:</b> ${args.respondBy} EST</div>
+    </div>
+
+    <div style="margin-top:14px; display:flex; gap:10px; flex-wrap:wrap;">
+      <a href="${args.confirmUrl}" style="background:#16a34a; color:#fff; text-decoration:none; padding:10px 14px; border-radius:999px; font-weight:700;">
+        Confirm booking
+      </a>
+      <a href="${args.declineUrl}" style="background:#dc2626; color:#fff; text-decoration:none; padding:10px 14px; border-radius:999px; font-weight:700;">
+        Decline booking
+      </a>
+    </div>
+
+    <p style="margin-top:14px; color:#475569; font-size:13px;">
+      These links are single-use and expire automatically.
+    </p>
+  </div>`;
+}
+// ANCHOR: HOTEL_CONFIRM_EMAIL_TEMPLATE END
+
+// ANCHOR: MAIL_SENDER
+const MAIL_FROM = process.env.MAIL_FROM || "bookings@lolaelo.com";
+
+const SMTP_HOST = process.env.SMTP_HOST || "";
+const SMTP_PORT = Number(process.env.SMTP_PORT || 587);
+const SMTP_USER = process.env.SMTP_USER || "";
+const SMTP_PASS = process.env.SMTP_PASS || "";
+
+const mailTransport =
+  SMTP_HOST && SMTP_USER && SMTP_PASS
+    ? nodemailer.createTransport({
+        host: SMTP_HOST,
+        port: SMTP_PORT,
+        secure: SMTP_PORT === 465,
+        auth: {
+          user: SMTP_USER,
+          pass: SMTP_PASS,
+        },
+      })
+    : null;
+
+async function sendMailReal(args: {
+  to: string;
+  subject: string;
+  html: string;
+  from?: string;
+}) {
+  if (!mailTransport) {
+    throw new Error("mail_not_configured");
+  }
+
+  const from = args.from || MAIL_FROM;
+
+  return mailTransport.sendMail({
+    from,
+    to: args.to,
+    subject: args.subject,
+    html: args.html,
+  });
+}
+// ANCHOR: MAIL_SENDER END
 
 async function handleBookingDecision(req: Request, res: Response, decision: "CONFIRM" | "DECLINE") {
   const token = String(req.query.token || "").trim();
