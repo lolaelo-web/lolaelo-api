@@ -500,8 +500,19 @@ app.get("/api/bookings/receipt.pdf", async (req: Request, res: Response) => {
 
     doc.end();
   } catch (e: any) {
-    console.error("GET /api/bookings/receipt.pdf failed:", e?.message || e);
-    return res.status(500).json({ error: "Server error" });
+    const msg = e?.message ? String(e.message) : String(e);
+    const stack = e?.stack ? String(e.stack) : "";
+
+    console.error("GET /api/bookings/receipt.pdf failed:", msg);
+    if (stack) console.error(stack);
+
+    // TEMP: surface the real error so we can diagnose
+    if (!res.headersSent) {
+      return res.status(500).json({
+        error: "Server error",
+        detail: msg,
+      });
+    }
   } finally {
     try {
       if (client) await client.end();
