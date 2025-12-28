@@ -8,6 +8,7 @@ import { Client } from "pg";
 import { requireWriteToken } from "./middleware/requireWriteToken.js";
 import Stripe from "stripe";
 import crypto from "node:crypto";
+import PDFDocument from "pdfkit";
 
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY as string);
 
@@ -469,7 +470,7 @@ app.get("/api/bookings/receipt.pdf", async (req: Request, res: Response) => {
       `attachment; filename="Lolaelo_Receipt_${b.bookingRef || "booking"}.pdf"`
     );
 
-    const doc = new PDFDocumentCtor({ size: "LETTER", margin: 54 });
+    const doc = new PDFDocument({ size: "LETTER", margin: 54 });
     doc.pipe(res);
 
     // Simple branded header
@@ -506,7 +507,6 @@ app.get("/api/bookings/receipt.pdf", async (req: Request, res: Response) => {
     console.error("GET /api/bookings/receipt.pdf failed:", msg);
     if (stack) console.error(stack);
 
-    // TEMP: surface the real error so we can diagnose
     if (!res.headersSent) {
       return res.status(500).json({
         error: "Server error",
@@ -518,7 +518,7 @@ app.get("/api/bookings/receipt.pdf", async (req: Request, res: Response) => {
       if (client) await client.end();
     } catch {}
   }
-});
+  });
 
 // ---- Health ----
 app.get("/health", (_req, res) => {
