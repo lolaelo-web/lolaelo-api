@@ -478,9 +478,9 @@ async function handleBookingDecision(req: Request, res: Response, decision: "CON
         `
         UPDATE extranet."Booking"
         SET
-          status = $2,
-          "confirmedAt" = CASE WHEN $2 = 'CONFIRMED' THEN $3 ELSE "confirmedAt" END,
-          "declinedAt"  = CASE WHEN $2 = 'DECLINED_BY_HOTEL' THEN $3 ELSE "declinedAt" END,
+          status = $2::extranet."BookingStatus",
+          "confirmedAt" = CASE WHEN $2::extranet."BookingStatus" = 'CONFIRMED'::extranet."BookingStatus" THEN $3 ELSE "confirmedAt" END,
+          "declinedAt"  = CASE WHEN $2::extranet."BookingStatus" = 'DECLINED_BY_HOTEL'::extranet."BookingStatus" THEN $3 ELSE "declinedAt" END,
           "updatedAt"   = $3
         WHERE id = $1
         `,
