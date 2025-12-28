@@ -525,6 +525,70 @@ app.get("/api/bookings/decline", async (req: Request, res: Response) => {
 });
 // ANCHOR: BOOKING_CONFIRM_LINK_ENDPOINTS END
 
+// ANCHOR: PARTNER_BOOKINGS_LIST_ROUTE
+app.get("/api/partners/bookings", async (req: Request, res: Response) => {
+  const partnerId = Number(req.query.partnerId || 0);
+  const bucket = String(req.query.bucket || "pending"); // pending | completed | canceled
+
+  if (!partnerId) return res.status(400).json({ ok: false, error: "partnerId required" });
+
+  try {
+    const rows = await withDb(async (client) => {
+      // Bucket filters (keep strict and explicit)
+      let whereSql = `b."partnerId" = $1`;
+      if (bucket === "pending") {
+        whereSql += ` AND b.status IN ('PENDING_HOTEL_CONFIRMATION'::extranet."BookingStatus", 'CONFIRMED'::extranet."BookingStatus")`;
+      } else if (bucket === "completed") {
+        // placeholder until you define true completed semantics
+        whereSql += ` AND b.status IN ('COMPLETED'::extranet."BookingStatus")`;
+      } else if (bucket === "canceled") {
+        whereSql += ` AND b.status IN (
+          'DECLINED_BY_HOTEL'::extranet."BookingStatus",
+          'EXPIRED'::extranet."BookingStatus",
+          'CANCELED'::extranet."BookingStatus"
+        )`;
+      }
+
+      const q = await client.query(
+        `
+        SELECT
+          b.id,
+          b."bookingRef",
+          b.status,
+          b."checkInDate",
+          b."checkOutDate",
+          b."qty",
+          b."travelerFirstName",
+          b."travelerLastName",
+          rt.name AS "roomCategory",
+          rp.name AS "ratePlan"
+        FROM extranet."Booking" b
+        LEFT JOIN extranet."RoomType" rt ON rt.id = b."roomTypeId"
+        LEFT JOIN extranet."RatePlan" rp ON rp.id = b."ratePlanId"
+        WHERE ${whereSql}
+        ORDER BY
+          CASE
+            WHEN b.status = 'PENDING_HOTEL_CONFIRMATION'::extranet."BookingStatus" THEN 0
+            ELSE 1
+          END,
+          b."checkInDate" ASC,
+          b."createdAt" DESC
+        LIMIT 200
+        `,
+        [partnerId]
+      );
+
+      return q.rows;
+    });
+
+    return res.json({ ok: true, rows });
+  } catch (e) {
+    console.error("[partner-bookings] failed:", e);
+    return res.status(500).json({ ok: false, error: "server_error" });
+  }
+});
+// ANCHOR: PARTNER_BOOKINGS_LIST_ROUTE END
+
 // ANCHOR: BOOKINGS_BY_SESSION_ROUTE (LIVE)
 app.get("/api/bookings/by-session", async (req: Request, res: Response) => {
   let client: Client | null = null;
