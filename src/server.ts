@@ -377,19 +377,6 @@ app.get("/api/bookings/by-session", async (req: Request, res: Response) => {
 
     await client.connect();
 
-    // TEMP DEBUG: confirms the DB and that extranet."Booking" exists
-    const dbName =
-      (await client.query(`select current_database() as db`)).rows?.[0]?.db || null;
-
-    const schemaHit =
-      (await client.query(`
-        select exists(
-          select 1
-          from information_schema.tables
-          where table_schema='extranet' and table_name='Booking'
-        ) as ok
-      `)).rows?.[0]?.ok ?? null;
-
     const { rows } = await client.query(
       `
       SELECT
@@ -406,19 +393,107 @@ app.get("/api/bookings/by-session", async (req: Request, res: Response) => {
       [sessionId]
     );
 
-    if (!rows || rows.length === 0) {
-      return res.status(404).json({
-        error: "Booking not found",
-        debug: { dbName, schemaHit, sessionIdLen: sessionId.length },
-      });
-    }
+  if (!rows || rows.length === 0) {
+    return res.status(404).json({ error: "Booking not found" });
+  }
 
-    return res.json({
-      ...rows[0],
-      debug: { dbName, schemaHit, sessionIdLen: sessionId.length },
-    });
+  return res.json(rows[0]);
+
   } catch (e: any) {
     console.error("GET /api/bookings/by-session failed:", e?.message || e);
+    return res.status(500).json({ error: "Server error" });
+  } finally {
+    try {
+      if (client) await client.end();
+    } catch {}
+  }
+});
+
+// ANCHOR: BOOKINGS_RECEIPT_PDF (LIVE)
+app.get("/api/bookings/receipt.pdf", async (req: Request, res: Response) => {
+  let client: Client | null = null;
+
+  try {
+    const sessionId = String(req.query.session_id || "").trim();
+    if (!sessionId) return res.status(400).json({ error: "Missing session_id" });
+
+    const cs = process.env.DATABASE_URL as string;
+    if (!cs) return res.status(500).json({ error: "Missing DATABASE_URL" });
+
+    client = new Client({
+      connectionString: cs,
+      ssl: wantsSSL(cs) ? { rejectUnauthorized: false } : undefined,
+    });
+
+    await client.connect();
+
+    // Pull the booking. Expand this SELECT later once Booking has property/stay snapshot fields.
+    const { rows } = await client.query(
+      `
+      SELECT
+        "bookingRef",
+        status,
+        "pendingConfirmExpiresAt",
+        "refundDeadlineAt",
+        "createdAt",
+        "providerPaymentId"
+      FROM extranet."Booking"
+      WHERE "providerPaymentId" = $1
+      ORDER BY id DESC
+      LIMIT 1
+      `,
+      [sessionId]
+    );
+
+    if (!rows || rows.length === 0) {
+      return res.status(404).json({ error: "Booking not found" });
+    }
+
+    const b = rows[0];
+
+    // Lazy import so server still boots if something goes wrong in install
+    // but you should still install pdfkit.
+    // eslint-disable-next-line @typescript-eslint/no-var-requires
+    const PDFDocument = require("pdfkit");
+
+    res.setHeader("Content-Type", "application/pdf");
+    res.setHeader(
+      "Content-Disposition",
+      `attachment; filename="Lolaelo_Receipt_${b.bookingRef || "booking"}.pdf"`
+    );
+
+    const doc = new PDFDocument({ size: "LETTER", margin: 54 });
+    doc.pipe(res);
+
+    // Simple branded header
+    doc.fontSize(20).text("Lolaelo", { continued: true });
+    doc.fillColor("#ff6a3d").text(" Receipt");
+    doc.fillColor("#0f172a");
+    doc.moveDown(0.6);
+
+    doc.fontSize(12).fillColor("#475569").text("Booking receipt (pending hotel confirmation where applicable).");
+    doc.fillColor("#0f172a");
+    doc.moveDown(1);
+
+    // Key fields
+    doc.fontSize(12).text(`Booking reference: ${b.bookingRef || "-"}`);
+    doc.text(`Status: ${(b.status || "-").replaceAll("_", " ")}`);
+    doc.text(`Created: ${b.createdAt ? new Date(b.createdAt).toLocaleString() : "-"}`);
+    doc.text(`Hotel confirmation window ends: ${b.pendingConfirmExpiresAt ? new Date(b.pendingConfirmExpiresAt).toLocaleString() : "-"}`);
+    doc.text(`Refund guarantee deadline: ${b.refundDeadlineAt ? new Date(b.refundDeadlineAt).toLocaleString() : "-"}`);
+    doc.moveDown(1);
+
+    doc.fillColor("#475569").fontSize(11).text(`Stripe session: ${b.providerPaymentId || "-"}`);
+    doc.fillColor("#0f172a");
+    doc.moveDown(1);
+
+    doc.fontSize(11).fillColor("#475569").text(
+      "Note: If the hotel does not confirm within the 24 hour window, Lolaelo will begin the refund process in line with the refund guarantee."
+    );
+
+    doc.end();
+  } catch (e: any) {
+    console.error("GET /api/bookings/receipt.pdf failed:", e?.message || e);
     return res.status(500).json({ error: "Server error" });
   } finally {
     try {

@@ -32,6 +32,7 @@
         "express-rate-limit": "7.4.0",
         "helmet": "7.1.0",
         "morgan": "1.10.0",
+        "pdfkit": "^0.17.2",
         "pg": "^8.16.3",
         "stripe": "^20.0.0",
         "zod": "^4.1.5"

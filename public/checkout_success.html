@@ -1,105 +1,361 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
+  <head>
+	<link
+		rel="icon"
+		type="image/png"
+		sizes="32x32"
+		href="https://www.lolaelo.com/logo2.png?cb=favicon-32"
+	/>
+	<link
+		rel="icon"
+		type="image/png"
+		sizes="16x16"
+		href="https://www.lolaelo.com/logo2.png?cb=favicon-16"
+	/>
+	<link
+		rel="shortcut icon"
+		href="https://www.lolaelo.com/logo2.png?cb=favicon"
+	/>
   <meta charset="UTF-8" />
-  <title>Lolaelo - Booking status</title>
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Lolaelo - Booking Success</title>  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link
+    href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap"
+    rel="stylesheet"
+  />
+
   <style>
-    body {
-      font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
-      background: #f9fafb;
-      color: #0f172a;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      min-height: 100vh;
-      margin: 0;
-      padding: 0;
+    :root{
+      --accent:#ff6a3d;
+      --text:#0f172a;
+      --muted:#475569;
+      --border:rgba(15,23,42,.12);
+      --card:#ffffff;
+      --bg1:#ffffff;
+      --bg2:#f8fafc;
+      --shadow:0 16px 46px rgba(2,6,23,.10);
+      --radius:18px;
+      --radius2:14px;
     }
-    .card {
-      background: #ffffff;
-      padding: 24px 28px;
-      border-radius: 14px;
-      box-shadow: 0 10px 28px rgba(15, 23, 42, 0.08);
-      max-width: 560px;
-      width: calc(100% - 28px);
-      text-align: left;
+
+    *{box-sizing:border-box}
+    html,body{height:100%}
+    body{
+      margin:0;
+      font-family:Inter,system-ui,-apple-system,Segoe UI,Roboto,Arial,sans-serif;
+      color:var(--text);
+      background:
+        radial-gradient(1100px 700px at 15% -10%, rgba(255,106,61,.14), transparent 55%),
+        radial-gradient(1000px 600px at 95% 10%, rgba(15,23,42,.10), transparent 52%),
+        linear-gradient(180deg, var(--bg1), var(--bg2));
     }
-    h1 {
-      margin: 0 0 8px;
-      font-size: 18px;
+
+    a{color:inherit;text-decoration:none}
+    .wrap{max-width:1100px;margin:0 auto;padding:0 18px}
+
+    /* Topbar */
+    .topbar{
+      position:sticky; top:0; z-index:50;
+      background:rgba(255,255,255,.78);
+      backdrop-filter:saturate(1.1) blur(12px);
+      border-bottom:1px solid var(--border);
     }
-    p {
-      margin: 6px 0;
-      font-size: 14px;
-      color: #475569;
-      line-height: 1.45;
+    .topbar-inner{
+      display:flex; align-items:center; justify-content:space-between;
+      padding:14px 0;
     }
-    .row {
-      margin-top: 14px;
-      padding-top: 12px;
-      border-top: 1px solid rgba(15,23,42,.08);
+    .brand{
+      display:flex; align-items:center; gap:10px;
+      font-weight:800; letter-spacing:.2px;
     }
-    .kv {
-      display: flex;
-      justify-content: space-between;
-      gap: 12px;
-      margin: 8px 0;
-      font-size: 14px;
+    .logo{
+      width:34px; height:34px; border-radius:10px;
+      background:linear-gradient(135deg, var(--accent), #ff8b67);
+      box-shadow:0 10px 22px rgba(255,106,61,.22);
     }
-    .k { color: #64748b; }
-    .v { color: #0f172a; font-weight: 600; }
-    code {
-      font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", monospace;
-      font-size: 12px;
-      background: rgba(15,23,42,.06);
-      padding: 2px 6px;
-      border-radius: 6px;
+    .brand span{font-size:16px}
+    .navlinks{
+      display:flex; gap:12px; align-items:center;
+      color:var(--muted); font-weight:600; font-size:13px;
     }
-    .btns {
-      display: flex;
-      gap: 10px;
-      margin-top: 14px;
-      flex-wrap: wrap;
+    .navlinks a{padding:8px 10px;border-radius:999px}
+    .navlinks a:hover{background:rgba(15,23,42,.05); color:var(--text)}
+
+    /* Main */
+    .main{
+      padding:28px 0 42px;
     }
-    a.btn {
-      display: inline-block;
-      padding: 9px 14px;
-      border-radius: 999px;
-      text-decoration: none;
-      font-size: 14px;
-      font-weight: 650;
-      border: 1px solid rgba(15,23,42,.18);
-      color: #0f172a;
-      background: transparent;
+    .hero{
+      padding:18px 0 16px;
     }
-    a.btn.primary {
-      background: #ff6a3d;
-      border-color: #ff6a3d;
-      color: #ffffff;
+    .crumb{
+      color:var(--muted);
+      font-size:13px;
+      margin-bottom:10px;
+    }
+    .hero h1{
+      margin:0;
+      font-size:26px;
+      letter-spacing:-.2px;
+    }
+    .hero p{
+      margin:10px 0 0;
+      color:var(--muted);
+      max-width:760px;
+      line-height:1.5;
+      font-size:14px;
+    }
+
+    /* Card */
+    .card{
+      margin-top:18px;
+      background:var(--card);
+      border:1px solid var(--border);
+      border-radius:var(--radius);
+      box-shadow:var(--shadow);
+      overflow:hidden;
+    }
+    .card-head{
+      padding:18px 18px 14px;
+      border-bottom:1px solid var(--border);
+      display:flex;
+      gap:14px;
+      align-items:flex-start;
+      justify-content:space-between;
+      flex-wrap:wrap;
+    }
+    .status-left{
+      display:flex;
+      align-items:flex-start;
+      gap:12px;
+      min-width:260px;
+    }
+    .badge{
+      display:inline-flex;
+      align-items:center;
+      gap:8px;
+      border-radius:999px;
+      padding:8px 12px;
+      border:1px solid rgba(255,106,61,.30);
+      background:rgba(255,106,61,.10);
+      color:var(--text);
+      font-weight:800;
+      font-size:12px;
+      text-transform:uppercase;
+      letter-spacing:.7px;
+      white-space:nowrap;
+    }
+    .dot{
+      width:9px; height:9px; border-radius:50%;
+      background:var(--accent);
+      box-shadow:0 0 0 6px rgba(255,106,61,.16);
+    }
+    .headline{
+      margin:0;
+      font-size:16px;
+      font-weight:800;
+      letter-spacing:-.15px;
+    }
+    .subline{
+      margin:6px 0 0;
+      color:var(--muted);
+      font-size:14px;
+      line-height:1.45;
+      max-width:720px;
+    }
+
+    .actions{
+      display:flex;
+      gap:10px;
+      align-items:center;
+      flex-wrap:wrap;
+      margin-left:auto;
+    }
+    .btn{
+      display:inline-flex;
+      align-items:center;
+      justify-content:center;
+      gap:8px;
+      padding:10px 14px;
+      border-radius:999px;
+      font-weight:800;
+      font-size:13px;
+      border:1px solid rgba(15,23,42,.18);
+      background:transparent;
+      color:var(--text);
+      cursor:pointer;
+      user-select:none;
+    }
+    .btn:hover{background:rgba(15,23,42,.05)}
+    .btn.primary{
+      border-color:var(--accent);
+      background:var(--accent);
+      color:#fff;
+    }
+    .btn.primary:hover{filter:brightness(.98)}
+    .btn:disabled{
+      opacity:.55;
+      cursor:not-allowed;
+    }
+
+    .card-body{
+      padding:16px 18px 18px;
+      display:grid;
+      grid-template-columns:1fr;
+      gap:14px;
+    }
+
+    .grid{
+      display:grid;
+      grid-template-columns:1fr 1fr;
+      gap:10px 18px;
+    }
+    @media (max-width: 740px){
+      .grid{grid-template-columns:1fr}
+      .hero h1{font-size:22px}
+    }
+
+    .kv{
+      border:1px solid rgba(15,23,42,.10);
+      border-radius:var(--radius2);
+      padding:12px 12px;
+      background:rgba(255,255,255,.80);
+    }
+    .k{
+      font-size:12px;
+      color:var(--muted);
+      font-weight:700;
+      margin-bottom:6px;
+    }
+    .v{
+      font-size:14px;
+      font-weight:800;
+      color:var(--text);
+      word-break:break-word;
+    }
+    .muted{color:var(--muted)}
+    code{
+      font-family:ui-monospace,SFMono-Regular,Menlo,Monaco,Consolas,"Liberation Mono",monospace;
+      font-size:12px;
+      background:rgba(15,23,42,.06);
+      padding:2px 6px;
+      border-radius:6px;
+    }
+
+    .info{
+      border:1px solid rgba(15,23,42,.10);
+      border-radius:var(--radius2);
+      padding:12px 12px;
+      background:rgba(15,23,42,.03);
+      color:var(--muted);
+      font-size:13px;
+      line-height:1.45;
+    }
+
+    .footer-note{
+      margin-top:14px;
+      color:rgba(71,85,105,.95);
+      font-size:12px;
+      line-height:1.5;
     }
   </style>
 </head>
+
 <body>
-  <div class="card">
-    <h1 id="headline">Booking received</h1>
-    <p id="statusLine">Loading booking details...</p>
-
-    <div class="row">
-      <div class="kv"><span class="k">Booking reference</span><span class="v" id="bookingRef">-</span></div>
-      <div class="kv"><span class="k">Status</span><span class="v" id="bookingStatus">-</span></div>
-      <div class="kv"><span class="k">Hotel confirmation window ends</span><span class="v" id="confirmBy">-</span></div>
-      <div class="kv"><span class="k">Refund guarantee deadline</span><span class="v" id="refundBy">-</span></div>
-      <p id="sessionLine" style="display:none; margin-top:10px;">
-        Stripe session: <code id="sessionId">-</code>
-      </p>
-    </div>
-
-    <div class="btns">
-      <a class="btn" href="/index.html">Back to homepage</a>
-      <a class="btn primary" id="receiptBtn" href="#" style="display:none;">Download receipt</a>
+  <div class="topbar">
+    <div class="wrap">
+				<div style="display:flex;align-items:center;gap:10px;">
+					<a href="https://www.lolaelo.com/">
+						<img
+							src="https://www.lolaelo.com/logo.png?cb=logo-5x"
+							alt="Lolaelo"
+							decoding="async"
+							loading="eager"
+							style="display:block;height:24px;width:auto;"
+						>
+					</a>
+        </a>
+        <div class="navlinks">
+          <a href="http://lolaelo-api.onrender.com/destinations.html">Destinations</a>
+          <a href="http://lolaelo-api.onrender.com/mission.html">Mission</a>
+          <a href="http://lolaelo-api.onrender.com/support.html">Support</a>
+        </div>
+      </div>
     </div>
   </div>
+
+  <main class="main">
+    <div class="wrap">
+      <div class="hero">
+        <div class="crumb">Booking status</div>
+        <h1 id="pageTitle">Your booking is in progress</h1>
+        <p id="pageSubtitle">
+          We received your payment. Our hotel partner has 24 hours to confirm from time of booking. If our property partner does not respond within 24 hours, you are covered by the full refund guarantee (within 48 hours from time of expiration).
+        </p>
+      </div>
+
+      <section class="card" aria-live="polite">
+        <div class="card-head">
+          <div class="status-left">
+            <div class="badge" id="statusBadge"><span class="dot"></span><span id="badgeText">Pending</span></div>
+            <div>
+              <div class="headline" id="headline">Pending hotel confirmation</div>
+              <div class="subline" id="statusLine">Loading booking details...</div>
+            </div>
+          </div>
+
+          <div class="actions">
+            <a class="btn" href="/index.html">Back to homepage</a>
+            <button class="btn primary" id="receiptBtn" disabled>Download receipt (PDF)</button>
+          </div>
+        </div>
+
+        <div class="card-body">
+          <div class="grid">
+            <div class="kv">
+              <div class="k">Booking reference</div>
+              <div class="v" id="bookingRef">-</div>
+            </div>
+
+            <div class="kv">
+              <div class="k">Status</div>
+              <div class="v" id="bookingStatus">-</div>
+            </div>
+
+            <div class="kv">
+              <div class="k">Hotel confirmation window ends</div>
+              <div class="v" id="confirmBy">-</div>
+            </div>
+
+            <div class="kv">
+              <div class="k">Refund guarantee deadline</div>
+              <div class="v" id="refundBy">-</div>
+            </div>
+
+            <div class="kv">
+              <div class="k">Property</div>
+              <div class="v" id="propertyName">-</div>
+            </div>
+
+            <div class="kv">
+              <div class="k">Stay dates</div>
+              <div class="v" id="stayDates">-</div>
+            </div>
+          </div>
+
+          <div class="info" id="infoBox">
+            Keep this page for your records. You can also download a PDF receipt. If the hotel does not confirm within 24 hours, we will trigger the refund process automatically.
+            <div class="footer-note" id="sessionLine" style="display:none;margin-top:10px;">
+              Stripe session: <code id="sessionId">-</code>
+            </div>
+          </div>
+        </div>
+      </section>
+    </div>
+  </main>
 
   <script>
     (function () {
@@ -111,17 +367,8 @@
 
       function setText(id, txt) {
         var el = document.getElementById(id);
-        if (el) el.textContent = (txt == null || txt === "") ? "-" : String(txt);
-      }
-
-      function setHeadline(txt) {
-        var el = document.getElementById("headline");
-        if (el) el.textContent = txt;
-      }
-
-      function setLine(txt) {
-        var el = document.getElementById("statusLine");
-        if (el) el.textContent = txt;
+        if (!el) return;
+        el.textContent = (txt == null || txt === "") ? "-" : String(txt);
       }
 
       function fmtLocal(dt) {
@@ -136,11 +383,41 @@
         });
       }
 
+      function setBadge(status) {
+        var badgeText = document.getElementById("badgeText");
+        var headline = document.getElementById("headline");
+        var pageTitle = document.getElementById("pageTitle");
+        var statusBadge = document.getElementById("statusBadge");
+
+        function apply(label, head, title) {
+          if (badgeText) badgeText.textContent = label;
+          if (headline) headline.textContent = head;
+          if (pageTitle) pageTitle.textContent = title;
+        }
+
+        if (status === "PENDING_HOTEL_CONFIRMATION") {
+          apply("Pending", "Pending hotel confirmation", "Your booking is pending confirmation");
+          if (statusBadge) statusBadge.style.borderColor = "rgba(255,106,61,.30)";
+        } else if (status === "CONFIRMED") {
+          apply("Confirmed", "Booking confirmed", "Your booking is confirmed");
+          if (statusBadge) statusBadge.style.borderColor = "rgba(15,23,42,.18)";
+        } else if (status === "DECLINED_BY_HOTEL") {
+          apply("Declined", "Hotel declined", "Booking declined by hotel");
+        } else if (status === "EXPIRED_NO_RESPONSE") {
+          apply("Expired", "No response in time", "Booking expired");
+        } else {
+          apply("Status", "Booking status", "Your booking status");
+        }
+      }
+
       async function load() {
         var sessionId = qs("session_id");
+        var statusLine = document.getElementById("statusLine");
+        var receiptBtn = document.getElementById("receiptBtn");
+
         if (!sessionId) {
-          setHeadline("Missing session id");
-          setLine("This page needs the Stripe redirect param: ?session_id=...");
+          if (statusLine) statusLine.textContent = "Missing Stripe session id. This page requires ?session_id=...";
+          if (receiptBtn) receiptBtn.disabled = true;
           return;
         }
 
@@ -152,8 +429,8 @@
         var resp = await fetch(url, { method: "GET" });
 
         if (!resp.ok) {
-          setHeadline("Could not load booking");
-          setLine("Booking lookup failed (" + resp.status + ").");
+          if (statusLine) statusLine.textContent = "Could not load booking (" + resp.status + ").";
+          if (receiptBtn) receiptBtn.disabled = true;
           return;
         }
 
@@ -164,28 +441,39 @@
         setText("confirmBy", b.pendingConfirmExpiresAt ? fmtLocal(b.pendingConfirmExpiresAt) : "-");
         setText("refundBy", b.refundDeadlineAt ? fmtLocal(b.refundDeadlineAt) : "-");
 
-        if (b.status === "PENDING_HOTEL_CONFIRMATION") {
-          setHeadline("Pending hotel confirmation");
-          setLine("Payment received. The hotel has up to 24 hours to confirm. If they do not respond, you are protected by the refund guarantee.");
-        } else if (b.status === "CONFIRMED") {
-          setHeadline("Booking confirmed");
-          setLine("The hotel confirmed your booking.");
-        } else if (b.status) {
-          setHeadline("Booking status updated");
-          setLine("Current status: " + String(b.status).replaceAll("_", " ") + ".");
+        // Optional fields if your API includes them later
+        setText("propertyName", b.propertyName || "-");
+        if (b.startDate && b.endDate) {
+          setText("stayDates", String(b.startDate) + " to " + String(b.endDate));
         } else {
-          setLine("Booking loaded.");
+          setText("stayDates", "-");
         }
 
-        // Receipt: keep hidden for now. We can wire this once you decide the source (Stripe receipt URL vs PDF).
-        var rb = document.getElementById("receiptBtn");
-        if (rb) rb.style.display = "none";
+        setBadge(b.status);
+
+        if (statusLine) {
+          if (b.status === "PENDING_HOTEL_CONFIRMATION") {
+            statusLine.textContent = "Payment received. The hotel has up to 24 hours to confirm. If they do not respond, you are protected by the refund guarantee.";
+          } else if (b.status === "CONFIRMED") {
+            statusLine.textContent = "Hotel confirmed your booking. Keep this page for your records and download your receipt.";
+          } else {
+            statusLine.textContent = "Booking loaded.";
+          }
+        }
+
+        if (receiptBtn) {
+          receiptBtn.disabled = false;
+          receiptBtn.addEventListener("click", function () {
+            var pdfUrl = API_BASE + "/api/bookings/receipt.pdf?session_id=" + encodeURIComponent(sessionId);
+            window.open(pdfUrl, "_blank");
+          }, { once: true });
+        }
       }
 
       load().catch(function (e) {
         console.error(e);
-        setHeadline("Error");
-        setLine("Something went wrong loading your booking.");
+        var statusLine = document.getElementById("statusLine");
+        if (statusLine) statusLine.textContent = "Something went wrong loading your booking.";
       });
     })();
   </script>
