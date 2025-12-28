@@ -459,6 +459,8 @@ app.get("/api/bookings/receipt.pdf", async (req: Request, res: Response) => {
       if (!d) return "-";
       const dt = new Date(d);
       if (!Number.isFinite(dt.getTime())) return "-";
+
+      // Example output: "12/27/2025, 09:17 PM EST"
       return dt.toLocaleString("en-US", {
         timeZone: tz,
         year: "numeric",
@@ -467,6 +469,7 @@ app.get("/api/bookings/receipt.pdf", async (req: Request, res: Response) => {
         hour: "2-digit",
         minute: "2-digit",
         hour12: true,
+        timeZoneName: "short",
       });
     }
 
@@ -483,25 +486,31 @@ app.get("/api/bookings/receipt.pdf", async (req: Request, res: Response) => {
 
     // Header: logo + title
     const logoPath = path.join(process.cwd(), "public", "images", "logo.png");
-    if (fs.existsSync(logoPath)) {
-      doc.image(logoPath, 54, 48, { width: 32, height: 32 });
-    }
-    doc.fontSize(20).fillColor("#0f172a").text("Receipt", 96, 52);
-    doc.fillColor("#0f172a");
-    doc.moveDown(1.2);
 
-    doc.fontSize(12).fillColor("#475569").text("Booking receipt (pending hotel confirmation where applicable).");
+    // Make logo much larger (approx 7x the prior 32px feel), but keep it clean
+    const logoW = 140;
+    const logoH = 40;
+    const headerX = 54;
+    const headerY = 44;
+
+    if (fs.existsSync(logoPath)) {
+      doc.image(logoPath, headerX, headerY, { width: logoW, height: logoH });
+    }
+
+    // Receipt title in orange, aligned to the right of the logo
+    doc.fillColor("#ff6a3d").fontSize(22).text("Receipt", headerX + logoW + 14, headerY + 6);
+    doc.fillColor("#0f172a");
+    doc.moveDown(1.6);
+
+    doc.fontSize(12).fillColor("#475569").text("Booking receipt (pending hotel confirmation).");
     doc.fillColor("#0f172a");
     doc.moveDown(1);
 
     // Key fields
     doc.fontSize(12).text(`Booking reference: ${b.bookingRef || "-"}`);
     doc.text(`Status: ${(b.status || "-").replaceAll("_", " ")}`);
-    doc.text(`Timezone: ${tz}`);
-    doc.moveDown(0.2);
-    doc.text(`Created: ${fmtInTz(b.createdAt)}`);
+    doc.text(`Booked on: ${fmtInTz(b.createdAt)}`);
     doc.text(`Hotel confirmation window ends: ${fmtInTz(b.pendingConfirmExpiresAt)}`);
-    doc.text(`Refund guarantee deadline: ${fmtInTz(b.refundDeadlineAt)}`);
     doc.moveDown(1);
 
     doc.fillColor("#475569").fontSize(11).text(`Stripe session: ${b.providerPaymentId || "-"}`);
@@ -509,7 +518,7 @@ app.get("/api/bookings/receipt.pdf", async (req: Request, res: Response) => {
     doc.moveDown(1);
 
     doc.fontSize(11).fillColor("#475569").text(
-      "Note: If the hotel does not confirm within the 24 hour window, Lolaelo will begin the refund process in line with the refund guarantee."
+      "Note: If the hotel does not confirm within the 24 hour window, Lolaelo will automatically begin the refund process. Refunds are initiated within 48 hours after the confirmation window expires, or after the hotel declines the booking."
     );
 
     doc.end();
