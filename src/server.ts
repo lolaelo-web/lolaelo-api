@@ -488,19 +488,23 @@ app.get("/api/bookings/receipt.pdf", async (req: Request, res: Response) => {
     const logoPath = path.join(process.cwd(), "public", "images", "logo.png");
 
     // Make logo much larger (approx 7x the prior 32px feel), but keep it clean
-    const logoW = 140;
-    const logoH = 40;
+    const logoW = 140;              // keep width the same
+    const logoH = 100;              // ~2.5x previous height (40 → 100)
     const headerX = 54;
-    const headerY = 44;
+    const headerY = 38;             // slightly higher to balance taller logo
 
     if (fs.existsSync(logoPath)) {
       doc.image(logoPath, headerX, headerY, { width: logoW, height: logoH });
     }
 
-    // Receipt title in orange, aligned to the right of the logo
-    doc.fillColor("#ff6a3d").fontSize(22).text("Receipt", headerX + logoW + 14, headerY + 6);
+    // Re-align Receipt vertically to center against taller logo
+    doc
+      .fillColor("#ff6a3d")
+      .fontSize(22)
+      .text("Receipt", headerX + logoW + 14, headerY + logoH / 2 - 10);
+
     doc.fillColor("#0f172a");
-    doc.moveDown(1.6);
+    doc.moveDown(2.2);
 
     doc.fontSize(12).fillColor("#475569").text("Booking receipt (pending hotel confirmation).");
     doc.fillColor("#0f172a");
