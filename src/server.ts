@@ -31,6 +31,26 @@ function num(v: any): number | null {
   return Number.isFinite(n) ? n : null;
 }
 
+// ANCHOR: REQUIRE_PARTNER_ID_FROM_REQUEST
+function requirePartnerIdFromRequest(req: Request): number {
+  // Temporary until real partner auth is wired.
+  // Priority:
+  // 1) x-partner-id header (we will send this from the extranet UI)
+  // 2) partnerId query
+  // 3) propertyId query (legacy pattern used across the extranet today)
+  const h = req.headers["x-partner-id"];
+  const pid =
+    Number(Array.isArray(h) ? h[0] : h || 0) ||
+    Number((req.query as any)?.partnerId || 0) ||
+    Number((req.query as any)?.propertyId || 0);
+
+  if (!pid || !Number.isFinite(pid)) {
+    throw new Error("partner_id_required");
+  }
+  return pid;
+}
+// ANCHOR: REQUIRE_PARTNER_ID_FROM_REQUEST END
+
 // GET /extranet/property/rateplans?propertyId=2&roomTypeId=32
 app.get("/extranet/property/rateplans", async (req: Request, res: Response) => {
   try {
@@ -588,6 +608,70 @@ app.get("/api/partners/bookings", async (req: Request, res: Response) => {
   }
 });
 // ANCHOR: PARTNER_BOOKINGS_LIST_ROUTE END
+
+// ANCHOR: EXTRANET_ME_BOOKINGS_ROUTE
+app.get("/api/extranet/me/bookings", async (req: Request, res: Response) => {
+  const bucket = String(req.query.bucket || "pending");
+
+  try {
+    const partnerId = requirePartnerIdFromRequest(req); // ← replace with your real helper name
+
+    const rows = await withDb(async (client) => {
+      let whereSql = `b."partnerId" = $1`;
+
+      if (bucket === "pending") {
+        whereSql += ` AND b.status IN (
+          'PENDING_HOTEL_CONFIRMATION'::extranet."BookingStatus",
+          'CONFIRMED'::extranet."BookingStatus"
+        )`;
+      } else if (bucket === "canceled") {
+        whereSql += ` AND b.status IN (
+          'DECLINED_BY_HOTEL'::extranet."BookingStatus",
+          'EXPIRED'::extranet."BookingStatus",
+          'CANCELED'::extranet."BookingStatus"
+        )`;
+      } else if (bucket === "completed") {
+        whereSql += ` AND b.status IN ('COMPLETED'::extranet."BookingStatus")`;
+      }
+
+      const q = await client.query(
+        `
+        SELECT
+          b.id,
+          b."bookingRef",
+          b.status,
+          b."checkInDate",
+          b."checkOutDate",
+          b."qty",
+          b."travelerFirstName",
+          b."travelerLastName",
+          rt.name AS "roomCategory",
+          rp.name AS "ratePlan"
+        FROM extranet."Booking" b
+        LEFT JOIN extranet."RoomType" rt ON rt.id = b."roomTypeId"
+        LEFT JOIN extranet."RatePlan" rp ON rp.id = b."ratePlanId"
+        WHERE ${whereSql}
+        ORDER BY
+          CASE
+            WHEN b.status = 'PENDING_HOTEL_CONFIRMATION'::extranet."BookingStatus" THEN 0
+            ELSE 1
+          END,
+          b."checkInDate" ASC,
+          b."createdAt" DESC
+        LIMIT 200
+        `,
+        [partnerId]
+      );
+
+      return q.rows;
+    });
+
+    return res.json({ ok: true, rows });
+  } catch (e) {
+    return res.status(401).json({ ok: false, error: "unauthorized" });
+  }
+});
+// ANCHOR: EXTRANET_ME_BOOKINGS_ROUTE END
 
 // ANCHOR: BOOKINGS_BY_SESSION_ROUTE (LIVE)
 app.get("/api/bookings/by-session", async (req: Request, res: Response) => {

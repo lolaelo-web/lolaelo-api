@@ -185,6 +185,103 @@
         if (key === 'canceled')
           note.textContent = 'Canceled or expired means no confirmed booking occurred. This includes hotel decline, token expiry, or cancellation.';
       }
+      // LOAD DATA FOR CURRENT TAB
+      loadBookingsForActiveTab().catch(() => {});
+    }
+
+    function esc(s){
+      return String(s == null ? "" : s)
+        .replace(/&/g,"&amp;")
+        .replace(/</g,"&lt;")
+        .replace(/>/g,"&gt;")
+        .replace(/"/g,"&quot;")
+        .replace(/'/g,"&#39;");
+    }
+
+    function fmtYmd(d){
+      if (!d) return "";
+      const dt = new Date(d);
+      if (Number.isNaN(dt.getTime())) return "";
+      const y = dt.getFullYear();
+      const m = String(dt.getMonth() + 1).padStart(2, "0");
+      const day = String(dt.getDate()).padStart(2, "0");
+      return `${y}-${m}-${day}`;
+    }
+
+    function statusPill(status){
+      const s = String(status || "");
+      if (s === "PENDING_HOTEL_CONFIRMATION") return `<span class="pill orange">Pending</span>`;
+      if (s === "CONFIRMED") return `<span class="pill green">Confirmed</span>`;
+      if (s === "DECLINED_BY_HOTEL") return `<span class="pill red">Declined</span>`;
+      if (s === "EXPIRED") return `<span class="pill orange">Expired</span>`;
+      if (s === "CANCELED") return `<span class="pill orange">Canceled</span>`;
+      return `<span class="pill">${esc(s)}</span>`;
+    }
+
+    function renderBookings(rows){
+      const tbody = document.getElementById("bookingsTbody");
+      if (!tbody) return;
+
+      if (!rows || !rows.length){
+        tbody.innerHTML = `
+          <tr>
+            <td class="muted" colspan="7" id="emptyRowText">
+              No pending or active bookings loaded yet.
+            </td>
+          </tr>`;
+        return;
+      }
+
+      tbody.innerHTML = rows.map(r => {
+        const guest = [r.travelerFirstName, r.travelerLastName]
+          .filter(Boolean).join(" ") || "Traveler";
+
+        const stay = `${fmtYmd(r.checkInDate)} to ${fmtYmd(r.checkOutDate)}`;
+
+        return `
+          <tr>
+            <td><span class="muted">${esc(r.bookingRef)}</span></td>
+            <td>${esc(guest)}</td>
+            <td><span class="muted">${esc(stay)}</span></td>
+            <td>${esc(r.roomCategory || "-")}</td>
+            <td>${esc(r.ratePlan || "-")}</td>
+            <td>${statusPill(r.status)}</td>
+            <td>
+              <button class="btn ghost" type="button">View</button>
+            </td>
+          </tr>
+        `;
+      }).join("");
+    }
+
+    async function loadBookingsForActiveTab(){
+      const tab = document.getElementById("tabState")?.value || "pending";
+      const partnerId = 2; // temporary, will come from session later
+
+      const bucket =
+        tab === "completed" ? "completed" :
+        tab === "canceled" ? "canceled" :
+        "pending";
+
+      const url = `${API_BASE}/api/extranet/me/bookings?bucket=${bucket}`;
+      const headers = {};
+      const session = localStorage.getItem("lolaelo_session");
+      const partnerToken = localStorage.getItem("partnerToken");
+
+      if (session) headers["Authorization"] = `Bearer ${session}`;
+      if (partnerToken) headers["x-partner-token"] = partnerToken;
+      headers["x-partner-id"] = String(partnerId);
+
+      const res = await fetch(url, { headers });
+
+      const data = await res.json();
+
+      if (!data || !data.ok) {
+        renderBookings([]);
+        return;
+      }
+
+      renderBookings(data.rows);
     }
 
   </script>
@@ -244,11 +341,11 @@
             <th style="width:170px;">Actions</th>
           </tr>
         </thead>
-        <tbody>
-          <tr>
-            <td class="muted" colspan="7" id="emptyRowText">No pending or active bookings loaded yet. Next step is wiring the list endpoint.</td>
-          </tr>
-        </tbody>
+          <tbody id="bookingsTbody">
+            <tr>
+              <td class="muted" colspan="7" id="emptyRowText">No pending or active bookings loaded yet. Next step is wiring the list endpoint.</td>
+            </tr>
+          </tbody>
       </table>
 
       <div class="note" id="noteText">
