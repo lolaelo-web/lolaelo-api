@@ -489,7 +489,7 @@ app.get("/api/bookings/receipt.pdf", async (req: Request, res: Response) => {
 
     // Make logo much larger (approx 7x the prior 32px feel), but keep it clean
     const logoW = 140;              // keep width the same
-    const logoH = 100;              // ~2.5x previous height (40 → 100)
+    const logoH = 85;              // ~2.5x previous height (40 → 100)
     const headerX = 54;
     const headerY = 38;             // slightly higher to balance taller logo
 

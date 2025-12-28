@@ -1,0 +1,261 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <link rel="icon" href='data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64"><circle cx="32" cy="32" r="28" fill="%23ff6a3d"/></svg>'>
+  <title>Lolaelo Extranet - Manage Bookings</title>
+
+  <meta http-equiv="Cache-Control" content="no-store, no-cache, must-revalidate, max-age=0" />
+  <meta http-equiv="Pragma" content="no-cache" />
+  <meta http-equiv="Expires" content="0" />
+
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
+
+  <style>
+    :root{ --bg:#0b1320; --card:#111a2b; --fg:#e8eefc; --muted:#9bb0d3; --accent:#ff6a3d; --line:rgba(255,255,255,.08); }
+    *{ box-sizing:border-box }
+    body{
+      margin:0; font-family:Inter,system-ui,Segoe UI,Roboto,Helvetica,Arial;
+      background: radial-gradient(1000px 600px at 20% -10%, #1a2b4a 0%, #0b1320 60%, #0b1320 100%);
+      color:var(--fg); min-height:100vh;
+    }
+    .wrap{ max-width:980px; margin:0 auto; padding:24px; }
+    .topbar{ display:flex; align-items:center; justify-content:space-between; gap:12px; margin-bottom:16px; }
+    .brand{ display:flex; align-items:center; gap:10px; }
+    .brand .dot{ width:10px; height:10px; border-radius:999px; background:#2bbb6f; box-shadow:0 0 0 3px rgba(43,187,111,.25) }
+    .brand .title{ font-size:16px; color:#cfe0ff }
+    .btn{
+      appearance:none; border:1px solid var(--accent); background:var(--accent); color:#fff;
+      padding:9px 14px; border-radius:999px; font-weight:700; cursor:pointer;
+    }
+    .btn.secondary{ background:transparent; border-color:#2e7bff; color:#d7e5ff }
+    .btn.ghost{ background:transparent; border-color:var(--line); color:#cfe0ff }
+
+    .card{
+      background:var(--card); border:1px solid var(--line); border-radius:16px; padding:18px;
+      box-shadow:0 8px 40px rgba(0,0,0,.45);
+    }
+    h1{ margin:0; font-size:22px }
+    p{ margin:6px 0 0; color:var(--muted); font-size:14px; line-height:1.35 }
+
+    .toolbar{ display:flex; gap:10px; flex-wrap:wrap; margin-top:14px; }
+    input, select{
+      padding:10px 12px; border-radius:10px; border:1px solid var(--line);
+      background:#0e1830; color:var(--fg); outline:none;
+    }
+    input:focus, select:focus{ border-color:#2e7bff; box-shadow:0 0 0 3px rgba(46,123,255,.20) }
+
+    table{ width:100%; border-collapse:collapse; margin-top:14px; }
+    th, td{ padding:10px 10px; border-bottom:1px solid #203150; font-size:13px; vertical-align:top; }
+    th{ text-align:left; color:#bcd3ff; font-weight:700; }
+    .muted{ color:var(--muted) }
+    .pill{
+      display:inline-block; padding:3px 10px; border-radius:999px; font-size:12px; border:1px solid var(--line);
+      background:#0e1830; color:#cfe0ff;
+    }
+    .pill.orange{ border-color:rgba(255,106,61,.35); color:#ffb59f; }
+    .pill.green{ border-color:rgba(43,187,111,.35); color:#bff7d2; }
+    .pill.red{ border-color:rgba(255,90,90,.35); color:#ffb4b4; }
+
+    .note{
+      margin-top:12px; font-size:13px; color:#cfe0ff;
+      background:#0e1830; border:1px solid var(--line); border-radius:12px; padding:12px;
+    }
+    
+    /* Tabs */
+    .tabs{
+    display:flex;
+    gap:8px;
+    flex-wrap:wrap;
+    margin-top:14px;
+    }
+    .tab{
+    appearance:none;
+    border:1px solid var(--line);
+    background:#0e1830;
+    color:#cfe0ff;
+    padding:8px 12px;
+    border-radius:999px;
+    font-weight:700;
+    cursor:pointer;
+    font-size:13px;
+    }
+    .tab:hover{ filter:brightness(1.08) }
+    .tab.active{
+    border-color:rgba(255,106,61,.55);
+    box-shadow:0 0 0 3px rgba(255,106,61,.16);
+    }
+
+  </style>
+
+  <script>
+    const API_BASE = (location.hostname.endsWith('lolaelo.com'))
+      ? 'https://lolaelo-api.onrender.com'
+      : location.origin;
+
+    function getToken(){
+      return localStorage.getItem("partnerToken") || localStorage.getItem("lolaelo_session") || "";
+    }
+
+    function goBack(){
+      location.href = "/partners_app.html";
+    }
+
+    function readQuery(){
+      const q = new URLSearchParams(location.search);
+      return {
+        bookingRef: q.get('bookingRef') || '',
+        result: q.get('result') || ''   // confirmed | declined | expired | used | invalid
+      };
+    }
+
+    function renderResultBanner(){
+      const { result } = readQuery();
+      const el = document.getElementById('resultBanner');
+      if (!el) return;
+
+      if (!result) { el.style.display = 'none'; return; }
+
+      let label = '';
+      let cls = 'pill';
+
+      if (result === 'confirmed') { label = 'Booking confirmed'; cls += ' green'; }
+      else if (result === 'declined') { label = 'Booking declined'; cls += ' red'; }
+      else if (result === 'expired') { label = 'Link expired'; cls += ' orange'; }
+      else if (result === 'used') { label = 'Link already used'; cls += ' orange'; }
+      else { label = 'Invalid link'; cls += ' orange'; }
+
+      el.innerHTML = `<span class="${cls}">${label}</span>`;
+      el.style.display = 'block';
+    }
+
+    window.addEventListener('DOMContentLoaded', () => {
+      renderResultBanner();
+
+      // Default tab
+      setActiveTab('pending');
+
+      // Wire tab buttons
+      const btnPending   = document.getElementById('tabPending');
+      const btnCompleted = document.getElementById('tabCompleted');
+      const btnCanceled  = document.getElementById('tabCanceled');
+
+      if (btnPending)   btnPending.addEventListener('click', () => setActiveTab('pending'));
+      if (btnCompleted) btnCompleted.addEventListener('click', () => setActiveTab('completed'));
+      if (btnCanceled)  btnCanceled.addEventListener('click', () => setActiveTab('canceled'));
+
+      // Token check (future secured endpoints)
+      const t = getToken();
+      if (!t) console.log('[manage bookings] no token present');
+    });
+
+    function setActiveTab(key){
+      const tabs = [
+        { key:'pending',   id:'tabPending'   },
+        { key:'completed', id:'tabCompleted' },
+        { key:'canceled',  id:'tabCanceled'  }
+      ];
+
+      tabs.forEach(t => {
+        const el = document.getElementById(t.id);
+        if (el) el.classList.toggle('active', t.key === key);
+      });
+
+      const stateEl = document.getElementById('tabState');
+      if (stateEl) stateEl.value = key;
+
+      const empty = document.getElementById('emptyRowText');
+      const note  = document.getElementById('noteText');
+
+      if (empty) {
+        if (key === 'pending')
+          empty.textContent = 'No pending or active bookings loaded yet. Next step is wiring the list endpoint.';
+        if (key === 'completed')
+          empty.textContent = 'No completed stays loaded yet. Next step is wiring the list endpoint.';
+        if (key === 'canceled')
+          empty.textContent = 'No canceled or expired bookings loaded yet. Next step is wiring the list endpoint.';
+      }
+
+      if (note) {
+        if (key === 'pending')
+          note.textContent = 'Next wiring: when hotel clicks Confirm or Decline in the email, the endpoint can redirect back here with ?result=confirmed or ?result=declined plus the booking ref.';
+        if (key === 'completed')
+          note.textContent = 'Completed means the traveler stayed and checked out with no incidents.';
+        if (key === 'canceled')
+          note.textContent = 'Canceled or expired means no confirmed booking occurred. This includes hotel decline, token expiry, or cancellation.';
+      }
+    }
+
+  </script>
+</head>
+
+<body>
+  <div class="wrap">
+    <div class="topbar">
+      <div class="brand">
+        <span class="dot" aria-hidden="true"></span>
+        <div class="title">Lolaelo Extranet</div>
+      </div>
+      <div style="display:flex; gap:8px;">
+        <button class="btn ghost" type="button" onclick="goBack()">Back to menu</button>
+        <a class="btn secondary" href="mailto:support@lolaelo.com" style="text-decoration:none; display:inline-flex; align-items:center;">
+          Support
+        </a>
+      </div>
+    </div>
+
+    <div class="card">
+      <div style="display:flex; align-items:flex-start; justify-content:space-between; gap:12px; flex-wrap:wrap;">
+        <div>
+          <h1>Manage bookings</h1>
+          <p>Review requests, confirm or decline, and keep a clean record of what happened.</p>
+        </div>
+        <div id="resultBanner" style="display:none;"></div>
+      </div>
+
+      <div class="tabs" aria-label="Booking tabs">
+        <button class="tab active" id="tabPending" type="button">Pending / Active</button>
+        <button class="tab" id="tabCompleted" type="button">Completed</button>
+        <button class="tab" id="tabCanceled" type="button">Canceled / Expired (no response)</button>
+        <input type="hidden" id="tabState" value="pending" />
+      </div>
+
+      <div class="toolbar" aria-label="Booking tools">
+        <input id="searchRef" type="text" placeholder="Search by booking ref (e.g. LL-SD28RB)" style="flex:1 1 280px;" />
+        <select id="statusFilter">
+          <option value="">All statuses</option>
+          <option value="PENDING_HOTEL_CONFIRMATION">Pending confirmation</option>
+          <option value="CONFIRMED">Confirmed</option>
+          <option value="DECLINED_BY_HOTEL">Declined</option>
+        </select>
+        <button class="btn" type="button" onclick="alert('Wiring next: bookings list endpoint + filters.');">Search</button>
+      </div>
+
+      <table aria-label="Bookings table">
+        <thead>
+          <tr>
+            <th style="width:150px;">Booking ref</th>
+            <th>Guest</th>
+            <th style="width:220px;">Stay dates</th>
+            <th style="width:160px;">Room category</th>
+            <th style="width:160px;">Rate plan</th>
+            <th style="width:190px;">Status</th>
+            <th style="width:170px;">Actions</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td class="muted" colspan="7" id="emptyRowText">No pending or active bookings loaded yet. Next step is wiring the list endpoint.</td>
+          </tr>
+        </tbody>
+      </table>
+
+      <div class="note" id="noteText">
+        Next wiring: when hotel clicks Confirm or Decline in the email, the endpoint can redirect back here with ?result=confirmed or ?result=declined plus the booking ref.
+      </div>
+
+    </div>
+  </div>
+</body>
+</html>
