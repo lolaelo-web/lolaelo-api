@@ -393,15 +393,31 @@ app.post("/api/payments/webhook", express.raw({ type: "application/json" }), asy
         await sendMailReal({
           from: "bookings@lolaelo.com",
           to: toEmail,
+          bcc: "bookings@lolaelo.com",
           subject,
           html,
         });
         console.log("[booking-email] sent:", { to: toEmail, bookingRef });
 
         console.log("[booking-email] sent:", { to: toEmail, bookingRef });
-      } catch (e) {
-        console.error("[booking-email] failed:", e);
-      }
+        } catch (e) {
+          const errMsg = (e instanceof Error ? e.message : String(e)) || "unknown_error";
+          const errShort = errMsg.slice(0, 500);
+
+          console.error("[booking-email] failed:", e);
+
+          try {
+            await client.query(
+              `INSERT INTO extranet."BookingEvent"
+                ("bookingId","fromStatus","toStatus","actorType","actorId","note","createdAt")
+              VALUES
+                ($1, NULL, 'PENDING_HOTEL_CONFIRMATION', 'SYSTEM', NULL, $2, $3)`,
+              [bookingId, `HOTEL_EMAIL_FAILED: ${errShort}`, now]
+            );
+          } catch (e2) {
+            console.error("[booking-email] failed to log event:", e2);
+          }
+        }
       // ANCHOR: SEND_HOTEL_CONFIRM_EMAIL_AFTER_TOKEN END
 
       await client.query(
@@ -540,6 +556,7 @@ async function sendMailReal(args: {
   subject: string;
   html: string;
   from?: string;
+  bcc?: string;
 }) {
   if (!mailTransport) {
     throw new Error("mail_not_configured");
@@ -550,6 +567,7 @@ async function sendMailReal(args: {
   return mailTransport.sendMail({
     from,
     to: args.to,
+    bcc: args.bcc,
     subject: args.subject,
     html: args.html,
   });
@@ -697,6 +715,151 @@ app.get("/api/bookings/decline", async (req: Request, res: Response) => {
 });
 // ANCHOR: BOOKING_CONFIRM_LINK_ENDPOINTS END
 
+// ANCHOR: RESEND_HOTEL_CONFIRMATION_ROUTE
+app.post("/api/bookings/:bookingRef/resend-hotel-confirmation", async (req: Request, res: Response) => {
+  const bookingRef = String(req.params.bookingRef || "").trim();
+  if (!bookingRef) return res.status(400).json({ ok: false, error: "bookingRef_required" });
+
+  try {
+    const result = await withDb(async (client) => {
+      const now = new Date();
+
+      // 1) Load booking
+      const bq = await client.query(
+        `
+        SELECT
+          id,
+          "partnerId",
+          status,
+          "checkInDate",
+          "checkOutDate",
+          qty,
+          currency,
+          "amountPaid",
+          "pendingConfirmExpiresAt",
+          "travelerFirstName",
+          "travelerLastName"
+        FROM extranet."Booking"
+        WHERE "bookingRef" = $1
+        LIMIT 1
+        `,
+        [bookingRef]
+      );
+
+      if (!bq.rows.length) return { ok: false, code: "not_found" };
+
+      const b = bq.rows[0];
+      const bookingId = Number(b.id);
+      const partnerId = Number(b.partnerId);
+
+      // Only resend for pending hotel confirmation
+      if (String(b.status) !== "PENDING_HOTEL_CONFIRMATION") {
+        return { ok: false, code: "not_pending", status: String(b.status) };
+      }
+
+      // 2) Get latest token
+      const tq = await client.query(
+        `
+        SELECT id, token, "expiresAt", "usedAt"
+        FROM extranet."BookingConfirmToken"
+        WHERE "bookingId" = $1
+        ORDER BY id DESC
+        LIMIT 1
+        `,
+        [bookingId]
+      );
+
+      let token = tq.rows?.[0]?.token ? String(tq.rows[0].token) : "";
+      const expiresAt = tq.rows?.[0]?.expiresAt ? new Date(tq.rows[0].expiresAt) : null;
+      const usedAt = tq.rows?.[0]?.usedAt ? new Date(tq.rows[0].usedAt) : null;
+
+      const isValidExisting =
+        token && !usedAt && expiresAt && expiresAt.getTime() > now.getTime();
+
+      // 3) Create new token if needed
+      if (!isValidExisting) {
+        token = crypto.randomBytes(24).toString("hex");
+
+        // expiry = pendingConfirmExpiresAt if still in the future, else now+24h
+        const pce = b.pendingConfirmExpiresAt ? new Date(b.pendingConfirmExpiresAt) : null;
+        const newExpires = (pce && pce.getTime() > now.getTime())
+          ? pce
+          : new Date(now.getTime() + 24 * 60 * 60 * 1000);
+
+        await client.query(
+          `INSERT INTO extranet."BookingConfirmToken" ("bookingId","token","expiresAt","createdAt")
+           VALUES ($1,$2,$3,$4)`,
+          [bookingId, token, newExpires, now]
+        );
+      }
+
+      // 4) Send email
+      const hotelEmail = await getPartnerEmail(partnerId);
+      const toEmail = hotelEmail || "bookings@lolaelo.com";
+
+      const base = process.env.PUBLIC_BASE_URL || "https://lolaelo-api.onrender.com";
+      const confirmUrl = `${base}/api/bookings/confirm?token=${encodeURIComponent(token)}`;
+      const declineUrl = `${base}/api/bookings/decline?token=${encodeURIComponent(token)}`;
+
+      const guestName =
+        [b.travelerFirstName, b.travelerLastName].filter(Boolean).join(" ").trim() || "Traveler";
+
+      const subject = `Action needed: confirm booking ${bookingRef}`;
+
+      const html = hotelConfirmEmailHtml({
+        bookingRef,
+        guestName,
+        checkIn: String(b.checkInDate).slice(0, 10),
+        checkOut: String(b.checkOutDate).slice(0, 10),
+        qty: Number(b.qty || 1),
+        amountPaid: `${b.currency} ${Number(b.amountPaid).toFixed(2)}`,
+        respondBy: String(b.pendingConfirmExpiresAt).replace("T", " ").slice(0, 19),
+        confirmUrl,
+        declineUrl,
+      });
+
+      try {
+        await sendMailReal({ from: "bookings@lolaelo.com", to: toEmail, subject, html });
+
+        await client.query(
+          `INSERT INTO extranet."BookingEvent"
+            ("bookingId","fromStatus","toStatus","actorType","actorId","note","createdAt")
+           VALUES
+            ($1, NULL, 'PENDING_HOTEL_CONFIRMATION', 'SYSTEM', NULL, $2, $3)`,
+          [bookingId, `HOTEL_EMAIL_SENT: resend to ${toEmail}`, now]
+        );
+
+        return { ok: true, toEmail };
+      } catch (e) {
+        const errMsg = (e instanceof Error ? e.message : String(e)) || "unknown_error";
+        const errShort = errMsg.slice(0, 500);
+
+        await client.query(
+          `INSERT INTO extranet."BookingEvent"
+            ("bookingId","fromStatus","toStatus","actorType","actorId","note","createdAt")
+           VALUES
+            ($1, NULL, 'PENDING_HOTEL_CONFIRMATION', 'SYSTEM', NULL, $2, $3)`,
+          [bookingId, `HOTEL_EMAIL_FAILED: resend ${errShort}`, now]
+        );
+
+        return { ok: false, code: "send_failed", error: errShort };
+      }
+    });
+
+    if (!result.ok) {
+      if (result.code === "not_found") return res.status(404).json(result);
+      if (result.code === "not_pending") return res.status(409).json(result);
+      return res.status(500).json(result);
+    }
+
+    return res.json(result);
+  } catch (e) {
+    console.error("[resend-hotel-confirmation] failed:", e);
+    return res.status(500).json({ ok: false, error: "server_error" });
+  }
+});
+// ANCHOR: RESEND_HOTEL_CONFIRMATION_ROUTE END
+
 // ANCHOR: PARTNER_BOOKINGS_LIST_ROUTE
 app.get("/api/partners/bookings", async (req: Request, res: Response) => {
   const partnerId = Number(req.query.partnerId || 0);
@@ -798,10 +961,21 @@ app.get("/api/extranet/me/bookings", async (req: Request, res: Response) => {
           b."travelerFirstName",
           b."travelerLastName",
           rt.name AS "roomCategory",
-          rp.name AS "ratePlan"
+          rp.name AS "ratePlan",
+          t.token AS "confirmToken",
+          t."expiresAt" AS "tokenExpiresAt"
         FROM extranet."Booking" b
         LEFT JOIN extranet."RoomType" rt ON rt.id = b."roomTypeId"
         LEFT JOIN extranet."RatePlan" rp ON rp.id = b."ratePlanId"
+        LEFT JOIN LATERAL (
+          SELECT token, "expiresAt"
+          FROM extranet."BookingConfirmToken"
+          WHERE "bookingId" = b.id
+            AND "usedAt" IS NULL
+            AND "expiresAt" > NOW()
+          ORDER BY id DESC
+          LIMIT 1
+        ) t ON TRUE
         WHERE ${whereSql}
         ORDER BY
           CASE

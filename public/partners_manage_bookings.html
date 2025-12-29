@@ -32,6 +32,17 @@
     .btn.secondary{ background:transparent; border-color:#2e7bff; color:#d7e5ff }
     .btn.ghost{ background:transparent; border-color:var(--line); color:#cfe0ff }
 
+    .btn.ok{
+      background:transparent;
+      border-color:rgba(43,187,111,.55);
+      color:#bff7d2;
+    }
+    .btn.no{
+      background:transparent;
+      border-color:rgba(220,38,38,.55);
+      color:#ffb4b4;
+    }
+
     .card{
       background:var(--card); border:1px solid var(--line); border-radius:16px; padding:18px;
       box-shadow:0 8px 40px rgba(0,0,0,.45);
@@ -247,7 +258,21 @@
             <td>${esc(r.ratePlan || "-")}</td>
             <td>${statusPill(r.status)}</td>
             <td>
-              <button class="btn ghost" type="button">View</button>
+              ${(() => {
+                const isPending = String(r.status) === "PENDING_HOTEL_CONFIRMATION";
+                const token = r.confirmToken || "";
+                if (isPending && token) {
+                  const cUrl = `${API_BASE}/api/bookings/confirm?token=${encodeURIComponent(token)}`;
+                  const dUrl = `${API_BASE}/api/bookings/decline?token=${encodeURIComponent(token)}`;
+                  return `
+                    <div style="display:flex; gap:8px; flex-wrap:wrap;">
+                      <a class="btn ok" href="${cUrl}">Confirm</a>
+                      <a class="btn no" href="${dUrl}">Decline</a>
+                    </div>
+                  `;
+                }
+                return `<button class="btn ghost" type="button">View</button>`;
+              })()}
             </td>
           </tr>
         `;
