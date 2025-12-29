@@ -942,8 +942,8 @@ app.get("/api/extranet/me/bookings", async (req: Request, res: Response) => {
       } else if (bucket === "canceled") {
         whereSql += ` AND b.status IN (
           'DECLINED_BY_HOTEL'::extranet."BookingStatus",
-          'EXPIRED'::extranet."BookingStatus",
-          'CANCELED'::extranet."BookingStatus"
+          'EXPIRED_NO_RESPONSE'::extranet."BookingStatus",
+          'CANCELED_BY_TRAVELER'::extranet."BookingStatus"
         )`;
       } else if (bucket === "completed") {
         whereSql += ` AND b.status IN ('COMPLETED'::extranet."BookingStatus")`;
