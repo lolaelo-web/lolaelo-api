@@ -296,11 +296,29 @@ app.post("/api/payments/webhook", express.raw({ type: "application/json" }), asy
       let bookingRef = "LL-";
       for (let i = 0; i < 6; i++) bookingRef += chars[Math.floor(Math.random() * chars.length)];
 
-      const name = (session.customer_details?.name || "").trim();
-      const firstName = name ? name.split(" ")[0] : null;
-      const lastName  = name ? (name.split(" ").slice(1).join(" ") || null) : null;
+      const md2 = session.metadata || {};
 
-      const travelerEmail = session.customer_details?.email || "";
+      const firstName =
+        (md2.travelerFirstName && String(md2.travelerFirstName).trim()) ||
+        null;
+
+      const lastName =
+        (md2.travelerLastName && String(md2.travelerLastName).trim()) ||
+        null;
+
+      const travelerEmail =
+        (md2.travelerEmail && String(md2.travelerEmail).trim()) ||
+        (session.customer_details?.email || "");
+
+      const travelerPhone =
+        (md2.travelerPhone && String(md2.travelerPhone).trim()) ||
+        (session.customer_details?.phone || null);
+
+      if (!travelerEmail) {
+        console.error("[WH] missing traveler email, session:", session.id);
+        await client.end();
+        return res.status(400).send("Missing traveler email");
+      }
       if (!travelerEmail) {
         console.error("[WH] missing traveler email, session:", session.id);
         await client.end();
@@ -337,7 +355,7 @@ app.post("/api/payments/webhook", express.raw({ type: "application/json" }), asy
         [
           bookingRef, partnerId, roomTypeId, ratePlanId,
           checkInDate, checkOutDate, (Number.isFinite(qty) && qty > 0 ? qty : 1), guests,
-          firstName, lastName, travelerEmail, session.customer_details?.phone || null,
+          firstName, lastName, travelerEmail, travelerPhone,
           currency, amountPaid,
           providerPaymentId, (typeof session.customer === "string" ? session.customer : null),
           now, now,
@@ -1813,160 +1831,75 @@ app.get("/extranet/pms/uis/search", async (req: Request, res: Response) => {
   res.json({ extranet, pms });
 });
 
-// /ANCHOR: UIS_MOCK_SEARCH
-
-// Simple test endpoint: creates a Stripe Checkout Session with booking metadata
+// ANCHOR: STRIPE_CREATE_CHECKOUT_SESSION
 app.post("/api/payments/create-checkout-session", async (req: Request, res: Response) => {
   try {
-    const body: any = req.body ?? {};
+    const body: any = req.body || {};
 
-    const propertyId = body.propertyId ?? null;
-    const roomId     = body.roomId ?? null;
-    const start      = body.start ?? null;
-    const end        = body.end ?? null;
-    const ratePlanId = body.ratePlanId ?? null;
-    const rawAddons  = Array.isArray(body.addons) ? body.addons : [];
+    const currency = String(body.currency || "usd").toLowerCase();
 
-    // Resolve ratePlanId to a real DB id (avoid FK failures at webhook insert time)
-    let resolvedRatePlanId: number | null = (ratePlanId != null ? Number(ratePlanId) : null);
-    if (!Number.isFinite(resolvedRatePlanId as any)) resolvedRatePlanId = null;
+    const totalCentsRaw =
+      body.totalCents != null ? Number(body.totalCents) :
+      body.amountTotal != null ? Math.round(Number(body.amountTotal) * 100) :
+      NaN;
 
-    const cs = process.env.DATABASE_URL || "";
-    if (!cs) throw new Error("DATABASE_URL missing");
+    const totalCents = Number.isFinite(totalCentsRaw) ? Math.trunc(totalCentsRaw) : NaN;
 
-    const client = new Client({
-      connectionString: cs,
-      ssl: wantsSSL(cs) ? { rejectUnauthorized: false } : undefined,
-    });
-
-    await client.connect();
-
-    try {
-      // 1) If the provided ratePlanId exists, accept it
-      if (resolvedRatePlanId != null) {
-        const ok = await client.query(
-          `SELECT id FROM extranet."RatePlan" WHERE id = $1 LIMIT 1`,
-          [resolvedRatePlanId]
-        );
-        if (!ok.rows.length) resolvedRatePlanId = null;
-      }
-
-      // 2) Fallback: pick a default-ish plan for this partner/roomType if available
-      // NOTE: we map partnerId <- propertyId and roomTypeId <- roomId in this phase
-      if (resolvedRatePlanId == null) {
-        const q = await client.query(
-          `
-          SELECT id
-          FROM extranet."RatePlan"
-          WHERE "partnerId" = $1
-          ORDER BY
-            COALESCE("isDefault", false) DESC,
-            COALESCE("active", true) DESC,
-            id ASC
-          LIMIT 1
-          `,
-          [Number(propertyId)]
-        );
-        if (q.rows.length) resolvedRatePlanId = Number(q.rows[0].id);
-      }
-    } finally {
-      await client.end();
-    }
-
-    if (resolvedRatePlanId == null) {
+    if (!Number.isFinite(totalCents) || totalCents <= 0) {
       return res.status(400).json({
-        error: "no_rateplan",
-        message: "No valid rate plan found for this booking. Please pick another plan or contact support.",
+        error: "invalid_total",
+        message: "Missing or invalid total for Stripe Checkout Session (totalCents or amountTotal required).",
       });
     }
 
-    // Light sanitization of add-ons so we can safely attach to metadata / logs
-    const addons = rawAddons.map((a: any) => ({
-      index: typeof a.index === "number" ? a.index : null,
-      quantity:
-        typeof a.quantity === "number"
-          ? a.quantity
-          : Number(a.quantity ?? 0),
-      activity: (a.activity ?? "").toString().slice(0, 120),
-      uom: (a.uom ?? "").toString().slice(0, 40),
-      price:
-        typeof a.price === "number"
-          ? a.price
-          : (a.price != null ? Number(a.price) : null),
-      travelerComment: (a.travelerComment ?? "").toString().slice(0, 500),
-      lineTotal:
-        typeof a.lineTotal === "number"
-          ? a.lineTotal
-          : null,
-    }));
-
-    if (addons.length) {
-      console.log("[checkout] received addons:", {
-        propertyId,
-        roomId,
-        start,
-        end,
-        ratePlanId,
-        addonsCount: addons.length,
-      });
-    }
+    const travelerFirstName = String(body.travelerFirstName || "").trim();
+    const travelerLastName = String(body.travelerLastName || "").trim();
+    const travelerEmail = String(body.travelerEmail || "").trim();
+    const travelerPhone = String(body.travelerPhone || "").trim();
 
     const metadata: Record<string, string> = {
-      propertyId: propertyId != null ? String(propertyId) : "",
-      roomId: roomId != null ? String(roomId) : "",
-      start: start != null ? String(start) : "",
-      end: end != null ? String(end) : "",
-      ratePlanId: String(resolvedRatePlanId),
+      travelerFirstName: String(body.travelerFirstName || "").trim(),
+      travelerLastName:  String(body.travelerLastName || "").trim(),
+      travelerEmail:     String(body.travelerEmail || "").trim(),
+      travelerPhone:     String(body.travelerPhone || "").trim(),
+      totalCents:        String(Math.trunc(totalCents)),
+      currency:          String(currency),
     };
 
-    try {
-      const addonsJson = JSON.stringify(addons);
-      if (addonsJson && addonsJson.length <= 5000) {
-        metadata["addons"] = addonsJson;
-      }
-    } catch {
-      // ignore metadata serialization errors
-    }
+    if (body.bookingRef) metadata.bookingRef = String(body.bookingRef);
+    if (body.partnerId) metadata.partnerId = String(body.partnerId);
+    if (body.roomTypeId) metadata.roomTypeId = String(body.roomTypeId);
+    if (body.ratePlanId) metadata.ratePlanId = String(body.ratePlanId);
+    if (body.checkInDate) metadata.checkInDate = String(body.checkInDate);
+    if (body.checkOutDate) metadata.checkOutDate = String(body.checkOutDate);
+    if (body.qty != null) metadata.qty = String(body.qty);
+
+    const base = process.env.PUBLIC_BASE_URL || "https://lolaelo-api.onrender.com";
 
     const session = await stripe.checkout.sessions.create({
       mode: "payment",
-      payment_method_types: ["card"],
+      customer_email: travelerEmail || undefined,
       line_items: [
         {
           price_data: {
-            currency: "usd", // test currency for now
-            product_data: {
-              name: "Lolaelo test booking",
-            },
-            unit_amount: 5000, // 50.00 USD in smallest unit (cents)
+            currency,
+            product_data: { name: "Lolaelo booking" },
+            unit_amount: totalCents,
           },
           quantity: 1,
         },
       ],
-      success_url:
-        "https://lolaelo-api.onrender.com/checkout_success.html?session_id={CHECKOUT_SESSION_ID}",
-      cancel_url:
-        "https://lolaelo-api.onrender.com/checkout_cancelled.html",
+      success_url: `${base}/checkout_success.html?session_id={CHECKOUT_SESSION_ID}`,
+      cancel_url: `${base}/checkout.html?canceled=1`,
       metadata,
     });
 
-    return res.json({ url: session.url });
-  } catch (err: any) {
-    console.error("Error creating checkout session:", err);
-    return res.status(500).json({
-      error: "stripe_error",
-      message: err?.message ?? "Unknown error",
-    });
+    return res.json({ ok: true, url: session.url || "", id: session.id });
+  } catch (e) {
+    console.error("[create-checkout-session] failed:", e);
+    return res.status(500).json({ ok: false, error: "server_error" });
   }
 });
-
-// ANCHOR: DEPLOY_FINGERPRINT
-app.get("/api/_fingerprint", (req: Request, res: Response) => {
-  res.json({
-    ok: true,
-    ts: new Date().toISOString(),
-    commit: process.env.RENDER_GIT_COMMIT || null,
-  });
-});
+// ANCHOR: STRIPE_CREATE_CHECKOUT_SESSION END
 
 export default app;

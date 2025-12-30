@@ -4637,14 +4637,26 @@
               method: "POST",
               headers: { "Content-Type": "application/json" },
               body: JSON.stringify({
-                propertyId: state.propertyId,
-                roomId: state.roomId,
-                start: state.start,
-                end: state.end,
+                // booking identifiers
+                partnerId: state.propertyId,              // server expects partnerId; you’re currently storing partnerId in state.propertyId
+                roomTypeId: state.roomId,
                 ratePlanId: state.ratePlanId,
-                addons: Array.isArray(state.selectedAddons)
-                  ? state.selectedAddons
-                  : []
+                checkInDate: state.start,
+                checkOutDate: state.end,
+                qty: Number(state.qty || 1),
+
+                // guest details (authoritative)
+                travelerFirstName: (document.getElementById("firstName")?.value || "").trim(),
+                travelerLastName:  (document.getElementById("lastName")?.value || "").trim(),
+                travelerEmail:     (document.getElementById("email")?.value || "").trim(),
+                travelerPhone:     ((document.getElementById("phoneCountry")?.value || "") + (document.getElementById("phone")?.value || "")).trim(),
+
+                // totals (authoritative)
+                currency: (state.pricingCurrency || "USD"),
+                totalCents: Math.round((Number(state.pricingTotal || 0) + Number(state.addonsSubtotal || 0)) * 100),
+
+                // addons
+                addons: Array.isArray(state.selectedAddons) ? state.selectedAddons : []
               })
             });
 
