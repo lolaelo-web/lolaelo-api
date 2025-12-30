@@ -4061,45 +4061,27 @@
 
     function initCheckout() {
 
-      // === SUCCESS RETURN GUARD ===
-      // If we just completed payment and landed on checkout_success,
-      // do not allow Back button to resurrect checkout state from URL params.
+      // === NO-QUERY HARD STOP ===
+      // If checkout is loaded without URL params, it’s almost always a back-navigation/stale entry.
+      // Do not render from localStorage cart. Clear and send traveler back to catalog.
       (function(){
         try {
-          const clearedAt = Number(localStorage.getItem("checkout.clearedOnSuccessAt") || "0");
-          if (!clearedAt) return;
+          const hasQuery = !!(location.search && location.search.length > 1);
 
-          // Only block for a short window (10 minutes) to avoid trapping normal browsing.
-          const ageMs = Date.now() - clearedAt;
-          if (ageMs < 0 || ageMs > 10 * 60 * 1000) {
-            localStorage.removeItem("checkout.clearedOnSuccessAt");
+          if (!hasQuery) {
+            // Clear any persisted checkout state
+            localStorage.removeItem("checkout.cart.v1");
+            localStorage.removeItem("checkout.selection.v1");
+            localStorage.removeItem("checkout.lastPropertyId");
+            localStorage.removeItem("checkout.lastDetailsUrl");
+
+            // Redirect away from checkout
+            location.replace("/catalog.html");
             return;
           }
-
-          // Hard clear again (defensive)
-          localStorage.removeItem("checkout.cart.v1");
-          localStorage.removeItem("checkout.selection.v1");
-          localStorage.removeItem("checkout.lastPropertyId");
-          localStorage.removeItem("checkout.lastDetailsUrl");
-
-          // Consume the marker so we don't loop forever
-          localStorage.removeItem("checkout.clearedOnSuccessAt");
-
-          // Strip URL params AND prevent checkout from rendering on back-navigation.
-          // Send the user to catalog (or destinations) instead of showing any stale state.
-          if (location.search) {
-            location.replace(location.pathname);
-            return;
-          }
-
-          // No query string but we still came back from success within the window.
-          // Do not allow parseQuery() fallbacks (lastPropertyId) to rebuild anything.
-          location.replace("/catalog.html");
-          return;
         } catch (_) {}
       })();
 
-      // ← existing initCheckout logic continues here
       const q0 = parseQuery();
       migrateSelectionToCartIfNeeded(q0);
 
