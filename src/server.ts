@@ -1874,6 +1874,15 @@ app.post("/api/payments/create-checkout-session", async (req: Request, res: Resp
     if (body.checkOutDate) metadata.checkOutDate = String(body.checkOutDate);
     if (body.qty != null) metadata.qty = String(body.qty);
 
+    // legacy fields for checkout_success rendering
+    if (body.propertyId) metadata.propertyId = String(body.propertyId);
+    if (body.roomId) metadata.roomId = String(body.roomId);
+    if (body.start) metadata.start = String(body.start);
+    if (body.end) metadata.end = String(body.end);
+    if (body.propertyName) metadata.propertyName = String(body.propertyName);
+    if (body.roomName) metadata.roomName = String(body.roomName);
+    if (body.ratePlanName) metadata.ratePlanName = String(body.ratePlanName);
+
     const base = process.env.PUBLIC_BASE_URL || "https://lolaelo-api.onrender.com";
 
     const session = await stripe.checkout.sessions.create({

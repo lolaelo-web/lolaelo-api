@@ -2816,6 +2816,48 @@
       pricingNights: [] // [{ date, amount }, ...]
     };
 
+    // ANCHOR: PAYMENT_GRAND_TOTAL_HELPER
+    function computeGrandTotalForPayment(){
+      let currency = state.pricingCurrency || "USD";
+      let base = 0;
+
+      // CART MODE: sum totals from each rendered card (same as updateGrandTotal)
+      try {
+        const cart = loadCartV1();
+        const inCartMode = !!(cart && Array.isArray(cart.items) && cart.items.length);
+
+        if (inCartMode) {
+          const cards = Array.from(
+            document.querySelectorAll('.section-body[data-section-body="1"] .dates-grid[data-lineid]')
+          );
+
+          cards.forEach((card) => {
+            const v = Number(card.dataset ? card.dataset.lineTotal : NaN);
+            if (Number.isFinite(v) && v > 0) base += v;
+
+            const c = card.dataset ? String(card.dataset.lineCurrency || "") : "";
+            if (c && !currency) currency = c;
+          });
+        }
+      } catch (_) {}
+
+      // FALLBACK (non-cart)
+      if (!Number.isFinite(base) || base <= 0) {
+        if (typeof state.pricingTotal === "number" && Number.isFinite(state.pricingTotal) && state.pricingTotal > 0) {
+          base = state.pricingTotal;
+        } else if (typeof state.baseRoomTotal === "number" && Number.isFinite(state.baseRoomTotal) && state.baseRoomTotal > 0) {
+          const qn = Math.max(1, Number.parseInt(String(state.qty || 1), 10) || 1);
+          base = state.baseRoomTotal * qn;
+        }
+      }
+
+      const addons = Number(state.addonsSubtotal || 0);
+      const grand = base + (Number.isFinite(addons) ? addons : 0);
+
+      return { currency, base, addons, grand };
+    }
+    // ANCHOR: PAYMENT_GRAND_TOTAL_HELPER END
+
     function updateSummaries() {
       // CART MODE: only update the right-side summary panel.
       try {
@@ -4633,32 +4675,43 @@
           confirmAndPayButton.textContent = "Redirecting to secure payment.";
 
           try {
-            const response = await fetch("/api/payments/create-checkout-session", {
-              method: "POST",
-              headers: { "Content-Type": "application/json" },
-              body: JSON.stringify({
-                // booking identifiers
-                partnerId: state.propertyId,              // server expects partnerId; you’re currently storing partnerId in state.propertyId
-                roomTypeId: state.roomId,
-                ratePlanId: state.ratePlanId,
-                checkInDate: state.start,
-                checkOutDate: state.end,
-                qty: Number(state.qty || 1),
+          const pay = computeGrandTotalForPayment();
 
-                // guest details (authoritative)
-                travelerFirstName: (document.getElementById("firstName")?.value || "").trim(),
-                travelerLastName:  (document.getElementById("lastName")?.value || "").trim(),
-                travelerEmail:     (document.getElementById("email")?.value || "").trim(),
-                travelerPhone:     ((document.getElementById("phoneCountry")?.value || "") + (document.getElementById("phone")?.value || "")).trim(),
+          const response = await fetch("/api/payments/create-checkout-session", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              // booking identifiers (server canonical)
+              partnerId: state.propertyId,
+              roomTypeId: state.roomId,
+              ratePlanId: state.ratePlanId,
+              checkInDate: state.start,
+              checkOutDate: state.end,
+              qty: Number(state.qty || 1),
 
-                // totals (authoritative)
-                currency: (state.pricingCurrency || "USD"),
-                totalCents: Math.round((Number(state.pricingTotal || 0) + Number(state.addonsSubtotal || 0)) * 100),
+              // legacy identifiers (for checkout_success compatibility)
+              propertyId: state.propertyId,
+              roomId: state.roomId,
+              start: state.start,
+              end: state.end,
+              propertyName: state.propertyName,
+              roomName: state.roomName,
+              ratePlanName: state.ratePlanName,
 
-                // addons
-                addons: Array.isArray(state.selectedAddons) ? state.selectedAddons : []
-              })
-            });
+              // guest details (authoritative)
+              travelerFirstName: (document.getElementById("firstName")?.value || "").trim(),
+              travelerLastName:  (document.getElementById("lastName")?.value || "").trim(),
+              travelerEmail:     (document.getElementById("email")?.value || "").trim(),
+              travelerPhone:     ((document.getElementById("phoneCountry")?.value || "") + (document.getElementById("phone")?.value || "")).trim(),
+
+              // totals (authoritative, matches the right-side UI)
+              currency: pay.currency || (state.pricingCurrency || "USD"),
+              totalCents: Math.round(Number(pay.grand || 0) * 100),
+
+              // addons
+              addons: Array.isArray(state.selectedAddons) ? state.selectedAddons : []
+            })
+          });
 
             if (!response.ok) throw new Error("Failed to start payment");
             const data = await response.json();
