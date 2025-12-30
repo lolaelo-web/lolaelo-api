@@ -4737,6 +4737,8 @@
                     const lineId = String(card.getAttribute("data-lineid") || "");
                     if (!lineId) return;
 
+                    const wrap = card.closest(".tile, .card, .dates-grid, .section-block, .room-card, .checkout-card") || card.parentElement || card;
+
                     // lineTotal from dataset
                     const v = Number(card.dataset ? card.dataset.lineTotal : NaN);
                     if (Number.isFinite(v)) byLineIdTotal.set(lineId, v);
