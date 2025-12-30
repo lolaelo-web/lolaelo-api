@@ -264,13 +264,38 @@
 
       const b = data.booking || {};
       const items = Array.isArray(data.items) ? data.items : [];
+      // Derive stay info from items (authoritative)
+      let minIn = null;
+      let maxOut = null;
+      let sameWindow = true;
+
+      if (items.length) {
+        const firstIn = fmtYmd(items[0].checkInDate);
+        const firstOut = fmtYmd(items[0].checkOutDate);
+
+        items.forEach(it => {
+          const ci = new Date(it.checkInDate);
+          const co = new Date(it.checkOutDate);
+          if (!Number.isNaN(ci.getTime())) minIn = (minIn && minIn < ci) ? minIn : ci;
+          if (!Number.isNaN(co.getTime())) maxOut = (maxOut && maxOut > co) ? maxOut : co;
+
+          if (fmtYmd(it.checkInDate) !== firstIn || fmtYmd(it.checkOutDate) !== firstOut) {
+            sameWindow = false;
+          }
+        });
+      }
+
+      const modalStay =
+        (!items.length) ? ((b.checkInDate && b.checkOutDate) ? `${fmtYmd(b.checkInDate)} to ${fmtYmd(b.checkOutDate)}` : "-")
+        : (sameWindow ? `${fmtYmd(minIn)} to ${fmtYmd(maxOut)}` : "Multiple varying dates");
+
       const currency = (items[0]?.currency || b.currency || "USD");
 
       if (title) title.textContent = `Booking ${b.bookingRef || bookingRef}`;
       if (sub) sub.textContent = `${b.propertyName || ""}`.trim();
 
       const guest = [b.travelerFirstName, b.travelerLastName].filter(Boolean).join(" ").trim() || "Traveler";
-      const stayTxt = (b.checkInDate && b.checkOutDate) ? `${fmtYmd(b.checkInDate)} to ${fmtYmd(b.checkOutDate)}` : "-";
+      const stayTxt = modalStay;
       if (summary) {
         summary.innerHTML = `
           <div><b>Guest:</b> ${esc(guest)}</div>
@@ -333,7 +358,13 @@
         const guest = [r.travelerFirstName, r.travelerLastName]
           .filter(Boolean).join(" ") || "Traveler";
 
-        const stay = `${fmtYmd(r.checkInDate)} to ${fmtYmd(r.checkOutDate)}`;
+        const hasVary = !!r.hasVaryingDates;
+
+        const stay = hasVary
+          ? "Multiple varying dates (View)"
+          : (r.minCheckInDate && r.maxCheckOutDate)
+              ? `${fmtYmd(r.minCheckInDate)} to ${fmtYmd(r.maxCheckOutDate)}`
+              : `${fmtYmd(r.checkInDate)} to ${fmtYmd(r.checkOutDate)}`;
 
         return `
           <tr>
@@ -353,7 +384,8 @@
                   const cUrl = `${API_BASE}/api/bookings/confirm?token=${encodeURIComponent(token)}`;
                   const dUrl = `${API_BASE}/api/bookings/decline?token=${encodeURIComponent(token)}`;
                   return `
-                    <div style="display:flex; gap:8px; flex-wrap:wrap;">
+                    <div style="display:flex; gap:8px; flex-wrap:wrap; align-items:center;">
+                      <button class="btn ghost" type="button" onclick="openBookingModal('${esc(r.bookingRef)}')">View</button>
                       <a class="btn ok" href="${cUrl}">Confirm</a>
                       <a class="btn no" href="${dUrl}">Decline</a>
                     </div>
@@ -458,7 +490,8 @@
         </thead>
           <tbody id="bookingsTbody">
             <tr>
-              <td class="muted" colspan="7" id="emptyRowText">No pending or active bookings loaded yet. Next step is wiring the list endpoint.</td>
+              <td class="muted" colspan="9" id="emptyRowText">
+                No pending or active bookings loaded yet. Next step is wiring the list endpoint.</td>
             </tr>
           </tbody>
       </table>

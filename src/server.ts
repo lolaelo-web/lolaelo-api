@@ -1032,7 +1032,10 @@ app.get("/api/extranet/me/bookings", async (req: Request, res: Response) => {
         LEFT JOIN LATERAL (
           SELECT
             COUNT(*)::int AS "itemCount",
-            COALESCE(SUM("lineTotal"), 0) AS "itemsTotal"
+            COALESCE(SUM("lineTotal"), 0) AS "itemsTotal",
+            MIN("checkInDate") AS "minCheckInDate",
+            MAX("checkOutDate") AS "maxCheckOutDate",
+            (COUNT(DISTINCT ("checkInDate","checkOutDate")) > 1) AS "hasVaryingDates"
           FROM extranet."BookingItem"
           WHERE "bookingId" = b.id
         ) s ON TRUE
