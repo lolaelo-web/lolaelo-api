@@ -4741,34 +4741,46 @@
                     const v = Number(card.dataset ? card.dataset.lineTotal : NaN);
                     if (Number.isFinite(v)) byLineIdTotal.set(lineId, v);
 
-                    // stay dates: try to locate the "Stay dates" value inside the card container
-                    // We walk up to the nearest card wrapper and grab the text containing "to"
-                    let container = card;
-                    for (let i = 0; i < 6 && container; i++) {
-                      if (container.classList && container.classList.contains("dates-grid")) break;
-                      container = container.parentElement;
-                    }
-                    // fallback: use closest card-like wrapper
-                    const wrap = card.closest(".tile, .card, .dates-grid, .section-block, .room-card, .checkout-card") || card.parentElement || card;
-
-                    // Find any element that looks like a stay date range: contains " to "
-                    const textNodes = Array.from(wrap.querySelectorAll("*"))
+                    // Prefer the explicit "Stay dates" element if present.
+                    // Match exactly: "Month DD, YYYY to Month DD, YYYY"
+                    const candidates = Array.from(wrap.querySelectorAll("*"))
                       .map(el => (el && el.textContent ? el.textContent.trim() : ""))
-                      .filter(t => t.includes(" to "));
+                      .filter(t => /[A-Za-z]{3,9}\s+\d{1,2},\s+\d{4}\s+to\s+[A-Za-z]{3,9}\s+\d{1,2},\s+\d{4}/.test(t));
 
-                    // Use the first match
-                    const range = textNodes.length ? textNodes[0] : "";
+                    const range = candidates.length ? candidates[0] : "";
 
-                    // Parse "Dec 30, 2025 to Jan 1, 2026"
+                    // Parse "Month DD, YYYY" safely into UTC (no timezone drift)
+                    function parseMDYToUTCDate(s){
+                      const m = s.match(/^([A-Za-z]{3,9})\s+(\d{1,2}),\s+(\d{4})$/);
+                      if (!m) return null;
+
+                      const monStr = m[1].toLowerCase();
+                      const day = Number(m[2]);
+                      const year = Number(m[3]);
+
+                      const months = {
+                        jan:0,january:0,feb:1,february:1,mar:2,march:2,apr:3,april:3,may:4,
+                        jun:5,june:5,jul:6,july:6,aug:7,august:7,sep:8,september:8,
+                        oct:9,october:9,nov:10,november:10,dec:11,december:11
+                      };
+
+                      const mon = months[monStr];
+                      if (mon === undefined) return null;
+
+                      // UTC midnight avoids timezone shifts
+                      return new Date(Date.UTC(year, mon, day, 0, 0, 0));
+                    }
+
                     if (range && range.includes(" to ")) {
                       const parts = range.split(" to ").map(s => s.trim());
                       if (parts.length === 2) {
-                        const d1 = new Date(parts[0]);
-                        const d2 = new Date(parts[1]);
-                        if (!Number.isNaN(d1.getTime()) && !Number.isNaN(d2.getTime())) {
-                          const iso1 = d1.toISOString().slice(0,10); // YYYY-MM-DD
-                          const iso2 = d2.toISOString().slice(0,10);
-                          byLineIdDates.set(lineId, { checkInDate: iso1, checkOutDate: iso2 });
+                        const d1 = parseMDYToUTCDate(parts[0]);
+                        const d2 = parseMDYToUTCDate(parts[1]);
+                        if (d1 && d2) {
+                          byLineIdDates.set(lineId, {
+                            checkInDate: d1.toISOString().slice(0,10),
+                            checkOutDate: d2.toISOString().slice(0,10)
+                          });
                         }
                       }
                     }
