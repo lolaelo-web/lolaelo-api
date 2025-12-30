@@ -1014,7 +1014,9 @@ app.get("/api/extranet/me/bookings", async (req: Request, res: Response) => {
           rt.name AS "roomCategory",
           rp.name AS "ratePlan",
           t.token AS "confirmToken",
-          t."expiresAt" AS "tokenExpiresAt"
+          t."expiresAt" AS "tokenExpiresAt",
+          COALESCE(s."itemCount", 0) AS "itemCount", 
+          COALESCE(s."itemsTotal", 0) AS "itemsTotal"
         FROM extranet."Booking" b
         LEFT JOIN extranet."RoomType" rt ON rt.id = b."roomTypeId"
         LEFT JOIN extranet."RatePlan" rp ON rp.id = b."ratePlanId"
@@ -1027,6 +1029,13 @@ app.get("/api/extranet/me/bookings", async (req: Request, res: Response) => {
           ORDER BY id DESC
           LIMIT 1
         ) t ON TRUE
+        LEFT JOIN LATERAL (
+          SELECT
+            COUNT(*)::int AS "itemCount",
+            COALESCE(SUM("lineTotal"), 0) AS "itemsTotal"
+          FROM extranet."BookingItem"
+          WHERE "bookingId" = b.id
+        ) s ON TRUE
         WHERE ${whereSql}
         ORDER BY
           CASE
@@ -1049,6 +1058,89 @@ app.get("/api/extranet/me/bookings", async (req: Request, res: Response) => {
   }
 });
 // ANCHOR: EXTRANET_ME_BOOKINGS_ROUTE END
+
+// ANCHOR: EXTRANET_ME_BOOKING_DETAIL_ROUTE
+app.get("/api/extranet/me/bookings/:bookingRef", async (req: Request, res: Response) => {
+  const bookingRef = String(req.params.bookingRef || "").trim();
+  if (!bookingRef) return res.status(400).json({ ok: false, error: "bookingRef_required" });
+
+  try {
+    const partnerId = requirePartnerIdFromRequest(req);
+
+    const data = await withDb(async (client) => {
+      const bq = await client.query(
+        `
+        SELECT
+          b.id,
+          b."bookingRef",
+          b.status,
+          b."partnerId",
+          b."checkInDate",
+          b."checkOutDate",
+          b.qty,
+          b.currency,
+          b."amountPaid",
+          b."paymentProvider",
+          b."providerPaymentId",
+          b."pendingConfirmExpiresAt",
+          b."refundDeadlineAt",
+          b."travelerFirstName",
+          b."travelerLastName",
+          b."travelerEmail",
+          b."travelerPhone",
+          COALESCE(pp.name, p.name, ('Partner #' || b."partnerId"::text)) AS "propertyName"
+        FROM extranet."Booking" b
+        LEFT JOIN extranet."PropertyProfile" pp ON pp."partnerId" = b."partnerId"
+        LEFT JOIN extranet."Partner" p ON p.id = b."partnerId"
+        WHERE b."bookingRef" = $1
+          AND b."partnerId" = $2
+        LIMIT 1
+        `,
+        [bookingRef, partnerId]
+      );
+
+      if (!bq.rows.length) return null;
+
+      const booking = bq.rows[0];
+      const bookingId = Number(booking.id);
+
+      const iq = await client.query(
+        `
+        SELECT
+          bi.id,
+          bi."roomTypeId",
+          rt.name AS "roomTypeName",
+          bi."ratePlanId",
+          rp.name AS "ratePlanName",
+          bi."checkInDate",
+          bi."checkOutDate",
+          bi.qty,
+          bi.currency,
+          bi."lineTotal"
+        FROM extranet."BookingItem" bi
+        LEFT JOIN extranet."RoomType" rt ON rt.id = bi."roomTypeId"
+        LEFT JOIN extranet."RatePlan" rp ON rp.id = bi."ratePlanId"
+        WHERE bi."bookingId" = $1
+        ORDER BY bi.id ASC
+        `,
+        [bookingId]
+      );
+
+      const items = iq.rows || [];
+      const itemsTotal = items.reduce((s: number, r: any) => s + Number(r.lineTotal || 0), 0);
+      const itemCount = items.length;
+
+      return { booking, items, itemsTotal, itemCount };
+    });
+
+    if (!data) return res.status(404).json({ ok: false, error: "not_found" });
+    return res.json({ ok: true, ...data });
+  } catch (e) {
+    console.error("[me-booking-detail] failed:", e);
+    return res.status(500).json({ ok: false, error: "server_error" });
+  }
+});
+// ANCHOR: EXTRANET_ME_BOOKING_DETAIL_ROUTE END
 
 // ANCHOR: BOOKINGS_BY_SESSION_ROUTE (LIVE)
 app.get("/api/bookings/by-session", async (req: Request, res: Response) => {
