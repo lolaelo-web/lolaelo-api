@@ -4070,6 +4070,40 @@
     //   [data-apply-addons-modal]
 
     function initCheckout() {
+
+      // === SUCCESS RETURN GUARD ===
+      // If we just completed payment and landed on checkout_success,
+      // do not allow Back button to resurrect checkout state from URL params.
+      (function(){
+        try {
+          const clearedAt = Number(localStorage.getItem("checkout.clearedOnSuccessAt") || "0");
+          if (!clearedAt) return;
+
+          // Only block for a short window (10 minutes) to avoid trapping normal browsing.
+          const ageMs = Date.now() - clearedAt;
+          if (ageMs < 0 || ageMs > 10 * 60 * 1000) {
+            localStorage.removeItem("checkout.clearedOnSuccessAt");
+            return;
+          }
+
+          // Hard clear again (defensive)
+          localStorage.removeItem("checkout.cart.v1");
+          localStorage.removeItem("checkout.selection.v1");
+          localStorage.removeItem("checkout.lastPropertyId");
+          localStorage.removeItem("checkout.lastDetailsUrl");
+
+          // Consume the marker so we don't loop forever
+          localStorage.removeItem("checkout.clearedOnSuccessAt");
+
+          // Strip URL params so bootstrap-from-URL cannot recreate a cart line item
+          if (location.search) {
+            location.replace(location.pathname);
+            return;
+          }
+        } catch (_) {}
+      })();
+
+      // ← existing initCheckout logic continues here
       const q0 = parseQuery();
       migrateSelectionToCartIfNeeded(q0);
 
