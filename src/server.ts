@@ -365,6 +365,39 @@ app.post("/api/payments/webhook", express.raw({ type: "application/json" }), asy
 
       const bookingId = ins.rows[0].id as number;
 
+      // ANCHOR: INSERT_BOOKING_ITEMS
+      try {
+        const md2: any = session.metadata || {};
+        const raw = md2.cartItems ? String(md2.cartItems) : "";
+        if (raw) {
+          const items = JSON.parse(raw);
+          if (Array.isArray(items) && items.length) {
+            for (const it of items) {
+              const roomTypeId = Number(it.roomTypeId || 0);
+              const ratePlanId = Number(it.ratePlanId || 0);
+              const qty = Number(it.qty || 1);
+              const currency = String(it.currency || "PHP");
+              const lineTotal = Number(it.lineTotal || 0);
+
+              const checkInDate = String(it.checkInDate || "");
+              const checkOutDate = String(it.checkOutDate || "");
+
+              if (!roomTypeId || !ratePlanId || !checkInDate || !checkOutDate) continue;
+
+              await client.query(
+                `INSERT INTO extranet."BookingItem"
+                  ("bookingId","roomTypeId","ratePlanId","checkInDate","checkOutDate","qty","currency","lineTotal","createdAt")
+                VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9)`,
+                [bookingId, roomTypeId, ratePlanId, checkInDate, checkOutDate, qty, currency, lineTotal, now]
+              );
+            }
+          }
+        }
+      } catch (e) {
+        console.error("[WH] booking items insert failed:", e);
+      }
+      // ANCHOR: INSERT_BOOKING_ITEMS END
+
       const token = crypto.randomBytes(24).toString("hex");
       await client.query(
         `INSERT INTO extranet."BookingConfirmToken" ("bookingId","token","expiresAt","createdAt")
@@ -1889,6 +1922,20 @@ app.post("/api/payments/create-checkout-session", async (req: Request, res: Resp
     if (body.checkInDate) metadata.checkInDate = String(body.checkInDate);
     if (body.checkOutDate) metadata.checkOutDate = String(body.checkOutDate);
     if (body.qty != null) metadata.qty = String(body.qty);
+    // cartItems: store as JSON string (Stripe metadata values must be strings)
+    if (Array.isArray(body.cartItems) && body.cartItems.length) {
+      // keep it small to avoid metadata limits
+      const compact = body.cartItems.slice(0, 20).map((it: any) => ({
+        roomTypeId: Number(it.roomTypeId || 0),
+        ratePlanId: Number(it.ratePlanId || 0),
+        checkInDate: String(it.checkInDate || ""),
+        checkOutDate: String(it.checkOutDate || ""),
+        qty: Number(it.qty || 1),
+        currency: String(it.currency || metadata.currency || "USD"),
+        lineTotal: Number(it.lineTotal || 0)
+      }));
+      metadata.cartItems = JSON.stringify(compact);
+    }
 
     // legacy fields for checkout_success rendering
     if (body.propertyId) metadata.propertyId = String(body.propertyId);

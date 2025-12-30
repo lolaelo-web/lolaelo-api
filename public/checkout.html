@@ -4708,6 +4708,24 @@
               currency: pay.currency || (state.pricingCurrency || "USD"),
               totalCents: Math.round(Number(pay.grand || 0) * 100),
 
+              cartItems: (function(){
+                try {
+                  const cart = loadCartV1();
+                  if (!cart || !Array.isArray(cart.items)) return [];
+                  // Keep it compact: only what webhook needs
+                  return cart.items.map(it => ({
+                    roomTypeId: it.roomTypeId,
+                    ratePlanId: it.ratePlanId,
+                    checkInDate: it.checkIn || it.checkInDate || state.start,
+                    checkOutDate: it.checkOut || it.checkOutDate || state.end,
+                    qty: Number(it.qty || it.quantity || 1),
+                    currency: (it.currency || state.pricingCurrency || "USD"),
+                    lineTotal: Number(it.lineTotal || it.total || 0)
+                  }));
+                } catch (e) {
+                  return [];
+                }
+              })(),
               // addons
               addons: Array.isArray(state.selectedAddons) ? state.selectedAddons : []
             })
