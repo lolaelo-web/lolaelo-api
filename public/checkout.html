@@ -4712,16 +4712,60 @@
                 try {
                   const cart = loadCartV1();
                   if (!cart || !Array.isArray(cart.items)) return [];
-                  // Keep it compact: only what webhook needs
-                  return cart.items.map(it => ({
+
+                  // Base items from cart (minimal + stable)
+                  const baseItems = cart.items.map(it => ({
                     roomTypeId: it.roomTypeId,
                     ratePlanId: it.ratePlanId,
                     checkInDate: it.checkIn || it.checkInDate || state.start,
                     checkOutDate: it.checkOut || it.checkOutDate || state.end,
                     qty: Number(it.qty || it.quantity || 1),
                     currency: (it.currency || state.pricingCurrency || "USD"),
-                    lineTotal: Number(it.lineTotal || it.total || 0)
+                    lineId: String(it.lineId || it.id || ""),
+                    lineTotal: Number(it.lineTotal || it.total || 0) || 0
                   }));
+
+                  // 🔑 Source of truth: DOM cards (what user actually sees)
+                  try {
+                    const cards = Array.from(
+                      document.querySelectorAll(
+                        '.section-body[data-section-body="1"] .dates-grid[data-lineid]'
+                      )
+                    );
+
+                    const byLineId = new Map();
+                    cards.forEach(c => {
+                      const id = String(c.getAttribute("data-lineid") || "");
+                      const v = Number(c.dataset ? c.dataset.lineTotal : NaN);
+                      if (id && Number.isFinite(v)) {
+                        byLineId.set(id, v);
+                      }
+                    });
+
+                    return baseItems.map(it => {
+                      const domTotal = byLineId.get(it.lineId);
+                      return {
+                        roomTypeId: it.roomTypeId,
+                        ratePlanId: it.ratePlanId,
+                        checkInDate: it.checkInDate,
+                        checkOutDate: it.checkOutDate,
+                        qty: it.qty,
+                        currency: it.currency,
+                        lineTotal: Number.isFinite(domTotal) ? domTotal : it.lineTotal
+                      };
+                    });
+                  } catch (_) {
+                    // DOM not available — fall back to cart values
+                    return baseItems.map(it => ({
+                      roomTypeId: it.roomTypeId,
+                      ratePlanId: it.ratePlanId,
+                      checkInDate: it.checkInDate,
+                      checkOutDate: it.checkOutDate,
+                      qty: it.qty,
+                      currency: it.currency,
+                      lineTotal: it.lineTotal
+                    }));
+                  }
                 } catch (e) {
                   return [];
                 }
