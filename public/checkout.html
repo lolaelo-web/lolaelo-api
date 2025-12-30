@@ -4713,59 +4713,82 @@
                   const cart = loadCartV1();
                   if (!cart || !Array.isArray(cart.items)) return [];
 
-                  // Base items from cart (minimal + stable)
+                  // Build base items from cart
                   const baseItems = cart.items.map(it => ({
                     roomTypeId: it.roomTypeId,
                     ratePlanId: it.ratePlanId,
-                    checkInDate: it.checkIn || it.checkInDate || state.start,
-                    checkOutDate: it.checkOut || it.checkOutDate || state.end,
                     qty: Number(it.qty || it.quantity || 1),
                     currency: (it.currency || state.pricingCurrency || "USD"),
                     lineId: String(it.lineId || it.id || ""),
-                    lineTotal: Number(it.lineTotal || it.total || 0) || 0
+                    lineTotal: Number(it.lineTotal || it.total || 0) || 0,
+                    checkInDate: it.checkIn || it.checkInDate || "",
+                    checkOutDate: it.checkOut || it.checkOutDate || ""
                   }));
 
-                  // 🔑 Source of truth: DOM cards (what user actually sees)
-                  try {
-                    const cards = Array.from(
-                      document.querySelectorAll(
-                        '.section-body[data-section-body="1"] .dates-grid[data-lineid]'
-                      )
-                    );
+                  // DOM truth: totals + per-card stay dates
+                  const cards = Array.from(
+                    document.querySelectorAll('.section-body[data-section-body="1"] .dates-grid[data-lineid]')
+                  );
 
-                    const byLineId = new Map();
-                    cards.forEach(c => {
-                      const id = String(c.getAttribute("data-lineid") || "");
-                      const v = Number(c.dataset ? c.dataset.lineTotal : NaN);
-                      if (id && Number.isFinite(v)) {
-                        byLineId.set(id, v);
+                  const byLineIdTotal = new Map();
+                  const byLineIdDates = new Map();
+
+                  cards.forEach(card => {
+                    const lineId = String(card.getAttribute("data-lineid") || "");
+                    if (!lineId) return;
+
+                    // lineTotal from dataset
+                    const v = Number(card.dataset ? card.dataset.lineTotal : NaN);
+                    if (Number.isFinite(v)) byLineIdTotal.set(lineId, v);
+
+                    // stay dates: try to locate the "Stay dates" value inside the card container
+                    // We walk up to the nearest card wrapper and grab the text containing "to"
+                    let container = card;
+                    for (let i = 0; i < 6 && container; i++) {
+                      if (container.classList && container.classList.contains("dates-grid")) break;
+                      container = container.parentElement;
+                    }
+                    // fallback: use closest card-like wrapper
+                    const wrap = card.closest(".tile, .card, .dates-grid, .section-block, .room-card, .checkout-card") || card.parentElement || card;
+
+                    // Find any element that looks like a stay date range: contains " to "
+                    const textNodes = Array.from(wrap.querySelectorAll("*"))
+                      .map(el => (el && el.textContent ? el.textContent.trim() : ""))
+                      .filter(t => t.includes(" to "));
+
+                    // Use the first match
+                    const range = textNodes.length ? textNodes[0] : "";
+
+                    // Parse "Dec 30, 2025 to Jan 1, 2026"
+                    if (range && range.includes(" to ")) {
+                      const parts = range.split(" to ").map(s => s.trim());
+                      if (parts.length === 2) {
+                        const d1 = new Date(parts[0]);
+                        const d2 = new Date(parts[1]);
+                        if (!Number.isNaN(d1.getTime()) && !Number.isNaN(d2.getTime())) {
+                          const iso1 = d1.toISOString().slice(0,10); // YYYY-MM-DD
+                          const iso2 = d2.toISOString().slice(0,10);
+                          byLineIdDates.set(lineId, { checkInDate: iso1, checkOutDate: iso2 });
+                        }
                       }
-                    });
+                    }
+                  });
 
-                    return baseItems.map(it => {
-                      const domTotal = byLineId.get(it.lineId);
-                      return {
-                        roomTypeId: it.roomTypeId,
-                        ratePlanId: it.ratePlanId,
-                        checkInDate: it.checkInDate,
-                        checkOutDate: it.checkOutDate,
-                        qty: it.qty,
-                        currency: it.currency,
-                        lineTotal: Number.isFinite(domTotal) ? domTotal : it.lineTotal
-                      };
-                    });
-                  } catch (_) {
-                    // DOM not available — fall back to cart values
-                    return baseItems.map(it => ({
+                  // Merge DOM-derived totals/dates
+                  return baseItems.map(it => {
+                    const domTotal = byLineIdTotal.get(it.lineId);
+                    const domDates = byLineIdDates.get(it.lineId);
+
+                    return {
                       roomTypeId: it.roomTypeId,
                       ratePlanId: it.ratePlanId,
-                      checkInDate: it.checkInDate,
-                      checkOutDate: it.checkOutDate,
                       qty: it.qty,
                       currency: it.currency,
-                      lineTotal: it.lineTotal
-                    }));
-                  }
+                      lineTotal: Number.isFinite(domTotal) ? domTotal : it.lineTotal,
+                      checkInDate: (domDates && domDates.checkInDate) ? domDates.checkInDate : (it.checkInDate || state.start),
+                      checkOutDate: (domDates && domDates.checkOutDate) ? domDates.checkOutDate : (it.checkOutDate || state.end)
+                    };
+                  });
                 } catch (e) {
                   return [];
                 }
