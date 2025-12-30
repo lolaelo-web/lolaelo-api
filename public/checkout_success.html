@@ -440,10 +440,16 @@
         setText("confirmBy", b.pendingConfirmExpiresAt ? fmtLocal(b.pendingConfirmExpiresAt) : "-");
         setText("refundBy", b.refundDeadlineAt ? fmtLocal(b.refundDeadlineAt) : "-");
 
-        // Optional fields if your API includes them later
-        setText("propertyName", b.propertyName || "-");
-        if (b.startDate && b.endDate) {
-          setText("stayDates", String(b.startDate) + " to " + String(b.endDate));
+        // Property (best-effort)
+        setText("propertyName", b.propertyName || b.partnerName || b.property || (b.partnerId ? ("Partner #" + b.partnerId) : "-"));
+
+        // Stay dates (authoritative from Booking)
+        if (b.checkInDate && b.checkOutDate) {
+          var ci = new Date(b.checkInDate);
+          var co = new Date(b.checkOutDate);
+          var ciTxt = isFinite(ci.getTime()) ? ci.toLocaleDateString(undefined, { year:"numeric", month:"short", day:"2-digit" }) : String(b.checkInDate);
+          var coTxt = isFinite(co.getTime()) ? co.toLocaleDateString(undefined, { year:"numeric", month:"short", day:"2-digit" }) : String(b.checkOutDate);
+          setText("stayDates", ciTxt + " to " + coTxt);
         } else {
           setText("stayDates", "-");
         }

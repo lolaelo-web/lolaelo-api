@@ -1025,10 +1025,14 @@ app.get("/api/bookings/by-session", async (req: Request, res: Response) => {
     res.set("Cache-Control", "no-store");
 
     const sessionId = String(req.query.session_id || "").trim();
-    if (!sessionId) return res.status(400).json({ error: "Missing session_id" });
+    if (!sessionId) {
+      return res.status(400).json({ error: "Missing session_id" });
+    }
 
     const cs = process.env.DATABASE_URL as string;
-    if (!cs) return res.status(500).json({ error: "Missing DATABASE_URL" });
+    if (!cs) {
+      return res.status(500).json({ error: "Missing DATABASE_URL" });
+    }
 
     client = new Client({
       connectionString: cs,
@@ -1040,24 +1044,35 @@ app.get("/api/bookings/by-session", async (req: Request, res: Response) => {
     const { rows } = await client.query(
       `
       SELECT
-        "bookingRef",
-        status,
-        "pendingConfirmExpiresAt",
-        "refundDeadlineAt",
-        "createdAt"
-      FROM extranet."Booking"
-      WHERE "providerPaymentId" = $1
-      ORDER BY id DESC
+        b."bookingRef",
+        b.status,
+        b."pendingConfirmExpiresAt",
+        b."refundDeadlineAt",
+        b."createdAt",
+        b."checkInDate",
+        b."checkOutDate",
+        b.qty,
+        b.currency,
+        b."amountPaid",
+        b."partnerId",
+        COALESCE(pp.name, p.name, ('Partner #' || b."partnerId"::text)) AS "propertyName"
+      FROM extranet."Booking" b
+      LEFT JOIN extranet."PropertyProfile" pp
+        ON pp."partnerId" = b."partnerId"
+      LEFT JOIN extranet."Partner" p
+        ON p.id = b."partnerId"
+      WHERE b."providerPaymentId" = $1
+      ORDER BY b.id DESC
       LIMIT 1
       `,
       [sessionId]
     );
 
-  if (!rows || rows.length === 0) {
-    return res.status(404).json({ error: "Booking not found" });
-  }
+    if (!rows || rows.length === 0) {
+      return res.status(404).json({ error: "Booking not found" });
+    }
 
-  return res.json(rows[0]);
+    return res.json(rows[0]);
 
   } catch (e: any) {
     console.error("GET /api/bookings/by-session failed:", e?.message || e);
@@ -1070,6 +1085,7 @@ app.get("/api/bookings/by-session", async (req: Request, res: Response) => {
 });
 
 // ANCHOR: BOOKINGS_RECEIPT_PDF (LIVE)
+
 app.get("/api/bookings/receipt.pdf", async (req: Request, res: Response) => {
   let client: Client | null = null;
 
