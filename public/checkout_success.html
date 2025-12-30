@@ -262,6 +262,51 @@
       line-height:1.5;
     }
   </style>
+
+  <script>
+  (function () {
+    // Run ASAP on success page load
+    function clearCheckoutState() {
+      try {
+        // Core checkout state
+        localStorage.removeItem("checkout.cart.v1");
+        localStorage.removeItem("checkout.selection.v1");
+
+        // Breadcrumb / helpers used by checkout navigation
+        localStorage.removeItem("checkout.lastPropertyId");
+        localStorage.removeItem("checkout.lastDetailsUrl");
+
+        // Optional: if you ever added any “last checkout” markers
+        localStorage.removeItem("checkout.lastCheckoutSessionId");
+        localStorage.removeItem("checkout.pendingBookingRef");
+
+        // Marker so checkout.html can optionally hard-guard back navigation
+        localStorage.setItem("checkout.clearedOnSuccessAt", String(Date.now()));
+      } catch (_) {}
+    }
+
+    // Prevent BFCache and back-button resurrection
+    function hardenHistory() {
+      try {
+        // Replace current history entry so Back does not return to Stripe intermediate pages
+        history.replaceState(null, "", location.pathname + location.search);
+
+        // If browser restores from BFCache, keep state cleared
+        window.addEventListener("pageshow", function (e) {
+          if (e && e.persisted) {
+            clearCheckoutState();
+            history.replaceState(null, "", location.pathname + location.search);
+          }
+        });
+      } catch (_) {}
+    }
+
+    // Execute
+    clearCheckoutState();
+    hardenHistory();
+  })();
+</script>
+
 </head>
 
 <body>
