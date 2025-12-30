@@ -2383,187 +2383,6 @@
       container.innerHTML = parts.join("");
     }
 
-    function renderAddons(addons) {
-      const listEl =
-        document.getElementById("addonsModalList") ||
-        document.getElementById("addonsList");
-      const modalBody = document.getElementById("addonsModalBody");
-      const emptyEl = document.getElementById("addonsEmptyMessage");
-
-      // Prefer the modal body as the primary container; fall back to the inline list
-      const root = modalBody || listEl;
-      if (!root) return;
-
-      // Clear all possible containers so we don’t have stale rows
-      root.innerHTML = "";
-      if (modalBody && modalBody !== root) modalBody.innerHTML = "";
-      if (listEl && listEl !== root) listEl.innerHTML = "";
-
-      const rows = Array.isArray(addons) ? addons : [];
-      if (!rows.length) {
-        if (emptyEl) {
-          emptyEl.textContent = "No add-ons are available for this stay.";
-          emptyEl.classList.remove("hidden");
-        }
-        return;
-      }
-
-      if (emptyEl) {
-        emptyEl.classList.add("hidden");
-      }
-
-      // header row
-      const header = document.createElement("div");
-      header.className = "addon-row";
-      header.style.fontWeight = "600";
-
-      const hMain = document.createElement("div");
-      hMain.className = "addon-main";
-      const hTitle = document.createElement("div");
-      hTitle.className = "addon-title";
-      hTitle.textContent = "Activity";
-      const hMeta = document.createElement("div");
-      hMeta.className = "addon-meta";
-      hMeta.textContent = "Price · Unit · Hotel notes";
-      hMain.appendChild(hTitle);
-      hMain.appendChild(hMeta);
-
-      const hSide = document.createElement("div");
-      hSide.className = "addon-side";
-      const hQty = document.createElement("div");
-      hQty.textContent = "Qty";
-      const hLine = document.createElement("div");
-      hLine.textContent = "Line total";
-      hSide.appendChild(hQty);
-      hSide.appendChild(hLine);
-
-      header.appendChild(hMain);
-      header.appendChild(hSide);
-      root.appendChild(header);
-
-      // Ensure we have a selections map on state
-      if (!state.addonsSelections) state.addonsSelections = {};
-
-      rows.forEach(function (addon, idx) {
-        const activity = (addon.activity || "").toString().trim();
-        const uom = (addon.uom || "").toString().trim();
-        const price =
-          addon.price === null || addon.price === undefined
-            ? null
-            : Number(addon.price);
-        const notes = (addon.notes || "").toString().trim();
-
-        const row = document.createElement("div");
-        row.className = "addon-row";
-
-        const main = document.createElement("div");
-        main.className = "addon-main";
-
-        const title = document.createElement("div");
-        title.className = "addon-title";
-        title.textContent = activity || "Activity";
-
-        const meta = document.createElement("div");
-        meta.className = "addon-meta";
-
-        const priceStr =
-          price !== null && Number.isFinite(price)
-            ? new Intl.NumberFormat("en-US", {
-                style: "currency",
-                currency: "USD",
-              }).format(price)
-            : "Price on request";
-
-        const bits = [];
-        bits.push(priceStr);
-        if (uom) bits.push(uom);
-        if (notes) bits.push(notes);
-        meta.textContent = bits.join(" · ");
-
-        main.appendChild(title);
-        main.appendChild(meta);
-
-        const side = document.createElement("div");
-        side.className = "addon-side";
-
-        const key = String(idx);
-        const currentQty = state.addonsSelections[key] || 0;
-
-        const qtyWrap = document.createElement("div");
-        qtyWrap.style.display = "flex";
-        qtyWrap.style.flexDirection = "column";
-        qtyWrap.style.gap = "4px";
-
-        const qtyLabel = document.createElement("label");
-        qtyLabel.textContent = "Qty";
-
-        const qtyInput = document.createElement("input");
-        qtyInput.type = "number";
-        qtyInput.min = "0";
-        qtyInput.step = "1";
-        qtyInput.value =
-          typeof currentQty === "number" && currentQty > 0
-            ? String(currentQty)
-            : "0";
-        qtyInput.setAttribute("data-addon-index", String(idx));
-        qtyInput.className = "addon-qty-input";
-
-        const lineTotal = document.createElement("div");
-        lineTotal.className = "addon-line-total";
-
-        function updateLineTotal() {
-          const qtyVal = parseInt(qtyInput.value, 10);
-          if (isNaN(qtyVal) || qtyVal <= 0 || price === null || !Number.isFinite(price)) {
-            lineTotal.textContent = "";
-            return;
-          }
-          const total = qtyVal * price;
-          lineTotal.textContent = new Intl.NumberFormat("en-US", {
-            style: "currency",
-            currency: "USD",
-          }).format(total);
-        }
-
-        qtyInput.addEventListener("input", function () {
-          const val = parseInt(qtyInput.value, 10);
-          if (isNaN(val) || val <= 0) {
-            delete state.addonsSelections[key];
-          } else {
-            state.addonsSelections[key] = val;
-          }
-          updateLineTotal();
-          updateAddonsSummary();
-        });
-
-        updateLineTotal();
-
-        qtyWrap.appendChild(qtyLabel);
-        qtyWrap.appendChild(qtyInput);
-
-        side.appendChild(qtyWrap);
-        side.appendChild(lineTotal);
-
-        row.appendChild(main);
-        row.appendChild(side);
-
-        const comment = document.createElement("textarea");
-        comment.rows = 2;
-        comment.placeholder = "Comments for hotel (optional)";
-        comment.className = "addon-comment";
-        comment.setAttribute("data-addon-index", String(idx));
-
-        const wrapper = document.createElement("div");
-        wrapper.style.display = "flex";
-        wrapper.style.flexDirection = "column";
-        wrapper.style.gap = "4px";
-
-        wrapper.appendChild(row);
-        wrapper.appendChild(comment);
-
-        root.appendChild(wrapper);
-      });
-    }
-
     function renderAddonsInlineSummary(subtotalOverride) {
       const listEl       = document.getElementById("addonsList");
       const totalWrapper = document.getElementById("addonsInlineTotalWrapper");
@@ -4677,6 +4496,98 @@
           try {
           const pay = computeGrandTotalForPayment();
 
+          // ANCHOR: PAYLOAD_CARTITEMS_DEBUG
+          const cartItemsPayload = (function(){
+            try {
+              const cart = loadCartV1();
+              if (!cart || !Array.isArray(cart.items)) return [];
+
+              const baseItems = cart.items.map(it => ({
+                roomTypeId: it.roomTypeId,
+                ratePlanId: it.ratePlanId,
+                qty: Number(it.qty || it.quantity || 1),
+                currency: (it.currency || state.pricingCurrency || "USD"),
+                lineId: String(it.lineId || it.id || ""),
+                lineTotal: Number(it.lineTotal || it.total || 0) || 0,
+                checkInDate: it.checkIn || it.checkInDate || "",
+                checkOutDate: it.checkOut || it.checkOutDate || ""
+              }));
+
+              const cards = Array.from(
+                document.querySelectorAll('.section-body[data-section-body="1"] .dates-grid[data-lineid]')
+              );
+
+              const byLineIdTotal = new Map();
+              const byLineIdDates = new Map();
+
+              cards.forEach(card => {
+                const lineId = String(card.getAttribute("data-lineid") || "");
+                if (!lineId) return;
+
+                const v = Number(card.dataset ? card.dataset.lineTotal : NaN);
+                if (Number.isFinite(v)) byLineIdTotal.set(lineId, v);
+
+                const wrap = card.closest(".tile, .card, .dates-grid, .section-block, .room-card, .checkout-card") || card.parentElement || card;
+
+                const candidates = Array.from(wrap.querySelectorAll("*"))
+                  .map(el => (el && el.textContent ? el.textContent.trim() : ""))
+                  .filter(t => /[A-Za-z]{3,9}\s+\d{1,2},\s+\d{4}\s+to\s+[A-Za-z]{3,9}\s+\d{1,2},\s+\d{4}/.test(t));
+
+                const range = candidates.length ? candidates[0] : "";
+
+                function parseMDYToUTCDate(s){
+                  const m = s.match(/^([A-Za-z]{3,9})\s+(\d{1,2}),\s+(\d{4})$/);
+                  if (!m) return null;
+                  const monStr = m[1].toLowerCase();
+                  const day = Number(m[2]);
+                  const year = Number(m[3]);
+                  const months = {
+                    jan:0,january:0,feb:1,february:1,mar:2,march:2,apr:3,april:3,may:4,
+                    jun:5,june:5,jul:6,july:6,aug:7,august:7,sep:8,september:8,
+                    oct:9,october:9,nov:10,november:10,dec:11,december:11
+                  };
+                  const mon = months[monStr];
+                  if (mon === undefined) return null;
+                  return new Date(Date.UTC(year, mon, day, 0, 0, 0));
+                }
+
+                if (range && range.includes(" to ")) {
+                  const parts = range.split(" to ").map(s => s.trim());
+                  if (parts.length === 2) {
+                    const d1 = parseMDYToUTCDate(parts[0]);
+                    const d2 = parseMDYToUTCDate(parts[1]);
+                    if (d1 && d2) {
+                      byLineIdDates.set(lineId, {
+                        checkInDate: d1.toISOString().slice(0,10),
+                        checkOutDate: d2.toISOString().slice(0,10)
+                      });
+                    }
+                  }
+                }
+              });
+
+              return baseItems.map(it => {
+                const domTotal = byLineIdTotal.get(it.lineId);
+                const domDates = byLineIdDates.get(it.lineId);
+                return {
+                  roomTypeId: it.roomTypeId,
+                  ratePlanId: it.ratePlanId,
+                  qty: it.qty,
+                  currency: it.currency,
+                  lineTotal: Number.isFinite(domTotal) ? domTotal : it.lineTotal,
+                  checkInDate: (domDates && domDates.checkInDate) ? domDates.checkInDate : (it.checkInDate || state.start),
+                  checkOutDate: (domDates && domDates.checkOutDate) ? domDates.checkOutDate : (it.checkOutDate || state.end)
+                };
+              });
+            } catch (e) {
+              console.log("[pay] cartItemsPayload build failed:", e);
+              return [];
+            }
+          })();
+
+          console.log("[pay] cartItemsPayload len:", cartItemsPayload.length, cartItemsPayload);
+          // ANCHOR: PAYLOAD_CARTITEMS_DEBUG END
+
           const response = await fetch("/api/payments/create-checkout-session", {
             method: "POST",
             headers: { "Content-Type": "application/json" },
@@ -4708,105 +4619,8 @@
               currency: pay.currency || (state.pricingCurrency || "USD"),
               totalCents: Math.round(Number(pay.grand || 0) * 100),
 
-              cartItems: (function(){
-                try {
-                  const cart = loadCartV1();
-                  if (!cart || !Array.isArray(cart.items)) return [];
+              cartItems: cartItemsPayload,
 
-                  // Build base items from cart
-                  const baseItems = cart.items.map(it => ({
-                    roomTypeId: it.roomTypeId,
-                    ratePlanId: it.ratePlanId,
-                    qty: Number(it.qty || it.quantity || 1),
-                    currency: (it.currency || state.pricingCurrency || "USD"),
-                    lineId: String(it.lineId || it.id || ""),
-                    lineTotal: Number(it.lineTotal || it.total || 0) || 0,
-                    checkInDate: it.checkIn || it.checkInDate || "",
-                    checkOutDate: it.checkOut || it.checkOutDate || ""
-                  }));
-
-                  // DOM truth: totals + per-card stay dates
-                  const cards = Array.from(
-                    document.querySelectorAll('.section-body[data-section-body="1"] .dates-grid[data-lineid]')
-                  );
-
-                  const byLineIdTotal = new Map();
-                  const byLineIdDates = new Map();
-
-                  cards.forEach(card => {
-                    const lineId = String(card.getAttribute("data-lineid") || "");
-                    if (!lineId) return;
-
-                    const wrap = card.closest(".tile, .card, .dates-grid, .section-block, .room-card, .checkout-card") || card.parentElement || card;
-
-                    // lineTotal from dataset
-                    const v = Number(card.dataset ? card.dataset.lineTotal : NaN);
-                    if (Number.isFinite(v)) byLineIdTotal.set(lineId, v);
-
-                    // Prefer the explicit "Stay dates" element if present.
-                    // Match exactly: "Month DD, YYYY to Month DD, YYYY"
-                    const candidates = Array.from(wrap.querySelectorAll("*"))
-                      .map(el => (el && el.textContent ? el.textContent.trim() : ""))
-                      .filter(t => /[A-Za-z]{3,9}\s+\d{1,2},\s+\d{4}\s+to\s+[A-Za-z]{3,9}\s+\d{1,2},\s+\d{4}/.test(t));
-
-                    const range = candidates.length ? candidates[0] : "";
-
-                    // Parse "Month DD, YYYY" safely into UTC (no timezone drift)
-                    function parseMDYToUTCDate(s){
-                      const m = s.match(/^([A-Za-z]{3,9})\s+(\d{1,2}),\s+(\d{4})$/);
-                      if (!m) return null;
-
-                      const monStr = m[1].toLowerCase();
-                      const day = Number(m[2]);
-                      const year = Number(m[3]);
-
-                      const months = {
-                        jan:0,january:0,feb:1,february:1,mar:2,march:2,apr:3,april:3,may:4,
-                        jun:5,june:5,jul:6,july:6,aug:7,august:7,sep:8,september:8,
-                        oct:9,october:9,nov:10,november:10,dec:11,december:11
-                      };
-
-                      const mon = months[monStr];
-                      if (mon === undefined) return null;
-
-                      // UTC midnight avoids timezone shifts
-                      return new Date(Date.UTC(year, mon, day, 0, 0, 0));
-                    }
-
-                    if (range && range.includes(" to ")) {
-                      const parts = range.split(" to ").map(s => s.trim());
-                      if (parts.length === 2) {
-                        const d1 = parseMDYToUTCDate(parts[0]);
-                        const d2 = parseMDYToUTCDate(parts[1]);
-                        if (d1 && d2) {
-                          byLineIdDates.set(lineId, {
-                            checkInDate: d1.toISOString().slice(0,10),
-                            checkOutDate: d2.toISOString().slice(0,10)
-                          });
-                        }
-                      }
-                    }
-                  });
-
-                  // Merge DOM-derived totals/dates
-                  return baseItems.map(it => {
-                    const domTotal = byLineIdTotal.get(it.lineId);
-                    const domDates = byLineIdDates.get(it.lineId);
-
-                    return {
-                      roomTypeId: it.roomTypeId,
-                      ratePlanId: it.ratePlanId,
-                      qty: it.qty,
-                      currency: it.currency,
-                      lineTotal: Number.isFinite(domTotal) ? domTotal : it.lineTotal,
-                      checkInDate: (domDates && domDates.checkInDate) ? domDates.checkInDate : (it.checkInDate || state.start),
-                      checkOutDate: (domDates && domDates.checkOutDate) ? domDates.checkOutDate : (it.checkOutDate || state.end)
-                    };
-                  });
-                } catch (e) {
-                  return [];
-                }
-              })(),
               // addons
               addons: Array.isArray(state.selectedAddons) ? state.selectedAddons : []
             })
@@ -4826,22 +4640,8 @@
             alert("Could not start payment. Please try again.");
           }
         });
-
-        // NEW: Reuse the same Stripe handler when clicking the Section 5 button
-        const sectionFiveButton = document.querySelector('button[data-confirm="5"]');
-        if (sectionFiveButton) {
-          sectionFiveButton.addEventListener("click", function () {
-            // Let the generic [data-confirm] handler run first
-            // (it marks section 5 as confirmed and refreshes the UI),
-            // then trigger the Stripe button once everything is unlocked.
-            setTimeout(function () {
-              if (!confirmAndPayButton.disabled) {
-                confirmAndPayButton.click();
-              }
-            }, 0);
-          });
-        }
       }
+    }
 
       const changePlanLink = document.getElementById("changePlanLink");
       if (changePlanLink) {
@@ -4858,53 +4658,6 @@
 
           window.location.href = "/catalog.html";
         });
-      }
-
-      // Date card wiring for Section 2 (flatpickr range + anchored to pill)
-      const datesCardWrapper = document.getElementById("checkoutDatesCardWrapper");
-
-      // NEW ids (match catalog_details pattern)
-      const rangeDriver  = document.getElementById("checkout-dates-driver");          // hidden text input
-      const displayBtn   = document.getElementById("checkout-dates-display");         // the date pill button
-      const displayLabel = document.getElementById("checkout-dates-display-label");   // text inside pill
-
-      // Keep these for apply/URL update
-      const applyBtn     = document.getElementById("checkout-dates-apply");
-
-      // ANCHOR: CHECKOUT_DATES_DEBUG_TAP
-      try {
-        console.log("[checkout][dates][debug] init", {
-          hasFlatpickr: typeof window.flatpickr,
-          hasWrapper: !!datesCardWrapper,
-          hasDriver: !!rangeDriver,
-          hasDisplayBtn: !!displayBtn,
-          hasApplyBtn: !!applyBtn,
-          driverFpAttached: !!(rangeDriver && rangeDriver._checkoutFp),
-          applyWiredDates: applyBtn ? String(applyBtn.dataset.wiredDates || "") : ""
-        });
-
-        if (displayBtn && !displayBtn.dataset.debugTap) {
-          displayBtn.dataset.debugTap = "1";
-          displayBtn.addEventListener("click", function () {
-            console.log("[checkout][dates][debug] pill clicked", {
-              hasFlatpickr: typeof window.flatpickr,
-              driverFpAttached: !!(rangeDriver && rangeDriver._checkoutFp)
-            });
-          }, true);
-        }
-
-        if (applyBtn && !applyBtn.dataset.debugTap) {
-          applyBtn.dataset.debugTap = "1";
-          applyBtn.addEventListener("click", function () {
-            console.log("[checkout][dates][debug] apply clicked", {
-              hasFlatpickr: typeof window.flatpickr,
-              driverFpAttached: !!(rangeDriver && rangeDriver._checkoutFp),
-              activeLineIdForDates: (state && state.activeLineIdForDates) ? String(state.activeLineIdForDates) : ""
-            });
-          }, true);
-        }
-      } catch (e) {
-        console.warn("[checkout][dates][debug] tap failed", e);
       }
 
       // Helper: format a Date as local YYYY-MM-DD (no timezone shift)
@@ -5151,7 +4904,6 @@
           recomputeSelectedAddons();
         });
       }
-    } // END initCheckout
 
     // Run init once when DOM is ready (THIS MUST BE OUTSIDE initCheckout)
     document.addEventListener("DOMContentLoaded", initCheckout);

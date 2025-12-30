@@ -335,8 +335,8 @@
       if (s === "PENDING_HOTEL_CONFIRMATION") return `<span class="pill orange">Pending</span>`;
       if (s === "CONFIRMED") return `<span class="pill green">Confirmed</span>`;
       if (s === "DECLINED_BY_HOTEL") return `<span class="pill red">Declined</span>`;
-      if (s === "EXPIRED") return `<span class="pill orange">Expired</span>`;
-      if (s === "CANCELED") return `<span class="pill orange">Canceled</span>`;
+      if (s === "EXPIRED_NO_RESPONSE") return `<span class="pill orange">Expired</span>`;
+      if (s === "CANCELED_BY_TRAVELER") return `<span class="pill orange">Canceled</span>`;
       return `<span class="pill">${esc(s)}</span>`;
     }
 
