@@ -4095,11 +4095,17 @@
           // Consume the marker so we don't loop forever
           localStorage.removeItem("checkout.clearedOnSuccessAt");
 
-          // Strip URL params so bootstrap-from-URL cannot recreate a cart line item
+          // Strip URL params AND prevent checkout from rendering on back-navigation.
+          // Send the user to catalog (or destinations) instead of showing any stale state.
           if (location.search) {
             location.replace(location.pathname);
             return;
           }
+
+          // No query string but we still came back from success within the window.
+          // Do not allow parseQuery() fallbacks (lastPropertyId) to rebuild anything.
+          location.replace("/catalog.html");
+          return;
         } catch (_) {}
       })();
 
