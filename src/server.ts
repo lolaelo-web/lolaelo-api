@@ -369,9 +369,30 @@ app.post("/api/payments/webhook", express.raw({ type: "application/json" }), asy
       try {
         const md2: any = session.metadata || {};
         const raw = md2.cartItems ? String(md2.cartItems) : "";
-        if (raw) {
-          const items = JSON.parse(raw);
-          if (Array.isArray(items) && items.length) {
+
+        console.log(
+          "[WH] cartItems present:",
+          !!md2.cartItems,
+          "len:",
+          raw ? raw.length : 0
+        );
+
+        if (!raw) {
+          console.log("[WH] no cartItems metadata, skipping BookingItem insert");
+        } else {
+          let items: any[] = [];
+          try {
+            const parsed = JSON.parse(raw);
+            if (Array.isArray(parsed)) items = parsed;
+          } catch (e) {
+            console.error("[WH] cartItems JSON parse failed:", e);
+            items = [];
+          }
+
+          if (!items.length) {
+            console.log("[WH] cartItems empty or invalid array, skipping BookingItem insert");
+          } else {
+            let inserted = 0;
             for (const it of items) {
               const roomTypeId = Number(it.roomTypeId || 0);
               const ratePlanId = Number(it.ratePlanId || 0);
@@ -382,7 +403,9 @@ app.post("/api/payments/webhook", express.raw({ type: "application/json" }), asy
               const checkInDate = String(it.checkInDate || "");
               const checkOutDate = String(it.checkOutDate || "");
 
-              if (!roomTypeId || !ratePlanId || !checkInDate || !checkOutDate) continue;
+              if (!roomTypeId || !ratePlanId || !checkInDate || !checkOutDate) {
+                continue;
+              }
 
               await client.query(
                 `INSERT INTO extranet."BookingItem"
@@ -390,13 +413,18 @@ app.post("/api/payments/webhook", express.raw({ type: "application/json" }), asy
                 VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9)`,
                 [bookingId, roomTypeId, ratePlanId, checkInDate, checkOutDate, qty, currency, lineTotal, now]
               );
+
+              inserted++;
             }
+
+            console.log("[WH] BookingItem inserted:", inserted, "for bookingId:", bookingId);
           }
         }
       } catch (e) {
         console.error("[WH] booking items insert failed:", e);
       }
       // ANCHOR: INSERT_BOOKING_ITEMS END
+
 
       const token = crypto.randomBytes(24).toString("hex");
       await client.query(
@@ -1015,8 +1043,11 @@ app.get("/api/extranet/me/bookings", async (req: Request, res: Response) => {
           rp.name AS "ratePlan",
           t.token AS "confirmToken",
           t."expiresAt" AS "tokenExpiresAt",
-          COALESCE(s."itemCount", 0) AS "itemCount", 
-          COALESCE(s."itemsTotal", 0) AS "itemsTotal"
+          COALESCE(s."itemCount", 0) AS "itemCount",
+          COALESCE(s."itemsTotal", 0) AS "itemsTotal",
+          s."minCheckInDate" AS "minCheckInDate",
+          s."maxCheckOutDate" AS "maxCheckOutDate",
+          COALESCE(s."hasVaryingDates", FALSE) AS "hasVaryingDates"
         FROM extranet."Booking" b
         LEFT JOIN extranet."RoomType" rt ON rt.id = b."roomTypeId"
         LEFT JOIN extranet."RatePlan" rp ON rp.id = b."ratePlanId"
@@ -2060,6 +2091,11 @@ app.post("/api/payments/create-checkout-session", async (req: Request, res: Resp
       cancel_url: `${base}/checkout.html?canceled=1`,
       metadata,
     });
+
+    // ANCHOR: CARTITEMS_METADATA_DEBUG
+    console.log("[create-checkout-session] metadata keys:", Object.keys(metadata || {}));
+    console.log("[create-checkout-session] cartItems bytes:", metadata.cartItems ? Buffer.byteLength(String(metadata.cartItems), "utf8") : 0);
+    // ANCHOR: CARTITEMS_METADATA_DEBUG END
 
     return res.json({ ok: true, url: session.url || "", id: session.id });
   } catch (e) {

@@ -370,7 +370,15 @@
           <tr>
             <td><span class="muted">${esc(r.bookingRef)}</span></td>
             <td>${esc(guest)}</td>
-            <td><span class="muted">${esc(stay)}</span></td>
+            <td>
+              ${(() => {
+                const label = esc(stay);
+                const ref = esc(r.bookingRef);
+                const clickable = true; // always allow click to view items
+                if (!clickable) return `<span class="muted">${label}</span>`;
+                return `<button class="btn ghost" type="button" onclick="openBookingModal('${ref}')" style="padding:6px 10px;">${label}</button>`;
+              })()}
+            </td>
             <td>${esc(r.roomCategory || "-")}</td>
             <td>${esc(r.ratePlan || "-")}</td>
             <td>${Number(r.itemCount || 0) || 0}</td>
