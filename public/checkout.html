@@ -2175,6 +2175,15 @@
       return d;
     }
 
+    // Helper: format a Date as local YYYY-MM-DD (no timezone shift)
+    function formatLocalYmd(d) {
+      if (!d || !(d instanceof Date) || Number.isNaN(d.getTime())) return "";
+      const y  = d.getFullYear();
+      const m  = String(d.getMonth() + 1).padStart(2, "0");
+      const dd = String(d.getDate()).padStart(2, "0");
+      return `${y}-${m}-${dd}`;
+    }
+
     function formatDate(dateStr) {
       const d = parseLocalYMD(dateStr);
       if (!d) return "";
