@@ -4723,23 +4723,33 @@
     document.addEventListener("DOMContentLoaded", initCheckout);
 
     // BFCache guard: if user navigates back/forward and the page is restored from cache,
-    // force a real reload so UI re-renders from latest localStorage cart state.
+    // block returning to checkout after success, otherwise force a real reload.
     window.addEventListener("pageshow", function (e) {
+      try {
+        if (history.state && history.state.fromCheckoutSuccess) {
+          // Clear any persisted checkout state
+          localStorage.removeItem("checkout.cart.v1");
+          localStorage.removeItem("checkout.selection.v1");
+          localStorage.removeItem("checkout.lastPropertyId");
+          localStorage.removeItem("checkout.lastDetailsUrl");
+
+          location.replace("/catalog.html");
+          return;
+        }
+      } catch (_) {}
+
       if (e && e.persisted) {
         location.reload();
+        return;
       }
-    });
 
-    // If the browser restores this page from bfcache, force a fresh render from cart
-    window.addEventListener("pageshow", function () {
+      // Non-BFCache: re-render from cart without double-wiring
       try {
-        // Re-run only the cart render to avoid double-wiring everything
         if (typeof renderRoomPriceCardsFromCart === "function") {
           renderRoomPriceCardsFromCart();
         }
       } catch (_) {}
     });
-
   </script>
 
 	  <script>

@@ -263,55 +263,58 @@
     }
   </style>
 
-  <script>
-  (function () {
-    // Block checkout back-navigation for this browser session
-    sessionStorage.setItem("checkout.blockAfterSuccess", "1");
-    console.log("[success] set checkout.blockAfterSuccess=1", {
-      href: location.href,
-      flag: sessionStorage.getItem("checkout.blockAfterSuccess")
-    });
+<script>
+(function () {
+  // Mark this history entry as coming from checkout success (BFCache-safe)
+  try {
+    history.replaceState(
+      Object.assign({}, (history.state || {}), { fromCheckoutSuccess: true }),
+      "",
+      location.href
+    );
+  } catch (_) {}
 
-    // Run ASAP on success page load
-    function clearCheckoutState() {
-      try {
-        // Core checkout state
-        localStorage.removeItem("checkout.cart.v1");
-        localStorage.removeItem("checkout.selection.v1");
+  // Block checkout back-navigation for this browser session (optional)
+  try { sessionStorage.setItem("checkout.blockAfterSuccess", "1"); } catch (_) {}
 
-        // Breadcrumb / helpers used by checkout navigation
-        localStorage.removeItem("checkout.lastPropertyId");
-        localStorage.removeItem("checkout.lastDetailsUrl");
+  // Run ASAP on success page load
+  function clearCheckoutState() {
+    try {
+      localStorage.removeItem("checkout.cart.v1");
+      localStorage.removeItem("checkout.selection.v1");
+      localStorage.removeItem("checkout.lastPropertyId");
+      localStorage.removeItem("checkout.lastDetailsUrl");
+      localStorage.removeItem("checkout.lastCheckoutSessionId");
+      localStorage.removeItem("checkout.pendingBookingRef");
+    } catch (_) {}
+  }
 
-        // Optional: if you ever added any “last checkout” markers
-        localStorage.removeItem("checkout.lastCheckoutSessionId");
-        localStorage.removeItem("checkout.pendingBookingRef");
+  // Prevent BFCache and keep state cleared
+  function hardenHistory() {
+    try {
+      // Keep the marker when replacing state (do NOT set null)
+      history.replaceState(
+        Object.assign({}, (history.state || {}), { fromCheckoutSuccess: true }),
+        "",
+        location.pathname + location.search
+      );
 
-        // Marker so checkout.html can optionally hard-guard back navigation
-        localStorage.setItem("checkout.clearedOnSuccessAt", String(Date.now()));
-      } catch (_) {}
-    }
+      window.addEventListener("pageshow", function (e) {
+        if (e && e.persisted) {
+          clearCheckoutState();
+          history.replaceState(
+            Object.assign({}, (history.state || {}), { fromCheckoutSuccess: true }),
+            "",
+            location.pathname + location.search
+          );
+        }
+      });
+    } catch (_) {}
+  }
 
-    // Prevent BFCache and back-button resurrection
-    function hardenHistory() {
-      try {
-        // Replace current history entry so Back does not return to Stripe intermediate pages
-        history.replaceState(null, "", location.pathname + location.search);
-
-        // If browser restores from BFCache, keep state cleared
-        window.addEventListener("pageshow", function (e) {
-          if (e && e.persisted) {
-            clearCheckoutState();
-            history.replaceState(null, "", location.pathname + location.search);
-          }
-        });
-      } catch (_) {}
-    }
-
-    // Execute
-    clearCheckoutState();
-    hardenHistory();
-  })();
+  clearCheckoutState();
+  hardenHistory();
+})();
 </script>
 
 </head>
