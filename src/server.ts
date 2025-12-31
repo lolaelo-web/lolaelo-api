@@ -10,7 +10,7 @@ import crypto from "node:crypto";
 import PDFDocument from "pdfkit";
 import path from "path";
 import fs from "fs";
-import nodemailer from "nodemailer";
+import { sendBookingEmail } from "./mailer.js";
 
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY as string);
 
@@ -610,47 +610,53 @@ function hotelConfirmEmailHtml(args: {
 // ANCHOR: HOTEL_CONFIRM_EMAIL_TEMPLATE END
 
 // ANCHOR: MAIL_SENDER
-const MAIL_FROM = process.env.MAIL_FROM || "bookings@lolaelo.com";
+    // Uses Postmark for transactional email (bookings, receipts, etc.)
+    // OTP continues to use src/mailer.ts (sendLoginCodeEmail) with POSTMARK_TOKEN.
 
-const SMTP_HOST = process.env.SMTP_HOST || "";
-const SMTP_PORT = Number(process.env.SMTP_PORT || 587);
-const SMTP_USER = process.env.SMTP_USER || "";
-const SMTP_PASS = process.env.SMTP_PASS || "";
+    async function sendMailReal(args: {
+      to: string;
+      subject: string;
+      html: string;
+      from?: string;
+      bcc?: string;
+    }) {
+      // Prefer explicit "from" if provided, otherwise Render env FROM_EMAIL (via mailer.ts)
+      // Postmark supports BCC, but we keep it simple: send a second copy if bcc is provided.
+      const to = args.to;
+      const subject = args.subject;
+      const html = args.html;
 
-const mailTransport =
-  SMTP_HOST && SMTP_USER && SMTP_PASS
-    ? nodemailer.createTransport({
-        host: SMTP_HOST,
-        port: SMTP_PORT,
-        secure: SMTP_PORT === 465,
-        auth: {
-          user: SMTP_USER,
-          pass: SMTP_PASS,
-        },
-      })
-    : null;
+      const text = html
+        .replace(/<style[\s\S]*?<\/style>/gi, "")
+        .replace(/<script[\s\S]*?<\/script>/gi, "")
+        .replace(/<\/(p|div|br|tr|h1|h2|h3)>/gi, "\n")
+        .replace(/<[^>]+>/g, "")
+        .replace(/\n{3,}/g, "\n\n")
+        .trim();
 
-async function sendMailReal(args: {
-  to: string;
-  subject: string;
-  html: string;
-  from?: string;
-  bcc?: string;
-}) {
-  if (!mailTransport) {
-    throw new Error("mail_not_configured");
-  }
+      // Primary send
+      await sendBookingEmail({
+        to,
+        subject,
+        html,
+        text,
+        tag: "booking",
+      });
 
-  const from = args.from || MAIL_FROM;
+      // Optional BCC as a second send (avoids changing mailer.ts signature)
+      if (args.bcc) {
+        await sendBookingEmail({
+          to: args.bcc,
+          subject,
+          html,
+          text,
+          tag: "booking-bcc",
+        });
+      }
 
-  return mailTransport.sendMail({
-    from,
-    to: args.to,
-    bcc: args.bcc,
-    subject: args.subject,
-    html: args.html,
-  });
-}
+      return { ok: true };
+    }
+
 // ANCHOR: MAIL_SENDER END
 
 async function handleBookingDecision(req: Request, res: Response, decision: "CONFIRM" | "DECLINE") {

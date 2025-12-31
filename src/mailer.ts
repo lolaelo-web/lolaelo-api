@@ -1,11 +1,11 @@
 // src/mailer.ts
 // Sends OTP emails via Postmark using Node 18+ fetch.
 
-const POSTMARK_TOKEN = process.env.POSTMARK_TOKEN || "";
+const POSTMARK_TOKEN = process.env.POSTMARK_TOKEN || ""; // OTP server token (existing)
+const POSTMARK_TRANSACTIONAL_TOKEN = process.env.POSTMARK_TRANSACTIONAL_TOKEN || ""; // new server token
 const FROM_EMAIL     = process.env.FROM_EMAIL || "noreply@lolaelo.com";
 const FROM_NAME      = process.env.FROM_NAME || "Team Lolaelo";
 const REPLY_TO_EMAIL = process.env.REPLY_TO_EMAIL || ""; // optional but recommended
-const MESSAGE_STREAM = process.env.POSTMARK_STREAM || "outbound";
 const APP_LOGIN_URL  = process.env.APP_LOGIN_URL || "https://lolaelo.com/partners_login.html";
 
 // Minimal fetch type to avoid DOM typings in TS
@@ -18,11 +18,23 @@ async function sendEmail(opts: {
   text: string;
   html: string;
   tag?: string;
+  kind?: "otp" | "transactional";
 }) {
-  if (!POSTMARK_TOKEN) {
-    console.log("[mailer] POSTMARK_TOKEN missing; skipping send", { to: opts.to, subject: opts.subject });
+
+  const kind = opts.kind || "otp";
+  const token = kind === "transactional" ? POSTMARK_TRANSACTIONAL_TOKEN : POSTMARK_TOKEN;
+
+  if (!token) {
+    console.log("[mailer] Postmark token missing; skipping send", { kind, to: opts.to, subject: opts.subject });
     return { skipped: true };
   }
+
+  const stream =
+    kind === "transactional"
+      ? (process.env.POSTMARK_TRANSACTIONAL_STREAM || "outbound")
+      : (process.env.POSTMARK_STREAM || "outbound");
+
+  const defaultTag = kind === "transactional" ? "lolaelo-transactional" : "extranet-otp";
 
   const payload: any = {
     From: `${FROM_NAME} <${FROM_EMAIL}>`,
@@ -30,15 +42,15 @@ async function sendEmail(opts: {
     Subject: opts.subject,
     TextBody: opts.text,
     HtmlBody: opts.html,
-    MessageStream: MESSAGE_STREAM,
-    Tag: opts.tag || "extranet-otp",
+    MessageStream: stream,
+    Tag: opts.tag || defaultTag,
   };
   if (REPLY_TO_EMAIL) payload.ReplyTo = REPLY_TO_EMAIL;
 
   const res = await doFetch("https://api.postmarkapp.com/email", {
     method: "POST",
     headers: {
-      "X-Postmark-Server-Token": POSTMARK_TOKEN,
+      "X-Postmark-Server-Token": token,
       "Content-Type": "application/json",
       Accept: "application/json",
     },
@@ -100,5 +112,22 @@ export async function sendLoginCodeEmail(to: string, code: string) {
   </body>
 </html>`;
 
-  return sendEmail({ to, subject, text, html });
+  return sendEmail({ to, subject, text, html, kind: "otp" });
+}
+
+export async function sendBookingEmail(opts: {
+  to: string;
+  subject: string;
+  text: string;
+  html: string;
+  tag?: string;
+}) {
+  return sendEmail({
+    to: opts.to,
+    subject: opts.subject,
+    text: opts.text,
+    html: opts.html,
+    tag: opts.tag || "booking",
+    kind: "transactional",
+  });
 }
