@@ -468,7 +468,7 @@ app.post("/api/payments/webhook", express.raw({ type: "application/json" }), asy
           declineUrl,
         });
 
-        // ⚠️ IMPORTANT: replace sendMail with your real mail function name
+        // Hotel confirmation request
         await sendMailReal({
           from: "bookings@lolaelo.com",
           to: toEmail,
@@ -478,7 +478,36 @@ app.post("/api/payments/webhook", express.raw({ type: "application/json" }), asy
         });
         console.log("[booking-email] sent:", { to: toEmail, bookingRef });
 
-        console.log("[booking-email] sent:", { to: toEmail, bookingRef });
+        // Traveler soft confirmation (pending hotel confirmation)
+        const qTravelerEmail = await client.query(
+          `SELECT "travelerEmail" FROM extranet."Booking" WHERE id = $1 LIMIT 1`,
+          [bookingId]
+        );
+        const travelerTo = String(qTravelerEmail.rows?.[0]?.travelerEmail || "").trim();
+
+        if (travelerTo) {
+          const travelerSubject = `Booking received: ${bookingRef} (pending hotel confirmation)`;
+          const travelerHtml = `
+            <div style="font-family:Arial,sans-serif;line-height:1.4">
+              <h2 style="margin:0 0 8px 0;">Booking received</h2>
+              <div style="margin:0 0 10px 0;">Reference: <b>${bookingRef}</b></div>
+              <div style="margin:0 0 10px 0;">Status: Pending hotel confirmation</div>
+              <div style="margin:0 0 10px 0;">We’ll email you as soon as the hotel confirms.</div>
+            </div>
+          `;
+          await sendMailReal({
+            from: "bookings@lolaelo.com",
+            to: travelerTo,
+            subject: travelerSubject,
+            html: travelerHtml,
+          });
+          console.log("[traveler-email] soft confirmation sent:", { to: travelerTo, bookingRef });
+        } else {
+          console.warn("[traveler-email] missing travelerEmail; soft confirmation not sent", {
+            bookingId,
+            bookingRef,
+          });
+        }
         } catch (e) {
           const errMsg = (e instanceof Error ? e.message : String(e)) || "unknown_error";
           const errShort = errMsg.slice(0, 500);
@@ -780,14 +809,76 @@ async function handleBookingDecision(req: Request, res: Response, decision: "CON
       );
 
       await client.query("COMMIT");
-      return redirectToManageBookings(res, decision === "CONFIRM" ? "confirmed" : "declined", bookingRef);
-    } catch (e) {
-      try { await client.query("ROLLBACK"); } catch {}
-      console.error("[confirm-link] tx failed:", e);
-      return redirectToManageBookings(res, "invalid", String(row.bookingRef || ""));
-    }
-  });
-}
+
+      // Traveler post-decision email (confirm or decline)
+      if (decision === "CONFIRM" || decision === "DECLINE") {
+        try {
+          const q = await client.query(
+            `SELECT "travelerEmail" FROM extranet."Booking" WHERE id = $1 LIMIT 1`,
+            [lockedBookingId]
+          );
+          const travelerTo = String(q.rows?.[0]?.travelerEmail || "").trim();
+
+          if (travelerTo) {
+            const isConfirm = decision === "CONFIRM";
+
+            const travelerSubject = isConfirm
+              ? `Booking confirmed: ${bookingRef}`
+              : `Booking declined: ${bookingRef}`;
+
+            const travelerHtml = isConfirm
+              ? `
+                <div style="font-family:Arial,sans-serif;line-height:1.4">
+                  <h2 style="margin:0 0 8px 0;">Booking confirmed</h2>
+                  <div style="margin:0 0 10px 0;">Reference: <b>${bookingRef}</b></div>
+                  <div style="margin:0 0 10px 0;">Status: Confirmed</div>
+                  <div style="margin:0 0 10px 0;">Your hotel confirmed your booking. We’ll follow up with any additional details if needed.</div>
+                </div>
+              `
+              : `
+                <div style="font-family:Arial,sans-serif;line-height:1.4">
+                  <h2 style="margin:0 0 8px 0;">Booking declined</h2>
+                  <div style="margin:0 0 10px 0;">Reference: <b>${bookingRef}</b></div>
+                  <div style="margin:0 0 10px 0;">Status: Declined by hotel</div>
+                  <div style="margin:0 0 10px 0;">The hotel was unable to confirm this booking. We’ll follow up with next steps.</div>
+                </div>
+              `;
+
+            await sendMailReal({
+              from: "bookings@lolaelo.com",
+              to: travelerTo,
+              subject: travelerSubject,
+              html: travelerHtml,
+            });
+
+            console.log("[traveler-email] decision sent:", {
+              decision,
+              to: travelerTo,
+              bookingRef,
+            });
+          } else {
+            console.warn("[traveler-email] missing travelerEmail; decision email not sent", {
+              decision,
+              bookingRef,
+              bookingId: lockedBookingId,
+            });
+          }
+        } catch (e) {
+          console.error("[traveler-email] decision send failed:", e);
+        }
+      }
+        return redirectToManageBookings(
+          res,
+          decision === "CONFIRM" ? "confirmed" : "declined",
+          bookingRef
+        );
+      } catch (e) {
+        try { await client.query("ROLLBACK"); } catch {}
+        console.error("[confirm-link] tx failed:", e);
+        return redirectToManageBookings(res, "invalid", String(row.bookingRef || ""));
+      }
+    });
+  }
 
 // GET /api/bookings/confirm?token=...
 app.get("/api/bookings/confirm", async (req: Request, res: Response) => {
@@ -1440,7 +1531,7 @@ await tryMount("./routes/sessionHttp.js", "/extranet");
 // features
 await tryMount("./routes/extranetRooms.js", "/extranet/property/rooms");
 await tryMount("./routes/extranetPms.js", "/extranet/pms");
-await tryMount("./routes/extranetUisMock.js", "/extranet/pms");
+// await tryMount("./routes/extranetUisMock.js", "/extranet/pms"); // optional mock route (disabled)
 await tryMount("./routes/extranetProperty.js", "/extranet/property");
 await tryMount("./routes/catalog.js", "/catalog");
 
