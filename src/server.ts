@@ -486,15 +486,140 @@ app.post("/api/payments/webhook", express.raw({ type: "application/json" }), asy
         const travelerTo = String(qTravelerEmail.rows?.[0]?.travelerEmail || "").trim();
 
         if (travelerTo) {
+          const base = process.env.PUBLIC_BASE_URL || "https://lolaelo-api.onrender.com";
+          const logoUrl = `${base}/images/logo.png`;
+
+          const travelerHtml = `<!doctype html>
+          <html>
+            <body style="margin:0;background:#f6f7fb;font-family:Segoe UI,Roboto,Helvetica,Arial,sans-serif;color:#0b1320;">
+              <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:#f6f7fb;padding:24px 12px;">
+                <tr>
+                  <td align="center">
+                    <table role="presentation" width="640" cellpadding="0" cellspacing="0" style="background:#ffffff;border:1px solid #e8ebf3;border-radius:14px;overflow:hidden;">
+                      <!-- Top bar -->
+                      <tr>
+                        <td style="padding:18px 20px;border-bottom:2px solid #ff6a3d;">
+                          <table role="presentation" width="100%" cellpadding="0" cellspacing="0">
+                            <tr>
+                              <td align="left" style="vertical-align:middle;">
+                                <a href="https://www.lolaelo.com" style="text-decoration:none;">
+                                  <img src="${logoUrl}" alt="Lolaelo" height="34" style="display:block;border:0;outline:none;">
+                                </a>
+                              </td>
+                              <td align="right" style="vertical-align:middle;font-size:13px;color:#334155;">
+                                <a href="mailto:customer_support@lolaelo.com" style="color:#0f766e;text-decoration:none;font-weight:600;">
+                                  customer_support@lolaelo.com
+                                </a>
+                              </td>
+                            </tr>
+                          </table>
+                        </td>
+                      </tr>
+
+                      <!-- Title -->
+                      <tr>
+                        <td style="padding:20px 20px 8px 20px;">
+                          <div style="font-size:24px;font-weight:800;line-height:1.25;">
+                            Booking received: <span style="color:#ff6a3d;">${bookingRef}</span>
+                            <span style="font-weight:600;color:#475569;font-size:18px;">(pending hotel confirmation)</span>
+                          </div>
+                          <div style="margin-top:10px;font-size:14px;color:#475569;">
+                            Dear ${travelerFirst || "Traveler"},
+                          </div>
+                        </td>
+                      </tr>
+
+                      <!-- Intro -->
+                      <tr>
+                        <td style="padding:0 20px 14px 20px;font-size:14px;color:#334155;line-height:20px;">
+                          Thank you for booking with <b>Lolaelo</b>. We’ve successfully received your booking request and payment.
+                          <br><br>
+                          Your reservation has been sent to the hotel and is currently awaiting confirmation.
+                        </td>
+                      </tr>
+
+                      <!-- I. Booking details card -->
+                      <tr>
+                        <td style="padding:0 20px 16px 20px;">
+                          <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="border:1px solid #e8ebf3;border-radius:12px;">
+                            <tr>
+                              <td style="padding:14px 14px 10px 14px;background:#f9fbff;border-bottom:1px solid #e8ebf3;">
+                                <div style="font-size:16px;font-weight:800;color:#0f766e;">I. Booking details</div>
+                                <div style="font-size:13px;color:#64748b;margin-top:4px;">Your booking request includes the following details:</div>
+                              </td>
+                            </tr>
+                            <tr>
+                              <td style="padding:14px;font-size:14px;color:#0b1320;line-height:22px;">
+                                <div>• <b>Guest name:</b> ${[travelerFirst, travelerLast].filter(Boolean).join(" ").trim() || "Traveler"}</div>
+                                <div>• <b>Property:</b> ${partnerId ? `Partner #${partnerId}` : "Hotel partner"}</div>
+                                <div>• <b>Check-in date:</b> ${String(checkInDate).slice(0, 10)}</div>
+                                <div>• <b>Check-out date:</b> ${String(checkOutDate).slice(0, 10)}</div>
+                                <div>• <b>Rooms:</b> ${Number(qty || 1)}</div>
+                                <div>• <b>Guests:</b> ${Number(guests || 1)}</div>
+                                <div>• <b>Booking reference:</b> ${bookingRef}</div>
+                              </td>
+                            </tr>
+                          </table>
+                        </td>
+                      </tr>
+
+                      <!-- II. Payment status -->
+                      <tr>
+                        <td style="padding:0 20px 10px 20px;">
+                          <div style="font-size:16px;font-weight:800;color:#0f766e;">II. Payment status</div>
+                          <div style="margin-top:8px;font-size:14px;color:#334155;line-height:22px;">
+                            We’ve received your payment in full.
+                            <div style="margin-top:8px;">
+                              • <b>Amount paid:</b> ${currency} ${Number(amountPaid).toFixed(2)}<br>
+                              • <b>Payment status:</b> Received<br>
+                              • <b>Booking status:</b> Pending hotel confirmation
+                            </div>
+                          </div>
+                        </td>
+                      </tr>
+
+                      <!-- III. Next -->
+                      <tr>
+                        <td style="padding:10px 20px 8px 20px;">
+                          <div style="font-size:16px;font-weight:800;color:#0f766e;">III. What happens next</div>
+                          <div style="margin-top:8px;font-size:14px;color:#334155;line-height:22px;">
+                            The hotel partner is reviewing your booking request.
+                            <br><br>
+                            Once the hotel confirms, you’ll receive a follow-up email with your confirmed reservation details.
+                          </div>
+                        </td>
+                      </tr>
+
+                      <!-- Reassurance box -->
+                      <tr>
+                        <td style="padding:10px 20px 18px 20px;">
+                          <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:#fff7ed;border:1px solid #fed7aa;border-radius:12px;">
+                            <tr>
+                              <td style="padding:12px 14px;font-size:14px;color:#0b1320;line-height:20px;">
+                                If the hotel is unable to confirm your booking or the request expires, a <b>full refund will be issued within 48 hours</b>.
+                                <div style="margin-top:8px;color:#334155;">No action is needed from you at this time.</div>
+                              </td>
+                            </tr>
+                          </table>
+                        </td>
+                      </tr>
+
+                      <!-- Footer -->
+                      <tr>
+                        <td style="padding:14px 20px;border-top:1px solid #e8ebf3;font-size:12px;color:#64748b;text-align:center;">
+                          Questions? Reply to this email or contact
+                          <a href="mailto:customer_support@lolaelo.com" style="color:#0f766e;text-decoration:none;font-weight:600;">customer_support@lolaelo.com</a>.
+                        </td>
+                      </tr>
+                    </table>
+
+                    <div style="font-size:12px;color:#94a3b8;margin-top:12px;">© ${new Date().getFullYear()} Lolaelo</div>
+                  </td>
+                </tr>
+              </table>
+            </body>
+          </html>`;
           const travelerSubject = `Booking received: ${bookingRef} (pending hotel confirmation)`;
-          const travelerHtml = `
-            <div style="font-family:Arial,sans-serif;line-height:1.4">
-              <h2 style="margin:0 0 8px 0;">Booking received</h2>
-              <div style="margin:0 0 10px 0;">Reference: <b>${bookingRef}</b></div>
-              <div style="margin:0 0 10px 0;">Status: Pending hotel confirmation</div>
-              <div style="margin:0 0 10px 0;">We’ll email you as soon as the hotel confirms.</div>
-            </div>
-          `;
           await sendMailReal({
             from: "bookings@lolaelo.com",
             to: travelerTo,
@@ -826,23 +951,158 @@ async function handleBookingDecision(req: Request, res: Response, decision: "CON
               ? `Booking confirmed: ${bookingRef}`
               : `Booking declined: ${bookingRef}`;
 
+            const base = process.env.PUBLIC_BASE_URL || "https://lolaelo-api.onrender.com";
+            const logoUrl = `${base}/images/logo.png`;
+
             const travelerHtml = isConfirm
-              ? `
-                <div style="font-family:Arial,sans-serif;line-height:1.4">
-                  <h2 style="margin:0 0 8px 0;">Booking confirmed</h2>
-                  <div style="margin:0 0 10px 0;">Reference: <b>${bookingRef}</b></div>
-                  <div style="margin:0 0 10px 0;">Status: Confirmed</div>
-                  <div style="margin:0 0 10px 0;">Your hotel confirmed your booking. We’ll follow up with any additional details if needed.</div>
-                </div>
-              `
-              : `
-                <div style="font-family:Arial,sans-serif;line-height:1.4">
-                  <h2 style="margin:0 0 8px 0;">Booking declined</h2>
-                  <div style="margin:0 0 10px 0;">Reference: <b>${bookingRef}</b></div>
-                  <div style="margin:0 0 10px 0;">Status: Declined by hotel</div>
-                  <div style="margin:0 0 10px 0;">The hotel was unable to confirm this booking. We’ll follow up with next steps.</div>
-                </div>
-              `;
+              ? `<!doctype html>
+            <html>
+              <body style="margin:0;background:#f6f7fb;font-family:Segoe UI,Roboto,Helvetica,Arial,sans-serif;color:#0b1320;">
+                <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:#f6f7fb;padding:24px 12px;">
+                  <tr>
+                    <td align="center">
+                      <table role="presentation" width="640" cellpadding="0" cellspacing="0" style="background:#ffffff;border:1px solid #e8ebf3;border-radius:14px;overflow:hidden;">
+                        <tr>
+                          <td style="padding:18px 20px;border-bottom:2px solid #ff6a3d;">
+                            <table role="presentation" width="100%" cellpadding="0" cellspacing="0">
+                              <tr>
+                                <td align="left" style="vertical-align:middle;">
+                                  <a href="https://www.lolaelo.com" style="text-decoration:none;">
+                                    <img src="${logoUrl}" alt="Lolaelo" height="34" style="display:block;border:0;outline:none;">
+                                  </a>
+                                </td>
+                                <td align="right" style="vertical-align:middle;font-size:13px;color:#334155;">
+                                  <a href="mailto:customer_support@lolaelo.com" style="color:#0f766e;text-decoration:none;font-weight:600;">
+                                    customer_support@lolaelo.com
+                                  </a>
+                                </td>
+                              </tr>
+                            </table>
+                          </td>
+                        </tr>
+
+                        <tr>
+                          <td style="padding:20px 20px 8px 20px;">
+                            <div style="font-size:24px;font-weight:800;line-height:1.25;">
+                              Booking confirmed: <span style="color:#ff6a3d;">${bookingRef}</span>
+                            </div>
+                            <div style="margin-top:10px;font-size:14px;color:#334155;">
+                              Status: <span style="display:inline-block;border:1px solid #99f6e4;color:#0f766e;padding:2px 10px;border-radius:999px;font-weight:700;font-size:12px;">Confirmed by the hotel</span>
+                            </div>
+                          </td>
+                        </tr>
+
+                        <tr>
+                          <td style="padding:10px 20px 16px 20px;font-size:14px;color:#334155;line-height:20px;">
+                            Your booking has been confirmed by the hotel.
+                            <br><br>
+                            You can expect to hear directly from the hotel partner by email shortly after this confirmation.
+                          </td>
+                        </tr>
+
+                        <tr>
+                          <td style="padding:0 20px 16px 20px;">
+                            <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="border:1px solid #e8ebf3;border-radius:12px;">
+                              <tr>
+                                <td style="padding:14px 14px 10px 14px;background:#f9fbff;border-bottom:1px solid #e8ebf3;">
+                                  <div style="font-size:16px;font-weight:800;color:#0f766e;">Reservation details</div>
+                                </td>
+                              </tr>
+                              <tr>
+                                <td style="padding:14px;font-size:14px;color:#0b1320;line-height:22px;">
+                                  <div>• <b>Booking reference:</b> ${bookingRef}</div>
+                                  <div>• <b>Status:</b> Confirmed</div>
+                                </td>
+                              </tr>
+                            </table>
+                          </td>
+                        </tr>
+
+                        <tr>
+                          <td style="padding:0 20px 18px 20px;font-size:14px;color:#334155;line-height:20px;">
+                            If you have any questions or concerns about this booking, please reply to this email or contact
+                            <a href="mailto:customer_support@lolaelo.com" style="color:#0f766e;text-decoration:none;font-weight:700;">customer_support@lolaelo.com</a>.
+                          </td>
+                        </tr>
+
+                        <tr>
+                          <td style="padding:14px 20px;border-top:1px solid #e8ebf3;font-size:12px;color:#64748b;text-align:center;">
+                            Thank you for booking with Lolaelo.
+                          </td>
+                        </tr>
+                      </table>
+
+                      <div style="font-size:12px;color:#94a3b8;margin-top:12px;">© ${new Date().getFullYear()} Lolaelo</div>
+                    </td>
+                  </tr>
+                </table>
+              </body>
+            </html>`
+              : `<!doctype html>
+            <html>
+              <body style="margin:0;background:#f6f7fb;font-family:Segoe UI,Roboto,Helvetica,Arial,sans-serif;color:#0b1320;">
+                <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:#f6f7fb;padding:24px 12px;">
+                  <tr>
+                    <td align="center">
+                      <table role="presentation" width="640" cellpadding="0" cellspacing="0" style="background:#ffffff;border:1px solid #e8ebf3;border-radius:14px;overflow:hidden;">
+                        <tr>
+                          <td style="padding:18px 20px;border-bottom:2px solid #ff6a3d;">
+                            <table role="presentation" width="100%" cellpadding="0" cellspacing="0">
+                              <tr>
+                                <td align="left" style="vertical-align:middle;">
+                                  <a href="https://www.lolaelo.com" style="text-decoration:none;">
+                                    <img src="${logoUrl}" alt="Lolaelo" height="34" style="display:block;border:0;outline:none;">
+                                  </a>
+                                </td>
+                                <td align="right" style="vertical-align:middle;font-size:13px;color:#334155;">
+                                  <a href="mailto:customer_support@lolaelo.com" style="color:#0f766e;text-decoration:none;font-weight:600;">
+                                    customer_support@lolaelo.com
+                                  </a>
+                                </td>
+                              </tr>
+                            </table>
+                          </td>
+                        </tr>
+
+                        <tr>
+                          <td style="padding:20px 20px 8px 20px;">
+                            <div style="font-size:24px;font-weight:800;line-height:1.25;">
+                              Booking declined: <span style="color:#ff6a3d;">${bookingRef}</span>
+                            </div>
+                            <div style="margin-top:10px;font-size:14px;color:#334155;">
+                              Status: <span style="display:inline-block;border:1px solid #fecaca;color:#b91c1c;padding:2px 10px;border-radius:999px;font-weight:700;font-size:12px;">Declined by the hotel</span>
+                            </div>
+                          </td>
+                        </tr>
+
+                        <tr>
+                          <td style="padding:10px 20px 16px 20px;font-size:14px;color:#334155;line-height:20px;">
+                            The hotel was unable to confirm this booking.
+                            <br><br>
+                            We’ll follow up with next steps.
+                          </td>
+                        </tr>
+
+                        <tr>
+                          <td style="padding:0 20px 18px 20px;font-size:14px;color:#334155;line-height:20px;">
+                            If you have any questions or concerns about this booking, please reply to this email or contact
+                            <a href="mailto:customer_support@lolaelo.com" style="color:#0f766e;text-decoration:none;font-weight:700;">customer_support@lolaelo.com</a>.
+                          </td>
+                        </tr>
+
+                        <tr>
+                          <td style="padding:14px 20px;border-top:1px solid #e8ebf3;font-size:12px;color:#64748b;text-align:center;">
+                            Thank you for booking with Lolaelo.
+                          </td>
+                        </tr>
+                      </table>
+
+                      <div style="font-size:12px;color:#94a3b8;margin-top:12px;">© ${new Date().getFullYear()} Lolaelo</div>
+                    </td>
+                  </tr>
+                </table>
+              </body>
+            </html>`;
 
             await sendMailReal({
               from: "bookings@lolaelo.com",
