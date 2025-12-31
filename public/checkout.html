@@ -4060,49 +4060,38 @@
     //   [data-apply-addons-modal]
 
     function initCheckout() {
-      console.log("[checkout] post-success flag check", {
-        href: location.href,
-        search: location.search,
-        flag: sessionStorage.getItem("checkout.blockAfterSuccess"),
-        cart: localStorage.getItem("checkout.cart.v1") ? "present" : "missing"
-      });
 
-      // === POST-SUCCESS BLOCK ===
-      // After a successful payment, block any back-navigation to checkout (even with query params).
-      (function(){
+      // === HARD BACK-NAV BLOCK (BFCache safe) ===
+      (function () {
         try {
-          const blocked = sessionStorage.getItem("checkout.blockAfterSuccess") === "1";
-          if (!blocked) return;
-
-          // Clear and redirect
-          localStorage.removeItem("checkout.cart.v1");
-          localStorage.removeItem("checkout.selection.v1");
-          localStorage.removeItem("checkout.lastPropertyId");
-          localStorage.removeItem("checkout.lastDetailsUrl");
-
-          // Consume flag so it only blocks the first back attempt
-          sessionStorage.removeItem("checkout.blockAfterSuccess");
-
-          location.replace("/catalog.html");
-          return;
-        } catch (_) {}
-      })();
-
-      // === NO-QUERY HARD STOP ===
-      // If checkout is loaded without URL params, it’s almost always a back-navigation/stale entry.
-      // Do not render from localStorage cart. Clear and send traveler back to catalog.
-      (function(){
-        try {
-          const hasQuery = !!(location.search && location.search.length > 1);
-
-          if (!hasQuery) {
-            // Clear any persisted checkout state
+          const ref = document.referrer || "";
+          if (
+            ref.includes("checkout_success.html") ||
+            ref.includes("stripe.com") ||
+            ref.includes("checkout.stripe.com")
+          ) {
             localStorage.removeItem("checkout.cart.v1");
             localStorage.removeItem("checkout.selection.v1");
             localStorage.removeItem("checkout.lastPropertyId");
             localStorage.removeItem("checkout.lastDetailsUrl");
+            location.replace("/catalog.html");
+            return;
+          }
+        } catch (_) {}
+      })();
 
-            // Redirect away from checkout
+      // TEMP DEBUG (remove after verify)
+      console.log("[checkout] back-nav ref", { ref: document.referrer, href: location.href });
+
+      // === NO-QUERY HARD STOP ===
+      (function(){
+        try {
+          const hasQuery = !!(location.search && location.search.length > 1);
+          if (!hasQuery) {
+            localStorage.removeItem("checkout.cart.v1");
+            localStorage.removeItem("checkout.selection.v1");
+            localStorage.removeItem("checkout.lastPropertyId");
+            localStorage.removeItem("checkout.lastDetailsUrl");
             location.replace("/catalog.html");
             return;
           }
