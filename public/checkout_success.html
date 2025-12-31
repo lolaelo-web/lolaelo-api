@@ -265,6 +265,8 @@
 
   <script>
   (function () {
+    // Block checkout back-navigation for this browser session
+    sessionStorage.setItem("checkout.blockAfterSuccess", "1");
     // Run ASAP on success page load
     function clearCheckoutState() {
       try {

@@ -4061,6 +4061,27 @@
 
     function initCheckout() {
 
+      // === POST-SUCCESS BLOCK ===
+      // After a successful payment, block any back-navigation to checkout (even with query params).
+      (function(){
+        try {
+          const blocked = sessionStorage.getItem("checkout.blockAfterSuccess") === "1";
+          if (!blocked) return;
+
+          // Clear and redirect
+          localStorage.removeItem("checkout.cart.v1");
+          localStorage.removeItem("checkout.selection.v1");
+          localStorage.removeItem("checkout.lastPropertyId");
+          localStorage.removeItem("checkout.lastDetailsUrl");
+
+          // Consume flag so it only blocks the first back attempt
+          sessionStorage.removeItem("checkout.blockAfterSuccess");
+
+          location.replace("/catalog.html");
+          return;
+        } catch (_) {}
+      })();
+
       // === NO-QUERY HARD STOP ===
       // If checkout is loaded without URL params, it’s almost always a back-navigation/stale entry.
       // Do not render from localStorage cart. Clear and send traveler back to catalog.
