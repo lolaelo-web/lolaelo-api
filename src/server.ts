@@ -456,6 +456,11 @@ app.post("/api/payments/webhook", express.raw({ type: "application/json" }), asy
 
         const subject = `Action needed: confirm booking ${bookingRef}`;
 
+        console.log("[debug-emailA] respondBy raw:", {
+          pendingConfirmExpiresAt,
+          respondBy: String(pendingConfirmExpiresAt).replace("T", " ").slice(0, 16)
+        });
+
         const html = hotelConfirmEmailHtml({
           bookingRef,
           guestName,
@@ -463,7 +468,7 @@ app.post("/api/payments/webhook", express.raw({ type: "application/json" }), asy
           checkOut: String(checkOutDate).slice(0, 10),
           qty: Number(qty || 1),
           amountPaid: `${currency} ${Number(amountPaid).toFixed(2)}`,
-          respondBy: String(pendingConfirmExpiresAt).replace("T", " ").slice(0, 19),
+          respondBy: String(pendingConfirmExpiresAt).replace("T", " ").slice(0, 16),
           confirmUrl,
           declineUrl,
         });
@@ -736,7 +741,7 @@ function hotelConfirmEmailHtml(args: {
     </h2>
 
     <p style="margin:0 0 12px;">
-      Please confirm or decline this booking request. If no action is taken before the deadline, it will expire automatically.
+      Please confirm or decline this booking request. If no action is taken within 24 hours, this booking will expire automatically.
     </p>
 
     <div style="padding:12px 14px; border:1px solid rgba(15,23,42,.12); border-radius:12px; background:#fff;">
