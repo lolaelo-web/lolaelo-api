@@ -4060,6 +4060,12 @@
     //   [data-apply-addons-modal]
 
     function initCheckout() {
+      console.log("[checkout] post-success flag check", {
+        href: location.href,
+        search: location.search,
+        flag: sessionStorage.getItem("checkout.blockAfterSuccess"),
+        cart: localStorage.getItem("checkout.cart.v1") ? "present" : "missing"
+      });
 
       // === POST-SUCCESS BLOCK ===
       // After a successful payment, block any back-navigation to checkout (even with query params).

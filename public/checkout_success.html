@@ -267,6 +267,11 @@
   (function () {
     // Block checkout back-navigation for this browser session
     sessionStorage.setItem("checkout.blockAfterSuccess", "1");
+    console.log("[success] set checkout.blockAfterSuccess=1", {
+      href: location.href,
+      flag: sessionStorage.getItem("checkout.blockAfterSuccess")
+    });
+
     // Run ASAP on success page load
     function clearCheckoutState() {
       try {
