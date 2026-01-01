@@ -272,6 +272,15 @@ app.post("/api/payments/webhook", express.raw({ type: "application/json" }), asy
 
       const md = session.metadata || {};
 
+      const addonsSummary =
+        String(
+          (md as any)?.addonsSummary ??
+          (md as any)?.addOnsSummary ??
+          (md as any)?.addons ??
+          (md as any)?.addOns ??
+          ""
+        ).trim();
+
       // Accept either the new keys or the old ones (fallback)
       const partnerId  = Number(md.partnerId  || md.propertyId);
       const roomTypeId = Number(md.roomTypeId || md.roomId);
@@ -279,7 +288,12 @@ app.post("/api/payments/webhook", express.raw({ type: "application/json" }), asy
       const checkInDate  = md.checkInDate ? new Date(md.checkInDate) : (md.start ? new Date(md.start) : null);
       const checkOutDate = md.checkOutDate ? new Date(md.checkOutDate) : (md.end ? new Date(md.end) : null);
       const qty    = Number(md.qty || 1);
-      const guests = md.guests ? Number(md.guests) : null;
+      const guestsRaw =
+        md.guestsCount ?? md.guestCount ?? md.guests ?? md.totalGuests ?? md.guests_total ?? md.guests_count;
+
+      const guests = guestsRaw !== undefined && guestsRaw !== null && String(guestsRaw).trim() !== ""
+        ? Number(guestsRaw)
+        : null;
 
       if (!partnerId || !roomTypeId || !ratePlanId || !checkInDate || !checkOutDate) {
         console.error("[WH] missing metadata:", md);
@@ -456,9 +470,20 @@ app.post("/api/payments/webhook", express.raw({ type: "application/json" }), asy
 
         const subject = `Action needed: confirm booking ${bookingRef}`;
 
+        const respondBy = (() => {
+          const d = new Date(pendingConfirmExpiresAt as any);
+          if (Number.isNaN(d.getTime())) {
+            // fallback if DB returns a weird string
+            return String(pendingConfirmExpiresAt).replace("T", " ").slice(0, 21);
+          }
+          const pad = (n: number) => String(n).padStart(2, "0");
+          // render as YYYY-MM-DD HH:MM
+          return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())} ${pad(d.getHours())}:${pad(d.getMinutes())}`;
+        })();
+
         console.log("[debug-emailA] respondBy raw:", {
           pendingConfirmExpiresAt,
-          respondBy: String(pendingConfirmExpiresAt).replace("T", " ").slice(0, 16)
+          respondBy
         });
 
         const html = hotelConfirmEmailHtml({
@@ -468,7 +493,7 @@ app.post("/api/payments/webhook", express.raw({ type: "application/json" }), asy
           checkOut: String(checkOutDate).slice(0, 10),
           qty: Number(qty || 1),
           amountPaid: `${currency} ${Number(amountPaid).toFixed(2)}`,
-          respondBy: String(pendingConfirmExpiresAt).replace("T", " ").slice(0, 16),
+          respondBy,
           confirmUrl,
           declineUrl,
         });
@@ -496,6 +521,7 @@ app.post("/api/payments/webhook", express.raw({ type: "application/json" }), asy
             b.guests,
             b.currency,
             b."amountPaid",
+            b.status AS "bookingStatus",
             COALESCE(pp.name, p.name, ('Partner #' || b."partnerId"::text)) AS "propertyName"
           FROM extranet."Booking" b
           LEFT JOIN extranet."PropertyProfile" pp ON pp."partnerId" = b."partnerId"
@@ -520,7 +546,11 @@ app.post("/api/payments/webhook", express.raw({ type: "application/json" }), asy
 
         const bCur = String(qTraveler.rows?.[0]?.currency || "PHP").toUpperCase();
         const bAmt = Number(qTraveler.rows?.[0]?.amountPaid || 0);
-        
+
+        const bBookingStatus = String(
+          qTraveler.rows?.[0]?.bookingStatus || "PENDING_HOTEL_CONFIRMATION"
+        );
+      
         if (travelerTo) {
           const base = process.env.PUBLIC_BASE_URL || "https://lolaelo-api.onrender.com";
           const logoUrl = `${base}/images/logo.png`;
@@ -590,8 +620,9 @@ app.post("/api/payments/webhook", express.raw({ type: "application/json" }), asy
                                   <div>• <b>Check-out date:</b> ${bCheckOut}</div>
                                   <div>• <b>Rooms:</b> ${bRoomsQty}</div>
                                   <div>• <b>Guests:</b> ${bGuestsCount}</div>
+                                  ${addonsSummary ? `<div>• <b>Add-ons:</b> ${addonsSummary}</div>` : ``}
+                                  <div>• <b>Booking status:</b> ${bBookingStatus}</div>
                                   <div>• <b>Booking reference:</b> ${bookingRef}</div>
-                                  <div>• <b>Status:</b> Confirmed</div>
                                 </td>
                               </tr>
                           </table>
@@ -607,7 +638,6 @@ app.post("/api/payments/webhook", express.raw({ type: "application/json" }), asy
                             <div style="margin-top:8px;">
                               • <b>Amount paid:</b> ${bCur} ${bAmt.toFixed(2)}<br>
                               • <b>Payment status:</b> Received<br>
-                              • <b>Booking status:</b> Pending hotel confirmation
                             </div>
                           </div>
                         </td>
