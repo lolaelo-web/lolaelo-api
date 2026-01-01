@@ -247,6 +247,13 @@ app.post("/api/payments/webhook", express.raw({ type: "application/json" }), asy
   }
 
   const session = event.data.object as Stripe.Checkout.Session;
+
+  // DEBUG: confirm metadata contents
+  const mdDbg: any = session.metadata || {};
+  console.log("[WH] metadata keys:", Object.keys(mdDbg));
+  console.log("[WH] metadata.addons len:", mdDbg.addons ? String(mdDbg.addons).length : 0);
+  console.log("[WH] metadata.addonsSummary:", mdDbg.addonsSummary || "");
+
   const providerPaymentId = session.id;
 
   try {
@@ -432,6 +439,60 @@ app.post("/api/payments/webhook", express.raw({ type: "application/json" }), asy
             }
 
             console.log("[WH] BookingItem inserted:", inserted, "for bookingId:", bookingId);
+
+            // === BookingAddOn insert (from Stripe metadata.addons) ===
+            try {
+              const md2: any = session.metadata || {};
+              const rawAddons = md2.addons ? String(md2.addons) : "";
+
+              console.log("[WH] addons present:", !!md2.addons, "len:", rawAddons ? rawAddons.length : 0);
+
+              if (rawAddons) {
+                let arr: any[] = [];
+                try { arr = JSON.parse(rawAddons); } catch { arr = []; }
+
+                if (!Array.isArray(arr) || arr.length === 0) {
+                  console.log("[WH] addons empty or invalid array, skipping BookingAddOn insert");
+                } else {
+                  let insertedAddons = 0;
+
+                  for (const a of arr) {
+                    const addOnId = Number(a.addOnId || 0);
+                    if (!addOnId) continue;
+
+                    await client.query(
+                      `
+                      INSERT INTO extranet."BookingAddOn" (
+                        "bookingId","addOnId",
+                        activity,uom,"unitPrice",qty,currency,"lineTotal",notes
+                      )
+                      VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9)
+                      `,
+                      [
+                        bookingId,
+                        addOnId,
+                        String(a.activity || "").trim() || "Add-on",
+                        String(a.uom || "") || null,
+                        Number(a.unitPrice || 0),
+                        Number(a.qty || 1),
+                        String(a.currency || currency || "PHP").toUpperCase(),
+                        Number(a.lineTotal || 0),
+                        String(a.comment || "") || null,
+                      ]
+                    );
+
+                    insertedAddons++;
+                  }
+
+                  console.log("[WH] BookingAddOn inserted:", insertedAddons, "for bookingId:", bookingId);
+                }
+              } else {
+                console.log("[WH] no addons metadata, skipping BookingAddOn insert");
+              }
+            } catch (e) {
+              console.error("[WH] BookingAddOn insert failed (non-fatal):", e);
+            }
+            // === end BookingAddOn insert ===
           }
         }
       } catch (e) {
@@ -439,6 +500,52 @@ app.post("/api/payments/webhook", express.raw({ type: "application/json" }), asy
       }
       // ANCHOR: INSERT_BOOKING_ITEMS END
 
+      // ANCHOR: INSERT_BOOKING_ADDONS
+      try {
+        const md2: any = session.metadata || {};
+        const raw = md2.addons ? String(md2.addons) : "";
+
+        console.log("[WH] addons present:", !!md2.addons, "len:", raw ? raw.length : 0);
+
+        if (raw) {
+          let arr: any[] = [];
+          try { arr = JSON.parse(raw); } catch { arr = []; }
+
+          let inserted = 0;
+          for (const a of arr) {
+            const addOnId = Number(a.addOnId || 0);
+            if (!addOnId) continue;
+
+            await client.query(
+              `
+              INSERT INTO extranet."BookingAddOn" (
+                "bookingId","addOnId",
+                activity,uom,"unitPrice",qty,currency,"lineTotal",notes
+              )
+              VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9)
+              `,
+              [
+                bookingId,
+                addOnId,
+                String(a.activity || "").trim() || "Add-on",
+                String(a.uom || "") || null,
+                Number(a.unitPrice || 0),
+                Number(a.qty || 1),
+                String(a.currency || currency || "PHP").toUpperCase(),
+                Number(a.lineTotal || 0),
+                String(a.comment || "") || null,
+              ]
+            );
+
+            inserted++;
+          }
+
+          console.log("[WH] BookingAddOn inserted:", inserted, "for bookingId:", bookingId);
+        }
+      } catch (e) {
+        console.error("[WH] booking add-ons insert failed:", e);
+      }
+      // ANCHOR: INSERT_BOOKING_ADDONS END
 
       const token = crypto.randomBytes(24).toString("hex");
       await client.query(
@@ -1675,7 +1782,29 @@ app.get("/api/extranet/me/bookings/:bookingRef", async (req: Request, res: Respo
       const itemsTotal = items.reduce((s: number, r: any) => s + Number(r.lineTotal || 0), 0);
       const itemCount = items.length;
 
-      return { booking, items, itemsTotal, itemCount };
+      const aq = await client.query(
+        `
+        SELECT
+          ba.id,
+          ba."addOnId",
+          ba.activity,
+          ba.uom,
+          ba."unitPrice",
+          ba.qty,
+          ba.currency,
+          ba."lineTotal",
+          ba.notes
+        FROM extranet."BookingAddOn" ba
+        WHERE ba."bookingId" = $1
+        ORDER BY ba.id ASC
+        `,
+        [bookingId]
+      );
+
+      const addons = aq.rows || [];
+      const addonsTotal = addons.reduce((s: number, r: any) => s + Number(r.lineTotal || 0), 0);
+
+      return { booking, items, itemsTotal, itemCount, addons, addonsTotal };
     });
 
     if (!data) return res.status(404).json({ ok: false, error: "not_found" });
@@ -2572,6 +2701,32 @@ app.post("/api/payments/create-checkout-session", async (req: Request, res: Resp
         lineTotal: Number(it.lineTotal || 0)
       }));
       metadata.cartItems = JSON.stringify(compact);
+    }
+
+    // addons: store as JSON string (Stripe metadata values must be strings)
+    if (Array.isArray(body.addons) && body.addons.length) {
+      // keep it small to avoid metadata limits
+      const compactAddons = body.addons.slice(0, 30).map((a: any) => ({
+        addOnId: Number(a.addOnId || a.id || 0),
+        activity: String(a.activity || ""),
+        uom: a.uom != null ? String(a.uom) : "",
+        unitPrice: Number(a.unitPrice || a.price || 0),
+        qty: Number(a.qty || 1),
+        currency: String(a.currency || metadata.currency || "USD"),
+        lineTotal: Number(a.lineTotal || 0),
+        comment: a.comment != null ? String(a.comment) : ""
+      }));
+
+      metadata.addons = JSON.stringify(compactAddons);
+
+      // optional: short summary string for emails/logs
+      const summary = compactAddons
+        .filter((x: any) => x.activity)
+        .map((x: any) => `${x.activity}${x.qty > 1 ? ` x${x.qty}` : ""}`)
+        .join(", ")
+        .slice(0, 490);
+
+      if (summary) metadata.addonsSummary = summary;
     }
 
     // legacy fields for checkout_success rendering
