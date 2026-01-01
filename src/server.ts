@@ -2669,7 +2669,7 @@ app.post("/api/payments/create-checkout-session", async (req: Request, res: Resp
     if (Array.isArray(body.addons) && body.addons.length) {
       // keep it small to avoid metadata limits
       const compactAddons = body.addons.slice(0, 30).map((a: any) => ({
-        addOnId: Number(a.addOnId || a.id || 0),
+        addOnId: Number(a.addOnId ?? a.addonId ?? a.addOnID ?? a.id ?? a.add_on_id ?? 0),
         activity: String(a.activity || ""),
         uom: a.uom != null ? String(a.uom) : "",
         unitPrice: Number(a.unitPrice || a.price || 0),
