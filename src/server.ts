@@ -439,60 +439,6 @@ app.post("/api/payments/webhook", express.raw({ type: "application/json" }), asy
             }
 
             console.log("[WH] BookingItem inserted:", inserted, "for bookingId:", bookingId);
-
-            // === BookingAddOn insert (from Stripe metadata.addons) ===
-            try {
-              const md2: any = session.metadata || {};
-              const rawAddons = md2.addons ? String(md2.addons) : "";
-
-              console.log("[WH] addons present:", !!md2.addons, "len:", rawAddons ? rawAddons.length : 0);
-
-              if (rawAddons) {
-                let arr: any[] = [];
-                try { arr = JSON.parse(rawAddons); } catch { arr = []; }
-
-                if (!Array.isArray(arr) || arr.length === 0) {
-                  console.log("[WH] addons empty or invalid array, skipping BookingAddOn insert");
-                } else {
-                  let insertedAddons = 0;
-
-                  for (const a of arr) {
-                    const addOnId = Number(a.addOnId || 0);
-                    if (!addOnId) continue;
-
-                    await client.query(
-                      `
-                      INSERT INTO extranet."BookingAddOn" (
-                        "bookingId","addOnId",
-                        activity,uom,"unitPrice",qty,currency,"lineTotal",notes
-                      )
-                      VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9)
-                      `,
-                      [
-                        bookingId,
-                        addOnId,
-                        String(a.activity || "").trim() || "Add-on",
-                        String(a.uom || "") || null,
-                        Number(a.unitPrice || 0),
-                        Number(a.qty || 1),
-                        String(a.currency || currency || "PHP").toUpperCase(),
-                        Number(a.lineTotal || 0),
-                        String(a.comment || "") || null,
-                      ]
-                    );
-
-                    insertedAddons++;
-                  }
-
-                  console.log("[WH] BookingAddOn inserted:", insertedAddons, "for bookingId:", bookingId);
-                }
-              } else {
-                console.log("[WH] no addons metadata, skipping BookingAddOn insert");
-              }
-            } catch (e) {
-              console.error("[WH] BookingAddOn insert failed (non-fatal):", e);
-            }
-            // === end BookingAddOn insert ===
           }
         }
       } catch (e) {
@@ -510,10 +456,16 @@ app.post("/api/payments/webhook", express.raw({ type: "application/json" }), asy
         if (raw) {
           let arr: any[] = [];
           try { arr = JSON.parse(raw); } catch { arr = []; }
+          console.log("[WH] addons raw prefix:", raw.slice(0, 200));
+          console.log("[WH] addons parsed:", Array.isArray(arr), "len:", Array.isArray(arr) ? arr.length : -1);
+
+          if (Array.isArray(arr) && arr.length) console.log("[WH] addons[0] keys:", Object.keys(arr[0] || {}), "sample:", arr[0]);
 
           let inserted = 0;
           for (const a of arr) {
-            const addOnId = Number(a.addOnId || 0);
+            const addOnId = Number(
+              (a && (a.addOnId ?? a.addonId ?? a.addOnID ?? a.id ?? a.add_on_id)) || 0
+            );
             if (!addOnId) continue;
 
             await client.query(
