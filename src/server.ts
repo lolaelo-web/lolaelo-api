@@ -484,12 +484,43 @@ app.post("/api/payments/webhook", express.raw({ type: "application/json" }), asy
         console.log("[booking-email] sent:", { to: toEmail, bookingRef });
 
         // Traveler soft confirmation (pending hotel confirmation)
-        const qTravelerEmail = await client.query(
-          `SELECT "travelerEmail" FROM extranet."Booking" WHERE id = $1 LIMIT 1`,
+        const qTraveler = await client.query(
+          `
+          SELECT
+            b."travelerEmail",
+            b."travelerFirstName",
+            b."travelerLastName",
+            b."checkInDate",
+            b."checkOutDate",
+            b.qty,
+            b.guests,
+            b.currency,
+            b."amountPaid",
+            COALESCE(pp.name, p.name, ('Partner #' || b."partnerId"::text)) AS "propertyName"
+          FROM extranet."Booking" b
+          LEFT JOIN extranet."PropertyProfile" pp ON pp."partnerId" = b."partnerId"
+          LEFT JOIN extranet."Partner" p ON p.id = b."partnerId"
+          WHERE b.id = $1
+          LIMIT 1
+          `,
           [bookingId]
         );
-        const travelerTo = String(qTravelerEmail.rows?.[0]?.travelerEmail || "").trim();
 
+        const travelerTo = String(qTraveler.rows?.[0]?.travelerEmail || "").trim();
+
+        const bTravelerFirst = String(qTraveler.rows?.[0]?.travelerFirstName || "").trim();
+        const bTravelerLast  = String(qTraveler.rows?.[0]?.travelerLastName || "").trim();
+
+        const bPropertyName = String(qTraveler.rows?.[0]?.propertyName || "").trim() || "Hotel partner";
+        const bCheckIn = String(qTraveler.rows?.[0]?.checkInDate || "").slice(0, 10);
+        const bCheckOut = String(qTraveler.rows?.[0]?.checkOutDate || "").slice(0, 10);
+
+        const bRoomsQty = Number(qTraveler.rows?.[0]?.qty || 1) || 1;
+        const bGuestsCount = Number(qTraveler.rows?.[0]?.guests || 1) || 1;
+
+        const bCur = String(qTraveler.rows?.[0]?.currency || "PHP").toUpperCase();
+        const bAmt = Number(qTraveler.rows?.[0]?.amountPaid || 0);
+        
         if (travelerTo) {
           const base = process.env.PUBLIC_BASE_URL || "https://lolaelo-api.onrender.com";
           const logoUrl = `${base}/images/logo.png`;
@@ -508,7 +539,7 @@ app.post("/api/payments/webhook", express.raw({ type: "application/json" }), asy
                             <tr>
                               <td align="left" style="vertical-align:middle;">
                                 <a href="https://www.lolaelo.com" style="text-decoration:none;">
-                                  <img src="${logoUrl}" alt="Lolaelo" height="34" style="display:block;border:0;outline:none;">
+                                  <img src="${logoUrl}" alt="Lolaelo" height="120" style="display:block;border:0;outline:none;">
                                 </a>
                               </td>
                               <td align="right" style="vertical-align:middle;font-size:13px;color:#334155;">
@@ -545,25 +576,24 @@ app.post("/api/payments/webhook", express.raw({ type: "application/json" }), asy
 
                       <!-- I. Booking details card -->
                       <tr>
-                        <td style="padding:0 20px 16px 20px;">
+                        <td style="padding:0 20px 18px 20px;">
                           <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="border:1px solid #e8ebf3;border-radius:12px;">
                             <tr>
                               <td style="padding:14px 14px 10px 14px;background:#f9fbff;border-bottom:1px solid #e8ebf3;">
-                                <div style="font-size:16px;font-weight:800;color:#0f766e;">I. Booking details</div>
-                                <div style="font-size:13px;color:#64748b;margin-top:4px;">Your booking request includes the following details:</div>
+                                <div style="font-size:16px;font-weight:800;color:#0f766e;">Reservation details</div>
                               </td>
                             </tr>
-                            <tr>
-                              <td style="padding:14px;font-size:14px;color:#0b1320;line-height:22px;">
-                                <div>• <b>Guest name:</b> ${[travelerFirst, travelerLast].filter(Boolean).join(" ").trim() || "Traveler"}</div>
-                                <div>• <b>Property:</b> ${partnerId ? `Partner #${partnerId}` : "Hotel partner"}</div>
-                                <div>• <b>Check-in date:</b> ${String(checkInDate).slice(0, 10)}</div>
-                                <div>• <b>Check-out date:</b> ${String(checkOutDate).slice(0, 10)}</div>
-                                <div>• <b>Rooms:</b> ${Number(qty || 1)}</div>
-                                <div>• <b>Guests:</b> ${Number(guests || 1)}</div>
-                                <div>• <b>Booking reference:</b> ${bookingRef}</div>
-                              </td>
-                            </tr>
+                              <tr>
+                                <td style="padding:14px;font-size:14px;color:#0b1320;line-height:22px;">
+                                  <div>• <b>Property:</b> ${bPropertyName}</div>
+                                  <div>• <b>Check-in date:</b> ${bCheckIn}</div>
+                                  <div>• <b>Check-out date:</b> ${bCheckOut}</div>
+                                  <div>• <b>Rooms:</b> ${bRoomsQty}</div>
+                                  <div>• <b>Guests:</b> ${bGuestsCount}</div>
+                                  <div>• <b>Booking reference:</b> ${bookingRef}</div>
+                                  <div>• <b>Status:</b> Confirmed</div>
+                                </td>
+                              </tr>
                           </table>
                         </td>
                       </tr>
@@ -575,7 +605,7 @@ app.post("/api/payments/webhook", express.raw({ type: "application/json" }), asy
                           <div style="margin-top:8px;font-size:14px;color:#334155;line-height:22px;">
                             We’ve received your payment in full.
                             <div style="margin-top:8px;">
-                              • <b>Amount paid:</b> ${currency} ${Number(amountPaid).toFixed(2)}<br>
+                              • <b>Amount paid:</b> ${bCur} ${bAmt.toFixed(2)}<br>
                               • <b>Payment status:</b> Received<br>
                               • <b>Booking status:</b> Pending hotel confirmation
                             </div>
@@ -597,12 +627,23 @@ app.post("/api/payments/webhook", express.raw({ type: "application/json" }), asy
 
                       <!-- Reassurance box -->
                       <tr>
-                        <td style="padding:10px 20px 18px 20px;">
-                          <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:#fff7ed;border:1px solid #fed7aa;border-radius:12px;">
+                        <td style="padding:0 20px 18px 20px;">
+                          <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="border:1px solid #e8ebf3;border-radius:12px;background:#f9fbff;">
                             <tr>
-                              <td style="padding:12px 14px;font-size:14px;color:#0b1320;line-height:20px;">
-                                If the hotel is unable to confirm your booking or the request expires, a <b>full refund will be issued within 48 hours</b>.
-                                <div style="margin-top:8px;color:#334155;">No action is needed from you at this time.</div>
+                              <td style="padding:14px 14px 12px 14px;">
+                                <div style="font-size:14px;font-weight:800;color:#0f766e;margin-bottom:6px;">What happens next</div>
+
+                                <div style="font-size:13px;color:#0b1320;line-height:20px;margin-bottom:8px;">
+                                  The hotel has up to <b>24 hours</b> to confirm or decline your booking.
+                                </div>
+
+                                <div style="font-size:13px;color:#0b1320;line-height:20px;margin-bottom:8px;">
+                                  <b>No action needed from your end.</b> We’ll email you as soon as the hotel responds.
+                                </div>
+
+                                <div style="font-size:13px;color:#0b1320;line-height:20px;">
+                                  If the hotel declines or the 24-hour window expires, you’ll receive a <b>full refund</b> back to the <b>original form of payment</b> within <b>48 hours</b>.
+                                </div>
                               </td>
                             </tr>
                           </table>
@@ -941,15 +982,48 @@ async function handleBookingDecision(req: Request, res: Response, decision: "CON
       await client.query("COMMIT");
 
       // Traveler post-decision email (confirm or decline)
-      if (decision === "CONFIRM" || decision === "DECLINE") {
-        try {
-          const q = await client.query(
-            `SELECT "travelerEmail" FROM extranet."Booking" WHERE id = $1 LIMIT 1`,
-            [lockedBookingId]
-          );
-          const travelerTo = String(q.rows?.[0]?.travelerEmail || "").trim();
+      const q = await client.query(
+        `
+        SELECT
+          b."travelerEmail",
+          b."travelerFirstName",
+          b."travelerLastName",
+          b."checkInDate",
+          b."checkOutDate",
+          b.qty,
+          b.guests,
+          b.currency,
+          b."amountPaid",
+          b."partnerId",
+          COALESCE(pp.name, p.name, ('Partner #' || b."partnerId"::text)) AS "propertyName"
+        FROM extranet."Booking" b
+        LEFT JOIN extranet."PropertyProfile" pp ON pp."partnerId" = b."partnerId"
+        LEFT JOIN extranet."Partner" p ON p.id = b."partnerId"
+        WHERE b.id = $1
+        LIMIT 1
+        `,
+        [lockedBookingId]
+      );
 
-          if (travelerTo) {
+      const travelerTo = String(q.rows?.[0]?.travelerEmail || "").trim();
+      const travelerFirst = String(q.rows?.[0]?.travelerFirstName || "").trim();
+      const travelerLast  = String(q.rows?.[0]?.travelerLastName || "").trim();
+
+      const propertyName = String(q.rows?.[0]?.propertyName || "").trim() || "Hotel partner";
+      const checkIn = String(q.rows?.[0]?.checkInDate || "").slice(0, 10);
+      const checkOut = String(q.rows?.[0]?.checkOutDate || "").slice(0, 10);
+
+      const roomsQty = Number(q.rows?.[0]?.qty || 1) || 1;
+      const guestsCount = Number(q.rows?.[0]?.guests || 1) || 1;
+
+      const dCur = String(q.rows?.[0]?.currency || "PHP").toUpperCase();
+      const dAmt = Number(q.rows?.[0]?.amountPaid || 0);
+
+      const partnerId = Number(q.rows?.[0]?.partnerId || 0) || 0;
+      const hotelEmail = partnerId ? (await getPartnerEmail(partnerId)) : "";
+
+      try {
+        if (travelerTo) {
             const isConfirm = decision === "CONFIRM";
 
             const travelerSubject = isConfirm
@@ -973,7 +1047,7 @@ async function handleBookingDecision(req: Request, res: Response, decision: "CON
                               <tr>
                                 <td align="left" style="vertical-align:middle;">
                                   <a href="https://www.lolaelo.com" style="text-decoration:none;">
-                                    <img src="${logoUrl}" alt="Lolaelo" height="34" style="display:block;border:0;outline:none;">
+                                    <img src="${logoUrl}" alt="Lolaelo" height="120" style="display:block;border:0;outline:none;">
                                   </a>
                                 </td>
                                 <td align="right" style="vertical-align:middle;font-size:13px;color:#334155;">
@@ -997,11 +1071,23 @@ async function handleBookingDecision(req: Request, res: Response, decision: "CON
                           </td>
                         </tr>
 
+                        <!-- C2: opening message -->
                         <tr>
-                          <td style="padding:10px 20px 16px 20px;font-size:14px;color:#334155;line-height:20px;">
-                            Your booking has been confirmed by the hotel.
-                            <br><br>
-                            You can expect to hear directly from the hotel partner by email shortly after this confirmation.
+                          <td style="padding:0 20px 16px 20px;">
+                            <div style="font-size:14px;color:#0b1320;line-height:22px;">
+                              Thank you for booking with Lolaelo. We work with independent hotel partners to keep travel safe, straightforward, and affordable.
+                            </div>
+
+                            <div style="font-size:14px;color:#0b1320;line-height:22px;margin-top:10px;">
+                              <b>Expect to hear directly from the hotel partner via email shortly after this confirmation.</b>
+                            </div>
+
+                            ${hotelEmail ? `
+                            <div style="font-size:13px;color:#475569;line-height:20px;margin-top:8px;">
+                              Or reach out directly at
+                              <a href="mailto:${hotelEmail}" style="color:#0f766e;text-decoration:none;">${hotelEmail}</a>.
+                            </div>
+                            ` : ``}
                           </td>
                         </tr>
 
@@ -1056,7 +1142,7 @@ async function handleBookingDecision(req: Request, res: Response, decision: "CON
                               <tr>
                                 <td align="left" style="vertical-align:middle;">
                                   <a href="https://www.lolaelo.com" style="text-decoration:none;">
-                                    <img src="${logoUrl}" alt="Lolaelo" height="34" style="display:block;border:0;outline:none;">
+                                    <img src="${logoUrl}" alt="Lolaelo" height="120" style="display:block;border:0;outline:none;">
                                   </a>
                                 </td>
                                 <td align="right" style="vertical-align:middle;font-size:13px;color:#334155;">
@@ -1080,11 +1166,44 @@ async function handleBookingDecision(req: Request, res: Response, decision: "CON
                           </td>
                         </tr>
 
+                        <!-- Decline message -->
                         <tr>
-                          <td style="padding:10px 20px 16px 20px;font-size:14px;color:#334155;line-height:20px;">
-                            The hotel was unable to confirm this booking.
-                            <br><br>
-                            We’ll follow up with next steps.
+                          <td style="padding:0 20px 16px 20px;">
+                            <div style="font-size:14px;color:#0b1320;line-height:22px;">
+                              Unfortunately, the hotel declined this booking.
+                            </div>
+
+                            <div style="font-size:14px;color:#0b1320;line-height:22px;margin-top:10px;">
+                              You will receive a <b>full refund</b> back to the <b>original form of payment</b> within <b>48 hours</b> from this message. <b>No action needed from your end.</b>
+                            </div>
+
+                            <div style="font-size:13px;color:#475569;line-height:20px;margin-top:10px;">
+                              Note from Manny: I am sorry this happened. We review every declined booking and work closely with our partners to minimize situations like this from happening. If you would like, feel free to browse our catalog again and see if another property works better for your plans. 
+                            </div>
+
+                          </td>
+                        </tr>
+
+                        <!-- D: reservation details card (optional) -->
+                        <tr>
+                          <td style="padding:0 20px 18px 20px;">
+                            <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="border:1px solid #e8ebf3;border-radius:12px;">
+                              <tr>
+                                <td style="padding:14px 14px 10px 14px;background:#f9fbff;border-bottom:1px solid #e8ebf3;">
+                                  <div style="font-size:16px;font-weight:800;color:#0f766e;">Reservation details</div>
+                                </td>
+                                  <tr>
+                                    <td style="padding:14px;font-size:14px;color:#0b1320;line-height:22px;">
+                                      <div>• <b>Property:</b> ${propertyName}</div>
+                                      <div>• <b>Check-in date:</b> ${checkIn}</div>
+                                      <div>• <b>Check-out date:</b> ${checkOut}</div>
+                                      <div>• <b>Rooms:</b> ${roomsQty}</div>
+                                      <div>• <b>Guests:</b> ${guestsCount}</div>
+                                      <div>• <b>Booking reference:</b> ${bookingRef}</div>
+                                      <div>• <b>Status:</b> Declined</div>
+                                    </td>
+                                  </tr>
+                            </table>
                           </td>
                         </tr>
 
@@ -1128,22 +1247,22 @@ async function handleBookingDecision(req: Request, res: Response, decision: "CON
               bookingId: lockedBookingId,
             });
           }
-        } catch (e) {
-          console.error("[traveler-email] decision send failed:", e);
-        }
-      }
-        return redirectToManageBookings(
-          res,
-          decision === "CONFIRM" ? "confirmed" : "declined",
-          bookingRef
-        );
       } catch (e) {
-        try { await client.query("ROLLBACK"); } catch {}
-        console.error("[confirm-link] tx failed:", e);
-        return redirectToManageBookings(res, "invalid", String(row.bookingRef || ""));
+        console.error("[traveler-email] decision send failed:", e);
       }
-    });
-  }
+
+      return redirectToManageBookings(
+        res,
+        decision === "CONFIRM" ? "confirmed" : "declined",
+        bookingRef
+      );
+    } catch (e) {
+      try { await client.query("ROLLBACK"); } catch {}
+      console.error("[confirm-link] tx failed:", e);
+      return redirectToManageBookings(res, "invalid", String(row.bookingRef || ""));
+    }
+  });
+}
 
 // GET /api/bookings/confirm?token=...
 app.get("/api/bookings/confirm", async (req: Request, res: Response) => {
