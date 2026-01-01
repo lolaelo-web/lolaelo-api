@@ -901,6 +901,7 @@ function hotelConfirmEmailHtml(args: {
 // ANCHOR: MAIL_SENDER
     // Uses Postmark for transactional email (bookings, receipts, etc.)
     // OTP continues to use src/mailer.ts (sendLoginCodeEmail) with POSTMARK_TOKEN.
+    const DISABLE_EMAILS = process.env.DISABLE_EMAILS === "1";
 
     async function sendMailReal(args: {
       to: string;
@@ -914,6 +915,15 @@ function hotelConfirmEmailHtml(args: {
       const to = args.to;
       const subject = args.subject;
       const html = args.html;
+
+      if (DISABLE_EMAILS) {
+        console.log("[email] DISABLE_EMAILS=1 skipping send", {
+          to,
+          subject,
+          from: args.from || ""
+        });
+        return { ok: true, skipped: true };
+      }
 
       const text = html
         .replace(/<style[\s\S]*?<\/style>/gi, "")
