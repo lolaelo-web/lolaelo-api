@@ -295,12 +295,7 @@ app.post("/api/payments/webhook", express.raw({ type: "application/json" }), asy
       const checkInDate  = md.checkInDate ? new Date(md.checkInDate) : (md.start ? new Date(md.start) : null);
       const checkOutDate = md.checkOutDate ? new Date(md.checkOutDate) : (md.end ? new Date(md.end) : null);
       const qty    = Number(md.qty || 1);
-      const guestsRaw =
-        md.guestsCount ?? md.guestCount ?? md.guests ?? md.totalGuests ?? md.guests_total ?? md.guests_count;
-
-      const guests = guestsRaw !== undefined && guestsRaw !== null && String(guestsRaw).trim() !== ""
-        ? Number(guestsRaw)
-        : null;
+      const guests = Math.max(1, parseInt(String(md.guestsCount ?? md.guests ?? "1"), 10));
 
       if (!partnerId || !roomTypeId || !ratePlanId || !checkInDate || !checkOutDate) {
         console.error("[WH] missing metadata:", md);
@@ -318,6 +313,7 @@ app.post("/api/payments/webhook", express.raw({ type: "application/json" }), asy
       for (let i = 0; i < 6; i++) bookingRef += chars[Math.floor(Math.random() * chars.length)];
 
       const md2 = session.metadata || {};
+      console.log("[WH] guestsCount metadata:", md2.guestsCount, "guests:", md2.guests);
 
       const firstName =
         (md2.travelerFirstName && String(md2.travelerFirstName).trim()) ||
