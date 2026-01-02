@@ -314,6 +314,7 @@
           <div><b>Guest:</b> ${esc(guest)}</div>
           <div><b>Stay:</b> ${esc(stayTxt)}</div>
           <div><b>Status:</b> ${esc(b.status || "-")}</div>
+          <div><b>Guests:</b> ${esc(b.guests ?? "-")}</div>
           <div><b>Payment:</b> ${esc(b.paymentProvider || "-")} ${esc(b.providerPaymentId || "")}</div>
         `;
       }

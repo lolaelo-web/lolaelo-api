@@ -1200,6 +1200,21 @@ async function handleBookingDecision(req: Request, res: Response, decision: "CON
             const base = process.env.PUBLIC_BASE_URL || "https://lolaelo-api.onrender.com";
             const logoUrl = `${base}/images/logo.png`;
 
+            const aqC = await client.query(
+              `
+              SELECT activity, qty
+              FROM extranet."BookingAddOn"
+              WHERE "bookingId" = $1
+              ORDER BY id ASC
+              `,
+              [lockedBookingId]
+            );
+
+            const cAddons = aqC.rows || [];
+            const cAddonsText = cAddons.length
+              ? cAddons.map(r => `${r.activity}${Number(r.qty || 0) > 1 ? ` x${r.qty}` : ""}`).join(", ")
+              : "";
+
             const travelerHtml = isConfirm
               ? `<!doctype html>
             <html>
@@ -1268,6 +1283,12 @@ async function handleBookingDecision(req: Request, res: Response, decision: "CON
                               </tr>
                               <tr>
                                 <td style="padding:14px;font-size:14px;color:#0b1320;line-height:22px;">
+                                  <div>• <b>Property:</b> ${propertyName}</div>
+                                  <div>• <b>Check-in date:</b> ${checkIn}</div>
+                                  <div>• <b>Check-out date:</b> ${checkOut}</div>
+                                  <div>• <b>Rooms:</b> ${roomsQty}</div>
+                                  <div>• <b>Guests:</b> ${guestsCount}</div>
+                                  ${cAddonsText ? `<div>• <b>Add-ons:</b> ${cAddonsText}</div>` : ``}
                                   <div>• <b>Booking reference:</b> ${bookingRef}</div>
                                   <div>• <b>Status:</b> Confirmed</div>
                                 </td>
