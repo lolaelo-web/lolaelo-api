@@ -500,7 +500,7 @@ app.post("/api/payments/webhook", express.raw({ type: "application/json" }), asy
                 String(a.uom || "") || null,
                 Number(a.unitPrice || 0),
                 Number(a.qty || 1),
-                String(currency || "USD").toUpperCase(),
+                String(currency).toUpperCase(),
                 Number(a.lineTotal || 0),
                 String(a.comment || "") || null,
               ]
