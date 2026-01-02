@@ -1651,6 +1651,8 @@ app.get("/api/extranet/me/bookings", async (req: Request, res: Response) => {
           t."expiresAt" AS "tokenExpiresAt",
           COALESCE(s."itemCount", 0) AS "itemCount",
           COALESCE(s."itemsTotal", 0) AS "itemsTotal",
+          COALESCE(ba."addonsTotal", 0) AS "addonsTotal",
+          (COALESCE(s."itemsTotal", 0) + COALESCE(ba."addonsTotal", 0)) AS "grandTotal",
           s."minCheckInDate" AS "minCheckInDate",
           s."maxCheckOutDate" AS "maxCheckOutDate",
           COALESCE(s."hasVaryingDates", FALSE) AS "hasVaryingDates"
@@ -1676,6 +1678,12 @@ app.get("/api/extranet/me/bookings", async (req: Request, res: Response) => {
           FROM extranet."BookingItem"
           WHERE "bookingId" = b.id
         ) s ON TRUE
+        LEFT JOIN LATERAL (
+          SELECT
+            COALESCE(SUM("lineTotal"), 0) AS "addonsTotal"
+          FROM extranet."BookingAddOn"
+          WHERE "bookingId" = b.id
+        ) ba ON TRUE
         WHERE ${whereSql}
         ORDER BY
           CASE
