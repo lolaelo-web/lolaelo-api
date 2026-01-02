@@ -552,18 +552,28 @@ app.post("/api/payments/webhook", express.raw({ type: "application/json" }), asy
 
         const guestName =
           [travelerFirst, travelerLast].filter(Boolean).join(" ").trim() || "Traveler";
+        const guestsCount = Number(guests || qty || 1) || 1;
 
         const subject = `Action needed: confirm booking ${bookingRef}`;
 
         const respondBy = (() => {
           const d = new Date(pendingConfirmExpiresAt as any);
           if (Number.isNaN(d.getTime())) {
-            // fallback if DB returns a weird string
-            return String(pendingConfirmExpiresAt).replace("T", " ").slice(0, 21);
+            return String(pendingConfirmExpiresAt);
           }
-          const pad = (n: number) => String(n).padStart(2, "0");
-          // render as YYYY-MM-DD HH:MM
-          return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())} ${pad(d.getHours())}:${pad(d.getMinutes())}`;
+
+          const parts = new Intl.DateTimeFormat("en-US", {
+            timeZone: "America/New_York",
+            year: "numeric",
+            month: "2-digit",
+            day: "2-digit",
+            hour: "2-digit",
+            minute: "2-digit",
+            hour12: false,
+          }).formatToParts(d);
+
+          const get = (type: string) => parts.find(p => p.type === type)?.value || "";
+          return `${get("year")}-${get("month")}-${get("day")} ${get("hour")}:${get("minute")}`;
         })();
 
         console.log("[debug-emailA] respondBy raw:", {
@@ -571,12 +581,29 @@ app.post("/api/payments/webhook", express.raw({ type: "application/json" }), asy
           respondBy
         });
 
+        const aqHotel = await client.query(
+          `
+          SELECT activity, qty
+          FROM extranet."BookingAddOn"
+          WHERE "bookingId" = $1
+          ORDER BY id ASC
+          `,
+          [bookingId]
+        );
+
+        const addonsHotel = aqHotel.rows || [];
+        const addonsHotelText = addonsHotel.length
+          ? addonsHotel.map(r => `${r.activity}${Number(r.qty || 0) > 1 ? ` x${r.qty}` : ""}`).join(", ")
+          : "";
+
         const html = hotelConfirmEmailHtml({
           bookingRef,
           guestName,
           checkIn: String(checkInDate).slice(0, 10),
           checkOut: String(checkOutDate).slice(0, 10),
           qty: Number(qty || 1),
+          guests: guestsCount,
+          addons: addonsHotelText,
           amountPaid: `${currency} ${Number(amountPaid).toFixed(2)}`,
           respondBy,
           confirmUrl,
@@ -635,7 +662,22 @@ app.post("/api/payments/webhook", express.raw({ type: "application/json" }), asy
         const bBookingStatus = String(
           qTraveler.rows?.[0]?.bookingStatus || "PENDING_HOTEL_CONFIRMATION"
         );
-      
+
+        const aqB = await client.query(
+          `
+          SELECT activity, qty
+          FROM extranet."BookingAddOn"
+          WHERE "bookingId" = $1
+          ORDER BY id ASC
+          `,
+          [bookingId]
+        );
+
+        const bAddons = aqB.rows || [];
+        const bAddonsText = bAddons.length
+          ? bAddons.map(r => `${r.activity}${Number(r.qty || 0) > 1 ? ` x${r.qty}` : ""}`).join(", ")
+          : "";
+
         if (travelerTo) {
           const base = process.env.PUBLIC_BASE_URL || "https://lolaelo-api.onrender.com";
           const logoUrl = `${base}/images/logo.png`;
@@ -705,8 +747,8 @@ app.post("/api/payments/webhook", express.raw({ type: "application/json" }), asy
                                   <div>• <b>Check-out date:</b> ${bCheckOut}</div>
                                   <div>• <b>Rooms:</b> ${bRoomsQty}</div>
                                   <div>• <b>Guests:</b> ${bGuestsCount}</div>
-                                  ${addonsSummary ? `<div>• <b>Add-ons:</b> ${addonsSummary}</div>` : ``}
-                                  <div>• <b>Booking status:</b> ${bBookingStatus}</div>
+                                  ${bAddonsText ? `<div>• <b>Add-ons:</b> ${bAddonsText}</div>` : ``}
+                                  <div>• <b>Booking status:</b> ${String(bBookingStatus || "").replaceAll("_"," ").trim()}</div>
                                   <div>• <b>Booking reference:</b> ${bookingRef}</div>
                                 </td>
                               </tr>
@@ -885,6 +927,8 @@ function hotelConfirmEmailHtml(args: {
   checkIn: string;
   checkOut: string;
   qty: number;
+  guests?: number;
+  addons?: string;
   amountPaid: string;
   respondBy: string;
   confirmUrl: string;
@@ -904,8 +948,10 @@ function hotelConfirmEmailHtml(args: {
       <div><b>Guest:</b> ${args.guestName}</div>
       <div><b>Stay:</b> ${args.checkIn} to ${args.checkOut}</div>
       <div><b>Rooms:</b> ${args.qty}</div>
+      <div><b>Guests:</b> ${Number(args.guests || 1)}</div>
+      ${args.addons ? `<div><b>Add-ons:</b> ${args.addons}</div>` : ``}
       <div><b>Amount paid:</b> ${args.amountPaid}</div>
-      <div><b>Respond by:</b> ${args.respondBy} EST</div>
+      <div><b>Respond by:</b> ${args.respondBy} ET</div>
     </div>
 
     <div style="margin-top:14px; display:flex; gap:10px; flex-wrap:wrap;">
