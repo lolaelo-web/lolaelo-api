@@ -418,7 +418,10 @@
             <td>${esc(r.roomCategory || "-")}</td>
             <td>${esc(r.ratePlan || "-")}</td>
             <td>${Number(r.itemCount || 0) || 0}</td>
-            <td style="text-align:right;">${esc(formatMoney(r.itemsTotal, r.currency || "USD"))}</td>
+            <td style="text-align:right;">${esc(formatMoney(
+              (r.grandTotal != null ? r.grandTotal : (Number(r.itemsTotal || 0) + Number(r.addonsTotal || 0))),
+              r.currency || "USD"
+            ))}</td>
             <td>${statusPill(r.status)}</td>
             <td>
               ${(() => {
@@ -558,7 +561,7 @@
           <div style="padding:14px 16px;">
             <div id="bmSummary" class="note" style="margin-top:0;"></div>
 
-            <h3 style="margin:14px 0 8px; font-size:14px;">Line items</h3>
+            <h3 style="margin:14px 0 8px; font-size:14px;">Rooms booked</h3>
             <table style="width:100%; border-collapse:collapse;">
               <thead>
                 <tr>
