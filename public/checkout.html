@@ -1645,47 +1645,55 @@
               </div>
             </div>
             <div class="section-body hidden" data-section-body="3">
-              <div class="guest-form-grid">
-                <div>
-                  <label for="firstName">First name</label>
-                  <input id="firstName" autocomplete="given-name" />
-                </div>
-                <div>
-                  <label for="lastName">Last name</label>
-                  <input id="lastName" autocomplete="family-name" />
-                </div>
-                <div>
-                  <label for="email">Email</label>
-                  <input id="email" type="email" autocomplete="email" />
-                </div>
-                <div>
-                  <label for="phone">Mobile number</label>
-                  <div class="phone-row">
-                    <select id="phoneCountry" class="phone-country">
-                      <option value="+1">🇺🇸 +1 (United States)</option>
-                      <option value="+63">🇵🇭 +63 (Philippines)</option>
-                      <option value="+44">+44 (United Kingdom)</option>
-                      <option value="+61">+61 (Australia)</option>
-                      <option value="+65">+65 (Singapore)</option>
-                      <option value="+81">+81 (Japan)</option>
-                      <option value="+82">+82 (South Korea)</option>
-                      <option value="+49">+49 (Germany)</option>
-                      <option value="+33">+33 (France)</option>
-                      <option value="+34">+34 (Spain)</option>
-                      <option value="+39">+39 (Italy)</option>
-                      <option value="+31">+31 (Netherlands)</option>
-                      <option value="+63-other">Other</option>
-                    </select>
-                    <input
-                      id="phone"
-                      type="tel"
-                      autocomplete="tel"
-                      placeholder="9-digit mobile"
-                      class="phone-input"
-                    />
-                  </div>
+            <div class="guest-form-grid">
+              <div>
+                <label for="firstName">First name</label>
+                <input id="firstName" autocomplete="given-name" />
+              </div>
+
+              <div>
+                <label for="lastName">Last name</label>
+                <input id="lastName" autocomplete="family-name" />
+              </div>
+
+              <div>
+                <label for="email">Email</label>
+                <input id="email" type="email" autocomplete="email" />
+              </div>
+
+              <div>
+                <label for="guestsCount">Number of guests</label>
+                <input id="guestsCount" type="number" min="1" step="1" value="2" />
+              </div>
+
+              <div style="grid-column: 1 / -1;">
+                <label for="phone">Mobile number</label>
+                <div class="phone-row">
+                  <select id="phoneCountry" class="phone-country">
+                    <option value="+1">🇺🇸 +1 (United States)</option>
+                    <option value="+63">🇵🇭 +63 (Philippines)</option>
+                    <option value="+44">+44 (United Kingdom)</option>
+                    <option value="+61">+61 (Australia)</option>
+                    <option value="+65">+65 (Singapore)</option>
+                    <option value="+81">+81 (Japan)</option>
+                    <option value="+82">+82 (South Korea)</option>
+                    <option value="+49">+49 (Germany)</option>
+                    <option value="+33">+33 (France)</option>
+                    <option value="+34">+34 (Spain)</option>
+                    <option value="+39">+39 (Italy)</option>
+                    <option value="+31">+31 (Netherlands)</option>
+                    <option value="+63-other">Other</option>
+                  </select>
+                  <input
+                    id="phone"
+                    type="tel"
+                    autocomplete="tel"
+                    placeholder="9-digit mobile"
+                    class="phone-input"
+                  />
                 </div>
               </div>
+            </div>
 
               <div style="margin-top: 10px;">
                 <label for="specialRequests">
@@ -4651,6 +4659,7 @@
               travelerLastName:  (document.getElementById("lastName")?.value || "").trim(),
               travelerEmail:     (document.getElementById("email")?.value || "").trim(),
               travelerPhone:     ((document.getElementById("phoneCountry")?.value || "") + (document.getElementById("phone")?.value || "")).trim(),
+              guestsCount:       Math.max(1, parseInt(String(document.getElementById("guestsCount")?.value || "1"), 10)),
 
               // totals (authoritative, matches the right-side UI)
               currency: pay.currency || (state.pricingCurrency || "USD"),

@@ -2723,6 +2723,9 @@ app.post("/api/payments/create-checkout-session", async (req: Request, res: Resp
       currency:          String(currency),
     };
 
+    if (body.guestsCount != null) metadata.guestsCount = String(body.guestsCount);
+    else if (body.guests != null) metadata.guestsCount = String(body.guests);
+
     if (body.bookingRef) metadata.bookingRef = String(body.bookingRef);
     if (body.partnerId) metadata.partnerId = String(body.partnerId);
     if (body.roomTypeId) metadata.roomTypeId = String(body.roomTypeId);
