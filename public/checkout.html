@@ -4659,7 +4659,15 @@
               cartItems: cartItemsPayload,
 
               // addons
-              addons: Array.isArray(state.selectedAddons) ? state.selectedAddons : []
+              addons: (Array.isArray(state.selectedAddons) ? state.selectedAddons : []).map(a => ({
+                addOnId: Number(a.addOnId ?? a.id ?? a.addonId ?? a.addOnID ?? 0),
+                activity: a.activity,
+                uom: a.uom,
+                unitPrice: Number(a.unitPrice ?? a.price ?? 0),
+                qty: Number(a.qty ?? a.quantity ?? 1),
+                lineTotal: Number(a.lineTotal ?? 0),
+                comment: a.travelerComment || a.comment || ""
+              }))
             })
           });
 
