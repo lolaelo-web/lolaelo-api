@@ -456,6 +456,29 @@ app.post("/api/payments/webhook", express.raw({ type: "application/json" }), asy
         if (raw) {
           let arr: any[] = [];
           try { arr = JSON.parse(raw); } catch { arr = []; }
+          
+          // Resolve addOnId by (partnerId, activity, uom) from DB
+          const partnerIdNum = Number(md2.partnerId || 0) || 0;
+
+          let byKey = new Map<string, number>();
+          if (partnerIdNum) {
+            const lookup = await client.query(
+              `
+              SELECT id, activity, COALESCE(uom,'') AS uom
+              FROM extranet."AddOn"
+              WHERE "partnerId" = $1
+              `,
+              [partnerIdNum]
+            );
+
+            for (const r of lookup.rows) {
+              const k = `${String(r.activity).trim().toLowerCase()}|${String(r.uom || "").trim().toLowerCase()}`;
+              byKey.set(k, Number(r.id));
+            }
+          } else {
+            console.log("[WH] partnerId missing in metadata; cannot resolve addOnId");
+          }
+
           console.log("[WH] addons raw prefix:", raw.slice(0, 200));
           console.log("[WH] addons parsed:", Array.isArray(arr), "len:", Array.isArray(arr) ? arr.length : -1);
 
@@ -463,9 +486,12 @@ app.post("/api/payments/webhook", express.raw({ type: "application/json" }), asy
 
           let inserted = 0;
           for (const a of arr) {
-            const addOnId = Number(
-              (a && (a.addOnId ?? a.addonId ?? a.addOnID ?? a.id ?? a.add_on_id)) || 0
-            );
+          const activity = String(a.activity || "").trim();
+          const uom = String(a.uom || "").trim();
+          const key = `${activity.toLowerCase()}|${uom.toLowerCase()}`;
+
+          const addOnId = Number(a.addOnId || 0) || (byKey.get(key) || 0);
+
             if (!addOnId) continue;
 
             await client.query(
@@ -2667,21 +2693,24 @@ app.post("/api/payments/create-checkout-session", async (req: Request, res: Resp
 
     // addons: store as JSON string (Stripe metadata values must be strings)
     if (Array.isArray(body.addons) && body.addons.length) {
-      // keep it small to avoid metadata limits
-      const compactAddons = body.addons.slice(0, 30).map((a: any) => ({
-        addOnId: Number(a.addOnId ?? a.addonId ?? a.addOnID ?? a.id ?? a.add_on_id ?? 0),
-        activity: String(a.activity || ""),
-        uom: a.uom != null ? String(a.uom) : "",
-        unitPrice: Number(a.unitPrice || a.price || 0),
-        qty: Number(a.qty || 1),
-        currency: String(a.currency || metadata.currency || "USD"),
-        lineTotal: Number(a.lineTotal || 0),
-        comment: a.comment != null ? String(a.comment) : ""
-      }));
+      const compactAddons = body.addons.slice(0, 30).map((a: any) => {
+        const activity = String(a.activity || "").trim();
+        const uom = String(a.uom || "").trim();
+
+        return {
+          addOnId: 0, // resolved in webhook using DB lookup
+          activity,
+          uom,
+          unitPrice: Number(a.unitPrice ?? a.price ?? 0),
+          qty: Number(a.qty ?? a.quantity ?? 1),
+          currency: String(a.currency || metadata.currency || "USD"),
+          lineTotal: Number(a.lineTotal || 0),
+          comment: String(a.travelerComment || a.comment || "")
+        };
+      });
 
       metadata.addons = JSON.stringify(compactAddons);
 
-      // optional: short summary string for emails/logs
       const summary = compactAddons
         .filter((x: any) => x.activity)
         .map((x: any) => `${x.activity}${x.qty > 1 ? ` x${x.qty}` : ""}`)
