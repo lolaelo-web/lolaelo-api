@@ -257,6 +257,17 @@
       const res = await fetch(url, { headers });
       const data = await res.json();
 
+      // Prepare add-ons section (reset)
+      const addonsTitle = document.getElementById("bmAddonsTitle");
+      const addonsTable = document.getElementById("bmAddonsTable");
+      const addonsBody  = document.getElementById("bmAddons");
+
+      if (addonsTitle && addonsTable && addonsBody) {
+        addonsTitle.style.display = "none";
+        addonsTable.style.display = "none";
+        addonsBody.innerHTML = "";
+      }
+
       if (!data || !data.ok) {
         itemsEl.innerHTML = `<tr><td colspan="5" class="muted" style="padding:10px;">Failed loading booking.</td></tr>`;
         return;
@@ -264,6 +275,8 @@
 
       const b = data.booking || {};
       const items = Array.isArray(data.items) ? data.items : [];
+      const addons = Array.isArray(data.addons) ? data.addons : [];
+
       // Derive stay info from items (authoritative)
       let minIn = null;
       let maxOut = null;
@@ -321,6 +334,29 @@
           </tr>
         `;
       }).join("");
+
+      // Render add-ons table
+      if (addonsTitle && addonsTable && addonsBody && addons.length) {
+        addonsTitle.style.display = "";
+        addonsTable.style.display = "";
+
+        addonsBody.innerHTML = addons.map(a => {
+          const qty = Number(a.qty || 0) || 0;
+          const unit = Number(a.unitPrice || 0) || 0;
+          const line = Number(a.lineTotal || 0) || 0;
+          const cur = String(a.currency || currency || "USD").toUpperCase();
+
+          return `
+            <tr>
+              <td style="padding:8px; border-bottom:1px solid #203150;">${esc(a.activity || "")}</td>
+              <td style="padding:8px; border-bottom:1px solid #203150;">${esc(a.uom || "")}</td>
+              <td style="padding:8px; border-bottom:1px solid #203150; text-align:right;">${esc(qty)}</td>
+              <td style="padding:8px; border-bottom:1px solid #203150; text-align:right;">${esc(formatMoney(unit, cur))}</td>
+              <td style="padding:8px; border-bottom:1px solid #203150; text-align:right;">${esc(formatMoney(line, cur))}</td>
+            </tr>
+          `;
+        }).join("");
+      }
 
       if (totalEl) totalEl.textContent = formatMoney(total, currency);
     }
@@ -541,6 +577,21 @@
                 </tr>
               </tfoot>
             </table>
+            <!-- ANCHOR: BOOKING_MODAL_ADDONS -->
+            <h3 style="margin:14px 0 8px; font-size:14px; display:none;" id="bmAddonsTitle">Add-ons</h3>
+            <table style="width:100%; border-collapse:collapse; display:none;" id="bmAddonsTable">
+              <thead>
+                <tr>
+                  <th style="text-align:left; padding:8px; border-bottom:1px solid #203150;">Activity</th>
+                  <th style="text-align:left; padding:8px; border-bottom:1px solid #203150;">UOM</th>
+                  <th style="text-align:right; padding:8px; border-bottom:1px solid #203150;">Qty</th>
+                  <th style="text-align:right; padding:8px; border-bottom:1px solid #203150;">Unit</th>
+                  <th style="text-align:right; padding:8px; border-bottom:1px solid #203150;">Line total</th>
+                </tr>
+              </thead>
+              <tbody id="bmAddons"></tbody>
+            </table>
+            <!-- ANCHOR: BOOKING_MODAL_ADDONS END -->
           </div>
         </div>
       </div>
