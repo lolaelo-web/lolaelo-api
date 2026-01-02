@@ -4662,7 +4662,7 @@
               guestsCount:       Math.max(1, parseInt(String(document.getElementById("guestsCount")?.value || "1"), 10)),
 
               // totals (authoritative, matches the right-side UI)
-              currency: pay.currency || (state.pricingCurrency || "USD"),
+              currency: "USD",
               totalCents: Math.round(Number(pay.grand || 0) * 100),
 
               cartItems: cartItemsPayload,

@@ -342,7 +342,7 @@ app.post("/api/payments/webhook", express.raw({ type: "application/json" }), asy
         return res.status(400).send("Missing traveler email");
       }
 
-      const currency = (session.currency || "php").toUpperCase();
+      const currency = "USD";
       const amountPaid = (session.amount_total || 0) / 100;
 
       const ins = await client.query(
@@ -414,7 +414,7 @@ app.post("/api/payments/webhook", express.raw({ type: "application/json" }), asy
               const roomTypeId = Number(it.roomTypeId || 0);
               const ratePlanId = Number(it.ratePlanId || 0);
               const qty = Number(it.qty || 1);
-              const currency = String(it.currency || "PHP");
+              const currency = "USD";
               const lineTotal = Number(it.lineTotal || 0);
 
               const checkInDate = String(it.checkInDate || "");
@@ -475,11 +475,6 @@ app.post("/api/payments/webhook", express.raw({ type: "application/json" }), asy
             console.log("[WH] partnerId missing in metadata; cannot resolve addOnId");
           }
 
-          console.log("[WH] addons raw prefix:", raw.slice(0, 200));
-          console.log("[WH] addons parsed:", Array.isArray(arr), "len:", Array.isArray(arr) ? arr.length : -1);
-
-          if (Array.isArray(arr) && arr.length) console.log("[WH] addons[0] keys:", Object.keys(arr[0] || {}), "sample:", arr[0]);
-
           let inserted = 0;
           for (const a of arr) {
           const activity = String(a.activity || "").trim();
@@ -505,7 +500,7 @@ app.post("/api/payments/webhook", express.raw({ type: "application/json" }), asy
                 String(a.uom || "") || null,
                 Number(a.unitPrice || 0),
                 Number(a.qty || 1),
-                String(a.currency || currency || "PHP").toUpperCase(),
+                String(currency || "USD").toUpperCase(),
                 Number(a.lineTotal || 0),
                 String(a.comment || "") || null,
               ]
@@ -652,7 +647,7 @@ app.post("/api/payments/webhook", express.raw({ type: "application/json" }), asy
         const bRoomsQty = Number(qTraveler.rows?.[0]?.qty || 1) || 1;
         const bGuestsCount = Number(qTraveler.rows?.[0]?.guests || 1) || 1;
 
-        const bCur = String(qTraveler.rows?.[0]?.currency || "PHP").toUpperCase();
+        const bCur = String(qTraveler.rows?.[0]?.currency || "USD").toUpperCase();
         const bAmt = Number(qTraveler.rows?.[0]?.amountPaid || 0);
 
         const bBookingStatus = String(
@@ -1183,7 +1178,7 @@ async function handleBookingDecision(req: Request, res: Response, decision: "CON
       const roomsQty = Number(q.rows?.[0]?.qty || 1) || 1;
       const guestsCount = Number(q.rows?.[0]?.guests || 1) || 1;
 
-      const dCur = String(q.rows?.[0]?.currency || "PHP").toUpperCase();
+      const dCur = String(q.rows?.[0]?.currency || "USD").toUpperCase();
       const dAmt = Number(q.rows?.[0]?.amountPaid || 0);
 
       const partnerId = Number(q.rows?.[0]?.partnerId || 0) || 0;
@@ -2710,7 +2705,7 @@ app.post("/api/payments/create-checkout-session", async (req: Request, res: Resp
   try {
     const body: any = req.body || {};
 
-    const currency = String(body.currency || "usd").toLowerCase();
+    const currency = "usd";
 
     const totalCentsRaw =
       body.totalCents != null ? Number(body.totalCents) :
@@ -2737,7 +2732,7 @@ app.post("/api/payments/create-checkout-session", async (req: Request, res: Resp
       travelerEmail:     String(body.travelerEmail || "").trim(),
       travelerPhone:     String(body.travelerPhone || "").trim(),
       totalCents:        String(Math.trunc(totalCents)),
-      currency:          String(currency),
+      currency:          "usd",
     };
 
     if (body.guestsCount != null) metadata.guestsCount = String(body.guestsCount);
