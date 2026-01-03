@@ -317,9 +317,8 @@
         summary.innerHTML = `
           <div><b>Guest:</b> ${esc(guest)}</div>
           <div><b>Stay:</b> ${esc(stayTxt)}</div>
-          <div><b>Status:</b> ${esc(b.status || "-")}</div>
+          <div><b>Status:</b> ${esc(String(b.status || "-").replaceAll("_", " "))}</div>
           <div><b>Guests:</b> ${esc(b.guests ?? "-")}</div>
-          <div><b>Payment:</b> ${esc(b.paymentProvider || "-")} ${esc(b.providerPaymentId || "")}</div>
         `;
       }
 
@@ -574,8 +573,8 @@
                   <th style="text-align:left; padding:8px; border-bottom:1px solid #203150;">Room</th>
                   <th style="text-align:left; padding:8px; border-bottom:1px solid #203150;">Rate plan</th>
                   <th style="text-align:left; padding:8px; border-bottom:1px solid #203150;">Dates</th>
-                  <th style="text-align:right; padding:8px; border-bottom:1px solid #203150;">Qty</th>
-                  <th style="text-align:right; padding:8px; border-bottom:1px solid #203150;">Guests</th>
+                  <th style="text-align:right; padding:8px; border-bottom:1px solid #203150;">Room Qty</th>
+                  <th style="text-align:right; padding:8px; border-bottom:1px solid #203150;">No. of Guests</th>
                   <th style="text-align:right; padding:8px; border-bottom:1px solid #203150;">Line total</th>
                 </tr>
               </thead>
