@@ -1,0 +1,53 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Admin Login | Lolaelo</title>
+  <link rel="stylesheet" href="/css/extranet.css">
+  <style>
+    :root{ --bg:#0b1320; --card:#111a2b; --fg:#e8eefc; --muted:#9bb0d3; --accent:#ff6a3d; --line:rgba(255,255,255,.08); }
+    *{ box-sizing:border-box }
+    body{ margin:0; background:var(--bg); color:var(--fg); font-family:Inter,system-ui,-apple-system,Segoe UI,Roboto,Arial; }
+    .wrap{ max-width:520px; margin:0 auto; padding:28px 14px; }
+    .card{ border:1px solid var(--line); background:rgba(17,26,43,.72); border-radius:14px; padding:16px; }
+    h1{ margin:0 0 6px; font-size:18px; }
+    p{ margin:0 0 14px; color:var(--muted); font-size:13px; }
+    label{ display:block; font-size:12px; color:var(--muted); margin:10px 0 6px; }
+    input{ width:100%; padding:10px 12px; border-radius:12px; border:1px solid var(--line); background:#0b1220; color:var(--fg); outline:none; }
+    .row{ display:flex; gap:10px; margin-top:12px; }
+    .row a{ text-decoration:none; }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <div class="card">
+      <h1>Admin login</h1>
+      <p>Internal access only.</p>
+
+      <label for="token">Admin token</label>
+      <input id="token" placeholder="Paste admin token" />
+
+      <div class="row">
+        <button id="btnSave" class="btn" type="button">Enter</button>
+        <a class="btn ghost" href="/partners_app.html">Back to extranet</a>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    (function(){
+      const TOKEN_KEY = "lolaelo_admin_session";
+      const NEXT = "/admin/index.html";
+      const $ = (id) => document.getElementById(id);
+
+      $("btnSave").onclick = () => {
+        const t = ($("token").value || "").trim();
+        if (!t) { alert("Token required."); return; }
+        try { localStorage.setItem(TOKEN_KEY, t); } catch {}
+        location.replace(NEXT);
+      };
+    })();
+  </script>
+</body>
+</html>

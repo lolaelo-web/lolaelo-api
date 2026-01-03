@@ -42,6 +42,11 @@
     .empty{ padding:12px; color:var(--muted); font-size:13px; border:1px dashed var(--line); border-radius:12px; background:#0c1730; }
     .status{ display:inline-flex; align-items:center; gap:8px; font-size:13px; color:var(--muted); }
     .dot{ width:8px; height:8px; border-radius:999px; background:#6aa0ff; display:inline-block; }
+    .brand .dot{
+      width:10px; height:10px; border-radius:999px;
+      background:#2bbb6f; box-shadow:0 0 0 3px rgba(43,187,111,.25);
+    }
+    .actions a.btn{ text-decoration:none; }
   </style>
 </head>
 
@@ -49,15 +54,12 @@
   <div class="wrap">
     <div class="topbar">
       <div class="brand">
-        <a href="partners_app.html" title="Back to hub">
-          <img src="https://www.lolaelo.com/logo.png?cb=logo-1x" alt="Lolaelo" />
-        </a>
+        <span class="dot" aria-hidden="true"></span>
         <div class="title">Lolaelo Extranet</div>
       </div>
 
       <div class="actions">
-        <a class="btn ghost" href="partners_app.html" title="Back to hub">Back</a>
-        <a class="btn ghost" href="mailto:support@lolaelo.com" title="Support">Support</a>
+        <a class="btn ghost" href="mailto:support@lolaelo.com" title="Support" style="text-decoration:none;">Support</a>
         <button id="btnLogout" class="btn ghost" title="Sign out">Sign out</button>
       </div>
     </div>

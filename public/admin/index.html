@@ -1,0 +1,81 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Lolaelo Admin</title>
+  <link rel="stylesheet" href="/css/extranet.css">
+  <style>
+    :root{ --bg:#0b1320; --card:#111a2b; --fg:#e8eefc; --muted:#9bb0d3; --accent:#ff6a3d; --line:rgba(255,255,255,.08); }
+    *{ box-sizing:border-box }
+    body{ margin:0; background:radial-gradient(1200px 600px at 20% -10%, rgba(255,106,61,.16), transparent 55%), var(--bg); color:var(--fg); font-family:Inter,system-ui,-apple-system,Segoe UI,Roboto,Arial; }
+    .wrap{ max-width:1100px; margin:0 auto; padding:18px 14px 28px; }
+    .topbar{ display:flex; align-items:center; justify-content:space-between; gap:12px; margin-bottom:16px; }
+    .brand{ display:flex; align-items:center; gap:10px; }
+    .brand .dot{ width:10px; height:10px; border-radius:999px; background:#2bbb6f; box-shadow:0 0 0 3px rgba(43,187,111,.25) }
+    .title{ font-weight:700; letter-spacing:.2px; }
+    .actions{ display:flex; gap:10px; align-items:center; }
+    .actions a{ text-decoration:none; }
+    .hero{ border:1px solid var(--line); background:rgba(17,26,43,.72); border-radius:14px; padding:14px; }
+    .hero h1{ margin:0; font-size:20px; }
+    .hero p{ margin:6px 0 0; color:var(--muted); font-size:13px; }
+    .grid{ display:grid; grid-template-columns:repeat(auto-fill,minmax(240px,1fr)); gap:12px; margin-top:12px; }
+    .tile{ display:block; padding:16px; border:1px solid var(--line); background:rgba(17,26,43,.72); border-radius:14px; text-decoration:none; color:var(--fg); }
+    .tile h3{ margin:0; font-size:15px; }
+    .tile p{ margin:8px 0 0; color:var(--muted); font-size:13px; line-height:1.35; }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <div class="topbar">
+      <div class="brand">
+        <span class="dot" aria-hidden="true"></span>
+        <div class="title">Lolaelo Admin</div>
+      </div>
+      <div class="actions">
+        <a class="btn ghost" href="/admin/login.html" title="Switch account">Auth</a>
+        <button id="btnLogout" class="btn ghost" type="button">Sign out</button>
+      </div>
+    </div>
+
+    <div class="hero">
+      <h1>Admin hub</h1>
+      <p>Internal tools for payouts, reconciliation, and operations.</p>
+    </div>
+
+    <div class="grid">
+      <a class="tile" href="/admin/ap.html">
+        <h3>AP Payouts</h3>
+        <p>Audit completed bookings ready for payout, record payments, and generate payout reports.</p>
+      </a>
+
+      <a class="tile" href="#" onclick="alert('Later: AR and reconciliation.'); return false;">
+        <h3>Finance (AR)</h3>
+        <p>Traveler payments, refunds, chargebacks, reconciliation.</p>
+      </a>
+
+      <a class="tile" href="#" onclick="alert('Later: partner admin tools.'); return false;">
+        <h3>Partners</h3>
+        <p>Partner access, property status, onboarding.</p>
+      </a>
+    </div>
+  </div>
+
+  <script>
+    (function(){
+      const LOGIN = "/admin/login.html";
+      const TOKEN_KEY = "lolaelo_admin_session";
+
+      function getAdminToken(){ try { return localStorage.getItem(TOKEN_KEY) || ""; } catch { return ""; } }
+
+      // Gate
+      if (!getAdminToken()) location.replace(LOGIN);
+
+      document.getElementById("btnLogout").onclick = () => {
+        try { localStorage.removeItem(TOKEN_KEY); } catch {}
+        location.replace(LOGIN);
+      };
+    })();
+  </script>
+</body>
+</html>

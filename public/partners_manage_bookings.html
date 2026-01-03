@@ -182,8 +182,8 @@
       if (empty) {
         if (key === 'pending')
           empty.textContent = 'No pending or active bookings loaded yet. Next step is wiring the list endpoint.';
-        if (key === 'completed')
-          empty.textContent = 'No completed stays loaded yet. Next step is wiring the list endpoint.';
+      if (key === 'completed')
+        empty.textContent = 'No payment-ready stays loaded yet.';
         if (key === 'canceled')
           empty.textContent = 'No canceled or expired bookings loaded yet. Next step is wiring the list endpoint.';
       }
@@ -191,8 +191,8 @@
       if (note) {
         if (key === 'pending')
           note.textContent = 'Next wiring: when hotel clicks Confirm or Decline in the email, the endpoint can redirect back here with ?result=confirmed or ?result=declined plus the booking ref.';
-        if (key === 'completed')
-          note.textContent = 'Completed means the traveler stayed and checked out with no incidents.';
+      if (key === 'completed')
+        note.textContent = 'Payment Ready shows stays whose checkout date has passed. Use "Mark completed" to confirm the stay is complete and ready for payout.';
         if (key === 'canceled')
           note.textContent = 'Canceled or expired means no confirmed booking occurred. This includes hotel decline, token expiry, or cancellation.';
       }
@@ -407,6 +407,38 @@
       return `<span class="pill">${esc(s)}</span>`;
     }
 
+    function isPaymentReadyTab(){
+      return (document.getElementById("tabState")?.value || "pending") === "completed";
+    }
+
+    async function markCompleted(bookingRef){
+      if (!bookingRef) return;
+
+      const ok = confirm("Mark this booking as completed and ready for payout?");
+      if (!ok) return;
+
+      const partnerId = 2; // temporary, will come from session later
+      const headers = { "Content-Type": "application/json", "x-partner-id": String(partnerId) };
+
+      const session = localStorage.getItem("lolaelo_session");
+      const partnerToken = localStorage.getItem("partnerToken");
+      if (session) headers["Authorization"] = `Bearer ${session}`;
+      if (partnerToken) headers["x-partner-token"] = partnerToken;
+
+      const url = `${API_BASE}/api/extranet/me/bookings/${encodeURIComponent(bookingRef)}/mark-completed`;
+
+      const res = await fetch(url, { method:"POST", headers });
+
+      if (!res.ok) {
+        const msg = await res.text().catch(() => "");
+        alert(`Failed to mark completed (${res.status}). ${msg || ""}`.trim());
+        return;
+      }
+
+      // Refresh current tab
+      await loadBookingsForActiveTab();
+    }
+
     function renderBookings(rows){
       const tbody = document.getElementById("bookingsTbody");
       if (!tbody) return;
@@ -469,7 +501,23 @@
                     </div>
                   `;
                 }
-                return `<button class="btn ghost" type="button" onclick="openBookingModal('${esc(r.bookingRef)}')">View</button>`;
+                return (() => {
+                  const ref = esc(r.bookingRef);
+                  const st = String(r.status || "");
+                  const inPaymentReady = isPaymentReadyTab();
+
+                  // On Payment Ready tab, allow hotel to flip CONFIRMED -> COMPLETED
+                  if (inPaymentReady && st === "CONFIRMED") {
+                    return `
+                      <div style="display:flex; gap:8px; flex-wrap:wrap; align-items:center;">
+                        <button class="btn ghost" type="button" onclick="openBookingModal('${ref}')">View</button>
+                        <button class="btn" type="button" onclick="markCompleted('${ref}')">Mark completed</button>
+                      </div>
+                    `;
+                  }
+
+                  return `<button class="btn ghost" type="button" onclick="openBookingModal('${ref}')">View</button>`;
+                })();
               })()}
             </td>
           </tr>
@@ -521,8 +569,12 @@
         // Pending/Active: show pending hotel confirmation + upcoming/active confirmed stays
         viewRows = rows.filter(r => !(String(r.status) === "CONFIRMED" && isPastCheckout(r)));
       } else if (bucket === "completed") {
-        // Completed: confirmed stays whose checkout date has passed
-        viewRows = rows.filter(r => (String(r.status) === "CONFIRMED" && isPastCheckout(r)));
+        // Payment Ready: (A) confirmed stays whose checkout date has passed, plus (B) already completed stays
+        viewRows = rows.filter(r => {
+          const st = String(r.status || "");
+          if (st === "COMPLETED") return true;
+          return (st === "CONFIRMED" && isPastCheckout(r));
+        });
       } else if (bucket === "canceled") {
         // Canceled bucket is fetched directly
         viewRows = rows;
@@ -560,8 +612,8 @@
 
       <div class="tabs" aria-label="Booking tabs">
         <button class="tab active" id="tabPending" type="button">Pending / Active</button>
-        <button class="tab" id="tabCompleted" type="button">Completed</button>
-        <button class="tab" id="tabCanceled" type="button">Canceled / Expired (no response)</button>
+        <button class="tab" id="tabCompleted" type="button">Payment Ready</button>
+        <button class="tab" id="tabCanceled" type="button">Canceled / Expired (Hotel no response)</button>
         <input type="hidden" id="tabState" value="pending" />
       </div>
 

@@ -1,0 +1,166 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>AP Payouts | Lolaelo Admin</title>
+
+  <link rel="stylesheet" href="/css/extranet.css">
+
+  <style>
+    :root{
+      --bg:#0b1320; --card:#111a2b; --fg:#e8eefc; --muted:#9bb0d3;
+      --accent:#ff6a3d; --line:rgba(255,255,255,.08);
+    }
+    *{ box-sizing:border-box }
+    body{
+      margin:0;
+      background:radial-gradient(1200px 600px at 20% -10%, rgba(255,106,61,.16), transparent 55%), var(--bg);
+      color:var(--fg);
+      font-family:Inter,system-ui,-apple-system,Segoe UI,Roboto,Arial;
+    }
+    .wrap{ max-width:1200px; margin:0 auto; padding:18px 14px 28px; }
+
+    .topbar{
+      display:flex; align-items:center; justify-content:space-between;
+      gap:12px; margin-bottom:14px;
+    }
+    .brand{ display:flex; align-items:center; gap:10px; }
+    .brand .dot{
+      width:10px; height:10px; border-radius:999px;
+      background:#2bbb6f; box-shadow:0 0 0 3px rgba(43,187,111,.25);
+    }
+    .title{ font-weight:700; letter-spacing:.2px; }
+
+    .actions{ display:flex; gap:10px; align-items:center; }
+    .actions a{ text-decoration:none; }
+
+    .hero{
+      border:1px solid var(--line);
+      background:rgba(17,26,43,.72);
+      border-radius:14px;
+      padding:14px;
+    }
+    .hero h1{ margin:0; font-size:20px; }
+    .hero p{ margin:6px 0 0; color:var(--muted); font-size:13px; }
+
+    .controls{
+      display:flex; flex-wrap:wrap; gap:10px;
+      margin:12px 0;
+    }
+    .controls select, .controls input{
+      background:#0b1220;
+      border:1px solid var(--line);
+      color:var(--fg);
+      padding:8px 10px;
+      border-radius:10px;
+      font-size:13px;
+    }
+
+    .table{
+      border:1px solid var(--line);
+      border-radius:14px;
+      overflow:hidden;
+      background:rgba(17,26,43,.72);
+    }
+    table{ width:100%; border-collapse:collapse; }
+    th,td{
+      border-bottom:1px solid var(--line);
+      padding:10px 8px;
+      font-size:13px;
+      text-align:left;
+      vertical-align:top;
+    }
+    th{ color:var(--muted); font-weight:600; }
+    tr:last-child td{ border-bottom:none; }
+
+    .muted{ color:var(--muted); }
+    .right{ text-align:right; }
+  </style>
+</head>
+
+<body>
+  <div class="wrap">
+    <div class="topbar">
+      <div class="brand">
+        <span class="dot" aria-hidden="true"></span>
+        <div class="title">Lolaelo Admin · AP</div>
+      </div>
+      <div class="actions">
+        <button id="btnLogout" class="btn ghost" type="button">Sign out</button>
+      </div>
+    </div>
+
+    <div class="hero">
+      <h1>Accounts Payable – Partner payouts</h1>
+      <p>Audit completed bookings ready for payout. Record payments after bank transfer.</p>
+    </div>
+
+    <div class="controls">
+      <label>
+        Week
+        <input id="week" type="week" />
+      </label>
+      <label>
+        Property
+        <select id="property">
+          <option value="">All properties</option>
+        </select>
+      </label>
+      <button class="btn" type="button" onclick="load()">Load</button>
+    </div>
+
+    <div class="table">
+      <table>
+        <thead>
+          <tr>
+            <th>Property</th>
+            <th>Week</th>
+            <th>Completed bookings</th>
+            <th class="right">Total net due</th>
+            <th>Action</th>
+          </tr>
+        </thead>
+        <tbody id="rows">
+          <tr>
+            <td colspan="5" class="muted">No data loaded.</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <script>
+    (function(){
+      const ADMIN_TOKEN = "lolaelo_admin_session";
+      const LOGIN = "/admin/login.html";
+      const API_BASE = location.origin;
+
+      function getToken(){ try{ return localStorage.getItem(ADMIN_TOKEN) || ""; }catch{ return ""; } }
+
+      if (!getToken()) location.replace(LOGIN);
+
+      document.getElementById("btnLogout").onclick = () => {
+        try{ localStorage.removeItem(ADMIN_TOKEN); }catch{}
+        location.replace(LOGIN);
+      };
+
+      window.load = async function(){
+        // Stub only – backend wiring next sprint
+        const tbody = document.getElementById("rows");
+        tbody.innerHTML = `
+          <tr>
+            <td>Hotel Test 111</td>
+            <td>${document.getElementById("week").value || "—"}</td>
+            <td>3</td>
+            <td class="right">$420.00</td>
+            <td>
+              <button class="btn ghost" onclick="alert('Create payout record (next).')">Create payout</button>
+            </td>
+          </tr>
+        `;
+      };
+    })();
+  </script>
+</body>
+</html>
