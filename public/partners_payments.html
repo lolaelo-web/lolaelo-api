@@ -73,6 +73,10 @@
       border:1px solid var(--line); padding:2px 10px; border-radius:999px;
       font-size:12px; color:var(--muted);
     }
+
+    #readyTable button.btn{ position:relative; z-index:2; pointer-events:auto; }
+    #readyTable td{ position:relative; }
+
   </style>
 </head>
 
@@ -85,6 +89,7 @@
       </div>
 
       <div class="actions">
+        <a class="btn ghost" href="partners_app.html" title="Back to menu" style="text-decoration:none;">Back to menu</a>
         <a class="btn ghost" href="mailto:support@lolaelo.com" title="Support" style="text-decoration:none;">Support</a>
         <button id="btnLogout" class="btn ghost" title="Sign out">Sign out</button>
       </div>
@@ -154,15 +159,15 @@
         <h2>Totals</h2>
         <div class="kpis">
           <div class="kpi">
-            <div class="label">Total received</div>
+            <div class="label">Total Received</div>
             <div class="value" id="kpiTotalReceived">-</div>
           </div>
           <div class="kpi">
-            <div class="label">Pending payout</div>
+            <div class="label">Pending Payout</div>
             <div class="value" id="kpiTotalPending">-</div>
           </div>
           <div class="kpi">
-            <div class="label">Payments count</div>
+            <div class="label">No. of Payouts Sent</div>
             <div class="value" id="kpiCount">-</div>
           </div>
         </div>
@@ -480,10 +485,14 @@
             const total = money(b.amountPaid || 0, b.currency || "USD");
             return `
               <tr>
-                <td><span class="muted">${esc(ref)}</span></td>
+                <td>
+                  <button class="btn ghost" type="button" onclick="openBooking('${esc(ref)}')" style="padding:6px 10px;">
+                    ${esc(ref)}
+                  </button>
+                </td>
                 <td>${esc(stay)}</td>
                 <td class="right">${esc(total)}</td>
-                <td><span class="pill">Completed</span></td>
+                <td><span class="pill">Payment Ready</span></td>
               </tr>
             `;
           }).join("");
