@@ -1769,6 +1769,133 @@ app.get("/api/extranet/me/bookings", async (req: Request, res: Response) => {
 });
 // ANCHOR: EXTRANET_ME_BOOKINGS_ROUTE END
 
+// ANCHOR: EXTRANET_ME_PAYOUT_READY_ROUTE
+app.get("/api/extranet/me/payout-ready", async (req: Request, res: Response) => {
+  try {
+    const partnerId = requirePartnerIdFromRequest(req);
+
+    const rows = await withDb(async (client) => {
+      const q = `
+        SELECT
+          b.id,
+          b."bookingRef",
+          b.status::text as status,
+          b."checkInDate",
+          b."checkOutDate",
+          b.qty,
+          b.guests,
+          b.currency,
+          b."amountPaid",
+          COALESCE(pp.name, p.name, ('Partner #' || b."partnerId"::text)) AS "propertyName"
+        FROM extranet."Booking" b
+        LEFT JOIN extranet."PropertyProfile" pp ON pp."partnerId" = b."partnerId"
+        LEFT JOIN extranet."Partner" p ON p.id = b."partnerId"
+        WHERE b."partnerId" = $1
+          AND b.status = 'COMPLETED'::extranet."BookingStatus"
+          AND NOT EXISTS (
+            SELECT 1 FROM extranet."PayoutBooking" pb WHERE pb."bookingId" = b.id
+          )
+        ORDER BY b."checkOutDate" DESC, b."createdAt" DESC
+        LIMIT 500
+      `;
+      const r = await client.query(q, [partnerId]);
+      return r.rows || [];
+    });
+
+    return res.json({ ok: true, rows });
+  } catch {
+    return res.status(401).json({ ok: false, error: "unauthorized" });
+  }
+});
+// ANCHOR: EXTRANET_ME_PAYOUT_READY_ROUTE END
+
+// ANCHOR: EXTRANET_ME_PAYOUTS_ROUTE
+app.get("/api/extranet/me/payouts", async (req: Request, res: Response) => {
+  try {
+    const partnerId = requirePartnerIdFromRequest(req);
+
+    const rows = await withDb(async (client) => {
+      const q = `
+        SELECT
+          p.id,
+          p."weekStart",
+          p."weekEnd",
+          p.currency,
+          p."amountNet",
+          p.method,
+          p."confirmationNumber",
+          p."paidAt",
+          p.status::text as status,
+          p."createdAt",
+          (SELECT COUNT(*) FROM extranet."PayoutBooking" pb WHERE pb."payoutId" = p.id) AS "bookingCount"
+        FROM extranet."Payout" p
+        WHERE p."partnerId" = $1
+        ORDER BY COALESCE(p."paidAt", p."createdAt") DESC, p.id DESC
+        LIMIT 200
+      `;
+      const r = await client.query(q, [partnerId]);
+      return r.rows || [];
+    });
+
+    return res.json({ ok: true, rows });
+  } catch {
+    return res.status(401).json({ ok: false, error: "unauthorized" });
+  }
+});
+// ANCHOR: EXTRANET_ME_PAYOUTS_ROUTE END
+
+// ANCHOR: EXTRANET_ME_PAYOUT_DETAIL_ROUTE
+app.get("/api/extranet/me/payouts/:payoutId/bookings", async (req: Request, res: Response) => {
+  const payoutId = Number(req.params.payoutId || 0);
+  if (!payoutId) return res.status(400).json({ ok: false, error: "payoutId_required" });
+
+  try {
+    const partnerId = requirePartnerIdFromRequest(req);
+
+    const data = await withDb(async (client) => {
+      // Ensure payout belongs to this partner
+      const pq = await client.query(
+        `SELECT id, "partnerId", "weekStart", "weekEnd", currency, "amountNet", method, "confirmationNumber", "paidAt", status::text as status
+         FROM extranet."Payout"
+         WHERE id = $1 AND "partnerId" = $2
+         LIMIT 1`,
+        [payoutId, partnerId]
+      );
+      if (!pq.rows.length) return null;
+
+      const items = await client.query(
+        `
+        SELECT
+          pb.id,
+          pb."bookingId",
+          COALESCE(pb."bookingRef", b."bookingRef") AS "bookingRef",
+          COALESCE(pb."propertyName", COALESCE(pp.name, p.name, ('Partner #' || b."partnerId"::text))) AS "propertyName",
+          b."checkInDate",
+          b."checkOutDate",
+          b.currency,
+          b."amountPaid",
+          pb."netAmount"
+        FROM extranet."PayoutBooking" pb
+        JOIN extranet."Booking" b ON b.id = pb."bookingId"
+        LEFT JOIN extranet."PropertyProfile" pp ON pp."partnerId" = b."partnerId"
+        LEFT JOIN extranet."Partner" p ON p.id = b."partnerId"
+        WHERE pb."payoutId" = $1
+        ORDER BY b."checkInDate" DESC, b."createdAt" DESC
+        `,
+        [payoutId]
+      );
+
+      return { payout: pq.rows[0], bookings: items.rows || [] };
+    });
+
+    if (!data) return res.status(404).json({ ok: false, error: "not_found" });
+    return res.json({ ok: true, ...data });
+  } catch {
+    return res.status(401).json({ ok: false, error: "unauthorized" });
+  }
+});
+// ANCHOR: EXTRANET_ME_PAYOUT_DETAIL_ROUTE END
+
 // ANCHOR: EXTRANET_ME_BOOKING_DETAIL_ROUTE
 app.get("/api/extranet/me/bookings/:bookingRef", async (req: Request, res: Response) => {
   const bookingRef = String(req.params.bookingRef || "").trim();

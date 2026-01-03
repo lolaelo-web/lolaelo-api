@@ -16,37 +16,63 @@
     :root{ --bg:#0b1320; --card:#111a2b; --fg:#e8eefc; --muted:#9bb0d3; --accent:#ff6a3d; --line:rgba(255,255,255,.08); }
     body{ margin:0; font-family:Inter,system-ui,-apple-system,Segoe UI,Roboto,Arial; background:var(--bg); color:var(--fg); }
     .wrap{ max-width:1100px; margin:0 auto; padding:18px 14px 28px; }
+
     .topbar{ display:flex; align-items:center; justify-content:space-between; gap:12px; margin-bottom:14px; }
     .brand{ display:flex; align-items:center; gap:10px; min-width:0; }
-    .brand img{ height:26px; width:auto; display:block; }
     .title{ font-weight:700; letter-spacing:.2px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
     .actions{ display:flex; gap:10px; align-items:center; }
+    .actions a.btn{ text-decoration:none; }
+
     .crumb{ color:var(--muted); font-size:13px; margin:6px 0 10px; }
-    .hero{ display:flex; align-items:flex-end; justify-content:space-between; gap:12px; padding:14px 14px; border:1px solid var(--line); background:var(--panel); border-radius:14px; }
+
+    .hero{
+      display:flex; align-items:flex-end; justify-content:space-between; gap:12px;
+      padding:14px 14px; border:1px solid var(--line); background:var(--panel);
+      border-radius:14px;
+    }
     .hero h1{ margin:0; font-size:20px; }
     .hero p{ margin:6px 0 0; color:var(--muted); font-size:13px; }
+
     .grid{ display:grid; grid-template-columns: 1.1fr .9fr; gap:12px; margin-top:12px; }
     @media (max-width: 900px){ .grid{ grid-template-columns:1fr; } }
+
+    .stack{ display:flex; flex-direction:column; gap:12px; }
+
     .card{ border:1px solid var(--line); background:var(--panel); border-radius:14px; padding:14px; }
     .card h2{ margin:0 0 10px; font-size:14px; letter-spacing:.2px; }
+
     .muted{ color:var(--muted); }
+    .right{ text-align:right; }
+
+    table{ width:100%; border-collapse:collapse; }
+    th,td{ border-bottom:1px solid var(--line); padding:10px 8px; font-size:13px; text-align:left; vertical-align:top; }
+    th{ color:var(--muted); font-weight:600; }
+    tr:last-child td{ border-bottom:none; }
+
+    .empty{
+      padding:12px; color:var(--muted); font-size:13px;
+      border:1px dashed var(--line); border-radius:12px; background:#0c1730;
+    }
+
+    .status{ display:inline-flex; align-items:center; gap:8px; font-size:13px; color:var(--muted); }
+    .dot{ width:8px; height:8px; border-radius:999px; background:#6aa0ff; display:inline-block; }
+
+    .brand .dot{
+      width:10px; height:10px; border-radius:999px;
+      background:#2bbb6f; box-shadow:0 0 0 3px rgba(43,187,111,.25);
+    }
+
     .kpis{ display:grid; grid-template-columns: repeat(3, 1fr); gap:10px; }
     @media (max-width: 600px){ .kpis{ grid-template-columns:1fr; } }
     .kpi{ border:1px solid var(--line); border-radius:12px; padding:12px; background:#0c1730; }
     .kpi .label{ font-size:12px; color:var(--muted); }
     .kpi .value{ margin-top:6px; font-size:18px; font-weight:700; }
-    table{ width:100%; border-collapse:collapse; }
-    th,td{ border-bottom:1px solid var(--line); padding:10px 8px; font-size:13px; text-align:left; }
-    th{ color:var(--muted); font-weight:600; }
-    .row-actions a{ text-decoration:none; }
-    .empty{ padding:12px; color:var(--muted); font-size:13px; border:1px dashed var(--line); border-radius:12px; background:#0c1730; }
-    .status{ display:inline-flex; align-items:center; gap:8px; font-size:13px; color:var(--muted); }
-    .dot{ width:8px; height:8px; border-radius:999px; background:#6aa0ff; display:inline-block; }
-    .brand .dot{
-      width:10px; height:10px; border-radius:999px;
-      background:#2bbb6f; box-shadow:0 0 0 3px rgba(43,187,111,.25);
+
+    .pill{
+      display:inline-flex; align-items:center; gap:6px;
+      border:1px solid var(--line); padding:2px 10px; border-radius:999px;
+      font-size:12px; color:var(--muted);
     }
-    .actions a.btn{ text-decoration:none; }
   </style>
 </head>
 
@@ -69,7 +95,7 @@
     <div class="hero">
       <div>
         <h1>Payments</h1>
-        <p>View payment history, totals, and receipts.</p>
+        <p>View completed bookings ready for payout and your payment history.</p>
       </div>
       <div class="status" id="status">
         <span class="dot"></span>
@@ -78,25 +104,49 @@
     </div>
 
     <div class="grid">
-      <div class="card">
-        <h2>Payment history</h2>
-        <div id="historyEmpty" class="empty" style="display:none;">
-          No payments found yet.
+      <div class="stack">
+        <div class="card">
+          <h2>Ready for payout</h2>
+          <div class="muted" style="font-size:13px; margin:-4px 0 10px;">
+            These are completed stays not yet included in a payout.
+          </div>
+
+          <div id="readyEmpty" class="empty" style="display:none;">No completed bookings waiting for payout.</div>
+
+          <div style="overflow:auto;">
+            <table id="readyTable" style="display:none;">
+              <thead>
+                <tr>
+                  <th>Booking</th>
+                  <th>Stay dates</th>
+                  <th class="right">Total</th>
+                  <th>Status</th>
+                </tr>
+              </thead>
+              <tbody id="readyBody"></tbody>
+            </table>
+          </div>
         </div>
 
-        <div style="overflow:auto;">
-          <table id="historyTable" style="display:none;">
-            <thead>
-              <tr>
-                <th>Date</th>
-                <th>Booking</th>
-                <th>Amount</th>
-                <th>Status</th>
-                <th>Receipt</th>
-              </tr>
-            </thead>
-            <tbody id="historyBody"></tbody>
-          </table>
+        <div class="card">
+          <h2>Payment history</h2>
+
+          <div id="historyEmpty" class="empty" style="display:none;">No payments found yet.</div>
+
+          <div style="overflow:auto;">
+            <table id="historyTable" style="display:none;">
+              <thead>
+                <tr>
+                  <th>Date</th>
+                  <th>Confirmation</th>
+                  <th class="right">Amount</th>
+                  <th>Bookings</th>
+                  <th>Details</th>
+                </tr>
+              </thead>
+              <tbody id="historyBody"></tbody>
+            </table>
+          </div>
         </div>
       </div>
 
@@ -108,7 +158,7 @@
             <div class="value" id="kpiTotalReceived">-</div>
           </div>
           <div class="kpi">
-            <div class="label">Total pending</div>
+            <div class="label">Pending payout</div>
             <div class="value" id="kpiTotalPending">-</div>
           </div>
           <div class="kpi">
@@ -124,6 +174,36 @@
     </div>
   </div>
 
+  <!-- ANCHOR: PAYOUT_MODAL -->
+  <div id="payoutModal" style="display:none; position:fixed; inset:0; background:rgba(0,0,0,.55); z-index:9999; padding:18px; overflow:auto;">
+    <div style="max-width:980px; margin:0 auto; border:1px solid var(--line); background:var(--panel); border-radius:14px;">
+      <div style="display:flex; justify-content:space-between; gap:12px; align-items:center; padding:14px 16px; border-bottom:1px solid var(--line);">
+        <div>
+          <div style="font-weight:800; font-size:14px;" id="pmTitle">Payment details</div>
+          <div class="muted" style="font-size:12px;" id="pmSub">Loading...</div>
+        </div>
+        <button class="btn ghost" type="button" onclick="closePayoutModal()">Close</button>
+      </div>
+
+      <div style="padding:14px 16px;">
+        <div id="pmEmpty" class="empty" style="display:none;">No bookings found for this payment.</div>
+
+        <div style="overflow:auto;">
+          <table id="pmTable" style="display:none; width:100%; border-collapse:collapse;">
+            <thead>
+              <tr>
+                <th>Booking</th>
+                <th>Stay dates</th>
+                <th class="right">Total</th>
+              </tr>
+            </thead>
+            <tbody id="pmBody"></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  </div>
+
   <script>
     (function () {
       // --- Config --------------------------------------------------------------
@@ -132,6 +212,15 @@
 
       // --- Helpers -------------------------------------------------------------
       const $ = (id) => document.getElementById(id);
+
+      function esc(s){
+        return String(s == null ? "" : s)
+          .replace(/&/g,"&amp;")
+          .replace(/</g,"&lt;")
+          .replace(/>/g,"&gt;")
+          .replace(/"/g,"&quot;")
+          .replace(/'/g,"&#39;");
+      }
 
       function getToken() {
         try { return localStorage.getItem("lolaelo_session") || ""; } catch { return ""; }
@@ -161,6 +250,12 @@
         }
       }
 
+      function fmtYmd(d){
+        if (!d) return "";
+        const s = String(d);
+        return s.length >= 10 ? s.slice(0,10) : s;
+      }
+
       // --- UI wiring -----------------------------------------------------------
       $("btnLogout").onclick = async () => {
         try {
@@ -176,9 +271,62 @@
 
       $("btnRefresh").onclick = () => load();
 
-      // --- Data load (stub) ----------------------------------------------------
-      // NOTE: This is intentionally a stub so the page can ship now.
-      // Next sprint: wire to a real endpoint (e.g. /extranet/payments or /extranet/bookings?includePayments=1).
+      window.closePayoutModal = function(){
+        const m = $("payoutModal");
+        if (m) m.style.display = "none";
+      };
+
+      window.openPayout = async function(payoutId){
+        const m = $("payoutModal");
+        if (!m) return;
+
+        $("pmTitle").textContent = "Payment details";
+        $("pmSub").textContent = "Loading...";
+        $("pmEmpty").style.display = "none";
+        $("pmTable").style.display = "none";
+        $("pmBody").innerHTML = "";
+
+        m.style.display = "block";
+
+        const r = await authFetch(`/api/extranet/me/payouts/${payoutId}/bookings`, { method:"GET" });
+        if (!r.ok) {
+          $("pmSub").textContent = `Failed to load (${r.status})`;
+          $("pmEmpty").style.display = "";
+          return;
+        }
+
+        const j = await r.json();
+        const payout = j.payout || {};
+        const bookings = Array.isArray(j.bookings) ? j.bookings : [];
+
+        const conf = payout.confirmationNumber ? String(payout.confirmationNumber) : "-";
+        const paidAt = payout.paidAt ? fmtYmd(payout.paidAt) : "-";
+        $("pmSub").textContent = `Paid: ${paidAt} | Confirmation: ${conf}`;
+
+        if (!bookings.length) {
+          $("pmEmpty").style.display = "";
+          return;
+        }
+
+        $("pmBody").innerHTML = bookings.map(b => {
+          const ref = String(b.bookingRef || "");
+          const inD = fmtYmd(b.checkInDate);
+          const outD = fmtYmd(b.checkOutDate);
+          const stay = (inD && outD) ? `${inD} to ${outD}` : "-";
+          const total = money(b.amountPaid || 0, b.currency || (payout.currency || "USD"));
+          return `
+            <tr>
+              <td><span class="muted">${esc(ref)}</span></td>
+              <td>${esc(stay)}</td>
+              <td class="right">${esc(total)}</td>
+            </tr>
+          `;
+        }).join("");
+
+        $("pmTable").style.display = "";
+      };
+
+      // --- Data load -----------------------------------------------------------
       async function load() {
         setStatus("Loading...");
 
@@ -189,12 +337,82 @@
           return;
         }
 
-        // Stub UI state: empty history
+        // Reset
+        $("readyTable").style.display = "none";
+        $("readyEmpty").style.display = "none";
         $("historyTable").style.display = "none";
-        $("historyEmpty").style.display = "";
+        $("historyEmpty").style.display = "none";
+
         $("kpiTotalReceived").textContent = "-";
         $("kpiTotalPending").textContent = "-";
         $("kpiCount").textContent = "-";
+
+        // 1) Ready for payout (completed bookings not linked to payout)
+        const r1 = await authFetch("/api/extranet/me/payout-ready", { method: "GET" });
+        if (!r1.ok) throw new Error(`ready_failed_${r1.status}`);
+        const readyJson = await r1.json();
+        const readyRows = Array.isArray(readyJson.rows) ? readyJson.rows : [];
+
+        if (!readyRows.length) {
+          $("readyEmpty").style.display = "";
+        } else {
+          $("readyBody").innerHTML = readyRows.map(b => {
+            const ref = String(b.bookingRef || "");
+            const inD = fmtYmd(b.checkInDate);
+            const outD = fmtYmd(b.checkOutDate);
+            const stay = (inD && outD) ? `${inD} to ${outD}` : "-";
+            const total = money(b.amountPaid || 0, b.currency || "USD");
+            return `
+              <tr>
+                <td><span class="muted">${esc(ref)}</span></td>
+                <td>${esc(stay)}</td>
+                <td class="right">${esc(total)}</td>
+                <td><span class="pill">Completed</span></td>
+              </tr>
+            `;
+          }).join("");
+          $("readyTable").style.display = "";
+        }
+
+        // 2) Payment history (payouts)
+        const r2 = await authFetch("/api/extranet/me/payouts", { method: "GET" });
+        if (!r2.ok) throw new Error(`payouts_failed_${r2.status}`);
+        const payJson = await r2.json();
+        const payouts = Array.isArray(payJson.rows) ? payJson.rows : [];
+
+        if (!payouts.length) {
+          $("historyEmpty").style.display = "";
+        } else {
+          $("historyBody").innerHTML = payouts.map(p => {
+            const id = Number(p.id || 0);
+            const paidAt = p.paidAt ? fmtYmd(p.paidAt) : (p.createdAt ? fmtYmd(p.createdAt) : "-");
+            const conf = p.confirmationNumber ? String(p.confirmationNumber) : "-";
+            const amt = (p.amountNet == null) ? "-" : money(p.amountNet, p.currency || "USD");
+            const cnt = Number(p.bookingCount || 0) || 0;
+            return `
+              <tr>
+                <td>${esc(paidAt)}</td>
+                <td><span class="muted">${esc(conf)}</span></td>
+                <td class="right">${esc(amt)}</td>
+                <td>${cnt}</td>
+                <td>
+                  <button class="btn ghost" type="button" onclick="openPayout(${id})">View</button>
+                </td>
+              </tr>
+            `;
+          }).join("");
+          $("historyTable").style.display = "";
+        }
+
+        // KPIs
+        const totalReceived = payouts
+          .filter(p => String(p.status || "").toUpperCase() === "PAID" && p.amountNet != null)
+          .reduce((s, p) => s + Number(p.amountNet || 0), 0);
+
+        const currency = payouts[0]?.currency || "USD";
+        $("kpiTotalReceived").textContent = payouts.length ? money(totalReceived, currency) : "-";
+        $("kpiTotalPending").textContent = readyRows.length ? `${readyRows.length} booking${readyRows.length === 1 ? "" : "s"}` : "-";
+        $("kpiCount").textContent = payouts.length ? String(payouts.length) : "-";
 
         setStatus("Ready");
       }
