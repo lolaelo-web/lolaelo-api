@@ -1787,6 +1787,7 @@ app.get("/api/extranet/me/bookings/:bookingRef", async (req: Request, res: Respo
           b."checkInDate",
           b."checkOutDate",
           b.qty,
+          b.guests,
           b.currency,
           b."amountPaid",
           b."paymentProvider",
@@ -1824,6 +1825,7 @@ app.get("/api/extranet/me/bookings/:bookingRef", async (req: Request, res: Respo
           bi."checkInDate",
           bi."checkOutDate",
           bi.qty,
+          bi.guests,
           bi.currency,
           bi."lineTotal"
         FROM extranet."BookingItem" bi
