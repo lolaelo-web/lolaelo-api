@@ -1874,6 +1874,41 @@ app.get("/api/extranet/me/bookings/:bookingRef", async (req: Request, res: Respo
 });
 // ANCHOR: EXTRANET_ME_BOOKING_DETAIL_ROUTE END
 
+// ANCHOR: EXTRANET_ME_BOOKING_MARK_COMPLETED_ROUTE
+app.post("/api/extranet/me/bookings/:bookingRef/mark-completed", async (req: Request, res: Response) => {
+  const bookingRef = String(req.params.bookingRef || "").trim();
+  if (!bookingRef) return res.status(400).json({ ok: false, error: "bookingRef_required" });
+
+  try {
+    const partnerId = requirePartnerIdFromRequest(req);
+
+    const result = await withDb(async (client) => {
+      // Only allow CONFIRMED -> COMPLETED, scoped to the same partnerId
+      const q = `
+        update extranet."Booking"
+           set status = 'COMPLETED'::extranet."BookingStatus"
+         where "bookingRef" = $1
+           and "partnerId" = $2
+           and status = 'CONFIRMED'::extranet."BookingStatus"
+        returning id, "bookingRef", status::text as status, "partnerId"
+      `;
+      const r = await client.query(q, [bookingRef, partnerId]);
+      return r.rows?.[0] || null;
+    });
+
+    if (!result) {
+      // Either not found, wrong partner, or not in CONFIRMED state
+      return res.status(409).json({ ok: false, error: "not_confirmed_or_not_found" });
+    }
+
+    return res.json({ ok: true, booking: result });
+  } catch (e: any) {
+    console.error("[extranet] mark-completed error", e);
+    return res.status(500).json({ ok: false, error: "server_error" });
+  }
+});
+// ANCHOR: EXTRANET_ME_BOOKING_MARK_COMPLETED_ROUTE END
+
 // ANCHOR: BOOKINGS_BY_SESSION_ROUTE (LIVE)
 app.get("/api/bookings/by-session", async (req: Request, res: Response) => {
   let client: Client | null = null;
