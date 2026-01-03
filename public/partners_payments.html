@@ -233,9 +233,19 @@
       async function authFetch(path, opts) {
         const t = getToken();
         if (!t) throw new Error("NO_TOKEN");
-        const headers = Object.assign({}, (opts && opts.headers) || {}, {
-          Authorization: `Bearer ${t}`
-        });
+
+        const headers = Object.assign({}, (opts && opts.headers) || {});
+        headers["Authorization"] = `Bearer ${t}`;
+
+        // Match the header contract your other partner pages use
+        try {
+          const partnerToken = localStorage.getItem("partnerToken");
+          if (partnerToken) headers["x-partner-token"] = partnerToken;
+        } catch {}
+
+        // Temporary until partnerId is derived server-side from session
+        headers["x-partner-id"] = String(2);
+
         const res = await fetch(`${API_BASE}${path}`, Object.assign({}, opts || {}, { headers }));
         return res;
       }
