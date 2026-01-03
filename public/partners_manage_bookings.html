@@ -211,8 +211,10 @@
 
     function fmtYmd(d){
       if (!d) return "";
-      const dt = (typeof d === "string" && /^\d{4}-\d{2}-\d{2}$/.test(d))
-        ? new Date(d + "T00:00:00")
+      const s = String(d || "");
+      const ymd = (/^\d{4}-\d{2}-\d{2}/.test(s)) ? s.slice(0, 10) : "";
+      const dt = ymd
+        ? new Date(ymd + "T00:00:00")
         : new Date(d);
       if (Number.isNaN(dt.getTime())) return "";
       const y = dt.getFullYear();

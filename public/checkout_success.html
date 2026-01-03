@@ -477,14 +477,31 @@
         // Property (best-effort)
         setText("propertyName", b.propertyName || b.partnerName || b.property || (b.partnerId ? ("Partner #" + b.partnerId) : "-"));
 
-        // Stay dates (authoritative from Booking)
+        // Stay dates (authoritative from Booking) - date-only safe (no timezone shift)
         if (b.checkInDate && b.checkOutDate) {
-        var ci = new Date(String(b.checkInDate) + "T00:00:00");
-        var co = new Date(String(b.checkOutDate) + "T00:00:00");
-          var ciTxt = isFinite(ci.getTime()) ? ci.toLocaleDateString(undefined, { year:"numeric", month:"short", day:"2-digit" }) : String(b.checkInDate);
-          var coTxt = isFinite(co.getTime()) ? co.toLocaleDateString(undefined, { year:"numeric", month:"short", day:"2-digit" }) : String(b.checkOutDate);
+          function parseDateOnlySafe(x){
+            var s = String(x || "");
+            // accept "YYYY-MM-DD" or ISO strings like "YYYY-MM-DDT00:00:00.000Z"
+            var ymd = (/^\d{4}-\d{2}-\d{2}/.test(s)) ? s.slice(0,10) : "";
+            if (ymd) return new Date(ymd + "T00:00:00"); // local midnight
+            var d = new Date(s);
+            return d;
+          }
+
+          var ci = parseDateOnlySafe(b.checkInDate);
+          var co = parseDateOnlySafe(b.checkOutDate);
+
+          var ciTxt = isFinite(ci.getTime())
+            ? ci.toLocaleDateString(undefined, { year:"numeric", month:"short", day:"2-digit" })
+            : String(b.checkInDate).slice(0,10);
+
+          var coTxt = isFinite(co.getTime())
+            ? co.toLocaleDateString(undefined, { year:"numeric", month:"short", day:"2-digit" })
+            : String(b.checkOutDate).slice(0,10);
+
           setText("stayDates", ciTxt + " to " + coTxt);
-        } else {
+        }
+        else {
           setText("stayDates", "-");
         }
 
