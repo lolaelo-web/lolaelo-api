@@ -1,7 +1,6 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <head>
 	<link
 		rel="icon"
 		type="image/png"
@@ -265,15 +264,6 @@
 
 <script>
 (function () {
-  // Mark this history entry as coming from checkout success (BFCache-safe)
-  try {
-    history.replaceState(
-      Object.assign({}, (history.state || {}), { fromCheckoutSuccess: true }),
-      "",
-      location.href
-    );
-  } catch (_) {}
-
   // Block checkout back-navigation for this browser session (optional)
   try { sessionStorage.setItem("checkout.blockAfterSuccess", "1"); } catch (_) {}
 
@@ -286,6 +276,7 @@
       localStorage.removeItem("checkout.lastDetailsUrl");
       localStorage.removeItem("checkout.lastCheckoutSessionId");
       localStorage.removeItem("checkout.pendingBookingRef");
+      localStorage.setItem("checkout.afterSuccessAt", String(Date.now()));
     } catch (_) {}
   }
 
@@ -298,17 +289,6 @@
         "",
         location.pathname + location.search
       );
-
-      window.addEventListener("pageshow", function (e) {
-        if (e && e.persisted) {
-          clearCheckoutState();
-          history.replaceState(
-            Object.assign({}, (history.state || {}), { fromCheckoutSuccess: true }),
-            "",
-            location.pathname + location.search
-          );
-        }
-      });
     } catch (_) {}
   }
 
@@ -331,8 +311,7 @@
 							loading="eager"
 							style="display:block;height:24px;width:auto;"
 						>
-					</a>
-        </a>
+				  </a>
         <div class="navlinks">
           <a href="http://lolaelo-api.onrender.com/destinations.html">Destinations</a>
           <a href="http://lolaelo-api.onrender.com/mission.html">Mission</a>

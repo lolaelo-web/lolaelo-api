@@ -4289,7 +4289,8 @@
               if (!topLink.dataset.cartBound) {
                 topLink.dataset.cartBound = "1";
 
-                topLink.addEventListener("click", (e) => {
+              topLink.addEventListener("click", (e) => {
+                try { localStorage.removeItem("checkout.afterSuccessAt"); } catch (_) {}
                   // Build the line item from the same context used to build the checkout URL
                   const lineId =
                     "ln_" + Date.now().toString(36) + "_" + Math.random().toString(36).slice(2, 8);

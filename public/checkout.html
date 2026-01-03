@@ -4068,28 +4068,21 @@
     //   [data-apply-addons-modal]
 
     function initCheckout() {
-
-      // === HARD BACK-NAV BLOCK (BFCache safe) ===
-      (function () {
+      // === AFTER-SUCCESS HARD STOP (durable) ===
+      (function(){
         try {
-          const ref = document.referrer || "";
-          if (
-            ref.includes("checkout_success.html") ||
-            ref.includes("stripe.com") ||
-            ref.includes("checkout.stripe.com")
-          ) {
+          const after = localStorage.getItem("checkout.afterSuccessAt");
+          if (after) {
             localStorage.removeItem("checkout.cart.v1");
             localStorage.removeItem("checkout.selection.v1");
             localStorage.removeItem("checkout.lastPropertyId");
             localStorage.removeItem("checkout.lastDetailsUrl");
+            // keep the flag so Back cannot resurrect checkout
             location.replace("/catalog.html");
             return;
           }
         } catch (_) {}
       })();
-
-      // TEMP DEBUG (remove after verify)
-      console.log("[checkout] back-nav ref", { ref: document.referrer, href: location.href });
 
       // === NO-QUERY HARD STOP ===
       (function(){
@@ -4743,27 +4736,15 @@
     // block returning to checkout after success, otherwise force a real reload.
     window.addEventListener("pageshow", function (e) {
       try {
-        if (history.state && history.state.fromCheckoutSuccess) {
-          // Clear any persisted checkout state
+        const after = localStorage.getItem("checkout.afterSuccessAt");
+        if (after) {
           localStorage.removeItem("checkout.cart.v1");
           localStorage.removeItem("checkout.selection.v1");
           localStorage.removeItem("checkout.lastPropertyId");
           localStorage.removeItem("checkout.lastDetailsUrl");
-
+          // keep the flag so Back cannot resurrect checkout
           location.replace("/catalog.html");
           return;
-        }
-      } catch (_) {}
-
-      if (e && e.persisted) {
-        location.reload();
-        return;
-      }
-
-      // Non-BFCache: re-render from cart without double-wiring
-      try {
-        if (typeof renderRoomPriceCardsFromCart === "function") {
-          renderRoomPriceCardsFromCart();
         }
       } catch (_) {}
     });
