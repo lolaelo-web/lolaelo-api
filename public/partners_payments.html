@@ -117,7 +117,7 @@
             <table id="readyTable" style="display:none;">
               <thead>
                 <tr>
-                  <th>Booking</th>
+                  <th>Booking Ref #</th>
                   <th>Stay dates</th>
                   <th class="right">Total</th>
                   <th>Status</th>
@@ -203,6 +203,40 @@
       </div>
     </div>
   </div>
+
+  <!-- ANCHOR: BOOKING_DETAIL_MODAL -->
+  <div id="bookingModal" style="display:none; position:fixed; inset:0; background:rgba(0,0,0,.55); z-index:9999; padding:18px; overflow:auto;">
+    <div style="max-width:980px; margin:0 auto; border:1px solid var(--line); background:var(--panel); border-radius:14px;">
+      <div style="display:flex; justify-content:space-between; gap:12px; align-items:center; padding:14px 16px; border-bottom:1px solid var(--line);">
+        <div>
+          <div style="font-weight:800; font-size:14px;" id="bmTitle">Booking details</div>
+          <div class="muted" style="font-size:12px;" id="bmSub">Loading...</div>
+        </div>
+        <button class="btn ghost" type="button" onclick="closeBookingModal()">Close</button>
+      </div>
+
+      <div style="padding:14px 16px;">
+        <div id="bmSummary" class="empty" style="display:none;"></div>
+
+        <h3 style="margin:0 0 8px; font-size:14px;">Line items</h3>
+        <div id="bmEmpty" class="empty" style="display:none;">No line items found for this booking.</div>
+
+        <div style="overflow:auto;">
+          <table id="bmTable" style="display:none; width:100%; border-collapse:collapse;">
+            <thead>
+              <tr>
+                <th>Item</th>
+                <th>Dates</th>
+                <th class="right">Line total</th>
+              </tr>
+            </thead>
+            <tbody id="bmBody"></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  </div>
+  <!-- ANCHOR: BOOKING_DETAIL_MODAL END -->
 
   <script>
     (function () {
@@ -326,7 +360,11 @@
           const total = money(b.amountPaid || 0, b.currency || (payout.currency || "USD"));
           return `
             <tr>
-              <td><span class="muted">${esc(ref)}</span></td>
+              <td>
+                <button class="btn ghost" type="button" onclick="openBooking('${esc(ref)}')" style="padding:6px 10px;">
+                    ${esc(ref)}
+                  </button>
+                </td>
               <td>${esc(stay)}</td>
               <td class="right">${esc(total)}</td>
             </tr>
@@ -335,6 +373,74 @@
 
         $("pmTable").style.display = "";
       };
+
+      // ANCHOR: BOOKING_DETAIL_MODAL_JS
+      window.closeBookingModal = function(){
+        const m = $("bookingModal");
+        if (m) m.style.display = "none";
+      };
+
+      window.openBooking = async function(bookingRef){
+        const m = $("bookingModal");
+        if (!m) return;
+
+        $("bmTitle").textContent = `Booking details: ${bookingRef}`;
+        $("bmSub").textContent = "Loading...";
+        $("bmSummary").style.display = "none";
+        $("bmEmpty").style.display = "none";
+        $("bmTable").style.display = "none";
+        $("bmBody").innerHTML = "";
+
+        m.style.display = "block";
+
+        const r = await authFetch(`/api/extranet/me/bookings/${encodeURIComponent(bookingRef)}`, { method:"GET" });
+        if (!r.ok) {
+          $("bmSub").textContent = `Failed to load (${r.status})`;
+          $("bmSummary").textContent = "Unable to load booking details.";
+          $("bmSummary").style.display = "";
+          return;
+        }
+
+        const j = await r.json();
+        const b = j.data || j.booking || j || {};
+        $("bmSub").textContent =
+          `${fmtYmd(b.checkInDate)} to ${fmtYmd(b.checkOutDate)}  |  Total paid: ${money(b.amountPaid || 0, b.currency || "USD")}`;
+
+        const items =
+          Array.isArray(b.items) ? b.items :
+          Array.isArray(b.rooms) ? b.rooms :
+          Array.isArray(b.lines) ? b.lines : [];
+
+        if (!items.length) {
+          $("bmEmpty").style.display = "";
+          return;
+        }
+
+        $("bmBody").innerHTML = items.map(it => {
+          const name =
+            it.roomName || it.roomTypeName || it.name || it.activity || it.title || "Item";
+
+          const inD = fmtYmd(it.checkInDate || it.startDate || it.dateFrom || b.checkInDate);
+          const outD = fmtYmd(it.checkOutDate || it.endDate || it.dateTo || b.checkOutDate);
+          const dates = (inD && outD) ? `${inD} to ${outD}` : "-";
+
+          const lineTotal =
+            it.lineTotal ?? it.total ?? it.amount ?? it.price ?? 0;
+
+          const cur = it.currency || b.currency || "USD";
+
+          return `
+            <tr>
+              <td>${esc(String(name))}</td>
+              <td>${esc(dates)}</td>
+              <td class="right">${esc(money(lineTotal, cur))}</td>
+            </tr>
+          `;
+        }).join();
+
+        $("bmTable").style.display = "";
+      };
+      // ANCHOR: BOOKING_DETAIL_MODAL_JS END
 
       // --- Data load -----------------------------------------------------------
       async function load() {
