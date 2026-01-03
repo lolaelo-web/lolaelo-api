@@ -4285,13 +4285,16 @@
 
               topLink.setAttribute("href", url.toString());
 
+              // === CLEAR AFTER-SUCCESS LOCK WHEN ENTERING CATALOG DETAILS ===
+              try { localStorage.removeItem("checkout.afterSuccessAt"); } catch (_) {}
+
               // Append-to-cart on click (do not overwrite). Guard against duplicate listeners.
               if (!topLink.dataset.cartBound) {
                 topLink.dataset.cartBound = "1";
 
-              topLink.addEventListener("click", (e) => {
-                try { localStorage.removeItem("checkout.afterSuccessAt"); } catch (_) {}
+                topLink.addEventListener("click", (e) => {
                   // Build the line item from the same context used to build the checkout URL
+
                   const lineId =
                     "ln_" + Date.now().toString(36) + "_" + Math.random().toString(36).slice(2, 8);
 
