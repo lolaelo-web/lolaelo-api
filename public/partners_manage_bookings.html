@@ -192,7 +192,10 @@
         if (key === 'pending')
           note.textContent = 'Next wiring: when hotel clicks Confirm or Decline in the email, the endpoint can redirect back here with ?result=confirmed or ?result=declined plus the booking ref.';
       if (key === 'completed')
-        note.textContent = 'Payment Ready shows stays whose checkout date has passed. Use "Mark completed" to confirm the stay is complete and ready for payout.';
+        note.innerHTML =
+          'Payment Ready shows stays whose checkout date has passed. ' +
+          'Use <strong>"Mark completed"</strong> to confirm the stay is complete and ready for payout. ' +
+          '<strong>Completed bookings will appear in the <a href="partners_payments.html" style="color:#ff6a3d; text-decoration:underline;">Payments</a> section of your partner hub.</strong>';
         if (key === 'canceled')
           note.textContent = 'Canceled or expired means no confirmed booking occurred. This includes hotel decline, token expiry, or cancellation.';
       }
@@ -566,8 +569,12 @@
       let viewRows = rows;
 
       if (bucket === "pending") {
-        // Pending/Active: show pending hotel confirmation + upcoming/active confirmed stays
-        viewRows = rows.filter(r => !(String(r.status) === "CONFIRMED" && isPastCheckout(r)));
+      // Pending/Active: show pending hotel confirmation + upcoming/active confirmed stays (exclude completed + past-checkout confirmed)
+      viewRows = rows.filter(r => {
+        const st = String(r.status || "");
+        if (st === "COMPLETED") return false;
+        return !(st === "CONFIRMED" && isPastCheckout(r));
+      });
       } else if (bucket === "completed") {
         // Payment Ready: (A) confirmed stays whose checkout date has passed, plus (B) already completed stays
         viewRows = rows.filter(r => {

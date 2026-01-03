@@ -1683,7 +1683,8 @@ app.get("/api/extranet/me/bookings", async (req: Request, res: Response) => {
       if (bucket === "pending") {
         whereSql += ` AND b.status IN (
           'PENDING_HOTEL_CONFIRMATION'::extranet."BookingStatus",
-          'CONFIRMED'::extranet."BookingStatus"
+          'CONFIRMED'::extranet."BookingStatus",
+          'COMPLETED'::extranet."BookingStatus"
         )`;
       } else if (bucket === "canceled") {
         whereSql += ` AND b.status IN (
