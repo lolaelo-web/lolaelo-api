@@ -335,7 +335,7 @@
             <td style="padding:8px; border-bottom:1px solid #203150;">${esc(it.ratePlanName || it.ratePlanId || "-")}</td>
             <td style="padding:8px; border-bottom:1px solid #203150;" class="muted">${esc(dates)}</td>
             <td style="padding:8px; border-bottom:1px solid #203150; text-align:right;">${esc(it.qty)}</td>
-            <td style="padding:8px; border-bottom:1px solid #203150; text-align:right;">${esc((it.guests ?? b.guests ?? "-"))}</td>
+            <td style="padding:8px; border-bottom:1px solid #203150; text-align:right;">${esc((b.guests ?? "-"))}</td>
             <td style="padding:8px; border-bottom:1px solid #203150; text-align:right;">${esc(formatMoney(it.lineTotal, it.currency || currency))}</td>
           </tr>
         `;
