@@ -479,8 +479,8 @@
 
         // Stay dates (authoritative from Booking)
         if (b.checkInDate && b.checkOutDate) {
-          var ci = new Date(b.checkInDate);
-          var co = new Date(b.checkOutDate);
+        var ci = new Date(String(b.checkInDate) + "T00:00:00");
+        var co = new Date(String(b.checkOutDate) + "T00:00:00");
           var ciTxt = isFinite(ci.getTime()) ? ci.toLocaleDateString(undefined, { year:"numeric", month:"short", day:"2-digit" }) : String(b.checkInDate);
           var coTxt = isFinite(co.getTime()) ? co.toLocaleDateString(undefined, { year:"numeric", month:"short", day:"2-digit" }) : String(b.checkOutDate);
           setText("stayDates", ciTxt + " to " + coTxt);

@@ -211,7 +211,9 @@
 
     function fmtYmd(d){
       if (!d) return "";
-      const dt = new Date(d);
+      const dt = (typeof d === "string" && /^\d{4}-\d{2}-\d{2}$/.test(d))
+        ? new Date(d + "T00:00:00")
+        : new Date(d);
       if (Number.isNaN(dt.getTime())) return "";
       const y = dt.getFullYear();
       const m = String(dt.getMonth() + 1).padStart(2, "0");

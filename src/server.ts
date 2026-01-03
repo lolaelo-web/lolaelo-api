@@ -292,8 +292,11 @@ app.post("/api/payments/webhook", express.raw({ type: "application/json" }), asy
       const partnerId  = Number(md.partnerId  || md.propertyId);
       const roomTypeId = Number(md.roomTypeId || md.roomId);
       const ratePlanId = Number(md.ratePlanId);
-      const checkInDate  = md.checkInDate ? new Date(md.checkInDate) : (md.start ? new Date(md.start) : null);
-      const checkOutDate = md.checkOutDate ? new Date(md.checkOutDate) : (md.end ? new Date(md.end) : null);
+      const checkInDate  = md.checkInDate ? new Date(String(md.checkInDate) + "T00:00:00Z")
+        : (md.start ? new Date(String(md.start) + "T00:00:00Z") : null);
+
+      const checkOutDate = md.checkOutDate ? new Date(String(md.checkOutDate) + "T00:00:00Z")
+        : (md.end ? new Date(String(md.end) + "T00:00:00Z") : null);
       const qty    = Number(md.qty || 1);
       const guests = Math.max(1, parseInt(String(md.guestsCount ?? md.guests ?? "1"), 10));
 
