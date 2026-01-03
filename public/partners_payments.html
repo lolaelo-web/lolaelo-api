@@ -1,0 +1,209 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Payments | Lolaelo Extranet</title>
+
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+
+  <link rel="stylesheet" href="/css/extranet.css" />
+
+  <style>
+    /* ANCHOR: LOCAL_CSS */
+    :root{ --bg:#0b1320; --card:#111a2b; --fg:#e8eefc; --muted:#9bb0d3; --accent:#ff6a3d; --line:rgba(255,255,255,.08); }
+    body{ margin:0; font-family:Inter,system-ui,-apple-system,Segoe UI,Roboto,Arial; background:var(--bg); color:var(--fg); }
+    .wrap{ max-width:1100px; margin:0 auto; padding:18px 14px 28px; }
+    .topbar{ display:flex; align-items:center; justify-content:space-between; gap:12px; margin-bottom:14px; }
+    .brand{ display:flex; align-items:center; gap:10px; min-width:0; }
+    .brand img{ height:26px; width:auto; display:block; }
+    .title{ font-weight:700; letter-spacing:.2px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+    .actions{ display:flex; gap:10px; align-items:center; }
+    .crumb{ color:var(--muted); font-size:13px; margin:6px 0 10px; }
+    .hero{ display:flex; align-items:flex-end; justify-content:space-between; gap:12px; padding:14px 14px; border:1px solid var(--line); background:var(--panel); border-radius:14px; }
+    .hero h1{ margin:0; font-size:20px; }
+    .hero p{ margin:6px 0 0; color:var(--muted); font-size:13px; }
+    .grid{ display:grid; grid-template-columns: 1.1fr .9fr; gap:12px; margin-top:12px; }
+    @media (max-width: 900px){ .grid{ grid-template-columns:1fr; } }
+    .card{ border:1px solid var(--line); background:var(--panel); border-radius:14px; padding:14px; }
+    .card h2{ margin:0 0 10px; font-size:14px; letter-spacing:.2px; }
+    .muted{ color:var(--muted); }
+    .kpis{ display:grid; grid-template-columns: repeat(3, 1fr); gap:10px; }
+    @media (max-width: 600px){ .kpis{ grid-template-columns:1fr; } }
+    .kpi{ border:1px solid var(--line); border-radius:12px; padding:12px; background:#0c1730; }
+    .kpi .label{ font-size:12px; color:var(--muted); }
+    .kpi .value{ margin-top:6px; font-size:18px; font-weight:700; }
+    table{ width:100%; border-collapse:collapse; }
+    th,td{ border-bottom:1px solid var(--line); padding:10px 8px; font-size:13px; text-align:left; }
+    th{ color:var(--muted); font-weight:600; }
+    .row-actions a{ text-decoration:none; }
+    .empty{ padding:12px; color:var(--muted); font-size:13px; border:1px dashed var(--line); border-radius:12px; background:#0c1730; }
+    .status{ display:inline-flex; align-items:center; gap:8px; font-size:13px; color:var(--muted); }
+    .dot{ width:8px; height:8px; border-radius:999px; background:#6aa0ff; display:inline-block; }
+  </style>
+</head>
+
+<body>
+  <div class="wrap">
+    <div class="topbar">
+      <div class="brand">
+        <a href="partners_app.html" title="Back to hub">
+          <img src="https://www.lolaelo.com/logo.png?cb=logo-1x" alt="Lolaelo" />
+        </a>
+        <div class="title">Lolaelo Extranet</div>
+      </div>
+
+      <div class="actions">
+        <a class="btn ghost" href="partners_app.html" title="Back to hub">Back</a>
+        <a class="btn ghost" href="mailto:support@lolaelo.com" title="Support">Support</a>
+        <button id="btnLogout" class="btn ghost" title="Sign out">Sign out</button>
+      </div>
+    </div>
+
+    <div class="crumb">Extranet / Payments</div>
+
+    <div class="hero">
+      <div>
+        <h1>Payments</h1>
+        <p>View payment history, totals, and receipts.</p>
+      </div>
+      <div class="status" id="status">
+        <span class="dot"></span>
+        <span id="statusText">Loading...</span>
+      </div>
+    </div>
+
+    <div class="grid">
+      <div class="card">
+        <h2>Payment history</h2>
+        <div id="historyEmpty" class="empty" style="display:none;">
+          No payments found yet.
+        </div>
+
+        <div style="overflow:auto;">
+          <table id="historyTable" style="display:none;">
+            <thead>
+              <tr>
+                <th>Date</th>
+                <th>Booking</th>
+                <th>Amount</th>
+                <th>Status</th>
+                <th>Receipt</th>
+              </tr>
+            </thead>
+            <tbody id="historyBody"></tbody>
+          </table>
+        </div>
+      </div>
+
+      <div class="card">
+        <h2>Totals</h2>
+        <div class="kpis">
+          <div class="kpi">
+            <div class="label">Total received</div>
+            <div class="value" id="kpiTotalReceived">-</div>
+          </div>
+          <div class="kpi">
+            <div class="label">Total pending</div>
+            <div class="value" id="kpiTotalPending">-</div>
+          </div>
+          <div class="kpi">
+            <div class="label">Payments count</div>
+            <div class="value" id="kpiCount">-</div>
+          </div>
+        </div>
+
+        <div style="margin-top:12px;">
+          <button id="btnRefresh" class="btn">Refresh</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    (function () {
+      // --- Config --------------------------------------------------------------
+      const API_BASE = (window.API_BASE || "").trim() || (location.origin.includes("localhost") ? "http://localhost:3000" : location.origin);
+      const LOGIN_PAGE = "partners_login.html";
+
+      // --- Helpers -------------------------------------------------------------
+      const $ = (id) => document.getElementById(id);
+
+      function getToken() {
+        try { return localStorage.getItem("lolaelo_session") || ""; } catch { return ""; }
+      }
+
+      function setStatus(text) {
+        $("statusText").textContent = text;
+      }
+
+      async function authFetch(path, opts) {
+        const t = getToken();
+        if (!t) throw new Error("NO_TOKEN");
+        const headers = Object.assign({}, (opts && opts.headers) || {}, {
+          Authorization: `Bearer ${t}`
+        });
+        const res = await fetch(`${API_BASE}${path}`, Object.assign({}, opts || {}, { headers }));
+        return res;
+      }
+
+      function money(n, currency) {
+        const val = Number(n || 0);
+        const cur = (currency || "USD").toUpperCase();
+        try {
+          return new Intl.NumberFormat(undefined, { style: "currency", currency: cur }).format(val);
+        } catch {
+          return `${cur} ${val.toFixed(2)}`;
+        }
+      }
+
+      // --- UI wiring -----------------------------------------------------------
+      $("btnLogout").onclick = async () => {
+        try {
+          const t = getToken();
+          await fetch(`${API_BASE}/extranet/logout`, { method: "POST", headers: { Authorization: `Bearer ${t}` } });
+        } catch {}
+        try {
+          localStorage.removeItem("partnerToken");
+          localStorage.removeItem("lolaelo_session");
+        } catch {}
+        location.replace(LOGIN_PAGE);
+      };
+
+      $("btnRefresh").onclick = () => load();
+
+      // --- Data load (stub) ----------------------------------------------------
+      // NOTE: This is intentionally a stub so the page can ship now.
+      // Next sprint: wire to a real endpoint (e.g. /extranet/payments or /extranet/bookings?includePayments=1).
+      async function load() {
+        setStatus("Loading...");
+
+        const t = getToken();
+        if (!t) {
+          setStatus("Sign in required");
+          location.replace(LOGIN_PAGE);
+          return;
+        }
+
+        // Stub UI state: empty history
+        $("historyTable").style.display = "none";
+        $("historyEmpty").style.display = "";
+        $("kpiTotalReceived").textContent = "-";
+        $("kpiTotalPending").textContent = "-";
+        $("kpiCount").textContent = "-";
+
+        setStatus("Ready");
+      }
+
+      // Boot
+      load().catch((e) => {
+        console.error("[payments] load error", e);
+        if (String(e && e.message) === "NO_TOKEN") location.replace(LOGIN_PAGE);
+        setStatus("Failed to load");
+      });
+    })();
+  </script>
+</body>
+</html>
