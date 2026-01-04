@@ -37,7 +37,7 @@
     .hero h1{ margin:0; font-size:20px; }
     .hero p{ margin:6px 0 0; color:var(--muted); font-size:13px; }
 
-    .grid{ display:grid; grid-template-columns: 1.1fr .9fr; gap:12px; margin-top:12px; }
+    .grid{ display:grid; grid-template-columns: 1.4fr .6fr; gap:12px; margin-top:12px; }
     @media (max-width: 900px){ .grid{ grid-template-columns:1fr; } }
 
     .stack{ display:flex; flex-direction:column; gap:12px; }
@@ -156,7 +156,7 @@
             <table id="historyTable" style="display:none;">
               <thead>
                 <tr>
-                  <th>Date</th>
+                  <th>Payout date</th>
                   <th>Confirmation</th>
                   <th class="right">Amount</th>
                   <th>Bookings</th>
@@ -181,7 +181,7 @@
             <div class="value" id="kpiTotalPending">-</div>
           </div>
           <div class="kpi">
-            <div class="label">No. of Payouts Sent</div>
+            <div class="label">No. of Payouts Received</div>
             <div class="value" id="kpiCount">-</div>
           </div>
         </div>
@@ -206,20 +206,20 @@
 
       <!-- Summary tiles -->
       <div style="padding:14px 16px;">
-        <div class="kpis" style="margin:0;">
-          <div class="kpi">
+        <div class="kpis" style="margin:0; display:flex; flex-wrap:wrap; gap:10px;">
+          <div class="kpi" style="flex:0 0 180px; padding:10px;">
             <div class="label">Gross total</div>
             <div class="value" id="pmGross">-</div>
           </div>
-          <div class="kpi">
+          <div class="kpi" style="flex:0 0 180px; padding:10px;">
             <div class="label">Total fees</div>
             <div class="value" id="pmFees">-</div>
           </div>
-          <div class="kpi">
+          <div class="kpi" style="flex:0 0 180px; padding:10px;">
             <div class="label">Net amount paid</div>
             <div class="value" id="pmNet">-</div>
           </div>
-          <div class="kpi">
+          <div class="kpi" style="flex:0 0 180px; padding:10px;">
             <div class="label">Status</div>
             <div class="value" id="pmStatus">-</div>
           </div>
@@ -383,6 +383,8 @@
         if (m) m.style.display = "none";
       };
 
+      window.closePayout = window.closePayoutModal;
+
       window.openPayout = async function(payoutId){
         const m = $("payoutModal");
         if (!m) return;
@@ -413,7 +415,21 @@
         const paidAt = payout.paidAt
           ? fmtYmd(payout.paidAt)
           : (payout.createdAt ? fmtYmd(payout.createdAt) : "-");
-        $("pmSub").textContent = `Paid: ${paidAt} | Confirmation: ${conf}`;
+        // Prefer paidAt if present; else show scheduled pay date (weekStart + 11 days)
+        let subLeft = "";
+        if (payout.paidAt) {
+          subLeft = `Paid: ${fmtYmd(payout.paidAt)}`;
+        } else if (payout.weekStart) {
+          const ws = new Date(String(payout.weekStart).slice(0,10) + "T00:00:00Z");
+          ws.setUTCDate(ws.getUTCDate() + 11);
+          const sched = ws.toISOString().slice(0,10);
+          subLeft = `Scheduled payout: ${sched}`;
+        } else if (payout.createdAt) {
+          subLeft = `Created: ${fmtYmd(payout.createdAt)}`;
+        } else {
+          subLeft = `Status: ${String(payout.status || "").toUpperCase() || "-"}`;
+        }
+        $("pmSub").textContent = `${subLeft} | Confirmation: ${conf}`;
 
         // Status tile (if present)
         const status = String(payout.status || "").toUpperCase() || "-";
@@ -706,7 +722,7 @@
             const paidAt = p.paidAt ? fmtYmd(p.paidAt) : (p.createdAt ? fmtYmd(p.createdAt) : "-");
             const conf = (p.confirmationNumber != null && String(p.confirmationNumber).trim() !== "")
               ? String(p.confirmationNumber)
-              : "-";
+              : (String(p.status || "").toUpperCase() === "DRAFT" ? "Waiting for payment approval" : "-");
 
             // Amount: prefer amountNet, but fall back to any legacy/alternate names
             const amtVal =

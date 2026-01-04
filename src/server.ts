@@ -1901,13 +1901,29 @@ app.get("/api/extranet/me/payouts", async (req: Request, res: Response) => {
           p."weekStart",
           p."weekEnd",
           p.currency,
-          p."amountNet",
+
+          -- If header amountNet is not set yet (common for DRAFT),
+          -- compute it from payout bookings.
+          COALESCE(
+            p."amountNet",
+            (
+              SELECT COALESCE(SUM(COALESCE(pb."netAmount",0)), 0)::numeric
+              FROM extranet."PayoutBooking" pb
+              WHERE pb."payoutId" = p.id
+            )
+          ) AS "amountNet",
+
           p.method,
           p."confirmationNumber",
           p."paidAt",
           p.status::text as status,
           p."createdAt",
-          (SELECT COUNT(*) FROM extranet."PayoutBooking" pb WHERE pb."payoutId" = p.id) AS "bookingCount"
+
+          (
+            SELECT COUNT(*)
+            FROM extranet."PayoutBooking" pb
+            WHERE pb."payoutId" = p.id
+          ) AS "bookingCount"
         FROM extranet."Payout" p
         WHERE p."partnerId" = $1
         ORDER BY COALESCE(p."paidAt", p."createdAt") DESC, p.id DESC
