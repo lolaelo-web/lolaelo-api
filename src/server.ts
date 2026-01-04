@@ -366,6 +366,54 @@ app.post("/api/payments/webhook", express.raw({ type: "application/json" }), asy
       const currency = "USD";
       const amountPaid = (session.amount_total || 0) / 100;
 
+      // ANCHOR: WEBHOOK_BILLABLE_GUARD
+      // Backstop guard: if Stripe succeeded but metadata has no billable items/add-ons,
+      // do not create a partner-visible booking lifecycle.
+      const mdBill: any = session.metadata || {};
+      const rawCart = mdBill.cartItems ? String(mdBill.cartItems) : "";
+      const rawAddons = mdBill.addons ? String(mdBill.addons) : "";
+
+      let billItems = 0;
+      let billAddons = 0;
+
+      if (rawCart) {
+        try {
+          const parsed = JSON.parse(rawCart);
+          const arr = Array.isArray(parsed) ? parsed : [];
+          for (const it of arr) {
+            const lt = Number((it as any)?.lineTotal || 0);
+            if (Number.isFinite(lt) && lt > 0) billItems += lt;
+          }
+        } catch {}
+      }
+
+      if (rawAddons) {
+        try {
+          const parsed = JSON.parse(rawAddons);
+          const arr = Array.isArray(parsed) ? parsed : [];
+          for (const a of arr) {
+            const lt = Number((a as any)?.lineTotal || 0);
+            if (Number.isFinite(lt) && lt > 0) billAddons += lt;
+          }
+        } catch {}
+      }
+
+      const hasBillable = (billItems + billAddons) > 0;
+
+      const bookingStatus: string = (amountPaid > 0 && !hasBillable)
+        ? "REFUND_IN_PROGRESS"
+        : "PENDING_HOTEL_CONFIRMATION";
+
+      if (bookingStatus === "REFUND_IN_PROGRESS") {
+        console.error("[WH][billable-guard] Paid booking missing billable lines. Forcing REFUND_IN_PROGRESS.", {
+          providerPaymentId,
+          amountPaid,
+          cartItemsBytes: rawCart ? rawCart.length : 0,
+          addonsBytes: rawAddons ? rawAddons.length : 0
+        });
+      }
+      // ANCHOR: WEBHOOK_BILLABLE_GUARD END
+
       const ins = await client.query(
         `
         INSERT INTO extranet."Booking" (
@@ -384,7 +432,7 @@ app.post("/api/payments/webhook", express.raw({ type: "application/json" }), asy
           $9,$10,$11,$12,
           $13,$14,
           'STRIPE',$15,$16,
-          'PENDING_HOTEL_CONFIRMATION',$17,$18,
+          $17::extranet."BookingStatus",$18,$19,
           $19,$20,
           'NOT_STARTED',0
         )
@@ -396,8 +444,7 @@ app.post("/api/payments/webhook", express.raw({ type: "application/json" }), asy
           firstName, lastName, travelerEmail, travelerPhone,
           currency, amountPaid,
           providerPaymentId, (typeof session.customer === "string" ? session.customer : null),
-          now, now,
-          pendingConfirmExpiresAt, refundDeadlineAt
+          bookingStatus, now, now, pendingConfirmExpiresAt, refundDeadlineAt
         ]
       );
 
@@ -546,9 +593,17 @@ app.post("/api/payments/webhook", express.raw({ type: "application/json" }), asy
 
       // ANCHOR: SEND_HOTEL_CONFIRM_EMAIL_AFTER_TOKEN
       try {
-        // Look up hotel email from Partner (company profile)
-        const hotelEmail = await getPartnerEmail(partnerId);
-        const toEmail = hotelEmail || "bookings@lolaelo.com"; // safety fallback
+        if (bookingStatus !== "PENDING_HOTEL_CONFIRMATION") {
+          console.warn("[WH] booking on hold (REFUND_IN_PROGRESS) — skipping hotel/traveler emails", {
+            bookingRef,
+            providerPaymentId,
+            amountPaid
+          });
+          // IMPORTANT: exit only this email/token block
+        } else {
+          // Look up hotel email from Partner (company profile)
+          const hotelEmail = await getPartnerEmail(partnerId);
+          const toEmail = hotelEmail || "bookings@lolaelo.com"; // safety fallback
 
         const base = process.env.PUBLIC_BASE_URL || "https://lolaelo-api.onrender.com";
 
@@ -847,7 +902,7 @@ app.post("/api/payments/webhook", express.raw({ type: "application/json" }), asy
             bookingId,
             bookingRef,
           });
-        }
+        }}
         } catch (e) {
           const errMsg = (e instanceof Error ? e.message : String(e)) || "unknown_error";
           const errShort = errMsg.slice(0, 500);
@@ -2526,7 +2581,29 @@ app.get("/api/admin/ap/ready", async (req: Request, res: Response) => {
           (SELECT week_start FROM params) AS "weekStart",
           (SELECT week_end FROM params) AS "weekEnd",
           COUNT(*)::int AS "bookingCount",
-          COALESCE(SUM(b."amountPaid"), 0)::numeric AS "amountGross"
+          COALESCE(SUM(
+            CASE
+              WHEN (
+                COALESCE((
+                  SELECT SUM(bi."lineTotal") FROM extranet."BookingItem" bi WHERE bi."bookingId" = b.id
+                ), 0)
+                +
+                COALESCE((
+                  SELECT SUM(ba."lineTotal") FROM extranet."BookingAddOn" ba WHERE ba."bookingId" = b.id
+                ), 0)
+              ) > 0
+              THEN (
+                COALESCE((
+                  SELECT SUM(bi."lineTotal") FROM extranet."BookingItem" bi WHERE bi."bookingId" = b.id
+                ), 0)
+                +
+                COALESCE((
+                  SELECT SUM(ba."lineTotal") FROM extranet."BookingAddOn" ba WHERE ba."bookingId" = b.id
+                ), 0)
+              )
+              ELSE COALESCE(b."amountPaid", 0)
+            END
+          ), 0)::numeric AS "amountGross"
         FROM extranet."Booking" b
         LEFT JOIN extranet."PropertyProfile" pp ON pp."partnerId" = b."partnerId"
         LEFT JOIN extranet."Partner" p ON p.id = b."partnerId"

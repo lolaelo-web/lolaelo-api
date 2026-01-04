@@ -228,7 +228,7 @@
             <th style="width:360px;">Partner</th>
             <th style="width:180px;">Pay window</th>
             <th style="width:170px;">Eligible bookings</th>
-            <th class="right" style="width:170px;">Gross (amountPaid)</th>
+            <th class="right" style="width:170px;">Gross</th>
             <th style="width:220px;">Actions</th>
           </tr>
         </thead>
@@ -495,7 +495,10 @@
         $("kpiWeekEnd").textContent = we;
         $("kpiCount").textContent = String(rows.length);
 
-        const gross = rows.reduce((sum, r) => sum + (Number(r.amountPaid || 0) || 0), 0);
+        const gross = rows.reduce((sum, r) => {
+          const v = (r.amountGross != null ? r.amountGross : r.amountPaid);
+          return sum + (Number(v || 0) || 0);
+          }, 0);
         $("kpiGross").textContent = money(gross, "USD");
 
         if (!rows.length) {
@@ -515,7 +518,7 @@
           const st = escapeHtml(r.status || "");
           const stay = `${escapeHtml(fmtDate(r.checkInDate))} to ${escapeHtml(fmtDate(r.checkOutDate))}`;
           const comp = escapeHtml(String(r.completedAt || "—"));
-          const amt = money(r.amountPaid, r.currency || "USD");
+          const amt = money((r.amountGross != null ? r.amountGross : r.amountPaid), r.currency || "USD");
           return `
             <tr>
               <td class="mono"><a class="link" href="#" onclick="alert('Booking audit modal is on partner side for now. Next: add admin booking audit.'); return false;">${ref}</a></td>
