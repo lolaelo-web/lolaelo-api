@@ -291,11 +291,11 @@
       <table>
         <thead>
           <tr>
-            <th style="width:360px;" text-align:center;">Partner</th>
-            <th style="width:180px;" text-align:center;">Pay window</th>
-            <th style="width:170px;" text-align:center;">Eligible bookings</th>
-            <th class="right" style="width:170px;" text-align:center;">Gross</th>
-            <th style="width:220px;" text-align:center;">Actions</th>
+            <th style="width:360px; text-align:center;">Partner</th>
+            <th style="width:180px; text-align:center;">Pay window</th>
+            <th style="width:170px; text-align:center;">Eligible bookings</th>
+            <th class="right" style="width:170px; text-align:center;">Gross</th>
+            <th style="width:220px; text-align:center;">Actions</th>
           </tr>
         </thead>
         <tbody id="rows">
@@ -314,14 +314,14 @@
       <table>
         <thead>
           <tr>
-            <th style="width:120px;" text-align:center;">Payout ID</th>
-            <th style="width:320px;" text-align:center;">Partner</th>
-            <th style="width:120px;" text-align:center;">Status</th>
-            <th style="width:140px;" text-align:center;">Bookings</th>
-            <th class="right" style="width:160px;" text-align:center;">Gross Total</th>
-            <th class="right" style="width:160px;" text-align:center;">Total Commission</th>
-            <th class="right" style="width:160px;" text-align:center;">Net Amt Paid to Partner </th>
-            <th style="width:260px;" text-align:center;">Actions</th>
+            <th style="width:120px; text-align:center;">Payout ID</th>
+            <th style="width:320px; text-align:center;">Partner</th>
+            <th style="width:120px; text-align:center;">Status</th>
+            <th style="width:140px; text-align:center;">Bookings</th>
+            <th class="right" style="width:160px; text-align:center;">Gross Total</th>
+            <th class="right" style="width:160px; text-align:center;">Total Commission</th>
+            <th class="right" style="width:160px; text-align:center;">Net Amt Paid to Partner </th>
+            <th style="width:260px; text-align:center;">Actions</th>
           </tr>
         </thead>
         <tbody id="payoutRows">
@@ -799,9 +799,9 @@
               <td class="right mono">${escapeHtml(money(fees, cur))}</td>
               <td class="right mono">${escapeHtml(money(net, cur))}</td>
               <td style="text-align:center;">
-                <div style="display:inline-flex; gap:8px;">
-                  <button class="btn ghost">View</button>
-                  <button class="btn">Mark "Paid"</button>
+                <div style="display:inline-flex; gap:8px; flex-wrap:wrap;">
+                  <button class="btn ghost" type="button" onclick="window.openPayout(${id})">View</button>
+                  ${canMarkPaid ? `<button class="btn" type="button" onclick="window.openMarkPaid(${id})">Mark paid</button>` : ``}
                 </div>
               </td>
             </tr>
