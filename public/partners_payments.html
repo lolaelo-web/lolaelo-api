@@ -14,7 +14,11 @@
   <style>
     /* ANCHOR: LOCAL_CSS */
     :root{ --bg:#0b1320; --card:#111a2b; --fg:#e8eefc; --muted:#9bb0d3; --accent:#ff6a3d; --line:rgba(255,255,255,.08); }
-    body{ margin:0; font-family:Inter,system-ui,-apple-system,Segoe UI,Roboto,Arial; background:var(--bg); color:var(--fg); }
+    body{
+      margin:0; font-family:Inter,system-ui,Segoe UI,Roboto,Helvetica,Arial;
+      background: radial-gradient(1000px 600px at 20% -10%, #1a2b4a 0%, #0b1320 60%, #0b1320 100%);
+      color:var(--fg); min-height:100vh;
+    }
     .wrap{ max-width:1100px; margin:0 auto; padding:18px 14px 28px; }
 
     .topbar{ display:flex; align-items:center; justify-content:space-between; gap:12px; margin-bottom:14px; }
@@ -38,7 +42,13 @@
 
     .stack{ display:flex; flex-direction:column; gap:12px; }
 
-    .card{ border:1px solid var(--line); background:var(--panel); border-radius:14px; padding:14px; }
+    .card{
+      background:var(--card);
+      border:1px solid var(--line);
+      border-radius:16px;
+      padding:18px;
+      box-shadow:0 8px 40px rgba(0,0,0,.45);
+    }
     .card h2{ margin:0 0 10px; font-size:14px; letter-spacing:.2px; }
 
     .muted{ color:var(--muted); }
@@ -46,7 +56,7 @@
 
     table{ width:100%; border-collapse:collapse; }
     th,td{ border-bottom:1px solid var(--line); padding:10px 8px; font-size:13px; text-align:left; vertical-align:top; }
-    th{ color:var(--muted); font-weight:600; }
+    th{ text-align:left; color:#bcd3ff; font-weight:700; }
     tr:last-child td{ border-bottom:none; }
 
     .empty{
@@ -69,9 +79,13 @@
     .kpi .value{ margin-top:6px; font-size:18px; font-weight:700; }
 
     .pill{
-      display:inline-flex; align-items:center; gap:6px;
-      border:1px solid var(--line); padding:2px 10px; border-radius:999px;
-      font-size:12px; color:var(--muted);
+      display:inline-block;
+      padding:3px 10px;
+      border-radius:999px;
+      font-size:12px;
+      border:1px solid var(--line);
+      background:#0e1830;
+      color:#cfe0ff;
     }
 
     #readyTable button.btn{ position:relative; z-index:2; pointer-events:auto; }
@@ -211,33 +225,54 @@
 
   <!-- ANCHOR: BOOKING_DETAIL_MODAL -->
   <div id="bookingModal" style="display:none; position:fixed; inset:0; background:rgba(0,0,0,.55); z-index:9999; padding:18px; overflow:auto;">
-    <div style="max-width:980px; margin:0 auto; border:1px solid var(--line); background:var(--panel); border-radius:14px;">
-      <div style="display:flex; justify-content:space-between; gap:12px; align-items:center; padding:14px 16px; border-bottom:1px solid var(--line);">
+    <div style="max-width:900px; margin:0 auto; background:var(--card); border:1px solid var(--line); border-radius:16px; box-shadow:0 10px 60px rgba(0,0,0,.6);">
+      <div style="display:flex; align-items:center; justify-content:space-between; gap:12px; padding:14px 16px; border-bottom:1px solid #203150;">
         <div>
-          <div style="font-weight:800; font-size:14px;" id="bmTitle">Booking details</div>
-          <div class="muted" style="font-size:12px;" id="bmSub">Loading...</div>
+          <div style="font-weight:800; font-size:15px;" id="bmTitle">Booking</div>
+          <div class="muted" style="font-size:12px;" id="bmSubtitle"></div>
         </div>
         <button class="btn ghost" type="button" onclick="closeBookingModal()">Close</button>
       </div>
 
       <div style="padding:14px 16px;">
-        <div id="bmSummary" class="empty" style="display:none;"></div>
+        <div id="bmSummary" class="note" style="margin-top:0;"></div>
 
-        <h3 style="margin:0 0 8px; font-size:14px;">Line items</h3>
-        <div id="bmEmpty" class="empty" style="display:none;">No line items found for this booking.</div>
+        <h3 style="margin:14px 0 8px; font-size:14px;">Rooms booked</h3>
+        <table style="width:100%; border-collapse:collapse;">
+          <thead>
+            <tr>
+              <th style="text-align:left; padding:8px; border-bottom:1px solid #203150;">Room</th>
+              <th style="text-align:left; padding:8px; border-bottom:1px solid #203150;">Rate plan</th>
+              <th style="text-align:left; padding:8px; border-bottom:1px solid #203150;">Dates</th>
+              <th style="text-align:right; padding:8px; border-bottom:1px solid #203150;">Room Qty</th>
+              <th style="text-align:right; padding:8px; border-bottom:1px solid #203150;">No. of Guests</th>
+              <th style="text-align:right; padding:8px; border-bottom:1px solid #203150;">Line total</th>
+            </tr>
+          </thead>
+          <tbody id="bmItems"></tbody>
+          <tfoot>
+            <tr>
+              <td colspan="5" style="padding:10px 8px; text-align:right; font-weight:800;">Total</td>
+              <td style="padding:10px 8px; text-align:right; font-weight:800;" id="bmTotal"></td>
+            </tr>
+          </tfoot>
+        </table>
 
-        <div style="overflow:auto;">
-          <table id="bmTable" style="display:none; width:100%; border-collapse:collapse;">
-            <thead>
-              <tr>
-                <th>Item</th>
-                <th>Dates</th>
-                <th class="right">Line total</th>
-              </tr>
-            </thead>
-            <tbody id="bmBody"></tbody>
-          </table>
-        </div>
+        <!-- ANCHOR: BOOKING_MODAL_ADDONS -->
+        <h3 style="margin:14px 0 8px; font-size:14px; display:none;" id="bmAddonsTitle">Add-ons</h3>
+        <table style="width:100%; border-collapse:collapse; display:none;" id="bmAddonsTable">
+          <thead>
+            <tr>
+              <th style="text-align:left; padding:8px; border-bottom:1px solid #203150;">Activity</th>
+              <th style="text-align:left; padding:8px; border-bottom:1px solid #203150;">UOM</th>
+              <th style="text-align:right; padding:8px; border-bottom:1px solid #203150;">Qty</th>
+              <th style="text-align:right; padding:8px; border-bottom:1px solid #203150;">Unit</th>
+              <th style="text-align:right; padding:8px; border-bottom:1px solid #203150;">Line total</th>
+            </tr>
+          </thead>
+          <tbody id="bmAddons"></tbody>
+        </table>
+        <!-- ANCHOR: BOOKING_MODAL_ADDONS END -->
       </div>
     </div>
   </div>
@@ -380,70 +415,150 @@
       };
 
       // ANCHOR: BOOKING_DETAIL_MODAL_JS
+      function formatMoney(val, cur){
+        const n = Number(val || 0);
+        const c = String(cur || "USD").toUpperCase();
+        return `${c} ${n.toFixed(2)}`;
+      }
+
+      function fmtPrettyRange(a, b){
+        try{
+          const da = new Date(a);
+          const db = new Date(b);
+          const fa = da.toLocaleDateString(undefined, { month:"short", day:"numeric", year:"numeric" });
+          const fb = db.toLocaleDateString(undefined, { month:"short", day:"numeric", year:"numeric" });
+          return `${fa} - ${fb}`;
+        } catch {
+          const aa = fmtYmd(a), bb = fmtYmd(b);
+          return (aa && bb) ? `${aa} - ${bb}` : "-";
+        }
+      }
+
       window.closeBookingModal = function(){
-        const m = $("bookingModal");
-        if (m) m.style.display = "none";
+        const modal = $("bookingModal");
+        if (modal) modal.style.display = "none";
       };
 
       window.openBooking = async function(bookingRef){
-        const m = $("bookingModal");
-        if (!m) return;
+        const modal = $("bookingModal");
+        const title = $("bmTitle");
+        const sub = $("bmSubtitle");
+        const summary = $("bmSummary");
+        const itemsEl = $("bmItems");
+        const totalEl = $("bmTotal");
 
-        $("bmTitle").textContent = `Booking details: ${bookingRef}`;
-        $("bmSub").textContent = "Loading...";
-        $("bmSummary").style.display = "none";
-        $("bmEmpty").style.display = "none";
-        $("bmTable").style.display = "none";
-        $("bmBody").innerHTML = "";
+        if (!modal || !itemsEl) return;
 
-        m.style.display = "block";
+        modal.style.display = "block";
+        itemsEl.innerHTML = `<tr><td colspan="6" class="muted" style="padding:10px;">Loading...</td></tr>`;
+        if (totalEl) totalEl.textContent = "";
 
-        const r = await authFetch(`/api/extranet/me/bookings/${encodeURIComponent(bookingRef)}`, { method:"GET" });
-        if (!r.ok) {
-          $("bmSub").textContent = `Failed to load (${r.status})`;
-          $("bmSummary").textContent = "Unable to load booking details.";
-          $("bmSummary").style.display = "";
+        // Reset add-ons section (same behavior as manage bookings)
+        const addonsTitle = $("bmAddonsTitle");
+        const addonsTable = $("bmAddonsTable");
+        const addonsBody  = $("bmAddons");
+        if (addonsTitle && addonsTable && addonsBody) {
+          addonsTitle.style.display = "none";
+          addonsTable.style.display = "none";
+          addonsBody.innerHTML = "";
+        }
+
+        const res = await authFetch(`/api/extranet/me/bookings/${encodeURIComponent(bookingRef)}`, { method:"GET" });
+        const data = await res.json().catch(() => null);
+
+        if (!data || !data.ok) {
+          itemsEl.innerHTML = `<tr><td colspan="6" class="muted" style="padding:10px;">Failed loading booking.</td></tr>`;
           return;
         }
 
-        const j = await r.json();
-        const b = j.data || j.booking || j || {};
-        $("bmSub").textContent =
-          `${fmtYmd(b.checkInDate)} to ${fmtYmd(b.checkOutDate)}  |  Total paid: ${money(b.amountPaid || 0, b.currency || "USD")}`;
+        const b = data.booking || {};
+        const items = Array.isArray(data.items) ? data.items : [];
+        const addons = Array.isArray(data.addons) ? data.addons : [];
 
-        const items =
-          Array.isArray(b.items) ? b.items :
-          Array.isArray(b.rooms) ? b.rooms :
-          Array.isArray(b.lines) ? b.lines : [];
+        // Derive stay info from items (authoritative)
+        let minIn = null;
+        let maxOut = null;
+        let sameWindow = true;
 
-        if (!items.length) {
-          $("bmEmpty").style.display = "";
-          return;
+        if (items.length) {
+          const firstIn = fmtYmd(items[0].checkInDate);
+          const firstOut = fmtYmd(items[0].checkOutDate);
+
+          items.forEach(it => {
+            const ci = new Date(it.checkInDate);
+            const co = new Date(it.checkOutDate);
+            if (!Number.isNaN(ci.getTime())) minIn = (minIn && minIn < ci) ? minIn : ci;
+            if (!Number.isNaN(co.getTime())) maxOut = (maxOut && maxOut > co) ? maxOut : co;
+
+            if (fmtYmd(it.checkInDate) !== firstIn || fmtYmd(it.checkOutDate) !== firstOut) {
+              sameWindow = false;
+            }
+          });
         }
 
-        $("bmBody").innerHTML = items.map(it => {
-          const name =
-            it.roomName || it.roomTypeName || it.name || it.activity || it.title || "Item";
+        const modalStay =
+          (!items.length)
+            ? ((b.checkInDate && b.checkOutDate) ? `${fmtPrettyRange(b.checkInDate, b.checkOutDate)}` : "-")
+            : (sameWindow ? `${fmtPrettyRange(minIn, maxOut)}` : "Multiple varying dates");
 
-          const inD = fmtYmd(it.checkInDate || it.startDate || it.dateFrom || b.checkInDate);
-          const outD = fmtYmd(it.checkOutDate || it.endDate || it.dateTo || b.checkOutDate);
-          const dates = (inD && outD) ? `${inD} to ${outD}` : "-";
+        const currency = (items[0]?.currency || b.currency || "USD");
 
-          const lineTotal =
-            it.lineTotal ?? it.total ?? it.amount ?? it.price ?? 0;
+        if (title) title.textContent = `Booking ${b.bookingRef || bookingRef}`;
+        if (sub) sub.textContent = `${b.propertyName || ""}`.trim();
 
-          const cur = it.currency || b.currency || "USD";
+        const guest = [b.travelerFirstName, b.travelerLastName].filter(Boolean).join(" ").trim() || "Traveler";
+        if (summary) {
+          summary.innerHTML = `
+            <div><b>Guest:</b> ${esc(guest)}</div>
+            <div><b>Stay:</b> ${esc(modalStay)}</div>
+            <div><b>Status:</b> ${esc(String(b.status || "-").replaceAll("_"," "))}</div>
+            <div><b>Guests:</b> ${esc(b.guests ?? "-")}</div>
+          `;
+        }
+
+        // Rooms booked table (same as manage bookings)
+        let total = 0;
+        itemsEl.innerHTML = items.map(it => {
+          const dates = fmtPrettyRange(it.checkInDate, it.checkOutDate);
+          const lt = Number(it.lineTotal || 0);
+          total += (Number.isFinite(lt) ? lt : 0);
 
           return `
             <tr>
-              <td>${esc(String(name))}</td>
-              <td>${esc(dates)}</td>
-              <td class="right">${esc(money(lineTotal, cur))}</td>
+              <td style="padding:8px; border-bottom:1px solid #203150;">${esc(it.roomTypeName || it.roomTypeId || "-")}</td>
+              <td style="padding:8px; border-bottom:1px solid #203150;">${esc(it.ratePlanName || it.ratePlanId || "-")}</td>
+              <td style="padding:8px; border-bottom:1px solid #203150;" class="muted">${esc(dates)}</td>
+              <td style="padding:8px; border-bottom:1px solid #203150; text-align:right;">${esc(it.qty)}</td>
+              <td style="padding:8px; border-bottom:1px solid #203150; text-align:right;">${esc((b.guests ?? "-"))}</td>
+              <td style="padding:8px; border-bottom:1px solid #203150; text-align:right;">${esc(formatMoney(it.lineTotal, it.currency || currency))}</td>
             </tr>
           `;
-        }).join();
+        }).join("");
 
-        $("bmTable").style.display = "";
+        // Add-ons (same as manage bookings)
+        if (addonsTitle && addonsTable && addonsBody && addons.length) {
+          addonsTitle.style.display = "";
+          addonsTable.style.display = "";
+
+          addonsBody.innerHTML = addons.map(a => {
+            const qty = Number(a.qty || 0) || 0;
+            const unit = Number(a.unitPrice || 0) || 0;
+            const line = Number(a.lineTotal || 0) || 0;
+            const cur = String(a.currency || currency || "USD").toUpperCase();
+
+            return `
+              <tr>
+                <td style="padding:8px; border-bottom:1px solid #203150;">${esc(a.activity || "")}</td>
+                <td style="padding:8px; border-bottom:1px solid #203150;">${esc(a.uom || "")}</td>
+                <td style="padding:8px; border-bottom:1px solid #203150; text-align:right;">${esc(qty)}</td>
+                <td style="padding:8px; border-bottom:1px solid #203150; text-align:right;">${esc(formatMoney(unit, cur))}</td>
+                <td style="padding:8px; border-bottom:1px solid #203150; text-align:right;">${esc(formatMoney(line, cur))}</td>
+              </tr>
+            `;
+          }).join("");
+        }
+
+        if (totalEl) totalEl.textContent = formatMoney(total, currency);
       };
       // ANCHOR: BOOKING_DETAIL_MODAL_JS END
 
