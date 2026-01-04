@@ -7,75 +7,175 @@
 
   <link rel="stylesheet" href="/css/extranet.css">
 
+  <!-- Flatpickr (CDN) -->
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.css">
   <style>
     :root{
-      --bg:#0b1320; --card:#111a2b; --fg:#e8eefc; --muted:#9bb0d3;
-      --accent:#ff6a3d; --line:rgba(255,255,255,.08);
+      --bg:#f6f8fc;
+      --card:#ffffff;
+      --fg:#0f172a;
+      --muted:#5b6b84;
+      --accent:#ff6a3d;
+      --line:rgba(15,23,42,.12);
+      --shadow:0 10px 30px rgba(15,23,42,.08);
     }
     *{ box-sizing:border-box }
     body{
       margin:0;
-      background:radial-gradient(1200px 600px at 20% -10%, rgba(255,106,61,.16), transparent 55%), var(--bg);
+      background:var(--bg);
       color:var(--fg);
       font-family:Inter,system-ui,-apple-system,Segoe UI,Roboto,Arial;
     }
-    .wrap{ max-width:1200px; margin:0 auto; padding:18px 14px 28px; }
+    .wrap{ max-width:1200px; margin:0 auto; padding:18px 14px 30px; }
 
     .topbar{
       display:flex; align-items:center; justify-content:space-between;
-      gap:12px; margin-bottom:14px;
+      gap:12px; margin-bottom:12px;
     }
     .brand{ display:flex; align-items:center; gap:10px; }
     .brand .dot{
       width:10px; height:10px; border-radius:999px;
-      background:#2bbb6f; box-shadow:0 0 0 3px rgba(43,187,111,.25);
+      background:#2bbb6f; box-shadow:0 0 0 3px rgba(43,187,111,.18);
     }
-    .title{ font-weight:700; letter-spacing:.2px; }
-
+    .title{ font-weight:800; letter-spacing:.2px; }
     .actions{ display:flex; gap:10px; align-items:center; }
     .actions a{ text-decoration:none; }
 
     .hero{
       border:1px solid var(--line);
-      background:rgba(17,26,43,.72);
+      background:var(--card);
       border-radius:14px;
       padding:14px;
+      box-shadow:var(--shadow);
     }
-    .hero h1{ margin:0; font-size:20px; }
-    .hero p{ margin:6px 0 0; color:var(--muted); font-size:13px; }
+    .hero h1{ margin:0; font-size:18px; }
+    .hero p{ margin:6px 0 0; color:var(--muted); font-size:13px; line-height:1.35; }
 
     .controls{
       display:flex; flex-wrap:wrap; gap:10px;
       margin:12px 0;
+      align-items:flex-end;
     }
+    label{ display:flex; flex-direction:column; gap:6px; font-size:12px; color:var(--muted); }
     .controls select, .controls input{
-      background:#0b1220;
+      background:#fff;
       border:1px solid var(--line);
       color:var(--fg);
-      padding:8px 10px;
-      border-radius:10px;
+      padding:9px 10px;
+      border-radius:12px;
       font-size:13px;
+      outline:none;
+      min-width:220px;
     }
+    .controls input:focus, .controls select:focus{
+      border-color:rgba(255,106,61,.55);
+      box-shadow:0 0 0 3px rgba(255,106,61,.15);
+    }
+
+    .metaRow{
+      display:flex; flex-wrap:wrap; gap:10px; align-items:center;
+      margin:6px 0 0;
+      color:var(--muted);
+      font-size:12px;
+    }
+    .pill{
+      display:inline-flex; align-items:center; gap:6px;
+      padding:4px 10px; border-radius:999px;
+      border:1px solid var(--line);
+      background:#fff;
+      box-shadow:0 6px 18px rgba(15,23,42,.06);
+    }
+    .pill b{ color:var(--fg); font-weight:700; }
 
     .table{
       border:1px solid var(--line);
       border-radius:14px;
       overflow:hidden;
-      background:rgba(17,26,43,.72);
+      background:var(--card);
+      box-shadow:var(--shadow);
     }
     table{ width:100%; border-collapse:collapse; }
     th,td{
-      border-bottom:1px solid var(--line);
-      padding:10px 8px;
+      border-bottom:1px solid rgba(15,23,42,.08);
+      padding:10px 10px;
       font-size:13px;
       text-align:left;
       vertical-align:top;
     }
-    th{ color:var(--muted); font-weight:600; }
+    th{ color:var(--muted); font-weight:700; background:#fbfcff; }
     tr:last-child td{ border-bottom:none; }
-
     .muted{ color:var(--muted); }
     .right{ text-align:right; }
+    .mono{ font-family:ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace; }
+    .link{
+      color:var(--accent);
+      text-decoration:none;
+      font-weight:700;
+    }
+    .link:hover{ text-decoration:underline; }
+
+    /* Flatpickr tweaks to match light UI */
+    .flatpickr-calendar{
+      border-radius:14px !important;
+      border:1px solid var(--line) !important;
+      box-shadow:var(--shadow) !important;
+      font-family:Inter,system-ui,-apple-system,Segoe UI,Roboto,Arial !important;
+    }
+    .flatpickr-day.selected, .flatpickr-day.startRange, .flatpickr-day.endRange,
+    .flatpickr-day.selected.inRange, .flatpickr-day.startRange.inRange, .flatpickr-day.endRange.inRange{
+      background:var(--accent) !important;
+      border-color:var(--accent) !important;
+    }
+    .flatpickr-day.today{
+      border-color:rgba(255,106,61,.45) !important;
+    }
+
+    /* Modal */
+    .modalOverlay{
+      display:none;
+      position:fixed; inset:0;
+      background:rgba(2,6,23,.55);
+      z-index:9999;
+      padding:18px;
+      overflow:auto;
+    }
+    .modal{
+      max-width:980px;
+      margin:0 auto;
+      background:var(--card);
+      border:1px solid var(--line);
+      border-radius:16px;
+      box-shadow:0 30px 90px rgba(0,0,0,.25);
+      overflow:hidden;
+    }
+    .modalHeader{
+      display:flex; align-items:center; justify-content:space-between;
+      gap:10px;
+      padding:12px 14px;
+      border-bottom:1px solid rgba(15,23,42,.08);
+      background:#fbfcff;
+    }
+    .modalHeader .h{
+      display:flex; flex-direction:column; gap:2px;
+    }
+    .modalHeader .h .t{ font-weight:800; font-size:14px; }
+    .modalHeader .h .s{ color:var(--muted); font-size:12px; }
+    .modalBody{ padding:12px 14px; }
+    .modalActions{ display:flex; gap:10px; align-items:center; }
+    .kpiRow{
+      display:flex; flex-wrap:wrap; gap:10px;
+      margin:0 0 10px;
+    }
+    .kpi{
+      border:1px solid var(--line);
+      background:#fff;
+      border-radius:14px;
+      padding:10px 12px;
+      box-shadow:0 6px 18px rgba(15,23,42,.06);
+      min-width:160px;
+    }
+    .kpi .k{ color:var(--muted); font-size:12px; }
+    .kpi .v{ margin-top:4px; font-size:14px; font-weight:800; }
   </style>
 </head>
 
@@ -87,38 +187,49 @@
         <div class="title">Lolaelo Admin · AP</div>
       </div>
       <div class="actions">
+        <a class="btn ghost" href="/admin/index.html">Admin hub</a>
         <button id="btnLogout" class="btn ghost" type="button">Sign out</button>
       </div>
     </div>
 
     <div class="hero">
       <h1>Accounts Payable – Partner payouts</h1>
-      <p>Audit completed bookings ready for payout. Record payments after bank transfer.</p>
+      <p>
+        Weekly view of bookings that are payout-eligible for a pay period.
+        Eligibility is completion-driven: status COMPLETED, completedAt in the pay window, and not yet linked in PayoutBooking.
+      </p>
+      <div class="metaRow">
+        <span class="pill"><b>Status:</b> <span id="authStatus">Checking…</span></span>
+        <span class="pill"><b>Pay window:</b> <span id="windowText">—</span></span>
+      </div>
     </div>
 
     <div class="controls">
       <label>
-        Week
-        <input id="week" type="week" />
+        Pay period (pick any date in the week)
+        <input id="weekPick" placeholder="Select a date…" />
       </label>
+
       <label>
-        Property
-        <select id="property">
-          <option value="">All properties</option>
+        Partner (optional)
+        <select id="partnerFilter">
+          <option value="">All partners</option>
         </select>
       </label>
-      <button class="btn" type="button" onclick="load()">Load</button>
+
+      <button id="btnLoad" class="btn" type="button">Load</button>
+      <button id="btnThisWeek" class="btn ghost" type="button">Last completed week</button>
     </div>
 
     <div class="table">
       <table>
         <thead>
           <tr>
-            <th>Property</th>
-            <th>Week</th>
-            <th>Completed bookings</th>
-            <th class="right">Total net due</th>
-            <th>Action</th>
+            <th style="width:360px;">Partner</th>
+            <th style="width:180px;">Pay window</th>
+            <th style="width:170px;">Eligible bookings</th>
+            <th class="right" style="width:170px;">Gross (amountPaid)</th>
+            <th style="width:220px;">Actions</th>
           </tr>
         </thead>
         <tbody id="rows">
@@ -130,36 +241,368 @@
     </div>
   </div>
 
+  <!-- Modal: bookings drilldown -->
+  <div id="modalOverlay" class="modalOverlay" role="dialog" aria-modal="true" aria-label="Bookings in pay period">
+    <div class="modal">
+      <div class="modalHeader">
+        <div class="h">
+          <div class="t" id="modalTitle">Bookings</div>
+          <div class="s" id="modalSub">—</div>
+        </div>
+        <div class="modalActions">
+          <button class="btn ghost" type="button" id="btnCloseModal">Close</button>
+        </div>
+      </div>
+      <div class="modalBody">
+        <div class="kpiRow">
+          <div class="kpi">
+            <div class="k">Booking count</div>
+            <div class="v" id="kpiCount">0</div>
+          </div>
+          <div class="kpi">
+            <div class="k">Gross total</div>
+            <div class="v" id="kpiGross">$0.00</div>
+          </div>
+          <div class="kpi">
+            <div class="k">Week start</div>
+            <div class="v mono" id="kpiWeekStart">—</div>
+          </div>
+          <div class="kpi">
+            <div class="k">Week end</div>
+            <div class="v mono" id="kpiWeekEnd">—</div>
+          </div>
+        </div>
+
+        <div class="table" style="box-shadow:none;">
+          <table>
+            <thead>
+              <tr>
+                <th style="width:150px;">Booking ref</th>
+                <th style="width:120px;">Status</th>
+                <th style="width:210px;">Stay dates</th>
+                <th style="width:180px;">Completed at</th>
+                <th class="right" style="width:140px;">Amount paid</th>
+              </tr>
+            </thead>
+            <tbody id="modalRows">
+              <tr><td colspan="5" class="muted">Loading…</td></tr>
+            </tbody>
+          </table>
+        </div>
+
+        <div class="muted" style="margin-top:10px; font-size:12px;">
+          Note: This is read-only for now. Creating payout records and marking PAID will be wired next.
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
+
   <script>
     (function(){
-      const ADMIN_TOKEN = "lolaelo_admin_session";
+      const ADMIN_TOKEN_KEY = "lolaelo_admin_session";
       const LOGIN = "/admin/login.html";
       const API_BASE = location.origin;
 
-      function getToken(){ try{ return localStorage.getItem(ADMIN_TOKEN) || ""; }catch{ return ""; } }
+      const $ = (id) => document.getElementById(id);
 
-      if (!getToken()) location.replace(LOGIN);
+      function getAdminToken(){
+        try { return localStorage.getItem(ADMIN_TOKEN_KEY) || ""; } catch { return ""; }
+      }
 
-      document.getElementById("btnLogout").onclick = () => {
-        try{ localStorage.removeItem(ADMIN_TOKEN); }catch{}
+      function authHeaders(){
+        const t = String(getAdminToken() || "").trim();
+        return { "Authorization": "Bearer " + t };
+      }
+
+      function money(n, currency){
+        const num = Number(n || 0);
+        const c = String(currency || "USD");
+        if (!Number.isFinite(num)) return c + " 0.00";
+        return c + " " + num.toFixed(2);
+      }
+
+      // Monday of the week for a given date (local)
+      function mondayOf(d){
+        const x = new Date(d.getFullYear(), d.getMonth(), d.getDate());
+        const day = x.getDay(); // 0 Sun .. 6 Sat
+        const diff = (day === 0) ? -6 : (1 - day); // shift to Monday
+        x.setDate(x.getDate() + diff);
+        x.setHours(0,0,0,0);
+        return x;
+      }
+
+      function ymd(d){
+        const y = d.getFullYear();
+        const m = String(d.getMonth()+1).padStart(2,"0");
+        const da = String(d.getDate()).padStart(2,"0");
+        return `${y}-${m}-${da}`;
+      }
+
+      function addDays(date, days){
+        const d = new Date(date.getTime());
+        d.setDate(d.getDate() + days);
+        return d;
+      }
+
+      // "Last completed week" = the most recent Mon-Sun that has ended (based on today local)
+      function lastCompletedWeekStart(){
+        const now = new Date();
+        const thisMon = mondayOf(now);
+        // If it's Monday, last completed week is previous week. If any other day, last completed week is still previous week (because current week not ended yet).
+        const lastMon = addDays(thisMon, -7);
+        return lastMon;
+      }
+
+      async function adminPing(){
+        const t = String(getAdminToken() || "").trim();
+        if (!t) return false;
+        const r = await fetch("/api/admin/ping", { headers: authHeaders() });
+        return r.ok;
+      }
+
+      async function ensureAdmin(){
+        const t = String(getAdminToken() || "").trim();
+        if (!t) { location.replace(LOGIN); return false; }
+
+        const ok = await adminPing().catch(() => false);
+        if (!ok) {
+          try { localStorage.removeItem(ADMIN_TOKEN_KEY); } catch {}
+          location.replace(LOGIN);
+          return false;
+        }
+        return true;
+      }
+
+      function setAuthStatus(txt){
+        const el = $("authStatus");
+        if (el) el.textContent = txt;
+      }
+
+      function setWindowText(weekStartYmd){
+        const ws = new Date(weekStartYmd + "T00:00:00");
+        const we = addDays(ws, 6);
+        const el = $("windowText");
+        if (el) el.textContent = `${ymd(ws)} to ${ymd(we)}`;
+      }
+
+      function setRowsLoading(){
+        $("rows").innerHTML = `<tr><td colspan="5" class="muted">Loading…</td></tr>`;
+      }
+
+      function setRowsEmpty(){
+        $("rows").innerHTML = `<tr><td colspan="5" class="muted">No eligible bookings for this pay period.</td></tr>`;
+      }
+
+      function renderPartnerFilter(rows){
+        const sel = $("partnerFilter");
+        const current = String(sel.value || "");
+        const opts = [`<option value="">All partners</option>`]
+          .concat(rows.map(r => `<option value="${String(r.partnerId)}">${escapeHtml(r.propertyName || ("Partner #" + r.partnerId))}</option>`));
+        sel.innerHTML = opts.join("");
+        if (current) sel.value = current;
+      }
+
+      function escapeHtml(s){
+        return String(s == null ? "" : s)
+          .replace(/&/g,"&amp;")
+          .replace(/</g,"&lt;")
+          .replace(/>/g,"&gt;")
+          .replace(/"/g,"&quot;")
+          .replace(/'/g,"&#039;");
+      }
+
+      function renderRollups(rows, weekStartYmd){
+        const selPartner = String($("partnerFilter").value || "");
+        const view = selPartner ? rows.filter(r => String(r.partnerId) === selPartner) : rows;
+
+        if (!view.length) { setRowsEmpty(); return; }
+
+        $("rows").innerHTML = view.map(r => {
+          const name = escapeHtml(r.propertyName || ("Partner #" + r.partnerId));
+          const ws = escapeHtml(r.weekStart || weekStartYmd);
+          const we = escapeHtml(r.weekEnd || "");
+          const count = Number(r.bookingCount || 0);
+          const gross = r.amountGross;
+          return `
+            <tr>
+              <td>
+                <div style="font-weight:800;">${name}</div>
+                <div class="muted" style="font-size:12px; margin-top:2px;">Partner ID: <span class="mono">${escapeHtml(r.partnerId)}</span></div>
+              </td>
+              <td class="mono">${ws}${we ? (" to " + we) : ""}</td>
+              <td>${count}</td>
+              <td class="right">${money(gross, "USD")}</td>
+              <td>
+                <div style="display:flex; gap:10px; flex-wrap:wrap;">
+                  <button class="btn ghost" type="button" onclick="window.openBookings('${escapeHtml(r.partnerId)}')">View bookings</button>
+                  <button class="btn" type="button" onclick="alert('Create payout (DRAFT) + link bookings: next sprint.')">Create payout</button>
+                </div>
+              </td>
+            </tr>
+          `;
+        }).join("");
+      }
+
+      function openModal(){
+        const o = $("modalOverlay");
+        if (o) o.style.display = "block";
+        document.body.style.overflow = "hidden";
+      }
+      function closeModal(){
+        const o = $("modalOverlay");
+        if (o) o.style.display = "none";
+        document.body.style.overflow = "";
+      }
+
+      async function fetchJSON(path){
+        const r = await fetch(API_BASE + path, { headers: authHeaders() });
+        if (r.status === 401) {
+          try { localStorage.removeItem(ADMIN_TOKEN_KEY); } catch {}
+          location.replace(LOGIN);
+          return null;
+        }
+        const data = await r.json().catch(() => null);
+        if (!r.ok) {
+          const msg = (data && (data.error || data.message)) ? String(data.error || data.message) : `HTTP ${r.status}`;
+          throw new Error(msg);
+        }
+        return data;
+      }
+
+      async function loadRollup(weekStartYmd){
+        setRowsLoading();
+        const data = await fetchJSON(`/api/admin/ap/ready?weekStart=${encodeURIComponent(weekStartYmd)}`);
+        if (!data || !data.ok) { setRowsEmpty(); return; }
+        const rows = Array.isArray(data.rows) ? data.rows : [];
+        renderPartnerFilter(rows);
+        renderRollups(rows, weekStartYmd);
+      }
+
+      async function loadBookings(partnerId, weekStartYmd){
+        $("modalRows").innerHTML = `<tr><td colspan="5" class="muted">Loading…</td></tr>`;
+        const data = await fetchJSON(`/api/admin/ap/ready/bookings?partnerId=${encodeURIComponent(partnerId)}&weekStart=${encodeURIComponent(weekStartYmd)}`);
+        const rows = (data && data.ok && Array.isArray(data.rows)) ? data.rows : [];
+
+        const ws = weekStartYmd;
+        const we = ymd(addDays(new Date(weekStartYmd + "T00:00:00"), 6));
+
+        $("modalTitle").textContent = `Eligible bookings – Partner ${partnerId}`;
+        $("modalSub").textContent = `Pay period: ${ws} to ${we}`;
+
+        $("kpiWeekStart").textContent = ws;
+        $("kpiWeekEnd").textContent = we;
+        $("kpiCount").textContent = String(rows.length);
+
+        const gross = rows.reduce((sum, r) => sum + (Number(r.amountPaid || 0) || 0), 0);
+        $("kpiGross").textContent = money(gross, "USD");
+
+        if (!rows.length) {
+          $("modalRows").innerHTML = `<tr><td colspan="5" class="muted">No bookings found.</td></tr>`;
+          return;
+        }
+
+        function fmtDate(d){
+          if (!d) return "—";
+          const s = String(d);
+          const ymdMatch = /^\d{4}-\d{2}-\d{2}/.test(s) ? s.slice(0,10) : "";
+          return ymdMatch || s;
+        }
+
+        $("modalRows").innerHTML = rows.map(r => {
+          const ref = escapeHtml(r.bookingRef || "");
+          const st = escapeHtml(r.status || "");
+          const stay = `${escapeHtml(fmtDate(r.checkInDate))} to ${escapeHtml(fmtDate(r.checkOutDate))}`;
+          const comp = escapeHtml(String(r.completedAt || "—"));
+          const amt = money(r.amountPaid, r.currency || "USD");
+          return `
+            <tr>
+              <td class="mono"><a class="link" href="#" onclick="alert('Booking audit modal is on partner side for now. Next: add admin booking audit.'); return false;">${ref}</a></td>
+              <td>${st}</td>
+              <td class="mono">${stay}</td>
+              <td class="mono">${comp}</td>
+              <td class="right mono">${escapeHtml(amt)}</td>
+            </tr>
+          `;
+        }).join("");
+      }
+
+      // Expose modal opener for table buttons
+      window.openBookings = async function(partnerId){
+        const weekStartYmd = String($("weekPick").dataset.weekStart || "").trim();
+        if (!weekStartYmd) { alert("Pick a pay period first."); return; }
+        openModal();
+        try {
+          await loadBookings(partnerId, weekStartYmd);
+        } catch (e) {
+          $("modalRows").innerHTML = `<tr><td colspan="5" class="muted">Failed: ${escapeHtml(String(e.message || e))}</td></tr>`;
+        }
+      };
+
+      // Wire UI
+      $("btnCloseModal").onclick = closeModal;
+      $("modalOverlay").addEventListener("click", (e) => {
+        if (e.target && e.target.id === "modalOverlay") closeModal();
+      });
+
+      $("btnLogout").onclick = () => {
+        try { localStorage.removeItem(ADMIN_TOKEN_KEY); } catch {}
         location.replace(LOGIN);
       };
 
-      window.load = async function(){
-        // Stub only – backend wiring next sprint
-        const tbody = document.getElementById("rows");
-        tbody.innerHTML = `
-          <tr>
-            <td>Hotel Test 111</td>
-            <td>${document.getElementById("week").value || "—"}</td>
-            <td>3</td>
-            <td class="right">$420.00</td>
-            <td>
-              <button class="btn ghost" onclick="alert('Create payout record (next).')">Create payout</button>
-            </td>
-          </tr>
-        `;
+      $("partnerFilter").addEventListener("change", () => {
+        // Re-render from last loaded rows by reloading (cheap + consistent)
+        $("btnLoad").click();
+      });
+
+      $("btnLoad").onclick = async () => {
+        const weekStartYmd = String($("weekPick").dataset.weekStart || "").trim();
+        if (!weekStartYmd) { alert("Pick a pay period first."); return; }
+        setWindowText(weekStartYmd);
+        await loadRollup(weekStartYmd).catch((e) => {
+          $("rows").innerHTML = `<tr><td colspan="5" class="muted">Failed: ${escapeHtml(String(e.message || e))}</td></tr>`;
+        });
       };
+
+      $("btnThisWeek").onclick = () => {
+        const ws = lastCompletedWeekStart();
+        const wsYmd = ymd(ws);
+        $("weekPick")._flatpickr.setDate(ws, true);
+        $("weekPick").dataset.weekStart = wsYmd;
+        setWindowText(wsYmd);
+        $("btnLoad").click();
+      };
+
+      // Init
+      (async function boot(){
+        const ok = await ensureAdmin();
+        if (!ok) return;
+
+        setAuthStatus("Ready");
+        // Flatpickr: user picks any date; we convert to Monday weekStart
+        flatpickr("#weekPick", {
+          dateFormat: "Y-m-d",
+          allowInput: true,
+          defaultDate: lastCompletedWeekStart(),
+          onChange: function(selectedDates){
+            const d = selectedDates && selectedDates[0] ? selectedDates[0] : lastCompletedWeekStart();
+            const ws = mondayOf(d);
+            const wsYmd = ymd(ws);
+            $("weekPick").dataset.weekStart = wsYmd;
+            setWindowText(wsYmd);
+          }
+        });
+
+        // Seed
+        const ws = lastCompletedWeekStart();
+        const wsYmd = ymd(ws);
+        $("weekPick").dataset.weekStart = wsYmd;
+        setWindowText(wsYmd);
+
+        // Auto-load
+        $("btnLoad").click();
+      })();
     })();
   </script>
 </body>
