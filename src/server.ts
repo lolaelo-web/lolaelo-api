@@ -52,6 +52,24 @@ function requirePartnerIdFromRequest(req: Request): number {
 }
 // ANCHOR: REQUIRE_PARTNER_ID_FROM_REQUEST END
 
+// ANCHOR: REQUIRE_ADMIN_AUTH
+function requireAdminAuth(req: Request): void {
+  const header = String(req.headers["authorization"] || "").trim();
+  const bearer = header.toLowerCase().startsWith("bearer ")
+    ? header.slice(7).trim()
+    : "";
+
+  const expected = String(process.env.ADMIN_TOKEN || "").trim();
+  if (!expected) {
+    throw new Error("admin_token_missing");
+  }
+
+  if (!bearer || bearer !== expected) {
+    throw new Error("admin_unauthorized");
+  }
+}
+// ANCHOR: REQUIRE_ADMIN_AUTH END
+
 // GET /extranet/property/rateplans?propertyId=2&roomTypeId=32
 app.get("/extranet/property/rateplans", async (req: Request, res: Response) => {
   try {
@@ -2466,6 +2484,125 @@ app.get("/__tables_public", async (_req, res) => {
     res.status(500).json({ ok: false, error: String(e?.message || e) });
   }
 });
+
+// ANCHOR: ADMIN_PING_ROUTE
+app.get("/api/admin/ping", (req: Request, res: Response) => {
+  try {
+    requireAdminAuth(req);
+    return res.json({ ok: true });
+  } catch {
+    return res.status(401).json({ ok: false, error: "unauthorized" });
+  }
+});
+// ANCHOR: ADMIN_PING_ROUTE END
+
+// ANCHOR: ADMIN_AP_READY_ROLLUP_ROUTE
+app.get("/api/admin/ap/ready", async (req: Request, res: Response) => {
+  try {
+    requireAdminAuth(req);
+
+    const weekStart = String(req.query.weekStart || "").trim(); // YYYY-MM-DD (Monday)
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(weekStart)) {
+      return res.status(400).json({ ok: false, error: "weekStart_required_YYYY-MM-DD" });
+    }
+
+    const data = await withDb(async (client) => {
+      const q = `
+        WITH params AS (
+          SELECT
+            $1::date AS week_start,
+            ($1::date + interval '6 days')::date AS week_end
+        )
+        SELECT
+          b."partnerId" AS "partnerId",
+          COALESCE(pp.name, p.name, ('Partner #' || b."partnerId"::text)) AS "propertyName",
+          (SELECT week_start FROM params) AS "weekStart",
+          (SELECT week_end FROM params) AS "weekEnd",
+          COUNT(*)::int AS "bookingCount",
+          COALESCE(SUM(b."amountPaid"), 0)::numeric AS "amountGross"
+        FROM extranet."Booking" b
+        LEFT JOIN extranet."PropertyProfile" pp ON pp."partnerId" = b."partnerId"
+        LEFT JOIN extranet."Partner" p ON p.id = b."partnerId"
+        CROSS JOIN params
+        WHERE b.status = 'COMPLETED'::extranet."BookingStatus"
+          AND b."completedAt" IS NOT NULL
+          -- Pay period is ET-based (Mon-Sun)
+          AND ((b."completedAt" AT TIME ZONE 'America/New_York')::date BETWEEN (SELECT week_start FROM params) AND (SELECT week_end FROM params))
+          AND NOT EXISTS (
+            SELECT 1 FROM extranet."PayoutBooking" pb WHERE pb."bookingId" = b.id
+          )
+        GROUP BY b."partnerId", COALESCE(pp.name, p.name, ('Partner #' || b."partnerId"::text))
+        ORDER BY "bookingCount" DESC, "partnerId" ASC;
+      `;
+      const r = await client.query(q, [weekStart]);
+      return r.rows || [];
+    });
+
+    return res.json({ ok: true, rows: data });
+  } catch (e: any) {
+    console.error("[admin] ap ready rollup error", e);
+    return res.status(500).json({ ok: false, error: "server_error" });
+  }
+});
+// ANCHOR: ADMIN_AP_READY_ROLLUP_ROUTE END
+
+// ANCHOR: ADMIN_AP_READY_BOOKINGS_ROUTE
+app.get("/api/admin/ap/ready/bookings", async (req: Request, res: Response) => {
+  try {
+    requireAdminAuth(req);
+
+    const weekStart = String(req.query.weekStart || "").trim(); // YYYY-MM-DD
+    const partnerId = Number(req.query.partnerId || 0);
+
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(weekStart)) {
+      return res.status(400).json({ ok: false, error: "weekStart_required_YYYY-MM-DD" });
+    }
+    if (!partnerId) {
+      return res.status(400).json({ ok: false, error: "partnerId_required" });
+    }
+
+    const data = await withDb(async (client) => {
+      const q = `
+        WITH params AS (
+          SELECT
+            $1::date AS week_start,
+            ($1::date + interval '6 days')::date AS week_end
+        )
+        SELECT
+          b.id,
+          b."bookingRef",
+          b.status::text as status,
+          b.currency,
+          b."amountPaid",
+          b."checkInDate",
+          b."checkOutDate",
+          b."completedAt",
+          COALESCE(pp.name, p.name, ('Partner #' || b."partnerId"::text)) AS "propertyName"
+        FROM extranet."Booking" b
+        LEFT JOIN extranet."PropertyProfile" pp ON pp."partnerId" = b."partnerId"
+        LEFT JOIN extranet."Partner" p ON p.id = b."partnerId"
+        CROSS JOIN params
+        WHERE b."partnerId" = $2
+          AND b.status = 'COMPLETED'::extranet."BookingStatus"
+          AND b."completedAt" IS NOT NULL
+          AND ((b."completedAt" AT TIME ZONE 'America/New_York')::date BETWEEN (SELECT week_start FROM params) AND (SELECT week_end FROM params))
+          AND NOT EXISTS (
+            SELECT 1 FROM extranet."PayoutBooking" pb WHERE pb."bookingId" = b.id
+          )
+        ORDER BY b."completedAt" DESC, b.id DESC
+        LIMIT 1000;
+      `;
+      const r = await client.query(q, [weekStart, partnerId]);
+      return r.rows || [];
+    });
+
+    return res.json({ ok: true, rows: data });
+  } catch (e: any) {
+    console.error("[admin] ap ready bookings error", e);
+    return res.status(500).json({ ok: false, error: "server_error" });
+  }
+});
+// ANCHOR: ADMIN_AP_READY_BOOKINGS_ROUTE END
 
 // ---- Diagnostics ----
 app.get("/__ping", (_req, res) => {

@@ -6,17 +6,58 @@
   <title>Admin Login | Lolaelo</title>
   <link rel="stylesheet" href="/css/extranet.css">
   <style>
-    :root{ --bg:#0b1320; --card:#111a2b; --fg:#e8eefc; --muted:#9bb0d3; --accent:#ff6a3d; --line:rgba(255,255,255,.08); }
+    /* Admin should feel like the main UI (light) while keeping layout consistent */
+    :root{
+      --bg:#f6f8fc;
+      --card:#ffffff;
+      --fg:#0f172a;
+      --muted:#5b6b84;
+      --accent:#ff6a3d;
+      --line:rgba(15,23,42,.12);
+    }
     *{ box-sizing:border-box }
-    body{ margin:0; background:var(--bg); color:var(--fg); font-family:Inter,system-ui,-apple-system,Segoe UI,Roboto,Arial; }
+    body{
+      margin:0;
+      background:var(--bg);
+      color:var(--fg);
+      font-family:Inter,system-ui,-apple-system,Segoe UI,Roboto,Arial;
+    }
     .wrap{ max-width:520px; margin:0 auto; padding:28px 14px; }
-    .card{ border:1px solid var(--line); background:rgba(17,26,43,.72); border-radius:14px; padding:16px; }
+    .card{
+      border:1px solid var(--line);
+      background:var(--card);
+      border-radius:14px;
+      padding:16px;
+      box-shadow:0 10px 30px rgba(15,23,42,.08);
+    }
     h1{ margin:0 0 6px; font-size:18px; }
     p{ margin:0 0 14px; color:var(--muted); font-size:13px; }
     label{ display:block; font-size:12px; color:var(--muted); margin:10px 0 6px; }
-    input{ width:100%; padding:10px 12px; border-radius:12px; border:1px solid var(--line); background:#0b1220; color:var(--fg); outline:none; }
-    .row{ display:flex; gap:10px; margin-top:12px; }
+    input{
+      width:100%;
+      padding:10px 12px;
+      border-radius:12px;
+      border:1px solid var(--line);
+      background:#ffffff;
+      color:var(--fg);
+      outline:none;
+    }
+    input:focus{
+      border-color:rgba(255,106,61,.55);
+      box-shadow:0 0 0 3px rgba(255,106,61,.15);
+    }
+    .row{ display:flex; gap:10px; margin-top:12px; align-items:center; }
     .row a{ text-decoration:none; }
+
+    /* Inline status */
+    .status{
+      margin-top:10px;
+      font-size:12px;
+      color:var(--muted);
+      min-height:16px;
+    }
+    .status.ok{ color:#0f7a3a; }
+    .status.bad{ color:#b42318; }
   </style>
 </head>
 <body>
@@ -26,27 +67,106 @@
       <p>Internal access only.</p>
 
       <label for="token">Admin token</label>
-      <input id="token" placeholder="Paste admin token" />
+      <input id="token" placeholder="Paste admin token" autocomplete="off" />
 
       <div class="row">
         <button id="btnSave" class="btn" type="button">Enter</button>
+        <button id="btnClear" class="btn ghost" type="button">Clear</button>
         <a class="btn ghost" href="/partners_app.html">Back to extranet</a>
       </div>
+
+      <div id="status" class="status"></div>
     </div>
   </div>
 
   <script>
     (function(){
+      // === Config ===
       const TOKEN_KEY = "lolaelo_admin_session";
       const NEXT = "/admin/index.html";
-      const $ = (id) => document.getElementById(id);
+      const PING_URL = "/api/admin/ping";
 
-      $("btnSave").onclick = () => {
+      const $ = (id) => document.getElementById(id);
+      const statusEl = $("status");
+
+      function setStatus(msg, kind){
+        if (!statusEl) return;
+        statusEl.textContent = msg || "";
+        statusEl.className = "status" + (kind ? (" " + kind) : "");
+      }
+
+      async function ping(token){
+        const r = await fetch(PING_URL, {
+          method: "GET",
+          headers: { "Authorization": "Bearer " + token }
+        });
+        return r.ok;
+      }
+
+      async function doLogin(){
         const t = ($("token").value || "").trim();
-        if (!t) { alert("Token required."); return; }
-        try { localStorage.setItem(TOKEN_KEY, t); } catch {}
-        location.replace(NEXT);
-      };
+        if (!t) { setStatus("Token required.", "bad"); alert("Token required."); return; }
+
+        setStatus("Validating…", "");
+        $("btnSave").disabled = true;
+
+        try {
+          const ok = await ping(t);
+          if (!ok) {
+            try { localStorage.removeItem(TOKEN_KEY); } catch {}
+            setStatus("Invalid admin token.", "bad");
+            alert("Invalid admin token.");
+            return;
+          }
+
+          // Save after server validation
+          try { localStorage.setItem(TOKEN_KEY, t); } catch {}
+          setStatus("Access granted. Redirecting…", "ok");
+          location.replace(NEXT);
+        } catch (e) {
+          setStatus("Could not reach server. Try again.", "bad");
+          alert("Could not reach server. Try again.");
+        } finally {
+          $("btnSave").disabled = false;
+        }
+      }
+
+      function clearToken(){
+        try { localStorage.removeItem(TOKEN_KEY); } catch {}
+        try { $("token").value = ""; } catch {}
+        setStatus("Cleared.", "");
+      }
+
+      // Wire events
+      $("btnSave").onclick = () => { doLogin(); };
+      $("btnClear").onclick = () => { clearToken(); };
+
+      // Enter key submits
+      $("token").addEventListener("keydown", (e) => {
+        if (e.key === "Enter") doLogin();
+      });
+
+      // If token already stored, validate it and jump
+      (async function autoRedirectIfValid(){
+        let t = "";
+        try { t = localStorage.getItem(TOKEN_KEY) || ""; } catch {}
+        t = String(t || "").trim();
+        if (!t) return;
+
+        setStatus("Existing token found. Validating…", "");
+        try {
+          const ok = await ping(t);
+          if (ok) {
+            setStatus("Access granted. Redirecting…", "ok");
+            location.replace(NEXT);
+          } else {
+            try { localStorage.removeItem(TOKEN_KEY); } catch {}
+            setStatus("Stored token was invalid. Please re-enter.", "bad");
+          }
+        } catch {
+          setStatus("Server not reachable. You can still try logging in.", "bad");
+        }
+      })();
     })();
   </script>
 </body>
