@@ -3027,6 +3027,67 @@ app.get("/api/admin/ap/payouts", async (req: Request, res: Response) => {
 });
 // ANCHOR: ADMIN_AP_LIST_PAYOUTS_ROUTE END
 
+// ANCHOR: ADMIN_AP_PAYOUT_BOOKINGS_ROUTE
+app.get("/api/admin/ap/payouts/:id/bookings", async (req: Request, res: Response) => {
+  try {
+    requireAdminAuth(req);
+
+    const payoutId = Number(req.params.id || 0);
+    if (!payoutId) return res.status(400).json({ ok: false, error: "payoutId_required" });
+
+    const data = await withDb(async (client) => {
+      const pq = await client.query(
+        `
+        SELECT
+          p.id,
+          p."partnerId",
+          COALESCE(pp.name, pr.name, ('Partner #' || p."partnerId"::text)) AS "propertyName",
+          p."weekStart", p."weekEnd", p.currency, p.status,
+          p."amountNet", p.method, p."confirmationNumber", p."paidAt", p."createdAt", p."createdBy"
+        FROM extranet."Payout" p
+        LEFT JOIN extranet."PropertyProfile" pp ON pp."partnerId" = p."partnerId"
+        LEFT JOIN extranet."Partner" pr ON pr.id = p."partnerId"
+        WHERE p.id = $1
+        LIMIT 1
+        `,
+        [payoutId]
+      );
+      if (!pq.rows.length) return null;
+
+      const bq = await client.query(
+        `
+        SELECT
+          pb.id,
+          pb."bookingId",
+          COALESCE(pb."bookingRef", b."bookingRef") AS "bookingRef",
+          b."checkInDate",
+          b."checkOutDate",
+          b.currency,
+          b."amountPaid",
+          pb."marginPct",
+          pb."feeAmount",
+          pb."netAmount",
+          (COALESCE(pb."netAmount",0) + COALESCE(pb."feeAmount",0)) AS "grossAmount"
+        FROM extranet."PayoutBooking" pb
+        JOIN extranet."Booking" b ON b.id = pb."bookingId"
+        WHERE pb."payoutId" = $1
+        ORDER BY pb.id ASC
+        `,
+        [payoutId]
+      );
+
+      return { payout: pq.rows[0], bookings: bq.rows || [] };
+    });
+
+    if (!data) return res.status(404).json({ ok: false, error: "not_found" });
+    return res.json({ ok: true, ...data });
+  } catch (e: any) {
+    console.error("[admin] payout bookings error", e);
+    return res.status(500).json({ ok: false, error: "server_error" });
+  }
+});
+// ANCHOR: ADMIN_AP_PAYOUT_BOOKINGS_ROUTE END
+
 // ANCHOR: ADMIN_EXCEPTIONS_ROUTE
 app.get("/api/admin/exceptions", async (req: Request, res: Response) => {
   try {
