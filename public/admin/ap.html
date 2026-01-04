@@ -239,7 +239,6 @@
       <div class="metaRow">
         <span class="pill"><b>Status:</b> <span id="authStatus">Checking…</span></span>
         <span class="pill"><b>Pay window:</b> <span id="windowText">—</span></span>
-        <span class="pill"><b>Default margin:</b> <span id="marginText">i.e. 10%</span></span>
       </div>
     </div>
 
@@ -258,15 +257,16 @@
 
       <label>
         Default margin %
-        <input id="defaultMargin" class="small" inputmode="decimal" placeholder="10" />
+        <input id="defaultMargin" class="small" inputmode="decimal" placeholder="i.e. 10%" />
       </label>
 
       <button id="btnLoad" class="btn" type="button">Load</button>
       <button id="btnThisWeek" class="btn ghost" type="button">Last completed week</button>
+      <button id="btnCurrentWeek" class="btn ghost" type="button">This week list</button>
     </div>
 
     <!-- Eligible rollup -->
-    <div class="muted" style="font-weight:800; margin:6px 0 8px;">Review for Payment</div>
+    <div class="muted" style="font-weight:400; text-align:center; margin:10px 0 10px;">Review for Payment</div>
     <div class="table">
       <table>
         <thead>
@@ -287,7 +287,7 @@
     <div style="height:12px;"></div>
 
     <!-- Payouts list -->
-    <div class="muted" style="font-weight:800; margin:6px 0 8px;">Reviewed & Waiting for Payment</div>
+    <div class="muted" style="font-weight:400; text-align:center; margin:10px 0 10px;">Reviewed & Waiting for Payment</div>
     <div class="table">
       <table>
         <thead>
@@ -1016,6 +1016,15 @@
 
       $("btnThisWeek").onclick = () => {
         const ws = lastCompletedWeekStart();
+        const wsYmd = ymd(ws);
+        $("weekPick")._flatpickr.setDate(ws, true);
+        setWindowText(wsYmd);
+        $("btnLoad").click();
+      };
+
+      $("btnCurrentWeek").onclick = () => {
+        const now = new Date();
+        const ws = mondayOf(now); // current week Monday
         const wsYmd = ymd(ws);
         $("weekPick")._flatpickr.setDate(ws, true);
         setWindowText(wsYmd);
