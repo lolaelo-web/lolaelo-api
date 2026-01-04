@@ -1954,6 +1954,19 @@ app.get("/api/extranet/me/payouts/:payoutId/bookings", async (req: Request, res:
           b."checkOutDate",
           b.currency,
           b."amountPaid",
+          pb."marginPct",
+          pb."feeAmount",
+            CASE
+              WHEN (
+                COALESCE((SELECT SUM(bi."lineTotal") FROM extranet."BookingItem" bi WHERE bi."bookingId" = b.id), 0) +
+                COALESCE((SELECT SUM(ba."lineTotal") FROM extranet."BookingAddOn" ba WHERE ba."bookingId" = b.id), 0)
+              ) > 0
+              THEN (
+                COALESCE((SELECT SUM(bi."lineTotal") FROM extranet."BookingItem" bi WHERE bi."bookingId" = b.id), 0) +
+                COALESCE((SELECT SUM(ba."lineTotal") FROM extranet."BookingAddOn" ba WHERE ba."bookingId" = b.id), 0)
+              )
+              ELSE COALESCE(b."amountPaid", 0)
+            END AS "grossAmount",
           pb."netAmount"
         FROM extranet."PayoutBooking" pb
         JOIN extranet."Booking" b ON b.id = pb."bookingId"
@@ -2714,6 +2727,243 @@ app.get("/api/admin/ap/ready/bookings", async (req: Request, res: Response) => {
   }
 });
 // ANCHOR: ADMIN_AP_READY_BOOKINGS_ROUTE END
+
+// ANCHOR: ADMIN_AP_CREATE_PAYOUT_ROUTE
+app.post("/api/admin/ap/payouts", async (req: Request, res: Response) => {
+  try {
+    requireAdminAuth(req);
+
+    const body: any = req.body || {};
+    const partnerId = Number(body.partnerId || 0);
+    const weekStart = String(body.weekStart || "").trim(); // YYYY-MM-DD (Monday)
+    const currency = String(body.currency || "USD").trim().toUpperCase();
+    const createdBy = String(body.createdBy || "admin").trim() || "admin";
+
+    const items = Array.isArray(body.items) ? body.items : []; // [{ bookingId, marginPct }]
+    if (!partnerId) return res.status(400).json({ ok: false, error: "partnerId_required" });
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(weekStart)) {
+      return res.status(400).json({ ok: false, error: "weekStart_required_YYYY-MM-DD" });
+    }
+    if (!items.length) return res.status(400).json({ ok: false, error: "items_required" });
+
+    // Normalize items
+    const norm = items
+      .map((x: any) => ({
+        bookingId: Number(x.bookingId || 0),
+        marginPct: Number(x.marginPct ?? 0),
+      }))
+      .filter((x: any) => x.bookingId && Number.isFinite(x.marginPct));
+
+    if (!norm.length) return res.status(400).json({ ok: false, error: "valid_items_required" });
+
+    // Bound marginPct (0..100)
+    for (const it of norm) {
+      if (it.marginPct < 0 || it.marginPct > 100) {
+        return res.status(400).json({ ok: false, error: "marginPct_out_of_range_0_100" });
+      }
+    }
+
+    const result = await withDb(async (client) => {
+      await client.query("BEGIN");
+
+      try {
+        // Create payout header (DRAFT)
+        const pq = await client.query(
+          `
+          INSERT INTO extranet."Payout"
+            ("partnerId","weekStart","weekEnd","currency","status","createdAt","createdBy")
+          VALUES
+            ($1, $2::date, ($2::date + interval '6 days')::date, $3, 'DRAFT', NOW(), $4)
+          RETURNING id, "partnerId", "weekStart", "weekEnd", currency, status, "createdAt", "createdBy"
+          `,
+          [partnerId, weekStart, currency, createdBy]
+        );
+
+        const payoutId = Number(pq.rows[0].id);
+
+        // For each bookingId: validate eligibility and insert PayoutBooking
+        // Eligibility:
+        // - booking.partnerId matches
+        // - status COMPLETED
+        // - completedAt within pay window (ET)
+        // - not already linked in PayoutBooking
+        //
+        // Gross rule (consistent with everywhere else):
+        // gross = itemsTotal+addonsTotal if >0 else booking.amountPaid
+        //
+        // fee = round(gross * marginPct/100, 2)
+        // net = gross - fee
+        for (const it of norm) {
+          const bq = await client.query(
+            `
+            WITH params AS (
+              SELECT
+                $3::date AS week_start,
+                ($3::date + interval '6 days')::date AS week_end
+            ),
+            sums AS (
+              SELECT
+                b.id,
+                b."bookingRef",
+                b."partnerId",
+                b.currency,
+                COALESCE(b."amountPaid",0) AS "amountPaid",
+                b."completedAt",
+                COALESCE((SELECT SUM(bi."lineTotal") FROM extranet."BookingItem" bi WHERE bi."bookingId" = b.id), 0) AS "itemsTotal",
+                COALESCE((SELECT SUM(ba."lineTotal") FROM extranet."BookingAddOn" ba WHERE ba."bookingId" = b.id), 0) AS "addonsTotal"
+              FROM extranet."Booking" b
+              WHERE b.id = $1
+                AND b."partnerId" = $2
+                AND b.status = 'COMPLETED'::extranet."BookingStatus"
+                AND b."completedAt" IS NOT NULL
+                AND ((b."completedAt" AT TIME ZONE 'America/New_York')::date BETWEEN
+                      (SELECT week_start FROM params) AND (SELECT week_end FROM params))
+            )
+            SELECT
+              s.id,
+              s."bookingRef",
+              s.currency,
+              s."amountPaid",
+              s."itemsTotal",
+              s."addonsTotal",
+              CASE
+                WHEN (s."itemsTotal" + s."addonsTotal") > 0 THEN (s."itemsTotal" + s."addonsTotal")
+                ELSE s."amountPaid"
+              END AS "grossAmount",
+              COALESCE(pp.name, p.name, ('Partner #' || s."partnerId"::text)) AS "propertyName"
+            FROM sums s
+            LEFT JOIN extranet."PropertyProfile" pp ON pp."partnerId" = s."partnerId"
+            LEFT JOIN extranet."Partner" p ON p.id = s."partnerId"
+            `,
+            [it.bookingId, partnerId, weekStart]
+          );
+
+          if (!bq.rows.length) {
+            await client.query("ROLLBACK");
+            return { ok: false, error: "booking_not_eligible", bookingId: it.bookingId };
+          }
+
+          const row = bq.rows[0];
+          const gross = Number(row.grossAmount || 0);
+          const pct = Number(it.marginPct || 0);
+
+          // Round to 2 decimals
+          const fee = Math.round((gross * (pct / 100)) * 100) / 100;
+          const net = Math.round((gross - fee) * 100) / 100;
+
+          // Ensure not already linked
+          const exists = await client.query(
+            `SELECT 1 FROM extranet."PayoutBooking" WHERE "bookingId" = $1 LIMIT 1`,
+            [it.bookingId]
+          );
+          if (exists.rows.length) {
+            await client.query("ROLLBACK");
+            return { ok: false, error: "booking_already_linked", bookingId: it.bookingId };
+          }
+
+          await client.query(
+            `
+            INSERT INTO extranet."PayoutBooking"
+              ("payoutId","bookingId","bookingRef","propertyName","netAmount","createdAt","marginPct","feeAmount")
+            VALUES
+              ($1,$2,$3,$4,$5,NOW(),$6,$7)
+            `,
+            [
+              payoutId,
+              it.bookingId,
+              String(row.bookingRef || ""),
+              String(row.propertyName || ""),
+              net,
+              pct,
+              fee
+            ]
+          );
+        }
+
+        await client.query("COMMIT");
+        return { ok: true, payout: pq.rows[0] };
+      } catch (e) {
+        try { await client.query("ROLLBACK"); } catch {}
+        throw e;
+      }
+    });
+
+    if (!result?.ok) {
+      const { ok, ...rest } = (result as any) || {};
+      return res.status(409).json({ ok: false, ...rest });
+    }
+    return res.json({ ok: true, payout: (result as any).payout });
+  } catch (e: any) {
+    console.error("[admin] create payout error", e);
+    return res.status(500).json({ ok: false, error: "server_error" });
+  }
+});
+// ANCHOR: ADMIN_AP_CREATE_PAYOUT_ROUTE END
+
+// ANCHOR: ADMIN_AP_MARK_PAID_ROUTE
+app.post("/api/admin/ap/payouts/:id/mark-paid", async (req: Request, res: Response) => {
+  try {
+    requireAdminAuth(req);
+
+    const payoutId = Number(req.params.id || 0);
+    if (!payoutId) return res.status(400).json({ ok: false, error: "payoutId_required" });
+
+    const body: any = req.body || {};
+    const amountNet = Number(body.amountNet);
+    const method = String(body.method || "").trim();
+    const confirmationNumber = String(body.confirmationNumber || "").trim();
+    const paidAtIso = String(body.paidAt || "").trim(); // optional ISO timestamp
+
+    if (!Number.isFinite(amountNet) || amountNet <= 0) {
+      return res.status(400).json({ ok: false, error: "amountNet_required" });
+    }
+    if (!method) return res.status(400).json({ ok: false, error: "method_required" });
+    if (!confirmationNumber) return res.status(400).json({ ok: false, error: "confirmationNumber_required" });
+
+    const out = await withDb(async (client) => {
+      // Determine default paidAt: weekStart + 11 days @ 21:00 ET
+      // If paidAtIso provided, use it.
+      const q = `
+        WITH p AS (
+          SELECT id, "weekStart"
+          FROM extranet."Payout"
+          WHERE id = $1
+          LIMIT 1
+        ),
+        defaults AS (
+          SELECT
+            p.id,
+            CASE
+              WHEN $5::text <> '' THEN $5::timestamptz
+              ELSE (
+                ((p."weekStart"::timestamp + interval '11 days') + time '21:00')
+                AT TIME ZONE 'America/New_York'
+              )
+            END AS paid_at
+          FROM p
+        )
+        UPDATE extranet."Payout"
+           SET "amountNet" = $2,
+               method = $3,
+               "confirmationNumber" = $4,
+               "paidAt" = (SELECT paid_at FROM defaults),
+               status = 'PAID'
+         WHERE id = $1
+         RETURNING id, "partnerId", "weekStart", "weekEnd", currency, "amountNet", method,
+                   "confirmationNumber", "paidAt", status, "createdAt", "createdBy";
+      `;
+      const r = await client.query(q, [payoutId, amountNet, method, confirmationNumber, paidAtIso]);
+      return r.rows?.[0] || null;
+    });
+
+    if (!out) return res.status(404).json({ ok: false, error: "not_found" });
+    return res.json({ ok: true, payout: out });
+  } catch (e: any) {
+    console.error("[admin] mark paid error", e);
+    return res.status(500).json({ ok: false, error: "server_error" });
+  }
+});
+// ANCHOR: ADMIN_AP_MARK_PAID_ROUTE END
 
 // ANCHOR: ADMIN_EXCEPTIONS_ROUTE
 app.get("/api/admin/exceptions", async (req: Request, res: Response) => {

@@ -67,6 +67,7 @@
       outline:none;
       min-width:220px;
     }
+    .controls input.small{ min-width:140px; width:140px; }
     .controls input:focus, .controls select:focus{
       border-color:rgba(255,106,61,.55);
       box-shadow:0 0 0 3px rgba(255,106,61,.15);
@@ -114,7 +115,7 @@
     }
     .link:hover{ text-decoration:underline; }
 
-    /* Flatpickr tweaks to match light UI */
+    /* Flatpickr tweaks */
     .flatpickr-calendar{
       border-radius:14px !important;
       border:1px solid var(--line) !important;
@@ -126,9 +127,7 @@
       background:var(--accent) !important;
       border-color:var(--accent) !important;
     }
-    .flatpickr-day.today{
-      border-color:rgba(255,106,61,.45) !important;
-    }
+    .flatpickr-day.today{ border-color:rgba(255,106,61,.45) !important; }
 
     /* Modal */
     .modalOverlay{
@@ -140,7 +139,7 @@
       overflow:auto;
     }
     .modal{
-      max-width:980px;
+      max-width:1050px;
       margin:0 auto;
       background:var(--card);
       border:1px solid var(--line);
@@ -155,17 +154,12 @@
       border-bottom:1px solid rgba(15,23,42,.08);
       background:#fbfcff;
     }
-    .modalHeader .h{
-      display:flex; flex-direction:column; gap:2px;
-    }
+    .modalHeader .h{ display:flex; flex-direction:column; gap:2px; }
     .modalHeader .h .t{ font-weight:800; font-size:14px; }
     .modalHeader .h .s{ color:var(--muted); font-size:12px; }
     .modalBody{ padding:12px 14px; }
-    .modalActions{ display:flex; gap:10px; align-items:center; }
-    .kpiRow{
-      display:flex; flex-wrap:wrap; gap:10px;
-      margin:0 0 10px;
-    }
+    .modalActions{ display:flex; gap:10px; align-items:center; flex-wrap:wrap; }
+    .kpiRow{ display:flex; flex-wrap:wrap; gap:10px; margin:0 0 10px; }
     .kpi{
       border:1px solid var(--line);
       background:#fff;
@@ -176,6 +170,33 @@
     }
     .kpi .k{ color:var(--muted); font-size:12px; }
     .kpi .v{ margin-top:4px; font-size:14px; font-weight:800; }
+    .toast{
+      margin-top:10px;
+      font-size:12px;
+      color:var(--muted);
+      min-height:16px;
+    }
+    .toast.bad{ color:#b42318; }
+    .toast.ok{ color:#0f7a3a; }
+
+    .chipInput{
+      width:92px;
+      padding:7px 8px;
+      border-radius:10px;
+      border:1px solid var(--line);
+      background:#fff;
+      outline:none;
+      font-size:13px;
+      text-align:right;
+    }
+    .chipInput:focus{
+      border-color:rgba(255,106,61,.55);
+      box-shadow:0 0 0 3px rgba(255,106,61,.15);
+    }
+    .check{
+      width:18px; height:18px;
+      accent-color: var(--accent);
+    }
   </style>
 </head>
 
@@ -195,12 +216,13 @@
     <div class="hero">
       <h1>Accounts Payable – Partner payouts</h1>
       <p>
-        Weekly view of bookings that are payout-eligible for a pay period.
-        Eligibility is completion-driven: status COMPLETED, completedAt in the pay window, and not yet linked in PayoutBooking.
+        Eligibility is completion-driven: status COMPLETED, completedAt in the pay window (ET), and not yet linked in PayoutBooking.
+        Draft payouts link bookings; paid payouts record wire details.
       </p>
       <div class="metaRow">
         <span class="pill"><b>Status:</b> <span id="authStatus">Checking…</span></span>
         <span class="pill"><b>Pay window:</b> <span id="windowText">—</span></span>
+        <span class="pill"><b>Default margin:</b> <span id="marginText">0%</span></span>
       </div>
     </div>
 
@@ -215,6 +237,11 @@
         <select id="partnerFilter">
           <option value="">All partners</option>
         </select>
+      </label>
+
+      <label>
+        Default margin %
+        <input id="defaultMargin" class="small" inputmode="decimal" placeholder="10" />
       </label>
 
       <button id="btnLoad" class="btn" type="button">Load</button>
@@ -233,20 +260,20 @@
           </tr>
         </thead>
         <tbody id="rows">
-          <tr>
-            <td colspan="5" class="muted">No data loaded.</td>
-          </tr>
+          <tr><td colspan="5" class="muted">No data loaded.</td></tr>
         </tbody>
       </table>
     </div>
+
+    <div id="pageToast" class="toast"></div>
   </div>
 
-  <!-- Modal: bookings drilldown -->
-  <div id="modalOverlay" class="modalOverlay" role="dialog" aria-modal="true" aria-label="Bookings in pay period">
+  <!-- Modal: create payout -->
+  <div id="modalOverlay" class="modalOverlay" role="dialog" aria-modal="true" aria-label="Create payout">
     <div class="modal">
       <div class="modalHeader">
         <div class="h">
-          <div class="t" id="modalTitle">Bookings</div>
+          <div class="t" id="modalTitle">Create payout</div>
           <div class="s" id="modalSub">—</div>
         </div>
         <div class="modalActions">
@@ -256,12 +283,20 @@
       <div class="modalBody">
         <div class="kpiRow">
           <div class="kpi">
-            <div class="k">Booking count</div>
-            <div class="v" id="kpiCount">0</div>
+            <div class="k">Selected bookings</div>
+            <div class="v" id="kpiSelCount">0</div>
           </div>
           <div class="kpi">
             <div class="k">Gross total</div>
             <div class="v" id="kpiGross">$0.00</div>
+          </div>
+          <div class="kpi">
+            <div class="k">Total fees</div>
+            <div class="v" id="kpiFees">$0.00</div>
+          </div>
+          <div class="kpi">
+            <div class="k">Net amount paid</div>
+            <div class="v" id="kpiNet">$0.00</div>
           </div>
           <div class="kpi">
             <div class="k">Week start</div>
@@ -277,22 +312,31 @@
           <table>
             <thead>
               <tr>
+                <th style="width:80px;">Include</th>
                 <th style="width:150px;">Booking ref</th>
                 <th style="width:120px;">Status</th>
                 <th style="width:210px;">Stay dates</th>
-                <th style="width:180px;">Completed at</th>
-                <th class="right" style="width:140px;">Amount paid</th>
+                <th style="width:190px;">Completed at</th>
+                <th class="right" style="width:140px;">Gross</th>
+                <th class="right" style="width:110px;">Margin %</th>
+                <th class="right" style="width:140px;">Fee</th>
+                <th class="right" style="width:160px;">Net amount paid</th>
               </tr>
             </thead>
             <tbody id="modalRows">
-              <tr><td colspan="5" class="muted">Loading…</td></tr>
+              <tr><td colspan="9" class="muted">Loading…</td></tr>
             </tbody>
           </table>
         </div>
 
-        <div class="muted" style="margin-top:10px; font-size:12px;">
-          Note: This is read-only for now. Creating payout records and marking PAID will be wired next.
+        <div style="display:flex; justify-content:space-between; gap:12px; margin-top:12px; flex-wrap:wrap; align-items:center;">
+          <div class="muted" style="font-size:12px;">
+            Draft creation links selected bookings to a payout. Mark paid will be wired next.
+          </div>
+          <button id="btnCreateDraft" class="btn" type="button">Create payout (Draft)</button>
         </div>
+
+        <div id="modalToast" class="toast"></div>
       </div>
     </div>
   </div>
@@ -304,13 +348,20 @@
       const ADMIN_TOKEN_KEY = "lolaelo_admin_session";
       const LOGIN = "/admin/login.html";
       const API_BASE = location.origin;
-
       const $ = (id) => document.getElementById(id);
+
+      let lastRollupRows = [];
+      let currentPartnerId = null;
+      let currentPartnerName = "";
+      let currentCurrency = "USD";
+      let currentWeekStart = "";
+      let currentWeekEnd = "";
+      let currentBookings = []; // rows from /ready/bookings
+      let defaultMarginPct = 0;
 
       function getAdminToken(){
         try { return localStorage.getItem(ADMIN_TOKEN_KEY) || ""; } catch { return ""; }
       }
-
       function authHeaders(){
         const t = String(getAdminToken() || "").trim();
         return { "Authorization": "Bearer " + t };
@@ -323,85 +374,16 @@
         return c + " " + num.toFixed(2);
       }
 
-      // Monday of the week for a given date (local)
-      function mondayOf(d){
-        const x = new Date(d.getFullYear(), d.getMonth(), d.getDate());
-        const day = x.getDay(); // 0 Sun .. 6 Sat
-        const diff = (day === 0) ? -6 : (1 - day); // shift to Monday
-        x.setDate(x.getDate() + diff);
-        x.setHours(0,0,0,0);
-        return x;
+      function setAuthStatus(txt){ const el = $("authStatus"); if (el) el.textContent = txt; }
+      function setPageToast(msg, kind){
+        const el = $("pageToast"); if (!el) return;
+        el.textContent = msg || "";
+        el.className = "toast" + (kind ? (" " + kind) : "");
       }
-
-      function ymd(d){
-        const y = d.getFullYear();
-        const m = String(d.getMonth()+1).padStart(2,"0");
-        const da = String(d.getDate()).padStart(2,"0");
-        return `${y}-${m}-${da}`;
-      }
-
-      function addDays(date, days){
-        const d = new Date(date.getTime());
-        d.setDate(d.getDate() + days);
-        return d;
-      }
-
-      // "Last completed week" = the most recent Mon-Sun that has ended (based on today local)
-      function lastCompletedWeekStart(){
-        const now = new Date();
-        const thisMon = mondayOf(now);
-        // If it's Monday, last completed week is previous week. If any other day, last completed week is still previous week (because current week not ended yet).
-        const lastMon = addDays(thisMon, -7);
-        return lastMon;
-      }
-
-      async function adminPing(){
-        const t = String(getAdminToken() || "").trim();
-        if (!t) return false;
-        const r = await fetch("/api/admin/ping", { headers: authHeaders() });
-        return r.ok;
-      }
-
-      async function ensureAdmin(){
-        const t = String(getAdminToken() || "").trim();
-        if (!t) { location.replace(LOGIN); return false; }
-
-        const ok = await adminPing().catch(() => false);
-        if (!ok) {
-          try { localStorage.removeItem(ADMIN_TOKEN_KEY); } catch {}
-          location.replace(LOGIN);
-          return false;
-        }
-        return true;
-      }
-
-      function setAuthStatus(txt){
-        const el = $("authStatus");
-        if (el) el.textContent = txt;
-      }
-
-      function setWindowText(weekStartYmd){
-        const ws = new Date(weekStartYmd + "T00:00:00");
-        const we = addDays(ws, 6);
-        const el = $("windowText");
-        if (el) el.textContent = `${ymd(ws)} to ${ymd(we)}`;
-      }
-
-      function setRowsLoading(){
-        $("rows").innerHTML = `<tr><td colspan="5" class="muted">Loading…</td></tr>`;
-      }
-
-      function setRowsEmpty(){
-        $("rows").innerHTML = `<tr><td colspan="5" class="muted">No eligible bookings for this pay period.</td></tr>`;
-      }
-
-      function renderPartnerFilter(rows){
-        const sel = $("partnerFilter");
-        const current = String(sel.value || "");
-        const opts = [`<option value="">All partners</option>`]
-          .concat(rows.map(r => `<option value="${String(r.partnerId)}">${escapeHtml(r.propertyName || ("Partner #" + r.partnerId))}</option>`));
-        sel.innerHTML = opts.join("");
-        if (current) sel.value = current;
+      function setModalToast(msg, kind){
+        const el = $("modalToast"); if (!el) return;
+        el.textContent = msg || "";
+        el.className = "toast" + (kind ? (" " + kind) : "");
       }
 
       function escapeHtml(s){
@@ -413,7 +395,90 @@
           .replace(/'/g,"&#039;");
       }
 
+      function mondayOf(d){
+        const x = new Date(d.getFullYear(), d.getMonth(), d.getDate());
+        const day = x.getDay(); // 0 Sun .. 6 Sat
+        const diff = (day === 0) ? -6 : (1 - day);
+        x.setDate(x.getDate() + diff);
+        x.setHours(0,0,0,0);
+        return x;
+      }
+      function ymd(d){
+        const y = d.getFullYear();
+        const m = String(d.getMonth()+1).padStart(2,"0");
+        const da = String(d.getDate()).padStart(2,"0");
+        return `${y}-${m}-${da}`;
+      }
+      function addDays(date, days){
+        const d = new Date(date.getTime());
+        d.setDate(d.getDate() + days);
+        return d;
+      }
+      function lastCompletedWeekStart(){
+        const now = new Date();
+        const thisMon = mondayOf(now);
+        return addDays(thisMon, -7);
+      }
+
+      async function ensureAdmin(){
+        const t = String(getAdminToken() || "").trim();
+        if (!t) { location.replace(LOGIN); return false; }
+        const r = await fetch("/api/admin/ping", { headers: authHeaders() }).catch(() => null);
+        if (!r || !r.ok) {
+          try { localStorage.removeItem(ADMIN_TOKEN_KEY); } catch {}
+          location.replace(LOGIN);
+          return false;
+        }
+        return true;
+      }
+
+      function setWindowText(weekStartYmd){
+        const ws = new Date(weekStartYmd + "T00:00:00");
+        const we = addDays(ws, 6);
+        currentWeekStart = ymd(ws);
+        currentWeekEnd = ymd(we);
+        const el = $("windowText");
+        if (el) el.textContent = `${currentWeekStart} to ${currentWeekEnd}`;
+      }
+
+      function setMarginText(){
+        const el = $("marginText");
+        if (el) el.textContent = `${Number(defaultMarginPct || 0).toFixed(2).replace(/\.00$/,"")}%`;
+      }
+
+      async function fetchJSON(path, opts){
+        const r = await fetch(API_BASE + path, { ...(opts||{}), headers: { ...(opts?.headers||{}), ...authHeaders() } });
+        if (r.status === 401) {
+          try { localStorage.removeItem(ADMIN_TOKEN_KEY); } catch {}
+          location.replace(LOGIN);
+          return null;
+        }
+        const data = await r.json().catch(() => null);
+        if (!r.ok) {
+          const msg = (data && (data.error || data.message)) ? String(data.error || data.message) : `HTTP ${r.status}`;
+          throw new Error(msg);
+        }
+        return data;
+      }
+
+      function renderPartnerFilter(rows){
+        const sel = $("partnerFilter");
+        const current = String(sel.value || "");
+        const opts = [`<option value="">All partners</option>`]
+          .concat(rows.map(r => `<option value="${String(r.partnerId)}">${escapeHtml(r.propertyName || ("Partner #" + r.partnerId))}</option>`));
+        sel.innerHTML = opts.join("");
+        if (current) sel.value = current;
+      }
+
+      function setRowsLoading(){
+        $("rows").innerHTML = `<tr><td colspan="5" class="muted">Loading…</td></tr>`;
+      }
+      function setRowsEmpty(){
+        $("rows").innerHTML = `<tr><td colspan="5" class="muted">No eligible bookings for this pay period.</td></tr>`;
+      }
+
       function renderRollups(rows, weekStartYmd){
+        lastRollupRows = rows || [];
         const selPartner = String($("partnerFilter").value || "");
         const view = selPartner ? rows.filter(r => String(r.partnerId) === selPartner) : rows;
 
@@ -425,6 +490,7 @@
           const we = escapeHtml(r.weekEnd || "");
           const count = Number(r.bookingCount || 0);
           const gross = r.amountGross;
+
           return `
             <tr>
               <td>
@@ -436,8 +502,7 @@
               <td class="right">${money(gross, "USD")}</td>
               <td>
                 <div style="display:flex; gap:10px; flex-wrap:wrap;">
-                  <button class="btn ghost" type="button" onclick="window.openBookings('${escapeHtml(r.partnerId)}')">View bookings</button>
-                  <button class="btn" type="button" onclick="alert('Create payout (DRAFT) + link bookings: next sprint.')">Create payout</button>
+                  <button class="btn ghost" type="button" onclick="window.openCreatePayout('${escapeHtml(r.partnerId)}','${escapeHtml(name)}')">Create payout</button>
                 </div>
               </td>
             </tr>
@@ -454,92 +519,191 @@
         const o = $("modalOverlay");
         if (o) o.style.display = "none";
         document.body.style.overflow = "";
+        setModalToast("", "");
       }
 
-      async function fetchJSON(path){
-        const r = await fetch(API_BASE + path, { headers: authHeaders() });
-        if (r.status === 401) {
-          try { localStorage.removeItem(ADMIN_TOKEN_KEY); } catch {}
-          location.replace(LOGIN);
-          return null;
+      function fmtDate(d){
+        if (!d) return "—";
+        const s = String(d);
+        const ymdMatch = /^\d{4}-\d{2}-\d{2}/.test(s) ? s.slice(0,10) : "";
+        return ymdMatch || s;
+      }
+
+      function parsePct(v){
+        const n = Number(String(v||"").replace("%","").trim());
+        if (!Number.isFinite(n)) return 0;
+        if (n < 0) return 0;
+        if (n > 100) return 100;
+        return n;
+      }
+
+      function recalcModalTotals(){
+        let selCount = 0;
+        let grossSum = 0;
+        let feeSum = 0;
+        let netSum = 0;
+
+        for (const b of currentBookings) {
+          if (!b._include) continue;
+          selCount++;
+          const gross = Number(b.amountGross != null ? b.amountGross : b.amountPaid) || 0;
+          const pct = Number(b._marginPct || 0) || 0;
+          const fee = Math.round(gross * (pct/100) * 100) / 100;
+          const net = Math.round((gross - fee) * 100) / 100;
+          grossSum += gross;
+          feeSum += fee;
+          netSum += net;
         }
-        const data = await r.json().catch(() => null);
-        if (!r.ok) {
-          const msg = (data && (data.error || data.message)) ? String(data.error || data.message) : `HTTP ${r.status}`;
-          throw new Error(msg);
-        }
-        return data;
+
+        $("kpiSelCount").textContent = String(selCount);
+        $("kpiGross").textContent = money(grossSum, currentCurrency);
+        $("kpiFees").textContent = money(feeSum, currentCurrency);
+        $("kpiNet").textContent = money(netSum, currentCurrency);
       }
 
-      async function loadRollup(weekStartYmd){
-        setRowsLoading();
-        const data = await fetchJSON(`/api/admin/ap/ready?weekStart=${encodeURIComponent(weekStartYmd)}`);
-        if (!data || !data.ok) { setRowsEmpty(); return; }
-        const rows = Array.isArray(data.rows) ? data.rows : [];
-        renderPartnerFilter(rows);
-        renderRollups(rows, weekStartYmd);
-      }
-
-      async function loadBookings(partnerId, weekStartYmd){
-        $("modalRows").innerHTML = `<tr><td colspan="5" class="muted">Loading…</td></tr>`;
-        const data = await fetchJSON(`/api/admin/ap/ready/bookings?partnerId=${encodeURIComponent(partnerId)}&weekStart=${encodeURIComponent(weekStartYmd)}`);
-        const rows = (data && data.ok && Array.isArray(data.rows)) ? data.rows : [];
-
-        const ws = weekStartYmd;
-        const we = ymd(addDays(new Date(weekStartYmd + "T00:00:00"), 6));
-
-        $("modalTitle").textContent = `Eligible bookings – Partner ${partnerId}`;
-        $("modalSub").textContent = `Pay period: ${ws} to ${we}`;
-
-        $("kpiWeekStart").textContent = ws;
-        $("kpiWeekEnd").textContent = we;
-        $("kpiCount").textContent = String(rows.length);
-
-        const gross = rows.reduce((sum, r) => {
-          const v = (r.amountGross != null ? r.amountGross : r.amountPaid);
-          return sum + (Number(v || 0) || 0);
-          }, 0);
-        $("kpiGross").textContent = money(gross, "USD");
-
-        if (!rows.length) {
-          $("modalRows").innerHTML = `<tr><td colspan="5" class="muted">No bookings found.</td></tr>`;
+      function renderModalRows(){
+        if (!currentBookings.length) {
+          $("modalRows").innerHTML = `<tr><td colspan="9" class="muted">No bookings found.</td></tr>`;
+          recalcModalTotals();
           return;
         }
 
-        function fmtDate(d){
-          if (!d) return "—";
-          const s = String(d);
-          const ymdMatch = /^\d{4}-\d{2}-\d{2}/.test(s) ? s.slice(0,10) : "";
-          return ymdMatch || s;
-        }
-
-        $("modalRows").innerHTML = rows.map(r => {
+        $("modalRows").innerHTML = currentBookings.map((r, idx) => {
           const ref = escapeHtml(r.bookingRef || "");
           const st = escapeHtml(r.status || "");
           const stay = `${escapeHtml(fmtDate(r.checkInDate))} to ${escapeHtml(fmtDate(r.checkOutDate))}`;
           const comp = escapeHtml(String(r.completedAt || "—"));
-          const amt = money((r.amountGross != null ? r.amountGross : r.amountPaid), r.currency || "USD");
+
+          const gross = Number(r.amountGross != null ? r.amountGross : r.amountPaid) || 0;
+          const pct = Number(r._marginPct || 0) || 0;
+          const fee = Math.round(gross * (pct/100) * 100) / 100;
+          const net = Math.round((gross - fee) * 100) / 100;
+
+          const checked = r._include ? "checked" : "";
           return `
             <tr>
-              <td class="mono"><a class="link" href="#" onclick="alert('Booking audit modal is on partner side for now. Next: add admin booking audit.'); return false;">${ref}</a></td>
+              <td><input class="check" type="checkbox" data-idx="${idx}" data-k="include" ${checked} /></td>
+              <td class="mono"><span class="link">${ref}</span></td>
               <td>${st}</td>
               <td class="mono">${stay}</td>
               <td class="mono">${comp}</td>
-              <td class="right mono">${escapeHtml(amt)}</td>
+              <td class="right mono">${escapeHtml(money(gross, currentCurrency))}</td>
+              <td class="right">
+                <input class="chipInput" data-idx="${idx}" data-k="pct" value="${pct.toFixed(2).replace(/\.00$/,"")}" />
+              </td>
+              <td class="right mono">${escapeHtml(money(fee, currentCurrency))}</td>
+              <td class="right mono">${escapeHtml(money(net, currentCurrency))}</td>
             </tr>
           `;
         }).join("");
+
+        // Wire checkbox + pct inputs
+        $("modalRows").querySelectorAll("input[data-k='include']").forEach(el => {
+          el.addEventListener("change", (e) => {
+            const idx = Number(e.target.getAttribute("data-idx"));
+            currentBookings[idx]._include = !!e.target.checked;
+            recalcModalTotals();
+          });
+        });
+
+        $("modalRows").querySelectorAll("input[data-k='pct']").forEach(el => {
+          el.addEventListener("input", (e) => {
+            const idx = Number(e.target.getAttribute("data-idx"));
+            const val = parsePct(e.target.value);
+            currentBookings[idx]._marginPct = val;
+            // re-render fee/net display by re-rendering rows (simple + safe)
+            renderModalRows();
+          });
+        });
+
+        recalcModalTotals();
       }
 
-      // Expose modal opener for table buttons
-      window.openBookings = async function(partnerId){
-        const weekStartYmd = String($("weekPick").dataset.weekStart || "").trim();
-        if (!weekStartYmd) { alert("Pick a pay period first."); return; }
-        openModal();
+      async function loadRollup(){
+        setRowsLoading();
+        const data = await fetchJSON(`/api/admin/ap/ready?weekStart=${encodeURIComponent(currentWeekStart)}`);
+        const rows = (data && data.ok && Array.isArray(data.rows)) ? data.rows : [];
+        renderPartnerFilter(rows);
+        renderRollups(rows, currentWeekStart);
+      }
+
+      async function loadBookingsForPartner(partnerId){
+        const data = await fetchJSON(`/api/admin/ap/ready/bookings?partnerId=${encodeURIComponent(partnerId)}&weekStart=${encodeURIComponent(currentWeekStart)}`);
+        const rows = (data && data.ok && Array.isArray(data.rows)) ? data.rows : [];
+
+        // decorate rows for UI
+        currentBookings = rows.map(r => ({
+          ...r,
+          _include: true,
+          _marginPct: Number(defaultMarginPct || 0) || 0
+        }));
+
+        // set currency (best-effort)
+        currentCurrency = String(rows[0]?.currency || "USD").toUpperCase();
+
+        $("kpiWeekStart").textContent = currentWeekStart;
+        $("kpiWeekEnd").textContent = currentWeekEnd;
+
+        renderModalRows();
+      }
+
+      async function createDraft(){
+        setModalToast("Creating draft payout…", "");
+        const selected = currentBookings.filter(b => b._include);
+
+        if (!selected.length) {
+          setModalToast("Select at least one booking.", "bad");
+          return;
+        }
+
+        const payload = {
+          partnerId: Number(currentPartnerId),
+          weekStart: currentWeekStart,
+          currency: currentCurrency,
+          createdBy: "admin",
+          items: selected.map(b => ({
+            bookingId: Number(b.id),
+            marginPct: Number(b._marginPct || 0) || 0
+          }))
+        };
+
         try {
-          await loadBookings(partnerId, weekStartYmd);
+          const data = await fetchJSON(`/api/admin/ap/payouts`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(payload)
+          });
+
+          if (data && data.ok && data.payout && data.payout.id) {
+            setModalToast(`Draft payout created. Payout ID: ${data.payout.id}`, "ok");
+            setPageToast(`Draft payout created for Partner ${currentPartnerId} (Payout ID ${data.payout.id}).`, "ok");
+            await loadRollup();
+            // Close after a short delay
+            setTimeout(() => closeModal(), 600);
+          } else {
+            setModalToast("Failed creating payout.", "bad");
+          }
         } catch (e) {
-          $("modalRows").innerHTML = `<tr><td colspan="5" class="muted">Failed: ${escapeHtml(String(e.message || e))}</td></tr>`;
+          setModalToast(`Failed: ${String(e.message || e)}`, "bad");
+        }
+      }
+
+      // Expose handler for table button
+      window.openCreatePayout = async function(partnerId, partnerName){
+        currentPartnerId = Number(partnerId);
+        currentPartnerName = String(partnerName || "");
+
+        $("modalTitle").textContent = `Create payout – Partner ${currentPartnerId}`;
+        $("modalSub").textContent = `Pay period: ${currentWeekStart} to ${currentWeekEnd} · Default margin ${Number(defaultMarginPct||0).toFixed(2).replace(/\.00$/,"")}%`;
+        setModalToast("", "");
+
+        openModal();
+        $("modalRows").innerHTML = `<tr><td colspan="9" class="muted">Loading…</td></tr>`;
+
+        try {
+          await loadBookingsForPartner(currentPartnerId);
+        } catch (e) {
+          $("modalRows").innerHTML = `<tr><td colspan="9" class="muted">Failed: ${escapeHtml(String(e.message || e))}</td></tr>`;
         }
       };
 
@@ -549,21 +713,26 @@
         if (e.target && e.target.id === "modalOverlay") closeModal();
       });
 
+      $("btnCreateDraft").onclick = createDraft;
+
       $("btnLogout").onclick = () => {
         try { localStorage.removeItem(ADMIN_TOKEN_KEY); } catch {}
         location.replace(LOGIN);
       };
 
       $("partnerFilter").addEventListener("change", () => {
-        // Re-render from last loaded rows by reloading (cheap + consistent)
-        $("btnLoad").click();
+        // re-render from last rollup (cheap)
+        renderRollups(lastRollupRows || [], currentWeekStart);
+      });
+
+      $("defaultMargin").addEventListener("input", () => {
+        defaultMarginPct = parsePct($("defaultMargin").value);
+        setMarginText();
       });
 
       $("btnLoad").onclick = async () => {
-        const weekStartYmd = String($("weekPick").dataset.weekStart || "").trim();
-        if (!weekStartYmd) { alert("Pick a pay period first."); return; }
-        setWindowText(weekStartYmd);
-        await loadRollup(weekStartYmd).catch((e) => {
+        setPageToast("", "");
+        await loadRollup().catch((e) => {
           $("rows").innerHTML = `<tr><td colspan="5" class="muted">Failed: ${escapeHtml(String(e.message || e))}</td></tr>`;
         });
       };
@@ -572,7 +741,6 @@
         const ws = lastCompletedWeekStart();
         const wsYmd = ymd(ws);
         $("weekPick")._flatpickr.setDate(ws, true);
-        $("weekPick").dataset.weekStart = wsYmd;
         setWindowText(wsYmd);
         $("btnLoad").click();
       };
@@ -583,7 +751,7 @@
         if (!ok) return;
 
         setAuthStatus("Ready");
-        // Flatpickr: user picks any date; we convert to Monday weekStart
+
         flatpickr("#weekPick", {
           dateFormat: "Y-m-d",
           allowInput: true,
@@ -591,17 +759,14 @@
           onChange: function(selectedDates){
             const d = selectedDates && selectedDates[0] ? selectedDates[0] : lastCompletedWeekStart();
             const ws = mondayOf(d);
-            const wsYmd = ymd(ws);
-            $("weekPick").dataset.weekStart = wsYmd;
-            setWindowText(wsYmd);
+            setWindowText(ymd(ws));
           }
         });
 
-        // Seed
-        const ws = lastCompletedWeekStart();
-        const wsYmd = ymd(ws);
-        $("weekPick").dataset.weekStart = wsYmd;
-        setWindowText(wsYmd);
+        // Seed week + margin
+        setWindowText(ymd(lastCompletedWeekStart()));
+        defaultMarginPct = parsePct($("defaultMargin").value);
+        setMarginText();
 
         // Auto-load
         $("btnLoad").click();
