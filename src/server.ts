@@ -2611,6 +2611,54 @@ app.get("/api/admin/ap/ready/bookings", async (req: Request, res: Response) => {
 });
 // ANCHOR: ADMIN_AP_READY_BOOKINGS_ROUTE END
 
+// ANCHOR: ADMIN_EXCEPTIONS_ROUTE
+app.get("/api/admin/exceptions", async (req: Request, res: Response) => {
+  try {
+    requireAdminAuth(req);
+
+    const days = Number(req.query.days || 14); // upcoming check-ins within N days
+    const horizonDays = Number.isFinite(days) && days > 0 ? Math.min(Math.floor(days), 60) : 14;
+
+    const data = await withDb(async (client) => {
+      const q = `
+        SELECT
+          b.id,
+          b."bookingRef",
+          b.status::text as status,
+          b.currency,
+          b."amountPaid",
+          b."providerPaymentId",
+          b."travelerFirstName",
+          b."travelerLastName",
+          b."travelerEmail",
+          b."checkInDate",
+          b."checkOutDate",
+          b."createdAt",
+          COALESCE(pp.name, p.name, ('Partner #' || b."partnerId"::text)) AS "propertyName",
+          b."partnerId"
+        FROM extranet."Booking" b
+        LEFT JOIN extranet."PropertyProfile" pp ON pp."partnerId" = b."partnerId"
+        LEFT JOIN extranet."Partner" p ON p.id = b."partnerId"
+        WHERE b.status = 'REFUND_IN_PROGRESS'::extranet."BookingStatus"
+          AND (b."checkInDate" IS NULL OR (b."checkInDate"::date <= (NOW()::date + ($1::int || ' days')::interval)::date))
+        ORDER BY
+          (CASE WHEN b."checkInDate" IS NULL THEN 1 ELSE 0 END) ASC,
+          b."checkInDate" ASC NULLS LAST,
+          b."createdAt" DESC
+        LIMIT 200;
+      `;
+      const r = await client.query(q, [horizonDays]);
+      return r.rows || [];
+    });
+
+    return res.json({ ok: true, count: data.length, rows: data });
+  } catch (e: any) {
+    console.error("[admin] exceptions error", e);
+    return res.status(500).json({ ok: false, error: "server_error" });
+  }
+});
+// ANCHOR: ADMIN_EXCEPTIONS_ROUTE END
+
 // ---- Diagnostics ----
 app.get("/__ping", (_req, res) => {
   res.status(200).json({ ok: true, now: new Date().toISOString() });
@@ -3032,6 +3080,24 @@ app.post("/api/payments/create-checkout-session", async (req: Request, res: Resp
         message: "Missing or invalid total for Stripe Checkout Session (totalCents or amountTotal required).",
       });
     }
+
+    // ANCHOR: CHECKOUT_BILLABLE_GUARD
+    // Prevent sending a traveler to Stripe with no billable rooms/add-ons.
+    const cartItemsArr = Array.isArray(body.cartItems) ? body.cartItems : [];
+    const addonsArr = Array.isArray(body.addons) ? body.addons : [];
+
+    const cartBillable = cartItemsArr.some((it: any) => Number(it?.lineTotal || 0) > 0);
+    const addonsBillable = addonsArr.some((a: any) => Number(a?.lineTotal || 0) > 0);
+
+    // If nothing billable exists, block checkout session creation.
+    if (!cartBillable && !addonsBillable) {
+      return res.status(400).json({
+        ok: false,
+        error: "invalid_cart",
+        message: "Cart has no billable rooms or add-ons. Please select a room (and dates) before paying.",
+      });
+    }
+    // ANCHOR: CHECKOUT_BILLABLE_GUARD END
 
     const travelerFirstName = String(body.travelerFirstName || "").trim();
     const travelerLastName = String(body.travelerLastName || "").trim();

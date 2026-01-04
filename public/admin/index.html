@@ -86,9 +86,13 @@
         <div id="status" class="status"></div>
       </div>
 
-      <div class="grid" aria-label="Admin tools">
         <a class="tile" href="/admin/ap.html">
-          <div class="t">Accounts Payable</div>
+          <div class="t">
+            Accounts Payable
+            <span id="apBadge" class="pill" style="display:none; margin-left:8px; border-color:rgba(180,35,24,.25); color:#b42318; font-weight:800;">
+              0
+            </span>
+          </div>
           <div class="d">Batch payouts (DRAFT, then mark PAID). Partner payments feed reads Payout and PayoutBooking.</div>
         </a>
 
@@ -105,6 +109,7 @@
       const TOKEN_KEY = "lolaelo_admin_session";
       const LOGIN = "/admin/login.html";
       const PING_URL = "/api/admin/ping";
+      const EXC_URL = "/api/admin/exceptions?days=30";
       const $ = (id) => document.getElementById(id);
 
       function getToken(){
@@ -134,7 +139,26 @@
           location.replace(LOGIN);
           return;
         }
+
         setStatus("Ready.", "ok");
+
+        // Fetch exceptions count for badge
+        try {
+          const r = await fetch(EXC_URL, { headers: { "Authorization": "Bearer " + t } });
+          const j = await r.json().catch(() => null);
+          const count = (r.ok && j && typeof j.count === "number") ? j.count : 0;
+
+          const badge = document.getElementById("apBadge");
+          if (badge) {
+            if (count > 0) {
+              badge.textContent = String(count);
+              badge.style.display = "inline-block";
+              setStatus("Attention needed.", "bad");
+            } else {
+              badge.style.display = "none";
+            }
+          }
+        } catch {}
       }
 
       $("btnLogout").onclick = () => {
@@ -145,5 +169,6 @@
       boot();
     })();
   </script>
+
 </body>
 </html>
