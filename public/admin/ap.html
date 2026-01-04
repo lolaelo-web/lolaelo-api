@@ -24,7 +24,10 @@
       margin:0;
       background:var(--bg);
       color:var(--fg);
-      font-family:Inter,system-ui,-apple-system,Segoe UI,Roboto,Arial;
+      font-family: Inter, system-ui, -apple-system, Segoe UI, Roboto, Arial;
+    }
+    button, input, select, textarea {
+      font-family: inherit;
     }
     .wrap{ max-width:1200px; margin:0 auto; padding:18px 14px 30px; }
 
@@ -50,6 +53,18 @@
     }
     .hero h1{ margin:0; font-size:18px; }
     .hero p{ margin:6px 0 0; color:var(--muted); font-size:13px; line-height:1.35; }
+
+    /* Teal ghost buttons so they don't look disabled */
+    .btn.ghost{
+      color:#0f766e !important;
+      border-color:rgba(15,118,110,.35) !important;
+    }
+    .btn.ghost:hover{
+      background:rgba(15,118,110,.08) !important;
+    }
+    .btn.ghost:disabled{
+      opacity:.45;
+    }
 
     .controls{
       display:flex; flex-wrap:wrap; gap:10px;
@@ -251,6 +266,7 @@
     </div>
 
     <!-- Eligible rollup -->
+    <div class="muted" style="font-weight:800; margin:6px 0 8px;">Review for Payment</div>
     <div class="table">
       <table>
         <thead>
@@ -271,6 +287,7 @@
     <div style="height:12px;"></div>
 
     <!-- Payouts list -->
+    <div class="muted" style="font-weight:800; margin:6px 0 8px;">Reviewed & Waiting for Payment</div>
     <div class="table">
       <table>
         <thead>
@@ -279,14 +296,14 @@
             <th style="width:320px;">Partner</th>
             <th style="width:120px;">Status</th>
             <th style="width:140px;">Bookings</th>
-            <th class="right" style="width:160px;">Gross total</th>
-            <th class="right" style="width:160px;">Total fees</th>
-            <th class="right" style="width:160px;">Net amount paid</th>
+            <th class="right" style="width:160px;">Gross Total</th>
+            <th class="right" style="width:160px;">Total Commission</th>
+            <th class="right" style="width:160px;">Net Amt Paid to Partner </th>
             <th style="width:260px;">Actions</th>
           </tr>
         </thead>
         <tbody id="payoutRows">
-          <tr><td colspan="8" class="muted">No payouts loaded.</td></tr>
+          <tr><td colspan="8" class="muted">No payouts available for the selected time.</td></tr>
         </tbody>
       </table>
     </div>
@@ -388,7 +405,7 @@
         </div>
 
         <div style="display:flex; justify-content:flex-end; gap:10px; margin-top:12px; flex-wrap:wrap;">
-          <button class="btn ghost" type="button" id="btnOpenMarkPaid">Mark paid</button>
+          <button class="btn" type="button" id="btnOpenMarkPaid">Mark paid</button>
         </div>
 
         <div id="payoutToast" class="toast"></div>
