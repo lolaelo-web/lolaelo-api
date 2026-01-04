@@ -2658,6 +2658,33 @@ app.get("/api/admin/ap/ready/bookings", async (req: Request, res: Response) => {
           b.status::text as status,
           b.currency,
           b."amountPaid",
+            COALESCE((
+              SELECT SUM(bi."lineTotal") FROM extranet."BookingItem" bi WHERE bi."bookingId" = b.id
+            ), 0) AS "itemsTotal",
+            COALESCE((
+              SELECT SUM(ba."lineTotal") FROM extranet."BookingAddOn" ba WHERE ba."bookingId" = b.id
+            ), 0) AS "addonsTotal",
+            CASE
+              WHEN (
+                COALESCE((
+                  SELECT SUM(bi."lineTotal") FROM extranet."BookingItem" bi WHERE bi."bookingId" = b.id
+                ), 0)
+                +
+                COALESCE((
+                  SELECT SUM(ba."lineTotal") FROM extranet."BookingAddOn" ba WHERE ba."bookingId" = b.id
+                ), 0)
+              ) > 0
+              THEN (
+                COALESCE((
+                  SELECT SUM(bi."lineTotal") FROM extranet."BookingItem" bi WHERE bi."bookingId" = b.id
+                ), 0)
+                +
+                COALESCE((
+                  SELECT SUM(ba."lineTotal") FROM extranet."BookingAddOn" ba WHERE ba."bookingId" = b.id
+                ), 0)
+              )
+              ELSE COALESCE(b."amountPaid", 0)
+            END AS "amountGross",
           b."checkInDate",
           b."checkOutDate",
           b."completedAt",
