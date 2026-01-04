@@ -485,7 +485,7 @@
             <td>${esc(r.ratePlan || "-")}</td>
             <td>${Number(r.itemCount || 0) || 0}</td>
             <td style="text-align:right;">${esc(formatMoney(
-              (r.grandTotal != null ? r.grandTotal : (Number(r.itemsTotal || 0) + Number(r.addonsTotal || 0))),
+              (r.amountGross != null ? r.amountGross : (r.grandTotal != null ? r.grandTotal : (Number(r.itemsTotal || 0) + Number(r.addonsTotal || 0)))),
               r.currency || "USD"
             ))}</td>
             <td>${statusPill(r.status)}</td>

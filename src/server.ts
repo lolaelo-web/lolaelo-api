@@ -1733,6 +1733,13 @@ app.get("/api/extranet/me/bookings", async (req: Request, res: Response) => {
           COALESCE(s."itemsTotal", 0) AS "itemsTotal",
           COALESCE(ba."addonsTotal", 0) AS "addonsTotal",
           (COALESCE(s."itemsTotal", 0) + COALESCE(ba."addonsTotal", 0)) AS "grandTotal",
+            b.currency,
+            b."amountPaid",
+            CASE
+              WHEN (COALESCE(s."itemsTotal", 0) + COALESCE(ba."addonsTotal", 0)) > 0
+                THEN (COALESCE(s."itemsTotal", 0) + COALESCE(ba."addonsTotal", 0))
+              ELSE COALESCE(b."amountPaid", 0)
+            END AS "amountGross",
           s."minCheckInDate" AS "minCheckInDate",
           s."maxCheckOutDate" AS "maxCheckOutDate",
           COALESCE(s."hasVaryingDates", FALSE) AS "hasVaryingDates"
