@@ -2965,6 +2965,68 @@ app.post("/api/admin/ap/payouts/:id/mark-paid", async (req: Request, res: Respon
 });
 // ANCHOR: ADMIN_AP_MARK_PAID_ROUTE END
 
+// ANCHOR: ADMIN_AP_LIST_PAYOUTS_ROUTE
+app.get("/api/admin/ap/payouts", async (req: Request, res: Response) => {
+  try {
+    requireAdminAuth(req);
+
+    const weekStart = String(req.query.weekStart || "").trim(); // YYYY-MM-DD
+    const partnerId = Number(req.query.partnerId || 0); // optional
+
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(weekStart)) {
+      return res.status(400).json({ ok: false, error: "weekStart_required_YYYY-MM-DD" });
+    }
+
+    const rows = await withDb(async (client) => {
+      const q = `
+        WITH params AS (
+          SELECT
+            $1::date AS week_start,
+            ($1::date + interval '6 days')::date AS week_end
+        )
+        SELECT
+          p.id,
+          p."partnerId",
+          COALESCE(pp.name, pr.name, ('Partner #' || p."partnerId"::text)) AS "propertyName",
+          p."weekStart",
+          p."weekEnd",
+          p.currency,
+          p.status,
+          p."amountNet",
+          p.method,
+          p."confirmationNumber",
+          p."paidAt",
+          p."createdAt",
+          p."createdBy",
+          COALESCE((SELECT COUNT(*) FROM extranet."PayoutBooking" pb WHERE pb."payoutId" = p.id), 0)::int AS "bookingCount",
+          COALESCE((SELECT SUM(COALESCE(pb."feeAmount",0)) FROM extranet."PayoutBooking" pb WHERE pb."payoutId" = p.id), 0)::numeric AS "feesTotal",
+          COALESCE((SELECT SUM(COALESCE(pb."netAmount",0)) FROM extranet."PayoutBooking" pb WHERE pb."payoutId" = p.id), 0)::numeric AS "netTotal",
+          COALESCE((SELECT SUM(COALESCE(pb."netAmount",0) + COALESCE(pb."feeAmount",0)) FROM extranet."PayoutBooking" pb WHERE pb."payoutId" = p.id), 0)::numeric AS "grossTotal"
+        FROM extranet."Payout" p
+        LEFT JOIN extranet."PropertyProfile" pp ON pp."partnerId" = p."partnerId"
+        LEFT JOIN extranet."Partner" pr ON pr.id = p."partnerId"
+        CROSS JOIN params
+        WHERE p."weekStart" = (SELECT week_start FROM params)
+          AND p."weekEnd" = (SELECT week_end FROM params)
+          AND ($2::int = 0 OR p."partnerId" = $2::int)
+        ORDER BY
+          CASE WHEN p.status = 'DRAFT' THEN 0 ELSE 1 END,
+          COALESCE(p."paidAt", p."createdAt") DESC,
+          p.id DESC
+        LIMIT 200;
+      `;
+      const r = await client.query(q, [weekStart, partnerId]);
+      return r.rows || [];
+    });
+
+    return res.json({ ok: true, rows });
+  } catch (e: any) {
+    console.error("[admin] list payouts error", e);
+    return res.status(500).json({ ok: false, error: "server_error" });
+  }
+});
+// ANCHOR: ADMIN_AP_LIST_PAYOUTS_ROUTE END
+
 // ANCHOR: ADMIN_EXCEPTIONS_ROUTE
 app.get("/api/admin/exceptions", async (req: Request, res: Response) => {
   try {
