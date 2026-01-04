@@ -44,6 +44,20 @@
     .actions{ display:flex; gap:10px; align-items:center; }
     .actions a{ text-decoration:none; }
 
+    .section-label{
+      text-align:center;
+      font-weight:500;
+      font-size:13px;
+      letter-spacing:.3px;
+      color:#475569;
+      background:rgba(15,118,110,.06); /* subtle teal wash */
+      border:1px solid rgba(15,118,110,.18);
+      border-radius:999px;
+      padding:6px 14px;
+      margin:14px auto 12px;
+      width:fit-content;
+    }
+
     .hero{
       border:1px solid var(--line);
       background:var(--card);
@@ -130,6 +144,10 @@
       font-weight:700;
     }
     .link:hover{ text-decoration:underline; }
+
+    .modal-header{
+      text-align:center;
+    }
 
     /* Flatpickr tweaks */
     .flatpickr-calendar{
@@ -266,16 +284,18 @@
     </div>
 
     <!-- Eligible rollup -->
-    <div class="muted" style="font-weight:400; text-align:center; margin:10px 0 10px;">Review for Payment</div>
+    <div class="section-label">
+      Review for Payment
+    </div>
     <div class="table">
       <table>
         <thead>
           <tr>
-            <th style="width:360px;">Partner</th>
-            <th style="width:180px;">Pay window</th>
-            <th style="width:170px;">Eligible bookings</th>
-            <th class="right" style="width:170px;">Gross</th>
-            <th style="width:220px;">Actions</th>
+            <th style="width:360px;" text-align:center;">Partner</th>
+            <th style="width:180px;" text-align:center;">Pay window</th>
+            <th style="width:170px;" text-align:center;">Eligible bookings</th>
+            <th class="right" style="width:170px;" text-align:center;">Gross</th>
+            <th style="width:220px;" text-align:center;">Actions</th>
           </tr>
         </thead>
         <tbody id="rows">
@@ -287,23 +307,25 @@
     <div style="height:12px;"></div>
 
     <!-- Payouts list -->
-    <div class="muted" style="font-weight:400; text-align:center; margin:10px 0 10px;">Reviewed & Waiting for Payment</div>
+    <div class="section-label">
+      Reviewed & Waiting for Payment
+    </div>
     <div class="table">
       <table>
         <thead>
           <tr>
-            <th style="width:120px;">Payout ID</th>
-            <th style="width:320px;">Partner</th>
-            <th style="width:120px;">Status</th>
-            <th style="width:140px;">Bookings</th>
-            <th class="right" style="width:160px;">Gross Total</th>
-            <th class="right" style="width:160px;">Total Commission</th>
-            <th class="right" style="width:160px;">Net Amt Paid to Partner </th>
-            <th style="width:260px;">Actions</th>
+            <th style="width:120px;" text-align:center;">Payout ID</th>
+            <th style="width:320px;" text-align:center;">Partner</th>
+            <th style="width:120px;" text-align:center;">Status</th>
+            <th style="width:140px;" text-align:center;">Bookings</th>
+            <th class="right" style="width:160px;" text-align:center;">Gross Total</th>
+            <th class="right" style="width:160px;" text-align:center;">Total Commission</th>
+            <th class="right" style="width:160px;" text-align:center;">Net Amt Paid to Partner </th>
+            <th style="width:260px;" text-align:center;">Actions</th>
           </tr>
         </thead>
         <tbody id="payoutRows">
-          <tr><td colspan="8" class="muted">No payouts available for the selected time.</td></tr>
+          <tr><td colspan="8" class="muted">No payouts available for the selected pay window.</td></tr>
         </tbody>
       </table>
     </div>
@@ -776,10 +798,10 @@
               <td class="right mono">${escapeHtml(money(gross, cur))}</td>
               <td class="right mono">${escapeHtml(money(fees, cur))}</td>
               <td class="right mono">${escapeHtml(money(net, cur))}</td>
-              <td>
-                <div style="display:flex; gap:10px; flex-wrap:wrap;">
-                  <button class="btn ghost" type="button" onclick="window.openPayout(${id})">View</button>
-                  ${canMarkPaid ? `<button class="btn" type="button" onclick="window.openMarkPaid(${id})">Mark paid</button>` : ``}
+              <td style="text-align:center;">
+                <div style="display:inline-flex; gap:8px;">
+                  <button class="btn ghost">View</button>
+                  <button class="btn">Mark "Paid"</button>
                 </div>
               </td>
             </tr>
