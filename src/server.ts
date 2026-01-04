@@ -2014,11 +2014,12 @@ app.post("/api/extranet/me/bookings/:bookingRef/mark-completed", async (req: Req
       // Only allow CONFIRMED -> COMPLETED, scoped to the same partnerId
       const q = `
         update extranet."Booking"
-           set status = 'COMPLETED'::extranet."BookingStatus"
+           set status = 'COMPLETED'::extranet."BookingStatus",
+               "completedAt" = NOW()
          where "bookingRef" = $1
            and "partnerId" = $2
            and status = 'CONFIRMED'::extranet."BookingStatus"
-        returning id, "bookingRef", status::text as status, "partnerId"
+        returning id, "bookingRef", status::text as status, "partnerId", "completedAt"
       `;
       const r = await client.query(q, [bookingRef, partnerId]);
       return r.rows?.[0] || null;
