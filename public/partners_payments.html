@@ -194,26 +194,49 @@
   </div>
 
   <!-- ANCHOR: PAYOUT_MODAL -->
-  <div id="payoutModal" style="display:none; position:fixed; inset:0; background:rgba(0,0,0,.55); z-index:9999; padding:18px; overflow:auto;">
-    <div style="max-width:980px; margin:0 auto; border:1px solid var(--line); background:var(--panel); border-radius:14px;">
-      <div style="display:flex; justify-content:space-between; gap:12px; align-items:center; padding:14px 16px; border-bottom:1px solid var(--line);">
+  <div id="payoutModal" style="display:none; position:fixed; inset:0; background:rgba(0,0,0,.65); z-index:9999; padding:18px; overflow:auto;">
+    <div style="max-width:980px; margin:0 auto; border:1px solid var(--line); background:#0b1220; border-radius:14px; box-shadow:0 20px 70px rgba(0,0,0,.55);">
+      <div style="display:flex; justify-content:space-between; gap:10px; align-items:center; padding:14px 16px; border-bottom:1px solid var(--line);">
         <div>
           <div style="font-weight:800; font-size:14px;" id="pmTitle">Payment details</div>
           <div class="muted" style="font-size:12px;" id="pmSub">Loading...</div>
         </div>
-        <button class="btn ghost" type="button" onclick="closePayoutModal()">Close</button>
+        <button class="btn ghost" type="button" onclick="closePayout()">Close</button>
       </div>
 
+      <!-- Summary tiles -->
       <div style="padding:14px 16px;">
-        <div id="pmEmpty" class="empty" style="display:none;">No bookings found for this payment.</div>
+        <div class="kpis" style="margin:0;">
+          <div class="kpi">
+            <div class="label">Gross total</div>
+            <div class="value" id="pmGross">-</div>
+          </div>
+          <div class="kpi">
+            <div class="label">Total fees</div>
+            <div class="value" id="pmFees">-</div>
+          </div>
+          <div class="kpi">
+            <div class="label">Net amount paid</div>
+            <div class="value" id="pmNet">-</div>
+          </div>
+          <div class="kpi">
+            <div class="label">Status</div>
+            <div class="value" id="pmStatus">-</div>
+          </div>
+        </div>
 
-        <div style="overflow:auto;">
-          <table id="pmTable" style="display:none; width:100%; border-collapse:collapse;">
+        <div id="pmEmpty" class="empty" style="display:none; margin-top:12px;">No bookings found.</div>
+
+        <div style="overflow:auto; margin-top:12px;">
+          <table id="pmTable" style="display:none; width:100%;">
             <thead>
               <tr>
-                <th>Booking</th>
+                <th>Booking ref</th>
                 <th>Stay dates</th>
-                <th class="right">Total</th>
+                <th class="right">Gross</th>
+                <th class="right">Margin %</th>
+                <th class="right">Fee</th>
+                <th class="right">Net paid</th>
               </tr>
             </thead>
             <tbody id="pmBody"></tbody>
@@ -383,30 +406,84 @@
         const payout = j.payout || {};
         const bookings = Array.isArray(j.bookings) ? j.bookings : [];
 
-        const conf = payout.confirmationNumber ? String(payout.confirmationNumber) : "-";
-        const paidAt = payout.paidAt ? fmtYmd(payout.paidAt) : "-";
+        // Header line
+        const conf = (payout.confirmationNumber != null && String(payout.confirmationNumber).trim() !== "")
+          ? String(payout.confirmationNumber)
+          : "-";
+        const paidAt = payout.paidAt
+          ? fmtYmd(payout.paidAt)
+          : (payout.createdAt ? fmtYmd(payout.createdAt) : "-");
         $("pmSub").textContent = `Paid: ${paidAt} | Confirmation: ${conf}`;
 
+        // Status tile (if present)
+        const status = String(payout.status || "").toUpperCase() || "-";
+        if ($("pmStatus")) $("pmStatus").textContent = status;
+
+        // Empty state
         if (!bookings.length) {
           $("pmEmpty").style.display = "";
+          $("pmTable").style.display = "none";
+          $("pmBody").innerHTML = "";
+          if ($("pmGross")) $("pmGross").textContent = "-";
+          if ($("pmFees")) $("pmFees").textContent = "-";
+          if ($("pmNet")) $("pmNet").textContent = "-";
           return;
         }
+
+        // Use a single currency for the summary tiles
+        const cur = payout.currency || (bookings[0] && bookings[0].currency) || "USD";
+
+        // Totals computed from the same fields the table uses
+        const grossTotal = bookings.reduce((s, b) => {
+          const g = (b.grossAmount != null) ? Number(b.grossAmount) : (Number(b.netAmount || 0) + Number(b.feeAmount || 0));
+          return s + (isFinite(g) ? g : 0);
+        }, 0);
+
+        const feeTotal = bookings.reduce((s, b) => {
+          const f = Number(b.feeAmount || 0);
+          return s + (isFinite(f) ? f : 0);
+        }, 0);
+
+        const netTotal = bookings.reduce((s, b) => {
+          const n = (b.netAmount != null) ? Number(b.netAmount) : Number(b.amountNet || b.amountPaid || 0);
+          return s + (isFinite(n) ? n : 0);
+        }, 0);
+
+        if ($("pmGross")) $("pmGross").textContent = money(grossTotal, cur);
+        if ($("pmFees")) $("pmFees").textContent = money(feeTotal, cur);
+        if ($("pmNet")) $("pmNet").textContent = money(netTotal, cur);
+
+        $("pmEmpty").style.display = "none";
 
         $("pmBody").innerHTML = bookings.map(b => {
           const ref = String(b.bookingRef || "");
           const inD = fmtYmd(b.checkInDate);
           const outD = fmtYmd(b.checkOutDate);
           const stay = (inD && outD) ? `${inD} to ${outD}` : "-";
-          const total = money(b.amountPaid || 0, b.currency || (payout.currency || "USD"));
+
+          const cur2 = b.currency || cur;
+
+          const gVal = (b.grossAmount != null) ? Number(b.grossAmount) : (Number(b.netAmount || 0) + Number(b.feeAmount || 0));
+          const fVal = Number(b.feeAmount || 0);
+          const nVal = (b.netAmount != null) ? Number(b.netAmount) : Number(b.amountNet || b.amountPaid || 0);
+
+          const gross = money(isFinite(gVal) ? gVal : 0, cur2);
+          const pct = (b.marginPct == null) ? "-" : `${Number(b.marginPct).toFixed(2).replace(/\.00$/,"")}%`;
+          const fee = money(isFinite(fVal) ? fVal : 0, cur2);
+          const net = money(isFinite(nVal) ? nVal : 0, cur2);
+
           return `
             <tr>
               <td>
                 <button class="btn ghost" type="button" onclick="openBooking('${esc(ref)}')" style="padding:6px 10px;">
-                    ${esc(ref)}
-                  </button>
-                </td>
+                  ${esc(ref)}
+                </button>
+              </td>
               <td>${esc(stay)}</td>
-              <td class="right">${esc(total)}</td>
+              <td class="right">${esc(gross)}</td>
+              <td class="right">${esc(pct)}</td>
+              <td class="right">${esc(fee)}</td>
+              <td class="right">${esc(net)}</td>
             </tr>
           `;
         }).join("");
@@ -625,10 +702,25 @@
         } else {
           $("historyBody").innerHTML = payouts.map(p => {
             const id = Number(p.id || 0);
+
             const paidAt = p.paidAt ? fmtYmd(p.paidAt) : (p.createdAt ? fmtYmd(p.createdAt) : "-");
-            const conf = p.confirmationNumber ? String(p.confirmationNumber) : "-";
-            const amt = (p.amountNet == null) ? "-" : money(p.amountNet, p.currency || "USD");
+            const conf = (p.confirmationNumber != null && String(p.confirmationNumber).trim() !== "")
+              ? String(p.confirmationNumber)
+              : "-";
+
+            // Amount: prefer amountNet, but fall back to any legacy/alternate names
+            const amtVal =
+              (p.amountNet != null) ? p.amountNet :
+              (p.netAmount != null) ? p.netAmount :
+              (p.amountPaid != null) ? p.amountPaid :
+              null;
+
+            const cur = p.currency || "USD";
+            const amt = (amtVal == null) ? "-" : money(Number(amtVal || 0), cur);
+
             const cnt = Number(p.bookingCount || 0) || 0;
+            const status = String(p.status || "").toUpperCase() || "-";
+
             return `
               <tr>
                 <td>${esc(paidAt)}</td>
@@ -637,6 +729,7 @@
                 <td>${cnt}</td>
                 <td>
                   <button class="btn ghost" type="button" onclick="openPayout(${id})">View</button>
+                  <span class="muted" style="margin-left:10px; font-size:12px;">${esc(status)}</span>
                 </td>
               </tr>
             `;
@@ -644,15 +737,33 @@
           $("historyTable").style.display = "";
         }
 
-        // KPIs
-        const totalReceived = payouts
-          .filter(p => String(p.status || "").toUpperCase() === "PAID" && p.amountNet != null)
-          .reduce((s, p) => s + Number(p.amountNet || 0), 0);
+        // KPIs (money-based + status-correct)
+        const cur = (payouts[0] && payouts[0].currency) || "USD";
 
-        const currency = payouts[0]?.currency || "USD";
-        $("kpiTotalReceived").textContent = payouts.length ? money(totalReceived, currency) : "-";
-        $("kpiTotalPending").textContent = readyRows.length ? `${readyRows.length} booking${readyRows.length === 1 ? "" : "s"}` : "-";
-        $("kpiCount").textContent = payouts.length ? String(payouts.length) : "-";
+        // Total received = sum of PAID payout net (with fallbacks)
+        const totalReceived = payouts
+          .filter(p => String(p.status || "").toUpperCase() === "PAID")
+          .reduce((s, p) => {
+            const v =
+              (p.amountNet != null) ? Number(p.amountNet) :
+              (p.netAmount != null) ? Number(p.netAmount) :
+              (p.amountPaid != null) ? Number(p.amountPaid) :
+              0;
+            return s + (isFinite(v) ? v : 0);
+          }, 0);
+
+        // Pending payout = sum of "readyRows" amounts (net for partner)
+        const pendingPayout = readyRows.reduce((s, b) => {
+          const v = Number(b.amountPaid || 0);
+          return s + (isFinite(v) ? v : 0);
+        }, 0);
+
+        // Payouts sent = count of PAID only
+        const payoutsSent = payouts.filter(p => String(p.status || "").toUpperCase() === "PAID").length;
+
+        $("kpiTotalReceived").textContent = payouts.length ? money(totalReceived, cur) : "-";
+        $("kpiTotalPending").textContent = readyRows.length ? money(pendingPayout, cur) : "-";
+        $("kpiCount").textContent = payouts.length ? String(payoutsSent) : "-";
 
         setStatus("Ready");
       }

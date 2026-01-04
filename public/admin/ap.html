@@ -24,13 +24,11 @@
       margin:0;
       background:var(--bg);
       color:var(--fg);
-      font-family: var(--font);
+      font-family: Inter, system-ui, -apple-system, Segoe UI, Roboto, Arial;
     }
-
-    html, body, button, input, select, textarea, table, th, td, label, .btn, .pill, .section-label, .modal, .flatpickr-calendar{
-      font-family: var(--font) !important;
+    button, input, select, textarea {
+      font-family: inherit;
     }
-
     .wrap{ max-width:1200px; margin:0 auto; padding:18px 14px 30px; }
 
     .topbar{
@@ -139,7 +137,7 @@
     tr:last-child td{ border-bottom:none; }
     .muted{ color:var(--muted); }
     .right{ text-align:right; }
-    .mono{ font-family: var(--font) !important; }
+    .mono{ font-family:ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace; }
     .link{
       color:var(--accent);
       text-decoration:none;
@@ -156,6 +154,7 @@
       border-radius:14px !important;
       border:1px solid var(--line) !important;
       box-shadow:var(--shadow) !important;
+      font-family:Inter,system-ui,-apple-system,Segoe UI,Roboto,Arial !important;
     }
     .flatpickr-day.selected, .flatpickr-day.startRange, .flatpickr-day.endRange,
     .flatpickr-day.selected.inRange, .flatpickr-day.startRange.inRange, .flatpickr-day.endRange.inRange{
