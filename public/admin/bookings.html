@@ -201,6 +201,7 @@
       margin-top:12px;
       align-items:end;
     }
+
     @media (max-width: 1100px){
       .filters{ grid-template-columns: 1fr 1fr; }
     }
@@ -208,6 +209,31 @@
       .filters{ grid-template-columns: 1fr; }
     }
     /* ANCHOR: FILTERS_ROW_LAYOUT END */
+
+    /* ANCHOR: FILTERS_COMPACT */
+    .filters .field{
+      display:flex;
+      flex-direction:column;
+    }
+
+    .filters .field label{
+      font-size:11px;
+      margin-bottom:4px;
+      white-space:nowrap;
+    }
+
+    /* Make inputs align tightly */
+    .filters .input,
+    .filters select{
+      height:38px;
+    }
+
+    /* Buttons align with inputs */
+    .filters .btn{
+      height:38px;
+      padding:0 14px;
+    }
+    /* ANCHOR: FILTERS_COMPACT END */
 
     /* Search should NOT span 2 columns (keeps it to ~40% of row) */
     .field.search{ grid-column:auto; }
@@ -220,7 +246,6 @@
     }
     /* ANCHOR: DATE_FIELD_WIDTH END */
 
-    .field label{ display:block; font-size:11px; color:var(--muted); margin-bottom:6px; }
     .input, select{
       width:100%;
       border:1px solid var(--line);
