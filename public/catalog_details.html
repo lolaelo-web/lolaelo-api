@@ -468,6 +468,10 @@
         grid-column: 1;
         grid-row: 1;
       }
+        /* Make the room text container span full width */
+      .roomcat > div{
+        grid-column: 1 / -1;
+      }
     }
 
     /* ANCHOR: ROOM_MODAL_CSS */
@@ -1524,33 +1528,6 @@
       color: #0F1C2E !important;
     }
 
-    /* Widen Description bubble specifically — allow long text to breathe */
-    .summary-actions{
-      grid-template-columns: repeat(4, minmax(0, 1fr)); /* 4 equal columns */
-      column-gap: 10px;
-      row-gap: 12px;
-      justify-items: center;
-    }
-
-    /* Don’t let the wide “Property Inclusions” footprint force overlap on mobile */
-    .summary-actions > .summary-icon-wrap:nth-child(2){
-      min-width: 0;
-    }
-
-    /* Dates card should span full width under the icons */
-    .summary-dates{
-      grid-column: 1 / -1;
-    }
-
-    /* Make bubbles never clip off-screen on phones */
-    .summary-bubble{
-      min-width: 0;
-      max-width: calc(100vw - 24px);
-      left: auto;
-      right: 0;
-      transform: none;
-    }
-
     .summary .chips{
       margin-top: 4px;
       flex-wrap: wrap;
@@ -1590,14 +1567,15 @@
     }
 
     /* ANCHOR: DETAILS_SUMMARY_ICONS_CSS */
+    /* Canonical: icons row + date card + bubbles */
     .summary-actions{
-      /* Single 4-column grid: [✉️][🛎️][📍][date card] */
       display:grid;
-      grid-template-columns: 15% 15% 15% 44%;
-      column-gap:24px;
-      align-items:flex-start;
-      margin-bottom:4px;
+      grid-template-columns: repeat(3, minmax(0, 1fr)) minmax(240px, 1.4fr);
+      column-gap: 16px;
+      row-gap: 12px;
+      align-items: start;
       width:100%;
+      margin-bottom:4px;
     }
 
     .summary-icon-wrap{
@@ -1607,95 +1585,48 @@
       align-items:center;
       justify-content:flex-start;
       text-align:center;
-    }
-
-    /* Property Inclusions icon – three emojis inline */
-    .summary-actions > .summary-icon-wrap:nth-child(2) .summary-icon-btn {
-      display: flex;
-      flex-direction: row;
-      gap: 4px;                 /* spacing between emojis */
-      justify-content: center;
-      align-items: center;
-      font-size: 32px;          /* size of the emojis */
-    }
-
-    /* Make the Property Inclusions icon (2nd) about 1.5x wider */
-    .summary-actions > .summary-icon-wrap:nth-child(2){
-      min-width: 130px;  /* widen its footprint */
+      min-width:0;
     }
 
     .summary-icon-btn{
-      width:58px;    /* ~1.2x 48px */
-      height:58px;   /* ~1.2x 48px */
+      width:58px;
+      height:58px;
       border-radius:999px;
-      border:1px solid var(--border-subtle);
-      background:var(--surface-subtle);
+      border:1px solid var(--line);
+      background:#fff;
       display:flex;
       align-items:center;
       justify-content:center;
-      font-size:34px;  /* ~1.2x 28px */
+      font-size:34px;
       cursor:pointer;
     }
 
-    .summary-bubble{
-      position:absolute;
-      top:115%;
-      left:50%;
-      transform:translateX(-50%);
-      z-index:30;
-
-      /* wider bubble so long text can breathe */
-      min-width:320px;
-      max-width:720px;
-
-      /* allow long descriptions without cutting them off */
-      max-height:70vh;
-      overflow-y:auto;
-
-      padding:12px 18px;
-      border-radius:14px;
-
-      background:#FFFFFF;              /* white panel */
-      border:1px solid #E5E7EB;
-      color:#0F1C2E;                   /* deep navy text */
-
-      box-shadow:0 10px 30px rgba(15,23,42,0.12);
-      font-size:13px;
-      line-height:1.45;
-      display:none;
-    }
-    /* Left-align all text inside the Description bubble */
-    .summary-bubble.summary-bubble-owner{
-      text-align: left;
-    }
-    .summary-bubble strong{
-      display:block;
-      margin-bottom:6px;
-      font-size:13px;
-      color:#0F1C2E;
-    }
-    .summary-icon-wrap:hover .summary-bubble{
-      display:block;
+    .summary-actions > .summary-icon-wrap:nth-child(2) .summary-icon-btn{
+      display:flex;
+      flex-direction:row;
+      gap:4px;
+      justify-content:center;
+      align-items:center;
+      font-size:32px;
     }
 
+    /* IMPORTANT: remove the desktop “min-width:130px” that causes overlap */
+    .summary-actions > .summary-icon-wrap:nth-child(2){
+      min-width:0;
+    }
+
+    /* Labels */
     .summary-icon-label{
       margin-top:6px;
       font-size:12px;
       font-weight:500;
-      color:#0F1C2E;   /* same deep navy as bubbles */
+      color:#0F1C2E;
       text-align:center;
       width:100%;
+      white-space:nowrap;
     }
 
-    .summary-chip{
-      display:inline-block;
-      background:#F3F4F6;
-      padding:4px 8px;
-      border-radius:10px;
-      font-size:13px;
-      color:var(--fg-muted);   /* ← THIS is the lighter color */
-    }
-
+    /* Date card always lives in the 4th column on desktop */
     .summary-dates{
       display:flex;
       flex-direction:column;
@@ -1704,17 +1635,80 @@
       border-radius:14px;
       border:1px solid var(--line);
       background:#ffffff;
-      box-shadow:0 4px 12px rgba(15,23,42,0.05); /* match roomcat */
-
-      /* Respect the 4th grid column */
+      box-shadow:0 4px 12px rgba(15,23,42,0.05);
       width:100%;
       max-width:100%;
       box-sizing:border-box;
     }
 
+    /* Bubbles */
+    .summary-bubble{
+      position:absolute;
+      top:115%;
+      left:50%;
+      transform:translateX(-50%);
+      z-index:30;
+
+      min-width:320px;
+      max-width:720px;
+      max-height:70vh;
+      overflow-y:auto;
+
+      padding:12px 18px;
+      border-radius:14px;
+
+      background:#FFFFFF;
+      border:1px solid #E5E7EB;
+      color:#0F1C2E;
+
+      box-shadow:0 10px 30px rgba(15,23,42,0.12);
+      font-size:13px;
+      line-height:1.45;
+      display:none;
+    }
+
+    .summary-bubble.summary-bubble-owner{ text-align:left; }
+    .summary-icon-wrap:hover .summary-bubble{ display:block; }
+
     .summary-nights{
       font-size:11px;
       color:var(--muted);
+    }
+
+    /* ANCHOR: DETAILS_SUMMARY_ICONS_MOBILE */
+    @media (max-width: 640px){
+      /* Put 3 icons on one row, dates on its own row */
+      .summary-actions{
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+        column-gap: 10px;
+        row-gap: 12px;
+        justify-items:center;
+      }
+
+      .summary-dates{
+        grid-column: 1 / -1;
+      }
+
+      .summary-icon-btn{
+        width:52px;
+        height:52px;
+        font-size:30px;
+      }
+
+      .summary-icon-label{
+        white-space:normal;
+        font-size:12px;
+        line-height:1.1;
+      }
+
+      /* Bubble should never clip off-screen on phones */
+      .summary-bubble{
+        min-width: 0;
+        max-width: calc(100vw - 24px);
+        left:auto;
+        right:0;
+        transform:none;
+      }
     }
 
     /* ANCHOR: DETAILS_MAP_MODAL_CSS */
