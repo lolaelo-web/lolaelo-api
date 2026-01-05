@@ -181,6 +181,22 @@
       font-weight:700;
       color:#0F1C2E;      /* dark navy already used elsewhere on the page */
     }
+
+    @media (max-width: 640px){
+      /* Mobile: keep hotel name readable and not dominant */
+      #prop-name{
+        font-size: 18px;
+        line-height: 1.15;
+        letter-spacing: -0.01em;
+        text-align: right;
+      }
+
+      /* Prevent the topbar from getting too tall */
+      .topbar{
+        padding: 10px 14px 8px;
+      }
+    }
+
     .topbar .title > span{
       display:flex;
       flex-wrap:wrap;
@@ -283,12 +299,31 @@
       justify-content:center;
       padding:6px 12px;
       border-radius:999px;
-      border:1px solid var(--accent);
+      border:1px solid var(--bubble);
       background:#ffffff;
       font-size:12px;
       font-weight:500;
       cursor:pointer;
       white-space:nowrap;
+    }
+
+    @media (max-width: 640px){
+      /* Mobile: allow the dates row to wrap so the button never gets clipped */
+      .detail-date-bar{
+        flex-wrap: wrap;
+        align-items: stretch;
+      }
+
+      .detail-date-bar .detail-date-field{
+        flex: 1 1 100%;
+        min-width: 0;
+      }
+
+      /* Put the button on its own line, full width */
+      #detail-dates-apply{
+        flex: 1 1 100%;
+        width: 100%;
+      }
     }
 
     /* ANCHOR: DETAILS_LAYOUT_COLS */
@@ -384,6 +419,44 @@
       .roomcat{ grid-template-columns: 30px 72px 1fr; } /* + | thumb | text */
       .roomcat .btn-select{ grid-column: 1 / -1; justify-self: start; }
     }
+
+    /* Mobile: simplify room row + plan rows so nothing gets squeezed */
+    @media (max-width: 640px){
+      .roomcat{
+        grid-template-columns: 30px 1fr;
+        gap: 10px;
+        align-items: start;
+      }
+
+      .roomcat img{
+        grid-column: 1 / -1;
+        width: 100%;
+        height: 180px;
+        border-radius: 14px;
+      }
+
+      .roomcat .btn-select,
+      .roomcat-plan-btn{
+        width: 100%;
+        justify-content: center;
+      }
+
+      .planrow{
+        grid-template-columns: 1fr;
+        gap: 8px;
+      }
+
+      .planrow .plan-actions{
+        width: 100%;
+        justify-content: flex-start;
+      }
+
+      .planrow .qty-inline{
+        flex-wrap: wrap;
+        justify-content: flex-start;
+      }
+    }
+
     /* ANCHOR: ROOM_MODAL_CSS */
     .room-modal-backdrop{
       position: fixed;
@@ -1440,9 +1513,31 @@
 
     /* Widen Description bubble specifically — allow long text to breathe */
     .summary-actions > .summary-icon-wrap:first-child .summary-bubble{
-      max-width: 1200px;   /* 2× wider than before */
-      min-width: 600px;    /* ensure it starts wide */
-      transform: translateX(-5%);   /* move bubble right so left edge is fully visible */
+      max-width: 1200px;
+      min-width: 600px;
+      transform: translateX(-5%);
+    }
+
+    @media (max-width: 640px){
+      .summary-actions{
+        grid-template-columns: 1fr 1fr;  /* two columns on mobile */
+        column-gap: 12px;
+        row-gap: 12px;
+      }
+
+      /* Dates card should span full width under the icons */
+      .summary-dates{
+        grid-column: 1 / -1;
+      }
+
+      /* Make bubbles never clip off-screen on phones */
+      .summary-bubble{
+        min-width: 0;
+        max-width: calc(100vw - 24px);
+        left: auto;
+        right: 0;
+        transform: none;
+      }
     }
 
     .summary .chips{
@@ -1610,25 +1705,7 @@
       font-size:11px;
       color:var(--muted);
     }
-
-    @media (max-width: 640px){
-      .summary-actions{
-        flex-wrap:wrap;
-      }
-      .summary-actions > .summary-icon-wrap,
-      .summary-actions > .summary-dates{
-        flex:1 1 45%;
-        min-width:140px;
-      }
-    }
-
-    @media (max-width: 640px){
-      .summary-bubble{
-        left:auto;
-        right:0;
-      }
-    }
-
+    
     /* ANCHOR: DETAILS_MAP_MODAL_CSS */
     .details-map-backdrop{
       position:fixed;
