@@ -323,6 +323,8 @@
       #detail-dates-apply{
         flex: 1 1 100%;
         width: 100%;
+        text-align: center;
+        justify-content: center;
       }
     }
 
@@ -454,6 +456,17 @@
       .planrow .qty-inline{
         flex-wrap: wrap;
         justify-content: flex-start;
+      }
+        /* Mobile: let room text use full width (avoid narrow left column feel) */
+      .roomcat h3,
+      .roomcat .meta{
+        grid-column: 1 / -1;
+      }
+
+      /* Keep toggle in top-left but prevent it from stealing horizontal space */
+      .roomcat .toggle{
+        grid-column: 1;
+        grid-row: 1;
       }
     }
 
@@ -1512,32 +1525,30 @@
     }
 
     /* Widen Description bubble specifically — allow long text to breathe */
-    .summary-actions > .summary-icon-wrap:first-child .summary-bubble{
-      max-width: 1200px;
-      min-width: 600px;
-      transform: translateX(-5%);
+    .summary-actions{
+      grid-template-columns: repeat(4, minmax(0, 1fr)); /* 4 equal columns */
+      column-gap: 10px;
+      row-gap: 12px;
+      justify-items: center;
     }
 
-    @media (max-width: 640px){
-      .summary-actions{
-        grid-template-columns: 1fr 1fr;  /* two columns on mobile */
-        column-gap: 12px;
-        row-gap: 12px;
-      }
+    /* Don’t let the wide “Property Inclusions” footprint force overlap on mobile */
+    .summary-actions > .summary-icon-wrap:nth-child(2){
+      min-width: 0;
+    }
 
-      /* Dates card should span full width under the icons */
-      .summary-dates{
-        grid-column: 1 / -1;
-      }
+    /* Dates card should span full width under the icons */
+    .summary-dates{
+      grid-column: 1 / -1;
+    }
 
-      /* Make bubbles never clip off-screen on phones */
-      .summary-bubble{
-        min-width: 0;
-        max-width: calc(100vw - 24px);
-        left: auto;
-        right: 0;
-        transform: none;
-      }
+    /* Make bubbles never clip off-screen on phones */
+    .summary-bubble{
+      min-width: 0;
+      max-width: calc(100vw - 24px);
+      left: auto;
+      right: 0;
+      transform: none;
     }
 
     .summary .chips{
@@ -1705,7 +1716,7 @@
       font-size:11px;
       color:var(--muted);
     }
-    
+
     /* ANCHOR: DETAILS_MAP_MODAL_CSS */
     .details-map-backdrop{
       position:fixed;
