@@ -63,6 +63,23 @@
     .status{ font-size:12px; color:var(--muted); margin-top:10px; min-height:16px; }
     .status.bad{ color:#b42318; }
     .status.ok{ color:#0f7a3a; }
+    
+    /* ANCHOR: KPI_CSS */
+    .kpis{ display:grid; grid-template-columns: repeat(4, 1fr); gap:10px; }
+    @media (max-width: 980px){ .kpis{ grid-template-columns: repeat(2, 1fr); } }
+    @media (max-width: 560px){ .kpis{ grid-template-columns: 1fr; } }
+    .kpi{
+      border:1px solid var(--line);
+      border-radius:14px;
+      padding:12px;
+      background:#fff;
+      box-shadow:0 6px 18px rgba(15,23,42,.06);
+    }
+    .kpi .label{ font-size:11px; color:var(--muted); letter-spacing:.2px; }
+    .kpi .value{ margin-top:6px; font-size:18px; font-weight:800; }
+    .kpi .sub{ margin-top:6px; font-size:11px; color:var(--muted); }
+    /* ANCHOR: KPI_CSS END */
+
     .btnRow{ display:flex; gap:10px; align-items:center; }
     .btnRow a{ text-decoration:none; }
   </style>
@@ -80,29 +97,89 @@
       </div>
     </div>
 
+    <!-- ANCHOR: BOOKINGS_KPI_CARD -->
+    <div class="card">
+      <div style="display:flex; align-items:center; justify-content:space-between; gap:12px;">
+        <div style="font-weight:700;">Bookings $</div>
+        <div class="pill" id="kpiWindow">ET</div>
+      </div>
+
+      <div class="kpis" style="margin-top:12px;">
+        <div class="kpi">
+          <div class="label">Today</div>
+          <div class="value" id="kpiDay">-</div>
+          <div class="sub" id="kpiDaySub"></div>
+        </div>
+        <div class="kpi">
+          <div class="label">This week</div>
+          <div class="value" id="kpiWeek">-</div>
+          <div class="sub" id="kpiWeekSub"></div>
+        </div>
+        <div class="kpi">
+          <div class="label">This month</div>
+          <div class="value" id="kpiMonth">-</div>
+          <div class="sub" id="kpiMonthSub"></div>
+        </div>
+        <div class="kpi">
+          <div class="label">YTD</div>
+          <div class="value" id="kpiYtd">-</div>
+          <div class="sub" id="kpiYtdSub"></div>
+        </div>
+      </div>
+    </div>
+    <!-- ANCHOR: BOOKINGS_KPI_CARD END -->
+
+    <!-- ANCHOR: HUB_TOOLS_CARD -->
     <div class="card">
       <div style="display:flex; align-items:center; justify-content:space-between; gap:12px;">
         <div style="font-weight:700;">Tools</div>
         <div id="status" class="status"></div>
       </div>
 
+      <div class="grid">
         <a class="tile" href="/admin/ap.html">
           <div class="t">
             Accounts Payable
-            <span id="apBadge" class="pill" style="display:none; margin-left:8px; border-color:rgba(180,35,24,.25); color:#b42318; font-weight:800;">
-              0
-            </span>
+            <span id="apBadge" class="pill" style="display:none; margin-left:8px; border-color:rgba(180,35,24,.25); color:#b42318; font-weight:800;">0</span>
           </div>
-          <div class="d">Batch payouts (DRAFT, then mark PAID). Partner payments feed reads Payout and PayoutBooking.</div>
+          <div class="d">Batch payouts (DRAFT then mark PAID). Partner payments feed reads Payout and PayoutBooking.</div>
         </a>
 
-        <a class="tile" href="#" onclick="alert('Next sprint'); return false;">
+        <a class="tile" href="#" onclick="alert('Coming soon: bookings dashboard'); return false;">
+          <div class="t">Bookings</div>
+          <div class="d">Search bookings, status timeline, resend confirmations, refunds, manual overrides.</div>
+        </a>
+
+        <a class="tile" href="#" onclick="alert('Coming soon: partner admin'); return false;">
+          <div class="t">Partners</div>
+          <div class="d">Partner lookup, onboarding status, payout method, token reset, property profile health.</div>
+        </a>
+
+        <a class="tile" href="#" onclick="alert('Coming soon: exceptions inbox'); return false;">
+          <div class="t">
+            Exceptions
+            <span id="excBadge" class="pill" style="display:none; margin-left:8px; border-color:rgba(180,35,24,.25); color:#b42318; font-weight:800;">0</span>
+          </div>
+          <div class="d">Bookings needing intervention (bad line items, refund-in-progress, upcoming check-ins at risk).</div>
+        </a>
+
+        <a class="tile" href="#" onclick="alert('Coming soon: payouts ledger'); return false;">
+          <div class="t">Payout ledger</div>
+          <div class="d">Search payouts by partner/date/status. Export CSV. Audit confirmation numbers.</div>
+        </a>
+
+        <a class="tile" href="#" onclick="alert('Coming soon: system health'); return false;">
+          <div class="t">System health</div>
+          <div class="d">Stripe webhook health, email provider status, DB connectivity, S3 upload checks.</div>
+        </a>
+
+        <a class="tile" href="#" onclick="alert('Coming soon: operations tooling'); return false;">
           <div class="t">Operations</div>
-          <div class="d">Future tooling placeholder.</div>
+          <div class="d">Future: internal workflows and triage tools.</div>
         </a>
       </div>
     </div>
-  </div>
+    <!-- ANCHOR: HUB_TOOLS_CARD END -->
 
   <script>
     (function(){
@@ -142,13 +219,50 @@
 
         setStatus("Ready.", "ok");
 
+        // Fetch booking KPIs
+        try {
+          const r = await fetch("/api/admin/kpis/bookings?tz=America%2FNew_York", {
+            headers: { "Authorization": "Bearer " + t }
+          });
+          const j = await r.json().catch(() => null);
+          if (r.ok && j && j.ok) {
+            const cur = j.currency || "USD";
+
+            const fmt = (n) => {
+              const v = Number(n || 0);
+              try { return new Intl.NumberFormat(undefined, { style:"currency", currency: cur }).format(v); }
+              catch { return `${cur} ${v.toFixed(2)}`; }
+            };
+
+            const day = document.getElementById("kpiDay");
+            const week = document.getElementById("kpiWeek");
+            const month = document.getElementById("kpiMonth");
+            const ytd = document.getElementById("kpiYtd");
+
+            if (day) day.textContent = fmt(j.today);
+            if (week) week.textContent = fmt(j.week);
+            if (month) month.textContent = fmt(j.month);
+            if (ytd) ytd.textContent = fmt(j.ytd);
+
+            // optional sublabels (show start dates)
+            const sub = (id, v) => { const el = document.getElementById(id); if (el) el.textContent = v || ""; };
+            sub("kpiDaySub",   j.dayStart ? `Since ${String(j.dayStart).slice(0,10)}` : "");
+            sub("kpiWeekSub",  j.weekStart ? `Since ${String(j.weekStart).slice(0,10)}` : "");
+            sub("kpiMonthSub", j.monthStart ? `Since ${String(j.monthStart).slice(0,10)}` : "");
+            sub("kpiYtdSub",   j.yearStart ? `Since ${String(j.yearStart).slice(0,10)}` : "");
+
+            const w = document.getElementById("kpiWindow");
+            if (w) w.textContent = "ET";
+          }
+        } catch {}
+
         // Fetch exceptions count for badge
         try {
           const r = await fetch(EXC_URL, { headers: { "Authorization": "Bearer " + t } });
           const j = await r.json().catch(() => null);
           const count = (r.ok && j && typeof j.count === "number") ? j.count : 0;
 
-          const badge = document.getElementById("apBadge");
+          const badge = document.getElementById("excBadge");
           if (badge) {
             if (count > 0) {
               badge.textContent = String(count);

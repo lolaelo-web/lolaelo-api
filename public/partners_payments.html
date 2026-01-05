@@ -720,6 +720,14 @@
             const id = Number(p.id || 0);
 
             const paidAt = p.paidAt ? fmtYmd(p.paidAt) : (p.createdAt ? fmtYmd(p.createdAt) : "-");
+            const payoutDate = (p.paidAt)
+              ? fmtYmd(p.paidAt)
+              : (p.weekStart ? (function(){
+                  const ws = new Date(String(p.weekStart).slice(0,10) + "T00:00:00Z");
+                  ws.setUTCDate(ws.getUTCDate() + 11);
+                  return ws.toISOString().slice(0,10);
+                })() : paidAt);
+
             const conf = (p.confirmationNumber != null && String(p.confirmationNumber).trim() !== "")
               ? String(p.confirmationNumber)
               : (String(p.status || "").toUpperCase() === "DRAFT" ? "Waiting for payment approval" : "-");
@@ -739,13 +747,15 @@
 
             return `
               <tr>
-                <td>${esc(paidAt)}</td>
+                <td>${esc(payoutDate)}</td>
                 <td><span class="muted">${esc(conf)}</span></td>
                 <td class="right">${esc(amt)}</td>
                 <td>${cnt}</td>
                 <td>
                   <button class="btn ghost" type="button" onclick="openPayout(${id})">View</button>
-                  <span class="muted" style="margin-left:10px; font-size:12px;">${esc(status)}</span>
+                  <span class="muted" style="margin-left:10px; font-size:12px;">
+                    Status: ${esc(status)}
+                  </span>
                 </td>
               </tr>
             `;

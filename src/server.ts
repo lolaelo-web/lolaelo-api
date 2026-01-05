@@ -2587,6 +2587,79 @@ app.get("/api/admin/ping", (req: Request, res: Response) => {
 });
 // ANCHOR: ADMIN_PING_ROUTE END
 
+// ANCHOR: ADMIN_KPIS_BOOKINGS_ROUTE
+app.get("/api/admin/kpis/bookings", async (req: Request, res: Response) => {
+  try {
+    requireAdminAuth(req);
+
+    const tz = String(req.query.tz || "America/New_York").trim() || "America/New_York";
+
+    const out = await withDb(async (client) => {
+      const q = `
+        WITH bounds AS (
+          SELECT
+            (now() AT TIME ZONE $1)                        AS now_local,
+            date_trunc('day',   (now() AT TIME ZONE $1))   AS day_start,
+            date_trunc('week',  (now() AT TIME ZONE $1))   AS week_start_monday,
+            date_trunc('month', (now() AT TIME ZONE $1))   AS month_start,
+            date_trunc('year',  (now() AT TIME ZONE $1))   AS year_start
+        ),
+        booking_gross AS (
+          SELECT
+            b.id,
+            b.currency,
+            b."createdAt",
+            (
+              CASE
+                WHEN (
+                  COALESCE((SELECT SUM(bi."lineTotal") FROM extranet."BookingItem" bi WHERE bi."bookingId" = b.id), 0)
+                  +
+                  COALESCE((SELECT SUM(ba."lineTotal") FROM extranet."BookingAddOn" ba WHERE ba."bookingId" = b.id), 0)
+                ) > 0
+                THEN (
+                  COALESCE((SELECT SUM(bi."lineTotal") FROM extranet."BookingItem" bi WHERE bi."bookingId" = b.id), 0)
+                  +
+                  COALESCE((SELECT SUM(ba."lineTotal") FROM extranet."BookingAddOn" ba WHERE ba."bookingId" = b.id), 0)
+                )
+                ELSE COALESCE(b."amountPaid", 0)
+              END
+            )::numeric AS gross
+          FROM extranet."Booking" b
+        )
+        SELECT
+          -- keep it simple: assume USD for now (your platform is effectively USD today)
+          'USD'::text AS currency,
+
+          COALESCE(SUM(CASE WHEN (bg."createdAt" AT TIME ZONE $1) >= (SELECT day_start FROM bounds)
+                             THEN bg.gross ELSE 0 END), 0)::numeric AS today,
+
+          COALESCE(SUM(CASE WHEN (bg."createdAt" AT TIME ZONE $1) >= (SELECT week_start_monday FROM bounds)
+                             THEN bg.gross ELSE 0 END), 0)::numeric AS week,
+
+          COALESCE(SUM(CASE WHEN (bg."createdAt" AT TIME ZONE $1) >= (SELECT month_start FROM bounds)
+                             THEN bg.gross ELSE 0 END), 0)::numeric AS month,
+
+          COALESCE(SUM(CASE WHEN (bg."createdAt" AT TIME ZONE $1) >= (SELECT year_start FROM bounds)
+                             THEN bg.gross ELSE 0 END), 0)::numeric AS ytd,
+
+          (SELECT day_start FROM bounds)::timestamptz   AS dayStart,
+          (SELECT week_start_monday FROM bounds)::timestamptz AS weekStart,
+          (SELECT month_start FROM bounds)::timestamptz AS monthStart,
+          (SELECT year_start FROM bounds)::timestamptz  AS yearStart
+        FROM booking_gross bg;
+      `;
+      const r = await client.query(q, [tz]);
+      return r.rows?.[0] || null;
+    });
+
+    if (!out) return res.status(500).json({ ok: false, error: "server_error" });
+    return res.json({ ok: true, ...out });
+  } catch {
+    return res.status(401).json({ ok: false, error: "unauthorized" });
+  }
+});
+// ANCHOR: ADMIN_KPIS_BOOKINGS_ROUTE END
+
 // ANCHOR: ADMIN_AP_READY_ROLLUP_ROUTE
 app.get("/api/admin/ap/ready", async (req: Request, res: Response) => {
   try {
