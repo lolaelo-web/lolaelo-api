@@ -195,9 +195,10 @@
 
     .filters{
       display:grid;
-      grid-template-columns: 2fr 1fr 1fr 1fr;
+      grid-template-columns: 20% 24% 18% 18%;
       gap:12px;
       margin-top:12px;
+      align-items:end;
     }
     @media (max-width: 980px){ .filters{ grid-template-columns:1fr 1fr; } }
     @media (max-width: 560px){ .filters{ grid-template-columns:1fr; } }
@@ -205,6 +206,13 @@
     /* Let Search span 2 cols on wide screens */
     .field.search{ grid-column: 1 / span 2; }
     @media (max-width: 980px){ .field.search{ grid-column:auto; } }
+
+    /* ANCHOR: DATE_FIELD_WIDTH */
+    .field.date .input{
+      width:12ch;
+      max-width:12ch;
+    }
+    /* ANCHOR: DATE_FIELD_WIDTH END */
 
     .field label{ display:block; font-size:11px; color:var(--muted); margin-bottom:6px; }
     .input, select{
@@ -276,7 +284,6 @@
           <img src="/images/logo.png" alt="Lolaelo" />
           <span class="pill">Admin Hub</span>
         </div>
-        <div class="sub">Operations console for bookings, payouts, partners, and system health.</div>
       </div>
 
       <div class="btnRow">
@@ -343,12 +350,12 @@
           </select>
         </div>
 
-        <div class="field">
+        <div class="field date">
           <label>From date</label>
           <input id="fromDate" class="input" placeholder="YYYY-MM-DD" />
         </div>
 
-        <div class="field">
+        <div class="field date">
           <label>To date</label>
           <input id="toDate" class="input" placeholder="YYYY-MM-DD" />
         </div>
