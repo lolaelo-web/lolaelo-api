@@ -1570,8 +1570,8 @@
     /* Canonical: icons row + date card + bubbles */
     .summary-actions{
       display:grid;
-      grid-template-columns: repeat(3, minmax(0, 1fr)) minmax(240px, 1.4fr);
-      column-gap: 16px;
+      grid-template-columns: repeat(3, minmax(0, 1fr)) minmax(220px, 1fr);
+      column-gap: 14px;
       row-gap: 12px;
       align-items: start;
       width:100%;
@@ -1592,7 +1592,7 @@
       width:58px;
       height:58px;
       border-radius:999px;
-      border:1px solid var(--line);
+      border:none;
       background:#fff;
       display:flex;
       align-items:center;
@@ -1645,12 +1645,15 @@
     .summary-bubble{
       position:absolute;
       top:115%;
-      left:50%;
-      transform:translateX(-50%);
+      left:0;
+      transform:none;
       z-index:30;
 
-      min-width:320px;
-      max-width:720px;
+      /* wider bubble, but still capped so it never runs off-screen */
+      width:fit-content;
+      min-width:360px;
+      max-width:min(900px, calc(100vw - 48px));
+
       max-height:70vh;
       overflow-y:auto;
 
@@ -1666,6 +1669,9 @@
       line-height:1.45;
       display:none;
     }
+
+    /* ensure the anchor container doesn't constrain bubble math */
+    .summary-icon-wrap{ max-width:100%; }
 
     .summary-bubble.summary-bubble-owner{ text-align:left; }
     .summary-icon-wrap:hover .summary-bubble{ display:block; }
@@ -1693,6 +1699,8 @@
         width:52px;
         height:52px;
         font-size:30px;
+        border:1px solid var(--line);
+        background:#fff;
       }
 
       .summary-icon-label{
@@ -1739,6 +1747,10 @@
       display:none !important; /* removes the white bar */
     }
     .details-map-close{
+      position: absolute;
+      z-index: 2000;
+      top: 12px;
+      right: 12px;
       border:none;
       border-radius:999px;
       padding:4px 10px;
