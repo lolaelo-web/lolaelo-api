@@ -31,19 +31,6 @@
     }
     .wrap{ max-width:1200px; margin:0 auto; padding:18px 14px 30px; }
 
-    .topbar{
-      display:flex; align-items:center; justify-content:space-between;
-      gap:12px; margin-bottom:12px;
-    }
-    .brand{ display:flex; align-items:center; gap:10px; }
-    .brand .dot{
-      width:10px; height:10px; border-radius:999px;
-      background:#2bbb6f; box-shadow:0 0 0 3px rgba(43,187,111,.18);
-    }
-    .title{ font-weight:800; letter-spacing:.2px; }
-    .actions{ display:flex; gap:10px; align-items:center; }
-    .actions a{ text-decoration:none; }
-
     .section-label{
       text-align:center;
       font-weight:500;
@@ -67,18 +54,6 @@
     }
     .hero h1{ margin:0; font-size:18px; }
     .hero p{ margin:6px 0 0; color:var(--muted); font-size:13px; line-height:1.35; }
-
-    /* Teal ghost buttons so they don't look disabled */
-    .btn.ghost{
-      color:#0f766e !important;
-      border-color:rgba(15,118,110,.35) !important;
-    }
-    .btn.ghost:hover{
-      background:rgba(15,118,110,.08) !important;
-    }
-    .btn.ghost:disabled{
-      opacity:.45;
-    }
 
     .controls{
       display:flex; flex-wrap:wrap; gap:10px;
@@ -109,13 +84,7 @@
       color:var(--muted);
       font-size:12px;
     }
-    .pill{
-      display:inline-flex; align-items:center; gap:6px;
-      padding:4px 10px; border-radius:999px;
-      border:1px solid var(--line);
-      background:#fff;
-      box-shadow:0 6px 18px rgba(15,23,42,.06);
-    }
+
     .pill b{ color:var(--fg); font-weight:700; }
 
     .table{
@@ -232,18 +201,89 @@
       width:18px; height:18px;
       accent-color: var(--accent);
     }
+    /* ANCHOR: HUB_HEADER_OVERRIDE */
+    .top{
+      display:flex;
+      align-items:center;
+      justify-content:space-between;
+      gap:12px;
+      margin-bottom:8px;
+      padding:0;
+    }
+
+    .brandRow{
+      display:flex;
+      align-items:center;
+      gap:12px;
+      margin:0;
+      padding:0;
+    }
+
+    .brandRow img{ height:64px; width:auto; display:block; }
+
+    .pill{
+      display:inline-block;
+      font-size:11px;
+      padding:4px 10px;
+      border-radius:999px;
+      border:1px solid rgba(15,23,42,.18);
+      color:#0f172a;
+      font-weight:800;
+      vertical-align:middle;
+      background:#fff;
+      white-space:nowrap;
+    }
+
+    .sub{ color:var(--muted); font-size:13px; margin:2px 0 0; }
+
+    .btnRow{ display:flex; gap:10px; align-items:center; }
+
+    .btn.ghost{
+      background:#0b3a4a;
+      border:1px solid rgba(11,58,74,.35);
+      color:#ffffff !important;
+      box-shadow:0 6px 18px rgba(15,23,42,.12);
+      transition: transform .08s ease, background .15s ease, box-shadow .15s ease, border-color .15s ease;
+      text-decoration:none;
+      display:inline-flex;
+      align-items:center;
+      gap:8px;
+      padding:9px 12px;
+      border-radius:999px;
+      font-weight:800;
+      font-size:13px;
+    }
+
+    .btn.ghost:hover{
+      background: linear-gradient(90deg, #0b3a4a 0%, #0f5b63 100%);
+      border-color: rgba(11,58,74,.55);
+      transform: translateY(-1px);
+    }
+
+    .btn.ghost:active{ transform: translateY(0px); }
+
+    .btn.ghost:focus{
+      outline:none;
+      box-shadow:0 0 0 4px rgba(11,58,74,.20), 0 6px 18px rgba(15,23,42,.12);
+    }
+    /* ANCHOR: HUB_HEADER_OVERRIDE END */
+
   </style>
 </head>
 
 <body>
   <div class="wrap">
-    <div class="topbar">
-      <div class="brand">
-        <span class="dot" aria-hidden="true"></span>
-        <div class="title">Lolaelo Admin · AP</div>
+    <div class="top">
+      <div>
+        <div class="brandRow">
+          <img src="/images/logo.png" alt="Lolaelo" />
+          <span class="pill"> Accounts Payable </span>
+        </div>
       </div>
-      <div class="actions">
+
+      <div class="btnRow">
         <a class="btn ghost" href="/admin/index.html">Admin hub</a>
+        <a class="btn ghost" href="/partners_app.html">Extranet</a>
         <button id="btnLogout" class="btn ghost" type="button">Sign out</button>
       </div>
     </div>
