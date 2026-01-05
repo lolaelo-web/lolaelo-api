@@ -18,9 +18,16 @@
     body{ margin:0; background:var(--bg); color:var(--fg); font-family:Inter,system-ui,-apple-system,Segoe UI,Roboto,Arial; }
     .wrap{ max-width:980px; margin:0 auto; padding:22px 14px 34px; }
     .top{
-      display:flex; align-items:center; justify-content:space-between; gap:12px;
-      margin-bottom:14px;
+      display:flex;
+      align-items:center;
+      justify-content:space-between;
+      gap:12px;
+      margin-bottom:8px;
+      padding:0;
     }
+    .brandRow{ margin:0; padding:0; }
+    .sub{ margin:2px 0 0; }
+
     h1{ margin:0; font-size:18px; }
     .sub{ margin:4px 0 0; color:var(--muted); font-size:13px; }
     .card{
@@ -38,48 +45,28 @@
     }
 
     /* ANCHOR: TILE_HOVER_ACCENT */
-    .tile{
-      display:block;
-      padding:14px;
-      border:1px solid var(--line);
-      border-radius:14px;
-      background:#fff;
-      text-decoration:none;
-      color:var(--fg);
-      box-shadow:0 6px 18px rgba(15,23,42,.06);
-      transition: transform .08s ease, box-shadow .08s ease;
-      position:relative;
-    }
+.tile{
+  display:block;
+  padding:14px;
+  border:1px solid var(--line);
+  border-radius:14px;
+  background:#fff;
+  text-decoration:none;
+  color:var(--fg);
+  box-shadow:0 6px 18px rgba(15,23,42,.06);
+  transition: transform .08s ease, box-shadow .08s ease, border-color .12s ease;
+}
 
-    /* Gradient border ring (no interior fill) */
-    .tile::before{
-      content:"";
-      position:absolute;
-      inset:-1px;
-      border-radius:14px;
-      pointer-events:none;
-      opacity:0;
-      transition: opacity .15s ease;
-      background: linear-gradient(135deg, #ff6a3d 0%, #ff8a00 55%, #ff6a3d 100%);
-      z-index:0;
-    }
+.tile:hover{
+  transform:translateY(-1px);
+  border-color: rgba(255,106,61,.65);          /* bright orange border only */
+  box-shadow:0 10px 26px rgba(15,23,42,.10);   /* keep your original lift */
+}
 
-    /* Keep interior clean/white */
-    .tile > *{
-      position:relative;
-      z-index:1;
-    }
+.tile .t{ font-weight:700; font-size:14px; }
+.tile .d{ margin-top:6px; color:var(--muted); font-size:12px; line-height:1.35; }
+/* ANCHOR: TILE_HOVER_ACCENT END */
 
-    .tile:hover{
-      transform: translateY(-1px);
-      border-color: transparent;
-      box-shadow:
-        0 10px 26px rgba(15,23,42,.10),
-        0 0 0 1px rgba(255,106,61,.25);
-    }
-
-    .tile:hover::before{ opacity:1; }
-    /* ANCHOR: TILE_HOVER_ACCENT END */
 
     .pill{
       display:inline-block;
@@ -141,7 +128,7 @@
     <div class="top">
       <div>
         <div style="display:flex; align-items:center; gap:12px;">
-          <img src="/images/logo.png" alt="Lolaelo" style="height:154px; width:auto; display:block;">
+          <img src="/images/logo.png" alt="Lolaelo" style="height:64px; width:auto; display:block;">
           <span class="pill" style="border-color:rgba(15,23,42,.18); color:#0f172a; font-weight:800;">Admin Hub</span>
         </div>
         <div class="sub">Operations console for bookings, payouts, partners, and system health.</div>
@@ -165,16 +152,19 @@
           <div class="value" id="kpiDay">-</div>
           <div class="sub" id="kpiDaySub"></div>
         </div>
+
         <div class="kpi">
           <div class="label">This week</div>
           <div class="value" id="kpiWeek">-</div>
           <div class="sub" id="kpiWeekSub"></div>
         </div>
+
         <div class="kpi">
           <div class="label">This month</div>
           <div class="value" id="kpiMonth">-</div>
           <div class="sub" id="kpiMonthSub"></div>
         </div>
+
         <div class="kpi">
           <div class="label">YTD</div>
           <div class="value" id="kpiYtd">-</div>
@@ -183,6 +173,7 @@
       </div>
     </div>
     <!-- ANCHOR: BOOKINGS_KPI_CARD END -->
+
 
     <!-- ANCHOR: HUB_TOOLS_CARD -->
     <div class="card">
@@ -335,7 +326,7 @@
             } else {
               sub("kpiMonthSub", "");
             }
-            sub("kpiYtdSub",   j.yearStart ? `Since ${String(j.yearStart).slice(0,10)}` : "");
+            sub("kpiYtdSub", ""); // keep YTD clean
 
             const w = document.getElementById("kpiWindow");
             if (w) w.textContent = "ET";

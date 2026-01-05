@@ -4,6 +4,9 @@
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1" />
   <title>Admin - Bookings</title>
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.css">
+  <script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
+
   <style>
     :root{
       --bg:#f6f7fb;
@@ -52,6 +55,72 @@
       vertical-align:middle;
       background:#fff;
     }
+
+    /* ANCHOR: HUB_HEADER_OVERRIDE */
+    .top{
+      display:flex;
+      align-items:center;
+      justify-content:space-between;
+      gap:12px;
+      margin-bottom:8px;
+      padding:0;
+    }
+
+    .brandRow{
+      display:flex;
+      align-items:center;
+      gap:12px;
+      margin:0;
+      padding:0;
+    }
+
+    .brandRow img{ height:64px; width:auto; display:block; }
+
+    .pill{
+      display:inline-block;
+      font-size:11px;
+      padding:4px 10px;
+      border-radius:999px;
+      border:1px solid rgba(15,23,42,.18);
+      color:#0f172a;
+      font-weight:800;
+      vertical-align:middle;
+      background:#fff;
+    }
+
+    .sub{ color:var(--muted); font-size:13px; margin:2px 0 0; }
+
+    .btnRow{ display:flex; gap:10px; align-items:center; }
+
+    .btn.ghost{
+      background:#0b3a4a;
+      border:1px solid rgba(11,58,74,.35);
+      color:#ffffff !important;
+      box-shadow:0 6px 18px rgba(15,23,42,.12);
+      transition: transform .08s ease, background .15s ease, box-shadow .15s ease, border-color .15s ease;
+      text-decoration:none;
+      display:inline-flex;
+      align-items:center;
+      gap:8px;
+      padding:9px 12px;
+      border-radius:999px;
+      font-weight:800;
+      font-size:13px;
+    }
+
+    .btn.ghost:hover{
+      background: linear-gradient(90deg, #0b3a4a 0%, #0f5b63 100%);
+      border-color: rgba(11,58,74,.55);
+      transform: translateY(-1px);
+    }
+
+    .btn.ghost:active{ transform: translateY(0px); }
+
+    .btn.ghost:focus{
+      outline:none;
+      box-shadow:0 0 0 4px rgba(11,58,74,.20), 0 6px 18px rgba(15,23,42,.12);
+    }
+    /* ANCHOR: HUB_HEADER_OVERRIDE END */
 
     .sub{ color:var(--muted); font-size:13px; margin-top:6px; }
 
@@ -126,12 +195,16 @@
 
     .filters{
       display:grid;
-      grid-template-columns: 1.2fr .8fr .8fr .8fr;
-      gap:10px;
+      grid-template-columns: 2fr 1fr 1fr 1fr;
+      gap:12px;
       margin-top:12px;
     }
     @media (max-width: 980px){ .filters{ grid-template-columns:1fr 1fr; } }
     @media (max-width: 560px){ .filters{ grid-template-columns:1fr; } }
+
+    /* Let Search span 2 cols on wide screens */
+    .field.search{ grid-column: 1 / span 2; }
+    @media (max-width: 980px){ .field.search{ grid-column:auto; } }
 
     .field label{ display:block; font-size:11px; color:var(--muted); margin-bottom:6px; }
     .input, select{
@@ -152,11 +225,12 @@
     .actionsRow{
       display:flex;
       justify-content:space-between;
-      gap:10px;
+      gap:12px;
       align-items:center;
       margin-top:12px;
       flex-wrap:wrap;
     }
+    .actionsRow .rightActions{ display:flex; gap:10px; align-items:center; }
 
     table{ width:100%; border-collapse:collapse; margin-top:10px; }
     th, td{
@@ -202,13 +276,13 @@
           <img src="/images/logo.png" alt="Lolaelo" />
           <span class="pill">Admin Hub</span>
         </div>
-        <div class="sub">Bookings console for monitoring, search, and intervention.</div>
+        <div class="sub">Operations console for bookings, payouts, partners, and system health.</div>
       </div>
 
       <div class="btnRow">
-        <a class="btn secondary" href="/admin/index.html">Back to hub</a>
-        <a class="btn secondary" href="/partners_app.html">Extranet</a>
-        <button id="btnLogout" class="btn" type="button">Sign out</button>
+        <a class="btn ghost" href="/admin/index.html">Admin hub</a>
+        <a class="btn ghost" href="/partners_app.html">Extranet</a>
+        <button id="btnLogout" class="btn ghost" type="button">Sign out</button>
       </div>
     </div>
 
@@ -252,9 +326,9 @@
       <h2>Search</h2>
 
       <div class="filters">
-        <div class="field">
+        <div class="field search">
           <label>Search</label>
-          <input id="q" class="input" placeholder="Booking ref, traveler email, name, providerPaymentId" />
+          <input id="q" class="input" placeholder="Booking ref, traveler email or name" />
         </div>
 
         <div class="field">
@@ -283,8 +357,10 @@
       <div class="actionsRow">
         <div class="muted">This page is live UI foundation. Next sprint we wire booking search and list endpoints.</div>
         <div style="display:flex; gap:10px; align-items:center;">
-          <button id="btnClear" class="btn secondary" type="button">Clear</button>
-          <button id="btnSearch" class="btn" type="button">Search</button>
+          <div class="rightActions">
+            <button id="btnClear" class="btn ghost" type="button">Clear</button>
+            <button id="btnSearch" class="btn ghost" type="button">Search</button>
+          </div>
         </div>
       </div>
 
@@ -323,6 +399,15 @@
       function getToken(){
         try { return localStorage.getItem(TOKEN_KEY) || ""; } catch { return ""; }
       }
+
+      // ANCHOR: FLATPICKR_INIT
+      function initDatePickers(){
+        if (window.flatpickr){
+          window.flatpickr("#fromDate", { dateFormat:"Y-m-d", allowInput:true });
+          window.flatpickr("#toDate",   { dateFormat:"Y-m-d", allowInput:true });
+        }
+      }
+      // ANCHOR: FLATPICKR_INIT END
 
       function setStatus(msg, kind){
         const el = $("status");
@@ -375,6 +460,7 @@
 
         setStatus("Validating...", "");
         const ok = await ping(t).catch(() => false);
+
         if (!ok){
           try { localStorage.removeItem(TOKEN_KEY); } catch {}
           setStatus("Session invalid. Redirecting...", "bad");
@@ -382,6 +468,7 @@
           return;
         }
 
+        initDatePickers();
         await loadKpis(t);
       }
 
