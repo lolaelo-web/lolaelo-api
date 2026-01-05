@@ -72,6 +72,28 @@
       background:#2bbb6f; box-shadow:0 0 0 3px rgba(43,187,111,.25);
     }
 
+    /* ANCHOR: TOTALS_PANEL_RESTYLE */
+    .totalsCard{
+      display:flex;
+      flex-direction:column;
+      min-height:260px; /* gives you that “use the whole panel” feel */
+    }
+    .totalsTop{ margin-top:0; }
+    .totalsFill{
+      flex:1;
+      margin-top:12px;
+      border:1px dashed var(--line);
+      border-radius:14px;
+      background:#0c1730;
+      opacity:.9;
+    }
+    .totalsFooter{
+      display:flex;
+      justify-content:flex-end;
+      margin-top:12px;
+    }
+    /* ANCHOR: TOTALS_PANEL_RESTYLE END */
+
     .kpis{ display:grid; grid-template-columns: repeat(3, 1fr); gap:10px; }
     @media (max-width: 600px){ .kpis{ grid-template-columns:1fr; } }
     .kpi{ border:1px solid var(--line); border-radius:12px; padding:12px; background:#0c1730; }
@@ -169,24 +191,29 @@
         </div>
       </div>
 
-      <div class="card">
+      <div class="card totalsCard">
         <h2>Totals</h2>
-        <div class="kpis">
-          <div class="kpi">
-            <div class="label">Total Received</div>
-            <div class="value" id="kpiTotalReceived">-</div>
-          </div>
-          <div class="kpi">
-            <div class="label">Pending Payout</div>
-            <div class="value" id="kpiTotalPending">-</div>
-          </div>
-          <div class="kpi">
-            <div class="label">No. of Payouts Received</div>
-            <div class="value" id="kpiCount">-</div>
+
+        <div class="totalsTop">
+          <div class="kpis">
+            <div class="kpi">
+              <div class="label">Total Received</div>
+              <div class="value" id="kpiTotalReceived">-</div>
+            </div>
+            <div class="kpi">
+              <div class="label">Pending Payout</div>
+              <div class="value" id="kpiTotalPending">-</div>
+            </div>
+            <div class="kpi">
+              <div class="label">No. of Payouts Received</div>
+              <div class="value" id="kpiCount">-</div>
+            </div>
           </div>
         </div>
 
-        <div style="margin-top:12px;">
+        <div class="totalsFill"></div>
+
+        <div class="totalsFooter">
           <button id="btnRefresh" class="btn">Refresh</button>
         </div>
       </div>

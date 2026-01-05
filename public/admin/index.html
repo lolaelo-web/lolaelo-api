@@ -36,6 +36,8 @@
       gap:12px;
       margin-top:12px;
     }
+
+    /* ANCHOR: TILE_HOVER_ACCENT */
     .tile{
       display:block;
       padding:14px;
@@ -45,11 +47,37 @@
       text-decoration:none;
       color:var(--fg);
       box-shadow:0 6px 18px rgba(15,23,42,.06);
-      transition:transform .08s ease, box-shadow .08s ease;
+      transition: transform .08s ease, box-shadow .08s ease, border-color .12s ease;
+      position:relative;
+      overflow:hidden;
     }
-    .tile:hover{ transform:translateY(-1px); box-shadow:0 10px 26px rgba(15,23,42,.10); }
+
     .tile .t{ font-weight:700; font-size:14px; }
     .tile .d{ margin-top:6px; color:var(--muted); font-size:12px; line-height:1.35; }
+
+    .tile::after{
+      content:"";
+      position:absolute;
+      inset:0;
+      border-radius:14px;
+      pointer-events:none;
+      opacity:0;
+      transition: opacity .15s ease;
+      background: linear-gradient(135deg, rgba(255,106,61,.35), rgba(255,106,61,0) 60%);
+    }
+
+    .tile:hover{
+      transform: translateY(-1px);
+      border-color: rgba(255,106,61,.35);
+      box-shadow:
+        0 10px 26px rgba(15,23,42,.10),
+        0 0 0 1px rgba(255,106,61,.15);
+    }
+
+    .tile:hover::after{ opacity:1; }
+    /* ANCHOR: TILE_HOVER_ACCENT END */
+
+
     .pill{
       display:inline-block;
       font-size:11px;
@@ -82,17 +110,41 @@
 
     .btnRow{ display:flex; gap:10px; align-items:center; }
     .btnRow a{ text-decoration:none; }
+    /* ANCHOR: ADMIN_TOP_BUTTONS */
+    .btn.ghost{
+      background:#0b3a4a;
+      border:1px solid rgba(11,58,74,.35);
+      color:#ffffff !important;
+      box-shadow:0 6px 18px rgba(15,23,42,.12);
+    }
+    .btn.ghost:hover{
+      background: linear-gradient(90deg, #0b3a4a 0%, #0f5b63 100%);
+      border-color: rgba(11,58,74,.55);
+      transform: translateY(-1px);
+    }
+    .btn.ghost:active{
+      transform: translateY(0px);
+    }
+    .btn.ghost:focus{
+      outline: none;
+      box-shadow:0 0 0 4px rgba(11,58,74,.20), 0 6px 18px rgba(15,23,42,.12);
+    }
+    /* ANCHOR: ADMIN_TOP_BUTTONS END */
+
   </style>
 </head>
 <body>
   <div class="wrap">
     <div class="top">
       <div>
-        <h1>Admin hub <span class="pill">internal</span></h1>
-        <div class="sub">AP and operational tooling.</div>
+        <div style="display:flex; align-items:center; gap:12px;">
+          <img src="/images/logo.png" alt="Lolaelo" style="height:28px; width:auto; display:block;">
+          <span class="pill" style="border-color:rgba(15,23,42,.18); color:#0f172a; font-weight:800;">Admin Hub</span>
+        </div>
+        <div class="sub">Operations console for bookings, payouts, partners, and system health.</div>
       </div>
       <div class="btnRow">
-        <a class="btn ghost" href="/partners_app.html">Extranet</a>
+        <a class="btn ghost" href="/partners_login.html">Extranet</a>
         <button id="btnLogout" class="btn ghost" type="button">Sign out</button>
       </div>
     </div>
