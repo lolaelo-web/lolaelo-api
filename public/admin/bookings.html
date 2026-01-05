@@ -195,7 +195,7 @@
 
     .filters{
       display:grid;
-      grid-template-columns: 2.4fr 1.4fr max-content max-content;
+      grid-template-columns: 1fr 260px max-content max-content;
       gap:12px;
       margin-top:12px;
       align-items:end;
@@ -229,6 +229,19 @@
       border-color: rgba(255,106,61,.35);
       box-shadow: 0 0 0 4px rgba(255,106,61,.10);
     }
+
+    /* ANCHOR: SEARCH_FIELD_CAP */
+    .field.search .input{
+      width:40%;
+      max-width:40%;
+    }
+    /* ANCHOR: SEARCH_FIELD_CAP END */
+
+    /* ANCHOR: STATUS_MIN_WIDTH */
+    #statusSel{
+      min-width:220px;
+    }
+    /* ANCHOR: STATUS_MIN_WIDTH END */
 
     .actionsRow{
       display:flex;
@@ -292,8 +305,6 @@
         <button id="btnLogout" class="btn ghost" type="button">Sign out</button>
       </div>
     </div>
-
-    <div class="crumb">Admin / Bookings</div>
 
     <!-- KPIs -->
     <div class="card">
