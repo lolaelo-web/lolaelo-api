@@ -203,9 +203,9 @@
     @media (max-width: 980px){ .filters{ grid-template-columns:1fr 1fr; } }
     @media (max-width: 560px){ .filters{ grid-template-columns:1fr; } }
 
-    /* Let Search span 2 cols on wide screens */
-    .field.search{ grid-column: 1 / span 2; }
-    @media (max-width: 980px){ .field.search{ grid-column:auto; } }
+    /* Search should NOT span 2 columns (keeps it to ~40% of row) */
+    .field.search{ grid-column:auto; }
+    .field.date{ justify-self:start; }
 
     /* ANCHOR: DATE_FIELD_WIDTH */
     .field.date .input{
