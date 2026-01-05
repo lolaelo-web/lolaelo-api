@@ -238,7 +238,7 @@
     @media (max-width:640px){
       .catalog-map-inner{
         width:calc(100vw - 24px);
-        height:calc(100vh - 60px);
+        height:calc(100vh - 96px);
       }
     }
 
@@ -669,6 +669,26 @@
 
       .paper{
         padding: 18px 18px 24px;  /* reduce padding slightly on mobile */
+      }
+      /* Mobile: make Filters readable (stack into 1 column) */
+      .filters-body{
+        grid-template-columns: 1fr !important;
+        gap: 10px;
+      }
+
+      .filter-col-title{
+        font-size: 13px;
+      }
+
+      .filters-body label{
+        grid-template-columns: 1fr auto;
+        align-items: center;
+        gap: 10px;
+        font-size: 14px;
+      }
+
+      .filters-body label input[type="checkbox"]{
+        margin-top: 0;
       }
     }
 
