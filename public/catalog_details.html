@@ -305,6 +305,9 @@
       font-weight:500;
       cursor:pointer;
       white-space:nowrap;
+      max-width: 100%;
+      box-sizing: border-box;
+      padding: 6px 10px;
     }
 
     @media (max-width: 640px){
@@ -1695,12 +1698,13 @@
         grid-column: 1 / -1;
       }
 
+      /* Mobile: icons without circular outlines */
       .summary-icon-btn{
         width:52px;
         height:52px;
         font-size:30px;
-        border:1px solid var(--line);
-        background:#fff;
+        border:none;
+        background:transparent;
       }
 
       .summary-icon-label{
@@ -1709,13 +1713,20 @@
         line-height:1.1;
       }
 
-      /* Bubble should never clip off-screen on phones */
+      /* Mobile: bubbles open on tap/focus (hover is unreliable on phones) */
+      .summary-icon-wrap:active .summary-bubble,
+      .summary-icon-wrap:focus-within .summary-bubble{
+        display:block;
+      }
+
+      /* Mobile: make bubbles wide and always on-screen */
       .summary-bubble{
+        width: min(900px, calc(100vw - 24px));
+        max-width: min(900px, calc(100vw - 24px));
         min-width: 0;
-        max-width: calc(100vw - 24px);
-        left:auto;
-        right:0;
-        transform:none;
+        left: 12px;
+        right: 12px;
+        transform: none;
       }
     }
 
