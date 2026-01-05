@@ -591,32 +591,69 @@
       }
     }
 
+    /* Mobile: modal sizing + layout (NO logo sizing here) */
     @media (max-width: 768px) {
-    .modal-panel {
+      .modal-panel {
         height: 90vh;
         width: 96vw;
       }
-      .logo-img{
-        height: 90px; /* 32px * 2.8 = 89.6 -> round */
-        width: auto;
+
+      .modal-body {
+        padding: 14px 14px;
       }
-    }
 
-    @media (max-width: 768px) {
-    .modal-body {
-      padding: 14px 14px;
-    }
+      .modal-columns {
+        grid-template-columns: 1fr;
+        gap: 14px;
+      }
 
-    @media (max-width: 768px) {
+      .modal-col-right {
+        border-left: none;
+        padding-left: 0;
+        border-top: 1px solid #e5e7eb;
+        padding-top: 12px;
+      }
+
+      .modal-col {
+        width: 100%;
+      }
+
       .modal-exp-footer,
       .modal-thumbs-row {
         justify-content: flex-start;
         flex-wrap: wrap;
         gap: 10px;
       }
+
+      .modal-thumbs-row {
+        justify-content: flex-end;
+        margin-top: 10px;
+        padding-bottom: 0;
+      }
     }
 
-    .modal-columns {
+    /* Mobile: page layout + header/logo + grid */
+    @media (max-width: 768px) {
+      .page {
+        padding: 12px 16px 28px;
+      }
+
+      .hero {
+        padding-top: 20px;
+      }
+
+      .dest-grid {
+        grid-template-columns: 1fr;
+        gap: 16px;
+      }
+
+      .logo-img {
+        height: 64px;
+        width: auto;
+      }
+    }
+
+        .modal-columns {
       grid-template-columns: 1fr;
       gap: 14px;
     }
@@ -637,7 +674,6 @@
         margin-top: 10px;
         padding-bottom: 0;
       }
-    }
 
     /* Footer */
     footer {
@@ -654,27 +690,6 @@
       text-decoration: underline;
     }
 
-    
-    /* Responsive */
-
-    @media (max-width: 768px) {
-      .page {
-        padding: 12px 16px 28px;
-      }
-
-      .hero {
-        padding-top: 20px;
-      }
-
-      .dest-grid {
-        grid-template-columns: 1fr;
-        gap: 16px;
-      }
-      .logo-img {
-        height: 90px;
-        width: auto;
-      }
-    }
   </style>
 </head>
 <body>
