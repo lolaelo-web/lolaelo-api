@@ -1,0 +1,787 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Lolaelo — Fair travel, built on trust.</title>
+  <link rel="icon" href="/logo2.png" />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+
+  <!-- Flatpickr (calendar) -->
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr@4.6.13/dist/flatpickr.min.css" />
+
+  <style>
+    :root {
+      --bg: #ffffff;
+      --fg: #111827;
+      --muted: #6b7280;
+      --brand: #064e3b;   /* teal headline/nav */
+      --accent: #ff6a3d;  /* orange CTA */
+      --border: #e5e7eb;
+      --radius-card: 18px;
+      --radius-pill: 999px;
+      --max-width: 960px;
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    html,
+    body {
+      margin: 0;
+      padding: 0;
+      height: 100%;
+    }
+
+    body {
+      font-family: Inter, ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+      background: var(--bg);
+      color: var(--fg);
+      display: flex;
+      flex-direction: column;
+      min-height: 100vh;
+    }
+
+    a {
+      color: inherit;
+      text-decoration: none;
+    }
+
+    .page {
+      width: 100%;
+      max-width: var(--max-width);
+      margin: 0 auto;
+      padding: 16px 20px 40px;
+      display: flex;
+      flex-direction: column;
+      flex: 1;
+    }
+
+    /* Top nav */
+
+    .nav {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 4px 0 12px;
+    }
+
+    .nav-left {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .logo-img {
+      height: 32px;
+      width: auto;
+      display: block;
+    }
+
+    .nav-right {
+      display: flex;
+      align-items: center;
+      gap: 20px;
+      font-size: 14px;
+    }
+
+    .nav-link {
+      color: var(--brand);
+      padding: 4px 0;
+      font-weight: 500;
+    }
+
+    .nav-link:hover {
+      text-decoration: underline;
+    }
+
+    /* Hero */
+
+    .hero {
+      padding: 28px 0 24px;
+      text-align: center; /* centered heading */
+    }
+
+    .hero-title {
+      font-size: clamp(32px, 4.4vw, 44px);
+      line-height: 1.2;
+      margin: 0 0 6px;
+      font-weight: 600;
+      color: var(--brand);
+    }
+
+    .hero-tagline {
+      margin: 0;
+      font-size: 16px;
+      color: var(--muted);
+    }
+
+    /* Search card */
+
+    .search-card-wrap {
+      margin-top: 26px;
+      display: flex;
+      justify-content: center;
+    }
+
+    .search-card {
+      width: 100%;
+      max-width: 820px;
+      background: #ffffff;
+      border-radius: var(--radius-card);
+      border: 1px solid var(--border);
+      box-shadow: 0 18px 45px rgba(15, 23, 42, 0.08);
+      padding: 14px 16px;
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+    }
+
+    .search-row {
+      display: grid;
+      grid-template-columns: 1.4fr 1.3fr 1fr auto;
+      gap: 8px;
+      align-items: stretch;
+    }
+
+    .search-field {
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+      font-size: 12px;
+      color: var(--muted);
+    }
+
+    .search-label {
+      padding-left: 4px;
+    }
+
+    .search-input-shell {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      border-radius: 12px;
+      border: 1px solid var(--border);
+      padding: 8px 12px;
+      background: #f9fafb;
+      position: relative;
+    }
+
+    .search-input-shell span.icon {
+      font-size: 14px;
+    }
+
+    .search-input-shell input,
+    .search-input-shell select {
+      border: none;
+      outline: none;
+      background: transparent;
+      width: 100%;
+      font-size: 14px;
+      color: #111827;
+      font-family: inherit;
+    }
+
+        /* Custom dropdown (Destination + Guests) */
+    .custom-select {
+      position: relative;
+      width: 100%;
+    }
+
+    .custom-select-toggle {
+      width: 100%;
+      padding: 0;
+      margin: 0;
+      border: none;
+      background: transparent;
+      text-align: left;
+      font: inherit;
+      color: #111827;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+
+    .custom-select-label {
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    .custom-select-menu {
+      list-style: none;
+      margin: 4px 0 0 0;
+      padding: 4px 0;
+      position: absolute;
+      top: 100%;
+      left: -12px;   /* extend to cover shell padding on the left */
+      right: -12px;  /* extend to cover shell padding on the right */
+      background: #ffffff;
+      border-radius: 12px;
+      border: 1px solid var(--border);
+      box-shadow: 0 14px 30px rgba(15, 23, 42, 0.12);
+      max-height: 260px;
+      overflow-y: auto;
+      display: none;
+      z-index: 20;
+    }
+
+    .custom-select-menu.is-open {
+      display: block;
+    }
+
+    .custom-select-menu li {
+      padding: 8px 12px;
+      font-size: 14px;
+      font-weight: 400;     /* normalize weight */
+      cursor: pointer;
+      color: #111827;
+      text-align: left;     /* explicit left alignment */
+    }
+
+    .custom-select-menu li:hover {
+      background: #e0f2f1;  /* light teal on hover */
+      color: #064e3b;
+    }
+
+    .custom-select-menu li[aria-selected="true"] {
+      background: #e0f2f1;  /* selected teal */
+      color: #064e3b;
+    }
+
+    /* keep our faux arrow, but only for wrappers with custom-select */
+    .search-input-shell::after {
+      content: "";
+    }
+
+    .search-input-shell .custom-select-toggle::after {
+      content: "▾";
+      font-size: 12px;
+      color: #6b7280;
+      margin-left: 8px;
+      flex-shrink: 0;
+    }
+
+    .search-input-shell input::placeholder {
+      color: #9ca3af;
+    }
+
+    /* Dropdown basics for Destination + Guests */
+    select {
+      border-radius: 8px;
+      appearance: none;
+      -webkit-appearance: none;
+      -moz-appearance: none;
+      background-color: transparent;
+    }
+
+    .search-input-shell select {
+      font-family: Inter, ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+      font-size: 14px;
+      color: #111827;
+    }
+
+    /* Dropdown menu items */
+    .search-input-shell select option {
+      font-family: inherit;
+      padding: 8px 10px;
+    }
+
+    .search-input-shell select option:hover {
+      background: #e0f2f1;   /* light teal on hover */
+      color: #064e3b;
+    }
+
+    .search-input-shell select option:checked {
+      background: #e0f2f1;
+      color: #064e3b;
+    }
+
+    /* Simple custom arrow for selects */
+    .search-input-shell::after {
+      content: "▾";
+      position: absolute;
+      right: 12px;
+      font-size: 12px;
+      pointer-events: none;
+      color: #6b7280;
+    }
+
+    .search-button-wrap {
+      display: flex;
+      align-items: stretch;
+      justify-content: flex-end;
+    }
+
+    .search-btn {
+      border-radius: var(--radius-pill);
+      border: none;
+      padding: 0 18px;         /* smaller width */
+      font-size: 13px;         /* slightly smaller text */
+      font-weight: 600;
+      cursor: pointer;
+      background: var(--accent);
+      color: #ffffff;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      min-height: 32px;        /* smaller height */
+      box-shadow: 0 10px 22px rgba(248, 113, 73, 0.45);
+      white-space: nowrap;
+    }
+
+    .search-btn:hover {
+      filter: brightness(0.97);
+    }
+
+    /* Benefits */
+    
+    .benefits {
+      margin-top: 40px;
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: 24px;
+      justify-items: center;
+      text-align: center;
+    }
+    
+    .benefit {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 10px;
+      position: relative;
+      padding: 0;              /* key: remove the padded box feel */
+      cursor: pointer;         /* since it links */
+      background: none;        /* remove gradient rectangle */
+      border-radius: 0;
+      transition: transform 0.15s ease;
+    }
+    
+    .benefit:hover,
+    .benefit-link:focus-within .benefit {
+      transform: translateY(-1px);
+    }
+    
+    .benefit-icon {
+      width: auto;             /* key: no icon bubble */
+      height: auto;
+      border-radius: 0;
+      background: none;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 18px;
+    }
+    
+    .benefit-title {
+      font-size: 14px;
+      font-weight: 600;
+      color: var(--brand);
+    }
+    
+    /* Tooltip */
+    .benefit::after {
+      content: attr(data-tooltip);
+      position: absolute;
+      left: 50%;
+      bottom: -4px;
+      transform: translate(-50%, 115%);
+      padding: 10px 14px;
+      width: 260px;
+      max-width: 320px;
+      background: #e5f2ff;   /* light blue bubble */
+      color: #064e3b;        /* dark teal text */
+      font-size: 13px;
+      line-height: 1.5;
+      border-radius: 8px;
+      opacity: 0;
+      visibility: hidden;
+      transition: opacity 0.15s ease-out, visibility 0.15s ease-out;
+      pointer-events: none;
+      z-index: 10;
+      white-space: normal;
+      text-align: center;
+    }
+    
+    .benefit:hover::after,
+    .benefit:focus-within::after {
+      opacity: 1;
+      visibility: visible;
+    }
+
+    /* Footer */
+
+    footer {
+      border-top: 1px solid var(--border);
+      padding: 14px 20px 22px;
+      font-size: 12px;
+      color: #6b7280;
+      text-align: center;
+      margin-top: auto;
+    }
+
+    footer a {
+      color: inherit;
+      text-decoration: underline;
+    }
+
+    /* Responsive */
+
+    @media (max-width: 768px) {
+      .page {
+        padding: 12px 16px 32px;
+      }
+
+      .hero {
+        padding-top: 20px;
+      }
+
+      .search-card {
+        padding: 12px 12px;
+      }
+
+      .search-row {
+        grid-template-columns: 1fr;
+      }
+
+      .search-button-wrap {
+        justify-content: stretch;
+      }
+
+      .search-btn {
+        width: 100%;
+      }
+
+      .benefits {
+        grid-template-columns: 1fr;
+        gap: 18px;
+      }
+
+      .benefit::after {
+        max-width: 90vw;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="page">
+    <!-- Top nav -->
+    <header class="nav">
+      <div class="nav-left">
+        <a href="#top" aria-label="Lolaelo home">
+          <!-- Using /logo.png again, per your setup -->
+          <img src="/logo.png" alt="Lolaelo" class="logo-img" />
+        </a>
+      </div>
+      <nav class="nav-right" aria-label="Primary">
+        <a class="nav-link" href="/destinations.html">Destinations</a>
+      </nav>
+    </header>
+
+    <!-- Hero + search -->
+    <main role="main">
+      <section class="hero" id="welcome">
+        <h1 class="hero-title" id="welcome-title">Fair travel, built on trust.</h1>
+        <p class="hero-tagline" id="welcome-body"></p>
+
+        <!-- Optional CMS-driven copy (safe; fails silent if endpoint missing) -->
+        <script>
+          (function () {
+            const t = document.getElementById("welcome-title");
+            const b = document.getElementById("welcome-body");
+        
+            fetch("/content/homepage-welcome", { cache: "no-store" })
+              .then(async (r) => {
+                if (!r.ok) return null;
+        
+                const ct = (r.headers.get("content-type") || "").toLowerCase();
+                if (!ct.includes("application/json")) return null;
+        
+                try {
+                  return await r.json();
+                } catch (_) {
+                  return null;
+                }
+              })
+              .then((d) => {
+                if (!d) return; // keep defaults in HTML
+                if (d.title) t.textContent = d.title;
+                if (d.body) b.textContent = d.body;
+              })
+              .catch(() => {
+                // intentionally silent: landing page must not error if CMS endpoint is missing
+              });
+          })();
+        </script>
+
+        <!-- Search card -->
+        <div class="search-card-wrap">
+          <form id="hp-search-form" class="search-card" aria-label="Search stays">
+            <div class="search-row">
+              <!-- Destination -->
+              <div class="search-field">
+                <div class="search-label">Destination</div>
+                <div class="search-input-shell">
+                  <span class="icon">📍</span>
+                  <div class="custom-select" data-target="hp-q">
+                    <button
+                      type="button"
+                      class="custom-select-toggle"
+                      aria-haspopup="listbox"
+                      aria-expanded="false"
+                    >
+                      <span class="custom-select-label">Select destination</span>
+                    </button>
+                    <ul class="custom-select-menu" role="listbox">
+                      <li data-value="" class="is-placeholder" aria-selected="true">
+                        Select destination
+                      </li>
+                      <li data-value="Siargao">Siargao</li>
+                      <li data-value="El Nido">El Nido</li>
+                      <li data-value="Coron">Coron</li>
+                      <li data-value="Boracay">Boracay</li>
+                      <li data-value="Manila">Manila</li>
+                      <li data-value="Cebu">Cebu</li>
+                    </ul>
+                    <!-- hidden value used by existing JS -->
+                    <input id="hp-q" type="hidden" value="">
+                  </div>
+                </div>
+              </div>
+
+              <!-- Date range -->
+              <div class="search-field">
+                <div class="search-label">Dates</div>
+                <div class="search-input-shell">
+                  <span class="icon">📅</span>
+                  <input
+                    id="hp-dates"
+                    class="date-range"
+                    type="text"
+                    placeholder="Check-in – Check-out"
+                    autocomplete="off"
+                    readonly
+                  />
+                </div>
+              </div>
+
+              <!-- Guests -->
+              <div class="search-field">
+                <div class="search-label">Guests</div>
+                <div class="search-input-shell">
+                  <span class="icon">👤</span>
+                  <div class="custom-select" data-target="hp-guests">
+                    <button
+                      type="button"
+                      class="custom-select-toggle"
+                      aria-haspopup="listbox"
+                      aria-expanded="false"
+                    >
+                      <span class="custom-select-label">2 guests</span>
+                    </button>
+                    <ul class="custom-select-menu" role="listbox">
+                      <li data-value="1">1 guest</li>
+                      <li data-value="2" aria-selected="true">2 guests</li>
+                      <li data-value="3">3 guests</li>
+                      <li data-value="4">4 guests</li>
+                      <li data-value="5">5+ guests</li>
+                    </ul>
+                    <!-- default 2 guests so Search rule still works -->
+                    <input id="hp-guests" type="hidden" value="2">
+                  </div>
+                </div>
+              </div>
+
+              <!-- Search button -->
+              <div class="search-button-wrap">
+                <button class="search-btn" type="submit">
+                  Search
+                </button>
+              </div>
+            </div>
+          </form>
+        </div>
+
+        <!-- Benefits (centered, tooltips on hover) -->
+        <section class="benefits" id="destinations" aria-label="Why book with Lolaelo">
+          <a href="/mission.html" class="benefit-link">
+          <div
+            class="benefit"
+            tabindex="0"
+            data-tooltip="Local experts curate stays and coordinate excursions for a smooth, stress-free trip."
+          >
+            <div class="benefit-icon">📍</div>
+            <div class="benefit-title">Local expertise</div>
+          </div>
+          </a>
+          <a href="/mission.html" class="benefit-link">
+          <div
+            class="benefit"
+            tabindex="0"
+            data-tooltip="Since we built our own inventory of hotels, our hotel partners keep more of what they earn, and travelers get better prices - no middle-man margin ftw."
+          >
+            <div class="benefit-icon">$</div>
+            <div class="benefit-title">Fair prices</div>
+          </div>
+          </a>
+          <a href="/mission.html" class="benefit-link">
+          <div
+            class="benefit"
+            tabindex="0"
+            data-tooltip="Choose your room and check out with a clean, secure experience - no upsells, no clutter, powered by Stripe, PayPal & GCash."
+          >
+            <div class="benefit-icon">🔐</div>
+            <div class="benefit-title">Clear & secure booking</div>
+          </div>
+          </a>
+        </section>
+      </section>
+    </main>
+  </div>
+
+  <footer>
+    © <span id="year"></span> Lolaelo · <a href="/privacy.html">Privacy</a> · <a href="/terms.html">Terms</a>
+  </footer>
+
+  <!-- Flatpickr JS -->
+  <script src="https://cdn.jsdelivr.net/npm/flatpickr@4.6.13/dist/flatpickr.min.js"></script>
+    <script>
+      // Footer year
+      document.getElementById("year").textContent = new Date().getFullYear();
+      
+      (function () {
+        const form = document.getElementById("hp-search-form");
+  
+        // Hidden inputs that actually drive the query params
+        const qInput = document.getElementById("hp-q");
+        const datesInput = document.getElementById("hp-dates");
+        const guestsInput = document.getElementById("hp-guests");
+  
+        const searchBtn = form.querySelector(".search-btn");
+          
+        function updateSearchState() {
+          const hasDest = !!(qInput.value && qInput.value.trim());
+        
+          const rawDates = (datesInput.value || "").trim();
+          const hasDates =
+            rawDates.includes(" to ") &&
+            rawDates.split(" to ")[0] &&
+            rawDates.split(" to ")[1];
+        
+          // Guests always has a valid default (2), so do NOT gate on it
+          const enabled = hasDest && hasDates;
+        
+          searchBtn.disabled = !enabled;
+          searchBtn.style.opacity = enabled ? "1" : "0.55";
+          searchBtn.style.cursor = enabled ? "pointer" : "not-allowed";
+        }
+
+        // Init flatpickr AFTER updateSearchState exists (same scope)
+        flatpickr(".date-range", {
+          mode: "range",
+          altInput: true,
+          altFormat: "m/d/Y",
+          dateFormat: "Y-m-d",
+          onChange: function () {
+            updateSearchState();
+          }
+        });
+
+        // Custom select behavior for Destination + Guests
+        function initCustomSelect(wrapper) {
+          const button = wrapper.querySelector(".custom-select-toggle");
+          const labelEl = wrapper.querySelector(".custom-select-label");
+          const menu = wrapper.querySelector(".custom-select-menu");
+          const options = menu.querySelectorAll("li[data-value]");
+          const hidden = document.getElementById(wrapper.dataset.target);
+  
+          function openMenu() {
+            menu.classList.add("is-open");
+            button.setAttribute("aria-expanded", "true");
+          }
+  
+          function closeMenu() {
+            menu.classList.remove("is-open");
+            button.setAttribute("aria-expanded", "false");
+          }
+  
+          function selectOption(li) {
+            const value = li.getAttribute("data-value") || "";
+            const text = (li.textContent || "").trim();
+  
+            hidden.value = value;
+            labelEl.textContent = text;
+  
+            options.forEach(opt => opt.removeAttribute("aria-selected"));
+            if (value !== "") {
+              li.setAttribute("aria-selected", "true");
+            }
+  
+            closeMenu();
+            updateSearchState();
+          }
+  
+          button.addEventListener("click", function () {
+            if (menu.classList.contains("is-open")) {
+              closeMenu();
+            } else {
+              openMenu();
+            }
+          });
+  
+          options.forEach(li => {
+            li.addEventListener("click", function () {
+              selectOption(li);
+            });
+          });
+  
+          // Close on outside click
+          document.addEventListener("click", function (evt) {
+            if (!wrapper.contains(evt.target)) {
+              closeMenu();
+            }
+          });
+        }
+  
+        // Initialize all custom selects (Destination + Guests)
+        document.querySelectorAll(".custom-select").forEach(initCustomSelect);
+  
+        // Initial state (guests has default value "2", destination empty)
+        updateSearchState();
+  
+        // Form submit → build catalog URL with proper params
+        form.addEventListener("submit", function (e) {
+          e.preventDefault();
+  
+          const params = new URLSearchParams();
+  
+          const qVal = (qInput.value || "").trim();
+          if (qVal) {
+            // Keep all three keys for flexibility downstream
+            params.set("q", qVal);
+            params.set("city", qVal);
+            params.set("destination", qVal);
+          }
+  
+          const rawDates = (datesInput.value || "").trim();
+          if (rawDates) {
+            const parts = rawDates.split(" to ");
+            if (parts[0]) params.set("start", parts[0]);
+            if (parts[1]) params.set("end", parts[1]);
+          }
+  
+          params.set("guests", guestsInput.value || "2");
+          params.set("rooms", "1"); // default for compatibility
+  
+          const target = "/catalog.html?" + params.toString();
+          location.href = target;
+        });
+      })();
+    </script>
+
+  <script src="assets/lolaelo-api.js"></script>
+</body>
+</html>
