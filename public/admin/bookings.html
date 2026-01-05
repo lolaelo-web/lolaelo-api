@@ -193,15 +193,21 @@
     .kpi .value{ margin-top:6px; font-size:18px; font-weight:900; }
     .kpi .sub{ margin-top:6px; font-size:11px; color:var(--muted); }
 
+    /* ANCHOR: FILTERS_ROW_LAYOUT */
     .filters{
       display:grid;
-      grid-template-columns: 1fr 260px max-content max-content;
-      gap:12px;
+      grid-template-columns: 420px 240px max-content max-content max-content max-content;
+      gap:10px;
       margin-top:12px;
       align-items:end;
     }
-    @media (max-width: 980px){ .filters{ grid-template-columns:1fr 1fr; } }
-    @media (max-width: 560px){ .filters{ grid-template-columns:1fr; } }
+    @media (max-width: 1100px){
+      .filters{ grid-template-columns: 1fr 1fr; }
+    }
+    @media (max-width: 560px){
+      .filters{ grid-template-columns: 1fr; }
+    }
+    /* ANCHOR: FILTERS_ROW_LAYOUT END */
 
     /* Search should NOT span 2 columns (keeps it to ~40% of row) */
     .field.search{ grid-column:auto; }
@@ -229,13 +235,6 @@
       border-color: rgba(255,106,61,.35);
       box-shadow: 0 0 0 4px rgba(255,106,61,.10);
     }
-
-    /* ANCHOR: SEARCH_FIELD_CAP */
-    .field.search .input{
-      width:40%;
-      max-width:40%;
-    }
-    /* ANCHOR: SEARCH_FIELD_CAP END */
 
     /* ANCHOR: STATUS_MIN_WIDTH */
     #statusSel{
@@ -370,16 +369,17 @@
           <label>To date</label>
           <input id="toDate" class="input" placeholder="YYYY-MM-DD" />
         </div>
+        <div class="field" style="display:flex; justify-content:flex-end;">
+          <button id="btnClear" class="btn ghost" type="button">Clear</button>
+        </div>
+
+        <div class="field" style="display:flex; justify-content:flex-end;">
+          <button id="btnSearch" class="btn ghost" type="button">Search</button>
+        </div>
       </div>
 
       <div class="actionsRow">
         <div class="muted">This page is live UI foundation. Next sprint we wire booking search and list endpoints.</div>
-        <div style="display:flex; gap:10px; align-items:center;">
-          <div class="rightActions">
-            <button id="btnClear" class="btn ghost" type="button">Clear</button>
-            <button id="btnSearch" class="btn ghost" type="button">Search</button>
-          </div>
-        </div>
       </div>
 
       <div id="resultsEmpty" class="empty">
