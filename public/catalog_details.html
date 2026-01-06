@@ -149,13 +149,13 @@
     .scrolltop-btn.show { display: flex; }
 
     /* ANCHOR: DETAILS_TOPBAR_CSS */
-    .topbar .title{
-      margin:0;
-      display:flex;
-      flex-direction:column;
-      align-items:flex-end;  /* keep name pinned right */
-      text-align:right;
-      gap:2px;
+    .topbar{
+      display:grid;
+      grid-template-columns: auto 1fr; /* logo | title */
+      align-items:center;
+      column-gap:12px;
+      padding:12px 16px 8px;
+      border-bottom:1px solid var(--line);
     }
 
     .topbar .logo{
@@ -163,15 +163,27 @@
       align-items:center;
     }
     .topbar .logo img{
-      height: 30px;          /* match checkout / other pages */
+      height: 30px;
       width:auto;
       display:block;
     }
+
+    /* Title block stays on the RIGHT because it fills the 2nd column and aligns itself */
     .topbar .title{
+      margin:0;
+      display:flex;
+      flex-direction:column;
+      align-items:flex-end;
+      text-align:right;
+      gap:2px;
+    }
+
+    /* Row that contains hotel name + badge */
+    .topbar .title > span{
       display:flex;
       align-items:baseline;
+      justify-content:flex-end;
       gap:10px;
-      margin:0;
     }
 
     .title{
@@ -181,7 +193,7 @@
       color:var(--fg);
     }
 
-    /* Details header – emphasize property name on the right */
+    /* Hotel name styling */
     #prop-name{
       font-size:22px;
       line-height:1.15;
@@ -191,7 +203,7 @@
       white-space:nowrap;
       overflow:hidden;
       text-overflow:ellipsis;
-      max-width:min(560px, 58vw); /* prevents wrap + keeps it clean */
+      max-width:min(560px, 58vw);
     }
 
     @media (max-width: 640px){
@@ -207,13 +219,6 @@
       .topbar{
         padding: 10px 14px 8px;
       }
-    }
-
-    .topbar .title > span{
-      display:flex;
-      align-items:baseline;
-      gap:10px;
-      justify-content:flex-end;
     }
 
     .stay-range{
