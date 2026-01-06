@@ -149,13 +149,13 @@
     .scrolltop-btn.show { display: flex; }
 
     /* ANCHOR: DETAILS_TOPBAR_CSS */
-    .topbar{
-      display:grid;
-      grid-template-columns: auto 1fr;
-      align-items:baseline; /* key fix */
-      gap:12px;
-      padding:14px 16px 10px;
-      border-bottom:1px solid var(--line);
+    .topbar .title{
+      margin:0;
+      display:flex;
+      flex-direction:column;
+      align-items:flex-end;  /* keep name pinned right */
+      text-align:right;
+      gap:2px;
     }
 
     .topbar .logo{
@@ -183,24 +183,27 @@
 
     /* Details header – emphasize property name on the right */
     #prop-name{
-      font-size:28px;     /* 2× original 14px */
-      line-height:1.25;
+      font-size:22px;
+      line-height:1.15;
       font-weight:700;
-      color:#0F1C2E;      /* dark navy already used elsewhere on the page */
+      letter-spacing:-0.02em;
+      color:#0F1C2E;
+      white-space:nowrap;
+      overflow:hidden;
+      text-overflow:ellipsis;
+      max-width:min(560px, 58vw); /* prevents wrap + keeps it clean */
     }
 
     @media (max-width: 640px){
-      /* Mobile: keep hotel name readable, aligned, and understated */
       #prop-name{
         font-size:16px;
         line-height:1.1;
-        font-weight:600;
+        font-weight:700;
         letter-spacing:-0.01em;
         color:#0F1C2E;
-        text-align:left;
+        max-width: 62vw;
       }
 
-      /* Keep topbar compact but baseline-aligned */
       .topbar{
         padding: 10px 14px 8px;
       }
@@ -208,10 +211,11 @@
 
     .topbar .title > span{
       display:flex;
-      flex-wrap:wrap;
-      align-items:center;
-      gap:6px;
+      align-items:baseline;
+      gap:10px;
+      justify-content:flex-end;
     }
+
     .stay-range{
       font-size:12px;
       color:var(--muted);
