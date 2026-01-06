@@ -30,7 +30,14 @@
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr@4.6.13/dist/flatpickr.min.css" />
   <script src="https://cdn.jsdelivr.net/npm/flatpickr@4.6.13/dist/flatpickr.min.js"></script>
 
-  <style>
+<style>
+  /* =========================================================
+     CHECKOUT BASE THEME + LAYOUT (CANONICAL)
+     - Drop-in replacement for the entire block you pasted
+     - Removes duplicate/conflicting date-card systems
+     - Keeps existing class names/IDs so JS wiring doesn't break
+     ========================================================= */
+
   :root {
     --bg: #f9fafb;
     --card-bg: #ffffff;
@@ -119,6 +126,34 @@
   .step-indicator {
     font-size: 13px;
     color: var(--muted);
+  }
+
+  /* ANCHOR: CHECKOUT_HEADER_MOBILE_WRAP_FIX */
+  @media (max-width: 560px){
+    /* Let the header row wrap instead of colliding */
+    .checkout-header-wrapper{
+      flex-wrap: wrap !important;
+      justify-content: flex-start !important;
+      gap: 10px !important;
+      padding: 12px 14px !important;
+    }
+
+    /* Center title: remove negative margin + give it a full row */
+    .checkout-header-wrapper > div:nth-child(2){
+      width: 100% !important;
+      margin-left: 0 !important; /* overrides inline -48px */
+      justify-content: center !important;
+      order: 2;
+    }
+
+    /* Step indicator: move to its own line and allow wrapping */
+    .checkout-header-wrapper > .step-indicator{
+      width: 100% !important;
+      text-align: center !important;
+      white-space: normal !important; /* overrides inline nowrap */
+      order: 3;
+      font-size: 12px !important;
+    }
   }
 
   main {
@@ -238,6 +273,9 @@
     display: none;
   }
 
+  /* =========================
+     SECTION 2: ADD-ONS (BASE)
+     ========================= */
   .addons-footer-row {
     margin-top: 16px;
     display: flex;
@@ -257,130 +295,10 @@
     font-weight: 600;
   }
 
-  /* ANCHOR: FIELDS_AND_FORM */
-  .field-row {
-    margin-top: 12px;
-    display: flex;
-    flex-direction: column;
-    gap: 4px;
-  }
-
-  .field-label {
-    font-size: 13px;
-    color: var(--muted);
-  }
-
-  .field-value {
-    font-size: 14px;
-    color: var(--text);
-  }
-
-  /* Room -> Plan x Rooms (Section 1) */
-  .room-plan-row{
-    margin-top: 12px;
-    display: flex;
-    align-items: flex-end;
-    gap: 10px;
-  }
-  .rp-col{
-    display:flex;
-    flex-direction:column;
-    gap:4px;
-    min-width: 0;
-  }
-  .rp-col-grow{ flex: 1; }
-
-  .rp-label{
-    font-size: 12px;
-    color: var(--muted);
-  }
-  .rp-value{
-    font-size: 14px;
-    color: var(--text);
-    display:flex;
-    align-items: baseline;
-    gap: 8px;
-    flex-wrap: wrap;
-  }
-
-  /* Center value for # of Rooms column only */
-  .rp-col:last-child .rp-value{
-    justify-content: center;
-  }
-  .rp-arrow{
-    font-size: 16px;
-    color: var(--muted);
-    padding: 0 2px 2px;
-  }
-  .rp-mult{
-    color: var(--muted);
-  }
-  .rp-unit{
-    color: var(--muted);
-  }
-
   .addons-block {
     margin-top: 16px;
     padding-top: 12px;
     border-top: 1px dashed var(--border-soft);
-  }
-
-  .checkout-dates-card-wrapper{
-    margin-top: 6px;
-    display: block;         /* visible unless hidden */
-  }
-
-  .checkout-dates-card-wrapper.hidden{
-    display: none;
-  }
-
-  .detail-date-bar {
-    display: grid;
-    grid-template-columns: 1fr;
-    row-gap: 8px;
-
-    margin-top: 2px;
-    font-size: 12px;
-
-    width: 50%;
-    max-width: 260px;
-    padding: 12px 14px;
-    border-radius: 18px;
-    background: var(--surface);
-    box-shadow: 0 8px 30px rgba(15, 23, 42, 0.08);
-    border: 1px solid var(--border-soft);
-  }
-
-  .detail-date-bar label {
-    display: flex;
-    flex-direction: column;
-    gap: 2px;
-  }
-
-  .detail-date-bar label span {
-    font-size: 11px;
-    color: var(--muted);
-  }
-
-  .detail-date-bar input[type="date"] {
-    font-size: 12px;
-    padding: 4px 6px;
-    border-radius: 8px;
-    border: 1px solid var(--border-subtle);
-    background: var(--surface-subtle);
-    color: var(--fg);
-  }
-
-  .detail-date-bar button {
-    padding: 6px 12px;
-    border-radius: 999px;
-    border: 1px solid var(--accent);
-    background: transparent;
-    font-size: 12px;
-    font-weight: 500;
-    cursor: pointer;
-    white-space: nowrap;
-    justify-self: flex-end;   /* third row, right aligned */
   }
 
   .addons-header {
@@ -435,6 +353,7 @@
   .addon-qty label {
     font-size: 12px;
     color: var(--muted);
+    margin: 0;
   }
 
   .addon-qty input {
@@ -444,8 +363,143 @@
     border: 1px solid var(--border-soft);
     text-align: right;
     font-size: 13px;
+    font-family: inherit;
+    background: #ffffff;
   }
 
+  /* ANCHOR: ADDONS_MODAL_MOBILE */
+  @media (max-width: 560px){
+    /* If your modal uses a shared container class, keep selectors broad but safe */
+    .modal,
+    .addons-modal,
+    #addonsModal,
+    #addOnsModal,
+    .dialog{
+      max-height: calc(100vh - 24px) !important;
+      overflow: hidden !important;
+    }
+
+    .modal-content,
+    .addons-modal-content,
+    #addonsModal .modal-content,
+    #addOnsModal .modal-content,
+    .dialog-content{
+      max-height: calc(100vh - 24px) !important;
+      overflow: auto !important;
+      -webkit-overflow-scrolling: touch;
+      padding: 14px !important;
+    }
+
+    .addons-footer-row{
+      flex-direction: column;
+      align-items: stretch;
+      gap: 10px;
+    }
+
+    .addons-section-total-pill{
+      width: 100%;
+      text-align: center;
+    }
+  }
+
+  /* =========================
+     FIELDS + FORM (CANONICAL)
+     ========================= */
+  /* ANCHOR: FIELDS_AND_FORM */
+  .field-row {
+    margin-top: 12px;
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+  }
+
+  .field-label {
+    font-size: 13px;
+    color: var(--muted);
+  }
+
+  .field-value {
+    font-size: 14px;
+    color: var(--text);
+  }
+
+  label {
+    display: block;
+    font-size: 13px;
+    color: var(--muted);
+    margin-bottom: 4px;
+  }
+
+  input,
+  textarea {
+    width: 100%;
+    border-radius: 10px;
+    border: 1px solid var(--border);
+    padding: 8px 10px;
+    font-size: 14px;
+    font-family: inherit;
+    outline: none;
+    background: #ffffff;
+    color: var(--text);
+  }
+
+  input:focus,
+  textarea:focus {
+    border-color: var(--teal);
+    box-shadow: 0 0 0 1px rgba(15, 118, 110, 0.12);
+  }
+
+  textarea {
+    min-height: 70px;
+    resize: vertical;
+  }
+
+  .error-text {
+    color: #b91c1c;
+    font-size: 13px;
+    margin-top: 6px;
+  }
+
+  .phone-row {
+    display: flex;
+    gap: 8px;
+    align-items: center;
+  }
+
+  .phone-country {
+    min-width: 170px;
+    border-radius: 10px;
+    border: 1px solid var(--border);
+    padding: 8px 8px;
+    font-size: 13px;
+    background: #ffffff;
+    color: var(--text);
+  }
+
+  .phone-country:focus {
+    border-color: var(--teal);
+    box-shadow: 0 0 0 1px rgba(15, 118, 110, 0.12);
+    outline: none;
+  }
+
+  .phone-input { flex: 1; }
+
+  .guest-form-grid {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 10px 12px;
+    margin-top: 8px;
+  }
+
+  @media (max-width: 600px) {
+    .guest-form-grid {
+      grid-template-columns: minmax(0, 1fr);
+    }
+  }
+
+  /* =========================
+     BUTTONS (CANONICAL)
+     ========================= */
   button {
     font-family: inherit;
     border: none;
@@ -478,87 +532,16 @@
     padding: 0;
   }
 
-  .guest-form-grid {
-    display: grid;
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-    gap: 10px 12px;
-    margin-top: 8px;
-  }
-
-  @media (max-width: 600px) {
-    .guest-form-grid {
-      grid-template-columns: minmax(0, 1fr);
-    }
-  }
-
-  label {
-    display: block;
-    font-size: 13px;
-    color: var(--muted);
-    margin-bottom: 4px;
-  }
-
-  input,
-  textarea {
-    width: 100%;
-    border-radius: 10px;
-    border: 1px solid var(--border);
-    padding: 8px 10px;
-    font-size: 14px;
-    font-family: inherit;
-    outline: none;
-    background: #ffffff;
-  }
-
-  input:focus,
-  textarea:focus {
-    border-color: var(--teal);
-    box-shadow: 0 0 0 1px rgba(15, 118, 110, 0.12);
-  }
-
-  .phone-row {
-    display: flex;
-    gap: 8px;
-    align-items: center;
-  }
-
-  .phone-country {
-    min-width: 170px;
-    border-radius: 10px;
-    border: 1px solid var(--border);
-    padding: 8px 8px;
-    font-size: 13px;
-    background: #ffffff;
-  }
-
-  .phone-country:focus {
-    border-color: var(--teal);
-    box-shadow: 0 0 0 1px rgba(15, 118, 110, 0.12);
-    outline: none;
-  }
-
-  .phone-input {
-    flex: 1;
-  }
-
-  textarea {
-    min-height: 70px;
-    resize: vertical;
-  }
-
-  .error-text {
-    color: #b91c1c;
-    font-size: 13px;
-    margin-top: 6px;
-  }
-
+  /* =========================
+     SUMMARY + PRICE (CANONICAL)
+     ========================= */
   /* ANCHOR: SUMMARY_CARD */
   /* ANCHOR: PRICE_SUMMARY */
   .price-summary-row {
     display: flex;
     align-items: center;
     justify-content: flex-start;
-    gap: 16px; /* a bit more deliberate spacing */
+    gap: 16px;
     margin-top: 2px;
   }
 
@@ -569,34 +552,35 @@
   }
 
   .price-per-night {
-    font-size: 14px;      /* closer to dates / nights */
+    font-size: 14px;
     font-weight: 400;
     color: var(--text);
   }
+
   .price-per-night-caption {
     font-size: 12px;
     color: var(--muted);
   }
 
   .price-total-pill {
-    padding: 10px 18px;       /* bigger pill overall */
+    padding: 10px 18px;
     border-radius: 999px;
     border: 1px solid var(--border);
     background: #f9fafb;
-    font-size: 17px;          /* bigger font */
-    font-weight: 500;         /* slight emphasis but not bold */
+    font-size: 17px;
+    font-weight: 500;
     white-space: nowrap;
     display: inline-flex;
     align-items: center;
     gap: 6px;
-    transform: translateY(2px); /* minor vertical centering polish */
+    transform: translateY(2px);
   }
 
   .price-total-pill span {
     font-weight: 600;
-    font-size: 17px; /* match pill font size */
+    font-size: 17px;
     color: var(--text);
-   }
+  }
 
   .summary-card-title {
     font-size: 15px;
@@ -654,9 +638,7 @@
     color: var(--muted);
   }
 
-  .breakdown.visible {
-    display: block;
-  }
+  .breakdown.visible { display: block; }
 
   .breakdown-line{
     display: grid;
@@ -665,67 +647,21 @@
     align-items: baseline;
     margin-bottom: 2px;
   }
+
   .breakdown-line .bd-rooms{
     color: var(--muted);
     white-space: nowrap;
   }
 
+  /* =========================
+     STICKY FOOTER (DISABLED)
+     ========================= */
   /* ANCHOR: STICKY_FOOTER */
-  .sticky-footer {
-    position: sticky;
-    bottom: 0;
-    margin-top: 16px;
-    background: linear-gradient(
-      to top,
-      rgba(249, 250, 251, 0.96),
-      rgba(249, 250, 251, 0.9)
-    );
-    padding-top: 8px;
-  }
+  .sticky-footer { display: none; }
 
-  .sticky-inner {
-    max-width: 1040px;
-    margin: 0 auto;
-    padding: 10px 0 6px;
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    gap: 12px;
-  }
-
-  .sticky-label {
-    font-size: 13px;
-    color: var(--muted);
-  }
-
-  .sticky-amount {
-    font-size: 16px;
-    font-weight: 600;
-    color: var(--text);
-  }
-
-  .sticky-button {
-    padding: 11px 24px;
-    border-radius: 999px;
-    background: var(--accent);
-    color: #ffffff;
-    font-size: 14px;
-    font-weight: 600;
-    border: none;
-    white-space: nowrap;
-    margin-left: -65px; /* shift button ~10 characters to the left */
-  }
-
-  .sticky-button[disabled] {
-    opacity: 0.6;
-    cursor: default;
-  }
-
-  /* Hide global sticky footer – Section 5 button now drives payment */
-  .sticky-footer {
-    display: none;
-  }
-
+  /* =========================
+     PAYMENT PILLS (CANONICAL)
+     ========================= */
   /* ANCHOR: PAYMENT_PILLS */
   .card-logos {
     display: inline-flex;
@@ -733,14 +669,14 @@
     justify-content: center;
   }
 
-	/* BIGGER logos – ~5x original */
-	.card-logos img,
-	.pill img,
-	.card-logo-ticker {
-		height: 60px;
-		display: block;
-		object-fit: contain;
-	}
+  /* BIGGER logos – ~5x original */
+  .card-logos img,
+  .pill img,
+  .card-logo-ticker {
+    height: 60px;
+    display: block;
+    object-fit: contain;
+  }
 
   .payment-options-row {
     display: flex;
@@ -763,7 +699,7 @@
     color: var(--muted);
     text-align: center;
     line-height: 1.3;
-    margin-bottom: 2px; /* caption ABOVE the pill */
+    margin-bottom: 2px;
   }
 
   .pill {
@@ -794,7 +730,7 @@
   /* Invisible radio that sits over the pill */
   .payment-pill-input {
     position: absolute;
-    inset: 20px 0 0 0; /* start roughly at top of pill */
+    inset: 20px 0 0 0;
     opacity: 0;
     cursor: pointer;
   }
@@ -807,11 +743,11 @@
     transform: translateY(-1px);
   }
 
-  /* Remove old colored dot entirely */
-  .pill-dot {
-    display: none;
-  }
+  .pill-dot { display: none; }
 
+  /* =========================
+     SECURITY HELPER (CANONICAL)
+     ========================= */
   /* ANCHOR: SECURITY_HELPER */
   .payment-security {
     margin-top: 10px;
@@ -820,7 +756,6 @@
     position: relative;
   }
 
-  /* circular icon version – used with the badge-style helper */
   .security-badge {
     width: 32px;
     height: 32px;
@@ -857,9 +792,9 @@
 
   .security-bubble {
     position: absolute;
-    top: 130%;                     /* push BELOW the icon */
-    left: 50%;                     /* center horizontally */
-    transform: translate(-50%, 4px); /* center + slight slide on show */
+    top: 130%;
+    left: 50%;
+    transform: translate(-50%, 4px);
     background: #e0fdf4;
     color: #0f172a;
     padding: 10px 12px;
@@ -877,7 +812,7 @@
   }
 
   .security-bubble strong {
-    color: #0f172a;   /* match bubble body text */
+    color: #0f172a;
     font-weight: 700;
     display: block;
     margin-bottom: 6px;
@@ -899,7 +834,7 @@
     font-size: 12px;
     color: var(--muted);
     margin-left: 8px;
-    margin-top: 10px;   /* <<< drops entire block one line down */
+    margin-top: 10px;
     max-width: 420px;
   }
 
@@ -908,7 +843,7 @@
     align-items: center;
     gap: 6px;
     padding: 6px 10px;
-    margin-top: 0;     /* reset */
+    margin-top: 0;
     border-radius: 10px;
     border: 1px solid transparent;
     background: #ffffff;
@@ -932,9 +867,7 @@
   }
 
   @media (max-width: 640px) {
-    .payment-agreement-text {
-      white-space: normal; /* allow wrapping on small screens */
-    }
+    .payment-agreement-text { white-space: normal; }
   }
 
   .payment-agreement.error .payment-agreement-label {
@@ -948,7 +881,9 @@
     color: #b91c1c;
   }
 
-  /* === CHECKOUT SECTION 2 GRID LAYOUT ================================== */
+  /* =========================
+     SECTION 1: LINE ITEM GRID
+     ========================= */
 
   /* === SECTION 1: LINE ITEM CARD OUTLINE (subtle separation) === */
   .section-body[data-section-body="1"] .dates-grid{
@@ -961,35 +896,61 @@
 
   .dates-grid{
     display:grid;
-    grid-template-columns: 1fr 1fr;  /* split evenly */
+    grid-template-columns: 1fr 1fr;
     gap: 32px;
-    align-items: stretch;            /* key: make both columns equal height */
+    align-items: stretch;
+  }
+
+  /* ANCHOR: CHECKOUT_SECTION1_MOBILE_GRID */
+  @media (max-width: 560px){
+    .dates-grid{
+      grid-template-columns: 1fr !important;
+      gap: 14px !important;
+    }
+
+    .dates-right{
+      align-items: flex-start !important;
+    }
+
+    .top-info-right{
+      max-width: 100% !important;
+      align-items: flex-start !important;
+      text-align: left !important;
+    }
+
+    .top-info-right .field-label,
+    .top-info-right .field-value{
+      text-align: left !important;
+    }
+
+    .top-info-right .field-value{
+      max-width: 100% !important;
+      white-space: normal !important;
+      overflow: visible !important;
+      text-overflow: clip !important;
+    }
   }
 
   .dates-right{
     display:flex;
     flex-direction:column;
-    align-items:flex-end;     /* pin to right edge */
+    align-items:flex-end;
   }
 
   .dates-right .stay-confirm-row{
-    margin-top:auto;          /* pushes confirm to the bottom */
+    margin-top:auto;
     width:100%;
     display:flex;
-    justify-content:flex-end; /* bottom-right */
+    justify-content:flex-end;
   }
 
-  .dates-right .top-info-right{
-    text-align:right;
-  }
+  .dates-right .top-info-right{ text-align:right; }
 
   .dates-right .top-info-right .card-header-link{
-    color:#ff6a3d;            /* edit dates orange */
+    color:#ff6a3d;
   }
 
-  .dates-left .field-row {
-    margin-bottom: 12px;
-  }
+  .dates-left .field-row { margin-bottom: 12px; }
 
   /* === CHECKOUT SECTION 1 (Room & Price) ROW LAYOUT ===================== */
 
@@ -1030,9 +991,9 @@
     flex-direction:column;
     align-items: center;
   }
-  .room-price-row .rp-label{
-    align-self: flex-start;
-  }
+
+  .room-price-row .rp-label{ align-self: flex-start; }
+
   .pill-outline{
     flex: 0 0 auto;
     padding: 8px 14px;
@@ -1056,34 +1017,28 @@
   .stay-remove-row{
     margin-top: 10px;
     display:flex;
-    justify-content:flex-start; /* bottom-left */
+    justify-content:flex-start;
   }
 
-  .stay-confirm-row .btn-primary{
-    margin-left:auto;
-  }
+  .stay-confirm-row .btn-primary{ margin-left:auto; }
 
   #stayDatesInline{
     display:inline-block;
     white-space: nowrap;
   }
 
-  /* Keep the confirm button from overlapping the dates */
-  #confirmRoomPriceBtn{
-    flex: 0 0 auto;
-  }
+  #confirmRoomPriceBtn{ flex: 0 0 auto; }
 
-  /* Top row: Property name (left) + Stay dates (right) */
   .top-info-row{
     display:flex;
     align-items:flex-start;
     justify-content:space-between;
     gap:16px;
-    margin-bottom: 10px; /* controls space before the divider */
+    margin-bottom: 10px;
   }
+
   .top-info-left{ flex: 1 1 auto; min-width: 0; }
 
-  /* Top-right stay dates + edit link: right aligned, but allow wrapping (no border bleed) */
   .top-info-right{
     display:flex;
     flex-direction:column;
@@ -1092,41 +1047,35 @@
     max-width: 48%;
   }
 
-  .top-info-right .field-label{
-    text-align:right;
-  }
+  .top-info-right .field-label{ text-align:right; }
 
   .top-info-right .field-value{
     text-align:right;
-    color:#111;           /* darker value */
-    font-weight:400;      /* not bold */
-    max-width: 240px;     /* prevents pushing into the gutter */
-    white-space: nowrap;  /* keep in one row */
+    color:#111;
+    font-weight:400;
+    max-width: 240px;
+    white-space: nowrap;
     overflow-wrap: normal;
     word-break: normal;
     overflow: hidden;
     text-overflow: ellipsis;
   }
 
-  /* Dividers + padding between consolidated rows */
   .rp-stack{
-    margin-top: 12px; /* space after top info row */
+    margin-top: 12px;
     padding-top: 5px;
     border-top: 1px solid rgba(255,106,61,0.22);
   }
 
   .rp-stack .room-plan-row{
     padding-top: 5px;
-    padding-bottom: 18px; /* breathing room before the divider */
+    padding-bottom: 18px;
     border-bottom: 1px solid rgba(255,106,61,0.22);
   }
 
-  .rp-stack .room-price-row{
-    padding-top: 10px;
-  }
-  #confirmRoomPriceBtn{
-    margin-top: 8px;
-  }
+  .rp-stack .room-price-row{ padding-top: 10px; }
+
+  #confirmRoomPriceBtn{ margin-top: 8px; }
 
   .dates-right .card-header-link {
     border: 0;
@@ -1137,9 +1086,18 @@
     cursor: pointer;
   }
 
-  #editDatesLink{
-    color:#ff6a3d;
+  #editDatesLink{ color:#ff6a3d; }
+
+  /* =========================
+     CHECKOUT DATES CARD (CANONICAL)
+     - Removes duplicate driver/apply/shell definitions
+     ========================= */
+
+  .checkout-dates-card-wrapper{
+    margin-top: 6px;
+    display: block;
   }
+  .checkout-dates-card-wrapper.hidden{ display:none; }
 
   .checkout-dates-card-wrapper .detail-date-bar{
     width: 100%;
@@ -1150,20 +1108,19 @@
     box-shadow: 0 4px 12px rgba(15,23,42,0.06);
 
     display: flex;
-    flex-direction: column;   /* stack */
-    align-items: stretch;     /* full width */
+    flex-direction: column;
+    align-items: stretch;
     gap: 10px;
   }
 
   /* ANCHOR: CHECKOUT_DATES_HIDE_NATIVE_FIELDS */
-  /* Hide the legacy native date inputs in the date card (template + clones).
-     Keep them in the DOM for any existing apply logic. */
   .dates-grid .detail-date-field{
     display: none !important;
   }
 
-  /* flatpickr driver stays invisible */
-  .checkout-dates-driver{
+  /* driver (both class + id supported) */
+  .checkout-dates-driver,
+  #checkout-dates-driver{
     position: absolute;
     left: -9999px;
     width: 1px;
@@ -1172,9 +1129,8 @@
     pointer-events: none;
   }
 
-  /* the new “range pill” */
-  .checkout-dates-display{
-    flex: 1 1 auto;
+  .checkout-dates-display,
+  #checkout-dates-display{
     display: inline-flex;
     align-items: center;
     gap: 10px;
@@ -1187,9 +1143,12 @@
     color: var(--text);
     text-align: left;
     white-space: nowrap;
+    width: 100%;
+    justify-content: flex-start;
   }
 
-  .checkout-dates-display:focus-visible{
+  .checkout-dates-display:focus-visible,
+  #checkout-dates-display:focus-visible{
     outline: 2px solid rgba(15,118,110,0.35);
     outline-offset: 2px;
   }
@@ -1201,100 +1160,26 @@
     width: 22px;
   }
 
-  /* keep the Update button aligned to the same row */
   #checkout-dates-apply{
-    margin: 0;
-    align-self: center;
+    width: 100%;
+    margin: 0 !important;
+    transform: none !important;
+    align-self: stretch;
+    padding: 9px 12px;
+    border-radius: 999px;
+    border: 1px solid var(--bubble);
+    background: transparent;
+    font-size: 13px;
+    font-weight: 500;
+    cursor: pointer;
     white-space: nowrap;
-  }
-
-  /* small screens: allow wrapping gracefully */
-  @media (max-width: 760px){
-    .checkout-dates-card-wrapper .detail-date-bar{
-      flex-wrap: wrap;
-    }
-    #checkout-dates-apply{
-      width: 100%;
-    }
-    .checkout-dates-display{
-      width: 100%;
-      justify-content: flex-start;
-    }
-  }
-
-  #checkout-dates-driver{
-    position:absolute;
-    opacity:0;
-    pointer-events:none;
-    height:0;
-    width:0;
-  }
-
-  /* === CHECKOUT DATE CARD (stacked) === */
-  .checkout-dates-shell{
-    display:flex;
-    flex-direction:column;      /* stack vertically */
-    align-items:flex-end;       /* align to right */
-    gap:10px;
-    width:100%;
-    position:relative;
-  }
-
-  /* Ensure the pill and button are block-level and stack cleanly */
-  #checkout-dates-display,
-  #checkout-dates-apply{
-    display:block;
-  }
-
-  /* Pill sizing stays consistent */
-  .checkout-dates-display{
-    width:100%;
-    max-width:260px;
-  }
-
-  /* If anything inside the card was intercepting clicks, keep clicks enabled */
-  .checkout-dates-shell *{
-    pointer-events:auto;
-  }
-
-  /* One source of truth for Update button */
-  #checkout-dates-apply{
-    margin:0 !important;
-    transform:none !important;
-    align-self:flex-end;
-    padding:6px 12px;
-    border-radius:999px;
-    border:1px solid var(--bubble);
-    background:transparent;
-    font-size:12px;
-    font-weight:500;
-    cursor:pointer;
-    white-space:nowrap;
-  }
-
-  /* Driver input: hide without display:none so flatpickr can position properly */
-  #checkout-dates-driver{
-    position:absolute;
-    opacity:0;
-    pointer-events:none;
-    height:0;
-    width:0;
-  }
-
-  /* Keep the calendar anchored near the pill (not top-left) */
-  .checkout-dates-shell .flatpickr-calendar{
-    z-index: 9999;
+    text-align: center;
   }
 
   /* collapse into 1 column on small screens */
   @media (max-width: 760px) {
-    .dates-grid {
-      grid-template-columns: 1fr;
-    }
-
-    .dates-right {
-      align-items: flex-start;
-    }
+    .dates-grid { grid-template-columns: 1fr; }
+    .dates-right { align-items: flex-start; }
   }
 
 </style>
@@ -5074,6 +4959,64 @@
       text-align: right;
       font-size: 13px;
       font-weight: 500;
+    }
+
+    /* ANCHOR: ADDONS_MODAL_MOBILE_OPTIMIZE */
+    @media (max-width: 560px){
+
+      /* Modal container sizing */
+      #addonsModalBackdrop .addons-modal{
+        width: calc(100vw - 24px);
+        max-width: calc(100vw - 24px);
+        max-height: calc(100vh - 24px);
+      }
+
+      /* Body padding: remove desktop "table indent" */
+      #addonsModalBackdrop .addons-modal-body{
+        padding: 12px 14px !important; /* overrides 16px 80px */
+      }
+
+      /* Convert table grid into stacked cards per row */
+      #addonsModalBackdrop .addon-row-header{
+        display: none !important;
+      }
+
+      #addonsModalBackdrop .addon-row{
+        display: grid !important;
+        grid-template-columns: 1fr 1fr !important;
+        grid-template-areas:
+          "activity activity"
+          "uom      price"
+          "qty      total";
+        gap: 8px 10px !important;
+        padding: 12px 0 !important;
+        border-bottom: 1px solid #e5e7eb;
+      }
+
+      #addonsModalBackdrop .addon-col-activity{ grid-area: activity; }
+      #addonsModalBackdrop .addon-col-uom{ grid-area: uom; }
+      #addonsModalBackdrop .addon-col-price{ grid-area: price; text-align: right; }
+      #addonsModalBackdrop .addon-col-qty{ grid-area: qty; align-items: flex-start !important; }
+      #addonsModalBackdrop .addon-col-total{ grid-area: total; text-align: right; }
+
+      #addonsModalBackdrop .addon-col-qty input{
+        width: 100% !important;
+        max-width: 120px;
+        text-align: left !important;
+      }
+
+      /* Footer actions: stack buttons full width */
+      #addonsModalBackdrop .addons-modal-actions{
+        display: grid;
+        grid-template-columns: 1fr;
+        gap: 10px;
+      }
+
+      #addonsModalBackdrop .addons-modal-actions .btn-secondary,
+      #addonsModalBackdrop .addons-modal-actions .btn-primary{
+        width: 100%;
+        justify-content: center;
+      }
     }
 
   </style>
