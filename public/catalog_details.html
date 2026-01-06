@@ -1738,8 +1738,9 @@
         line-height:1.1;
       }
 
-      /* Mobile: tap to open (use button focus, not :active hold) */
-      .summary-icon-btn:focus ~ .summary-bubble{
+      /* Mobile: bubbles open on tap/focus (hover is unreliable on phones) */
+      .summary-icon-wrap:active .summary-bubble,
+      .summary-icon-wrap:focus-within .summary-bubble{
         display:block;
       }
 

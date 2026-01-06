@@ -523,7 +523,9 @@ async function upload(){
 
   const roomTypeId = Number(window.currentRoomTypeIdForPhotos);
   const payload = { key: up.key, url: up.url, alt: f.name, width, height, isCover: false };
-  if (Number.isFinite(roomTypeId)) payload.roomTypeId = roomTypeId;
+
+  // Only send when it's a real room id
+  if (Number.isFinite(roomTypeId) && roomTypeId > 0) payload.roomTypeId = roomTypeId;
 
   const r3 = await fetch(BASE + '/extranet/property/photos', {
     method:'POST', headers: headers(),
@@ -621,10 +623,17 @@ listPhotos();
 
   // Track changes
   sel.addEventListener('change', async () => {
-    const v = Number(sel.value);
-    currentRoomTypeId = Number.isFinite(v) ? v : null;
+    const raw = (sel.value ?? '').trim();
+
+    // Blank means property-level (no room)
+    const v = raw === '' ? null : Number(raw);
+
+    // Only accept real room ids (positive ints)
+    currentRoomTypeId = (Number.isFinite(v) && v > 0) ? v : null;
+
     window.currentRoomTypeIdForPhotos = currentRoomTypeId; // expose globally
     console.log('[photos] currentRoomTypeId =', currentRoomTypeId ?? '(property)');
+
     try {
       await listPhotos(); // refresh grid whenever the user switches room
     } catch (e) {
