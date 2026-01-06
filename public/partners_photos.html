@@ -536,6 +536,18 @@ async function upload(){
 }
 
 document.getElementById('uploadBtn').addEventListener('click', upload);
+// Show chosen file name (because the real input is hidden)
+(function(){
+  const input = document.getElementById('file');
+  const label = document.getElementById('fileNameLabel');
+  if (!input || !label) return;
+
+  input.addEventListener('change', () => {
+    const f = input.files && input.files[0];
+    label.textContent = f ? f.name : 'No file chosen';
+  });
+})();
+
 document.getElementById('backBtn').addEventListener('click', () => { window.location.href = '/partners_app.html'; });
 
 // Ensure refresh on bfcache restore or after login redirects
