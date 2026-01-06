@@ -28,7 +28,7 @@
       --radius:20px;
       --shadow:0 12px 40px rgba(15,23,42,.10);
       --maxw:900px;             /* slightly tighter than catalog */
-      /* ANCHOR: TYPO_BASE_VAR */ --body:11px;   /* ~80% of 15px */
+      /* ANCHOR: TYPO_BASE_VAR */ --body:15px;   /* ~80% of 15px */
     }
 
     *{ box-sizing:border-box; }
@@ -70,7 +70,6 @@
     h1 { font-size: clamp(30px, 4.8vw, 44px); line-height: 1.15; margin: 6px 0 10px; font-weight: 600; }
     h2 { font-size: clamp(18px, 2.4vw, 22px); line-height: 1.2; margin: 10px 0 8px; font-weight: 600; }
 
-    p, li, .meta, .tag, .desc, .smalltext { font-size: 15px; }
     .small { font-size: 13px; color: var(--muted); }
 
     /* ANCHOR: A11Y_VISUALLY_HIDDEN */
@@ -1673,11 +1672,14 @@
       display:none;
     }
 
+    /* Desktop: show bubble on hover (mobile uses :active/:focus-within below) */
+    @media (hover:hover) and (pointer:fine){
+      .summary-icon-wrap:hover .summary-bubble{ display:block; }
+    }
+
     /* ensure the anchor container doesn't constrain bubble math */
     .summary-icon-wrap{ max-width:100%; }
-
     .summary-bubble.summary-bubble-owner{ text-align:left; }
-    .summary-icon-wrap:hover .summary-bubble{ display:block; }
 
     .summary-nights{
       font-size:11px;
@@ -1687,6 +1689,13 @@
     /* ANCHOR: DETAILS_SUMMARY_ICONS_MOBILE */
     @media (max-width: 640px){
       /* Put 3 icons on one row, dates on its own row */
+      /* Mobile: allow bubbles to escape container without clipping */
+      .summary,
+      .summary-main,
+      .summary-actions{
+        overflow: visible;
+      }
+
       .summary-actions{
         grid-template-columns: repeat(3, minmax(0, 1fr));
         column-gap: 10px;
@@ -1723,7 +1732,7 @@
       .summary-bubble{
         width: min(900px, calc(100vw - 24px));
         max-width: min(900px, calc(100vw - 24px));
-        min-width: 0;
+        min-width: 0 !important;
         left: 12px;
         right: 12px;
         transform: none;
@@ -1775,44 +1784,12 @@
       border:0;
     }
 
-    /* ANCHOR: MODAL_CLOSE_BUTTON_UNIFY */
-
-    /* ROOM modal close — move left & align with room title row */
-    .room-modal button.room-modal-close,
-    #roomModalBackdrop button.room-modal-close {
-      position: absolute;
-      top: 20x;        /* aligns with room name row */
-      right: 56px;      /* clears scrollbar */
-      z-index: 60;
-    }
-
-    /* MAP modal close — keep top-right */
-    .map-modal  button[aria-label="Close"],
-    #mapModalBackdrop button[aria-label="Close"] {
-      position: absolute;
-      top: 12px;
-      right: 12px;
-      z-index: 60;
-    }
-
-    .room-modal button[aria-label="Close"]:hover,
-    .map-modal  button[aria-label="Close"]:hover,
-    #roomModalBackdrop  button[aria-label="Close"]:hover,
-    #mapModalBackdrop   button[aria-label="Close"]:hover {
-      background: #F3F4F6;
-    }
-
     .summary-map-icon {
       width: 43px;      /* Matches visual size of surrounding icons */
       height: 43px;
       object-fit: contain;
       display: block;
       margin: 0 auto;
-    }
-
-    html, body {
-      max-width: 100%;
-      overflow-x: hidden;
     }
 
   </style>
@@ -5706,67 +5683,6 @@
       onScroll();
     })();
 </script>
-
-  <!-- ANCHOR: DETAILS_MAP_MODAL_HTML -->
-  <div
-    id="details-map-modal"
-    aria-hidden="true"
-    style="
-      position: fixed;
-      inset: 0;
-      display: none;
-      align-items: center;
-      justify-content: center;
-      background: rgba(15,23,42,0.55);
-      z-index: 70;
-    "
-  >
-    <div
-      class="details-map-inner"
-      role="dialog"
-      aria-modal="true"
-      aria-label="Map view"
-      style="
-        background: #ffffff;
-        border-radius: 18px;
-        box-shadow: 0 18px 45px rgba(15,23,42,0.32);
-        width: min(900px, calc(100vw - 32px));
-        height: min(540px, calc(100vh - 80px));
-        position: relative;
-        overflow: hidden;
-      "
-    >
-      <button
-        type="button"
-        id="details-map-close"
-        aria-label="Close map"
-        style="
-          position: absolute;
-          top: 10px;
-          right: 10px;
-          width: 32px;
-          height: 32px;
-          border-radius: 999px;
-          border: 1px solid rgba(148,163,184,0.5);
-          background: #ffffff;
-          cursor: pointer;
-          font-size: 18px;
-          display: flex;
-          align-items: center;
-          justify-content: center;
-        "
-      >
-        X
-      </button>
-
-      <iframe
-        id="details-map-frame"
-        loading="lazy"
-        referrerpolicy="no-referrer-when-downgrade"
-        style="border:0;width:100%;height:100%;"
-      ></iframe>
-    </div>
-  </div>
 
   <!-- PARTNER BADGE & IMAGE FALLBACK (insert above </body>) -->
   <script>
