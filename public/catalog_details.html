@@ -150,10 +150,11 @@
 
     /* ANCHOR: DETAILS_TOPBAR_CSS */
     .topbar{
-      display:flex;
-      align-items:center;
-      justify-content:space-between;  /* pushes title block to the right */
-      padding:12px 16px 8px;
+      display:grid;
+      grid-template-columns: auto 1fr;
+      align-items:baseline; /* key fix */
+      gap:12px;
+      padding:14px 16px 10px;
       border-bottom:1px solid var(--line);
     }
 
@@ -166,6 +167,13 @@
       width:auto;
       display:block;
     }
+    .topbar .title{
+      display:flex;
+      align-items:baseline;
+      gap:10px;
+      margin:0;
+    }
+
     .title{
       font-size:14px;
       line-height:1.3;
@@ -182,15 +190,17 @@
     }
 
     @media (max-width: 640px){
-      /* Mobile: keep hotel name readable and not dominant */
+      /* Mobile: keep hotel name readable, aligned, and understated */
       #prop-name{
-        font-size: 18px;
-        line-height: 1.15;
-        letter-spacing: -0.01em;
-        text-align: right;
+        font-size:16px;
+        line-height:1.1;
+        font-weight:600;
+        letter-spacing:-0.01em;
+        color:#0F1C2E;
+        text-align:left;
       }
 
-      /* Prevent the topbar from getting too tall */
+      /* Keep topbar compact but baseline-aligned */
       .topbar{
         padding: 10px 14px 8px;
       }
@@ -1825,12 +1835,13 @@
 <body>
   <div class="paper">
     <header>
-           <!-- ANCHOR: DETAILS_TOPBAR -->
+      <!-- ANCHOR: DETAILS_TOPBAR -->
       <div class="topbar">
-        <a class="logo" href="https://www.lolaelo.com/">
+        <a class="logo" href="/" aria-label="Lolaelo home">
           <img
-            src="https://www.lolaelo.com/logo.png?cb=logo-5x"
+            src="/images/logo.png?cb=logo-5x"
             alt="Lolaelo"
+            class="logo-img"
             decoding="async"
             loading="eager"
           >
