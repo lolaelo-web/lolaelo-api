@@ -211,13 +211,24 @@
     /* ANCHOR: DETAILS_DATE_BAR_CSS */
     .detail-date-bar{
       display:flex;
-      align-items:flex-end; /* bottom-align pill and button */
+      align-items:flex-end; /* default for non-card usages */
       gap:8px;
       margin-top:2px;
       font-size:12px;
       width:100%;
       max-width:100%;
       box-sizing:border-box;
+    }
+
+    /* Desktop: in the summary date card, stack button under the date pill */
+    .summary-dates .detail-date-bar{
+      flex-direction:column;
+      align-items:stretch;
+    }
+
+    .summary-dates #detail-dates-apply{
+      width:100%;
+      justify-content:center;
     }
 
     .detail-date-bar .detail-date-field{
@@ -1728,14 +1739,26 @@
         display:block;
       }
 
-      /* Mobile: make bubbles wide and always on-screen */
+      /* Mobile: bubble behaves like a viewport panel (tap-friendly, portrait-safe) */
       .summary-bubble{
-        width: min(900px, calc(100vw - 24px));
-        max-width: min(900px, calc(100vw - 24px));
-        min-width: 0 !important;
+        position: fixed !important;
+
+        /* keep bubble fully inside viewport */
+        top: 140px;              /* below gallery + icons */
+        bottom: 16px;
         left: 12px;
         right: 12px;
-        transform: none;
+
+        width: auto !important;
+        max-width: none !important;
+        min-width: 0 !important;
+
+        transform: none !important;
+
+        overflow-y: auto;
+        -webkit-overflow-scrolling: touch;
+
+        z-index: 9999;
       }
     }
 
