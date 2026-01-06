@@ -424,8 +424,6 @@ async function listPhotos(){
       row.roomTypeId = payload.roomTypeId;               // persist in current card model
       assignSel.value = payload.roomTypeId ? String(payload.roomTypeId) : '';
 
-      alert('Assigned successfully.');
-
     // Optional: if the header filter is set to a specific room, refresh list to re-filter
     await listPhotos();
 
