@@ -215,6 +215,7 @@ transform: translateY(-1px);
             id="file"
             type="file"
             accept="image/jpeg,image/png,image/webp"
+            multiple
             style="display:none;"
           />
         </div>
@@ -497,44 +498,66 @@ async function listPhotos(){
 }
 
 async function upload(){
-  const f = document.getElementById('file').files[0];
-  if (!f) return alert('Pick a file first.');
-  if (!ALLOWED_CT.has(f.type)) return alert('Unsupported type: ' + f.type);
+  const input = document.getElementById('file');
+  const files = Array.from((input && input.files) ? input.files : []);
+  if (!files.length) return alert('Pick a file first.');
 
-  // 1) presign
-  const r1 = await fetch(BASE + '/extranet/property/photos/upload-url', {
-    method:'POST', headers: headers(), body: JSON.stringify({ fileName: f.name, contentType: f.type, size: f.size })
-  });
-  if (!r1.ok){ const e = await r1.text(); return alert('upload-url failed: ' + r1.status + '\n' + e); }
-  const up = await r1.json();
+  // Disable button while uploading (prevents double clicks)
+  const btn = document.getElementById('uploadBtn');
+  if (btn) btn.disabled = true;
 
-  // 2) PUT to S3
-  const r2 = await fetch(up.uploadUrl, { method:'PUT', headers: up.headers, body: f });
-  if (!r2.ok) return alert('S3 PUT failed: ' + r2.status);
+  try{
+    for (const f of files){
+      if (!ALLOWED_CT.has(f.type)) { alert('Unsupported type: ' + f.type); continue; }
 
-  // 3) create DB row; we can try to read dimensions client-side
-  let width = null, height = null;
-  try {
-    const img = new Image();
-    img.src = URL.createObjectURL(f);
-    await new Promise((resolve, reject) => { img.onload = resolve; img.onerror = reject; });
-    width = img.naturalWidth || null; height = img.naturalHeight || null;
-  } catch {}
+      // 1) presign
+      const r1 = await fetch(BASE + '/extranet/property/photos/upload-url', {
+        method:'POST', headers: headers(),
+        body: JSON.stringify({ fileName: f.name, contentType: f.type, size: f.size })
+      });
+      if (!r1.ok){ const e = await r1.text(); alert('upload-url failed: ' + r1.status + '\n' + e); continue; }
+      const up = await r1.json();
 
-  const roomTypeId = Number(window.currentRoomTypeIdForPhotos);
-  const payload = { key: up.key, url: up.url, alt: f.name, width, height, isCover: false };
+      // 2) PUT to S3
+      const r2 = await fetch(up.uploadUrl, { method:'PUT', headers: up.headers, body: f });
+      if (!r2.ok){ alert('S3 PUT failed: ' + r2.status); continue; }
 
-  // Only send when it's a real room id
-  if (Number.isFinite(roomTypeId) && roomTypeId > 0) payload.roomTypeId = roomTypeId;
+      // 3) create DB row (try to read dimensions client-side)
+      let width = null, height = null;
+      try {
+        const img = new Image();
+        img.src = URL.createObjectURL(f);
+        await new Promise((resolve, reject) => { img.onload = resolve; img.onerror = reject; });
+        width = img.naturalWidth || null; height = img.naturalHeight || null;
+      } catch {}
 
-  const r3 = await fetch(BASE + '/extranet/property/photos', {
-    method:'POST', headers: headers(),
-    body: JSON.stringify(payload)
-  });
+      const roomTypeId = Number(window.currentRoomTypeIdForPhotos);
+      const payload = { key: up.key, url: up.url, alt: f.name, width, height, isCover: false };
+      if (Number.isFinite(roomTypeId) && roomTypeId > 0) payload.roomTypeId = roomTypeId;
 
-  if (!r3.ok){ const err = await r3.text(); return alert('Create failed: ' + r3.status + '\n' + err); }
+      const r3 = await fetch(BASE + '/extranet/property/photos', {
+        method:'POST', headers: headers(),
+        body: JSON.stringify(payload)
+      });
 
-  await listPhotos(); alert('Uploaded.');
+      if (!r3.ok){
+        const err = await r3.text();
+        alert('Create failed: ' + r3.status + '\n' + err);
+        continue;
+      }
+    }
+
+    // Refresh once at the end (no “Uploaded.” prompt)
+    await listPhotos();
+
+    // Clear selection + label so UI resets cleanly
+    if (input) input.value = '';
+    const label = document.getElementById('fileNameLabel');
+    if (label) label.textContent = 'No file chosen';
+
+  } finally {
+    if (btn) btn.disabled = false;
+  }
 }
 
 document.getElementById('uploadBtn').addEventListener('click', upload);
