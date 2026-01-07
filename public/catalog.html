@@ -4,7 +4,7 @@
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>Lolaelo · Catalog</title>
-  <link rel="icon" href="https://www.lolaelo.com/logo2.png" />
+  <link rel="icon" href="/images/logo2.png" />
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
   <link
     rel="stylesheet"
@@ -61,6 +61,75 @@
       border-radius:var(--radius);
       box-shadow:var(--shadow);
       padding:22px 22px 30px;
+    }
+
+    /* === ANCHOR: CATALOG_LOADING_OVERLAY_CSS (LOGO ONLY) ==================== */
+    .catalog-loading{
+      position: fixed;
+      inset: 0;
+      background: #f3f4f6;
+      display: none;
+      align-items: center;
+      justify-content: center;
+      z-index: 6000;
+    }
+
+    .catalog-loading.is-on{
+      display: flex;
+    }
+
+    /* Hide underlying page while overlay is active */
+    body.catalog-loading-on .paper{
+      visibility: hidden;
+    }
+    body.catalog-loading-on{
+      overflow: hidden;
+    }
+
+    /* Centered logo pulse only */
+    .catalog-loading-pulse-only{
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      position: relative;
+    }
+
+    .catalog-loading-logo{
+      width: 88px;
+      height: 88px;
+      object-fit: contain;
+      animation: lolaeloPulse 1.15s ease-in-out infinite;
+      filter: drop-shadow(0 10px 26px rgba(15,23,42,.12));
+      opacity: 0.95;
+    }
+
+    .catalog-loading-pulse-only::after{
+      content:"";
+      position:absolute;
+      width: 132px;
+      height: 132px;
+      border-radius: 999px;
+      border: 2px solid rgba(6,78,59,0.18);
+      animation: lolaeloRing 1.15s ease-in-out infinite;
+    }
+
+    @keyframes lolaeloPulse{
+      0%   { transform: scale(0.96); opacity: .75; }
+      50%  { transform: scale(1.06); opacity: 1; }
+      100% { transform: scale(0.96); opacity: .75; }
+    }
+
+    @keyframes lolaeloRing{
+      0%   { transform: scale(0.82); opacity: 0; }
+      40%  { opacity: .35; }
+      100% { transform: scale(1.25); opacity: 0; }
+    }
+
+    @media (prefers-reduced-motion: reduce){
+      .catalog-loading-logo,
+      .catalog-loading-pulse-only::after{
+        animation: none !important;
+      }
     }
 
     /* === ANCHOR: CATALOG_HEADER_CSS ====================================== */
@@ -917,6 +986,18 @@
   </style>
 </head>
 <body>
+  <!-- ANCHOR: CATALOG_LOADING_OVERLAY -->
+  <div id="catalogLoading" class="catalog-loading" aria-hidden="true">
+    <div class="catalog-loading-pulse-only" role="status" aria-live="polite">
+      <img
+        src="/images/logo2.png"
+        alt="Lolaelo"
+        class="catalog-loading-logo"
+        decoding="async"
+      />
+    </div>
+  </div>
+
   <div class="paper">
     <!-- ANCHOR: CATALOG_HEADER_HTML -->
     <header>
@@ -1039,7 +1120,7 @@
             aria-label="View results on map"
           >
             <img
-              src="https://www.lolaelo.com/logo2.png?cb=fav-v1"
+              src="/images/logo2.png"
               alt="Map"
               class="map-toggle-icon"
               decoding="async"
@@ -1154,6 +1235,34 @@
 
   <script>
     // === ANCHOR: CATALOG_SCRIPT ============================================
+    // === CATALOG LOADING OVERLAY HELPERS (with min-delay) ===
+    let __catalogLoadingShownAt = 0;
+    const CATALOG_LOADING_MIN_MS = 350;
+
+    function catalogLoadingOn(){
+      const el = document.getElementById("catalogLoading");
+      if (!el) return;
+
+      __catalogLoadingShownAt = Date.now();
+      el.classList.add("is-on");
+      el.setAttribute("aria-hidden","false");
+      document.body.classList.add("catalog-loading-on");
+    }
+
+    function catalogLoadingOff(){
+      const el = document.getElementById("catalogLoading");
+      if (!el) return;
+
+      const elapsed = Date.now() - (__catalogLoadingShownAt || 0);
+      const remaining = Math.max(0, CATALOG_LOADING_MIN_MS - elapsed);
+
+      window.setTimeout(() => {
+        el.classList.remove("is-on");
+        el.setAttribute("aria-hidden","true");
+        document.body.classList.remove("catalog-loading-on");
+      }, remaining);
+    }
+
     const qs   = new URLSearchParams(location.search);
     const S    = (id)=>document.getElementById(id);
 
@@ -1457,6 +1566,7 @@
           city
             ? `&city=${encodeURIComponent(city)}&cityCode=${encodeURIComponent(city)}`
             : '';
+        catalogLoadingOn();
         const r = await fetch(
           `/catalog/search?start=${encodeURIComponent(start)}&end=${encodeURIComponent(end)}&guests=${encodeURIComponent(guests)}${planQS}${cityQS}`
         );
@@ -1552,6 +1662,7 @@
         found.textContent = "Search failed.";
         grid.innerHTML = "";
       } finally {
+        catalogLoadingOff();
         if (typeof detailsEl !== 'undefined' && detailsEl) detailsEl.open = false;
       }
     }
@@ -1656,6 +1767,15 @@
     }
 
     run();
+
+    // ANCHOR: CATALOG_DETAILS_NAV_LOADING
+    // Show brand loading overlay when navigating to details
+    document.addEventListener("click", (e) => {
+      const a = e.target.closest('a[href*="catalog_details.html"]');
+      if (!a) return;
+      catalogLoadingOn();
+    });
+    
   </script>
   <!-- ANCHOR: CATALOG_FILTERS_TOGGLE -->
     <script>
