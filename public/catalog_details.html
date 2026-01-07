@@ -169,7 +169,41 @@
       color: var(--muted);
     }
 
-    /* shimmer blocks */
+    /* Brand pulse block (replaces the big skeleton) */
+    .details-loading-pulse{
+      height: 220px;                 /* matches previous .details-skel.big */
+      border-radius: 14px;
+      background: #f3f4f6;
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      position: relative;
+      overflow: hidden;
+    }
+
+    /* Logo */
+    .details-loading-logo{
+      width: 74px;
+      height: 74px;
+      object-fit: contain;
+      transform: translateZ(0);
+      animation: lolaeloPulse 1.15s ease-in-out infinite;
+      filter: drop-shadow(0 8px 18px rgba(15,23,42,.10));
+      opacity: 0.95;
+    }
+
+    /* soft ring */
+    .details-loading-pulse::after{
+      content:"";
+      position:absolute;
+      width: 110px;
+      height: 110px;
+      border-radius: 999px;
+      border: 2px solid rgba(6,78,59,0.18); /* brand teal */
+      animation: lolaeloRing 1.15s ease-in-out infinite;
+    }
+
+    /* shimmer blocks (keep for text lines + optional fallback) */
     .details-skel{
       height: 12px;
       border-radius: 10px;
@@ -179,9 +213,32 @@
       animation: shimmer 1.1s infinite linear;
     }
 
+    /* Keep these in case you ever revert to skeleton-only */
     .details-skel.big{ height: 220px; border-radius: 14px; margin: 10px 0 12px; }
     .details-skel.med{ height: 14px; width: 72%; }
     .details-skel.sm{ height: 12px; width: 52%; margin-top: 8px; }
+
+    /* pulse animations */
+    @keyframes lolaeloPulse{
+      0%   { transform: scale(0.96); opacity: .78; }
+      50%  { transform: scale(1.04); opacity: .98; }
+      100% { transform: scale(0.96); opacity: .78; }
+    }
+
+    @keyframes lolaeloRing{
+      0%   { transform: scale(0.82); opacity: .00; }
+      35%  { opacity: .35; }
+      100% { transform: scale(1.18); opacity: .00; }
+    }
+
+    /* Respect reduced-motion */
+    @media (prefers-reduced-motion: reduce){
+      .details-loading-logo,
+      .details-loading-pulse::after,
+      .details-skel{
+        animation: none !important;
+      }
+    }
 
     /* ANCHOR: SCROLLTOP_CSS */
     .scrolltop-btn {
@@ -1938,7 +1995,9 @@
         <div class="details-loading-brand">Lolaelo</div>
         <div class="details-loading-msg">Loading property…</div>
       </div>
-      <div class="details-skel big"></div>
+        <div class="details-loading-pulse" aria-hidden="true">
+          <img src="/images/logo2.png" alt="" class="details-loading-logo" decoding="async" />
+        </div>
       <div class="details-skel med"></div>
       <div class="details-skel sm"></div>
     </div>
