@@ -127,6 +127,62 @@
       margin-bottom: 18px;
     }
 
+    /* === DETAILS: FULL-PAGE LOADING OVERLAY === */
+    .details-loading{
+      position: fixed;
+      inset: 0;
+      background: rgba(243,244,246,0.72);
+      backdrop-filter: blur(2px);
+      display: none;
+      align-items: center;
+      justify-content: center;
+      z-index: 5000;
+    }
+
+    .details-loading.is-on{ display: flex; }
+
+    .details-loading-card{
+      width: min(520px, calc(100vw - 48px));
+      background: #fff;
+      border: 1px solid var(--line);
+      border-radius: 18px;
+      box-shadow: 0 16px 44px rgba(15,23,42,.12);
+      padding: 16px;
+    }
+
+    .details-loading-row{
+      display:flex;
+      align-items:center;
+      justify-content:space-between;
+      gap:12px;
+      margin-bottom: 12px;
+    }
+
+    .details-loading-brand{
+      font-weight:700;
+      color: var(--brand);
+      font-size: 14px;
+    }
+
+    .details-loading-msg{
+      font-size: 12px;
+      color: var(--muted);
+    }
+
+    /* shimmer blocks */
+    .details-skel{
+      height: 12px;
+      border-radius: 10px;
+      background: #f3f4f6;
+      background-image: linear-gradient(90deg, #f3f4f6 0px, #e5e7eb 40px, #f3f4f6 80px);
+      background-size: 400px 100%;
+      animation: shimmer 1.1s infinite linear;
+    }
+
+    .details-skel.big{ height: 220px; border-radius: 14px; margin: 10px 0 12px; }
+    .details-skel.med{ height: 14px; width: 72%; }
+    .details-skel.sm{ height: 12px; width: 52%; margin-top: 8px; }
+
     /* ANCHOR: SCROLLTOP_CSS */
     .scrolltop-btn {
       position: fixed;
@@ -199,7 +255,7 @@
       line-height:1.15;
       font-weight:700;
       letter-spacing:-0.02em;
-      color:#0F1C2E;
+      color: var(--brand);
       white-space:nowrap;
       overflow:hidden;
       text-overflow:ellipsis;
@@ -212,7 +268,7 @@
         line-height:1.1;
         font-weight:700;
         letter-spacing:-0.01em;
-        color:#0F1C2E;
+        color: var(--brand);
         max-width: 62vw;
       }
 
@@ -1367,14 +1423,34 @@
     /* ANCHOR: GALLERY_NODRAG_CSS */
     .hero img, .thumbs img{ user-select: none; -webkit-user-drag: none; }
 
-    /* ANCHOR: REDUCED_MOTION_CSS */
-    @media (prefers-reduced-motion: reduce){
-      .hero img{ transition: none !important; }
-      .hero-nav{ transition: none !important; }
+    /* Shimmer overlay while loading (you already have @keyframes shimmer) */
+    .hero.is-loading::after{
+      content:"";
+      position:absolute;
+      inset:0;
+      background-image: linear-gradient(
+        90deg,
+        rgba(0,0,0,0.02) 0%,
+        rgba(0,0,0,0.06) 20%,
+        rgba(0,0,0,0.02) 40%
+      );
+      background-size: 400px 100%;
+      animation: shimmer 1.1s infinite linear;
+      pointer-events:none;
+    }
+    /* Hide arrows until hero is ready (prevents awkward pop-in) */
+    .hero-nav{
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity .15s ease;
     }
 
     /* ANCHOR: HERO_NAV_CSS */
-    .hero-nav {
+    .hero.is-ready .hero-nav{
+      opacity: 1;
+      pointer-events: auto;
+    }
+    .hero-nav{
       position: absolute;
       top: 50%;
       transform: translateY(-50%);
@@ -1393,7 +1469,16 @@
     .hero-nav:hover { background: rgba(255,255,255,0.95); }
     .hero-nav[disabled]{ opacity: .45; cursor: default; box-shadow: none; }
     .hero-nav.is-hidden{ display: none; }
+
+    /* fade between images */
     .hero img.is-fading{ opacity: 0; }
+
+    /* ANCHOR: REDUCED_MOTION_CSS */
+    @media (prefers-reduced-motion: reduce){
+      .hero img{ transition: none !important; }
+      .hero-nav{ transition: none !important; }
+      .hero.is-loading::after{ animation: none !important; }
+    }
 
     .thumbs{
       display: grid;
@@ -1446,13 +1531,7 @@
       background-size: 400px 100%;
       animation: shimmer 1.1s infinite linear;
     }
-    .hero.is-loading::after{
-      content: "";
-      position: absolute; inset: 0;
-      background-image: linear-gradient(90deg, rgba(0,0,0,0.02) 0%, rgba(0,0,0,0.06) 20%, rgba(0,0,0,0.02) 40%);
-      background-size: 400px 100%;
-      animation: shimmer 1.1s infinite linear;
-    }
+
     /* ANCHOR: DETAILS_CTA_UNIFY */
     .book,
     .roomcat .btn-select,
@@ -1842,6 +1921,19 @@
   </style>
 </head>
 <body>
+  <!-- ANCHOR: DETAILS_LOADING_OVERLAY -->
+  <div id="detailsLoading" class="details-loading" aria-hidden="true">
+    <div class="details-loading-card" role="status" aria-live="polite">
+      <div class="details-loading-row">
+        <div class="details-loading-brand">Lolaelo</div>
+        <div class="details-loading-msg">Loading property…</div>
+      </div>
+      <div class="details-skel big"></div>
+      <div class="details-skel med"></div>
+      <div class="details-skel sm"></div>
+    </div>
+  </div>
+
   <div class="paper">
     <header>
       <!-- ANCHOR: DETAILS_TOPBAR -->
@@ -1928,7 +2020,7 @@
                   id="summary-map-btn"
                 >
                   <img
-                    src="https://www.lolaelo.com/logo2.png?cb=fav-v1"
+                    src="/images/logo2.png"
                     alt="Map"
                     class="summary-map-icon"
                   />
@@ -2099,6 +2191,33 @@
 
   <script>
     // ANCHOR: DETAILS_QUERY_PARAMS
+    // === DETAILS LOADING OVERLAY HELPERS ===
+
+    // === DETAILS LOADING OVERLAY HELPERS (with min-delay) ===
+    let __detailsLoadingShownAt = 0;
+    const DETAILS_LOADING_MIN_MS = 350;
+
+    function detailsLoadingOn(){
+      const el = document.getElementById("detailsLoading");
+      if (!el) return;
+      __detailsLoadingShownAt = Date.now();
+      el.classList.add("is-on");
+      el.setAttribute("aria-hidden","false");
+    }
+
+    function detailsLoadingOff(){
+      const el = document.getElementById("detailsLoading");
+      if (!el) return;
+
+      const elapsed = Date.now() - (__detailsLoadingShownAt || 0);
+      const remaining = Math.max(0, DETAILS_LOADING_MIN_MS - elapsed);
+
+      window.setTimeout(() => {
+        el.classList.remove("is-on");
+        el.setAttribute("aria-hidden","true");
+      }, remaining);
+    }
+
     const qs = new URLSearchParams(location.search || '');
 
     // Shared params for this page
@@ -2470,19 +2589,30 @@
         requestAnimationFrame(() => {
           hero.classList.remove('is-fading');
           if (heroWrap) heroWrap.classList.remove('is-loading');
+
+          // Mark ready ONLY after the image is actually usable
+          hero.classList.add('is-ready');
+          if (heroWrap) heroWrap.classList.add('is-ready');
         });
       };
+
       img.onerror = () => {
         const ph = getPlaceholderSVG('Photo not available');
         hero.src = ph;
         hero.removeAttribute('srcset');
         hero.removeAttribute('sizes');
         hero.alt = `${nameEl.textContent || 'Property'} — photo not available`;
+
         requestAnimationFrame(() => {
           hero.classList.remove('is-fading');
           if (heroWrap) heroWrap.classList.remove('is-loading');
+
+          // Even on error, exit loading state cleanly
+          hero.classList.add('is-ready');
+          if (heroWrap) heroWrap.classList.add('is-ready');
         });
       };
+
       img.src = src;
 
       thumbs.querySelectorAll('button.thumb').forEach((btn, idx) => {
@@ -2619,7 +2749,16 @@
       const urlAlt   = `/api/catalog/details?propertyId=${encodeURIComponent(propertyId)}&start=${encodeURIComponent(start)}&end=${encodeURIComponent(end)}${planQS}`;
 
       // ANCHOR: SKELETON_START
+      detailsLoadingOn();
       if (heroWrap) heroWrap.classList.add('is-loading');
+
+      // Force a non-broken initial image while loading
+      try{
+        const ph = getPlaceholderSVG('Loading photos…');
+        if (hero && !hero.getAttribute('src')) hero.src = ph;
+        hero.classList.remove('is-ready');
+        if (heroWrap) heroWrap.classList.remove('is-ready');
+      }catch(_){}
 
       // Robust fetch with fallback
       let j;
@@ -3353,6 +3492,8 @@
         if (!images.length) images = pickFrom(j?.meta?.photos);
         if (!images.length) images = pickFrom(j?.rooms?.[0]?.photos);
       }
+
+      detailsLoadingOff();
 
       // 2) We intentionally do NOT call extranet (auth) here; any additional
       //    property-level photos should be wired via the catalog/search card
@@ -5691,6 +5832,8 @@
     load().catch(err=>{
       console.error(err);
       showToast('Failed to load details');
+
+      detailsLoadingOff();
 
       // Stop the hero shimmer and show a neutral placeholder
       if (heroWrap) heroWrap.classList.remove('is-loading');
