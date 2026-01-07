@@ -448,6 +448,11 @@
       .benefit::after {
         max-width: 90vw;
       }
+      /* Mobile: disable hover tooltips (they interfere with taps/links) */
+      .benefit::after{
+        display: none !important;
+        content: none !important;
+      }
     }
   </style>
 </head>
