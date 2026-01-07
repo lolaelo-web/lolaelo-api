@@ -313,6 +313,82 @@
       .grid-3 { grid-template-columns: 1fr; }
       .card { padding: 18px 16px; }
     }
+    /* === MOBILE OPTIMIZATION PATCH === */
+    @media (max-width: 640px){
+
+      /* Page padding a bit tighter */
+      .page{
+        padding: 12px 14px 28px;
+      }
+
+      /* HEADER: allow wrapping + reduce crowding */
+      header.nav{
+        flex-wrap: wrap;
+        gap: 10px;
+        align-items: flex-start;
+        padding: 6px 0 10px;
+      }
+      .nav-left{
+        flex: 1 1 auto;
+        min-width: 0;
+      }
+      .logo-img{
+        height: 28px;
+      }
+
+      /* Push links to full-width second row */
+      .nav-right{
+        width: 100%;
+        flex: 1 1 100%;
+        gap: 10px;
+        flex-wrap: wrap;
+        justify-content: flex-start;
+        font-size: 13px;
+      }
+      .nav-link{
+        padding: 6px 0;
+      }
+
+      /* Optional: if you have too many links, keep them 2 per row */
+      .nav-right > *{
+        flex: 0 0 auto;
+      }
+
+      /* TABLES: prevent overflow beyond card */
+      table{
+        display: block;
+        width: 100%;
+        max-width: 100%;
+        overflow-x: auto;
+        -webkit-overflow-scrolling: touch;
+      }
+
+      /* Prevent long strings from forcing overflow */
+      th, td{
+        word-break: break-word;
+        overflow-wrap: anywhere;
+      }
+
+      /* Slightly tighter table padding on small screens */
+      th, td{
+        padding: 9px 8px;
+      }
+
+      /* Cards slightly tighter */
+      .card{
+        padding: 16px 14px;
+      }
+
+      /* CTA buttons wrap nicely */
+      .cta-row{
+        gap: 8px;
+      }
+      .btn{
+        width: 100%;
+        justify-content: center;
+      }
+    }
+
   </style>
 </head>
 
@@ -564,7 +640,7 @@
         >
           <img
             class="signature-photo"
-            src="https://www.lolaelo.com/assets/manny.jpg"
+            src="/images/manny1.jpg"
             alt="Manny, Founder of Lolaelo"
           />
         </a>
