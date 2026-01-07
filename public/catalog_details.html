@@ -1910,6 +1910,16 @@
       border:0;
     }
 
+    /* When the loading overlay is on, hide the page beneath it */
+    body.details-loading-on .paper{
+      visibility: hidden;
+    }
+
+    /* Optional: prevent scroll while loading */
+    body.details-loading-on{
+      overflow: hidden;
+    }
+
     .summary-map-icon {
       width: 43px;      /* Matches visual size of surrounding icons */
       height: 43px;
@@ -2191,18 +2201,21 @@
 
   <script>
     // ANCHOR: DETAILS_QUERY_PARAMS
-    // === DETAILS LOADING OVERLAY HELPERS ===
-
-    // === DETAILS LOADING OVERLAY HELPERS (with min-delay) ===
+    // === DETAILS LOADING OVERLAY HELPERS (with min-delay + page hide) ===
     let __detailsLoadingShownAt = 0;
     const DETAILS_LOADING_MIN_MS = 350;
 
     function detailsLoadingOn(){
       const el = document.getElementById("detailsLoading");
       if (!el) return;
+
       __detailsLoadingShownAt = Date.now();
+
       el.classList.add("is-on");
       el.setAttribute("aria-hidden","false");
+
+      // Hide underlying page while loading
+      document.body.classList.add("details-loading-on");
     }
 
     function detailsLoadingOff(){
@@ -2215,6 +2228,9 @@
       window.setTimeout(() => {
         el.classList.remove("is-on");
         el.setAttribute("aria-hidden","true");
+
+        // Reveal page again
+        document.body.classList.remove("details-loading-on");
       }, remaining);
     }
 
