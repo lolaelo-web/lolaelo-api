@@ -353,6 +353,84 @@ model extranet_Waitlist {
   @@schema("extranet")
 }
 
+model WebAnalyticsSession {
+  id             String   @id @default(uuid())
+  createdAt      DateTime @default(now())
+  lastSeenAt     DateTime @default(now())
+  endedAt        DateTime?
+
+  // First page of the session
+  landingPath    String?
+  landingUrl     String?
+  referrer       String?
+  referrerHost   String?
+
+  // Attribution
+  utmSource      String?
+  utmMedium      String?
+  utmCampaign    String?
+  utmContent     String?
+
+  // Client info
+  userAgent      String?
+  deviceType     String? // desktop, mobile, tablet, bot, unknown
+  country        String?
+  ipHash         String? // hashed, not raw IP
+
+  // Optional
+  isBot          Boolean  @default(false)
+
+  events         WebAnalyticsEvent[]
+
+  @@index([createdAt])
+  @@index([lastSeenAt])
+  @@index([utmSource, utmMedium, utmCampaign])
+  @@schema("extranet")
+}
+
+model WebAnalyticsEvent {
+  id          BigInt   @id @default(autoincrement())
+  ts          DateTime @default(now())
+
+  sessionId   String
+  session     WebAnalyticsSession @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+
+  name        String   // page_view, engagement, action
+  path        String?
+  url         String?
+  title       String?
+  referrer    String?
+
+  activeMs    Int?     // for engagement heartbeats
+  payload     Json?
+
+  @@index([ts])
+  @@index([sessionId, ts])
+  @@index([name, ts])
+  @@index([path, ts])
+  @@schema("extranet")
+}
+
+model WebAnalyticsDaily {
+  id          String   @id @default(uuid())
+  day         DateTime
+
+  // Dimensions (nullable to allow "all")
+  utmSource    String?
+  utmMedium    String?
+  utmCampaign  String?
+  referrerHost String?
+  landingPath  String?
+
+  sessions     Int     @default(0)
+  pageViews    Int     @default(0)
+  engagedMs    BigInt  @default(0)
+
+  @@unique([day, utmSource, utmMedium, utmCampaign, referrerHost, landingPath], map: "uniq_web_analytics_daily_dims")
+  @@index([day])
+  @@schema("extranet")
+}
+
 enum extranet_DocumentStatus {
   REQUIRED
   SUBMITTED

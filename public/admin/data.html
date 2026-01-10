@@ -1,0 +1,734 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Analytics | Lolaelo Admin</title>
+
+  <link rel="stylesheet" href="/css/extranet.css">
+
+  <!-- Flatpickr (CDN) -->
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.css">
+
+  <style>
+    :root{
+      --bg:#f6f8fc;
+      --card:#ffffff;
+      --fg:#0f172a;
+      --muted:#5b6b84;
+      --accent:#ff6a3d;
+      --line:rgba(15,23,42,.12);
+      --shadow:0 10px 30px rgba(15,23,42,.08);
+    }
+    *{ box-sizing:border-box }
+    body{
+      margin:0;
+      background:var(--bg);
+      color:var(--fg);
+      font-family: Inter, system-ui, -apple-system, Segoe UI, Roboto, Arial;
+    }
+    button, input, select, textarea { font-family: inherit; }
+
+    .wrap{ max-width:1200px; margin:0 auto; padding:18px 14px 30px; }
+
+    /* Header aligned with ap.html */
+    .top{
+      display:flex;
+      align-items:center;
+      justify-content:space-between;
+      gap:12px;
+      margin-bottom:8px;
+      padding:0;
+    }
+    .brandRow{
+      display:flex;
+      align-items:center;
+      gap:12px;
+      margin:0;
+      padding:0;
+    }
+    .brandRow img{ height:64px; width:auto; display:block; }
+    .pill{
+      display:inline-block;
+      font-size:11px;
+      padding:4px 10px;
+      border-radius:999px;
+      border:1px solid rgba(15,23,42,.18);
+      color:#0f172a;
+      font-weight:800;
+      vertical-align:middle;
+      background:#fff;
+      white-space:nowrap;
+    }
+    .sub{ color:var(--muted); font-size:13px; margin:2px 0 0; }
+    .btnRow{ display:flex; gap:10px; align-items:center; }
+
+    .btn.ghost{
+      background:#0b3a4a;
+      border:1px solid rgba(11,58,74,.35);
+      color:#ffffff !important;
+      box-shadow:0 6px 18px rgba(15,23,42,.12);
+      transition: transform .08s ease, background .15s ease, box-shadow .15s ease, border-color .15s ease;
+      text-decoration:none;
+      display:inline-flex;
+      align-items:center;
+      gap:8px;
+      padding:9px 12px;
+      border-radius:999px;
+      font-weight:800;
+      font-size:13px;
+      cursor:pointer;
+    }
+    .btn.ghost:hover{
+      background: linear-gradient(90deg, #0b3a4a 0%, #0f5b63 100%);
+      border-color: rgba(11,58,74,.55);
+      transform: translateY(-1px);
+    }
+    .btn.ghost:active{ transform: translateY(0px); }
+    .btn.ghost:focus{
+      outline:none;
+      box-shadow:0 0 0 4px rgba(11,58,74,.20), 0 6px 18px rgba(15,23,42,.12);
+    }
+
+    /* Cards */
+    .hero{
+      border:1px solid var(--line);
+      background:var(--card);
+      border-radius:14px;
+      padding:14px;
+      box-shadow:var(--shadow);
+    }
+    .hero h1{ margin:0; font-size:18px; }
+    .hero p{ margin:6px 0 0; color:var(--muted); font-size:13px; line-height:1.35; }
+
+    .section-label{
+      text-align:center;
+      font-weight:500;
+      font-size:13px;
+      letter-spacing:.3px;
+      color:#475569;
+      background:rgba(15,118,110,.06);
+      border:1px solid rgba(15,118,110,.18);
+      border-radius:999px;
+      padding:6px 14px;
+      margin:14px auto 12px;
+      width:fit-content;
+    }
+
+    /* Section headers (avoid stacked pill look) */
+    .section-head{
+      margin:14px 0 10px;
+      display:flex;
+      align-items:center;
+      justify-content:space-between;
+      gap:12px;
+    }
+
+    .section-title{
+      font-weight:800;
+      font-size:13px;
+      color:#0f172a;
+      letter-spacing:.2px;
+    }
+
+    .section-sub{
+      font-size:12px;
+      color:var(--muted);
+    }
+
+    .controls{
+      display:flex; flex-wrap:wrap; gap:10px;
+      margin:12px 0;
+      align-items:flex-end;
+    }
+    label{ display:flex; flex-direction:column; gap:6px; font-size:12px; color:var(--muted); }
+    .controls input, .controls select{
+      background:#fff;
+      border:1px solid var(--line);
+      color:var(--fg);
+      padding:9px 10px;
+      border-radius:12px;
+      font-size:13px;
+      outline:none;
+      min-width:220px;
+    }
+    .controls input.small{ min-width:140px; width:140px; }
+    .controls input:focus, .controls select:focus{
+      border-color:rgba(255,106,61,.55);
+      box-shadow:0 0 0 3px rgba(255,106,61,.15);
+    }
+
+    .kpiRow{ display:flex; flex-wrap:wrap; gap:10px; margin:0; }
+    .kpi{
+      border:1px solid var(--line);
+      background:#fff;
+      border-radius:14px;
+      padding:10px 12px;
+      box-shadow:0 6px 18px rgba(15,23,42,.06);
+      min-width:180px;
+    }
+    .kpi .k{ color:var(--muted); font-size:12px; }
+    .kpi .k .tip{
+      margin-left:6px;
+      font-size:11px;
+      cursor:help;
+      color:var(--muted);
+      border-bottom:1px dotted rgba(15,23,42,.35);
+    }
+    .kpi .v{ margin-top:4px; font-size:14px; font-weight:800; }
+
+    .metaRow{
+      display:flex; flex-wrap:wrap; gap:10px; align-items:center;
+      margin:6px 0 0;
+      color:var(--muted);
+      font-size:12px;
+    }
+    .mono{ font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace; }
+    .toast{ margin-top:10px; font-size:12px; color:var(--muted); min-height:16px; }
+    .toast.bad{ color:#b42318; }
+    .toast.ok{ color:#0f7a3a; }
+
+    .table{
+      border:1px solid var(--line);
+      border-radius:14px;
+      overflow:hidden;
+      background:var(--card);
+      box-shadow:var(--shadow);
+    }
+    table{ width:100%; border-collapse:collapse; }
+    th,td{
+      border-bottom:1px solid rgba(15,23,42,.08);
+      padding:10px 10px;
+      font-size:13px;
+      text-align:left;
+      vertical-align:top;
+    }
+    th{ color:var(--muted); font-weight:700; background:#fbfcff; }
+    tr:last-child td{ border-bottom:none; }
+    .right{ text-align:right; }
+
+    /* Flatpickr tweaks (same as ap.html) */
+    .flatpickr-calendar{
+      border-radius:14px !important;
+      border:1px solid var(--line) !important;
+      box-shadow:var(--shadow) !important;
+      font-family:Inter,system-ui,-apple-system,Segoe UI,Roboto,Arial !important;
+    }
+    .flatpickr-day.selected, .flatpickr-day.startRange, .flatpickr-day.endRange,
+    .flatpickr-day.selected.inRange, .flatpickr-day.startRange.inRange, .flatpickr-day.endRange.inRange{
+      background:var(--accent) !important;
+      border-color:var(--accent) !important;
+    }
+    .flatpickr-day.today{ border-color:rgba(255,106,61,.45) !important; }
+  </style>
+</head>
+
+<body>
+  <div class="wrap">
+    <div class="top">
+      <div>
+        <div class="brandRow">
+          <img src="/images/logo.png" alt="Lolaelo" />
+          <span class="pill"> Analytics </span>
+        </div>
+        <div class="sub">Visitors, sources, and engaged time (first party).</div>
+      </div>
+
+      <div class="btnRow">
+        <a class="btn ghost" href="/admin/index.html">Admin hub</a>
+        <a class="btn ghost" href="/partners_app.html">Extranet</a>
+        <button id="btnLogout" class="btn ghost" type="button">Sign out</button>
+      </div>
+    </div>
+
+    <div class="hero">
+      <h1>Traffic analytics</h1>
+      <p>Use date range to review sessions, page views, and engaged time.</p>
+      <div class="metaRow">
+        <span class="pill"><b>Status:</b> <span id="authStatus">Checking...</span></span>
+        <span class="pill"><b>Range:</b> <span id="rangeText" class="mono">-</span></span>
+      </div>
+    </div>
+
+    <div class="controls">
+      <label>
+        From date
+        <input id="fromDate" class="small" placeholder="YYYY-MM-DD" />
+      </label>
+
+      <label>
+        To date
+        <input id="toDate" class="small" placeholder="YYYY-MM-DD" />
+      </label>
+
+      <button id="btnLoad" class="btn" type="button">Load</button>
+      <button id="btnLast7" class="btn ghost" type="button">Last 7 days</button>
+      <button id="btnLast14" class="btn ghost" type="button">Last 14 days</button>
+      <button id="btnLast30" class="btn ghost" type="button">Last 30 days</button>
+      <button id="btnClear" class="btn ghost" type="button">Clear</button>
+      <button id="btnExport" class="btn ghost" type="button">Export CSV</button>
+    </div>
+
+    <div class="section-label">Summary</div>
+    <div class="kpiRow">
+      <div class="kpi"><div class="k">Sessions</div><div class="v" id="kSessions">0</div></div>
+      <div class="kpi"><div class="k">Page views</div><div class="v" id="kViews">0</div></div>
+      <div class="kpi"><div class="k">Engaged seconds</div><div class="v" id="kEngaged">0</div></div>
+      <div class="kpi"><div class="k">Avg engaged seconds</div><div class="v" id="kAvgEngaged">0</div></div>
+      <div class="kpi">
+          <div class="k">
+            Pages / session
+            <span class="tip" title="Average number of page views per visit. Higher values indicate deeper exploration.">?</span>
+          </div>
+          <div class="v" id="kPagesPerSession">0</div>
+        </div>
+
+        <div class="kpi">
+          <div class="k">
+            No engagement %
+            <span class="tip" title="Sessions with no engagement beyond the first view. Proxy for low-quality or mismatched traffic.">?</span>
+          </div>
+          <div class="v" id="kZeroEngPct">0</div>
+        </div>
+    </div>
+
+    <div class="section-label">By day</div>
+    <div class="table">
+      <table>
+        <thead>
+          <tr>
+            <th style="width:160px;">Day</th>
+            <th class="right" style="width:150px;">Sessions</th>
+            <th class="right" style="width:150px;">Page views</th>
+            <th class="right" style="width:180px;">Engaged seconds</th>
+          </tr>
+        </thead>
+        <tbody id="byDayRows">
+          <tr><td colspan="4" class="muted">No data loaded.</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div style="height:12px;"></div>
+
+    <div class="section-head">
+      <div class="section-title">Top sources (UTM)</div>
+    </div>
+    <div style="height:12px;"></div>
+
+      <div class="section-head">
+        <div class="section-title">Top exit pages</div>
+      </div>
+      <div class="table">
+        <table>
+          <thead>
+            <tr>
+              <th style="width:340px;">Exit page</th>
+              <th class="right" style="width:140px;">Sessions</th>
+              <th>Top entry pages (share)</th>
+            </tr>
+          </thead>
+          <tbody id="exitRows">
+            <tr><td colspan="3" class="muted">No data loaded.</td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      <div style="height:12px;"></div>
+
+      <div style="display:flex; align-items:center; justify-content:space-between; gap:12px; flex-wrap:wrap;">
+        <div class="section-title">Exit pages by source</div>
+
+        <label style="display:flex; flex-direction:row; align-items:center; gap:8px; margin:0;">
+          <input id="toggleExitBySource" type="checkbox" />
+          <span style="font-size:12px; color:var(--muted);">Show breakdown</span>
+        </label>
+      </div>
+
+      <div id="exitBySourceWrap" class="table" style="display:none; margin-top:12px;">
+        <table>
+          <thead>
+            <tr>
+              <th style="width:340px;">Exit page</th>
+              <th style="width:220px;">utm_source</th>
+              <th style="width:220px;">utm_medium</th>
+              <th class="right" style="width:140px;">Sessions</th>
+            </tr>
+          </thead>
+          <tbody id="exitBySourceRows">
+            <tr><td colspan="4" class="muted">No data for this range.</td></tr>
+          </tbody>
+        </table>
+      </div>
+
+    <div class="table">
+      <table>
+        <thead>
+          <tr>
+            <th style="width:220px;">utm_source</th>
+            <th style="width:220px;">utm_medium</th>
+            <th class="right" style="width:150px;">Sessions</th>
+            <th class="right" style="width:180px;">Engaged seconds</th>
+          </tr>
+        </thead>
+        <tbody id="srcRows">
+          <tr><td colspan="4" class="muted">No data loaded.</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div id="pageToast" class="toast"></div>
+  </div>
+
+  <script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
+
+  <script>
+    (function(){
+      const ADMIN_TOKEN_KEY = "lolaelo_admin_session";
+      const LOGIN = "/admin/login.html";
+      const API_BASE = location.origin;
+      const $ = (id) => document.getElementById(id);
+
+      function getAdminToken(){
+        try { return localStorage.getItem(ADMIN_TOKEN_KEY) || ""; } catch { return ""; }
+      }
+      function authHeaders(){
+        const t = String(getAdminToken() || "").trim();
+        return { "Authorization": "Bearer " + t };
+      }
+
+      function setToast(msg, kind){
+        const el = $("pageToast"); if (!el) return;
+        el.textContent = msg || "";
+        el.className = "toast" + (kind ? (" " + kind) : "");
+      }
+
+      function downloadCSV(filename, rows){
+        if (!rows || !rows.length){
+          setToast("Nothing to export.", "bad");
+          return;
+        }
+
+        const escape = (v) => {
+          if (v === null || v === undefined) return "";
+          const s = String(v);
+          return /[",\n]/.test(s) ? `"${s.replace(/"/g,'""')}"` : s;
+        };
+
+        const headers = Object.keys(rows[0]);
+        const csv = [
+          headers.join(","),
+          ...rows.map(r => headers.map(h => escape(r[h])).join(","))
+        ].join("\n");
+
+        const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement("a");
+        a.href = url;
+        a.download = filename;
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        URL.revokeObjectURL(url);
+      }
+        
+      function setAuthStatus(txt){
+        const el = $("authStatus"); if (el) el.textContent = txt;
+      }
+
+      async function ensureAdmin(){
+        const t = String(getAdminToken() || "").trim();
+        if (!t) { location.replace(LOGIN); return false; }
+        const r = await fetch("/api/admin/ping", { headers: authHeaders() }).catch(() => null);
+        if (!r || !r.ok) {
+          try { localStorage.removeItem(ADMIN_TOKEN_KEY); } catch {}
+          location.replace(LOGIN);
+          return false;
+        }
+        return true;
+      }
+
+      async function fetchJSON(path, opts){
+        const r = await fetch(API_BASE + path, { ...(opts||{}), headers: { ...(opts?.headers||{}), ...authHeaders() } });
+        if (r.status === 401) {
+          try { localStorage.removeItem(ADMIN_TOKEN_KEY); } catch {}
+          location.replace(LOGIN);
+          return null;
+        }
+        const data = await r.json().catch(() => null);
+        if (!r.ok) {
+          const msg = (data && (data.error || data.message)) ? String(data.error || data.message) : `HTTP ${r.status}`;
+          throw new Error(msg);
+        }
+        return data;
+      }
+
+      function ymd(d){
+        const y = d.getFullYear();
+        const m = String(d.getMonth()+1).padStart(2,"0");
+        const da = String(d.getDate()).padStart(2,"0");
+        return `${y}-${m}-${da}`;
+      }
+
+      function setRangeText(){
+        const f = String($("fromDate").value || "").trim();
+        const t = String($("toDate").value || "").trim();
+        const el = $("rangeText");
+        if (el) el.textContent = (f && t) ? `${f} to ${t}` : "-";
+      }
+
+      function setKpis(totals){
+        const sessions = Number(totals?.sessions || 0) || 0;
+        const pageViews = Number(totals?.pageViews || 0) || 0;
+        const engagedMs = Number(totals?.engagedMs || 0) || 0;
+        const avgEng = Number(totals?.avgEngagedSeconds || 0) || 0;
+
+        $("kSessions").textContent = String(sessions);
+        $("kViews").textContent = String(pageViews);
+        $("kEngaged").textContent = String(Math.round(engagedMs / 1000));
+        $("kAvgEngaged").textContent = String(avgEng);
+        $("kPagesPerSession").textContent = String(Number(totals?.pagesPerSession || 0) || 0);
+        $("kZeroEngPct").textContent = String(Number(totals?.zeroEngagementPct || 0) || 0) + "%";
+      }
+
+      function renderByDay(rows){
+        const body = $("byDayRows");
+        if (!body) return;
+
+        if (!rows || !rows.length){
+          body.innerHTML = `<tr><td colspan="4" class="muted">No rows for this range.</td></tr>`;
+          return;
+        }
+
+        body.innerHTML = rows.map(r => {
+          const day = String(r.day || "").slice(0,10);
+          const sessions = Number(r.sessions || 0) || 0;
+          const pv = Number(r.page_views || r.pageViews || 0) || 0;
+          const engagedSec = Math.round((Number(r.engaged_ms || r.engagedMs || 0) || 0) / 1000);
+
+          return `
+            <tr>
+              <td class="mono">${day}</td>
+              <td class="right mono">${sessions}</td>
+              <td class="right mono">${pv}</td>
+              <td class="right mono">${engagedSec}</td>
+            </tr>
+          `;
+        }).join("");
+      }
+
+      function renderSources(rows){
+        const body = $("srcRows");
+        if (!body) return;
+
+        if (!rows || !rows.length){
+          body.innerHTML = `<tr><td colspan="4" class="muted">No sources in this range.</td></tr>`;
+          return;
+        }
+
+        body.innerHTML = rows.map(r => {
+          const src = String(r.utm_source || r.utmSource || "");
+          const med = String(r.utm_medium || r.utmMedium || "");
+          const sessions = Number(r.sessions || 0) || 0;
+          const engagedSec = Math.round((Number(r.engaged_ms || r.engagedMs || 0) || 0) / 1000);
+
+          return `
+            <tr>
+              <td class="mono">${src}</td>
+              <td class="mono">${med}</td>
+              <td class="right mono">${sessions}</td>
+              <td class="right mono">${engagedSec}</td>
+            </tr>
+          `;
+        }).join("");
+      }
+
+      function renderExitPages(rows){
+        const body = $("exitRows");
+        if (!body) return;
+
+        if (!rows || !rows.length){
+          body.innerHTML = `<tr><td colspan="3" class="muted">No exit pages in this range.</td></tr>`;
+          return;
+        }
+
+        body.innerHTML = rows.map(r => {
+          const exitPath = String(r.exitPath || "");
+          const sessions = Number(r.sessions || 0) || 0;
+          const entries = Array.isArray(r.topEntries) ? r.topEntries : [];
+
+          const entryTxt = entries.length
+            ? entries.map(e => {
+                const p = String(e.entryPath || "");
+                const n = Number(e.sessions || 0) || 0;
+                const pct = sessions > 0 ? Math.round((n * 1000 / sessions)) / 10 : 0;
+                return `${p} (${pct}%)`;
+              }).join(", ")
+            : "-";
+
+          return `
+            <tr>
+              <td class="mono">${exitPath}</td>
+              <td class="right mono">${sessions}</td>
+              <td class="mono">${entryTxt}</td>
+            </tr>
+          `;
+        }).join("");
+      }
+
+      function renderExitBySource(rows){
+        const body = $("exitBySourceRows");
+        if (!body) return;
+
+        if (!rows || !rows.length){
+          body.innerHTML = `<tr><td colspan="4" class="muted">No rows in this range.</td></tr>`;
+          return;
+        }
+
+        body.innerHTML = rows.map(r => {
+          const exitPath = String(r.exit_path || r.exitPath || "");
+          const src = String(r.utm_source || r.utmSource || "");
+          const med = String(r.utm_medium || r.utmMedium || "");
+          const sessions = Number(r.sessions || 0) || 0;
+
+          return `
+            <tr>
+              <td class="mono">${exitPath}</td>
+              <td class="mono">${src}</td>
+              <td class="mono">${med}</td>
+              <td class="right mono">${sessions}</td>
+            </tr>
+          `;
+        }).join("");
+      }
+
+      async function load(){
+        setToast("", "");
+        setRangeText();
+
+        const from = String($("fromDate").value || "").trim();
+        const to = String($("toDate").value || "").trim();
+
+        if (!/^\d{4}-\d{2}-\d{2}$/.test(from) || !/^\d{4}-\d{2}-\d{2}$/.test(to)){
+          setToast("From date and To date required (YYYY-MM-DD).", "bad");
+          return;
+        }
+
+        try {
+          setToast("Loading...", "");
+          const data = await fetchJSON(`/api/admin/analytics/summary?from=${encodeURIComponent(from)}&to=${encodeURIComponent(to)}`);
+          window.__lastAnalyticsData = data;
+          const wrap = $("exitBySourceWrap");
+          if (wrap) wrap.style.display = ($("toggleExitBySource")?.checked ? "block" : "none");
+          if (!data || !data.ok) { setToast("Failed loading.", "bad"); return; }
+
+          setKpis(data.totals);
+          renderByDay(data.byDay || []);
+          renderSources(data.topSources || []);
+          renderExitPages(data.exitPages || []);
+          renderExitBySource(data.exitBySource || []);
+          setToast("Ready.", "ok");
+        } catch (e) {
+          setToast(`Failed: ${String(e.message || e)}`, "bad");
+        }
+      }
+
+      function setLastNDays(n){
+        const now = new Date();
+        const to = ymd(now);
+        const fromD = new Date(now.getTime());
+        fromD.setDate(fromD.getDate() - (n - 1));
+        const from = ymd(fromD);
+
+        $("fromDate").value = from;
+        $("toDate").value = to;
+        setRangeText();
+      }
+
+      // Wire UI
+      $("btnLogout").onclick = () => {
+        try { localStorage.removeItem(ADMIN_TOKEN_KEY); } catch {}
+        location.replace(LOGIN);
+      };
+      $("btnLoad").onclick = load;
+      $("btnLast7").onclick = () => { setLastNDays(7); load(); };
+      $("btnLast14").onclick = () => { setLastNDays(14); load(); };
+      $("btnLast30").onclick = () => { setLastNDays(30); load(); };
+      $("btnClear").onclick = () => {
+        $("fromDate").value = "";
+        $("toDate").value = "";
+        setRangeText();
+        setToast("", "");
+      };
+      $("toggleExitBySource").onchange = (e) => {
+        const on = !!e.target.checked;
+        const wrap = $("exitBySourceWrap");
+        if (wrap) wrap.style.display = on ? "block" : "none";
+      };
+      $("btnExport").onclick = () => {
+        if (!window.__lastAnalyticsData){
+          setToast("Load data first.", "bad");
+          return;
+        }
+
+        const rows = [];
+
+        // By day
+        (window.__lastAnalyticsData.byDay || []).forEach(r => {
+          rows.push({
+            section: "by_day",
+            day: r.day,
+            sessions: r.sessions,
+            page_views: r.page_views || r.pageViews,
+            engaged_seconds: Math.round((r.engaged_ms || r.engagedMs || 0)/1000)
+          });
+        });
+
+        // Top sources
+        (window.__lastAnalyticsData.topSources || []).forEach(r => {
+          rows.push({
+            section: "top_sources",
+            utm_source: r.utm_source || r.utmSource,
+            utm_medium: r.utm_medium || r.utmMedium,
+            sessions: r.sessions,
+            engaged_seconds: Math.round((r.engaged_ms || r.engagedMs || 0)/1000)
+          });
+        });
+
+        // Exit pages
+        (window.__lastAnalyticsData.exitPages || []).forEach(r => {
+          rows.push({
+            section: "exit_pages",
+            exit_page: r.exitPath,
+            sessions: r.sessions,
+            top_entries: (r.topEntries || [])
+              .map(e => `${e.entryPath} (${e.sessions})`)
+              .join(" | ")
+          });
+        });
+
+        const from = $("fromDate").value || "from";
+        const to = $("toDate").value || "to";
+        downloadCSV(`analytics_${from}_to_${to}.csv`, rows);
+      };
+
+      // Init
+      (async function boot(){
+        const ok = await ensureAdmin();
+        if (!ok) return;
+
+        setAuthStatus("Ready");
+
+        if (window.flatpickr){
+          window.flatpickr("#fromDate", { dateFormat:"Y-m-d", allowInput:true });
+          window.flatpickr("#toDate",   { dateFormat:"Y-m-d", allowInput:true });
+        }
+
+        setLastNDays(7);
+        setRangeText();
+        load();
+      })();
+    })();
+  </script>
+</body>
+</html>

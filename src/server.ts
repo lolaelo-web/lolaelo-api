@@ -944,6 +944,137 @@ app.post("/api/payments/webhook", express.raw({ type: "application/json" }), asy
 app.use(express.json({ limit: "2mb" }));
 app.use(express.urlencoded({ extended: true }));
 
+// === Analytics (public collector) =========================================
+// Stores first-party web analytics in extranet.WebAnalytics* tables.
+// NOTE: Uses withDb + raw SQL to match the rest of this server.
+
+function getClientIp(req: any): string {
+  const xf = String(req.headers["x-forwarded-for"] || "").split(",")[0].trim();
+  return xf || req.socket?.remoteAddress || "";
+}
+
+function parseRefHost(ref: string): string | null {
+  try { return new URL(ref).hostname || null; } catch { return null; }
+}
+
+function getUtmFromUrl(urlStr: string): { utmSource?: string; utmMedium?: string; utmCampaign?: string; utmContent?: string } {
+  try {
+    const u = new URL(urlStr);
+    const p = u.searchParams;
+    return {
+      utmSource: p.get("utm_source") || undefined,
+      utmMedium: p.get("utm_medium") || undefined,
+      utmCampaign: p.get("utm_campaign") || undefined,
+      utmContent: p.get("utm_content") || undefined,
+    };
+  } catch {
+    return {};
+  }
+}
+
+function looksBot(ua: string): boolean {
+  const s = ua.toLowerCase();
+  return s.includes("bot") || s.includes("spider") || s.includes("crawl");
+}
+
+app.post("/api/analytics/event", async (req: Request, res: Response) => {
+  try {
+    const body: any = req.body || {};
+    const name = String(body.name || "").trim();
+    if (!name) return res.status(400).json({ ok: false, error: "name_required" });
+
+    const now = new Date();
+    const ua = String(req.headers["user-agent"] || "");
+    const ip = getClientIp(req);
+    const salt = String(process.env.ANALYTICS_SALT || "lolaelo-analytics");
+    const ipHash = ip ? crypto.createHash("sha256").update(ip + "|" + salt).digest("hex") : null;
+
+    const url = body.url ? String(body.url) : "";
+    const path = body.path ? String(body.path) : "";
+    const title = body.title ? String(body.title) : "";
+    const referrer = body.referrer ? String(body.referrer) : String(req.headers["referer"] || "");
+    const refHost = parseRefHost(referrer || "");
+
+    const activeMsRaw = body.activeMs;
+    const activeMs = Number.isFinite(Number(activeMsRaw)) ? Number(activeMsRaw) : null;
+    const payload = (body.payload !== undefined) ? body.payload : null;
+
+    const utm = getUtmFromUrl(url);
+    const isBot = looksBot(ua);
+
+    const SESSION_IDLE_MS = 30 * 60 * 1000;
+
+    // Session id comes from client (localStorage). We don't read cookies to avoid cookie-parser dependency.
+    let sid = String(body.sid || "").trim();
+
+    // Validate / rollover session if idle
+    if (sid) {
+      const prev = await withDb(async (client) => {
+        const r = await client.query(
+          `SELECT "lastSeenAt" FROM extranet."WebAnalyticsSession" WHERE id = $1 LIMIT 1`,
+          [sid]
+        );
+        return r.rows?.[0] || null;
+      });
+
+      const prevLast = prev?.lastSeenAt ? new Date(prev.lastSeenAt).getTime() : 0;
+      if (!prevLast || (now.getTime() - prevLast) > SESSION_IDLE_MS) {
+        sid = crypto.randomUUID();
+      }
+    } else {
+      sid = crypto.randomUUID();
+    }
+
+    // Upsert session + insert event
+    await withDb(async (client) => {
+      // Ensure session exists
+      await client.query(
+        `
+        INSERT INTO extranet."WebAnalyticsSession"
+          (id, "createdAt", "lastSeenAt",
+           "landingPath","landingUrl","referrer","referrerHost",
+           "utmSource","utmMedium","utmCampaign","utmContent",
+           "userAgent","deviceType","country","ipHash","isBot")
+        VALUES
+          ($1, $2, $2,
+           $3, $4, $5, $6,
+           $7, $8, $9, $10,
+           $11, $12, $13, $14, $15)
+        ON CONFLICT (id) DO UPDATE SET
+          "lastSeenAt" = EXCLUDED."lastSeenAt"
+        `,
+        [
+          sid, now,
+          path || null, url || null, referrer || null, refHost,
+          utm.utmSource || null, utm.utmMedium || null, utm.utmCampaign || null, utm.utmContent || null,
+          ua || null, isBot ? "bot" : null, null, ipHash, isBot
+        ]
+      );
+
+      // Insert event
+      await client.query(
+        `
+        INSERT INTO extranet."WebAnalyticsEvent"
+          ("ts","sessionId","name","path","url","title","referrer","activeMs","payload")
+        VALUES
+          ($1,$2,$3,$4,$5,$6,$7,$8,$9)
+        `,
+        [
+          now, sid, name,
+          path || null, url || null, title || null, referrer || null,
+          activeMs, payload
+        ]
+      );
+    });
+
+    return res.json({ ok: true, sid });
+  } catch (e: any) {
+    console.error("[analytics] event error:", e?.message || e);
+    return res.status(500).json({ ok: false, error: "server_error" });
+  }
+});
+// === Analytics (public collector) END =====================================
+
 // ---- Static ----
 const pubPath = path.join(__dirname, "..", "public");
 app.use("/public", express.static(pubPath, { maxAge: "1h", etag: true }));
@@ -2586,6 +2717,101 @@ app.get("/api/admin/ping", (req: Request, res: Response) => {
   }
 });
 // ANCHOR: ADMIN_PING_ROUTE END
+
+// === Admin Analytics Summary ==============================================
+app.get("/api/admin/analytics/summary", async (req: Request, res: Response) => {
+  try {
+    requireAdminAuth(req);
+
+    const from = String(req.query.from || "").slice(0, 10);
+    const to = String(req.query.to || "").slice(0, 10);
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(from) || !/^\d{4}-\d{2}-\d{2}$/.test(to)) {
+      return res.status(400).json({ ok: false, error: "from_to_required_YYYY-MM-DD" });
+    }
+
+    const fromTs = new Date(from + "T00:00:00Z");
+    const toTs = new Date(to + "T23:59:59Z");
+
+    const data = await withDb(async (client) => {
+      const totalsQ = await client.query(
+        `
+        SELECT
+          COUNT(DISTINCT "sessionId")::int AS sessions,
+          SUM(CASE WHEN name='page_view' THEN 1 ELSE 0 END)::int AS pageViews,
+          COALESCE(SUM("activeMs"),0)::bigint AS engagedMs
+        FROM extranet."WebAnalyticsEvent"
+        WHERE ts >= $1 AND ts <= $2
+        `,
+        [fromTs, toTs]
+      );
+
+      const byDayQ = await client.query(
+        `
+        SELECT
+          date_trunc('day', ts)::date AS day,
+          COUNT(DISTINCT "sessionId")::int AS sessions,
+          SUM(CASE WHEN name='page_view' THEN 1 ELSE 0 END)::int AS page_views,
+          COALESCE(SUM("activeMs"),0)::bigint AS engaged_ms
+        FROM extranet."WebAnalyticsEvent"
+        WHERE ts >= $1 AND ts <= $2
+        GROUP BY 1
+        ORDER BY 1 ASC
+        `,
+        [fromTs, toTs]
+      );
+
+      const topSourcesQ = await client.query(
+        `
+        SELECT
+          s."utmSource" AS utm_source,
+          s."utmMedium" AS utm_medium,
+          COUNT(DISTINCT s.id)::int AS sessions,
+          COALESCE(SUM(e."activeMs"),0)::bigint AS engaged_ms
+        FROM extranet."WebAnalyticsSession" s
+        LEFT JOIN extranet."WebAnalyticsEvent" e
+          ON e."sessionId" = s.id
+        WHERE s."createdAt" >= $1 AND s."createdAt" <= $2
+        GROUP BY 1,2
+        ORDER BY sessions DESC
+        LIMIT 12
+        `,
+        [fromTs, toTs]
+      );
+
+      const totals = totalsQ.rows?.[0] || { sessions: 0, pageviews: 0, engagedms: 0 };
+      return {
+        totals,
+        byDay: byDayQ.rows || [],
+        topSources: topSourcesQ.rows || []
+      };
+    });
+
+    const sessions = Number(data.totals.sessions || 0) || 0;
+    const engagedMs = Number(data.totals.engagedms || data.totals.engagedMs || 0) || 0;
+    const avgEngagedSeconds = sessions > 0 ? Math.round((engagedMs / sessions) / 1000) : 0;
+
+    return res.json({
+      ok: true,
+      range: { from, to },
+      totals: {
+        sessions,
+        pageViews: Number(data.totals.pageviews || data.totals.pageViews || 0) || 0,
+        engagedMs,
+        avgEngagedSeconds
+      },
+      byDay: data.byDay,
+      topSources: data.topSources
+    });
+
+  } catch (e: any) {
+    if (String(e?.message || "").toLowerCase().includes("unauthorized")) {
+      return res.status(401).json({ ok: false, error: "unauthorized" });
+    }
+    console.error("[admin][analytics] error:", e?.message || e);
+    return res.status(500).json({ ok: false, error: "server_error" });
+  }
+});
+// === Admin Analytics Summary END ==========================================
 
 // ANCHOR: ADMIN_KPIS_BOOKINGS_ROUTE
 app.get("/api/admin/kpis/bookings", async (req: Request, res: Response) => {
