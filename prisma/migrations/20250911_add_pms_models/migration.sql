@@ -1,7 +1,7 @@
--- PMS models (idempotent)
-CREATE TABLE IF NOT EXISTS "PmsConnection" (
+-- PMS models (idempotent) - extranet schema
+CREATE TABLE IF NOT EXISTS extranet."PmsConnection" (
   "id" SERIAL PRIMARY KEY,
-  "partnerId" INTEGER NOT NULL REFERENCES "Partner"("id") ON DELETE CASCADE,
+  "partnerId" INTEGER NOT NULL REFERENCES extranet."Partner"("id") ON DELETE CASCADE,
   "provider" TEXT NOT NULL,
   "mode" TEXT NOT NULL DEFAULT 'mock',
   "status" TEXT NOT NULL DEFAULT 'TESTING',
@@ -15,22 +15,22 @@ CREATE TABLE IF NOT EXISTS "PmsConnection" (
   CONSTRAINT "PmsConnection_partner_provider_unique" UNIQUE ("partnerId","provider")
 );
 
-CREATE TABLE IF NOT EXISTS "PmsMapping" (
+CREATE TABLE IF NOT EXISTS extranet."PmsMapping" (
   "id" SERIAL PRIMARY KEY,
-  "pmsConnectionId" INTEGER NOT NULL REFERENCES "PmsConnection"("id") ON DELETE CASCADE,
+  "pmsConnectionId" INTEGER NOT NULL REFERENCES extranet."PmsConnection"("id") ON DELETE CASCADE,
   "remoteRoomId" TEXT NOT NULL,
   "remoteRatePlanId" TEXT,
-  "localRoomTypeId" INTEGER REFERENCES "RoomType"("id") ON DELETE SET NULL,
-  "localRatePlanId" INTEGER REFERENCES "RatePlan"("id") ON DELETE SET NULL,
+  "localRoomTypeId" INTEGER REFERENCES extranet."RoomType"("id") ON DELETE SET NULL,
+  "localRatePlanId" INTEGER REFERENCES extranet."RatePlan"("id") ON DELETE SET NULL,
   "currency" TEXT,
   "active" BOOLEAN NOT NULL DEFAULT TRUE,
   "createdAt" TIMESTAMPTZ NOT NULL DEFAULT NOW(),
   "updatedAt" TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
 
-CREATE TABLE IF NOT EXISTS "SyncLog" (
+CREATE TABLE IF NOT EXISTS extranet."SyncLog" (
   "id" SERIAL PRIMARY KEY,
-  "pmsConnectionId" INTEGER NOT NULL REFERENCES "PmsConnection"("id") ON DELETE CASCADE,
+  "pmsConnectionId" INTEGER NOT NULL REFERENCES extranet."PmsConnection"("id") ON DELETE CASCADE,
   "type" TEXT NOT NULL,     -- AUTH|AVAILABILITY|RATES|MAPPINGS...
   "status" TEXT NOT NULL,   -- SUCCESS|ERROR
   "message" TEXT,
