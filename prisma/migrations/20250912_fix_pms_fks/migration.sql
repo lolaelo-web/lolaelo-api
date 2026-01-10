@@ -1,4 +1,4 @@
-﻿-- Ensure schema exists
+-- Ensure schema exists
 CREATE SCHEMA IF NOT EXISTS extranet;
 
 -- Ensure ExtranetSession exists in extranet (shadow-safe)
