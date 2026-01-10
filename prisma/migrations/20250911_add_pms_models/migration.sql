@@ -1,4 +1,6 @@
 -- PMS models (idempotent) - extranet schema
+CREATE SCHEMA IF NOT EXISTS extranet;
+
 CREATE TABLE IF NOT EXISTS extranet."PmsConnection" (
   "id" SERIAL PRIMARY KEY,
   "partnerId" INTEGER NOT NULL REFERENCES extranet."Partner"("id") ON DELETE CASCADE,
