@@ -71,15 +71,15 @@
       font-weight:800; letter-spacing:.2px;
     }
     .logo{
-      width:34px;
-      height:34px;
-      border-radius:10px;
+      width:102px;      /* 34px × 3 */
+      height:102px;     /* 34px × 3 */
       display:inline-flex;
       align-items:center;
       justify-content:center;
       overflow:hidden;
-      background:linear-gradient(135deg, var(--accent), #ff8b67);
-      box-shadow:0 10px 22px rgba(255,106,61,.22);
+      background:transparent;   /* remove orange */
+      box-shadow:none;          /* remove glow */
+      border-radius:0;          /* optional, keeps it clean */
     }
 
     /* Make the image obey the container size */

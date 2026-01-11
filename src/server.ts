@@ -3052,6 +3052,138 @@ app.get("/api/admin/analytics/funnel", async (req: Request, res: Response) => {
 });
 // === ADMIN ANALYTICS FUNNEL END ===========================================
 
+// === ADMIN ANALYTICS FUNNEL BY LANDING (V2) ===============================
+app.get("/api/admin/analytics/funnel-by-landing", async (req: Request, res: Response) => {
+  try {
+    requireAdminAuth(req);
+
+    const from = String(req.query.from || "").slice(0, 10);
+    const to   = String(req.query.to || "").slice(0, 10);
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(from) || !/^\d{4}-\d{2}-\d{2}$/.test(to)) {
+      return res.status(400).json({ ok:false, error:"from_to_required_YYYY-MM-DD" });
+    }
+
+    const rows = await withDb(async (client) => {
+      const q = `
+        WITH sessions AS (
+          SELECT
+            id AS session_id,
+            COALESCE("landingPath",'') AS landing_path
+          FROM extranet."WebAnalyticsSession"
+          WHERE "createdAt" >= $1
+            AND "createdAt" < ($2::date + interval '1 day')
+        ),
+        flags AS (
+          SELECT
+            e."sessionId" AS session_id,
+            MAX(CASE WHEN e.name='view_property' THEN 1 ELSE 0 END) AS view_property,
+            MAX(CASE WHEN e.name='start_checkout' THEN 1 ELSE 0 END) AS start_checkout,
+            MAX(CASE WHEN e.name='booking_created' THEN 1 ELSE 0 END) AS booking_created
+          FROM extranet."WebAnalyticsEvent" e
+          WHERE e.ts >= $1
+            AND e.ts < ($2::date + interval '1 day')
+          GROUP BY e."sessionId"
+        )
+        SELECT
+          s.landing_path,
+          COUNT(*)::int AS sessions,
+          SUM(COALESCE(f.view_property,0))::int AS view_property,
+          SUM(COALESCE(f.start_checkout,0))::int AS start_checkout,
+          SUM(COALESCE(f.booking_created,0))::int AS booking_created,
+          CASE WHEN COUNT(*) > 0
+            THEN ROUND(SUM(COALESCE(f.booking_created,0))::numeric * 100.0 / COUNT(*), 2)
+            ELSE 0
+          END AS booking_created_rate_pct
+        FROM sessions s
+        LEFT JOIN flags f ON f.session_id = s.session_id
+        GROUP BY s.landing_path
+        ORDER BY sessions DESC, booking_created DESC
+        LIMIT 25;
+      `;
+      const r = await client.query(q, [from, to]);
+      return r.rows || [];
+    });
+
+    return res.json({ ok:true, rows });
+  } catch (e:any) {
+    console.error("[admin][analytics][funnel-by-landing]", e);
+    return res.status(500).json({ ok:false, error:"server_error" });
+  }
+});
+// === ADMIN ANALYTICS FUNNEL BY LANDING END =================================
+
+
+// === ADMIN ANALYTICS FUNNEL BY SOURCE (V2) ================================
+app.get("/api/admin/analytics/funnel-by-source", async (req: Request, res: Response) => {
+  try {
+    requireAdminAuth(req);
+
+    const from = String(req.query.from || "").slice(0, 10);
+    const to   = String(req.query.to || "").slice(0, 10);
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(from) || !/^\d{4}-\d{2}-\d{2}$/.test(to)) {
+      return res.status(400).json({ ok:false, error:"from_to_required_YYYY-MM-DD" });
+    }
+
+    const rows = await withDb(async (client) => {
+      const q = `
+        WITH sessions AS (
+          SELECT
+            id AS session_id,
+            NULLIF(TRIM(COALESCE("utmSource",'')), '') AS utm_source,
+            NULLIF(TRIM(COALESCE("utmMedium",'')), '') AS utm_medium,
+            NULLIF(TRIM(COALESCE("utmCampaign",'')), '') AS utm_campaign,
+            NULLIF(TRIM(COALESCE("referrerHost",'')), '') AS referrer_host
+          FROM extranet."WebAnalyticsSession"
+          WHERE "createdAt" >= $1
+            AND "createdAt" < ($2::date + interval '1 day')
+        ),
+        dim AS (
+          SELECT
+            session_id,
+            COALESCE(utm_source, referrer_host, '(direct)') AS source,
+            COALESCE(utm_medium, '(none)') AS medium
+          FROM sessions
+        ),
+        flags AS (
+          SELECT
+            e."sessionId" AS session_id,
+            MAX(CASE WHEN e.name='view_property' THEN 1 ELSE 0 END) AS view_property,
+            MAX(CASE WHEN e.name='start_checkout' THEN 1 ELSE 0 END) AS start_checkout,
+            MAX(CASE WHEN e.name='booking_created' THEN 1 ELSE 0 END) AS booking_created
+          FROM extranet."WebAnalyticsEvent" e
+          WHERE e.ts >= $1
+            AND e.ts < ($2::date + interval '1 day')
+          GROUP BY e."sessionId"
+        )
+        SELECT
+          d.source,
+          d.medium,
+          COUNT(*)::int AS sessions,
+          SUM(COALESCE(f.view_property,0))::int AS view_property,
+          SUM(COALESCE(f.start_checkout,0))::int AS start_checkout,
+          SUM(COALESCE(f.booking_created,0))::int AS booking_created,
+          CASE WHEN COUNT(*) > 0
+            THEN ROUND(SUM(COALESCE(f.booking_created,0))::numeric * 100.0 / COUNT(*), 2)
+            ELSE 0
+          END AS booking_created_rate_pct
+        FROM dim d
+        LEFT JOIN flags f ON f.session_id = d.session_id
+        GROUP BY d.source, d.medium
+        ORDER BY sessions DESC, booking_created DESC
+        LIMIT 25;
+      `;
+      const r = await client.query(q, [from, to]);
+      return r.rows || [];
+    });
+
+    return res.json({ ok:true, rows });
+  } catch (e:any) {
+    console.error("[admin][analytics][funnel-by-source]", e);
+    return res.status(500).json({ ok:false, error:"server_error" });
+  }
+});
+// === ADMIN ANALYTICS FUNNEL BY SOURCE END =================================
+
 // ANCHOR: ADMIN_KPIS_BOOKINGS_ROUTE
 app.get("/api/admin/kpis/bookings", async (req: Request, res: Response) => {
   try {

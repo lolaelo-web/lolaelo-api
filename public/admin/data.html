@@ -330,6 +330,41 @@
       </table>
     </div>
 
+    <div class="section-label">Funnel by landing page</div>
+    <table class="table" style="margin-top:10px;">
+      <thead>
+        <tr>
+          <th>Landing path</th>
+          <th class="right">Sessions</th>
+          <th class="right">View property</th>
+          <th class="right">Start checkout</th>
+          <th class="right">Booking created</th>
+          <th class="right">Conv %</th>
+        </tr>
+      </thead>
+      <tbody id="funnelLandingRows">
+        <tr><td colspan="6" class="muted">Load a range to view.</td></tr>
+      </tbody>
+    </table>
+
+    <div class="section-label" style="margin-top:18px;">Funnel by source</div>
+    <table class="table" style="margin-top:10px;">
+      <thead>
+        <tr>
+          <th>Source</th>
+          <th>Medium</th>
+          <th class="right">Sessions</th>
+          <th class="right">View property</th>
+          <th class="right">Start checkout</th>
+          <th class="right">Booking created</th>
+          <th class="right">Conv %</th>
+        </tr>
+      </thead>
+      <tbody id="funnelSourceRows">
+        <tr><td colspan="7" class="muted">Load a range to view.</td></tr>
+      </tbody>
+    </table>
+
     <div style="height:12px;"></div>
 
     <div class="section-head">
@@ -640,6 +675,8 @@
           const data = await fetchJSON(`/api/admin/analytics/summary?from=${encodeURIComponent(from)}&to=${encodeURIComponent(to)}`);
           window.__lastAnalyticsData = data;
           await loadFunnel(from, to);
+          await loadFunnelByLanding(from, to);
+          await loadFunnelBySource(from, to);
           const wrap = $("exitBySourceWrap");
           if (wrap) wrap.style.display = ($("toggleExitBySource")?.checked ? "block" : "none");
           if (!data || !data.ok) { setToast("Failed loading.", "bad"); return; }
@@ -748,6 +785,75 @@
           `${f.start_checkout || 0} (${sessions ? Math.round((f.start_checkout||0)*100/sessions) : 0}%)`;
         $("fBookingCreated").textContent =
           `${f.booking_created || 0} (${sessions ? Math.round((f.booking_created||0)*100/sessions) : 0}%)`;
+      }
+
+      function fmtPct(n){
+        const x = Number(n || 0);
+        return (Number.isFinite(x) ? x : 0).toFixed(2);
+      }
+
+      async function loadFunnelByLanding(from, to){
+        const r = await fetchJSON(`/api/admin/analytics/funnel-by-landing?from=${encodeURIComponent(from)}&to=${encodeURIComponent(to)}`);
+        const body = $("funnelLandingRows");
+        if (!body) return;
+
+        if (!r || !r.ok || !Array.isArray(r.rows)) {
+          body.innerHTML = `<tr><td colspan="6" class="muted">Failed loading.</td></tr>`;
+          return;
+        }
+
+        const rows = r.rows;
+        if (!rows.length) {
+          body.innerHTML = `<tr><td colspan="6" class="muted">No data.</td></tr>`;
+          return;
+        }
+
+        body.innerHTML = rows.map(x => {
+          const lp = String(x.landing_path || "(none)");
+          return `
+            <tr>
+              <td class="mono">${lp}</td>
+              <td class="right mono">${Number(x.sessions || 0) || 0}</td>
+              <td class="right mono">${Number(x.view_property || 0) || 0}</td>
+              <td class="right mono">${Number(x.start_checkout || 0) || 0}</td>
+              <td class="right mono">${Number(x.booking_created || 0) || 0}</td>
+              <td class="right mono">${fmtPct(x.booking_created_rate_pct)}%</td>
+            </tr>
+          `;
+        }).join("");
+      }
+
+      async function loadFunnelBySource(from, to){
+        const r = await fetchJSON(`/api/admin/analytics/funnel-by-source?from=${encodeURIComponent(from)}&to=${encodeURIComponent(to)}`);
+        const body = $("funnelSourceRows");
+        if (!body) return;
+
+        if (!r || !r.ok || !Array.isArray(r.rows)) {
+          body.innerHTML = `<tr><td colspan="7" class="muted">Failed loading.</td></tr>`;
+          return;
+        }
+
+        const rows = r.rows;
+        if (!rows.length) {
+          body.innerHTML = `<tr><td colspan="7" class="muted">No data.</td></tr>`;
+          return;
+        }
+
+        body.innerHTML = rows.map(x => {
+          const src = String(x.source || "(direct)");
+          const med = String(x.medium || "(none)");
+          return `
+            <tr>
+              <td>${src}</td>
+              <td>${med}</td>
+              <td class="right mono">${Number(x.sessions || 0) || 0}</td>
+              <td class="right mono">${Number(x.view_property || 0) || 0}</td>
+              <td class="right mono">${Number(x.start_checkout || 0) || 0}</td>
+              <td class="right mono">${Number(x.booking_created || 0) || 0}</td>
+              <td class="right mono">${fmtPct(x.booking_created_rate_pct)}%</td>
+            </tr>
+          `;
+        }).join("");
       }
 
       // Init
