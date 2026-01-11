@@ -2264,6 +2264,54 @@
     const plan =
       (qs.get('ratePlanId') || qs.get('plan') || '').trim();
 
+    // === ANALYTICS (V2) ===================================================
+    const WA_ENDPOINT = "/api/analytics/event";
+    const WA_SID_KEY  = "lolaelo_wa_sid";
+
+    function waGetSid(){
+      try { return localStorage.getItem(WA_SID_KEY) || ""; } catch (_) { return ""; }
+    }
+    function waSetSid(sid){
+      try { if (sid) localStorage.setItem(WA_SID_KEY, sid); } catch (_) {}
+    }
+
+    async function waTrack(name, payload, activeMs){
+      try {
+        const body = {
+          sid: waGetSid() || null,
+          name: String(name || "").trim(),
+          path: location.pathname,
+          url: location.href,
+          title: document.title || "",
+          referrer: document.referrer || "",
+          activeMs: Number.isFinite(activeMs) ? activeMs : 0,
+          payload: payload && typeof payload === "object" ? payload : null
+        };
+        if (!body.name) return;
+
+        const r = await fetch(WA_ENDPOINT, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(body),
+          keepalive: true
+        }).catch(() => null);
+
+        const j = r ? await r.json().catch(() => null) : null;
+        if (j && j.ok && j.sid) waSetSid(String(j.sid));
+      } catch (_) {}
+    }
+
+    document.addEventListener("DOMContentLoaded", () => {
+      waTrack("page_view", { page: "catalog_details" }, 0);
+
+      // Property view (key funnel step)
+      const pid = Number(propertyId || 0) || 0;
+      if (pid > 0) {
+        waTrack("view_property", { partnerId: pid }, 0);
+      }
+    });
+    // === ANALYTICS (V2) END ===============================================
+
     // ANCHOR: DETAILS_DATE_BAR_SETUP
     (function setupDetailsDateBar() {
       const checkInInput   = document.getElementById("detail-checkin");

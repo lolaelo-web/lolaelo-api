@@ -1897,6 +1897,44 @@
     const CART_KEY = "checkout.cart.v1";
     const SELECTION_KEY = "checkout.selection.v1";
 
+    // === ANALYTICS (V2) ===================================================
+    const WA_ENDPOINT = "/api/analytics/event";
+    const WA_SID_KEY  = "lolaelo_wa_sid";
+
+    function waGetSid(){
+      try { return localStorage.getItem(WA_SID_KEY) || ""; } catch (_) { return ""; }
+    }
+    function waSetSid(sid){
+      try { if (sid) localStorage.setItem(WA_SID_KEY, sid); } catch (_) {}
+    }
+
+    async function waTrack(name, payload, activeMs){
+      try {
+        const body = {
+          sid: waGetSid() || null,
+          name: String(name || "").trim(),
+          path: location.pathname,
+          url: location.href,
+          title: document.title || "",
+          referrer: document.referrer || "",
+          activeMs: Number.isFinite(activeMs) ? activeMs : 0,
+          payload: payload && typeof payload === "object" ? payload : null
+        };
+        if (!body.name) return;
+
+        const r = await fetch(WA_ENDPOINT, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(body),
+          keepalive: true
+        }).catch(() => null);
+
+        const j = r ? await r.json().catch(() => null) : null;
+        if (j && j.ok && j.sid) waSetSid(String(j.sid));
+      } catch (_) {}
+    }
+    // === ANALYTICS (V2) END ===============================================
+
     function safeJsonParse(raw) {
       try { return raw ? JSON.parse(raw) : null; } catch (_) { return null; }
     }
@@ -1908,6 +1946,29 @@
         return null;
       }
     }
+
+    // Fire checkout page_view + start_checkout once per load
+    document.addEventListener("DOMContentLoaded", () => {
+      try {
+        const q0 = parseQuery();
+        const merged = coalesceQueryFromCart(q0);
+        const q = merged && merged.q ? merged.q : q0;
+        const cart = merged && merged.cart ? merged.cart : null;
+
+        waTrack("page_view", { page: "checkout" }, 0);
+
+        waTrack("start_checkout", {
+          propertyId: q.propertyId || null,
+          roomTypeId: q.roomId || null,
+          ratePlanId: q.ratePlanId || null,
+          start: q.start || null,
+          end: q.end || null,
+          qty: q.qty || null,
+          cartMode: !!cart,
+          cartItems: cart && Array.isArray(cart.items) ? cart.items.length : 0
+        }, 0);
+      } catch (_) {}
+    });
 
     function coalesceQueryFromCart(q) {
       const qq = Object.assign({}, q || {});
@@ -4516,6 +4577,8 @@
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify({
               // booking identifiers (server canonical)
+              sid: (function(){ try { return localStorage.getItem("lolaelo_wa_sid") || ""; } catch(_) { return ""; } })(),
+
               partnerId: state.propertyId,
               roomTypeId: state.roomId,
               ratePlanId: state.ratePlanId,

@@ -450,6 +450,45 @@ app.post("/api/payments/webhook", express.raw({ type: "application/json" }), asy
 
       const bookingId = ins.rows[0].id as number;
 
+      // === ANALYTICS (V2): booking_created (authoritative) ======================
+      try {
+        const mdAny: any = session.metadata || {};
+        const sid = (mdAny.sid ? String(mdAny.sid) : "").trim();
+
+        if (sid) {
+          await client.query(
+            `
+            INSERT INTO extranet."WebAnalyticsEvent"
+              ("ts","sessionId","name","path","url","title","referrer","activeMs","payload")
+            VALUES
+              ($1,$2,$3,$4,$5,$6,$7,$8,$9)
+            `,
+            [
+              now,
+              sid,
+              "booking_created",
+              null,
+              null,
+              null,
+              null,
+              0,
+              {
+                bookingId: Number(bookingId || 0),
+                bookingRef: String(bookingRef || ""),
+                partnerId: Number(partnerId || 0),
+                stripeSessionId: String(providerPaymentId || session.id || ""),
+                amountPaid: Number(amountPaid || 0),
+                currency: String(currency || "USD"),
+                status: String(bookingStatus || "")
+              }
+            ]
+          );
+        }
+      } catch (e: any) {
+        console.warn("[analytics] booking_created emit failed:", e?.message || e);
+      }
+      // === ANALYTICS (V2) END ===================================================
+
       // ANCHOR: INSERT_BOOKING_ITEMS
       try {
         const md2: any = session.metadata || {};
@@ -2733,14 +2772,31 @@ app.get("/api/admin/analytics/summary", async (req: Request, res: Response) => {
     const toTs = new Date(to + "T23:59:59Z");
 
     const data = await withDb(async (client) => {
+      // Totals computed from per-session rollup (gives pages/session + zero-engagement%)
       const totalsQ = await client.query(
         `
+        WITH sess AS (
+          SELECT
+            "sessionId",
+            COALESCE(SUM(COALESCE("activeMs",0)),0)::bigint AS engaged_ms,
+            SUM(CASE WHEN name='page_view' THEN 1 ELSE 0 END)::int AS page_views
+          FROM extranet."WebAnalyticsEvent"
+          WHERE ts >= $1 AND ts <= $2
+          GROUP BY 1
+        )
         SELECT
-          COUNT(DISTINCT "sessionId")::int AS sessions,
-          SUM(CASE WHEN name='page_view' THEN 1 ELSE 0 END)::int AS pageViews,
-          COALESCE(SUM("activeMs"),0)::bigint AS engagedMs
-        FROM extranet."WebAnalyticsEvent"
-        WHERE ts >= $1 AND ts <= $2
+          COUNT(*)::int AS sessions,
+          COALESCE(SUM(page_views),0)::int AS pageViews,
+          COALESCE(SUM(engaged_ms),0)::bigint AS engagedMs,
+          CASE WHEN COUNT(*) > 0
+            THEN ROUND((SUM(page_views)::numeric / COUNT(*))::numeric, 2)
+            ELSE 0
+          END AS pagesPerSession,
+          CASE WHEN COUNT(*) > 0
+            THEN ROUND((SUM(CASE WHEN engaged_ms = 0 THEN 1 ELSE 0 END)::numeric * 100.0 / COUNT(*))::numeric, 2)
+            ELSE 0
+          END AS zeroEngagementPct
+        FROM sess
         `,
         [fromTs, toTs]
       );
@@ -2751,7 +2807,7 @@ app.get("/api/admin/analytics/summary", async (req: Request, res: Response) => {
           date_trunc('day', ts)::date AS day,
           COUNT(DISTINCT "sessionId")::int AS sessions,
           SUM(CASE WHEN name='page_view' THEN 1 ELSE 0 END)::int AS page_views,
-          COALESCE(SUM("activeMs"),0)::bigint AS engaged_ms
+          COALESCE(SUM(COALESCE("activeMs",0)),0)::bigint AS engaged_ms
         FROM extranet."WebAnalyticsEvent"
         WHERE ts >= $1 AND ts <= $2
         GROUP BY 1
@@ -2766,7 +2822,7 @@ app.get("/api/admin/analytics/summary", async (req: Request, res: Response) => {
           s."utmSource" AS utm_source,
           s."utmMedium" AS utm_medium,
           COUNT(DISTINCT s.id)::int AS sessions,
-          COALESCE(SUM(e."activeMs"),0)::bigint AS engaged_ms
+          COALESCE(SUM(COALESCE(e."activeMs",0)),0)::bigint AS engaged_ms
         FROM extranet."WebAnalyticsSession" s
         LEFT JOIN extranet."WebAnalyticsEvent" e
           ON e."sessionId" = s.id
@@ -2778,17 +2834,146 @@ app.get("/api/admin/analytics/summary", async (req: Request, res: Response) => {
         [fromTs, toTs]
       );
 
-      const totals = totalsQ.rows?.[0] || { sessions: 0, pageviews: 0, engagedms: 0 };
+      // Exit pages (last page_view per session)
+      const exitPagesQ = await client.query(
+        `
+        WITH pv AS (
+          SELECT "sessionId", ts, path
+          FROM extranet."WebAnalyticsEvent"
+          WHERE ts >= $1 AND ts <= $2
+            AND name = 'page_view'
+            AND path IS NOT NULL
+        ),
+        last_pv AS (
+          SELECT DISTINCT ON ("sessionId")
+            "sessionId",
+            path AS exit_path
+          FROM pv
+          ORDER BY "sessionId", ts DESC
+        )
+        SELECT
+          exit_path,
+          COUNT(*)::int AS sessions
+        FROM last_pv
+        GROUP BY 1
+        ORDER BY sessions DESC
+        LIMIT 10
+        `,
+        [fromTs, toTs]
+      );
+
+      // Exit pages by source (utmSource/utmMedium on session)
+      const exitBySourceQ = await client.query(
+        `
+        WITH pv AS (
+          SELECT "sessionId", ts, path
+          FROM extranet."WebAnalyticsEvent"
+          WHERE ts >= $1 AND ts <= $2
+            AND name = 'page_view'
+            AND path IS NOT NULL
+        ),
+        last_pv AS (
+          SELECT DISTINCT ON ("sessionId")
+            "sessionId",
+            path AS exit_path
+          FROM pv
+          ORDER BY "sessionId", ts DESC
+        )
+        SELECT
+          lp.exit_path,
+          COALESCE(s."utmSource",'') AS utm_source,
+          COALESCE(s."utmMedium",'') AS utm_medium,
+          COUNT(*)::int AS sessions
+        FROM last_pv lp
+        JOIN extranet."WebAnalyticsSession" s
+          ON s.id = lp."sessionId"
+        GROUP BY 1,2,3
+        ORDER BY sessions DESC
+        LIMIT 50
+        `,
+        [fromTs, toTs]
+      );
+
+      // Entry->Exit pairs (top entry pages per exit page)
+      const entryExitQ = await client.query(
+        `
+        WITH pv AS (
+          SELECT "sessionId", ts, path
+          FROM extranet."WebAnalyticsEvent"
+          WHERE ts >= $1 AND ts <= $2
+            AND name = 'page_view'
+            AND path IS NOT NULL
+        ),
+        first_pv AS (
+          SELECT DISTINCT ON ("sessionId")
+            "sessionId",
+            path AS entry_path
+          FROM pv
+          ORDER BY "sessionId", ts ASC
+        ),
+        last_pv AS (
+          SELECT DISTINCT ON ("sessionId")
+            "sessionId",
+            path AS exit_path
+          FROM pv
+          ORDER BY "sessionId", ts DESC
+        ),
+        pairs AS (
+          SELECT f.entry_path, l.exit_path
+          FROM first_pv f
+          JOIN last_pv l USING ("sessionId")
+        )
+        SELECT
+          exit_path,
+          entry_path,
+          COUNT(*)::int AS sessions
+        FROM pairs
+        GROUP BY 1,2
+        ORDER BY exit_path, sessions DESC
+        `,
+        [fromTs, toTs]
+      );
+
       return {
-        totals,
+        totals: totalsQ.rows?.[0] || { sessions: 0, pageviews: 0, engagedms: 0, pagespersession: 0, zeroengagementpct: 0 },
         byDay: byDayQ.rows || [],
-        topSources: topSourcesQ.rows || []
+        topSources: topSourcesQ.rows || [],
+        exitPages: exitPagesQ.rows || [],
+        exitBySource: exitBySourceQ.rows || [],
+        entryExit: entryExitQ.rows || []
       };
     });
 
     const sessions = Number(data.totals.sessions || 0) || 0;
     const engagedMs = Number(data.totals.engagedms || data.totals.engagedMs || 0) || 0;
     const avgEngagedSeconds = sessions > 0 ? Math.round((engagedMs / sessions) / 1000) : 0;
+
+    const pagesPerSession = Number(data.totals.pagespersession || data.totals.pagesPerSession || 0) || 0;
+    const zeroEngagementPct = Number(data.totals.zeroengagementpct || data.totals.zeroEngagementPct || 0) || 0;
+
+    // Build exit -> top entries (top 3)
+    const exitToEntries: Record<string, Array<{ entryPath: string; sessions: number }>> = {};
+    for (const r of (data.entryExit || [])) {
+      const exitPath = String(r.exit_path || "");
+      const entryPath = String(r.entry_path || "");
+      const cnt = Number(r.sessions || 0) || 0;
+      if (!exitPath) continue;
+      if (!exitToEntries[exitPath]) exitToEntries[exitPath] = [];
+      exitToEntries[exitPath].push({ entryPath, sessions: cnt });
+    }
+    for (const k of Object.keys(exitToEntries)) {
+      exitToEntries[k].sort((a,b) => b.sessions - a.sessions);
+      exitToEntries[k] = exitToEntries[k].slice(0, 3);
+    }
+
+    const exitPages = (data.exitPages || []).map((r: any) => {
+      const exitPath = String(r.exit_path || "");
+      return {
+        exitPath,
+        sessions: Number(r.sessions || 0) || 0,
+        topEntries: exitToEntries[exitPath] || []
+      };
+    });
 
     return res.json({
       ok: true,
@@ -2797,10 +2982,14 @@ app.get("/api/admin/analytics/summary", async (req: Request, res: Response) => {
         sessions,
         pageViews: Number(data.totals.pageviews || data.totals.pageViews || 0) || 0,
         engagedMs,
-        avgEngagedSeconds
+        avgEngagedSeconds,
+        pagesPerSession,
+        zeroEngagementPct
       },
       byDay: data.byDay,
-      topSources: data.topSources
+      topSources: data.topSources,
+      exitBySource: data.exitBySource || [],
+      exitPages
     });
 
   } catch (e: any) {
@@ -3912,6 +4101,8 @@ app.post("/api/payments/create-checkout-session", async (req: Request, res: Resp
     if (body.partnerId) metadata.partnerId = String(body.partnerId);
     if (body.roomTypeId) metadata.roomTypeId = String(body.roomTypeId);
     if (body.ratePlanId) metadata.ratePlanId = String(body.ratePlanId);
+    // Analytics session id (web funnel attribution)
+    if (body.sid) metadata.sid = String(body.sid);
     if (body.checkInDate) metadata.checkInDate = String(body.checkInDate);
     if (body.checkOutDate) metadata.checkOutDate = String(body.checkOutDate);
     if (body.qty != null) metadata.qty = String(body.qty);

@@ -1235,6 +1235,52 @@
 
   <script>
     // === ANCHOR: CATALOG_SCRIPT ============================================
+    // === ANALYTICS (V2) ===================================================
+    // First-party analytics collector: POST /api/analytics/event
+    // Stores in extranet.WebAnalyticsSession + extranet.WebAnalyticsEvent
+
+    const WA_ENDPOINT = "/api/analytics/event";
+    const WA_SID_KEY  = "lolaelo_wa_sid";
+
+    function waGetSid(){
+      try { return localStorage.getItem(WA_SID_KEY) || ""; } catch (_) { return ""; }
+    }
+    function waSetSid(sid){
+      try { if (sid) localStorage.setItem(WA_SID_KEY, sid); } catch (_) {}
+    }
+
+    async function waTrack(name, payload, activeMs){
+      try {
+        const body = {
+          sid: waGetSid() || null,
+          name: String(name || "").trim(),
+          path: location.pathname,
+          url: location.href,
+          title: document.title || "",
+          referrer: document.referrer || "",
+          activeMs: Number.isFinite(activeMs) ? activeMs : 0,
+          payload: payload && typeof payload === "object" ? payload : null
+        };
+        if (!body.name) return;
+
+        const r = await fetch(WA_ENDPOINT, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(body),
+          keepalive: true
+        }).catch(() => null);
+
+        const j = r ? await r.json().catch(() => null) : null;
+        if (j && j.ok && j.sid) waSetSid(String(j.sid));
+      } catch (_) {}
+    }
+
+    // Fire page_view once per page load
+    document.addEventListener("DOMContentLoaded", () => {
+      waTrack("page_view", { page: "catalog" }, 0);
+    });
+    // === ANALYTICS (V2) END ===============================================
+
     // === CATALOG LOADING OVERLAY HELPERS (with min-delay) ===
     let __catalogLoadingShownAt = 0;
     const CATALOG_LOADING_MIN_MS = 350;
