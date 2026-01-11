@@ -1,3 +1,9 @@
+// BASELINE LOCK (PROD) - 2026-01-11
+// Prisma migrations were baselined to match the current PROD schema.
+// Authoritative schema: extranet only. Do not reintroduce "public" into datasource schemas.
+// PROD workflow: prisma migrate deploy only. Never run migrate dev on PROD.
+// Public schema is legacy/inert (no CREATE) and its prior ledger was archived.
+
 generator client {
   provider = "prisma-client-js"
 }
