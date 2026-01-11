@@ -292,6 +292,27 @@
         </div>
     </div>
 
+    <div class="section-label">Funnel</div>
+
+      <div class="cards grid-4" id="funnelCards">
+        <div class="card kpi">
+          <div class="t">Sessions</div>
+          <div class="v" id="fSessions">–</div>
+        </div>
+        <div class="card kpi">
+          <div class="t">View property</div>
+          <div class="v" id="fViewProperty">–</div>
+        </div>
+        <div class="card kpi">
+          <div class="t">Start checkout</div>
+          <div class="v" id="fStartCheckout">–</div>
+        </div>
+        <div class="card kpi">
+          <div class="t">Booking created</div>
+          <div class="v" id="fBookingCreated">–</div>
+        </div>
+      </div>
+
     <div class="section-label">By day</div>
     <div class="table">
       <table>
@@ -618,6 +639,7 @@
           setToast("Loading...", "");
           const data = await fetchJSON(`/api/admin/analytics/summary?from=${encodeURIComponent(from)}&to=${encodeURIComponent(to)}`);
           window.__lastAnalyticsData = data;
+          await loadFunnel(from, to);
           const wrap = $("exitBySourceWrap");
           if (wrap) wrap.style.display = ($("toggleExitBySource")?.checked ? "block" : "none");
           if (!data || !data.ok) { setToast("Failed loading.", "bad"); return; }
@@ -711,6 +733,22 @@
         const to = $("toDate").value || "to";
         downloadCSV(`analytics_${from}_to_${to}.csv`, rows);
       };
+
+      async function loadFunnel(from, to){
+        const r = await fetchJSON(`/api/admin/analytics/funnel?from=${encodeURIComponent(from)}&to=${encodeURIComponent(to)}`);
+        if (!r || !r.ok) return;
+
+        const f = r.funnel || {};
+        const sessions = Number(f.sessions || 0);
+
+        $("fSessions").textContent = sessions;
+        $("fViewProperty").textContent =
+          `${f.view_property || 0} (${sessions ? Math.round((f.view_property||0)*100/sessions) : 0}%)`;
+        $("fStartCheckout").textContent =
+          `${f.start_checkout || 0} (${sessions ? Math.round((f.start_checkout||0)*100/sessions) : 0}%)`;
+        $("fBookingCreated").textContent =
+          `${f.booking_created || 0} (${sessions ? Math.round((f.booking_created||0)*100/sessions) : 0}%)`;
+      }
 
       // Init
       (async function boot(){

@@ -3002,6 +3002,56 @@ app.get("/api/admin/analytics/summary", async (req: Request, res: Response) => {
 });
 // === Admin Analytics Summary END ==========================================
 
+// === ADMIN ANALYTICS FUNNEL (V2) ==========================================
+app.get("/api/admin/analytics/funnel", async (req: Request, res: Response) => {
+  try {
+    requireAdminAuth(req);
+
+    const from = String(req.query.from || "").slice(0, 10);
+    const to   = String(req.query.to || "").slice(0, 10);
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(from) || !/^\d{4}-\d{2}-\d{2}$/.test(to)) {
+      return res.status(400).json({ ok:false, error:"from_to_required_YYYY-MM-DD" });
+    }
+
+    const funnel = await withDb(async (client) => {
+      const q = `
+        WITH sessions AS (
+          SELECT id
+          FROM extranet."WebAnalyticsSession"
+          WHERE "createdAt" >= $1
+            AND "createdAt" < ($2::date + interval '1 day')
+        ),
+        flags AS (
+          SELECT
+            e."sessionId" AS id,
+            MAX(CASE WHEN e.name='view_property' THEN 1 ELSE 0 END) AS view_property,
+            MAX(CASE WHEN e.name='start_checkout' THEN 1 ELSE 0 END) AS start_checkout,
+            MAX(CASE WHEN e.name='booking_created' THEN 1 ELSE 0 END) AS booking_created
+          FROM extranet."WebAnalyticsEvent" e
+          WHERE e.ts >= $1
+            AND e.ts < ($2::date + interval '1 day')
+          GROUP BY e."sessionId"
+        )
+        SELECT
+          COUNT(*)::int AS sessions,
+          SUM(COALESCE(f.view_property,0))::int AS view_property,
+          SUM(COALESCE(f.start_checkout,0))::int AS start_checkout,
+          SUM(COALESCE(f.booking_created,0))::int AS booking_created
+        FROM sessions s
+        LEFT JOIN flags f ON f.id = s.id;
+      `;
+      const r = await client.query(q, [from, to]);
+      return r.rows[0];
+    });
+
+    return res.json({ ok:true, funnel });
+  } catch (e:any) {
+    console.error("[admin][analytics][funnel]", e);
+    return res.status(500).json({ ok:false, error:"server_error" });
+  }
+});
+// === ADMIN ANALYTICS FUNNEL END ===========================================
+
 // ANCHOR: ADMIN_KPIS_BOOKINGS_ROUTE
 app.get("/api/admin/kpis/bookings", async (req: Request, res: Response) => {
   try {
