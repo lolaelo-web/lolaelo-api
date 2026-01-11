@@ -4014,6 +4014,13 @@
     //   [data-apply-addons-modal]
 
     function initCheckout() {
+      // === HARD GUARD: prevent double init/render (duplicate cards + $0 overwrite) ===
+      if (window.__CHECKOUT_INIT_DONE__) {
+        console.warn("[checkout] initCheckout blocked (already ran)");
+        return;
+      }
+      window.__CHECKOUT_INIT_DONE__ = true;
+
       // === AFTER-SUCCESS HARD STOP (durable) ===
       (function(){
         try {
@@ -4705,11 +4712,11 @@
 
       // TODO: make sure these 5 files exist in /assets on lolaelo.com
       const logos = [
-        "https://www.lolaelo.com/assets/card_visa.png",
-        "https://www.lolaelo.com/assets/card_mastercard.png",
-        "https://www.lolaelo.com/assets/card_applepay.png",
-        "https://www.lolaelo.com/assets/card_discover.png",
-        "https://www.lolaelo.com/assets/card_amex.png",
+        "/images/cards/card_visa.png",
+        "/images/cards/card_mastercard.png",
+        "/images/cards/card_applepay.png",
+        "/images/cards/card_discover.png",
+        "/images/cards/card_amex.png",
       ];
 
       let index = 0;
