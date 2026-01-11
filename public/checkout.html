@@ -1631,7 +1631,7 @@
                         <div class="pill-main">
                           <div class="card-logos">
 														<img
-															src="https://www.lolaelo.com/assets/card_visa.png"
+															src="/images/cards/card_visa.png"
 															alt="Visa, Mastercard, Apple Pay, Discover, Amex"
 															class="card-logo-ticker"
 														/>
@@ -1657,7 +1657,7 @@
                       <div class="pill">
                         <div class="pill-main">
                           <img
-                            src="https://www.lolaelo.com/assets/paypal.png"
+                            src="/images/cards/paypal.png"
                             alt="PayPal"
                           >
                         </div>
@@ -1681,7 +1681,7 @@
                       <div class="pill">
                         <div class="pill-main">
                           <img
-                            src="https://www.lolaelo.com/assets/gcash.png"
+                            src="/images/cards/gcash.png"
                             alt="GCash"
                           >
                         </div>
@@ -3169,9 +3169,43 @@
         return "$" + s;
       };
 
-      pickAll("stayNights", "stayNights").forEach(el => { el.textContent = String(nights); });
-      pickAll("avgNightPrice", "avgNightPrice").forEach(el => { el.textContent = fmtMoney(avg); });
-      pickAll("totalPill", "totalPill").forEach(el => { el.textContent = fmtMoney(totalScaled); });
+      // Primary targets (data-role / legacy ids)
+      const nightsNodes = pickAll("stayNights", "stayNights");
+      const avgNodes    = pickAll("avgNightPrice", "avgNightPrice");
+      const totalNodes  = pickAll("totalPill", "totalPill");
+
+      // Fallback targets (current checkout card markup)
+      // - Nights value cell
+      // - Avg price/night value cell
+      // - Total pill (circled)
+      const nightsFallback = Array.from(cardEl.querySelectorAll(
+        '[data-field="nights"], .nights-val, .stay-nights, [aria-label="Nights"], .pricing-row .nights'
+      ));
+      const avgFallback = Array.from(cardEl.querySelectorAll(
+        '[data-field="avgNight"], .avg-night-val, .avgNight, .avg-night, .pricing-row .avg'
+      ));
+      const totalFallback = Array.from(cardEl.querySelectorAll(
+        '[data-field="lineTotal"], .total-pill, .price-pill, .pill, .pricing-total'
+      ));
+
+      const setText = (nodes, text) => nodes.forEach(el => { if (el) el.textContent = text; });
+
+      setText(nightsNodes.length ? nightsNodes : nightsFallback, String(nights));
+      setText(avgNodes.length ? avgNodes : avgFallback, fmtMoney(avg));
+      setText(totalNodes.length ? totalNodes : totalFallback, fmtMoney(totalScaled));
+
+      console.log("[checkout] applyQuoteToCard wrote", {
+        nights,
+        avg,
+        totalScaled,
+        nightsTargets: nightsNodes.length,
+        avgTargets: avgNodes.length,
+        totalTargets: totalNodes.length,
+        nightsFallback: nightsFallback.length,
+        avgFallback: avgFallback.length,
+        totalFallback: totalFallback.length
+      });
+
       // Store numeric totals on the card so cart summary can sum across cards
       try {
         cardEl.dataset.lineTotal = String(totalScaled);         // numeric (qty-scaled)
