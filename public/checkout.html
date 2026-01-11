@@ -3112,10 +3112,6 @@
       // IMPORTANT:
       // ratePlanId is informational only for checkout display.
       // Backend pricing is already resolved in catalog/details.
-      if (Number.isFinite(ratePlanId)) {
-        qs.set("ratePlanId", String(ratePlanId));
-      }
-
       const url = "/catalog/details?" + qs.toString();
       console.log("[checkout] card quote URL", url);
 
@@ -3810,9 +3806,6 @@
           const roomIdForQuote = itemRef.roomTypeId || itemRef.roomId;
           if (roomIdForQuote) qs.set("roomId", String(roomIdForQuote));
 
-          const rpid = Number(itemRef.ratePlanId);
-          if (Number.isFinite(rpid) && rpid > 0) qs.set("ratePlanId", String(rpid));
-
           qs.set("qty", String(itemRef.qty || 1));
 
           fetch("/catalog/details?" + qs.toString(), {
@@ -3886,15 +3879,10 @@
 
           const qs = new URLSearchParams();
           qs.set("propertyId", String(pid));
-          qs.set("plans", "2");
           if (itemRef.start) qs.set("start", String(itemRef.start));
           if (itemRef.end)   qs.set("end",   String(itemRef.end));
           const roomIdForQuote = itemRef.roomTypeId || itemRef.roomId;
           if (roomIdForQuote) qs.set("roomId", String(roomIdForQuote));
-
-          const rpid = Number(itemRef.ratePlanId);
-          if (Number.isFinite(rpid) && rpid > 0) qs.set("ratePlanId", String(rpid));
-
           qs.set("qty", String(itemRef.qty || 1));
 
           fetch("/catalog/details?" + qs.toString(), {
