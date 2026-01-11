@@ -3,6 +3,12 @@
 // Authoritative schema: extranet only. Do not reintroduce "public" into datasource schemas.
 // PROD workflow: prisma migrate deploy only. Never run migrate dev on PROD.
 // Public schema is legacy/inert (no CREATE) and its prior ledger was archived.
+// ⚠️ PRISMA BASELINE LOCK — READ prisma/README.md BEFORE EDITING
+// PROD baseline established: 2026-01-11
+// Authoritative schema: extranet ONLY
+// Never reintroduce `public` into datasource schemas
+// PROD: prisma migrate deploy ONLY
+// DEV: use ./prisma-dev.ps1 ONLY
 
 generator client {
   provider = "prisma-client-js"
