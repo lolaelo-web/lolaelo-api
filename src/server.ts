@@ -3140,8 +3140,18 @@ app.get("/api/admin/analytics/funnel-by-source", async (req: Request, res: Respo
         dim AS (
           SELECT
             session_id,
-            COALESCE(utm_source, referrer_host, '(direct)') AS source,
-            COALESCE(utm_medium, '(none)') AS medium
+            CASE
+              WHEN utm_source IS NOT NULL THEN utm_source
+              WHEN referrer_host IS NULL THEN '(direct)'
+              WHEN referrer_host IN ('www.lolaelo.com','lolaelo.com','lolaelo-api.onrender.com') THEN '(direct)'
+              ELSE referrer_host
+            END AS source,
+            CASE
+              WHEN utm_source IS NOT NULL THEN COALESCE(utm_medium, '(none)')
+              WHEN referrer_host IS NULL THEN '(none)'
+              WHEN referrer_host IN ('www.lolaelo.com','lolaelo.com','lolaelo-api.onrender.com') THEN '(none)'
+              ELSE '(referral)'
+            END AS medium
           FROM sessions
         ),
         flags AS (
@@ -3183,6 +3193,93 @@ app.get("/api/admin/analytics/funnel-by-source", async (req: Request, res: Respo
   }
 });
 // === ADMIN ANALYTICS FUNNEL BY SOURCE END =================================
+
+// === ADMIN ANALYTICS DROPOFF (V2) =========================================
+app.get("/api/admin/analytics/dropoff", async (req: Request, res: Response) => {
+  try {
+    requireAdminAuth(req);
+
+    const from = String(req.query.from || "").slice(0, 10);
+    const to   = String(req.query.to || "").slice(0, 10);
+    const limit = Math.min(200, Math.max(10, Number(req.query.limit || 50)));
+
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(from) || !/^\d{4}-\d{2}-\d{2}$/.test(to)) {
+      return res.status(400).json({ ok:false, error:"from_to_required_YYYY-MM-DD" });
+    }
+
+    const rows = await withDb(async (client) => {
+      const q = `
+        WITH scoped_sessions AS (
+          SELECT
+            s.id AS session_id,
+            s."createdAt",
+            s."lastSeenAt",
+            s."landingPath",
+            s."landingUrl"
+          FROM extranet."WebAnalyticsSession" s
+          WHERE s."createdAt" >= $1
+            AND s."createdAt" < ($2::date + interval '1 day')
+        ),
+        start_checkout AS (
+          SELECT DISTINCT ON (e."sessionId")
+            e."sessionId" AS session_id,
+            e.ts AS start_ts,
+            e.url AS checkout_url,
+            e.payload AS checkout_payload
+          FROM extranet."WebAnalyticsEvent" e
+          WHERE e.ts >= $1
+            AND e.ts < ($2::date + interval '1 day')
+            AND e.name = 'start_checkout'
+          ORDER BY e."sessionId", e.ts DESC
+        ),
+        booked AS (
+          SELECT DISTINCT e."sessionId" AS session_id
+          FROM extranet."WebAnalyticsEvent" e
+          WHERE e.ts >= $1
+            AND e.ts < ($2::date + interval '1 day')
+            AND e.name = 'booking_created'
+        ),
+        last_pv AS (
+          SELECT DISTINCT ON (e."sessionId")
+            e."sessionId" AS session_id,
+            e.ts AS last_pv_ts,
+            e.path AS exit_path
+          FROM extranet."WebAnalyticsEvent" e
+          WHERE e.ts >= $1
+            AND e.ts < ($2::date + interval '1 day')
+            AND e.name = 'page_view'
+            AND e.path IS NOT NULL
+          ORDER BY e."sessionId", e.ts DESC
+        )
+        SELECT
+          ss.session_id,
+          ss."createdAt",
+          ss."lastSeenAt",
+          ss."landingPath",
+          ss."landingUrl",
+          sc.start_ts,
+          sc.checkout_url,
+          sc.checkout_payload,
+          lp.exit_path
+        FROM scoped_sessions ss
+        JOIN start_checkout sc ON sc.session_id = ss.session_id
+        LEFT JOIN booked b ON b.session_id = ss.session_id
+        LEFT JOIN last_pv lp ON lp.session_id = ss.session_id
+        WHERE b.session_id IS NULL
+        ORDER BY sc.start_ts DESC
+        LIMIT $3;
+      `;
+      const r = await client.query(q, [from, to, limit]);
+      return r.rows || [];
+    });
+
+    return res.json({ ok:true, rows });
+  } catch (e:any) {
+    console.error("[admin][analytics][dropoff]", e);
+    return res.status(500).json({ ok:false, error:"server_error" });
+  }
+});
+// === ADMIN ANALYTICS DROPOFF END ==========================================
 
 // ANCHOR: ADMIN_KPIS_BOOKINGS_ROUTE
 app.get("/api/admin/kpis/bookings", async (req: Request, res: Response) => {

@@ -372,6 +372,22 @@
     </div>
     <div style="height:12px;"></div>
 
+    <div class="section-label" style="margin-top:18px;">Checkout drop-off</div>
+      <table class="table" style="margin-top:10px;">
+        <thead>
+          <tr>
+            <th>When</th>
+            <th>Landing</th>
+            <th>Exit</th>
+            <th>Checkout</th>
+            <th class="right">Session</th>
+          </tr>
+        </thead>
+        <tbody id="dropoffRows">
+          <tr><td colspan="5" class="muted">Load a range to view.</td></tr>
+        </tbody>
+      </table>
+
       <div class="section-head">
         <div class="section-title">Top exit pages</div>
       </div>
@@ -677,6 +693,7 @@
           await loadFunnel(from, to);
           await loadFunnelByLanding(from, to);
           await loadFunnelBySource(from, to);
+          await loadDropoff(from, to);
           const wrap = $("exitBySourceWrap");
           if (wrap) wrap.style.display = ($("toggleExitBySource")?.checked ? "block" : "none");
           if (!data || !data.ok) { setToast("Failed loading.", "bad"); return; }
@@ -851,6 +868,49 @@
               <td class="right mono">${Number(x.start_checkout || 0) || 0}</td>
               <td class="right mono">${Number(x.booking_created || 0) || 0}</td>
               <td class="right mono">${fmtPct(x.booking_created_rate_pct)}%</td>
+            </tr>
+          `;
+        }).join("");
+      }
+
+      function fmtWhen(ts){
+        try {
+          const d = new Date(ts);
+          if (isNaN(d.getTime())) return "";
+          return d.toISOString().replace("T"," ").slice(0,19);
+        } catch (_) { return ""; }
+      }
+
+      async function loadDropoff(from, to){
+        const r = await fetchJSON(`/api/admin/analytics/dropoff?from=${encodeURIComponent(from)}&to=${encodeURIComponent(to)}&limit=50`);
+        const body = $("dropoffRows");
+        if (!body) return;
+
+        if (!r || !r.ok || !Array.isArray(r.rows)) {
+          body.innerHTML = `<tr><td colspan="5" class="muted">Failed loading.</td></tr>`;
+          return;
+        }
+
+        const rows = r.rows;
+        if (!rows.length) {
+          body.innerHTML = `<tr><td colspan="5" class="muted">No drop-offs.</td></tr>`;
+          return;
+        }
+
+        body.innerHTML = rows.map(x => {
+          const when = fmtWhen(x.start_ts || x.lastSeenAt || x.createdAt);
+          const landing = String(x.landingPath || "");
+          const exitp = String(x.exit_path || "");
+          const url = String(x.checkout_url || "");
+          const sid = String(x.session_id || "").slice(0, 8);
+
+          return `
+            <tr>
+              <td class="mono">${when}</td>
+              <td class="mono">${landing}</td>
+              <td class="mono">${exitp}</td>
+              <td class="mono" style="max-width:380px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;" title="${url.replaceAll('"','&quot;')}">${url}</td>
+              <td class="right mono">${sid}</td>
             </tr>
           `;
         }).join("");
