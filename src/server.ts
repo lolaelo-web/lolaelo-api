@@ -1858,12 +1858,16 @@ app.get("/api/partners/bookings", async (req: Request, res: Response) => {
 
   try {
     const rows = await withDb(async (client) => {
-      // Step B (Recovery Rule):
-      // 1) Expire pending bookings whose confirmation window has ended
-      // 2) If still within window but missing a live token, mint a new token (expires at pendingConfirmExpiresAt)
+      // Step B (Recover-in-place + enforce terminal outcomes):
+      // - No duplicate bookings created.
+      // - Pending must end up CONFIRMED / DECLINED_BY_HOTEL / EXPIRED_NO_RESPONSE.
+      // - If pendingConfirmExpiresAt is NULL but booking is still future-dated, recover in place:
+      //     backfill pendingConfirmExpiresAt (now+24h), refundDeadlineAt (+48h), mint token.
+      // - If window ended OR check-in is in the past, expire.
+      // - If window open but missing a live token, mint token (expires at pendingConfirmExpiresAt).
       const now = new Date();
 
-      // 1) Expire past-window pendings
+      // 1) Expire invalid pendings (window ended OR check-in is in the past)
       await client.query(
         `
         UPDATE extranet."Booking" b
@@ -1872,13 +1876,73 @@ app.get("/api/partners/bookings", async (req: Request, res: Response) => {
           "updatedAt" = NOW()
         WHERE b."partnerId" = $1
           AND b.status = 'PENDING_HOTEL_CONFIRMATION'::extranet."BookingStatus"
-          AND b."pendingConfirmExpiresAt" IS NOT NULL
-          AND b."pendingConfirmExpiresAt" <= NOW()
+          AND (
+            (b."pendingConfirmExpiresAt" IS NOT NULL AND b."pendingConfirmExpiresAt" <= NOW())
+            OR (b."checkInDate" IS NOT NULL AND b."checkInDate" < CURRENT_DATE)
+          )
         `,
         [partnerId]
       );
 
-      // 2) Recover tokenless pendings still within window
+      // 2) Recover pendings with NULL window that are still future-dated:
+      //    backfill window + refund deadline + mint token
+      const nullWin = await client.query(
+        `
+        SELECT b.id
+        FROM extranet."Booking" b
+        WHERE b."partnerId" = $1
+          AND b.status = 'PENDING_HOTEL_CONFIRMATION'::extranet."BookingStatus"
+          AND b."pendingConfirmExpiresAt" IS NULL
+          AND (b."checkInDate" IS NULL OR b."checkInDate" >= CURRENT_DATE)
+        ORDER BY b.id ASC
+        LIMIT 200
+        `,
+        [partnerId]
+      );
+
+      for (const r of (nullWin.rows || [])) {
+        const bookingId = Number(r.id);
+
+        const newPce = new Date(now.getTime() + 24 * 60 * 60 * 1000);
+        const newRefundDeadline = new Date(newPce.getTime() + 48 * 60 * 60 * 1000);
+
+        await client.query(
+          `
+          UPDATE extranet."Booking"
+          SET
+            "pendingConfirmExpiresAt" = $2,
+            "refundDeadlineAt" = $3,
+            "updatedAt" = $4
+          WHERE id = $1
+            AND status = 'PENDING_HOTEL_CONFIRMATION'::extranet."BookingStatus"
+          `,
+          [bookingId, newPce, newRefundDeadline, now]
+        );
+
+        const token = crypto.randomBytes(24).toString("hex");
+
+        await client.query(
+          `
+          INSERT INTO extranet."BookingConfirmToken"
+            ("bookingId","token","expiresAt","createdAt")
+          VALUES
+            ($1,$2,$3,$4)
+          `,
+          [bookingId, token, newPce, now]
+        );
+
+        await client.query(
+          `
+          INSERT INTO extranet."BookingEvent"
+            ("bookingId","fromStatus","toStatus","actorType","actorId","note","createdAt")
+          VALUES
+            ($1, NULL, 'PENDING_HOTEL_CONFIRMATION', 'SYSTEM', NULL, $2, $3)
+          `,
+          [bookingId, "PENDING_RECOVERED: backfilled window + token", now]
+        );
+      }
+
+      // 3) Mint tokens for tokenless pendings still within an active window
       const needTok = await client.query(
         `
         SELECT
@@ -1906,7 +1970,6 @@ app.get("/api/partners/bookings", async (req: Request, res: Response) => {
         const bookingId = Number(r.id);
         const exp = new Date(r.pendingConfirmExpiresAt);
 
-        // Create a fresh token (same length/format you already use in resend route)
         const token = crypto.randomBytes(24).toString("hex");
 
         await client.query(
@@ -1919,7 +1982,6 @@ app.get("/api/partners/bookings", async (req: Request, res: Response) => {
           [bookingId, token, exp, now]
         );
 
-        // Optional: event trail (helps audit why token was minted)
         await client.query(
           `
           INSERT INTO extranet."BookingEvent"
