@@ -1858,18 +1858,94 @@ app.get("/api/partners/bookings", async (req: Request, res: Response) => {
 
   try {
     const rows = await withDb(async (client) => {
+      // Step B (Recovery Rule):
+      // 1) Expire pending bookings whose confirmation window has ended
+      // 2) If still within window but missing a live token, mint a new token (expires at pendingConfirmExpiresAt)
+      const now = new Date();
+
+      // 1) Expire past-window pendings
+      await client.query(
+        `
+        UPDATE extranet."Booking" b
+        SET
+          status = 'EXPIRED_NO_RESPONSE'::extranet."BookingStatus",
+          "updatedAt" = NOW()
+        WHERE b."partnerId" = $1
+          AND b.status = 'PENDING_HOTEL_CONFIRMATION'::extranet."BookingStatus"
+          AND b."pendingConfirmExpiresAt" IS NOT NULL
+          AND b."pendingConfirmExpiresAt" <= NOW()
+        `,
+        [partnerId]
+      );
+
+      // 2) Recover tokenless pendings still within window
+      const needTok = await client.query(
+        `
+        SELECT
+          b.id,
+          b."pendingConfirmExpiresAt"
+        FROM extranet."Booking" b
+        WHERE b."partnerId" = $1
+          AND b.status = 'PENDING_HOTEL_CONFIRMATION'::extranet."BookingStatus"
+          AND b."pendingConfirmExpiresAt" IS NOT NULL
+          AND b."pendingConfirmExpiresAt" > NOW()
+          AND NOT EXISTS (
+            SELECT 1
+            FROM extranet."BookingConfirmToken" t
+            WHERE t."bookingId" = b.id
+              AND t."usedAt" IS NULL
+              AND t."expiresAt" > NOW()
+          )
+        ORDER BY b.id ASC
+        LIMIT 200
+        `,
+        [partnerId]
+      );
+
+      for (const r of (needTok.rows || [])) {
+        const bookingId = Number(r.id);
+        const exp = new Date(r.pendingConfirmExpiresAt);
+
+        // Create a fresh token (same length/format you already use in resend route)
+        const token = crypto.randomBytes(24).toString("hex");
+
+        await client.query(
+          `
+          INSERT INTO extranet."BookingConfirmToken"
+            ("bookingId","token","expiresAt","createdAt")
+          VALUES
+            ($1,$2,$3,$4)
+          `,
+          [bookingId, token, exp, now]
+        );
+
+        // Optional: event trail (helps audit why token was minted)
+        await client.query(
+          `
+          INSERT INTO extranet."BookingEvent"
+            ("bookingId","fromStatus","toStatus","actorType","actorId","note","createdAt")
+          VALUES
+            ($1, NULL, 'PENDING_HOTEL_CONFIRMATION', 'SYSTEM', NULL, $2, $3)
+          `,
+          [bookingId, "TOKEN_RECOVERED: minted new confirm token on list", now]
+        );
+      }
+
       // Bucket filters (keep strict and explicit)
       let whereSql = `b."partnerId" = $1`;
       if (bucket === "pending") {
-        whereSql += ` AND b.status IN ('PENDING_HOTEL_CONFIRMATION'::extranet."BookingStatus", 'CONFIRMED'::extranet."BookingStatus")`;
+        whereSql += ` AND b.status IN (
+          'PENDING_HOTEL_CONFIRMATION'::extranet."BookingStatus",
+          'CONFIRMED'::extranet."BookingStatus"
+        )`;
       } else if (bucket === "completed") {
         // placeholder until you define true completed semantics
         whereSql += ` AND b.status IN ('COMPLETED'::extranet."BookingStatus")`;
       } else if (bucket === "canceled") {
         whereSql += ` AND b.status IN (
           'DECLINED_BY_HOTEL'::extranet."BookingStatus",
-          'EXPIRED'::extranet."BookingStatus",
-          'CANCELED'::extranet."BookingStatus"
+          'EXPIRED_NO_RESPONSE'::extranet."BookingStatus",
+          'CANCELED_BY_TRAVELER'::extranet."BookingStatus"
         )`;
       }
 
@@ -1885,10 +1961,22 @@ app.get("/api/partners/bookings", async (req: Request, res: Response) => {
           b."travelerFirstName",
           b."travelerLastName",
           rt.name AS "roomCategory",
-          rp.name AS "ratePlan"
+          rp.name AS "ratePlan",
+          b."pendingConfirmExpiresAt",
+          t.token AS "confirmToken"
         FROM extranet."Booking" b
         LEFT JOIN extranet."RoomType" rt ON rt.id = b."roomTypeId"
         LEFT JOIN extranet."RatePlan" rp ON rp.id = b."ratePlanId"
+        -- Step A: Return live confirmToken so UI can render Confirm/Decline
+        LEFT JOIN LATERAL (
+          SELECT token
+          FROM extranet."BookingConfirmToken"
+          WHERE "bookingId" = b.id
+            AND "usedAt" IS NULL
+            AND "expiresAt" > NOW()
+          ORDER BY id DESC
+          LIMIT 1
+        ) t ON TRUE
         WHERE ${whereSql}
         ORDER BY
           CASE
