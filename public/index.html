@@ -656,19 +656,71 @@
         const guestsInput = document.getElementById("hp-guests");
   
         const searchBtn = form.querySelector(".search-btn");
-          
+        
+        function isPastRange(rawDates) {
+          // rawDates looks like "YYYY-MM-DD to YYYY-MM-DD"
+          if (!rawDates || !rawDates.includes(" to ")) return { ok: false };
+          const parts = rawDates.split(" to ");
+          const s = (parts[0] || "").trim();
+          const e = (parts[1] || "").trim();
+          if (!s || !e) return { ok: false };
+
+          const start = new Date(s + "T00:00:00");
+          const end   = new Date(e + "T00:00:00");
+          const t = new Date(); t.setHours(0,0,0,0);
+
+          if (!Number.isFinite(start.getTime()) || !Number.isFinite(end.getTime())) return { ok: false };
+          if (end.getTime() <= start.getTime()) return { ok: false, reason: "end_before_start" };
+          if (start.getTime() < t.getTime()) return { ok: false, reason: "start_in_past" };
+
+          return { ok: true };
+        }
+
+        function setDatesError(msg) {
+          // Attach error just under the date field
+          const dateField = datesInput?.closest(".search-field") || form;
+          let el = dateField.querySelector(".date-guard-error");
+          if (!el) {
+            el = document.createElement("div");
+            el.className = "date-guard-error";
+            el.style.marginTop = "6px";
+            el.style.color = "#b91c1c";
+            el.style.fontSize = "12px";
+            el.style.fontWeight = "600";
+            dateField.appendChild(el);
+          }
+          el.textContent = msg || "";
+          el.style.display = msg ? "block" : "none";
+        }
+
         function updateSearchState() {
           const hasDest = !!(qInput.value && qInput.value.trim());
-        
+
           const rawDates = (datesInput.value || "").trim();
           const hasDates =
             rawDates.includes(" to ") &&
             rawDates.split(" to ")[0] &&
             rawDates.split(" to ")[1];
-        
+
+          let datesOk = false;
+          if (hasDates) {
+            const v = isPastRange(rawDates);
+            datesOk = !!v.ok;
+            if (!datesOk) {
+              setDatesError(v.reason === "start_in_past"
+                ? "Check-in date cannot be in the past."
+                : "Check-out must be after check-in."
+              );
+            } else {
+              setDatesError("");
+            }
+          } else {
+            setDatesError("");
+          }
+
           // Guests always has a valid default (2), so do NOT gate on it
-          const enabled = hasDest && hasDates;
-        
+          const enabled = hasDest && hasDates && datesOk;
+
           searchBtn.disabled = !enabled;
           searchBtn.style.opacity = enabled ? "1" : "0.55";
           searchBtn.style.cursor = enabled ? "pointer" : "not-allowed";
@@ -680,6 +732,7 @@
           altInput: true,
           altFormat: "m/d/Y",
           dateFormat: "Y-m-d",
+          minDate: "today", // guardrail: no past check-in
           onChange: function () {
             updateSearchState();
           }
@@ -750,9 +803,17 @@
         // Form submit → build catalog URL with proper params
         form.addEventListener("submit", function (e) {
           e.preventDefault();
-  
+
+          // Guardrail: block past/invalid dates even if UI state glitches
+          const rawDates = (datesInput.value || "").trim();
+          const v = isPastRange(rawDates);
+          if (!v.ok) {
+            updateSearchState(); // shows error + disables button
+            return;
+          }
+
           const params = new URLSearchParams();
-  
+
           const qVal = (qInput.value || "").trim();
           if (qVal) {
             // Keep all three keys for flexibility downstream
@@ -760,23 +821,101 @@
             params.set("city", qVal);
             params.set("destination", qVal);
           }
-  
-          const rawDates = (datesInput.value || "").trim();
-          if (rawDates) {
-            const parts = rawDates.split(" to ");
-            if (parts[0]) params.set("start", parts[0]);
-            if (parts[1]) params.set("end", parts[1]);
-          }
-  
+
+          // rawDates is already validated (YYYY-MM-DD to YYYY-MM-DD)
+          const parts = rawDates.split(" to ");
+          if (parts[0]) params.set("start", parts[0]);
+          if (parts[1]) params.set("end", parts[1]);
+
           params.set("guests", guestsInput.value || "2");
           params.set("rooms", "1"); // default for compatibility
-  
+
           const target = "/catalog.html?" + params.toString();
           location.href = target;
         });
       })();
     </script>
+    <script>
+      // === Date Guardrails (no past dates) ===
+      function parseYmd(s){
+        // Accepts YYYY-MM-DD only
+        const m = String(s || "").trim().match(/^(\d{4})-(\d{2})-(\d{2})$/);
+        if (!m) return null;
+        const y = Number(m[1]), mo = Number(m[2]), d = Number(m[3]);
+        const dt = new Date(y, mo - 1, d);
+        // Validate rollover
+        if (dt.getFullYear() !== y || (dt.getMonth() + 1) !== mo || dt.getDate() !== d) return null;
+        // Normalize to local midnight
+        dt.setHours(0,0,0,0);
+        return dt;
+      }
 
+      function todayLocal(){
+        const t = new Date();
+        t.setHours(0,0,0,0);
+        return t;
+      }
+
+      function validateStayDates(startStr, endStr){
+        const start = parseYmd(startStr);
+        const end = parseYmd(endStr);
+        const t = todayLocal();
+
+        if (!start || !end) return { ok:false, reason:"invalid_format" };
+        if (end.getTime() <= start.getTime()) return { ok:false, reason:"end_before_start" };
+        if (start.getTime() < t.getTime()) return { ok:false, reason:"start_in_past" };
+        // Optional hard rule: disallow checkout in past too (covered by start rule, but explicit)
+        if (end.getTime() < t.getTime()) return { ok:false, reason:"end_in_past" };
+
+        return { ok:true };
+      }
+
+      function setBtnEnabled(btn, enabled){
+        if (!btn) return;
+        btn.disabled = !enabled;
+        btn.style.opacity = enabled ? "" : "0.55";
+        btn.style.pointerEvents = enabled ? "" : "none";
+      }
+
+      function showDateError(containerEl, msg){
+        if (!containerEl) return;
+        let el = containerEl.querySelector(".date-guard-error");
+        if (!el){
+          el = document.createElement("div");
+          el.className = "date-guard-error";
+          el.style.marginTop = "10px";
+          el.style.color = "#b91c1c";
+          el.style.fontSize = "13px";
+          el.style.fontWeight = "600";
+          containerEl.appendChild(el);
+        }
+        el.textContent = msg || "";
+        el.style.display = msg ? "block" : "none";
+      }
+
+      function guardDatesOrDisable(opts){
+        // opts: { startStr, endStr, btns: [..], containerEl }
+        const v = validateStayDates(opts.startStr, opts.endStr);
+        const ok = !!v.ok;
+
+        for (const b of (opts.btns || [])) setBtnEnabled(b, ok);
+
+        if (ok){
+          showDateError(opts.containerEl, "");
+          return true;
+        }
+
+        const msg =
+          v.reason === "start_in_past" ? "Check-in date cannot be in the past." :
+          v.reason === "end_before_start" ? "Check-out must be after check-in." :
+          v.reason === "invalid_format" ? "Invalid date format." :
+          "Invalid dates.";
+
+        showDateError(opts.containerEl, msg);
+        return false;
+      }
+    </script>
+      
   <script src="assets/lolaelo-api.js"></script>
 </body>
 </html>

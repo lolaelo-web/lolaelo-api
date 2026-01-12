@@ -3983,6 +3983,19 @@
 
     function handleConfirmClick(section) {
 
+      // Guardrail: block confirming Section 1 if dates are past/invalid
+      if (section === 1 && typeof validateStayDates === "function") {
+        const v = validateStayDates(String(state.start || ""), String(state.end || ""));
+        if (!v || !v.ok) {
+          alert(
+            v && v.reason === "start_in_past"
+              ? "Check-in date cannot be in the past."
+              : "Dates are invalid. Check-out must be after check-in."
+          );
+          return;
+        }
+      }
+
       // Guest details validation lives on section 4
       if (section === 3) {
         const firstName = document.getElementById("firstName").value.trim();
@@ -4355,6 +4368,7 @@
             ctx.rangeDriver._checkoutFp = flatpickr(ctx.rangeDriver, {
               mode: "range",
               dateFormat: "Y-m-d",
+              minDate: "today",
               allowInput: false,
               clickOpens: false,
               closeOnSelect: false,
@@ -4419,6 +4433,21 @@
 
           const s = sel[0] || parseLocalYMD(state.start) || null;
           let endDate = sel[1] || parseLocalYMD(state.end) || null;
+
+          // Guardrail: no past dates
+          if (typeof validateStayDates === "function") {
+            const sYmd = s ? formatLocalYmd(s) : "";
+            const eYmd = endDate ? formatLocalYmd(endDate) : "";
+            const v = validateStayDates(sYmd, eYmd);
+            if (!v || !v.ok) {
+              alert(
+                v && v.reason === "start_in_past"
+                  ? "Check-in date cannot be in the past."
+                  : "Dates are invalid. Check-out must be after check-in."
+              );
+              return;
+            }
+          }
 
           if (!s) return;
 
@@ -5097,8 +5126,87 @@
     }
 
   </style>
-
   <!-- END ANCHOR: ADDONS_MODAL -->
 
+  <script>
+  // === Date Guardrails (no past dates) ===
+  function parseYmd(s){
+    // Accepts YYYY-MM-DD only
+    const m = String(s || "").trim().match(/^(\d{4})-(\d{2})-(\d{2})$/);
+    if (!m) return null;
+    const y = Number(m[1]), mo = Number(m[2]), d = Number(m[3]);
+    const dt = new Date(y, mo - 1, d);
+    // Validate rollover
+    if (dt.getFullYear() !== y || (dt.getMonth() + 1) !== mo || dt.getDate() !== d) return null;
+    // Normalize to local midnight
+    dt.setHours(0,0,0,0);
+    return dt;
+  }
+
+  function todayLocal(){
+    const t = new Date();
+    t.setHours(0,0,0,0);
+    return t;
+  }
+
+  function validateStayDates(startStr, endStr){
+    const start = parseYmd(startStr);
+    const end = parseYmd(endStr);
+    const t = todayLocal();
+
+    if (!start || !end) return { ok:false, reason:"invalid_format" };
+    if (end.getTime() <= start.getTime()) return { ok:false, reason:"end_before_start" };
+    if (start.getTime() < t.getTime()) return { ok:false, reason:"start_in_past" };
+    // Optional hard rule: disallow checkout in past too (covered by start rule, but explicit)
+    if (end.getTime() < t.getTime()) return { ok:false, reason:"end_in_past" };
+
+    return { ok:true };
+  }
+
+  function setBtnEnabled(btn, enabled){
+    if (!btn) return;
+    btn.disabled = !enabled;
+    btn.style.opacity = enabled ? "" : "0.55";
+    btn.style.pointerEvents = enabled ? "" : "none";
+  }
+
+  function showDateError(containerEl, msg){
+    if (!containerEl) return;
+    let el = containerEl.querySelector(".date-guard-error");
+    if (!el){
+      el = document.createElement("div");
+      el.className = "date-guard-error";
+      el.style.marginTop = "10px";
+      el.style.color = "#b91c1c";
+      el.style.fontSize = "13px";
+      el.style.fontWeight = "600";
+      containerEl.appendChild(el);
+    }
+    el.textContent = msg || "";
+    el.style.display = msg ? "block" : "none";
+  }
+
+  function guardDatesOrDisable(opts){
+    // opts: { startStr, endStr, btns: [..], containerEl }
+    const v = validateStayDates(opts.startStr, opts.endStr);
+    const ok = !!v.ok;
+
+    for (const b of (opts.btns || [])) setBtnEnabled(b, ok);
+
+    if (ok){
+      showDateError(opts.containerEl, "");
+      return true;
+    }
+
+    const msg =
+      v.reason === "start_in_past" ? "Check-in date cannot be in the past." :
+      v.reason === "end_before_start" ? "Check-out must be after check-in." :
+      v.reason === "invalid_format" ? "Invalid date format." :
+      "Invalid dates.";
+
+    showDateError(opts.containerEl, msg);
+    return false;
+  }
+</script>
 </body>
 </html>

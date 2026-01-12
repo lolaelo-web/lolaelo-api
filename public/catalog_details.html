@@ -2399,6 +2399,7 @@
         fp = flatpickr(rangeDriver, {
           mode: "range",
           dateFormat: "Y-m-d",
+          minDate: "today",
           defaultDate: defaultDates,
           onChange(selectedDates) {
             let s = selectedDates[0] || null;
@@ -2477,6 +2478,17 @@
         const ciRaw = checkInInput.value || start;
         const coRaw = checkOutInput.value || end;
 
+        // Guardrail: no past / invalid dates
+        if (typeof guardDatesOrDisable === "function") {
+          const ok = guardDatesOrDisable({
+            startStr: (ciRaw || "").slice(0, 10),
+            endStr: (coRaw || "").slice(0, 10),
+            btns: [applyBtn],
+            containerEl: combinedField || document.querySelector(".summary-actions") || document.body
+          });
+          if (!ok) return;
+        }
+
         if (!ciRaw) return;
 
         const ciDate = parseLocalYmd(ciRaw);
@@ -2510,6 +2522,29 @@
         const nextUrl = `${location.pathname}?${qsNext.toString()}`;
         location.assign(nextUrl);
       });
+      // Step C: Guardrail - prevent navigating to checkout with past/invalid dates
+      // Blocks clicks on the "Select" buttons (a.roomcat-plan-btn) if dates are invalid.
+      document.addEventListener("click", function (e) {
+        const a = e.target && e.target.closest ? e.target.closest('a.roomcat-plan-btn') : null;
+        if (!a) return;
+
+        const ciRaw = (checkInInput && checkInInput.value) ? checkInInput.value : start;
+        const coRaw = (checkOutInput && checkOutInput.value) ? checkOutInput.value : end;
+
+        if (typeof guardDatesOrDisable === "function") {
+          const ok = guardDatesOrDisable({
+            startStr: (ciRaw || "").slice(0, 10),
+            endStr: (coRaw || "").slice(0, 10),
+            btns: [applyBtn],
+            containerEl: combinedField || document.querySelector(".summary-actions") || document.body
+          });
+          if (!ok) {
+            e.preventDefault();
+            e.stopPropagation();
+            return;
+          }
+        }
+      }, true);
     })();
 
     // ANCHOR: DETAILS_PLAN_PARAM_DEF
@@ -6044,5 +6079,87 @@
     }, { passive: true });
   })();
   </script>
+
+  <script>
+  // === Date Guardrails (no past dates) ===
+  function parseYmd(s){
+    // Accepts YYYY-MM-DD only
+    const m = String(s || "").trim().match(/^(\d{4})-(\d{2})-(\d{2})$/);
+    if (!m) return null;
+    const y = Number(m[1]), mo = Number(m[2]), d = Number(m[3]);
+    const dt = new Date(y, mo - 1, d);
+    // Validate rollover
+    if (dt.getFullYear() !== y || (dt.getMonth() + 1) !== mo || dt.getDate() !== d) return null;
+    // Normalize to local midnight
+    dt.setHours(0,0,0,0);
+    return dt;
+  }
+
+  function todayLocal(){
+    const t = new Date();
+    t.setHours(0,0,0,0);
+    return t;
+  }
+
+  function validateStayDates(startStr, endStr){
+    const start = parseYmd(startStr);
+    const end = parseYmd(endStr);
+    const t = todayLocal();
+
+    if (!start || !end) return { ok:false, reason:"invalid_format" };
+    if (end.getTime() <= start.getTime()) return { ok:false, reason:"end_before_start" };
+    if (start.getTime() < t.getTime()) return { ok:false, reason:"start_in_past" };
+    // Optional hard rule: disallow checkout in past too (covered by start rule, but explicit)
+    if (end.getTime() < t.getTime()) return { ok:false, reason:"end_in_past" };
+
+    return { ok:true };
+  }
+
+  function setBtnEnabled(btn, enabled){
+    if (!btn) return;
+    btn.disabled = !enabled;
+    btn.style.opacity = enabled ? "" : "0.55";
+    btn.style.pointerEvents = enabled ? "" : "none";
+  }
+
+  function showDateError(containerEl, msg){
+    if (!containerEl) return;
+    let el = containerEl.querySelector(".date-guard-error");
+    if (!el){
+      el = document.createElement("div");
+      el.className = "date-guard-error";
+      el.style.marginTop = "10px";
+      el.style.color = "#b91c1c";
+      el.style.fontSize = "13px";
+      el.style.fontWeight = "600";
+      containerEl.appendChild(el);
+    }
+    el.textContent = msg || "";
+    el.style.display = msg ? "block" : "none";
+  }
+
+  function guardDatesOrDisable(opts){
+    // opts: { startStr, endStr, btns: [..], containerEl }
+    const v = validateStayDates(opts.startStr, opts.endStr);
+    const ok = !!v.ok;
+
+    for (const b of (opts.btns || [])) setBtnEnabled(b, ok);
+
+    if (ok){
+      showDateError(opts.containerEl, "");
+      return true;
+    }
+
+    const msg =
+      v.reason === "start_in_past" ? "Check-in date cannot be in the past." :
+      v.reason === "end_before_start" ? "Check-out must be after check-in." :
+      v.reason === "invalid_format" ? "Invalid date format." :
+      "Invalid dates.";
+
+    showDateError(opts.containerEl, msg);
+    return false;
+  }
+</script>
+
 </body>
 </html>

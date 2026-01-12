@@ -1426,10 +1426,20 @@
     endInp.value   = e0;
     syncDatesDisplay();
 
+    // Guardrail: disable Search if URL dates are invalid/past
+    const searchBtn = document.getElementById('search');
+    guardDatesOrDisable({
+      startStr: startInp.value,
+      endStr: endInp.value,
+      btns: [searchBtn],
+      containerEl: document.querySelector('.searchbar')
+    });
+
     if (catDatesInput && window.flatpickr) {
       catDatePicker = flatpickr(catDatesInput, {
         mode: "range",
         dateFormat: "Y-m-d",
+        minDate: "today",
         defaultDate: [s0, e0],
         onChange(selectedDates, dateStr) {
           if (!startInp || !endInp) return;
@@ -1718,6 +1728,15 @@
       const city  = selectedCityCode();
       const start = startInp.value || todayISO();
       const end   = endInp.value   || start;
+
+      const btn = document.getElementById('search');
+      const ok = guardDatesOrDisable({
+        startStr: start,
+        endStr: end,
+        btns: [btn],
+        containerEl: document.querySelector('.searchbar')
+      });
+      if (!ok) return;
 
       // Read from hidden field used by custom-select for guests
       const guestsHiddenEl = document.getElementById('cat-guests');
@@ -2337,6 +2356,87 @@
 </script>
 
   <script src="https://maps.googleapis.com/maps/api/js?key=AIzaSyB3S03x_g_worh7dj4dk-lHYPFJ3RMknVc"></script>
+
+  <script>
+  // === Date Guardrails (no past dates) ===
+  function parseYmd(s){
+    // Accepts YYYY-MM-DD only
+    const m = String(s || "").trim().match(/^(\d{4})-(\d{2})-(\d{2})$/);
+    if (!m) return null;
+    const y = Number(m[1]), mo = Number(m[2]), d = Number(m[3]);
+    const dt = new Date(y, mo - 1, d);
+    // Validate rollover
+    if (dt.getFullYear() !== y || (dt.getMonth() + 1) !== mo || dt.getDate() !== d) return null;
+    // Normalize to local midnight
+    dt.setHours(0,0,0,0);
+    return dt;
+  }
+
+  function todayLocal(){
+    const t = new Date();
+    t.setHours(0,0,0,0);
+    return t;
+  }
+
+  function validateStayDates(startStr, endStr){
+    const start = parseYmd(startStr);
+    const end = parseYmd(endStr);
+    const t = todayLocal();
+
+    if (!start || !end) return { ok:false, reason:"invalid_format" };
+    if (end.getTime() <= start.getTime()) return { ok:false, reason:"end_before_start" };
+    if (start.getTime() < t.getTime()) return { ok:false, reason:"start_in_past" };
+    // Optional hard rule: disallow checkout in past too (covered by start rule, but explicit)
+    if (end.getTime() < t.getTime()) return { ok:false, reason:"end_in_past" };
+
+    return { ok:true };
+  }
+
+  function setBtnEnabled(btn, enabled){
+    if (!btn) return;
+    btn.disabled = !enabled;
+    btn.style.opacity = enabled ? "" : "0.55";
+    btn.style.pointerEvents = enabled ? "" : "none";
+  }
+
+  function showDateError(containerEl, msg){
+    if (!containerEl) return;
+    let el = containerEl.querySelector(".date-guard-error");
+    if (!el){
+      el = document.createElement("div");
+      el.className = "date-guard-error";
+      el.style.marginTop = "10px";
+      el.style.color = "#b91c1c";
+      el.style.fontSize = "13px";
+      el.style.fontWeight = "600";
+      containerEl.appendChild(el);
+    }
+    el.textContent = msg || "";
+    el.style.display = msg ? "block" : "none";
+  }
+
+  function guardDatesOrDisable(opts){
+    // opts: { startStr, endStr, btns: [..], containerEl }
+    const v = validateStayDates(opts.startStr, opts.endStr);
+    const ok = !!v.ok;
+
+    for (const b of (opts.btns || [])) setBtnEnabled(b, ok);
+
+    if (ok){
+      showDateError(opts.containerEl, "");
+      return true;
+    }
+
+    const msg =
+      v.reason === "start_in_past" ? "Check-in date cannot be in the past." :
+      v.reason === "end_before_start" ? "Check-out must be after check-in." :
+      v.reason === "invalid_format" ? "Invalid date format." :
+      "Invalid dates.";
+
+    showDateError(opts.containerEl, msg);
+    return false;
+  }
+</script>
 
 </body>
 </html>
