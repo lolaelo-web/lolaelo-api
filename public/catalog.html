@@ -1427,13 +1427,14 @@
     syncDatesDisplay();
 
     // Guardrail: disable Search if URL dates are invalid/past
-    const searchBtn = document.getElementById('search');
-    guardDatesOrDisable({
-      startStr: startInp.value,
-      endStr: endInp.value,
-      btns: [searchBtn],
-      containerEl: document.querySelector('.searchbar')
-    });
+    if (typeof guardDatesOrDisable === "function") {
+      guardDatesOrDisable({
+        startStr: startInp.value,
+        endStr: endInp.value,
+        btns: [searchBtn],
+        containerEl: document.querySelector('.searchbar')
+      });
+    }
 
     if (catDatesInput && window.flatpickr) {
       catDatePicker = flatpickr(catDatesInput, {
@@ -1730,13 +1731,15 @@
       const end   = endInp.value   || start;
 
       const btn = document.getElementById('search');
-      const ok = guardDatesOrDisable({
-        startStr: start,
-        endStr: end,
-        btns: [btn],
-        containerEl: document.querySelector('.searchbar')
-      });
-      if (!ok) return;
+      if (typeof guardDatesOrDisable === "function") {
+        const ok = guardDatesOrDisable({
+          startStr: start,
+          endStr: end,
+          btns: [btn],
+          containerEl: document.querySelector('.searchbar')
+        });
+        if (!ok) return;
+      }
 
       // Read from hidden field used by custom-select for guests
       const guestsHiddenEl = document.getElementById('cat-guests');
