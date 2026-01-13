@@ -3337,8 +3337,12 @@
         payload.active = activeVal;
       }
 
-      // Only send fields the backend currently accepts.
-      const serverPayloadKeys = ["name", "basePrice", "occupancy", "maxGuests", "active"];
+      const serverPayloadKeys = [
+        "name", "description", "basePrice", "occupancy", "maxGuests", "active",
+        "summary", "size_sqm", "size_sqft",
+        "details_keys", "details_text",
+        "inclusion_keys", "inclusion_text"
+      ];
       const serverPayload = {};
       for (const k of serverPayloadKeys) {
         if (Object.prototype.hasOwnProperty.call(payload, k)) {

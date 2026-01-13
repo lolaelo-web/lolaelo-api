@@ -179,3 +179,8 @@ rotate_db_pw.mjs
 /public/LLCFormation.pdf
 
 scripts/seed-*.sql
+
+# DB dumps
+*.dump
+*.backup
+
