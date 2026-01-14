@@ -18,6 +18,43 @@ const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
 const app = express();
+// ---- CORS (MUST be before any routes) ----
+const CORS_ALLOWED_ORIGINS = [
+  "https://www.lolaelo.com",
+  "https://lolaelo.com",
+];
+
+const corsOpts: CorsOptions = {
+  origin: (origin, cb) => {
+    if (!origin) return cb(null, true);
+    if (CORS_ALLOWED_ORIGINS.includes(origin)) return cb(null, true);
+    return cb(null, false);
+  },
+  methods: ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS", "HEAD"],
+  allowedHeaders: undefined,
+  exposedHeaders: ["Content-Length", "ETag"],
+  credentials: true,
+  maxAge: 60 * 60 * 24,
+};
+
+// Apply CORS globally BEFORE routes
+app.use(cors(corsOpts));
+app.options("*", cors(corsOpts));
+
+// Force headers as a safety net (Cloudflare / proxy edge cases)
+app.use((req, res, next) => {
+  const origin = req.headers.origin as string | undefined;
+  if (origin && CORS_ALLOWED_ORIGINS.includes(origin)) {
+    res.setHeader("Access-Control-Allow-Origin", origin);
+    res.setHeader("Vary", "Origin");
+    res.setHeader("Access-Control-Allow-Credentials", "true");
+    res.setHeader("Access-Control-Allow-Headers", "Authorization, Content-Type, x-partner-token");
+    res.setHeader("Access-Control-Allow-Methods", "GET, POST, PUT, PATCH, DELETE, OPTIONS");
+  }
+  if (req.method === "OPTIONS") return res.sendStatus(204);
+  next();
+});
+
 app.disable("x-powered-by");
 
 // === RATE PLANS (DB-backed) ===
@@ -224,36 +261,6 @@ app.post("/extranet/property/rateplans", express.json(), async (req: Request, re
 });
 
 // ---- CORS ----
-const CORS_ALLOWED_ORIGINS = [
-  "https://www.lolaelo.com",
-  "https://lolaelo.com",
-];
-const corsOpts: CorsOptions = {
-  origin: (origin, cb) => {
-    // Allow non-browser requests (no Origin header) and same-origin cases
-    if (!origin) return cb(null, true);
-
-    // Allowlist
-    if (CORS_ALLOWED_ORIGINS.includes(origin)) return cb(null, true);
-
-    // Disallow without throwing (prevents crashing middleware chain)
-    return cb(null, false);
-  },
-  methods: ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS", "HEAD"],
-  // reflect requested headers (incl. Authorization, x-partner-token)
-  allowedHeaders: undefined,
-  exposedHeaders: ["Content-Length", "ETag"],
-  credentials: true,
-  maxAge: 60 * 60 * 24,
-};
-
-// TEMP CORS DEBUG (remove after confirming live origin)
-app.use((req, _res, next) => {
-  const o = req.headers.origin;
-  if (o) console.log("[CORS] origin:", o, "path:", req.path);
-  next();
-});
-
 app.use(cors(corsOpts));
 app.options("*", cors(corsOpts));
 
