@@ -230,13 +230,15 @@ const CORS_ALLOWED_ORIGINS = [
 ];
 const corsOpts: CorsOptions = {
   origin: (origin, cb) => {
-  // allow same-origin / server-to-server / tools without Origin
-  if (!origin) return cb(null, true);
+    // Allow non-browser requests (no Origin header) and same-origin cases
+    if (!origin) return cb(null, true);
 
-  if (CORS_ALLOWED_ORIGINS.includes(origin)) return cb(null, true);
+    // Allowlist
+    if (CORS_ALLOWED_ORIGINS.includes(origin)) return cb(null, true);
 
-  return cb(new Error("Not allowed by CORS"));
-},
+    // Disallow without throwing (prevents crashing middleware chain)
+    return cb(null, false);
+  },
   methods: ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS", "HEAD"],
   // reflect requested headers (incl. Authorization, x-partner-token)
   allowedHeaders: undefined,
@@ -244,6 +246,7 @@ const corsOpts: CorsOptions = {
   credentials: true,
   maxAge: 60 * 60 * 24,
 };
+
 // TEMP CORS DEBUG (remove after confirming live origin)
 app.use((req, _res, next) => {
   const o = req.headers.origin;
