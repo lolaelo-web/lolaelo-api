@@ -5537,7 +5537,43 @@
                 overrides.inclusion_keys = local.inclusionKeys;
               }
 
-              room = Object.assign({}, room, overrides);
+              // Fallback-only: keep DB as source of truth; only fill blanks from localStorage
+              const merged = Object.assign({}, room);
+
+              // summary
+              if ((!merged.summary || !String(merged.summary).trim()) && overrides.summary) {
+                merged.summary = overrides.summary;
+              }
+
+              // details_text
+              if ((!merged.details_text || !String(merged.details_text).trim()) && overrides.details_text) {
+                merged.details_text = overrides.details_text;
+              }
+
+              // inclusion_text
+              if ((!merged.inclusion_text || !String(merged.inclusion_text).trim()) && overrides.inclusion_text) {
+                merged.inclusion_text = overrides.inclusion_text;
+              }
+
+              // sizes
+              if ((merged.size_sqm == null || merged.size_sqm === "") && overrides.size_sqm != null && overrides.size_sqm !== "") {
+                merged.size_sqm = overrides.size_sqm;
+              }
+              if ((merged.size_sqft == null || merged.size_sqft === "") && overrides.size_sqft != null && overrides.size_sqft !== "") {
+                merged.size_sqft = overrides.size_sqft;
+              }
+
+              // checkbox arrays
+              if ((!Array.isArray(merged.details_keys) || merged.details_keys.length === 0) &&
+                  Array.isArray(overrides.details_keys) && overrides.details_keys.length) {
+                merged.details_keys = overrides.details_keys;
+              }
+              if ((!Array.isArray(merged.inclusion_keys) || merged.inclusion_keys.length === 0) &&
+                  Array.isArray(overrides.inclusion_keys) && overrides.inclusion_keys.length) {
+                merged.inclusion_keys = overrides.inclusion_keys;
+              }
+
+              room = merged;
             }
           }
         }catch(_){}
