@@ -259,6 +259,32 @@ app.options("*", cors(corsOpts));
 
 // ---- Core ----
 app.set("trust proxy", 1);
+// ---- FORCE CORS HEADERS (Cloudflare-safe) ----
+app.use((req, res, next) => {
+  const origin = req.headers.origin as string | undefined;
+
+  if (origin && CORS_ALLOWED_ORIGINS.includes(origin)) {
+    res.setHeader("Access-Control-Allow-Origin", origin);
+    res.setHeader("Vary", "Origin");
+    res.setHeader("Access-Control-Allow-Credentials", "true");
+    res.setHeader(
+      "Access-Control-Allow-Headers",
+      "Authorization, Content-Type, x-partner-token"
+    );
+    res.setHeader(
+      "Access-Control-Allow-Methods",
+      "GET, POST, PUT, PATCH, DELETE, OPTIONS"
+    );
+  }
+
+  // Handle preflight explicitly
+  if (req.method === "OPTIONS") {
+    return res.sendStatus(204);
+  }
+
+  next();
+});
+
 // ---- Stripe webhook (verified) ----
 // MUST be registered BEFORE express.json(), so req.body stays raw for signature verification
 app.post("/api/payments/webhook", express.raw({ type: "application/json" }), async (req: Request, res: Response) => {
