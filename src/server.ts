@@ -237,6 +237,13 @@ const corsOpts: CorsOptions = {
   credentials: true,
   maxAge: 60 * 60 * 24,
 };
+// TEMP CORS DEBUG (remove after confirming live origin)
+app.use((req, _res, next) => {
+  const o = req.headers.origin;
+  if (o) console.log("[CORS] origin:", o, "path:", req.path);
+  next();
+});
+
 app.use(cors(corsOpts));
 app.options("*", cors(corsOpts));
 
