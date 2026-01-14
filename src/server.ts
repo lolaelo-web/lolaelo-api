@@ -229,7 +229,14 @@ const CORS_ALLOWED_ORIGINS = [
   "https://lolaelo.com",
 ];
 const corsOpts: CorsOptions = {
-  origin: CORS_ALLOWED_ORIGINS,
+  origin: (origin, cb) => {
+  // allow same-origin / server-to-server / tools without Origin
+  if (!origin) return cb(null, true);
+
+  if (CORS_ALLOWED_ORIGINS.includes(origin)) return cb(null, true);
+
+  return cb(new Error("Not allowed by CORS"));
+},
   methods: ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS", "HEAD"],
   // reflect requested headers (incl. Authorization, x-partner-token)
   allowedHeaders: undefined,
