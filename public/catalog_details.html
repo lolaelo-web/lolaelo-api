@@ -5814,6 +5814,36 @@
           if (body) body.scrollTop = 0;
         } catch (_) {}
 
+        // Mobile: prevent auto-scroll into the rate plan section.
+        // Always open modal at the top and focus the close button without scrolling.
+        try {
+          const body = backdrop.querySelector(".room-modal-body");
+          if (body) {
+            body.scrollTop = 0;
+          }
+
+          // After the modal becomes visible, mobile browsers may still auto-scroll.
+          requestAnimationFrame(() => {
+            try {
+              const body2 = backdrop.querySelector(".room-modal-body");
+              if (body2) body2.scrollTop = 0;
+
+              const closeBtn = backdrop.querySelector(".room-modal-close");
+              if (closeBtn && closeBtn.focus) closeBtn.focus({ preventScroll: true });
+            } catch (_) {}
+          });
+
+          setTimeout(() => {
+            try {
+              const body3 = backdrop.querySelector(".room-modal-body");
+              if (body3) body3.scrollTop = 0;
+
+              const closeBtn2 = backdrop.querySelector(".room-modal-close");
+              if (closeBtn2 && closeBtn2.focus) closeBtn2.focus({ preventScroll: true });
+            } catch (_) {}
+          }, 0);
+        } catch (_) {}
+
         backdrop.classList.add("is-open");
         backdrop.setAttribute("aria-hidden","false");
       }
