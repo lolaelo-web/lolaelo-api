@@ -440,12 +440,12 @@ r.patch("/:id", async (req, res) => {
 
     const upd = await client.query(
       `UPDATE ${T.rooms}
-         SET ${sets.join(", ")}
-       WHERE "id"=$1
-       RETURNING
-         "id","name","code","description","occupancy","maxGuests","basePrice","active",
-         "summary","size_sqm","size_sqft","details_keys","details_text","inclusion_keys","inclusion_text"`,
-      vals
+        SET ${sets.join(", ")}
+      WHERE "id"=$${i}
+      RETURNING
+        "id","name","code","description","occupancy","maxGuests","basePrice","active",
+        "summary","size_sqm","size_sqft","details_keys","details_text","inclusion_keys","inclusion_text"`,
+      [...vals, id]
     );
 
     await client.query("COMMIT");
