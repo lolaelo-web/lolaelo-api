@@ -3305,14 +3305,17 @@
         pushArr(mp.amenities);
         pushArr(mp.inclusions);
         pushArr(mp.features);
+        pushArr(mp.facilities);   // NEW
         pushArr(cp.amenities);
         pushArr(cp.inclusions);
         pushArr(cp.features);
+        pushArr(cp.facilities);   // NEW
 
         // 2) Details-level flat lists from /catalog/details, if present
         pushArr(j?.amenities);
         pushArr(j?.inclusions);
         pushArr(j?.features);
+        pushArr(j?.facilities);   // NEW
 
         // 3) Room-level metadata (mirroring modal logic from room details)
         if (Array.isArray(j?.rooms)) {
@@ -5008,6 +5011,7 @@
           const ctx = { room, roomId: rid, planId, planLabel };
 
           if (typeof window.openRoomModal === 'function') {
+          console.log('[modal] ctx.room keys:', ctx.room ? Object.keys(ctx.room) : null, ctx.room);
             window.openRoomModal(ctx.room || null);
           } else {
             console.log('[room-modal] handler: openRoomModal missing, ctx=', ctx);
