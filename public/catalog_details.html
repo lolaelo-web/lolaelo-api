@@ -1845,12 +1845,6 @@
         line-height:1.1;
       }
 
-      /* Mobile: bubbles open on tap/focus (hover is unreliable on phones) */
-      .summary-icon-wrap:active .summary-bubble,
-      .summary-icon-wrap:focus-within .summary-bubble{
-        display:block;
-      }
-
       /* Mobile: bubble behaves like a viewport panel (tap-friendly, portrait-safe) */
       .summary-bubble{
         position: fixed !important;
@@ -3483,33 +3477,63 @@
         const wraps = Array.from(document.querySelectorAll('.summary-icon-wrap'));
         if (!wraps.length) return;
 
-        function closeAll(except){
-          wraps.forEach(w => { if (w !== except) w.classList.remove('is-open'); });
+        // Create a dedicated backdrop so "tap outside" is unambiguous on mobile.
+        // This avoids document-level click races / ghost clicks.
+        let backdrop = document.getElementById('summaryBubbleBackdrop');
+        if (!backdrop) {
+          backdrop = document.createElement('div');
+          backdrop.id = 'summaryBubbleBackdrop';
+          backdrop.style.position = 'fixed';
+          backdrop.style.inset = '0';
+          backdrop.style.zIndex = '9998';     // bubble is 9999 on mobile
+          backdrop.style.display = 'none';
+          backdrop.style.background = 'transparent';
+          document.body.appendChild(backdrop);
         }
 
-        // Tap outside closes
-        document.addEventListener('click', () => closeAll(null), { passive: true });
+        function closeAll(){
+          wraps.forEach(w => w.classList.remove('is-open'));
+          backdrop.style.display = 'none';
+        }
 
-        // Tap icon toggles
+        function openOne(wrap){
+          wraps.forEach(w => { if (w !== wrap) w.classList.remove('is-open'); });
+          wrap.classList.add('is-open');
+          // Only show backdrop if this wrap actually has a bubble
+          const hasBubble = !!wrap.querySelector('.summary-bubble');
+          backdrop.style.display = hasBubble ? 'block' : 'none';
+        }
+
+        // Backdrop tap closes
+        backdrop.addEventListener('click', (e) => {
+          e.preventDefault();
+          closeAll();
+        }, { passive: false });
+
         wraps.forEach(wrap => {
           const btn = wrap.querySelector('.summary-icon-btn');
+          const bubble = wrap.querySelector('.summary-bubble');
+
+          if (bubble){
+            // Keep clicks inside bubble from closing it
+            bubble.addEventListener('click', (e) => e.stopPropagation(), { passive: true });
+          }
+
           if (!btn) return;
 
           btn.addEventListener('click', (e) => {
             e.preventDefault();
             e.stopPropagation();
 
-            const willOpen = !wrap.classList.contains('is-open');
-            closeAll(null);
-            if (willOpen) wrap.classList.add('is-open');
-            else wrap.classList.remove('is-open');
+            const isOpen = wrap.classList.contains('is-open');
+            if (isOpen) closeAll();
+            else openOne(wrap);
           }, { passive: false });
+        });
 
-          // Clicking inside bubble should not close it
-          const bubble = wrap.querySelector('.summary-bubble');
-          if (bubble){
-            bubble.addEventListener('click', (e) => e.stopPropagation(), { passive: true });
-          }
+        // Escape closes (nice UX on desktop too)
+        document.addEventListener('keydown', (e) => {
+          if (e.key === 'Escape') closeAll();
         });
       })();
 
@@ -4984,7 +5008,7 @@
           const ctx = { room, roomId: rid, planId, planLabel };
 
           if (typeof window.openRoomModal === 'function') {
-            window.openRoomModal(ctx);
+            window.openRoomModal(ctx.room || null);
           } else {
             console.log('[room-modal] handler: openRoomModal missing, ctx=', ctx);
           }
