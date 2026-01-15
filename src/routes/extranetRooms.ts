@@ -377,7 +377,7 @@ r.patch("/:id", async (req, res) => {
       const arr = Array.isArray(b.details_keys)
         ? b.details_keys.map((x: any) => String(x)).filter(Boolean)
         : [];
-      sets.push(`"details_keys"=$${i++}::jsonb`); vals.push(JSON.stringify(arr));
+      sets.push(`"details_keys"=$${i++}::text[]`); vals.push(arr);
     }
 
     if (Object.prototype.hasOwnProperty.call(b, "inclusion_keys")) {
@@ -387,7 +387,7 @@ r.patch("/:id", async (req, res) => {
       const arr = Array.isArray(b.inclusion_keys)
         ? b.inclusion_keys.map((x: any) => String(x)).filter(Boolean)
         : [];
-      sets.push(`"inclusion_keys"=$${i++}::jsonb`); vals.push(JSON.stringify(arr));
+      sets.push(`"inclusion_keys"=$${i++}::text[]`); vals.push(arr);
     }
 
     if (Object.prototype.hasOwnProperty.call(b, "size_sqm")) {
