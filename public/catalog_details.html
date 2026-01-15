@@ -1931,62 +1931,75 @@
       margin: 0 auto;
     }
 
-    /* ===== MOBILE LANDSCAPE FIXES (cards + bubbles) ===== */
+    /* ===== MOBILE LANDSCAPE FIXES (room cards + bubbles + inline rateplans) ===== */
     @media (max-width: 900px) and (orientation: landscape) {
 
-      /* --- Room cards / inline rateplan alignment --- */
-
-      /* Allow flex children to shrink properly (prevents overlap) */
-      .room-card,
-      .room-card * {
-        min-width: 0;
+      /* --- ROOM CARDS (catalog list rows) --- */
+      /* Fix image bleeding into text: your 840px rule uses a 72px image column but img was 100px */
+      .roomcat{
+        grid-template-columns: 30px 72px 1fr !important;
+        align-items: center !important;
+      }
+      .roomcat img{
+        width: 72px !important;
+        height: 56px !important;
+      }
+      .roomcat > div{
+        min-width: 0 !important;
+      }
+      .roomcat h3,
+      .roomcat .meta{
+        white-space: normal !important;
+        overflow-wrap: anywhere !important;
+        line-height: 1.25 !important;
       }
 
-      /* Header row alignment */
-      .room-card-header {
-        align-items: center;
-        gap: 12px;
-      }
-
-      /* Image stays fixed, text adapts */
-      .room-card-thumb {
-        flex: 0 0 72px;
-      }
-
-      /* Text container must be allowed to shrink */
-      .room-card-info {
-        flex: 1 1 auto;
-        min-width: 0;
-      }
-
-      /* Prevent price/title overflow */
-      .room-card-info h3,
-      .room-card-info .avg-price {
-        white-space: normal;
-        overflow-wrap: anywhere;
-        line-height: 1.25;
-      }
-
-      /* Keep Select button stable */
-      .room-card-actions {
-        flex: 0 0 auto;
-        align-self: center;
-      }
-
-      /* --- Summary bubbles (Description / Inclusions) --- */
-
-      /* Ensure tap-open bubble is visible in short landscape viewports */
+      /* --- SUMMARY BUBBLES (Description / Inclusions) --- */
+      /* Landscape often exceeds 640px width so the portrait mobile rules don’t apply.
+        Force tap-open bubble visible and keep it inside the viewport. */
       .summary-icon-wrap.is-open .summary-bubble{
         display: block !important;
       }
-
-      /* Override the portrait fixed-panel geometry that can push bubble off-screen */
       .summary-bubble{
+        position: fixed !important;
         top: 12px !important;
         bottom: 12px !important;
         left: 12px !important;
         right: 12px !important;
+
+        width: auto !important;
+        max-width: none !important;
+        min-width: 0 !important;
         max-height: none !important;
+
+        transform: none !important;
+        overflow-y: auto !important;
+        -webkit-overflow-scrolling: touch !important;
+        z-index: 9999 !important;
+      }
+
+      /* --- INLINE RATEPLAN ROWS (.planrow) --- */
+      /* Stack actions under plan text so nothing overlaps in tight landscape viewports */
+      .planrow{
+        grid-template-columns: 1fr !important;
+        gap: 10px !important;
+      }
+      .planrow .plan-actions{
+        justify-content: flex-start !important;
+        flex-wrap: wrap !important;
+        gap: 10px !important;
+      }
+      .planrow .qty-inline{
+        white-space: normal !important;
+        flex-wrap: wrap !important;
+        justify-content: flex-start !important;
+        gap: 10px !important;
+      }
+      .planrow .planinfo{
+        min-width: 0 !important;
+      }
+      .planrow .planinfo .meta{
+        overflow-wrap: anywhere !important;
       }
     }
 
