@@ -3458,8 +3458,9 @@
               .map(a => `<span class="chip">${a}</span>`)
               .join("");
           } else {
-            amenitiesEl.style.display = "none";
-            amenitiesEl.innerHTML = "";
+            // Keep the bubble non-empty on mobile (and still fine on desktop)
+            amenitiesEl.style.display = "block";
+            amenitiesEl.innerHTML = `<div class="small muted">No property inclusions listed yet.</div>`;
           }
         }
       }
@@ -5945,6 +5946,11 @@
               }
             });
           }
+        } catch (_) {}
+        // Always open at the top (mobile frequently lands near the bottom otherwise)
+        try {
+          const body = backdrop.querySelector(".room-modal-body");
+          if (body) body.scrollTop = 0;
         } catch (_) {}
 
         backdrop.classList.add("is-open");
