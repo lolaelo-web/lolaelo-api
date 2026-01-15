@@ -1931,6 +1931,65 @@
       margin: 0 auto;
     }
 
+    /* ===== MOBILE LANDSCAPE FIXES (cards + bubbles) ===== */
+    @media (max-width: 900px) and (orientation: landscape) {
+
+      /* --- Room cards / inline rateplan alignment --- */
+
+      /* Allow flex children to shrink properly (prevents overlap) */
+      .room-card,
+      .room-card * {
+        min-width: 0;
+      }
+
+      /* Header row alignment */
+      .room-card-header {
+        align-items: center;
+        gap: 12px;
+      }
+
+      /* Image stays fixed, text adapts */
+      .room-card-thumb {
+        flex: 0 0 72px;
+      }
+
+      /* Text container must be allowed to shrink */
+      .room-card-info {
+        flex: 1 1 auto;
+        min-width: 0;
+      }
+
+      /* Prevent price/title overflow */
+      .room-card-info h3,
+      .room-card-info .avg-price {
+        white-space: normal;
+        overflow-wrap: anywhere;
+        line-height: 1.25;
+      }
+
+      /* Keep Select button stable */
+      .room-card-actions {
+        flex: 0 0 auto;
+        align-self: center;
+      }
+
+      /* --- Summary bubbles (Description / Inclusions) --- */
+
+      /* Ensure tap-open bubble is visible in short landscape viewports */
+      .summary-icon-wrap.is-open .summary-bubble{
+        display: block !important;
+      }
+
+      /* Override the portrait fixed-panel geometry that can push bubble off-screen */
+      .summary-bubble{
+        top: 12px !important;
+        bottom: 12px !important;
+        left: 12px !important;
+        right: 12px !important;
+        max-height: none !important;
+      }
+    }
+
   </style>
 </head>
 <body>
