@@ -291,7 +291,6 @@ r.put("/:id", async (req, res) => {
   }
 });
 
-/** PATCH /extranet/property/rooms/:id  (partial update, incl. active) */
 r.patch("/:id", async (req, res) => {
   const client = await pool.connect();
   try {
@@ -305,6 +304,7 @@ r.patch("/:id", async (req, res) => {
     const vals: any[] = [id];
     let i = 2;
 
+    // --- Core fields ---
     if (Object.prototype.hasOwnProperty.call(b, "name")) {
       if (typeof b.name !== "string" || !b.name.trim()) {
         return res.status(400).json({ error: "bad name" });
@@ -345,6 +345,75 @@ r.patch("/:id", async (req, res) => {
       sets.push(`"active"=$${i++}`); vals.push(av);
     }
 
+    // --- Room metadata (canonical: extranet."RoomType") ---
+    if (Object.prototype.hasOwnProperty.call(b, "summary")) {
+      if (b.summary !== null && typeof b.summary !== "string") {
+        return res.status(400).json({ error: "bad summary" });
+      }
+      const s = (typeof b.summary === "string") ? b.summary.trim() : null;
+      sets.push(`"summary"=$${i++}`); vals.push(s);
+    }
+
+    if (Object.prototype.hasOwnProperty.call(b, "details_text")) {
+      if (b.details_text !== null && typeof b.details_text !== "string") {
+        return res.status(400).json({ error: "bad details_text" });
+      }
+      const t = (typeof b.details_text === "string") ? b.details_text : null;
+      sets.push(`"details_text"=$${i++}`); vals.push(t);
+    }
+
+    if (Object.prototype.hasOwnProperty.call(b, "inclusion_text")) {
+      if (b.inclusion_text !== null && typeof b.inclusion_text !== "string") {
+        return res.status(400).json({ error: "bad inclusion_text" });
+      }
+      const t = (typeof b.inclusion_text === "string") ? b.inclusion_text : null;
+      sets.push(`"inclusion_text"=$${i++}`); vals.push(t);
+    }
+
+    if (Object.prototype.hasOwnProperty.call(b, "details_keys")) {
+      if (b.details_keys !== null && !Array.isArray(b.details_keys)) {
+        return res.status(400).json({ error: "bad details_keys" });
+      }
+      const arr = Array.isArray(b.details_keys)
+        ? b.details_keys.map((x: any) => String(x)).filter(Boolean)
+        : [];
+      sets.push(`"details_keys"=$${i++}::jsonb`); vals.push(JSON.stringify(arr));
+    }
+
+    if (Object.prototype.hasOwnProperty.call(b, "inclusion_keys")) {
+      if (b.inclusion_keys !== null && !Array.isArray(b.inclusion_keys)) {
+        return res.status(400).json({ error: "bad inclusion_keys" });
+      }
+      const arr = Array.isArray(b.inclusion_keys)
+        ? b.inclusion_keys.map((x: any) => String(x)).filter(Boolean)
+        : [];
+      sets.push(`"inclusion_keys"=$${i++}::jsonb`); vals.push(JSON.stringify(arr));
+    }
+
+    if (Object.prototype.hasOwnProperty.call(b, "size_sqm")) {
+      if (b.size_sqm === null || b.size_sqm === "" || typeof b.size_sqm === "undefined") {
+        sets.push(`"size_sqm"=$${i++}`); vals.push(null);
+      } else {
+        const v = Number(String(b.size_sqm).replace(/,/g, ""));
+        if (!Number.isFinite(v) || v <= 0) {
+          return res.status(400).json({ error: "bad size_sqm" });
+        }
+        sets.push(`"size_sqm"=$${i++}`); vals.push(v);
+      }
+    }
+
+    if (Object.prototype.hasOwnProperty.call(b, "size_sqft")) {
+      if (b.size_sqft === null || b.size_sqft === "" || typeof b.size_sqft === "undefined") {
+        sets.push(`"size_sqft"=$${i++}`); vals.push(null);
+      } else {
+        const v = Number(String(b.size_sqft).replace(/,/g, ""));
+        if (!Number.isFinite(v) || v <= 0) {
+          return res.status(400).json({ error: "bad size_sqft" });
+        }
+        sets.push(`"size_sqft"=$${i++}`); vals.push(v);
+      }
+    }
+
     if (sets.length === 0) {
       return res.status(400).json({ error: "no fields" });
     }
@@ -358,12 +427,13 @@ r.patch("/:id", async (req, res) => {
       `SELECT "id","partnerId" FROM ${T.rooms} WHERE "id"=$1`,
       [id]
     );
-    if (room.rowCount === 0) {
+
+    if (!room.rows.length) {
       await client.query("ROLLBACK");
       return res.status(404).json({ error: "Not found" });
     }
-    const owner = Number(room.rows[0].partnerId);
-    if (Number.isFinite(authed!) && authed !== owner) {
+
+    if (authed && Number(room.rows[0].partnerId) !== Number(authed)) {
       await client.query("ROLLBACK");
       return res.status(403).json({ error: "Forbidden" });
     }
@@ -372,7 +442,9 @@ r.patch("/:id", async (req, res) => {
       `UPDATE ${T.rooms}
          SET ${sets.join(", ")}
        WHERE "id"=$1
-       RETURNING "id","name","code","description","occupancy","maxGuests","basePrice","active"`,
+       RETURNING
+         "id","name","code","description","occupancy","maxGuests","basePrice","active",
+         "summary","size_sqm","size_sqft","details_keys","details_text","inclusion_keys","inclusion_text"`,
       vals
     );
 

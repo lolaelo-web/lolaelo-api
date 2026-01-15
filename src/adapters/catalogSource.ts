@@ -74,36 +74,47 @@ export async function getDetails(args: DetailsArgs): Promise<any | null> {
     base = null;
   }
 
-  // 2) CHECKOUT QUOTE MODE FALLBACK (GATED)
-  // Only activate for checkout-style quote requests:
-  // - plans=2
-  // - non-STD ratePlanId
-  // - missing rooms and/or checkoutQuote in the payload
+  // 2) DB ROOMS INJECTION (CANONICAL)
+  // Always populate base.rooms from DB so RoomType metadata is consistent across clients.
+  // Keep checkoutQuote behavior: only add checkoutQuote when quoteMode && rp !== 1.
   try {
     const quoteMode = Number(args?.plans) === 2;
     const rp = Number(args?.ratePlanId ?? 1);
 
-    const hasRooms =
-      !!(base && Array.isArray(base.rooms) && base.rooms.length);
-    const hasQuote =
-      !!(base && base.checkoutQuote);
+    const roomsDaily = await getRoomsDailyFromDb(
+      args.propertyId,
+      args.start,
+      args.end,
+      rp
+    );
 
-    if (quoteMode && rp !== 1 && (!hasRooms || !hasQuote)) {
-      const roomsDaily = await getRoomsDailyFromDb(
-        args.propertyId,
-        args.start,
-        args.end,
-        rp
-      );
+    if (roomsDaily && roomsDaily.length) {
+      const rooms = roomsDaily.map(r => ({
+        roomTypeId: r.roomId,
+        id: r.roomId,
+        name: r.roomName,
+        daily: r.daily,
 
-      if (roomsDaily && roomsDaily.length) {
-        const rooms = roomsDaily.map(r => ({
-          roomTypeId: r.roomId,
-          id: r.roomId,
-          name: r.roomName,
-          daily: r.daily,
-        }));
+        // RoomType metadata (canonical: extranet."RoomType")
+        summary: r.summary ?? null,
+        size_sqm: r.size_sqm ?? null,
+        size_sqft: r.size_sqft ?? null,
+        details_keys: r.details_keys ?? [],
+        details_text: r.details_text ?? null,
+        inclusion_keys: r.inclusion_keys ?? [],
+        inclusion_text: r.inclusion_text ?? null,
+      }));
 
+      const out: any =
+        base && typeof base === "object"
+          ? { ...base }
+          : { partnerId: args.propertyId };
+
+      out.rooms = rooms;
+      out._roomsSource = "db";
+
+      // Optional: checkoutQuote (preserve old behavior)
+      if (quoteMode && rp !== 1) {
         const pickId =
           args.roomId != null ? Number(args.roomId) : undefined;
 
@@ -146,20 +157,13 @@ export async function getDetails(args: DetailsArgs): Promise<any | null> {
               }
             : null;
 
-        const out: any =
-          base && typeof base === "object"
-            ? { ...base }
-            : { partnerId: args.propertyId };
-
-        out.rooms = rooms;
-        out._roomsSource = "db";
         if (checkoutQuote) out.checkoutQuote = checkoutQuote;
-
-        // keep addons shape stable
-        if (!Array.isArray(out.addons)) out.addons = [];
-
-        base = out;
       }
+
+      // keep addons shape stable
+      if (!Array.isArray(out.addons)) out.addons = [];
+
+      base = out;
     }
   } catch {
     // intentionally swallow – do not affect non-checkout paths
@@ -234,6 +238,16 @@ export async function getProfilesFromDb(propertyIds: number[]): Promise<Record<n
 export interface RoomsDailyRow {
   roomId: number;
   roomName: string;
+
+  // RoomType metadata (canonical: extranet."RoomType")
+  summary?: string | null;
+  size_sqm?: number | null;
+  size_sqft?: number | null;
+  details_keys?: string[] | null;
+  details_text?: string | null;
+  inclusion_keys?: string[] | null;
+  inclusion_text?: string | null;
+
   // Enriched daily shape for UI table compatibility
   daily: Array<{
     date: string;
@@ -245,6 +259,7 @@ export interface RoomsDailyRow {
     minStay?: number | null;
   }>;
 }
+
 
 /**
  * getRoomsDailyFromDb
@@ -271,11 +286,35 @@ export async function getRoomsDailyFromDb(
   if (dates.length === 0) return [];
 
   // 1) Room masters for this partner (do not filter by `active` to avoid schema drift)
-  const roomTypes = await prisma.extranet_RoomType.findMany({
-    where: { partnerId: propertyId }, // REMOVED: active: true
-    select: { id: true, name: true, basePrice: true },
-    orderBy: { id: "asc" },
-  });
+  // NOTE: We use $queryRaw here because Prisma schema/client may not include the metadata columns yet.
+  const roomTypes = await prisma.$queryRaw<Array<{
+    id: number;
+    name: string;
+    basePrice: any;
+
+    summary: string | null;
+    size_sqm: number | null;
+    size_sqft: number | null;
+    details_keys: any;      // jsonb
+    details_text: string | null;
+    inclusion_keys: any;    // jsonb
+    inclusion_text: string | null;
+  }>>`
+    SELECT
+      id,
+      name,
+      "basePrice",
+      summary,
+      size_sqm,
+      size_sqft,
+      details_keys,
+      details_text,
+      inclusion_keys,
+      inclusion_text
+    FROM extranet."RoomType"
+    WHERE "partnerId" = ${propertyId}
+    ORDER BY id ASC
+  `;
 
   if (roomTypes.length === 0) return [];
 
@@ -477,7 +516,39 @@ export async function getRoomsDailyFromDb(
       };
     });
 
-    out.push({ roomId: rt.id, roomName: rt.name, daily });
+    // Normalize jsonb array fields coming from $queryRaw so the UI always gets arrays
+    const dk: any = (rt as any).details_keys;
+    const ik: any = (rt as any).inclusion_keys;
+
+    const detailsKeysArr: string[] =
+      Array.isArray(dk) ? dk.map((x: any) => String(x)).filter(Boolean)
+      : (dk && typeof dk === "object" && Array.isArray((dk as any).value))
+        ? (dk as any).value.map((x: any) => String(x)).filter(Boolean)
+      : [];
+
+    const inclusionKeysArr: string[] =
+      Array.isArray(ik) ? ik.map((x: any) => String(x)).filter(Boolean)
+      : (ik && typeof ik === "object" && Array.isArray((ik as any).value))
+        ? (ik as any).value.map((x: any) => String(x)).filter(Boolean)
+      : [];
+
+    out.push({
+      roomId: rt.id,
+      roomName: rt.name,
+
+      summary: (rt as any).summary ?? null,
+      size_sqm: (rt as any).size_sqm ?? null,
+      size_sqft: (rt as any).size_sqft ?? null,
+
+      // Always arrays for keys
+      details_keys: detailsKeysArr,
+      details_text: (rt as any).details_text ?? null,
+
+      inclusion_keys: inclusionKeysArr,
+      inclusion_text: (rt as any).inclusion_text ?? null,
+
+      daily
+    });
   }
 
   // If zero signal across the board, let caller decide to fall back to mock

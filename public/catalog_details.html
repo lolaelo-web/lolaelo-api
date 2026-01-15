@@ -2877,12 +2877,26 @@
         j = await r.json();
         // ===== DETAILS_PAYLOAD_TAP (insert) =====
         window.__detailsPayload = j;  // allow console inspection
+
+        // Existing image summary (keep)
         console.log("[details] images.summary", {
           hasImagesArray: Array.isArray(j?.images),
           imagesLen: Array.isArray(j?.images) ? j.images.length : 0,
           room0HasImages: Array.isArray(j?.rooms?.[0]?.images),
           room0ImagesLen: Array.isArray(j?.rooms?.[0]?.images) ? j.rooms[0].images.length : 0
         });
+
+        // New: verify DB-backed room inclusions are present in the payload
+        try {
+          console.log("[details] rooms inclusion_keys snapshot",
+            (j?.rooms || []).map(r => ({
+              id: r.roomTypeId ?? r.typeId ?? r.id ?? r.roomId ?? r.code ?? null,
+              inclusion_keys_len: Array.isArray(r?.inclusion_keys) ? r.inclusion_keys.length : null,
+              inclusion_text_len: (r?.inclusion_text || "").length
+            }))
+          );
+        } catch (_) {}
+
         // ===== DETAILS_PAYLOAD_TAP (insert end) =====
         // ===== DETAILS_PAYLOAD_DUMP (insert) =====
         console.log("[details] full payload", j);
@@ -5491,7 +5505,12 @@
 
         // Details and inclusions from keys + free text
         const detailKeys = Array.isArray(room.details_keys) ? room.details_keys : [];
-        const inclusionKeys = Array.isArray(room.inclusion_keys) ? room.inclusion_keys : [];
+        const inclusionKeys =
+          (Array.isArray(room.inclusion_keys) && room.inclusion_keys) ||
+          (Array.isArray(room.inclusionKeys) && room.inclusionKeys) ||
+          (Array.isArray(room?.meta?.inclusion_keys) && room.meta.inclusion_keys) ||
+          (Array.isArray(room?.meta?.inclusionKeys) && room.meta.inclusionKeys) ||
+          [];
         const detailLabels = detailKeys.map(k => DETAIL_LABELS[k]).filter(Boolean);
         const inclusionLabels = inclusionKeys.map(k => INCLUSION_LABELS[k]).filter(Boolean);
 

@@ -2019,29 +2019,6 @@
   const readOnlyRoomField = new Map();  // roomId -> true
 
   // ANCHOR: ROOM_INFO_STATE
-  const ROOM_INFO_LS_KEY = "extranet_roomInfo_v1";
-  const SQM_TO_SQFT = 10.7639;
-
-  function loadRoomInfoMap(){
-    try{
-      const raw = localStorage.getItem(ROOM_INFO_LS_KEY);
-      if (!raw) return {};
-      const obj = JSON.parse(raw);
-      return (obj && typeof obj === "object") ? obj : {};
-    }catch(_){
-      return {};
-    }
-  }
-
-  function saveRoomInfoMap(map){
-    try{
-      localStorage.setItem(ROOM_INFO_LS_KEY, JSON.stringify(map));
-    }catch(_){}
-  }
-
-  // roomId -> { summary, details, inclusions, sizeSqm, sizeSqft }
-  let roomInfoById = loadRoomInfoMap();
-
   function syncRoomSizeFields(source){
     const sqmEl  = el('edit-room-size-sqm');
     const sqftEl = el('edit-room-size-sqft');
@@ -2053,12 +2030,12 @@
     if (source === 'sqm'){
       const v = parseFloat(rawSqm);
       if (!Number.isFinite(v)) return;
-      const ft = v * SQM_TO_SQFT;
+      const ft = v * 10.7639;
       sqftEl.value = String(Math.round(ft));
     } else if (source === 'sqft'){
       const v = parseFloat(rawSqft);
       if (!Number.isFinite(v)) return;
-      const m = v / SQM_TO_SQFT;
+      const m = v / 10.7639;
       sqmEl.value = String(Math.round(m));
     }
   }
@@ -3062,7 +3039,7 @@
         inclusionKeys: Array.isArray(rt.inclusion_keys) ? rt.inclusion_keys : [],
       };
 
-      const localInfo = (roomInfoById && roomInfoById[rt.id]) || {};
+      const localInfo = {};
       const info = { ...dbInfo, ...localInfo };
 
       if (sumEl)  sumEl.value  = info.summary    ?? '';
@@ -3232,57 +3209,33 @@
           .map(cb => cb.value);
       }catch(_){}
 
-      const prevInfo = roomInfoById[rt.id] || {};
-      const nextInfo = {
-        summary:        infoSummary,
-        details:        infoDetails,
-        inclusions:     infoInclusions,
-        sizeSqm:        infoSizeSqm,
-        sizeSqft:       infoSizeSqft,
-        detailsKeys:    infoDetailKeys,
-        inclusionKeys:  infoInclusionKeys
-      };
+      // Map room-info fields into API payload for RoomType update (canonical DB)
+      // IMPORTANT: include empty values so clearing fields persists to DB (no localStorage drift)
+      payload.summary = infoSummary;               // "" will clear (backend normalizes to NULL)
+      payload.details_text = infoDetails;          // "" clears
+      payload.inclusion_text = infoInclusions;     // "" clears
 
-      if (prevInfo.summary        !== nextInfo.summary       ||
-          prevInfo.details        !== nextInfo.details       ||
-          prevInfo.inclusions     !== nextInfo.inclusions    ||
-          prevInfo.sizeSqm        !== nextInfo.sizeSqm       ||
-          prevInfo.sizeSqft       !== nextInfo.sizeSqft      ||
-          JSON.stringify(prevInfo.detailsKeys   || []) !== JSON.stringify(nextInfo.detailsKeys) ||
-          JSON.stringify(prevInfo.inclusionKeys || []) !== JSON.stringify(nextInfo.inclusionKeys)) {
-        roomInfoById = { ...roomInfoById, [rt.id]: nextInfo };
-        saveRoomInfoMap(roomInfoById);
+      payload.details_keys = Array.isArray(infoDetailKeys) ? infoDetailKeys.slice() : [];
+      payload.inclusion_keys = Array.isArray(infoInclusionKeys) ? infoInclusionKeys.slice() : [];
+
+      {
+        const raw = String(infoSizeSqm || "").trim();
+        if (!raw) {
+          payload.size_sqm = null;                // clear
+        } else {
+          const v = Number(raw.replace(/,/g, ""));
+          if (Number.isFinite(v) && v > 0) payload.size_sqm = v;
+        }
       }
 
-      // Map room-info fields into API payload for RoomType update
-      if (infoSummary) {
-        payload.summary = infoSummary;
-      }
-
-      if (infoDetails) {
-        payload.details_text = infoDetails;
-      }
-
-      if (infoInclusions) {
-        payload.inclusion_text = infoInclusions;
-      }
-
-      if (infoDetailKeys && infoDetailKeys.length) {
-        payload.details_keys = infoDetailKeys.slice();
-      }
-
-      if (infoInclusionKeys && infoInclusionKeys.length) {
-        payload.inclusion_keys = infoInclusionKeys.slice();
-      }
-
-      if (infoSizeSqm) {
-        const v = Number(String(infoSizeSqm).replace(/,/g, ""));
-        if (Number.isFinite(v) && v > 0) payload.size_sqm = v;
-      }
-
-      if (infoSizeSqft) {
-        const v = Number(String(infoSizeSqft).replace(/,/g, ""));
-        if (Number.isFinite(v) && v > 0) payload.size_sqft = v;
+      {
+        const raw = String(infoSizeSqft || "").trim();
+        if (!raw) {
+          payload.size_sqft = null;               // clear
+        } else {
+          const v = Number(raw.replace(/,/g, ""));
+          if (Number.isFinite(v) && v > 0) payload.size_sqft = v;
+        }
       }
 
       if (nameVal && nameVal !== rt.name) payload.name = nameVal;
@@ -3351,8 +3304,7 @@
       }
 
       if (!Object.keys(serverPayload).length) {
-        // Only metadata (summary/details/inclusions/size) changed.
-        // Those are already stored in roomInfoById/localStorage, no backend call needed.
+        // No changes to persist
         m.classList.remove('open');
         updateDirtyUI();
         return;
@@ -3378,12 +3330,14 @@
     }
   }
 
+  // Cancel closes modal
   el('edit-cancel').addEventListener('click', ()=>{
     const m = el('edit-modal');
     m.classList.remove('open');
     try { m.removeEventListener('keydown', onKey); } catch(_){}
     document.body.style.overflow = '';
   });
+
   /* ANCHOR: EDIT_ROOM_CLOSE_WIRE */
   const closeBtn = document.getElementById('edit-room-close');
   if (closeBtn) {
@@ -3391,8 +3345,10 @@
       el('edit-cancel').click();
     });
   }
-    el('edit-modal').addEventListener('click', (e)=>{
-    if (e.target.id==='edit-modal'){
+
+  // Clicking the backdrop closes modal
+  el('edit-modal').addEventListener('click', (e)=>{
+    if (e && e.target && e.target.id === 'edit-modal'){
       const m = el('edit-modal');
       m.classList.remove('open');
       try { m.removeEventListener('keydown', onKey); } catch(_){}
@@ -5750,7 +5706,8 @@
       }
     });
   })();
-})(); /* end main IIFE */
+
+})(); // closes the top-level (() => { ... }) wrapper
 </script>
 
 <!-- FP: MN-HARDFIX-LOCK — single source of truth for month-nav; exact 3-week stepping -->
@@ -6017,7 +5974,7 @@ const setWindow = (sISO, doRender = true) => {
         };
       console.info('[PLANS_PANEL] shimmed loadRatePlansForRoom (chip-augmented)');
     }
-
+    
     // After calendar builds, ensure plans for current room are loaded at least once
     document.addEventListener('calendar:rendered', function(){
       try {
