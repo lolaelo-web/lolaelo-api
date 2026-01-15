@@ -3328,68 +3328,8 @@
         pushArr(j?.features);      pushObjKeysTrue(j?.features);
         pushArr(j?.facilities);    pushObjKeysTrue(j?.facilities);
 
-        // 3) Room-level metadata (mirroring modal logic from room details)
+        // 3) Room-level metadata (DB-backed only; do NOT read localStorage here)
         if (Array.isArray(j?.rooms)) {
-          // Load room-info overrides from localStorage (same key used by room modal)
-          const ROOM_INFO_LS_KEY = "extranet_roomInfo_v1";
-          let roomInfoMap = {};
-          try {
-            const raw = localStorage.getItem(ROOM_INFO_LS_KEY);
-            if (raw) {
-              const obj = JSON.parse(raw);
-              if (obj && typeof obj === "object") {
-                roomInfoMap = obj;
-              }
-            }
-          } catch (_) {}
-
-          const enrichRoom = (room) => {
-            if (!room) return room;
-            try {
-              const rid = String(
-                room.roomTypeId ?? room.typeId ?? room.id ?? room.roomId ?? room.code ?? ""
-              );
-              if (!rid) return room;
-              const local = roomInfoMap && roomInfoMap[rid];
-              if (!local || typeof local !== "object") return room;
-
-              const overrides = {};
-
-              // Text fields
-              if (local.summary && String(local.summary).trim()) {
-                overrides.summary = String(local.summary).trim();
-              }
-              if (local.details && String(local.details).trim()) {
-                overrides.details_text = String(local.details).trim();
-              }
-              if (local.inclusions && String(local.inclusions).trim()) {
-                overrides.inclusion_text = String(local.inclusions).trim();
-              }
-
-              // Size fields (kept for consistency, may not be used by bubble)
-              if (local.sizeSqm) {
-                const v = Number(local.sizeSqm);
-                overrides.size_sqm = Number.isFinite(v) ? v : local.sizeSqm;
-              }
-              if (local.sizeSqft) {
-                const v = Number(local.sizeSqft);
-                overrides.size_sqft = Number.isFinite(v) ? v : local.sizeSqft;
-              }
-
-              // Checkbox selections
-              if (Array.isArray(local.detailsKeys) && local.detailsKeys.length) {
-                overrides.details_keys = local.detailsKeys;
-              }
-              if (Array.isArray(local.inclusionKeys) && local.inclusionKeys.length) {
-                overrides.inclusion_keys = local.inclusionKeys;
-              }
-
-              return Object.assign({}, room, overrides);
-            } catch (_) {
-              return room;
-            }
-          };
-
           const splitText = (txt) => {
             if (!txt || typeof txt !== "string") return [];
             return txt
@@ -3398,33 +3338,27 @@
               .filter(Boolean);
           };
 
-          for (const baseRoom of j.rooms) {
-            const room = enrichRoom(baseRoom);
+          for (const room of j.rooms) {
             if (!room) continue;
 
-            // Direct arrays on the room object
+            // Direct arrays on the room object (from DB payload)
             pushArr(room.amenities);
             pushArr(room.inclusions);
             pushArr(room.features);
 
-            // Meta containers (partners_rooms → edit room modal)
+            // Meta containers (if backend includes them)
             if (room.meta && typeof room.meta === "object") {
               pushArr(room.meta.amenities);
               pushArr(room.meta.inclusions);
               pushArr(room.meta.features);
             }
 
-            // Free-text details / inclusions (same source the modal uses)
+            // Free-text fields (from DB payload)
             pushArr(splitText(room.details_text));
             pushArr(splitText(room.inclusion_text));
 
-            // If keys are present and label maps exist, use them too
-            const detailKeys =
-              Array.isArray(room.details_keys) ? room.details_keys : [];
-            const inclusionKeys =
-              Array.isArray(room.inclusion_keys) ? room.inclusion_keys : [];
-
-            // Amenities bubble: only Property Facilities & Inclusions
+            // Keys -> labels (from DB payload)
+            const inclusionKeys = Array.isArray(room.inclusion_keys) ? room.inclusion_keys : [];
             if (typeof INCLUSION_LABELS === "object") {
               pushArr(
                 inclusionKeys
@@ -3458,9 +3392,12 @@
               .map(a => `<span class="chip">${a}</span>`)
               .join("");
           } else {
-            // Keep the bubble non-empty on mobile (and still fine on desktop)
+            // IMPORTANT: don't hide the container, otherwise mobile shows a blank white bubble
             amenitiesEl.style.display = "block";
-            amenitiesEl.innerHTML = `<div class="small muted">No property inclusions listed yet.</div>`;
+            amenitiesEl.innerHTML =
+              `<div class="muted" style="font-size:13px; padding:6px 2px;">
+                No property inclusions listed yet.
+              </div>`;
           }
         }
       }
@@ -5279,20 +5216,6 @@
         });
       }
 
-      // Share room-info metadata with partners extranet via localStorage
-      const ROOM_INFO_LS_KEY = "extranet_roomInfo_v1";
-
-      function loadRoomInfoMap(){
-        try{
-          const raw = localStorage.getItem(ROOM_INFO_LS_KEY);
-          if (!raw) return {};
-          const obj = JSON.parse(raw);
-          return (obj && typeof obj === "object") ? obj : {};
-        }catch(_){
-          return {};
-        }
-      }
-
       if (!backdrop) return;
 
       // Global label maps for amenities bubble (same mapping as room modal)
@@ -5528,87 +5451,6 @@
 
       function openRoomModal(room){
         if (!room) return;
-
-        // Overlay metadata from localStorage (partners_rooms edit modal)
-        try{
-          const rid = String(
-            room.roomTypeId ?? room.typeId ?? room.id ?? room.roomId ?? room.code ?? ""
-          );
-          if (rid) {
-            const infoMap  = loadRoomInfoMap();
-            const local    = infoMap && infoMap[rid];
-            if (local && typeof local === "object") {
-              const overrides = {};
-
-              // Text fields
-              if (local.summary && String(local.summary).trim()) {
-                overrides.summary = String(local.summary).trim();
-              }
-              if (local.details && String(local.details).trim()) {
-                overrides.details_text = String(local.details).trim();
-              }
-              if (local.inclusions && String(local.inclusions).trim()) {
-                overrides.inclusion_text = String(local.inclusions).trim();
-              }
-
-              // Size fields
-              if (local.sizeSqm) {
-                const v = Number(local.sizeSqm);
-                overrides.size_sqm = Number.isFinite(v) ? v : local.sizeSqm;
-              }
-              if (local.sizeSqft) {
-                const v = Number(local.sizeSqft);
-                overrides.size_sqft = Number.isFinite(v) ? v : local.sizeSqft;
-              }
-
-              // Checkbox selections
-              if (Array.isArray(local.detailsKeys) && local.detailsKeys.length) {
-                overrides.details_keys = local.detailsKeys;
-              }
-              if (Array.isArray(local.inclusionKeys) && local.inclusionKeys.length) {
-                overrides.inclusion_keys = local.inclusionKeys;
-              }
-
-              // Fallback-only: keep DB as source of truth; only fill blanks from localStorage
-              const merged = Object.assign({}, room);
-
-              // summary
-              if ((!merged.summary || !String(merged.summary).trim()) && overrides.summary) {
-                merged.summary = overrides.summary;
-              }
-
-              // details_text
-              if ((!merged.details_text || !String(merged.details_text).trim()) && overrides.details_text) {
-                merged.details_text = overrides.details_text;
-              }
-
-              // inclusion_text
-              if ((!merged.inclusion_text || !String(merged.inclusion_text).trim()) && overrides.inclusion_text) {
-                merged.inclusion_text = overrides.inclusion_text;
-              }
-
-              // sizes
-              if ((merged.size_sqm == null || merged.size_sqm === "") && overrides.size_sqm != null && overrides.size_sqm !== "") {
-                merged.size_sqm = overrides.size_sqm;
-              }
-              if ((merged.size_sqft == null || merged.size_sqft === "") && overrides.size_sqft != null && overrides.size_sqft !== "") {
-                merged.size_sqft = overrides.size_sqft;
-              }
-
-              // checkbox arrays
-              if ((!Array.isArray(merged.details_keys) || merged.details_keys.length === 0) &&
-                  Array.isArray(overrides.details_keys) && overrides.details_keys.length) {
-                merged.details_keys = overrides.details_keys;
-              }
-              if ((!Array.isArray(merged.inclusion_keys) || merged.inclusion_keys.length === 0) &&
-                  Array.isArray(overrides.inclusion_keys) && overrides.inclusion_keys.length) {
-                merged.inclusion_keys = overrides.inclusion_keys;
-              }
-
-              room = merged;
-            }
-          }
-        }catch(_){}
 
         // Title
         modalTitle.textContent = room.name || "Room";
