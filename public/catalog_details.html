@@ -3282,6 +3282,7 @@
 
         const collected = [];
 
+        // Accept arrays AND object maps (eg { free_wifi:true, breakfast:true })
         const pushArr = (arr) => {
           if (!Array.isArray(arr)) return;
           for (const v of arr) {
@@ -3301,21 +3302,31 @@
           }
         };
 
+        const pushObjKeysTrue = (obj) => {
+          if (!obj || typeof obj !== "object" || Array.isArray(obj)) return;
+          for (const k of Object.keys(obj)) {
+            if (!obj[k]) continue;
+            const s = String(k).trim();
+            if (s) collected.push(s);
+          }
+        };
+
         // 1) Property-level lists (Company Profile / partners_app + card)
-        pushArr(mp.amenities);
-        pushArr(mp.inclusions);
-        pushArr(mp.features);
-        pushArr(mp.facilities);   // NEW
-        pushArr(cp.amenities);
-        pushArr(cp.inclusions);
-        pushArr(cp.features);
-        pushArr(cp.facilities);   // NEW
+        pushArr(mp.amenities);     pushObjKeysTrue(mp.amenities);
+        pushArr(mp.inclusions);    pushObjKeysTrue(mp.inclusions);
+        pushArr(mp.features);      pushObjKeysTrue(mp.features);
+        pushArr(mp.facilities);    pushObjKeysTrue(mp.facilities);
+
+        pushArr(cp.amenities);     pushObjKeysTrue(cp.amenities);
+        pushArr(cp.inclusions);    pushObjKeysTrue(cp.inclusions);
+        pushArr(cp.features);      pushObjKeysTrue(cp.features);
+        pushArr(cp.facilities);    pushObjKeysTrue(cp.facilities);
 
         // 2) Details-level flat lists from /catalog/details, if present
-        pushArr(j?.amenities);
-        pushArr(j?.inclusions);
-        pushArr(j?.features);
-        pushArr(j?.facilities);   // NEW
+        pushArr(j?.amenities);     pushObjKeysTrue(j?.amenities);
+        pushArr(j?.inclusions);    pushObjKeysTrue(j?.inclusions);
+        pushArr(j?.features);      pushObjKeysTrue(j?.features);
+        pushArr(j?.facilities);    pushObjKeysTrue(j?.facilities);
 
         // 3) Room-level metadata (mirroring modal logic from room details)
         if (Array.isArray(j?.rooms)) {
