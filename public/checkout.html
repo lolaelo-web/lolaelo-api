@@ -2036,6 +2036,78 @@
       }
     }
 
+    // === DB-AUTHORITATIVE PROPERTY META (name/location) =======================
+    function resolveDbPropertyMeta(details) {
+      const d = details && typeof details === "object" ? details : {};
+      const name =
+        String(
+          (d.meta && d.meta.property && d.meta.property.name) ||
+          (d.property && d.property.name) ||
+          d.name ||
+          d.title ||
+          ""
+        ).trim();
+
+      const location =
+        String(
+          (d.meta && d.meta.property && d.meta.property.location) ||
+          (d.property && d.property.location) ||
+          d.location ||
+          ""
+        ).trim();
+
+      return { name, location };
+    }
+
+    function applyDbPropertyMetaToCartAndUI(propertyIdStr, meta) {
+      const pid = String(propertyIdStr || "").trim();
+      if (!pid) return;
+
+      const name = (meta && meta.name) ? String(meta.name).trim() : "";
+      const location = (meta && meta.location) ? String(meta.location).trim() : "";
+
+      if (!name && !location) return;
+
+      // 1) Update cart items for this propertyId (so clones + summary become consistent)
+      let cart = null;
+      try { cart = loadCartV1(); } catch (_) { cart = null; }
+      if (cart && Array.isArray(cart.items)) {
+        let touched = false;
+
+        cart.items.forEach(it => {
+          if (!it) return;
+          if (String(it.propertyId || "") !== pid) return;
+
+          // overwrite with DB truth (this enforces "DB pull only")
+          if (name) { it.propertyName = name; touched = true; }
+          if (location) { it.propertyLocation = location; touched = true; }
+        });
+
+        if (touched) saveCartV1(cart);
+      }
+
+      // 2) Update visible UI in-place (no re-render needed)
+      const cards = Array.from(document.querySelectorAll('.section-body[data-section-body="1"] .dates-grid[data-lineid]'));
+      cards.forEach(card => {
+        const idEl = card.querySelector('[data-role="propertyIdValue"],[data-orig-id="propertyIdValue"],#propertyIdValue');
+        const cardPid = idEl ? String(idEl.textContent || "").trim() : "";
+        if (cardPid && cardPid !== pid) return;
+
+        const nameEl = card.querySelector('[data-role="propertyName"],[data-orig-id="propertyName"],#propertyName');
+        if (nameEl && name) nameEl.textContent = name;
+
+        const metaEl = card.querySelector('[data-role="propertyMeta"],[data-orig-id="propertyMeta"],#propertyMeta');
+        if (metaEl && location) metaEl.textContent = location;
+      });
+
+      // 3) Right-side summary
+      try {
+        const sp = document.getElementById("summaryProperty");
+        if (sp && name) sp.textContent = name;
+      } catch (_) {}
+    }
+    // === DB-AUTHORITATIVE PROPERTY META END ==================================
+
     function buildCartFromCurrentQuery(q) {
       const nowIso = new Date().toISOString();
       const lineId =
@@ -3022,6 +3094,14 @@
         // Debug: full /catalog/details payload used by checkout
         console.log("[checkout] details raw", data);
         window.__checkoutDetailsPayload = data;
+
+        // Enforce DB-authoritative property labels (prevents blank/wrong names from URL/cart drift)
+        const dbMeta = resolveDbPropertyMeta(data);
+        applyDbPropertyMetaToCartAndUI(String(propertyId), dbMeta);
+
+        // Keep state aligned (used for payment payload + any legacy surfaces)
+        if (dbMeta && dbMeta.name) state.propertyName = String(dbMeta.name);
+        if (dbMeta && dbMeta.location) state.propertyLocation = String(dbMeta.location);
 
         const addons = Array.isArray(data.addons) ? data.addons : [];
         state.addonsConfig = addons;
