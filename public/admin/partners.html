@@ -37,7 +37,7 @@
     .status.bad{ color:#b42318; }
     .status.ok{ color:#0f7a3a; }
 
-    .row{ display:grid; grid-template-columns: 1fr 1fr; gap:10px; }
+    .row{ display:grid; grid-template-columns: 1fr 1fr 1fr; gap:10px; }
     @media (max-width: 760px){ .row{ grid-template-columns:1fr } }
 
     label{ display:block; font-size:12px; color:var(--muted); margin:10px 0 6px; }
@@ -74,17 +74,34 @@
 
     .btnRow{ display:flex; gap:10px; align-items:center; flex-wrap:wrap; margin-top:10px; }
     .btnRow a{ text-decoration:none; }
+    /* Keep partner name input light (avoid dark/autofill styling) */
+    .admin-text-input,
+    .admin-text-input:focus,
+    .admin-text-input:active {
+    background-color:#ffffff !important;
+    color:#0b1220 !important;
+    }
+    .admin-text-input:-webkit-autofill,
+    .admin-text-input:-webkit-autofill:hover,
+    .admin-text-input:-webkit-autofill:focus,
+    .admin-text-input:-webkit-autofill:active{
+    -webkit-box-shadow:0 0 0 1000px #ffffff inset !important;
+    -webkit-text-fill-color:#0b1220 !important;
+    transition: background-color 9999s ease-in-out 0s;
+    }
+
   </style>
 </head>
 <body>
   <div class="wrap">
-    <div class="top">
-      <div>
-        <div style="display:flex; align-items:center; gap:12px;">
-          <span class="pill" style="border-color:rgba(15,23,42,.18); color:#0f172a; font-weight:800;">Partners</span>
-          <span class="pill">Admin only</span>
-        </div>
-        <div class="status" id="status"></div>
+  <div class="top">
+    <div>
+      <div style="display:flex; align-items:center; gap:12px;">
+        <img src="/images/logo.png" alt="Lolaelo" style="height:48px; width:auto; display:block;">
+        <span class="pill" style="border-color:rgba(15,23,42,.18); color:#0f172a; font-weight:800;">Partners</span>
+        <span class="pill">Admin only</span>
+      </div>
+      <div class="status" id="status"></div>
       </div>
       <div class="btnRow">
         <a class="btn ghost" href="/admin/index.html">Back</a>
@@ -106,7 +123,11 @@
         </div>
         <div>
           <label for="cpName">Partner name (optional)</label>
-          <input id="cpName" type="text" placeholder="Daguhoy Hotel" />
+          <input id="cpName" class="admin-text-input" type="text" placeholder="Daguhoy Hotel" />
+        </div>
+        <div>
+          <label for="cpPassword">Initial password</label>
+          <input id="cpPassword" type="password" placeholder="Set password" autocomplete="new-password" />
         </div>
       </div>
 
@@ -236,8 +257,10 @@
         const t = String(getToken() || "").trim();
         const email = String($("cpEmail").value || "").trim().toLowerCase();
         const name = String($("cpName").value || "").trim();
+        const password = String(($("cpPassword") && $("cpPassword").value) ? $("cpPassword").value : "");
 
         if (!email || !email.includes("@")) return setCpStatus("Enter a valid email.", "bad");
+        if (!password) return setCpStatus("Enter an initial password.", "bad");
 
         $("btnCreatePartner").disabled = true;
         setCpStatus("Creating…", "");
@@ -245,9 +268,17 @@
         try {
           const out = await createPartner(t, email, name || null);
           if (out.ok) {
-            setCpStatus("Partner created.", "ok");
-            // convenience: copy email into reset section
-            $("prEmail").value = email;
+            // Immediately set password (one-flow onboarding)
+            const pwOut = await setPartnerPasswordByEmail(t, email, password);
+            if (pwOut.ok) {
+              setCpStatus("Partner created + password set.", "ok");
+              $("prEmail").value = email;
+              $("prPassword").value = password;
+              setPwStatus("Password set.", "ok");
+            } else {
+              setCpStatus("Partner created, but password set failed.", "bad");
+              $("prEmail").value = email;
+            }
           } else {
             setCpStatus((out.body && (out.body.error || out.body.message)) ? (out.body.error || out.body.message) : ("Failed (" + out.status + ")"), "bad");
           }

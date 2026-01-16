@@ -232,57 +232,6 @@
     </div>
     <!-- ANCHOR: HUB_TOOLS_CARD END -->
 
-    <!-- ANCHOR: ADMIN_PARTNERS_PASSWORD_CARD -->
-     <style>
-        /* Fix dark background on admin email input (focus, invalid, autofill) */
-        .admin-email-input,
-        .admin-email-input:focus,
-        .admin-email-input:active,
-        .admin-email-input:invalid {
-          background-color: #ffffff !important;
-          color: #0b1220 !important;
-        }
-
-        /* Chrome autofill override */
-        .admin-email-input:-webkit-autofill,
-        .admin-email-input:-webkit-autofill:hover,
-        .admin-email-input:-webkit-autofill:focus,
-        .admin-email-input:-webkit-autofill:active {
-          -webkit-box-shadow: 0 0 0 1000px #ffffff inset !important;
-          -webkit-text-fill-color: #0b1220 !important;
-          transition: background-color 9999s ease-in-out 0s;
-        }
-      </style>
-
-    <div class="card" style="margin-top:12px;">
-      <div style="display:flex; align-items:center; justify-content:space-between; gap:12px;">
-        <div style="font-weight:700;">Partners - Password reset</div>
-        <div class="pill">Admin only</div>
-      </div>
-
-      <div style="margin-top:10px; display:grid; grid-template-columns: 1fr 1fr; gap:10px;">
-        <div>
-          <div style="font-size:12px; color:var(--muted); margin-bottom:6px;">Partner email</div>
-          <input id="prEmail" class="admin-email-input" type="email" placeholder="daguyhoy@hotel.com"
-            style="width:100%; padding:10px 12px; border-radius:12px; border:1px solid var(--line);" />
-        </div>
-        <div>
-          <div style="font-size:12px; color:var(--muted); margin-bottom:6px;">New password</div>
-          <input id="prPassword" type="password" placeholder="*****" style="width:100%; padding:10px 12px; border-radius:12px; border:1px solid var(--line);"/>
-        </div>
-      </div>
-
-      <div style="margin-top:10px; display:flex; gap:10px; align-items:center; flex-wrap:wrap;">
-        <button id="btnSetPw" class="btn" type="button">Set password</button>
-        <div class="status" id="pwStatus" style="margin-top:0;"></div>
-      </div>
-
-      <div class="sub" style="margin-top:8px;">
-        This resets the partner password (hash only). Password cannot be retrieved later, only reset again.
-      </div>
-    </div>
-    <!-- ANCHOR: ADMIN_PARTNERS_PASSWORD_CARD END -->
-
   <script>
     (function(){
       const TOKEN_KEY = "lolaelo_admin_session";
