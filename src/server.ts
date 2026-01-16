@@ -7,6 +7,7 @@ import { Client } from "pg";
 import { requireWriteToken } from "./middleware/requireWriteToken.js";
 import Stripe from "stripe";
 import crypto from "node:crypto";
+import bcrypt from "bcrypt";
 import PDFDocument from "pdfkit";
 import path from "path";
 import fs from "fs";
@@ -106,6 +107,22 @@ function requireAdminAuth(req: Request): void {
   }
 }
 // ANCHOR: REQUIRE_ADMIN_AUTH END
+
+// ---- Password helpers -------------------------------------------------------
+const BCRYPT_ROUNDS = 12;
+
+function validatePassword(pw: string): string | null {
+  if (typeof pw !== "string") return "Invalid password";
+  if (pw.length < 10) return "Invalid password";
+  if (!/[A-Z]/.test(pw)) return "Invalid password";
+  if (!/\d/.test(pw)) return "Invalid password";
+  if (!/[^A-Za-z0-9]/.test(pw)) return "Invalid password";
+  return null;
+}
+
+async function hashPassword(pw: string): Promise<string> {
+  return bcrypt.hash(pw, BCRYPT_ROUNDS);
+}
 
 // GET /extranet/property/rateplans?propertyId=2&roomTypeId=32
 app.get("/extranet/property/rateplans", async (req: Request, res: Response) => {
@@ -2956,6 +2973,125 @@ app.get("/api/admin/ping", (req: Request, res: Response) => {
   }
 });
 // ANCHOR: ADMIN_PING_ROUTE END
+
+// ---- Admin: Set/reset partner password -------------------------------------
+
+app.post("/api/admin/partners/:id/password", express.json(), async (req: Request, res: Response) => {
+  let client: Client | null = null;
+
+  try {
+    requireAdminAuth(req);
+
+    const id = Number(req.params.id);
+    const password = String(req.body?.password || "");
+
+    if (!Number.isFinite(id)) {
+      return res.status(400).json({ ok: false, error: "invalid_partner_id" });
+    }
+
+    const pwErr = validatePassword(password);
+    if (pwErr) {
+      return res.status(400).json({ ok: false, error: "invalid_password" });
+    }
+
+    const cs = process.env.DATABASE_URL || "";
+    if (!cs) throw new Error("DATABASE_URL missing");
+
+    client = new Client({
+      connectionString: cs,
+      ssl: wantsSSL(cs) ? { rejectUnauthorized: false } : undefined,
+    });
+
+    await client.connect();
+
+    // Ensure partner exists
+    const chk = await client.query(
+      `SELECT id FROM extranet."Partner" WHERE id = $1 LIMIT 1`,
+      [id]
+    );
+
+    if (!chk.rowCount) {
+      await client.end();
+      return res.status(404).json({ ok: false, error: "partner_not_found" });
+    }
+
+    const passwordHash = await hashPassword(password);
+
+    await client.query(
+      `UPDATE extranet."Partner"
+       SET "passwordHash" = $2,
+           "passwordUpdatedAt" = now()
+       WHERE id = $1`,
+      [id, passwordHash]
+    );
+
+    await client.end();
+    return res.json({ ok: true });
+  } catch (e) {
+    console.error("[admin] partners/:id/password failed", e);
+    try { await client?.end(); } catch {}
+    return res.status(401).json({ ok: false, error: "unauthorized" });
+  }
+});
+
+app.post("/api/admin/partners/password-by-email", express.json(), async (req: Request, res: Response) => {
+  let client: Client | null = null;
+
+  try {
+    requireAdminAuth(req);
+
+    const email = String(req.body?.email || "").trim().toLowerCase();
+    const password = String(req.body?.password || "");
+
+    if (!email || !email.includes("@")) {
+      return res.status(400).json({ ok: false, error: "invalid_email" });
+    }
+
+    const pwErr = validatePassword(password);
+    if (pwErr) {
+      return res.status(400).json({ ok: false, error: "invalid_password" });
+    }
+
+    const cs = process.env.DATABASE_URL || "";
+    if (!cs) throw new Error("DATABASE_URL missing");
+
+    client = new Client({
+      connectionString: cs,
+      ssl: wantsSSL(cs) ? { rejectUnauthorized: false } : undefined,
+    });
+
+    await client.connect();
+
+    // Lookup partner id by email
+    const chk = await client.query(
+      `SELECT id FROM extranet."Partner" WHERE lower(email) = $1 LIMIT 1`,
+      [email]
+    );
+
+    if (!chk.rowCount) {
+      await client.end();
+      return res.status(404).json({ ok: false, error: "partner_not_found" });
+    }
+
+    const id = Number(chk.rows[0].id);
+    const passwordHash = await hashPassword(password);
+
+    await client.query(
+      `UPDATE extranet."Partner"
+       SET "passwordHash" = $2,
+           "passwordUpdatedAt" = now()
+       WHERE id = $1`,
+      [id, passwordHash]
+    );
+
+    await client.end();
+    return res.json({ ok: true });
+  } catch (e) {
+    console.error("[admin] partners/password-by-email failed", e);
+    try { await client?.end(); } catch {}
+    return res.status(401).json({ ok: false, error: "unauthorized" });
+  }
+});
 
 // === Admin Analytics Summary ==============================================
 app.get("/api/admin/analytics/summary", async (req: Request, res: Response) => {

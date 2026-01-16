@@ -63,7 +63,10 @@
     <p>Enter your work email. We’ll send a 6-digit code to sign in.</p>
 
     <label for="email">Work email</label>
-    <input id="email" type="email" placeholder="you@hotel.com" autocomplete="email" />
+    <input id="email" type="email" placeholder="daguhoy@hotel.com" autocomplete="email" />
+
+    <label for="pw">Password</label>
+    <input id="pw" type="password" placeholder="******" autocomplete="current-password" />
 
     <div class="row">
       <button id="btnRequest">Send code</button>
@@ -87,6 +90,7 @@
     const el = (id) => document.getElementById(id);
     const toastBox   = el('toast');
     const emailInput = el('email');
+    const pwInput    = el('pw');
     const codeInput  = el('code');
     const btnRequest = el('btnRequest');
     const btnVerify  = el('btnVerify');
@@ -113,13 +117,16 @@
     // --- Send code (namespaced endpoint) ---
     btnRequest.onclick = async () => {
       const email = (emailInput.value || '').trim().toLowerCase();
+      const password = (pwInput && pwInput.value ? String(pwInput.value) : '').trim();
+
       if (!email || !email.includes("@")) return toast('Enter a valid email.');
+      if (!password) return toast('Enter your password.');
       btnRequest.disabled = true;
       try {
         const res = await fetch(`${API_BASE}/extranet/login/request-code`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ email })
+          body: JSON.stringify({ email, password })
         });
         const data = await res.json().catch(()=>({}));
         if (!res.ok || !data.ok) throw new Error(data.error || `Could not send code (${res.status})`);

@@ -1,4 +1,6 @@
-﻿import { Router, Request, Response } from "express";
+﻿import { Router, type Request, type Response } from "express";
+import bcrypt from "bcrypt";
+import { prisma } from "../prisma.js";
 import {
   issueCode,
   verifyCodeIssueSession,
@@ -12,13 +14,32 @@ import {
 const router = Router();
 const CODE_TTL_MIN = 10;
 
-// ----- OTP: request code -----------------------------------------------------
-router.post("/login/request-code", async (req: Request, res: Response) => {
-  const email = String(req.body?.email || "").trim().toLowerCase();
-  if (!email || !email.includes("@")) {
-    return res.status(400).json({ ok: false, error: "invalid_email" });
-  }
+function normEmail(v: any): string {
+  return String(v || "").trim().toLowerCase();
+}
 
+// Generic response to avoid leaking whether email or password was wrong
+function invalidCreds(res: Response) {
+  return res.status(400).json({ ok: false, error: "invalid_credentials" });
+}
+
+// ----- OTP: request code (NOW gated by email+password) -----------------------
+router.post("/login/request-code", async (req: Request, res: Response) => {
+  const email = normEmail(req.body?.email);
+  const password = String(req.body?.password || "");
+
+  if (!email || !email.includes("@")) return invalidCreds(res);
+  if (!password) return invalidCreds(res);
+
+  // Partner must exist and must have passwordHash set
+  const partner = await prisma.extranet_Partner.findUnique({ where: { email } }).catch(() => null);
+  if (!partner || !partner.passwordHash) return invalidCreds(res);
+
+  // Validate password
+  const ok = await bcrypt.compare(password, partner.passwordHash).catch(() => false);
+  if (!ok) return invalidCreds(res);
+
+  // Issue OTP only after password passes
   const { code, ttlMin } = issueCode(email);
 
   const POSTMARK_TOKEN = process.env.POSTMARK_TOKEN || "";
@@ -47,15 +68,15 @@ router.post("/login/request-code", async (req: Request, res: Response) => {
       return res.json({ ok: true, emailed: false, devCode: code, ttlMin });
     }
     return res.json({ ok: true, emailed: true, ttlMin });
-  } else {
-    // dev mode: return code in response
-    return res.json({ ok: true, emailed: false, devCode: code, ttlMin });
   }
+
+  // dev mode: return code in response
+  return res.json({ ok: true, emailed: false, devCode: code, ttlMin });
 });
 
 // ----- OTP: verify code -> session ------------------------------------------
 router.post("/login/verify-code", async (req: Request, res: Response) => {
-  const email = String(req.body?.email || "").trim().toLowerCase();
+  const email = normEmail(req.body?.email);
   const code = String(req.body?.code || "").trim();
 
   if (!email || !email.includes("@")) {
@@ -72,7 +93,6 @@ router.post("/login/verify-code", async (req: Request, res: Response) => {
 });
 
 // ----- Session info / logout -------------------------------------------------
-// Uses auth middleware; we only need expiresAt, so fetch the session once.
 router.get("/extranet/session", authPartnerFromHeader, async (req: any, res: Response) => {
   const token = req.partnerToken as string;
   const s = await getSession(token);
@@ -95,7 +115,6 @@ router.post("/extranet/logout", authPartnerFromHeader, async (req: any, res: Res
 
 // ----- Property profile (use email from middleware) --------------------------
 router.get("/extranet/property", authPartnerFromHeader, async (req: any, res: Response) => {
-  // auth middleware already attached req.partner
   const email = req.partner?.email as string | undefined;
   if (!email) return res.status(401).json({ error: "Unauthorized" });
 
@@ -113,5 +132,6 @@ router.put("/extranet/property", authPartnerFromHeader, async (req: any, res: Re
 // ----- Legacy aliases --------------------------------------------------------
 router.post("/extranet/login/request-code", (req, res) => res.redirect(307, "/login/request-code"));
 router.post("/extranet/login", (req, res) => res.redirect(307, "/login/verify-code"));
+router.post("/extranet/login/verify", (req, res) => res.redirect(307, "/login/verify-code"));
 
 export default router;

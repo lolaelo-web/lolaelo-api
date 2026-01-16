@@ -65,6 +65,8 @@ model extranet_Partner {
   AddOns            extranet_AddOn[]             @relation("extranet_Partner_AddOns")
   Booking           Booking[]
   ExtranetLoginCode extranet_ExtranetLoginCode[]
+  passwordHash      String?
+  passwordUpdatedAt DateTime @default(now()) @db.Timestamptz(6)
   PmsConnection     extranet_PmsConnection[]
   PropertyDocument  extranet_PropertyDocument[]
   PropertyPhoto     extranet_PropertyPhoto[]
