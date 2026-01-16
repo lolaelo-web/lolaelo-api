@@ -3647,14 +3647,16 @@
       noBtn.type = "button";
       noBtn.textContent = "No";
       noBtn.className = "pill-outline"; // uses your existing aesthetic
-      // Standardize modal button sizing (pill + consistent height)
+      // Standardize modal button sizing (force pill, not circle)
       noBtn.style.minHeight = "40px";
-      noBtn.style.padding = "8px 18px";
+      noBtn.style.minWidth  = "88px";   // <-- THIS is the key
+      noBtn.style.padding   = "8px 22px";
       noBtn.style.borderRadius = "999px";
       noBtn.style.fontWeight = "600";
       noBtn.style.fontSize = "14px";
       noBtn.style.lineHeight = "1";
       noBtn.style.cursor = "pointer";
+
 
       const yesBtn = document.createElement("button");
       yesBtn.type = "button";
