@@ -480,37 +480,9 @@
     <main role="main">
       <section class="hero" id="welcome">
         <h1 class="hero-title" id="welcome-title">Fair travel, built on trust.</h1>
-        <p class="hero-tagline" id="welcome-body"></p>
 
-        <!-- Optional CMS-driven copy (safe; fails silent if endpoint missing) -->
-        <script>
-          (function () {
-            const t = document.getElementById("welcome-title");
-            const b = document.getElementById("welcome-body");
-        
-            fetch("/content/homepage-welcome", { cache: "no-store" })
-              .then(async (r) => {
-                if (!r.ok) return null;
-        
-                const ct = (r.headers.get("content-type") || "").toLowerCase();
-                if (!ct.includes("application/json")) return null;
-        
-                try {
-                  return await r.json();
-                } catch (_) {
-                  return null;
-                }
-              })
-              .then((d) => {
-                if (!d) return; // keep defaults in HTML
-                if (d.title) t.textContent = d.title;
-                if (d.body) b.textContent = d.body;
-              })
-              .catch(() => {
-                // intentionally silent: landing page must not error if CMS endpoint is missing
-              });
-          })();
-        </script>
+        <!-- Keep this element (search/JS may reference it). Hide if empty. -->
+        <p class="hero-tagline" id="welcome-body" style="display:none;"></p>
 
         <!-- Search card -->
         <div class="search-card-wrap">

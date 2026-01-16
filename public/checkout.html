@@ -4137,6 +4137,42 @@
       }
       window.__CHECKOUT_INIT_DONE__ = true;
 
+      // === SINGLE-PROPERTY CHECKOUT ENFORCEMENT =============================
+      // Allow multiple cards/date windows, but only for ONE property per checkout.
+      try {
+        const cart = loadCartV1();
+        const items = (cart && Array.isArray(cart.items)) ? cart.items : [];
+
+        const propIds = Array.from(
+          new Set(items.map(it => String(it?.propertyId || "")).filter(Boolean))
+        );
+
+        if (propIds.length > 1) {
+          const keepPid = propIds[0];
+
+          cart.items = items.filter(it => String(it?.propertyId || "") === keepPid);
+          saveCartV1(cart);
+
+          console.warn("[checkout] multi-property cart detected; normalized to single property", {
+            keepPropertyId: keepPid,
+            removedPropertyIds: propIds.slice(1)
+          });
+
+          // Optional: simple user-facing notice (non-blocking)
+          try {
+            alert("Checkout supports one property at a time. Items from other properties were removed. You can book those properties in separate checkouts.");
+          } catch (_) {}
+
+          // Reload so UI re-renders from the normalized cart
+          try { location.reload(); } catch (_) {}
+          return;
+        }
+      } catch (e) {
+        console.warn("[checkout] single-property enforcement failed (non-fatal)", e);
+      }
+      // === SINGLE-PROPERTY CHECKOUT ENFORCEMENT END =========================
+
+
       // === AFTER-SUCCESS HARD STOP (durable) ===
       (function(){
         try {
