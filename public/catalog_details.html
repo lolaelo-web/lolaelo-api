@@ -3000,13 +3000,20 @@
           const sj = await sr.json();
           const pidStr = String(propertyId);
           const props = Array.isArray(sj?.properties) ? sj.properties : (Array.isArray(sj) ? sj : []);
+
           propertyCard =
             props.find(it => String(it.partnerId ?? it.propertyId ?? it.id) === pidStr) ||
-            props[0] ||
             null;
+
+          if (!propertyCard) {
+            console.warn("[details] /catalog/search did not return matching propertyId", {
+              propertyId: pidStr,
+              count: props.length
+            });
+          }
         }
       } catch (e) {
-        console.warn('[details] propertyCard search fallback failed', e);
+        console.warn("[details] propertyCard search fallback failed", e);
       }
 
       if (nameEl) {
@@ -3707,7 +3714,7 @@
             }
             if (!arr.length) {
               const props = Array.isArray(sj?.properties) ? sj.properties : (Array.isArray(sj) ? sj : []);
-              const item  = props.find(it => String(it?.partnerId ?? it?.propertyId ?? it?.id) === pidStr) || props[0];
+              const item  = props.find(it => String(it?.partnerId ?? it?.propertyId ?? it?.id) === pidStr) || null;
               if (item) {
                 arr = pickList(item.images || item.photos || []);
                 if (!arr.length && item?.cover)    arr = pickList([item.cover.url || item.cover]);
