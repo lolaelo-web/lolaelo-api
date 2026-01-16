@@ -3034,6 +3034,8 @@ app.post("/api/admin/partners/:id/password", express.json(), async (req: Request
   }
 });
 
+// ---- Admin: Set / reset partner password ------------------------------------
+
 app.post("/api/admin/partners/password-by-email", express.json(), async (req: Request, res: Response) => {
   let client: Client | null = null;
 
@@ -3062,7 +3064,6 @@ app.post("/api/admin/partners/password-by-email", express.json(), async (req: Re
 
     await client.connect();
 
-    // Lookup partner id by email
     const chk = await client.query(
       `SELECT id FROM extranet."Partner" WHERE lower(email) = $1 LIMIT 1`,
       [email]
@@ -3088,6 +3089,55 @@ app.post("/api/admin/partners/password-by-email", express.json(), async (req: Re
     return res.json({ ok: true });
   } catch (e) {
     console.error("[admin] partners/password-by-email failed", e);
+    try { await client?.end(); } catch {}
+    return res.status(401).json({ ok: false, error: "unauthorized" });
+  }
+});
+
+// ---- Admin: Create partner --------------------------------------------------
+
+app.post("/api/admin/partners", express.json(), async (req: Request, res: Response) => {
+  let client: Client | null = null;
+
+  try {
+    requireAdminAuth(req);
+
+    const email = String(req.body?.email || "").trim().toLowerCase();
+    const name  = req.body?.name != null ? String(req.body.name).trim() : null;
+
+    if (!email || !email.includes("@")) {
+      return res.status(400).json({ ok: false, error: "invalid_email" });
+    }
+
+    const cs = process.env.DATABASE_URL || "";
+    if (!cs) throw new Error("DATABASE_URL missing");
+
+    client = new Client({
+      connectionString: cs,
+      ssl: wantsSSL(cs) ? { rejectUnauthorized: false } : undefined,
+    });
+
+    await client.connect();
+
+    const { rows } = await client.query(
+      `
+      INSERT INTO extranet."Partner"
+        (email, name, "createdAt", "updatedAt", "passwordUpdatedAt")
+      VALUES
+        ($1, $2, now(), now(), now())
+      ON CONFLICT (email)
+      DO UPDATE SET
+        name = COALESCE(EXCLUDED.name, extranet."Partner".name),
+        "updatedAt" = now()
+      RETURNING id, email, name
+      `,
+      [email, name && name.length ? name : null]
+    );
+
+    await client.end();
+    return res.json({ ok: true, partner: rows[0] });
+  } catch (e) {
+    console.error("[admin] create partner failed", e);
     try { await client?.end(); } catch {}
     return res.status(401).json({ ok: false, error: "unauthorized" });
   }
