@@ -3647,11 +3647,26 @@
       noBtn.type = "button";
       noBtn.textContent = "No";
       noBtn.className = "pill-outline"; // uses your existing aesthetic
+      // Standardize modal button sizing (pill + consistent height)
+      noBtn.style.minHeight = "40px";
+      noBtn.style.padding = "8px 18px";
+      noBtn.style.borderRadius = "999px";
+      noBtn.style.fontWeight = "600";
+      noBtn.style.fontSize = "14px";
+      noBtn.style.lineHeight = "1";
+      noBtn.style.cursor = "pointer";
 
       const yesBtn = document.createElement("button");
       yesBtn.type = "button";
       yesBtn.textContent = "Yes, remove";
       yesBtn.className = "btn-primary"; // uses your existing aesthetic
+      // Match "No" button height/padding so both look consistent
+      yesBtn.style.minHeight = "40px";
+      yesBtn.style.padding = "8px 18px";
+      yesBtn.style.borderRadius = "999px";
+      yesBtn.style.fontWeight = "600";
+      yesBtn.style.fontSize = "14px";
+      yesBtn.style.lineHeight = "1";
 
       function close() {
         backdrop.remove();
@@ -4212,21 +4227,6 @@
             localStorage.removeItem("checkout.lastPropertyId");
             localStorage.removeItem("checkout.lastDetailsUrl");
             // keep the flag so Back cannot resurrect checkout
-            location.replace("/catalog.html");
-            return;
-          }
-        } catch (_) {}
-      })();
-
-      // === NO-QUERY HARD STOP ===
-      (function(){
-        try {
-          const hasQuery = !!(location.search && location.search.length > 1);
-          if (!hasQuery) {
-            localStorage.removeItem("checkout.cart.v1");
-            localStorage.removeItem("checkout.selection.v1");
-            localStorage.removeItem("checkout.lastPropertyId");
-            localStorage.removeItem("checkout.lastDetailsUrl");
             location.replace("/catalog.html");
             return;
           }
