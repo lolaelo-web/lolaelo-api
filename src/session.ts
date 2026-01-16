@@ -61,6 +61,7 @@ export async function verifyCodeIssueSession(email: string, code: string) {
     where: { email: e }
   });
   if (!partner) return null;
+  if (!partner.passwordHash) return null;
 
   const token = uuid();
   const expDate = new Date(addDays(now(), SESSION_TTL_DAYS));

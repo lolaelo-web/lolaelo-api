@@ -1,0 +1,292 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Partners | Admin Hub | Lolaelo</title>
+  <link rel="stylesheet" href="/css/extranet.css">
+  <style>
+    :root{
+      --bg:#f6f8fc;
+      --card:#ffffff;
+      --fg:#0f172a;
+      --muted:#5b6b84;
+      --accent:#ff6a3d;
+      --line:rgba(15,23,42,.12);
+    }
+    *{ box-sizing:border-box }
+    body{ margin:0; background:var(--bg); color:var(--fg); font-family:Inter,system-ui,-apple-system,Segoe UI,Roboto,Arial; }
+    .wrap{ max-width:980px; margin:0 auto; padding:22px 14px 34px; }
+    .top{
+      display:flex; align-items:center; justify-content:space-between; gap:12px;
+      margin-bottom:12px;
+    }
+    .pill{
+      display:inline-block; font-size:11px; padding:4px 8px; border-radius:999px;
+      border:1px solid var(--line); color:var(--muted);
+      vertical-align:middle;
+    }
+    .card{
+      border:1px solid var(--line);
+      background:var(--card);
+      border-radius:14px;
+      padding:14px;
+      box-shadow:0 10px 30px rgba(15,23,42,.08);
+    }
+    .status{ font-size:12px; color:var(--muted); min-height:16px; }
+    .status.bad{ color:#b42318; }
+    .status.ok{ color:#0f7a3a; }
+
+    .row{ display:grid; grid-template-columns: 1fr 1fr; gap:10px; }
+    @media (max-width: 760px){ .row{ grid-template-columns:1fr } }
+
+    label{ display:block; font-size:12px; color:var(--muted); margin:10px 0 6px; }
+    input{
+      width:100%;
+      padding:10px 12px;
+      border-radius:12px;
+      border:1px solid var(--line);
+      background:#ffffff;
+      color:var(--fg);
+      outline:none;
+    }
+    input:focus{
+      border-color:rgba(255,106,61,.55);
+      box-shadow:0 0 0 3px rgba(255,106,61,.15);
+    }
+
+    /* Force email input to stay light even when invalid/autofill */
+    .admin-email-input,
+    .admin-email-input:focus,
+    .admin-email-input:active,
+    .admin-email-input:invalid {
+      background-color:#ffffff !important;
+      color:#0b1220 !important;
+    }
+    .admin-email-input:-webkit-autofill,
+    .admin-email-input:-webkit-autofill:hover,
+    .admin-email-input:-webkit-autofill:focus,
+    .admin-email-input:-webkit-autofill:active{
+      -webkit-box-shadow:0 0 0 1000px #ffffff inset !important;
+      -webkit-text-fill-color:#0b1220 !important;
+      transition: background-color 9999s ease-in-out 0s;
+    }
+
+    .btnRow{ display:flex; gap:10px; align-items:center; flex-wrap:wrap; margin-top:10px; }
+    .btnRow a{ text-decoration:none; }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <div class="top">
+      <div>
+        <div style="display:flex; align-items:center; gap:12px;">
+          <span class="pill" style="border-color:rgba(15,23,42,.18); color:#0f172a; font-weight:800;">Partners</span>
+          <span class="pill">Admin only</span>
+        </div>
+        <div class="status" id="status"></div>
+      </div>
+      <div class="btnRow">
+        <a class="btn ghost" href="/admin/index.html">Back</a>
+        <button id="btnLogout" class="btn ghost" type="button">Sign out</button>
+      </div>
+    </div>
+
+    <!-- Create partner -->
+    <div class="card">
+      <div style="display:flex; align-items:center; justify-content:space-between; gap:12px;">
+        <div style="font-weight:700;">Create partner</div>
+        <div class="pill">extranet.Partner</div>
+      </div>
+
+      <div class="row" style="margin-top:8px;">
+        <div>
+          <label for="cpEmail">Partner email</label>
+          <input id="cpEmail" class="admin-email-input" type="email" placeholder="daguhoy@hotel.com" autocomplete="email" />
+        </div>
+        <div>
+          <label for="cpName">Partner name (optional)</label>
+          <input id="cpName" type="text" placeholder="Daguhoy Hotel" />
+        </div>
+      </div>
+
+      <div class="btnRow">
+        <button id="btnCreatePartner" class="btn" type="button">Create partner</button>
+        <div class="status" id="cpStatus"></div>
+      </div>
+    </div>
+
+    <div style="height:12px;"></div>
+
+    <!-- Password reset -->
+    <div class="card">
+      <div style="display:flex; align-items:center; justify-content:space-between; gap:12px;">
+        <div style="font-weight:700;">Set or reset password</div>
+        <div class="pill">bcrypt hash only</div>
+      </div>
+
+      <div class="row" style="margin-top:8px;">
+        <div>
+          <label for="prEmail">Partner email</label>
+          <input id="prEmail" class="admin-email-input" type="email" placeholder="palatulan@gmail.com" autocomplete="email" />
+        </div>
+        <div>
+          <label for="prPassword">New password</label>
+          <input id="prPassword" type="password" placeholder="Hunter1014!" autocomplete="new-password" />
+        </div>
+      </div>
+
+      <div class="btnRow">
+        <button id="btnSetPw" class="btn" type="button">Set password</button>
+        <div class="status" id="pwStatus"></div>
+      </div>
+
+      <div class="status" style="margin-top:6px;">
+        Password cannot be retrieved later. Only reset.
+      </div>
+    </div>
+
+  </div>
+
+  <script>
+    (function(){
+      const TOKEN_KEY = "lolaelo_admin_session";
+      const LOGIN = "/admin/login.html";
+
+      const PING_URL = "/api/admin/ping";
+      const CREATE_PARTNER_URL = "/api/admin/partners";
+      const SET_PW_EMAIL_URL = "/api/admin/partners/password-by-email";
+
+      const $ = (id) => document.getElementById(id);
+
+      function getToken(){
+        try { return localStorage.getItem(TOKEN_KEY) || ""; } catch { return ""; }
+      }
+      function setStatus(msg, kind){
+        const el = $("status");
+        if (!el) return;
+        el.textContent = msg || "";
+        el.className = "status" + (kind ? (" " + kind) : "");
+      }
+      function setCpStatus(msg, kind){
+        const el = $("cpStatus");
+        if (!el) return;
+        el.textContent = msg || "";
+        el.className = "status" + (kind ? (" " + kind) : "");
+      }
+      function setPwStatus(msg, kind){
+        const el = $("pwStatus");
+        if (!el) return;
+        el.textContent = msg || "";
+        el.className = "status" + (kind ? (" " + kind) : "");
+      }
+
+      async function ping(token){
+        const r = await fetch(PING_URL, { headers: { "Authorization": "Bearer " + token } });
+        return r.ok;
+      }
+
+      async function createPartner(token, email, name){
+        const r = await fetch(CREATE_PARTNER_URL, {
+          method: "POST",
+          headers: {
+            "Authorization": "Bearer " + token,
+            "Content-Type": "application/json"
+          },
+          body: JSON.stringify({ email, name })
+        });
+        const j = await r.json().catch(()=>({}));
+        return { ok: r.ok && j && j.ok, status:r.status, body:j };
+      }
+
+      async function setPartnerPasswordByEmail(token, email, password){
+        const r = await fetch(SET_PW_EMAIL_URL, {
+          method: "POST",
+          headers: {
+            "Authorization": "Bearer " + token,
+            "Content-Type": "application/json"
+          },
+          body: JSON.stringify({ email, password })
+        });
+        const j = await r.json().catch(()=>({}));
+        return { ok: r.ok && j && j.ok, status:r.status, body:j };
+      }
+
+      async function boot(){
+        const t = String(getToken() || "").trim();
+        if (!t) { location.replace(LOGIN); return; }
+
+        setStatus("Validating…", "");
+        const ok = await ping(t).catch(() => false);
+        if (!ok) {
+          try { localStorage.removeItem(TOKEN_KEY); } catch {}
+          setStatus("Session invalid. Redirecting…", "bad");
+          location.replace(LOGIN);
+          return;
+        }
+        setStatus("Ready.", "ok");
+      }
+
+      $("btnLogout").onclick = () => {
+        try { localStorage.removeItem(TOKEN_KEY); } catch {}
+        location.replace(LOGIN);
+      };
+
+      $("btnCreatePartner").onclick = async () => {
+        const t = String(getToken() || "").trim();
+        const email = String($("cpEmail").value || "").trim().toLowerCase();
+        const name = String($("cpName").value || "").trim();
+
+        if (!email || !email.includes("@")) return setCpStatus("Enter a valid email.", "bad");
+
+        $("btnCreatePartner").disabled = true;
+        setCpStatus("Creating…", "");
+
+        try {
+          const out = await createPartner(t, email, name || null);
+          if (out.ok) {
+            setCpStatus("Partner created.", "ok");
+            // convenience: copy email into reset section
+            $("prEmail").value = email;
+          } else {
+            setCpStatus((out.body && (out.body.error || out.body.message)) ? (out.body.error || out.body.message) : ("Failed (" + out.status + ")"), "bad");
+          }
+        } catch (e) {
+          console.error(e);
+          setCpStatus("Failed.", "bad");
+        } finally {
+          $("btnCreatePartner").disabled = false;
+        }
+      };
+
+      $("btnSetPw").onclick = async () => {
+        const t = String(getToken() || "").trim();
+        const email = String($("prEmail").value || "").trim().toLowerCase();
+        const password = String($("prPassword").value || "");
+
+        if (!email || !email.includes("@")) return setPwStatus("Enter a valid email.", "bad");
+        if (!password) return setPwStatus("Enter a password.", "bad");
+
+        $("btnSetPw").disabled = true;
+        setPwStatus("Saving…", "");
+
+        try {
+          const out = await setPartnerPasswordByEmail(t, email, password);
+          if (out.ok) {
+            setPwStatus("Password set.", "ok");
+          } else {
+            setPwStatus((out.body && (out.body.error || out.body.message)) ? (out.body.error || out.body.message) : ("Failed (" + out.status + ")"), "bad");
+          }
+        } catch (e) {
+          console.error(e);
+          setPwStatus("Failed.", "bad");
+        } finally {
+          $("btnSetPw").disabled = false;
+        }
+      };
+
+      boot();
+    })();
+  </script>
+</body>
+</html>
