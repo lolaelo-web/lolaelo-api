@@ -1,15 +1,3 @@
-// BASELINE LOCK (PROD) - 2026-01-11
-// Prisma migrations were baselined to match the current PROD schema.
-// Authoritative schema: extranet only. Do not reintroduce "public" into datasource schemas.
-// PROD workflow: prisma migrate deploy only. Never run migrate dev on PROD.
-// Public schema is legacy/inert (no CREATE) and its prior ledger was archived.
-// ⚠️ PRISMA BASELINE LOCK — READ prisma/README.md BEFORE EDITING
-// PROD baseline established: 2026-01-11
-// Authoritative schema: extranet ONLY
-// Never reintroduce `public` into datasource schemas
-// PROD: prisma migrate deploy ONLY
-// DEV: use ./prisma-dev.ps1 ONLY
-
 generator client {
   provider = "prisma-client-js"
 }
@@ -20,40 +8,22 @@ datasource db {
   schemas  = ["extranet"]
 }
 
-model ExtranetSession {
-  id        Int       @id @default(autoincrement())
-  partnerId Int
-  token     String    @unique
-  expiresAt DateTime
-  createdAt DateTime  @default(now())
-  revokedAt DateTime?
-  partner   extranet_Partner @relation(fields: [partnerId], references: [id], onDelete: Cascade)
-
-  @@index([partnerId])
-  @@index([expiresAt])
-  @@schema("extranet")
-}
-
 model PropertyProfile {
-  id           Int      @id @default(autoincrement())
-  partnerId    Int      @unique
+  id           Int              @id @default(autoincrement())
+  partnerId    Int              @unique
   name         String
   addressLine  String?
   city         String?
-  cityCode     String?
   country      String?
   contactEmail String?
   phone        String?
   description  String?
-  mapLabel     String?
-  // Coordinates from partners_app map
+  cityCode     String?
   latitude     Float?
   longitude    Float?
-
-  createdAt    DateTime @default(now())
-  updatedAt    DateTime @updatedAt
-
-  // Canonical relation to extranet_Partner
+  createdAt    DateTime         @default(now())
+  updatedAt    DateTime         @updatedAt
+  mapLabel     String?
   partner      extranet_Partner @relation(fields: [partnerId], references: [id], onDelete: Cascade)
 
   @@schema("extranet")
@@ -85,23 +55,24 @@ model extranet_ExtranetLoginCode {
   @@schema("extranet")
 }
 
+/// This model contains an expression index which requires additional setup for migrations. Visit https://pris.ly/d/expression-indexes for more info.
 model extranet_Partner {
-  id                           Int                            @id @default(autoincrement())
-  email                        String                         @unique
-  name                         String?
-  createdAt                    DateTime                       @default(now())
-  updatedAt                    DateTime
-  ExtranetLoginCode            extranet_ExtranetLoginCode[]
-  PmsConnection                extranet_PmsConnection[]
-  PropertyDocument             extranet_PropertyDocument[]
-  PropertyPhoto                extranet_PropertyPhoto[]
-  PropertyProfile              PropertyProfile?
-  RatePlan                     extranet_RatePlan[]
-  RoomInventory                extranet_RoomInventory[]
-  RoomPrice                    extranet_RoomPrice[]
-  RoomType                     extranet_RoomType[]
-  AddOns                       extranet_AddOn[]               @relation("extranet_Partner_AddOns")
-  ExtranetSession              ExtranetSession[]              // back-reference for ExtranetSession.partner
+  id                Int                          @id @default(autoincrement())
+  email             String                       @unique
+  name              String?
+  createdAt         DateTime                     @default(now())
+  updatedAt         DateTime
+  AddOns            extranet_AddOn[]             @relation("extranet_Partner_AddOns")
+  Booking           Booking[]
+  ExtranetLoginCode extranet_ExtranetLoginCode[]
+  PmsConnection     extranet_PmsConnection[]
+  PropertyDocument  extranet_PropertyDocument[]
+  PropertyPhoto     extranet_PropertyPhoto[]
+  PropertyProfile   PropertyProfile?
+  RatePlan          extranet_RatePlan[]
+  RoomInventory     extranet_RoomInventory[]
+  RoomPrice         extranet_RoomPrice[]
+  RoomType          extranet_RoomType[]
 
   @@map("Partner")
   @@schema("extranet")
@@ -197,15 +168,12 @@ model extranet_PropertyPhoto {
   width      Int?
   height     Int?
   createdAt  DateTime           @default(now())
-
-  // NEW: nullable room linkage (extranet schema)
   roomTypeId Int?
-  RoomType   extranet_RoomType? @relation(fields: [roomTypeId], references: [id], onDelete: SetNull)
-
   Partner    extranet_Partner   @relation(fields: [partnerId], references: [id], onDelete: Cascade)
+  RoomType   extranet_RoomType? @relation(fields: [roomTypeId], references: [id])
 
   @@index([partnerId, sortOrder])
-  @@index([partnerId, roomTypeId, sortOrder]) // NEW helper index
+  @@index([partnerId, roomTypeId, sortOrder])
   @@map("PropertyPhoto")
   @@schema("extranet")
 }
@@ -224,30 +192,29 @@ model PropertyProfileAudit {
 }
 
 model extranet_RatePlan {
-  id         Int                   @id @default(autoincrement())
-  partnerId  Int
-  roomTypeId Int
-  name       String
-  policy     String?
-  priceDelta Decimal?              @db.Decimal(10, 2)
+  id          Int                   @id @default(autoincrement())
+  partnerId   Int
+  roomTypeId  Int
+  name        String
+  policy      String?
+  priceDelta  Decimal?              @db.Decimal(10, 2)
+  createdAt   DateTime              @default(now())
+  updatedAt   DateTime
+  code        String?
+  kind        String?
+  value       Decimal?              @db.Decimal
+  active      Boolean               @default(true)
+  isDefault   Boolean               @default(false)
+  Booking     Booking[]
+  BookingItem BookingItem[]
+  PmsMapping  extranet_PmsMapping[]
+  Partner     extranet_Partner      @relation(fields: [partnerId], references: [id], onDelete: Cascade)
+  RoomType    extranet_RoomType     @relation(fields: [roomTypeId], references: [id], onDelete: Cascade)
+  RoomPrice   extranet_RoomPrice[]
 
-  // Rule-backed plan metadata (preferred long-term over priceDelta)
-  code       String?               // "STD", "BRKF", "NRF"
-  kind       String?               // "NONE", "ABSOLUTE", "PERCENT"
-  value      Decimal?              @db.Decimal(10, 4)  // ABS dollars or percent
-
-  createdAt  DateTime              @default(now())
-  updatedAt  DateTime
-
-  PmsMapping extranet_PmsMapping[]
-  Partner    extranet_Partner      @relation(fields: [partnerId], references: [id], onDelete: Cascade)
-  RoomType   extranet_RoomType     @relation(fields: [roomTypeId], references: [id], onDelete: Cascade)
-  RoomPrice  extranet_RoomPrice[]
-
-  @@index([partnerId, roomTypeId, code])
-  @@unique([roomTypeId, code])
   @@unique([roomTypeId, name])
   @@index([partnerId])
+  @@index([partnerId, roomTypeId, code], map: "RatePlan_partner_room_code_idx")
   @@map("RatePlan")
   @@schema("extranet")
 }
@@ -293,23 +260,32 @@ model extranet_RoomPrice {
 }
 
 model extranet_RoomType {
-  id            Int                      @id @default(autoincrement())
-  partnerId     Int
-  name          String
-  description   String?
-  maxGuests     Int                      @default(2)
-  basePrice     Decimal                  @db.Decimal(10, 2)
-  createdAt     DateTime                 @default(now())
-  updatedAt     DateTime
-  occupancy     Int?
-  code          String?
-  active        Boolean                  @default(false)
-  PmsMapping    extranet_PmsMapping[]
-  RatePlan      extranet_RatePlan[]
-  RoomInventory extranet_RoomInventory[]
-  RoomPrice     extranet_RoomPrice[]
-  PropertyPhotos extranet_PropertyPhoto[]   // back-relation for extranet_PropertyPhoto.RoomType
-  Partner       extranet_Partner         @relation(fields: [partnerId], references: [id], onDelete: Cascade)
+  id             Int                      @id @default(autoincrement())
+  partnerId      Int
+  name           String
+  description    String?
+  maxGuests      Int                      @default(2)
+  basePrice      Decimal                  @db.Decimal(10, 2)
+  createdAt      DateTime                 @default(now())
+  updatedAt      DateTime
+  occupancy      Int?
+  code           String?
+  active         Boolean                  @default(false)
+  summary        String?
+  size_sqm       Int?
+  size_sqft      Int?
+  details_keys   String[]                 @default([])
+  details_text   String?
+  inclusion_keys String[]                 @default([])
+  inclusion_text String?
+  Booking        Booking[]
+  BookingItem    BookingItem[]
+  PmsMapping     extranet_PmsMapping[]
+  PropertyPhotos extranet_PropertyPhoto[]
+  RatePlan       extranet_RatePlan[]
+  RoomInventory  extranet_RoomInventory[]
+  RoomPrice      extranet_RoomPrice[]
+  Partner        extranet_Partner         @relation(fields: [partnerId], references: [id], onDelete: Cascade)
 
   @@unique([partnerId, name])
   @@index([partnerId])
@@ -336,19 +312,19 @@ model extranet_SyncLog {
 }
 
 model extranet_AddOn {
-  id         Int               @id @default(autoincrement())
-  partnerId  Int
-  activity   String
-  uom        String?
-  price      Decimal?          @db.Decimal(10, 2)
-  notes      String?
-  active     Boolean           @default(true)
-  sortOrder  Int?
-  maxQty     Int?
-  createdAt  DateTime          @default(now())
-  updatedAt  DateTime          @updatedAt
-
-  Partner    extranet_Partner  @relation("extranet_Partner_AddOns", fields: [partnerId], references: [id], onDelete: Cascade)
+  id           Int              @id @default(autoincrement())
+  partnerId    Int
+  activity     String
+  uom          String?
+  price        Decimal?         @db.Decimal(10, 2)
+  notes        String?
+  active       Boolean          @default(true)
+  sortOrder    Int?
+  maxQty       Int?
+  createdAt    DateTime         @default(now())
+  updatedAt    DateTime         @updatedAt
+  Partner      extranet_Partner @relation("extranet_Partner_AddOns", fields: [partnerId], references: [id], onDelete: Cascade)
+  BookingAddOn BookingAddOn[]
 
   @@index([partnerId])
   @@map("AddOn")
@@ -366,33 +342,24 @@ model extranet_Waitlist {
 }
 
 model WebAnalyticsSession {
-  id             String   @id @default(uuid())
-  createdAt      DateTime @default(now())
-  lastSeenAt     DateTime @default(now())
-  endedAt        DateTime?
-
-  // First page of the session
-  landingPath    String?
-  landingUrl     String?
-  referrer       String?
-  referrerHost   String?
-
-  // Attribution
-  utmSource      String?
-  utmMedium      String?
-  utmCampaign    String?
-  utmContent     String?
-
-  // Client info
-  userAgent      String?
-  deviceType     String? // desktop, mobile, tablet, bot, unknown
-  country        String?
-  ipHash         String? // hashed, not raw IP
-
-  // Optional
-  isBot          Boolean  @default(false)
-
-  events         WebAnalyticsEvent[]
+  id           String              @id @default(uuid())
+  createdAt    DateTime            @default(now())
+  lastSeenAt   DateTime            @default(now())
+  endedAt      DateTime?
+  landingPath  String?
+  landingUrl   String?
+  referrer     String?
+  referrerHost String?
+  utmSource    String?
+  utmMedium    String?
+  utmCampaign  String?
+  utmContent   String?
+  userAgent    String?
+  deviceType   String?
+  country      String?
+  ipHash       String?
+  isBot        Boolean             @default(false)
+  events       WebAnalyticsEvent[]
 
   @@index([createdAt])
   @@index([lastSeenAt])
@@ -401,20 +368,17 @@ model WebAnalyticsSession {
 }
 
 model WebAnalyticsEvent {
-  id          BigInt   @id @default(autoincrement())
-  ts          DateTime @default(now())
-
-  sessionId   String
-  session     WebAnalyticsSession @relation(fields: [sessionId], references: [id], onDelete: Cascade)
-
-  name        String   // page_view, engagement, action
-  path        String?
-  url         String?
-  title       String?
-  referrer    String?
-
-  activeMs    Int?     // for engagement heartbeats
-  payload     Json?
+  id        BigInt              @id @default(autoincrement())
+  ts        DateTime            @default(now())
+  sessionId String
+  name      String
+  path      String?
+  url       String?
+  title     String?
+  referrer  String?
+  activeMs  Int?
+  payload   Json?
+  session   WebAnalyticsSession @relation(fields: [sessionId], references: [id], onDelete: Cascade)
 
   @@index([ts])
   @@index([sessionId, ts])
@@ -424,22 +388,209 @@ model WebAnalyticsEvent {
 }
 
 model WebAnalyticsDaily {
-  id          String   @id @default(uuid())
-  day         DateTime
-
-  // Dimensions (nullable to allow "all")
+  id           String   @id @default(uuid())
+  day          DateTime
   utmSource    String?
   utmMedium    String?
   utmCampaign  String?
   referrerHost String?
   landingPath  String?
-
-  sessions     Int     @default(0)
-  pageViews    Int     @default(0)
-  engagedMs    BigInt  @default(0)
+  sessions     Int      @default(0)
+  pageViews    Int      @default(0)
+  engagedMs    BigInt   @default(0)
 
   @@unique([day, utmSource, utmMedium, utmCampaign, referrerHost, landingPath], map: "uniq_web_analytics_daily_dims")
   @@index([day])
+  @@schema("extranet")
+}
+
+model Booking {
+  id                       Int                   @id @default(autoincrement())
+  bookingRef               String                @unique
+  partnerId                Int
+  roomTypeId               Int
+  ratePlanId               Int
+  checkInDate              DateTime
+  checkOutDate             DateTime
+  qty                      Int                   @default(1)
+  guests                   Int?
+  travelerFirstName        String?
+  travelerLastName         String?
+  travelerEmail            String
+  travelerPhone            String?
+  currency                 String                @default("PHP")
+  amountPaid               Decimal               @db.Decimal(10, 2)
+  paymentProvider          PaymentProvider
+  providerPaymentId        String
+  providerCustomerId       String?
+  status                   BookingStatus         @default(PENDING_HOTEL_CONFIRMATION)
+  createdAt                DateTime              @default(now())
+  updatedAt                DateTime
+  pendingConfirmExpiresAt  DateTime
+  refundDeadlineAt         DateTime
+  confirmedAt              DateTime?
+  declinedAt               DateTime?
+  expiredAt                DateTime?
+  canceledAt               DateTime?
+  cancellationReason       String?
+  cancellationRefundAmount Decimal?              @db.Decimal(10, 2)
+  refundStatus             RefundStatus          @default(NOT_STARTED)
+  refundStartedAt          DateTime?
+  refundedAt               DateTime?
+  providerRefundId         String?
+  refundLastError          String?
+  refundAttemptCount       Int                   @default(0)
+  specialRequests          String?
+  completedAt              DateTime?             @db.Timestamptz(6)
+  Partner                  extranet_Partner      @relation(fields: [partnerId], references: [id], onDelete: Cascade)
+  RatePlan                 extranet_RatePlan     @relation(fields: [ratePlanId], references: [id])
+  RoomType                 extranet_RoomType     @relation(fields: [roomTypeId], references: [id])
+  BookingAddOn             BookingAddOn[]
+  BookingConfirmToken      BookingConfirmToken[]
+  BookingEvent             BookingEvent[]
+  BookingItem              BookingItem[]
+  PayoutBooking            PayoutBooking[]
+
+  @@index([bookingRef])
+  @@index([partnerId, createdAt])
+  @@index([partnerId, status])
+  @@schema("extranet")
+}
+
+model BookingAddOn {
+  id        Int            @id @default(autoincrement())
+  bookingId Int
+  addOnId   Int
+  activity  String
+  uom       String?
+  unitPrice Decimal        @default(0) @db.Decimal(10, 2)
+  qty       Int            @default(1)
+  currency  String         @default("PHP")
+  lineTotal Decimal        @default(0) @db.Decimal(10, 2)
+  notes     String?
+  createdAt DateTime       @default(now()) @db.Timestamp(6)
+  AddOn     extranet_AddOn @relation(fields: [addOnId], references: [id], onUpdate: NoAction)
+  Booking   Booking        @relation(fields: [bookingId], references: [id], onDelete: Cascade, onUpdate: NoAction)
+
+  @@index([bookingId, addOnId])
+  @@index([bookingId])
+  @@schema("extranet")
+}
+
+model BookingConfirmToken {
+  id        Int       @id @default(autoincrement())
+  bookingId Int
+  token     String    @unique
+  expiresAt DateTime
+  usedAt    DateTime?
+  createdAt DateTime  @default(now())
+  Booking   Booking   @relation(fields: [bookingId], references: [id], onDelete: Cascade)
+
+  @@index([bookingId])
+  @@schema("extranet")
+}
+
+model BookingEvent {
+  id         Int              @id @default(autoincrement())
+  bookingId  Int
+  fromStatus BookingStatus?
+  toStatus   BookingStatus
+  actorType  BookingActorType
+  actorId    Int?
+  note       String?
+  createdAt  DateTime         @default(now())
+  Booking    Booking          @relation(fields: [bookingId], references: [id], onDelete: Cascade)
+
+  @@index([bookingId, createdAt])
+  @@schema("extranet")
+}
+
+model BookingItem {
+  id           Int               @id @default(autoincrement())
+  bookingId    Int
+  roomTypeId   Int
+  ratePlanId   Int
+  checkInDate  DateTime
+  checkOutDate DateTime
+  qty          Int               @default(1)
+  currency     String            @default("PHP")
+  lineTotal    Decimal           @default(0) @db.Decimal(10, 2)
+  createdAt    DateTime          @default(now())
+  Booking      Booking           @relation(fields: [bookingId], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  RatePlan     extranet_RatePlan @relation(fields: [ratePlanId], references: [id], onUpdate: NoAction)
+  RoomType     extranet_RoomType @relation(fields: [roomTypeId], references: [id], onUpdate: NoAction)
+
+  @@index([bookingId])
+  @@index([bookingId, roomTypeId])
+  @@schema("extranet")
+}
+
+model Payout {
+  id                 BigInt          @id @default(autoincrement())
+  partnerId          Int
+  weekStart          DateTime        @db.Date
+  weekEnd            DateTime        @db.Date
+  currency           String          @default("USD")
+  amountNet          Decimal?        @db.Decimal(12, 2)
+  method             String?
+  confirmationNumber String?
+  paidAt             DateTime?       @db.Timestamptz(6)
+  status             String          @default("DRAFT")
+  createdAt          DateTime        @default(now()) @db.Timestamptz(6)
+  createdBy          String?
+  PayoutBooking      PayoutBooking[]
+
+  @@index([partnerId, weekStart, weekEnd], map: "Payout_partner_week_idx")
+  @@schema("extranet")
+}
+
+model PayoutBooking {
+  id           BigInt   @id @default(autoincrement())
+  payoutId     BigInt
+  bookingId    Int
+  bookingRef   String?
+  propertyName String?
+  netAmount    Decimal? @db.Decimal(12, 2)
+  createdAt    DateTime @default(now()) @db.Timestamptz(6)
+  marginPct    Decimal? @db.Decimal
+  feeAmount    Decimal? @db.Decimal
+  Booking      Booking  @relation(fields: [bookingId], references: [id], onUpdate: NoAction)
+  Payout       Payout   @relation(fields: [payoutId], references: [id], onDelete: Cascade, onUpdate: NoAction)
+
+  @@unique([payoutId, bookingId])
+  @@index([bookingId], map: "PayoutBooking_booking_idx")
+  @@schema("extranet")
+}
+
+/// The underlying table does not contain a valid unique identifier and can therefore currently not be handled by Prisma Client.
+model prisma_migrations_extranet_legacy_20260110 {
+  id                  String?   @db.VarChar(36)
+  checksum            String?   @db.VarChar(64)
+  finished_at         DateTime? @db.Timestamptz(6)
+  migration_name      String?   @db.VarChar(255)
+  logs                String?
+  rolled_back_at      DateTime? @db.Timestamptz(6)
+  started_at          DateTime? @db.Timestamptz(6)
+  applied_steps_count Int?
+
+  @@map("_prisma_migrations_extranet_legacy_20260110")
+  @@ignore
+  @@schema("extranet")
+}
+
+/// The underlying table does not contain a valid unique identifier and can therefore currently not be handled by Prisma Client.
+model prisma_migrations_public_legacy_20260110 {
+  id                  String?   @db.VarChar(36)
+  checksum            String?   @db.VarChar(64)
+  finished_at         DateTime? @db.Timestamptz(6)
+  migration_name      String?   @db.VarChar(255)
+  logs                String?
+  rolled_back_at      DateTime? @db.Timestamptz(6)
+  started_at          DateTime? @db.Timestamptz(6)
+  applied_steps_count Int?
+
+  @@map("_prisma_migrations_public_legacy_20260110")
+  @@ignore
   @@schema("extranet")
 }
 
@@ -464,5 +615,44 @@ enum extranet_DocumentType {
   LOCAL_LICENSE
 
   @@map("DocumentType")
+  @@schema("extranet")
+}
+
+enum BookingActorType {
+  SYSTEM
+  HOTEL
+  TRAVELER
+  ADMIN
+
+  @@schema("extranet")
+}
+
+enum BookingStatus {
+  PENDING_HOTEL_CONFIRMATION
+  CONFIRMED
+  DECLINED_BY_HOTEL
+  EXPIRED_NO_RESPONSE
+  CANCELED_BY_TRAVELER
+  REFUND_IN_PROGRESS
+  REFUNDED
+  CHECKED_IN
+  COMPLETED
+
+  @@schema("extranet")
+}
+
+enum PaymentProvider {
+  STRIPE
+  PAYPAL
+
+  @@schema("extranet")
+}
+
+enum RefundStatus {
+  NOT_STARTED
+  PROCESSING
+  SUCCEEDED
+  FAILED
+
   @@schema("extranet")
 }
