@@ -2110,6 +2110,11 @@
 
       // 2) Update visible UI in-place (no re-render needed)
       const cards = Array.from(document.querySelectorAll('.section-body[data-section-body="1"] .dates-grid[data-lineid]'));
+      // Hide the template card so it never shows as an "empty $0 card"
+      const tpl = document.getElementById("roomPriceCardTemplate");
+      if (tpl) tpl.style.display = "none";
+
+      // Empty checkout state when there are no real rendered cards
       const isEmpty = !cards.length;
       setCheckoutEmptyStateVisible(isEmpty);
       cards.forEach(card => {
@@ -3648,7 +3653,7 @@
       noBtn.textContent = "No";
       noBtn.className = "pill-outline"; // uses your existing aesthetic
       // Standardize modal button sizing (force pill, not circle)
-      noBtn.style.minHeight = "40px";
+      noBtn.style.minHeight = "22px";
       noBtn.style.minWidth  = "88px";   // <-- THIS is the key
       noBtn.style.padding   = "8px 22px";
       noBtn.style.borderRadius = "999px";
