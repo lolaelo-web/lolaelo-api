@@ -233,6 +233,27 @@
     <!-- ANCHOR: HUB_TOOLS_CARD END -->
 
     <!-- ANCHOR: ADMIN_PARTNERS_PASSWORD_CARD -->
+     <style>
+        /* Fix dark background on admin email input (focus, invalid, autofill) */
+        .admin-email-input,
+        .admin-email-input:focus,
+        .admin-email-input:active,
+        .admin-email-input:invalid {
+          background-color: #ffffff !important;
+          color: #0b1220 !important;
+        }
+
+        /* Chrome autofill override */
+        .admin-email-input:-webkit-autofill,
+        .admin-email-input:-webkit-autofill:hover,
+        .admin-email-input:-webkit-autofill:focus,
+        .admin-email-input:-webkit-autofill:active {
+          -webkit-box-shadow: 0 0 0 1000px #ffffff inset !important;
+          -webkit-text-fill-color: #0b1220 !important;
+          transition: background-color 9999s ease-in-out 0s;
+        }
+      </style>
+
     <div class="card" style="margin-top:12px;">
       <div style="display:flex; align-items:center; justify-content:space-between; gap:12px;">
         <div style="font-weight:700;">Partners - Password reset</div>
