@@ -39,8 +39,10 @@ router.post("/login/request-code", async (req, res) => {
     const r = issueCode(email);
     return res.json({ ok: true, email: r.email, ttlMin: r.ttlMin, devCode: r.code });
   } catch (e: any) {
-    console.error("[sessionHttp] request-code error:", e?.message || e);
-    return res.status(500).json({ ok: false, error: "internal" });
+    const msg = String(e?.message || e || "unknown");
+    console.error("[sessionHttp] verify error:", msg);
+    // TEMP DEBUG: surface message so we can fix the real root cause
+    return res.status(500).json({ ok: false, error: "internal", detail: msg });
   }
 });
 
