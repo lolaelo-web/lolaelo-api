@@ -1242,6 +1242,28 @@
               <!-- CONSOLIDATED TWO-COLUMN GRID (Left = Room/Price rows, Right = Dates editor card) -->
               <!-- ANCHOR: ROOM_PRICE_CARDS_ROOT -->
               <div id="roomPriceCardsRoot">
+                <!-- ANCHOR: CHECKOUT_EMPTY_STATE -->
+                  <div id="checkoutEmptyState"
+                      style="display:none; padding:14px; border:1px solid #e5e7eb; border-radius:12px; background:#fff7ed;">
+                    <div style="font-weight:700; color:#111827; margin-bottom:6px;">
+                      Your cart is empty.
+                    </div>
+                    <div style="color:#374151; font-size:14px; line-height:1.35;">
+                      You removed the last item from your checkout. To continue, browse hotels and select your dates.
+                    </div>
+
+                    <div style="margin-top:12px; display:flex; gap:10px; flex-wrap:wrap;">
+                      <a href="/catalog.html"
+                        class="btn-primary"
+                        style="text-decoration:none; display:inline-flex; align-items:center; justify-content:center;">
+                        Hotel Catalog
+                      </a>
+                      <div style="color:#6b7280; font-size:12px; line-height:1.35;">
+                        Note: Checkout supports one property at a time. Multiple date windows for the same hotel are supported. Additionally, our dev team is working really hard to provide users the ability to checkout multiple properties in one checkout session but for now, we only allow one property per checkout session. 
+                      </div>
+                    </div>
+                  </div>
+                  <!-- END ANCHOR: CHECKOUT_EMPTY_STATE -->
                 <div class="dates-grid" id="roomPriceCardTemplate">
 
                 <!-- LEFT COLUMN -->
@@ -2088,6 +2110,8 @@
 
       // 2) Update visible UI in-place (no re-render needed)
       const cards = Array.from(document.querySelectorAll('.section-body[data-section-body="1"] .dates-grid[data-lineid]'));
+      const isEmpty = !cards.length;
+      setCheckoutEmptyStateVisible(isEmpty);
       cards.forEach(card => {
         const idEl = card.querySelector('[data-role="propertyIdValue"],[data-orig-id="propertyIdValue"],#propertyIdValue');
         const cardPid = idEl ? String(idEl.textContent || "").trim() : "";
@@ -3525,6 +3549,12 @@
       document.getElementById("confirmAndPayButton").disabled = !allConfirmed;
     }
 
+    function setCheckoutEmptyStateVisible(isEmpty) {
+      const box = document.getElementById("checkoutEmptyState");
+      if (!box) return;
+      box.style.display = isEmpty ? "" : "none";
+    }
+
     function normalizeRoomPriceCardsUI() {
       const cards = Array.from(
         document.querySelectorAll('.section-body[data-section-body="1"] .dates-grid')
@@ -3546,7 +3576,7 @@
           card.appendChild(removeBtn);
         }
 
-        removeBtn.style.display = many ? "" : "none";
+        removeBtn.style.display = "";
       });
 
       // Singleton Confirm (SAFE): do NOT move/remove DOM nodes.
@@ -4242,9 +4272,9 @@
           // If cart already has a property and URL points to a different property, reject URL selection.
           if (existingPropIds.length >= 1 && existingPropIds[0] && existingPropIds[0] !== propId) {
             alert(
-              "Multiple-property checkouts are not available yet.\n\n" +
-              "This checkout supports multiple date windows for one hotel only.\n\n" +
-              "To book another property, complete this checkout first, then start a new checkout for the other hotel."
+              "This checkout is limited to one property.\n\n" +
+              "You’re free to book multiple date windows for the same hotel.\n\n" +
+              "To book another property, finish this checkout and start a new one."
             );
 
             // Rewrite URL to the existing property's first line so we don't re-trigger this on refresh
