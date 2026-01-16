@@ -4207,9 +4207,12 @@
       const q0 = parseQuery();
       migrateSelectionToCartIfNeeded(q0);
 
-      // NEW: If user arrived with an explicit selection in the URL (from catalog_details),
-      // ensure it exists as a cart line (append vs overwrite).
+      // Enforce single-property checkout:
+      // - Allow multiple date windows/cards for the SAME property
+      // - Reject URL selections for a DIFFERENT property (do not append)
+      // - Keep checkout/cart/Stripe metadata property-consistent
       (function ensureQueryLineIsInCart() {
+
         const hasAll =
           q0 &&
           Number(q0.propertyId) &&
@@ -4229,6 +4232,51 @@
         const start  = String(q0.start);
         const end    = String(q0.end);
         const qty    = Math.max(1, Number.parseInt(String(q0.qty || "1"), 10) || 1);
+
+        // === SINGLE PROPERTY ENFORCEMENT (reject newest URL property) =========
+        try {
+          const existingPropIds = Array.from(
+            new Set(cart.items.map(it => String(it && it.propertyId || "")).filter(Boolean))
+          );
+
+          // If cart already has a property and URL points to a different property, reject URL selection.
+          if (existingPropIds.length >= 1 && existingPropIds[0] && existingPropIds[0] !== propId) {
+            alert(
+              "Multiple-property checkouts are not available yet.\n\n" +
+              "This checkout supports multiple date windows for one hotel only.\n\n" +
+              "To book another property, complete this checkout first, then start a new checkout for the other hotel."
+            );
+
+            // Rewrite URL to the existing property's first line so we don't re-trigger this on refresh
+            const keepPid = existingPropIds[0];
+            const keepItem = cart.items.find(it => String(it && it.propertyId || "") === keepPid) || cart.items[0];
+
+            try {
+              const qsNext = new URLSearchParams(location.search);
+
+              if (keepItem) {
+                qsNext.set("propertyId", String(keepItem.propertyId || ""));
+                qsNext.set("roomId",     String(keepItem.roomTypeId || ""));
+                qsNext.set("ratePlanId", String(keepItem.ratePlanId || ""));
+                qsNext.set("qty",        String(keepItem.qty || 1));
+                qsNext.set("start",      String(keepItem.start || ""));
+                qsNext.set("end",        String(keepItem.end || ""));
+
+                if (keepItem.propertyName) qsNext.set("propertyName", String(keepItem.propertyName));
+                if (keepItem.propertyLocation) qsNext.set("propertyLocation", String(keepItem.propertyLocation));
+                if (keepItem.roomName) qsNext.set("roomName", String(keepItem.roomName));
+                if (keepItem.planLabel) qsNext.set("planLabel", String(keepItem.planLabel));
+              }
+
+              location.replace(`${location.pathname}?${qsNext.toString()}`);
+              return;
+            } catch (_) {
+              // If URL rewrite fails, still refuse the append
+              return;
+            }
+          }
+        } catch (_) {}
+        // === SINGLE PROPERTY ENFORCEMENT END =================================
 
         // Consider it the “same line” only if property+room+plan+dates match
         const existing = cart.items.find(it =>
@@ -4250,7 +4298,7 @@
           return;
         }
 
-        // Append as a new line
+        // Append as a new line (same property allowed, multiple date windows allowed)
         const lineId =
           "ln_" + Date.now().toString(36) + "_" + Math.random().toString(36).slice(2, 8);
 
