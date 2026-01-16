@@ -79,7 +79,7 @@ export async function requireExtranetSession(
     if (idleMs > INACTIVITY_MS) {
       // Revoke in storage table
       await prisma.$executeRaw`
-        UPDATE public."ExtranetSession"
+        UPDATE extranet."ExtranetSession"
         SET "revokedAt" = now()
         WHERE token = ${token}
       `;
@@ -89,7 +89,7 @@ export async function requireExtranetSession(
     // ---- Throttled heartbeat update -----------------------------------------
     if (idleMs > HEARTBEAT_MS) {
       await prisma.$executeRaw`
-        UPDATE public."ExtranetSession"
+        UPDATE extranet."ExtranetSession"
         SET "lastSeenAt" = now()
         WHERE token = ${token}
       `;

@@ -68,7 +68,7 @@ export async function verifyCodeIssueSession(email: string, code: string) {
 
   // Create session in STORAGE table
   await prisma.$executeRaw`
-    INSERT INTO public."ExtranetSession"
+    INSERT INTO extranet."ExtranetSession"
       ("partnerId", token, "expiresAt", "createdAt", "lastSeenAt")
     VALUES
       (${partner.id}, ${token}, ${expDate}, now(), now())
@@ -111,7 +111,7 @@ export async function getSession(token?: string | null) {
 
   if (s.expiresAt && new Date(s.expiresAt) < new Date()) {
     await prisma.$executeRaw`
-      UPDATE public."ExtranetSession"
+      UPDATE extranet."ExtranetSession"
       SET "revokedAt" = now()
       WHERE token = ${t}
     `;
@@ -131,7 +131,7 @@ export async function deleteSession(token?: string | null) {
   const t = (token || "").trim();
   if (!t) return;
   await prisma.$executeRaw`
-    UPDATE public."ExtranetSession"
+    UPDATE extranet."ExtranetSession"
     SET "revokedAt" = now()
     WHERE token = ${t}
   `;
