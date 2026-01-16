@@ -3069,8 +3069,7 @@
           qPropertyId: q.propertyId
         });
 
-        // Stop downstream calls that would return hasQuote:false and show $0
-        alert("Invalid checkout link (missing property). Please restart booking from the property page.");
+        // If cart is empty or user is just landing on /checkout.html, let the empty-state UI handle it.
         return;
       }
 
