@@ -153,6 +153,66 @@
     .snapItem .v{ margin-top:6px; font-size:14px; font-weight:800; color:var(--fg); overflow-wrap:anywhere; }
     /* ANCHOR: PARTNER_SELECTOR_CARD_CSS END */
 
+    /* ANCHOR: ADMIN_TEXTAREA_LIGHT */
+    #pcNotes,
+    #pcNotes:focus,
+    #pcNotes:active {
+      background-color:#ffffff !important;
+      color:#0b1220 !important;
+    }
+    #pcNotes:-webkit-autofill,
+    #pcNotes:-webkit-autofill:hover,
+    #pcNotes:-webkit-autofill:focus,
+    #pcNotes:-webkit-autofill:active {
+      -webkit-box-shadow:0 0 0 1000px #ffffff inset !important;
+      -webkit-text-fill-color:#0b1220 !important;
+      transition: background-color 9999s ease-in-out 0s;
+    }
+    /* ANCHOR: ADMIN_TEXTAREA_LIGHT END */
+
+    /* ANCHOR: ADMIN_COLLAPSIBLE_SECTIONS */
+    .sec{
+      border:1px solid var(--line);
+      background:var(--card);
+      border-radius:14px;
+      box-shadow:0 10px 30px rgba(15,23,42,.08);
+      overflow:hidden;
+    }
+    .sec + .sec { margin-top:12px; }
+
+    .sec > summary{
+      list-style:none;
+      cursor:pointer;
+      padding:14px;
+      display:flex;
+      align-items:center;
+      justify-content:space-between;
+      gap:12px;
+      user-select:none;
+    }
+    .sec > summary::-webkit-details-marker{ display:none; }
+
+    .sec > summary:focus{
+      outline:none;
+      box-shadow:0 0 0 4px rgba(255,106,61,.15);
+    }
+
+    .secBody{ padding:0 14px 14px; }
+
+    .chev{
+      width:10px; height:10px;
+      border-right:2px solid rgba(15,23,42,.55);
+      border-bottom:2px solid rgba(15,23,42,.55);
+      transform: rotate(-45deg);
+      margin-left:10px;
+      transition: transform .12s ease;
+      flex: 0 0 auto;
+    }
+    details[open] > summary .chev{
+      transform: rotate(45deg);
+    }
+    /* ANCHOR: ADMIN_COLLAPSIBLE_SECTIONS END */
+
   </style>
 </head>
 <body>
@@ -170,163 +230,242 @@
     </div>
 
     <!-- ANCHOR: PARTNER_SELECTOR_CARD -->
-    <div class="card">
-      <div style="display:flex; align-items:center; justify-content:space-between; gap:12px;">
-        <div style="font-weight:700;">Partner</div>
-        <div class="pill">lookup + snapshot</div>
+    <details class="sec" id="secPartnerProfile">
+      <summary>
+        <div style="display:flex; align-items:center; gap:10px;">
+          <div style="font-weight:700;">Partner profile</div>
+          <span class="pill">lookup + notes</span>
+        </div>
+
+        <div style="display:flex; align-items:center; gap:10px;">
+          <span id="secPartnerLabel" class="pill" style="max-width:420px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">
+            Collapsed
+          </span>
+          <span class="chev" aria-hidden="true"></span>
+        </div>
+      </summary>
+
+      <div class="secBody">
+
+        <!-- IMPORTANT: keep id="status" so existing setStatus() continues to work -->
+        <div class="status" id="status"></div>
+
+        <div class="partnerBar">
+          <div class="field">
+            <label for="partnerSelect">Select partner</label>
+            <select id="partnerSelect">
+              <option value="">Loading…</option>
+            </select>
+          </div>
+
+          <div class="field" style="flex: 2 1 420px;">
+            <label for="partnerSearch">Quick search</label>
+            <input id="partnerSearch" class="admin-text-input" type="text" placeholder="Type to filter by name or email" />
+          </div>
+
+          <div style="min-width:160px;">
+            <button id="btnRefreshPartners" class="btn" type="button">Refresh</button>
+          </div>
+        </div>
+
+        <div class="snap">
+          <div class="snapItem">
+            <div class="k">Partner ID</div>
+            <div class="v" id="snapPartnerId">-</div>
+          </div>
+          <div class="snapItem">
+            <div class="k">Name</div>
+            <div class="v" id="snapPartnerName">-</div>
+          </div>
+          <div class="snapItem">
+            <div class="k">Email</div>
+            <div class="v" id="snapPartnerEmail">-</div>
+          </div>
+          <div class="snapItem">
+            <div class="k">Created</div>
+            <div class="v" id="snapPartnerCreated">-</div>
+          </div>
+        </div>
+
+        <div class="btnRow" style="margin-top:12px;">
+          <button id="btnCopyPartnerEmail" class="btn ghost" type="button" disabled>Copy email</button>
+          <button id="btnCopyPartnerId" class="btn ghost" type="button" disabled>Copy ID</button>
+          <div class="status" id="partnerLoadStatus"></div>
+        </div>
+
+        <details style="margin-top:10px;">
+          <summary style="cursor:pointer; color:var(--muted); font-size:12px;">Raw partner record</summary>
+          <pre id="partnerRaw" style="white-space:pre-wrap; margin:10px 0 0; padding:10px; border:1px solid var(--line); border-radius:12px; background:#fff; font-size:12px; overflow:auto;">-</pre>
+        </details>
+
+        <div style="height:12px;"></div>
+
+        <!-- Contact + notes (consolidated) -->
+        <div style="display:flex; align-items:center; justify-content:space-between; gap:12px;">
+          <div style="font-weight:700;">Contact & notes</div>
+          <div class="pill">internal</div>
+        </div>
+
+        <div class="row" style="margin-top:8px;">
+          <div>
+            <label>Primary contact</label>
+            <input id="pcName" class="admin-text-input" type="text" disabled placeholder="-" />
+          </div>
+          <div>
+            <label>Email</label>
+            <input id="pcEmail" class="admin-email-input" type="email" disabled placeholder="-" />
+          </div>
+          <div>
+            <label>Phone / WhatsApp</label>
+            <input id="pcPhone" class="admin-text-input" type="text" disabled placeholder="-" />
+          </div>
+        </div>
+
+        <label for="pcNotes" style="margin-top:10px;">Internal notes</label>
+        <textarea
+          id="pcNotes"
+          rows="3"
+          placeholder="Internal context, flags, reminders…"
+          style="
+            width:100%;
+            padding:10px 12px;
+            border-radius:12px;
+            border:1px solid var(--line);
+            background:#ffffff;
+            color:#0b1220;
+            outline:none;
+          "
+        ></textarea>
+
+        <div class="btnRow">
+          <button id="btnSaveNotes" class="btn" type="button" disabled>Save notes</button>
+          <div class="status" id="pcStatus"></div>
+        </div>
+
       </div>
-
-      <!-- IMPORTANT: keep id="status" so existing setStatus() continues to work -->
-      <div class="status" id="status"></div>
-
-      <div class="partnerBar">
-        <div class="field">
-          <label for="partnerSelect">Select partner</label>
-          <select id="partnerSelect">
-            <option value="">Loading…</option>
-          </select>
-        </div>
-
-        <div class="field" style="flex: 2 1 420px;">
-          <label for="partnerSearch">Quick search</label>
-          <input id="partnerSearch" class="admin-text-input" type="text" placeholder="Type to filter by name or email" />
-        </div>
-
-        <div style="min-width:160px;">
-          <button id="btnRefreshPartners" class="btn" type="button">Refresh</button>
-        </div>
-      </div>
-
-      <div class="snap">
-        <div class="snapItem">
-          <div class="k">Partner ID</div>
-          <div class="v" id="snapPartnerId">-</div>
-        </div>
-        <div class="snapItem">
-          <div class="k">Name</div>
-          <div class="v" id="snapPartnerName">-</div>
-        </div>
-        <div class="snapItem">
-          <div class="k">Email</div>
-          <div class="v" id="snapPartnerEmail">-</div>
-        </div>
-        <div class="snapItem">
-          <div class="k">Created</div>
-          <div class="v" id="snapPartnerCreated">-</div>
-        </div>
-      </div>
-
-      <div class="btnRow" style="margin-top:12px;">
-        <button id="btnCopyPartnerEmail" class="btn ghost" type="button" disabled>Copy email</button>
-        <button id="btnCopyPartnerId" class="btn ghost" type="button" disabled>Copy ID</button>
-        <div class="status" id="partnerLoadStatus"></div>
-      </div>
-
-      <details style="margin-top:10px;">
-        <summary style="cursor:pointer; color:var(--muted); font-size:12px;">Raw partner record</summary>
-        <pre id="partnerRaw" style="white-space:pre-wrap; margin:10px 0 0; padding:10px; border:1px solid var(--line); border-radius:12px; background:#fff; font-size:12px; overflow:auto;">-</pre>
-      </details>
-    </div>
+    </details>
 
     <div style="height:12px;"></div>
     <!-- ANCHOR: PARTNER_SELECTOR_CARD END -->
 
-    <!-- ANCHOR: PARTNER_CONTACT_CARD -->
+    <!-- ANCHOR: PARTNER_HEALTH_CARD -->
     <div class="card">
       <div style="display:flex; align-items:center; justify-content:space-between; gap:12px;">
-        <div style="font-weight:700;">Contact & notes</div>
-        <div class="pill">internal</div>
+        <div style="font-weight:700;">Health</div>
+        <div class="pill">signals</div>
       </div>
 
-      <div class="row" style="margin-top:8px;">
-        <div>
-          <label>Primary contact</label>
-          <input id="pcName" class="admin-text-input" type="text" disabled placeholder="-" />
+      <div class="snap" style="margin-top:12px;">
+        <div class="snapItem">
+          <div class="k">Properties</div>
+          <div class="v" id="hProps">-</div>
         </div>
-        <div>
-          <label>Email</label>
-          <input id="pcEmail" class="admin-email-input" type="email" disabled placeholder="-" />
+        <div class="snapItem">
+          <div class="k">Room types</div>
+          <div class="v" id="hRoomTypes">-</div>
         </div>
-        <div>
-          <label>Phone / WhatsApp</label>
-          <input id="pcPhone" class="admin-text-input" type="text" disabled placeholder="-" />
+        <div class="snapItem">
+          <div class="k">Pricing</div>
+          <div class="v" id="hPricing">-</div>
+        </div>
+        <div class="snapItem">
+          <div class="k">Inventory</div>
+          <div class="v" id="hInventory">-</div>
         </div>
       </div>
 
-      <label for="pcNotes" style="margin-top:10px;">Internal notes</label>
-      <textarea
-        id="pcNotes"
-        rows="3"
-        placeholder="Internal context, flags, reminders…"
-        style="width:100%; padding:10px 12px; border-radius:12px; border:1px solid var(--line); outline:none;"
-      ></textarea>
-
-      <div class="btnRow">
-        <button id="btnSaveNotes" class="btn" type="button" disabled>Save notes</button>
-        <div class="status" id="pcStatus"></div>
+      <div class="snap" style="margin-top:10px;">
+        <div class="snapItem" style="grid-column:1 / -1;">
+          <div class="k">Last activity</div>
+          <div class="v" id="hLastActivity">-</div>
+        </div>
       </div>
     </div>
 
     <div style="height:12px;"></div>
-    <!-- ANCHOR: PARTNER_CONTACT_CARD END -->
+    <!-- ANCHOR: PARTNER_HEALTH_CARD END -->
 
-    <!-- Create partner -->
-    <div class="card">
-      <div style="display:flex; align-items:center; justify-content:space-between; gap:12px;">
-        <div style="font-weight:700;">Create partner</div>
-        <div class="pill">extranet.Partner</div>
-      </div>
+    <!-- ANCHOR: PARTNER_CREDENTIALS_SECTION -->
+    <details class="sec" id="secPartnerCredentials">
+      <summary>
+        <div style="display:flex; align-items:center; gap:10px;">
+          <div style="font-weight:700;">Partner credentials</div>
+          <span class="pill">create + reset</span>
+        </div>
 
-      <div class="row" style="margin-top:8px;">
-        <div>
-          <label for="cpEmail">Partner email</label>
-          <input id="cpEmail" class="admin-email-input" type="email" placeholder="daguhoy@hotel.com" autocomplete="email" />
+        <div style="display:flex; align-items:center; gap:10px;">
+          <span class="pill">Admin only</span>
+          <span class="chev" aria-hidden="true"></span>
         </div>
-        <div>
-          <label for="cpName">Partner name (optional)</label>
-          <input id="cpName" class="admin-text-input" type="text" placeholder="Daguhoy Hotel" />
-        </div>
-        <div>
-          <label for="cpPassword">Initial password</label>
-          <input id="cpPassword" type="password" placeholder="Set password" autocomplete="new-password" />
-        </div>
-      </div>
+      </summary>
 
-      <div class="btnRow">
-        <button id="btnCreatePartner" class="btn" type="button">Create partner</button>
-        <div class="status" id="cpStatus"></div>
+      <div class="secBody">
+
+        <!-- Create partner -->
+        <div class="card" style="box-shadow:none; border-radius:12px;">
+          <div style="display:flex; align-items:center; justify-content:space-between; gap:12px;">
+            <div style="font-weight:700;">Create partner</div>
+            <div class="pill">extranet.Partner</div>
+          </div>
+
+          <div class="row" style="margin-top:8px;">
+            <div>
+              <label for="cpEmail">Partner email</label>
+              <input id="cpEmail" class="admin-email-input" type="email" placeholder="daguhoy@hotel.com" autocomplete="email" />
+            </div>
+            <div>
+              <label for="cpName">Partner name (optional)</label>
+              <input id="cpName" class="admin-text-input" type="text" placeholder="Daguhoy Hotel" />
+            </div>
+            <div>
+              <label for="cpPassword">Initial password</label>
+              <input id="cpPassword" type="password" placeholder="Set password" autocomplete="new-password" />
+            </div>
+          </div>
+
+          <div class="btnRow">
+            <button id="btnCreatePartner" class="btn" type="button">Create partner</button>
+            <div class="status" id="cpStatus"></div>
+          </div>
+        </div>
+
+        <div style="height:12px;"></div>
+
+        <!-- Password reset -->
+        <div class="card" style="box-shadow:none; border-radius:12px;">
+          <div style="display:flex; align-items:center; justify-content:space-between; gap:12px;">
+            <div style="font-weight:700;">Reset password</div>
+            <div class="pill">bcrypt hash only</div>
+          </div>
+
+          <div class="row" style="margin-top:8px;">
+            <div>
+              <label for="prEmail">Partner email</label>
+              <input id="prEmail" class="admin-email-input" type="email" placeholder="partner@hotel.com" autocomplete="email" />
+            </div>
+            <div>
+              <label for="prPassword">New password</label>
+              <input id="prPassword" type="password" placeholder="Set password" autocomplete="new-password" />
+            </div>
+            <div style="display:flex; align-items:end;">
+              <button id="btnSetPw" class="btn" type="button" style="width:100%;">Set password</button>
+            </div>
+          </div>
+
+          <div class="btnRow">
+            <div class="status" id="pwStatus"></div>
+          </div>
+
+          <div class="status" style="margin-top:6px;">
+            NOTE: Passwords cannot be retrieved, only reset. 
+          </div>
+        </div>
+
       </div>
-    </div>
+    </details>
 
     <div style="height:12px;"></div>
-
-    <!-- Password reset -->
-    <div class="card">
-      <div style="display:flex; align-items:center; justify-content:space-between; gap:12px;">
-        <div style="font-weight:700;">Set or reset password</div>
-        <div class="pill">bcrypt hash only</div>
-      </div>
-
-      <div class="row" style="margin-top:8px;">
-        <div>
-          <label for="prEmail">Partner email</label>
-          <input id="prEmail" class="admin-email-input" type="email" placeholder="palatulan@gmail.com" autocomplete="email" />
-        </div>
-        <div>
-          <label for="prPassword">New password</label>
-          <input id="prPassword" type="password" placeholder="Hunter1014!" autocomplete="new-password" />
-        </div>
-      </div>
-
-      <div class="btnRow">
-        <button id="btnSetPw" class="btn" type="button">Set password</button>
-        <div class="status" id="pwStatus"></div>
-      </div>
-
-      <div class="status" style="margin-top:6px;">
-        Password cannot be retrieved later. Only reset.
-      </div>
-    </div>
+    <!-- ANCHOR: PARTNER_CREDENTIALS_SECTION END -->
 
   </div>
 
@@ -494,6 +633,15 @@
             btnSave.disabled = true;
           }
         }
+        // Section header label
+        const lbl = document.getElementById("secPartnerLabel");
+        if (lbl) {
+          if (p && (p.name || p.email || p.id)) {
+            lbl.textContent = (p.name ? p.name + " - " : "") + (p.email || "") + (p.id ? " [" + p.id + "]" : "");
+          } else {
+            lbl.textContent = "Collapsed";
+          }
+        }
       }
 
       function getSelectedPartner(){
@@ -536,7 +684,7 @@
             }
           } catch {}
 
-          applySnapshot(restored);
+          loadPartnerDetails(restored);
 
           setPartnerLoadStatus(
             PARTNERS.length ? ("Loaded " + PARTNERS.length + ".") : "No partners returned.",
@@ -702,6 +850,8 @@
           const pcEmail = $("pcEmail"); if (pcEmail) pcEmail.value = "";
           const pcPhone = $("pcPhone"); if (pcPhone) pcPhone.value = "";
           const pcNotes = $("pcNotes"); if (pcNotes) pcNotes.value = "";
+          const clear = (id) => { const el = document.getElementById(id); if (el) el.textContent = "-"; };
+          ["hProps","hRoomTypes","hPricing","hInventory","hLastActivity"].forEach(clear);
           return;
         }
 
@@ -721,6 +871,22 @@
           }
 
           const partner = out.json.partner;
+          const health = out.json.health || {};
+
+          const setText = (id, v) => {
+            const el = document.getElementById(id);
+            if (!el) return;
+            el.textContent = (v == null || v === "") ? "-" : String(v);
+          };
+
+          setText("hProps", (health.properties != null) ? health.properties : "-");
+          setText("hRoomTypes", (health.roomTypes != null) ? health.roomTypes : "-");
+
+          const yn = (v) => v === true ? "OK" : (v === false ? "Missing" : "-");
+          setText("hPricing", yn(health.hasPricing));
+          setText("hInventory", yn(health.hasInventory));
+
+          setText("hLastActivity", health.lastActivityAt ? fmtDate(health.lastActivityAt) : "-");
 
           const pcName = $("pcName"); if (pcName) pcName.value = String(partner.contactName || partner.name || "");
           const pcEmail = $("pcEmail"); if (pcEmail) pcEmail.value = String(partner.contactEmail || partner.email || "");
