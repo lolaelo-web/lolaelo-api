@@ -228,6 +228,42 @@
 
     /* ANCHOR: ADMIN_COLLAPSIBLE_SECTIONS END */
 
+    /* ANCHOR: ADMIN_OUTLINE_ACTIONS */
+    .btn.outline-danger{
+      background: transparent;
+      border: 2px solid #b42318;
+      color: #b42318 !important;
+      box-shadow: none;
+      font-weight: 800;
+    }
+    .btn.outline-danger:hover{
+      background: rgba(180,35,24,.06);
+      transform: translateY(-1px);
+    }
+    .btn.outline-danger:active{ transform: translateY(0px); }
+    .btn.outline-danger:focus{
+      outline:none;
+      box-shadow: 0 0 0 4px rgba(180,35,24,.14);
+    }
+
+    .btn.outline-teal{
+      background: transparent;
+      border: 2px solid #0b3a4a;
+      color: #0b3a4a !important;
+      box-shadow: none;
+      font-weight: 800;
+    }
+    .btn.outline-teal:hover{
+      background: rgba(11,58,74,.06);
+      transform: translateY(-1px);
+    }
+    .btn.outline-teal:active{ transform: translateY(0px); }
+    .btn.outline-teal:focus{
+      outline:none;
+      box-shadow: 0 0 0 4px rgba(11,58,74,.14);
+    }
+    /* ANCHOR: ADMIN_OUTLINE_ACTIONS END */
+
   </style>
 </head>
 <body>
@@ -392,6 +428,21 @@
         </div>
         <!-- ANCHOR: PARTNER_HEALTH_CARD END -->
 
+        <div style="height:12px;"></div>
+
+        <!-- ANCHOR: PARTNER_SUSPEND_ACTIONS -->
+        <div style="display:flex; align-items:center; justify-content:space-between; gap:12px;">
+          <div style="font-weight:700;">Partner status</div>
+          <div class="pill" id="suspPill">-</div>
+        </div>
+
+        <div class="btnRow" style="margin-top:10px;">
+          <button id="btnSuspendPartner" class="btn outline-danger" type="button" disabled>Suspend partner</button>
+          <button id="btnReinstatePartner" class="btn outline-teal" type="button" disabled>Reinstate partner</button>
+          <div class="status" id="suspStatus"></div>
+        </div>
+        <!-- ANCHOR: PARTNER_SUSPEND_ACTIONS END -->
+
       </div>
     </details>
 
@@ -494,6 +545,7 @@
 
       const PARTNER_DETAILS_URL = (id) => `/api/admin/partners/${encodeURIComponent(id)}`;
       const PARTNER_NOTES_URL   = (id) => `/api/admin/partners/${encodeURIComponent(id)}/notes`;
+      const PARTNER_SUSP_URL    = (id) => `/api/admin/partners/${encodeURIComponent(id)}/suspension`;
 
       const $ = (id) => document.getElementById(id);
 
@@ -536,6 +588,13 @@
 
       function setPcStatus(msg, kind){
         const el = $("pcStatus");
+        if (!el) return;
+        el.textContent = msg || "";
+        el.className = "status" + (kind ? (" " + kind) : "");
+      }
+
+      function setSuspStatus(msg, kind){
+        const el = $("suspStatus");
         if (!el) return;
         el.textContent = msg || "";
         el.className = "status" + (kind ? (" " + kind) : "");
@@ -865,6 +924,13 @@
           const pcNotes = $("pcNotes"); if (pcNotes) pcNotes.value = "";
           const clear = (id) => { const el = document.getElementById(id); if (el) el.textContent = "-"; };
           ["hProps","hRoomTypes","hPricing","hInventory","hLastActivity"].forEach(clear);
+          const btnSus = $("btnSuspendPartner");
+          const btnRe = $("btnReinstatePartner");
+          if (btnSus) btnSus.disabled = true;
+          if (btnRe) btnRe.disabled = true;
+          const pill = document.getElementById("suspPill");
+          if (pill) { pill.textContent = "-"; pill.style.borderColor=""; pill.style.color=""; pill.style.fontWeight=""; }
+          setSuspStatus("", "");
           return;
         }
 
@@ -884,6 +950,21 @@
           }
 
           const partner = out.json.partner;
+          const suspended = !!partner.isSuspended;
+          const pill = document.getElementById("suspPill");
+          if (pill) {
+            pill.textContent = suspended ? "Suspended" : "Active";
+            pill.style.borderColor = suspended ? "rgba(180,35,24,.35)" : "rgba(11,58,74,.35)";
+            pill.style.color = suspended ? "#b42318" : "#0b3a4a";
+            pill.style.fontWeight = "900";
+          }
+
+          const btnSus = $("btnSuspendPartner");
+          const btnRe = $("btnReinstatePartner");
+          if (btnSus) btnSus.disabled = suspended;     // disable suspend if already suspended
+          if (btnRe)  btnRe.disabled  = !suspended;    // disable reinstate if active
+          setSuspStatus("", "");
+
           const health = out.json.health || {};
 
           const setText = (id, v) => {
@@ -895,7 +976,7 @@
           setText("hProps", (health.properties != null) ? health.properties : "-");
           setText("hRoomTypes", (health.roomTypes != null) ? health.roomTypes : "-");
 
-          const yn = (v) => v === true ? "OK" : (v === false ? "Missing" : "-");
+          const yn = (v) => v === true ? "Present" : (v === false ? "Missing" : "-");
           setText("hPricing", yn(health.hasPricing));
           setText("hInventory", yn(health.hasInventory));
 
@@ -1003,6 +1084,50 @@
           }
         };
       }
+      async function setSuspension(selectedPartner, suspended){
+        const p = selectedPartner || getSelectedPartner();
+        if (!p) return setSuspStatus("Select a partner first.", "bad");
+
+        const t = String(getToken() || "").trim();
+        if (!t) return setSuspStatus("Missing admin session.", "bad");
+
+        const action = suspended ? "suspend" : "reinstate";
+        const label = (p.name ? p.name + " - " : "") + (p.email || "") + (p.id ? " [" + p.id + "]" : "");
+
+        const ok = confirm(`Confirm: ${action} this partner?\n\n${label}`);
+        if (!ok) return;
+
+        setSuspStatus("Saving…", "");
+        try {
+          const out = await fetchJSON(PARTNER_SUSP_URL(p.id || p.email), {
+            method: "POST",
+            headers: {
+              "Authorization": "Bearer " + t,
+              "Content-Type": "application/json"
+            },
+            body: JSON.stringify({ suspended })
+          });
+
+          if (out.ok && out.json && out.json.ok) {
+            setSuspStatus(suspended ? "Partner suspended." : "Partner reinstated.", "ok");
+            // Refresh details so pill/buttons reflect DB
+            await loadPartnerDetails(p);
+          } else {
+            const msg = (out.json && (out.json.error || out.json.message)) ? (out.json.error || out.json.message) : ("Failed (" + out.status + ")");
+            setSuspStatus(msg, "bad");
+          }
+        } catch (e) {
+          console.error(e);
+          setSuspStatus("Failed.", "bad");
+        }
+      }
+
+      const btnSuspend = $("btnSuspendPartner");
+      if (btnSuspend) btnSuspend.onclick = () => setSuspension(getSelectedPartner(), true);
+
+      const btnReinstate = $("btnReinstatePartner");
+      if (btnReinstate) btnReinstate.onclick = () => setSuspension(getSelectedPartner(), false);
+
       boot();
     })();
   </script>

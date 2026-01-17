@@ -3204,7 +3204,8 @@ app.get("/api/admin/partners/:id", async (req: Request, res: Response) => {
       SELECT
         id, email, name, "createdAt", "updatedAt",
         "contactName", "contactEmail", "phone", "timezone",
-        "adminNotes", "adminNotesUpdatedAt"
+        "adminNotes", "adminNotesUpdatedAt",
+        "isSuspended", "suspendedAt", "suspendedReason"
       FROM extranet."Partner"
       WHERE id = $1
       LIMIT 1
@@ -3265,7 +3266,7 @@ app.get("/api/admin/partners/:id", async (req: Request, res: Response) => {
       const s = await client.query(
         `
         SELECT
-          MAX(COALESCE("updatedAt","createdAt")) AS ts
+          MAX(COALESCE("lastSeenAt","createdAt")) AS ts
         FROM extranet."ExtranetSession"
         WHERE "partnerId" = $1
         `,
@@ -3360,6 +3361,58 @@ app.put("/api/admin/partners/:id/notes", express.json(), async (req: Request, re
     return res.json({ ok: true });
   } catch (e) {
     console.error("[admin] save partner notes failed", e);
+    try { await client?.end(); } catch {}
+    return res.status(401).json({ ok: false, error: "unauthorized" });
+  }
+});
+
+// ---- Admin: Suspend / reinstate partner ------------------------------------
+app.post("/api/admin/partners/:id/suspension", express.json(), async (req: Request, res: Response) => {
+  let client: Client | null = null;
+
+  try {
+    requireAdminAuth(req);
+
+    const id = Number(req.params.id);
+    if (!Number.isFinite(id)) {
+      return res.status(400).json({ ok: false, error: "invalid_partner_id" });
+    }
+
+    const suspended = !!req.body?.suspended;
+    const reason = req.body?.reason != null ? String(req.body.reason).slice(0, 5000) : null;
+
+    const cs = process.env.DATABASE_URL || "";
+    if (!cs) throw new Error("DATABASE_URL missing");
+
+    client = new Client({
+      connectionString: cs,
+      ssl: wantsSSL(cs) ? { rejectUnauthorized: false } : undefined,
+    });
+    await client.connect();
+
+    const upd = await client.query(
+      `
+      UPDATE extranet."Partner"
+      SET
+        "isSuspended" = $2,
+        "suspendedAt" = CASE WHEN $2 THEN now() ELSE NULL END,
+        "suspendedReason" = CASE WHEN $2 THEN $3 ELSE NULL END,
+        "updatedAt" = now()
+      WHERE id = $1
+      RETURNING id, "isSuspended", "suspendedAt", "suspendedReason"
+      `,
+      [id, suspended, reason]
+    );
+
+    await client.end();
+
+    if (!upd.rowCount) {
+      return res.status(404).json({ ok: false, error: "partner_not_found" });
+    }
+
+    return res.json({ ok: true, suspension: upd.rows[0] });
+  } catch (e) {
+    console.error("[admin] partner suspension failed", e);
     try { await client?.end(); } catch {}
     return res.status(401).json({ ok: false, error: "unauthorized" });
   }
