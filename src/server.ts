@@ -3228,7 +3228,7 @@ app.get("/api/admin/partners/:id", async (req: Request, res: Response) => {
 
     try {
       const props = await client.query(
-        `SELECT COUNT(*)::int AS c FROM extranet."Property" WHERE "partnerId" = $1`,
+        `SELECT COUNT(*)::int AS c FROM extranet."PropertyProfile" WHERE "partnerId" = $1`,
         [id]
       );
       health.properties = props.rows?.[0]?.c ?? 0;
@@ -3236,12 +3236,7 @@ app.get("/api/admin/partners/:id", async (req: Request, res: Response) => {
 
     try {
       const rts = await client.query(
-        `
-        SELECT COUNT(*)::int AS c
-        FROM extranet."RoomType" rt
-        JOIN extranet."Property" p ON p.id = rt."propertyId"
-        WHERE p."partnerId" = $1
-        `,
+        `SELECT COUNT(*)::int AS c FROM extranet."RoomType" WHERE "partnerId" = $1`,
         [id]
       );
       health.roomTypes = rts.rows?.[0]?.c ?? 0;

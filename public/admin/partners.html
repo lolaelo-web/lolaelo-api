@@ -341,49 +341,47 @@
           <button id="btnSaveNotes" class="btn" type="button" disabled>Save notes</button>
           <div class="status" id="pcStatus"></div>
         </div>
+        
+        <div style="height:12px;"></div>
+
+        <!-- ANCHOR: PARTNER_HEALTH_CARD -->
+        <div style="display:flex; align-items:center; justify-content:space-between; gap:12px;">
+          <div style="font-weight:700;">Health</div>
+          <div class="pill">signals</div>
+        </div>
+
+        <div class="snap" style="margin-top:12px;">
+          <div class="snapItem">
+            <div class="k">Properties</div>
+            <div class="v" id="hProps">-</div>
+          </div>
+          <div class="snapItem">
+            <div class="k">Room types</div>
+            <div class="v" id="hRoomTypes">-</div>
+          </div>
+          <div class="snapItem">
+            <div class="k">Pricing</div>
+            <div class="v" id="hPricing">-</div>
+          </div>
+          <div class="snapItem">
+            <div class="k">Inventory</div>
+            <div class="v" id="hInventory">-</div>
+          </div>
+        </div>
+
+        <div class="snap" style="margin-top:10px;">
+          <div class="snapItem" style="grid-column:1 / -1;">
+            <div class="k">Last activity</div>
+            <div class="v" id="hLastActivity">-</div>
+          </div>
+        </div>
+        <!-- ANCHOR: PARTNER_HEALTH_CARD END -->
 
       </div>
     </details>
 
     <div style="height:12px;"></div>
     <!-- ANCHOR: PARTNER_SELECTOR_CARD END -->
-
-    <!-- ANCHOR: PARTNER_HEALTH_CARD -->
-    <div class="card">
-      <div style="display:flex; align-items:center; justify-content:space-between; gap:12px;">
-        <div style="font-weight:700;">Health</div>
-        <div class="pill">signals</div>
-      </div>
-
-      <div class="snap" style="margin-top:12px;">
-        <div class="snapItem">
-          <div class="k">Properties</div>
-          <div class="v" id="hProps">-</div>
-        </div>
-        <div class="snapItem">
-          <div class="k">Room types</div>
-          <div class="v" id="hRoomTypes">-</div>
-        </div>
-        <div class="snapItem">
-          <div class="k">Pricing</div>
-          <div class="v" id="hPricing">-</div>
-        </div>
-        <div class="snapItem">
-          <div class="k">Inventory</div>
-          <div class="v" id="hInventory">-</div>
-        </div>
-      </div>
-
-      <div class="snap" style="margin-top:10px;">
-        <div class="snapItem" style="grid-column:1 / -1;">
-          <div class="k">Last activity</div>
-          <div class="v" id="hLastActivity">-</div>
-        </div>
-      </div>
-    </div>
-
-    <div style="height:12px;"></div>
-    <!-- ANCHOR: PARTNER_HEALTH_CARD END -->
 
     <!-- ANCHOR: PARTNER_CREDENTIALS_SECTION -->
     <details class="sec" id="secPartnerCredentials">
