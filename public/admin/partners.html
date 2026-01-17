@@ -433,15 +433,28 @@
         <!-- ANCHOR: PARTNER_SUSPEND_ACTIONS -->
         <div style="display:flex; align-items:center; justify-content:space-between; gap:12px;">
           <div style="font-weight:700;">Partner status</div>
-          <div class="pill" id="suspPill">-</div>
+          <div class="pill">controls</div>
         </div>
 
-        <div class="btnRow" style="margin-top:10px;">
-          <button id="btnSuspendPartner" class="btn outline-danger" type="button" disabled>Suspend partner</button>
-          <button id="btnReinstatePartner" class="btn outline-teal" type="button" disabled>Reinstate partner</button>
-          <div class="status" id="suspStatus"></div>
+        <div style="margin-top:10px; display:grid; grid-template-columns: 1fr 1fr 1fr; gap:10px; align-items:center;">
+          <!-- Left: action buttons -->
+          <div style="display:flex; gap:10px; align-items:center; flex-wrap:wrap;">
+            <button id="btnSuspendPartner" class="btn outline-danger" type="button" disabled>Suspend partner</button>
+            <button id="btnReinstatePartner" class="btn ghost" type="button" disabled>Reinstate partner</button>
+          </div>
+
+          <!-- Center: current status (high visibility) -->
+          <div style="text-align:center;">
+            <div style="font-size:12px; color:var(--muted); font-weight:800;">Current status: </div>
+            <div id="currentStatusText" style="margin-top:4px; font-size:14px; font-weight:900;">-</div>
+          </div>
+
+          <!-- Right: message/status -->
+          <div style="display:flex; justify-content:flex-end;">
+            <div class="status" id="suspStatus"></div>
+          </div>
         </div>
-        <!-- ANCHOR: PARTNER_SUSPEND_ACTIONS END -->
+       <!-- ANCHOR: PARTNER_SUSPEND_ACTIONS END -->
 
       </div>
     </details>
@@ -922,14 +935,23 @@
           const pcEmail = $("pcEmail"); if (pcEmail) pcEmail.value = "";
           const pcPhone = $("pcPhone"); if (pcPhone) pcPhone.value = "";
           const pcNotes = $("pcNotes"); if (pcNotes) pcNotes.value = "";
+
           const clear = (id) => { const el = document.getElementById(id); if (el) el.textContent = "-"; };
           ["hProps","hRoomTypes","hPricing","hInventory","hLastActivity"].forEach(clear);
+
           const btnSus = $("btnSuspendPartner");
           const btnRe = $("btnReinstatePartner");
           if (btnSus) btnSus.disabled = true;
           if (btnRe) btnRe.disabled = true;
+
+          // Old pill (if still present)
           const pill = document.getElementById("suspPill");
           if (pill) { pill.textContent = "-"; pill.style.borderColor=""; pill.style.color=""; pill.style.fontWeight=""; }
+
+          // New centered status text
+          const cs = document.getElementById("currentStatusText");
+          if (cs) { cs.textContent = "-"; cs.style.color = ""; }
+
           setSuspStatus("", "");
           return;
         }
@@ -951,6 +973,13 @@
 
           const partner = out.json.partner;
           const suspended = !!partner.isSuspended;
+
+          const cs = document.getElementById("currentStatusText");
+          if (cs) {
+            cs.textContent = suspended ? "Suspended partner" : "Active partner";
+            cs.style.color = suspended ? "#b42318" : "#0f7a3a";
+          }
+
           const pill = document.getElementById("suspPill");
           if (pill) {
             pill.textContent = suspended ? "Suspended" : "Active";
@@ -1084,6 +1113,133 @@
           }
         };
       }
+
+      function openSuspendModal({ title, body, confirmText, onConfirm }) {
+        const modal = document.getElementById("suspendModal");
+        const titleEl = document.getElementById("suspendModalTitle");
+        const bodyEl = document.getElementById("suspendModalBody");
+        const btnOk = document.getElementById("btnSuspendConfirm");
+        const btnCancel = document.getElementById("btnSuspendCancel");
+
+        titleEl.textContent = title;
+        bodyEl.innerHTML = body;
+        btnOk.textContent = confirmText;
+
+        modal.style.display = "flex";
+
+        const close = () => {
+          modal.style.display = "none";
+          btnOk.onclick = null;
+          btnCancel.onclick = null;
+        };
+
+        btnCancel.onclick = close;
+        btnOk.onclick = async () => {
+          close();
+          await onConfirm();
+        };
+      }
+
+      // --- Modal styles (since admin page doesn't have checkout modal CSS) ---
+      (function injectModalCSS(){
+        if (document.getElementById("adminModalCss")) return;
+        const css = `
+          /* ANCHOR: ADMIN_MODAL_CSS */
+          .modal-overlay{
+            position:fixed;
+            inset:0;
+            background: rgba(15,23,42,.55);
+            display:flex;
+            align-items:center;
+            justify-content:center;
+            padding:18px;
+            z-index:9999;
+          }
+          .modal-card{
+            width:min(520px, 96vw);
+            background:#fff;
+            border:1px solid rgba(15,23,42,.14);
+            border-radius:14px;
+            box-shadow:0 18px 50px rgba(15,23,42,.30);
+            padding:14px;
+          }
+          .modal-title{
+            font-weight:900;
+            font-size:16px;
+            color: var(--fg);
+          }
+          .modal-body{
+            margin-top:10px;
+            color: var(--fg);
+            font-size:13px;
+            line-height:1.45;
+          }
+          .modal-actions{
+            margin-top:14px;
+            display:flex;
+            gap:10px;
+            justify-content:flex-end;
+            align-items:center;
+          }
+          /* ANCHOR: ADMIN_MODAL_CSS END */
+        `;
+        const style = document.createElement("style");
+        style.id = "adminModalCss";
+        style.textContent = css;
+        document.head.appendChild(style);
+      })();
+
+      function openSuspendModal({ title, body, confirmText, onConfirm, isDanger }){
+        const modal = document.getElementById("suspendModal");
+        const titleEl = document.getElementById("suspendModalTitle");
+        const bodyEl = document.getElementById("suspendModalBody");
+        const btnOk = document.getElementById("btnSuspendConfirm");
+        const btnCancel = document.getElementById("btnSuspendCancel");
+
+        if (!modal || !titleEl || !bodyEl || !btnOk || !btnCancel) {
+          // fallback if DOM not present
+          if (confirm(title + "\n\n" + body.replace(/<[^>]+>/g, ""))) {
+            return onConfirm();
+          }
+          return;
+        }
+
+        titleEl.textContent = title;
+        bodyEl.innerHTML = body;
+        btnOk.textContent = confirmText;
+
+        // button style: suspend = danger outline, reinstate = teal outline
+        btnOk.className = isDanger ? "btn outline-danger" : "btn ghost";
+        btnCancel.className = "btn ghost";
+
+        modal.style.display = "flex";
+
+        const close = () => {
+          modal.style.display = "none";
+          btnOk.onclick = null;
+          btnCancel.onclick = null;
+          modal.onclick = null;
+          document.onkeydown = null;
+        };
+
+        btnCancel.onclick = close;
+
+        btnOk.onclick = async () => {
+          close();
+          await onConfirm();
+        };
+
+        // click outside closes
+        modal.onclick = (e) => {
+          if (e.target === modal) close();
+        };
+
+        // esc closes
+        document.onkeydown = (e) => {
+          if (e.key === "Escape") close();
+        };
+      }
+
       async function setSuspension(selectedPartner, suspended){
         const p = selectedPartner || getSelectedPartner();
         if (!p) return setSuspStatus("Select a partner first.", "bad");
@@ -1091,35 +1247,53 @@
         const t = String(getToken() || "").trim();
         if (!t) return setSuspStatus("Missing admin session.", "bad");
 
-        const action = suspended ? "suspend" : "reinstate";
         const label = (p.name ? p.name + " - " : "") + (p.email || "") + (p.id ? " [" + p.id + "]" : "");
 
-        const ok = confirm(`Confirm: ${action} this partner?\n\n${label}`);
-        if (!ok) return;
+        const title = suspended ? "Suspend partner" : "Reinstate partner";
+        const confirmText = suspended ? "Suspend partner" : "Reinstate partner";
 
-        setSuspStatus("Saving…", "");
-        try {
-          const out = await fetchJSON(PARTNER_SUSP_URL(p.id || p.email), {
-            method: "POST",
-            headers: {
-              "Authorization": "Bearer " + t,
-              "Content-Type": "application/json"
-            },
-            body: JSON.stringify({ suspended })
-          });
+        const body = `
+          <div style="font-weight:900; margin-bottom:6px;">${label}</div>
+          <div>
+            ${suspended
+              ? "This will remove the partner from public availability and booking."
+              : "This will restore the partner to public availability using existing data."}
+          </div>
+          ${suspended ? `<div style="margin-top:8px; color:#0f172a;">No pricing, inventory, photos, or documents will be deleted.</div>` : ``}
+        `;
 
-          if (out.ok && out.json && out.json.ok) {
-            setSuspStatus(suspended ? "Partner suspended." : "Partner reinstated.", "ok");
-            // Refresh details so pill/buttons reflect DB
-            await loadPartnerDetails(p);
-          } else {
-            const msg = (out.json && (out.json.error || out.json.message)) ? (out.json.error || out.json.message) : ("Failed (" + out.status + ")");
-            setSuspStatus(msg, "bad");
+        openSuspendModal({
+          title,
+          body,
+          confirmText,
+          isDanger: suspended,
+          onConfirm: async () => {
+            setSuspStatus("Saving…", "");
+            try {
+              const out = await fetchJSON(PARTNER_SUSP_URL(p.id || p.email), {
+                method: "POST",
+                headers: {
+                  "Authorization": "Bearer " + t,
+                  "Content-Type": "application/json"
+                },
+                body: JSON.stringify({ suspended })
+              });
+
+              if (out.ok && out.json && out.json.ok) {
+                setSuspStatus(suspended ? "Partner suspended." : "Partner reinstated.", "ok");
+                await loadPartnerDetails(p);
+              } else {
+                const msg = (out.json && (out.json.error || out.json.message))
+                  ? (out.json.error || out.json.message)
+                  : ("Failed (" + out.status + ")");
+                setSuspStatus(msg, "bad");
+              }
+            } catch (e) {
+              console.error(e);
+              setSuspStatus("Failed.", "bad");
+            }
           }
-        } catch (e) {
-          console.error(e);
-          setSuspStatus("Failed.", "bad");
-        }
+        });
       }
 
       const btnSuspend = $("btnSuspendPartner");
@@ -1131,5 +1305,23 @@
       boot();
     })();
   </script>
+
+  <!-- ANCHOR: SUSPEND_CONFIRM_MODAL -->
+  <div id="suspendModal" class="modal-overlay" style="display:none;">
+    <div class="modal-card">
+      <div class="modal-title" id="suspendModalTitle">Suspend partner</div>
+
+      <div class="modal-body" id="suspendModalBody">
+        <!-- injected dynamically -->
+      </div>
+
+      <div class="modal-actions">
+        <button id="btnSuspendCancel" class="btn ghost">Cancel</button>
+        <button id="btnSuspendConfirm" class="btn outline-danger">Suspend partner</button>
+      </div>
+    </div>
+  </div>
+  <!-- ANCHOR: SUSPEND_CONFIRM_MODAL END -->
+
 </body>
 </html>

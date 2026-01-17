@@ -4735,6 +4735,34 @@ app.get("/mock/catalog/search", (req: Request, res: Response) => {
   res.json(filtered);
 });
 
+// ---- Catalog: suspension guard ---------------------------------------------
+async function isPartnerSuspended(partnerId: number): Promise<boolean> {
+  if (!Number.isFinite(partnerId)) return true;
+
+  // use DATABASE_URL directly (same pattern as admin routes)
+  const cs = process.env.DATABASE_URL || "";
+  if (!cs) return false; // fail-open (do not hide everything if env misconfigured)
+
+  const client = new Client({
+    connectionString: cs,
+    ssl: wantsSSL(cs) ? { rejectUnauthorized: false } : undefined,
+  });
+
+  try {
+    await client.connect();
+    const q = await client.query(
+      `SELECT "isSuspended" FROM extranet."Partner" WHERE id = $1 LIMIT 1`,
+      [partnerId]
+    );
+    return q.rowCount ? !!q.rows[0].isSuspended : false;
+  } catch (e) {
+    console.error("[catalog] suspension check failed", e);
+    return false; // fail-open
+  } finally {
+    try { await client.end(); } catch {}
+  }
+}
+
 // ANCHOR:: CATALOG_SEARCH
 // Returns property-level cards (name, city, images, fromPrice, availability summary)
 app.get("/catalog/search", async (req: Request, res: Response) => {
@@ -4766,12 +4794,21 @@ app.get("/catalog/search", async (req: Request, res: Response) => {
         })
       : list;
 
+    // Filter out suspended partners (propertyId == Partner.id)
+    const filteredForSuspension: any[] = [];
+    for (const p of prefiltered) {
+      const pidNum = Number(p.propertyId ?? p.id);
+      if (!Number.isFinite(pidNum)) continue;
+      const suspended = await isPartnerSuspended(pidNum);
+      if (!suspended) filteredForSuspension.push(p);
+    }
+
     // Currency (typed to the readmodel literal type)
     const currency: Currency = await getCurrency();
 
     // Project each property using the read-model helper (async-safe loop)
     const properties: any[] = [];
-    for (const p of prefiltered) {
+    for (const p of filteredForSuspension) {
       // guest filter (using primary room capacity when available)
       const h = (HotelsData as any).HOTELS?.find?.((x: any) => x.id === (p.propertyId ?? p.id));
       const maxGuests = h?.rooms?.[0]?.maxGuests ?? 2;
@@ -4861,6 +4898,12 @@ app.get("/catalog/details", async (req: Request, res: Response) => {
     return;
   }
 
+  // Block suspended partners from public details
+  if (await isPartnerSuspended(propertyId)) {
+    res.status(404).json({ ok: false, error: "Not found" });
+    return;
+  }
+
   try {
     const roomId = req.query.roomId != null ? Number(req.query.roomId) : undefined;
     const plans  = req.query.plans  != null ? Number(req.query.plans)  : undefined;
@@ -4896,6 +4939,12 @@ app.get("/catalog/property/:id", async (req: Request, res: Response) => {
     const id = Number(req.params.id);
     if (!Number.isFinite(id)) {
       res.status(400).json({ ok: false, error: "Invalid id" });
+      return;
+    }
+
+    // Block suspended partners from public property endpoint
+    if (await isPartnerSuspended(id)) {
+      res.status(404).json({ ok: false, error: "Not found" });
       return;
     }
 
