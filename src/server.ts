@@ -3242,8 +3242,68 @@ app.get("/api/admin/partners/:id", async (req: Request, res: Response) => {
       health.roomTypes = rts.rows?.[0]?.c ?? 0;
     } catch {}
 
+    // Pricing present?
+    try {
+      const pr = await client.query(
+        `SELECT 1 FROM extranet."RoomPrice" WHERE "partnerId" = $1 LIMIT 1`,
+        [id]
+      );
+      health.hasPricing = !!pr.rowCount;
+    } catch {}
+
+    // Inventory present?
+    try {
+      const inv = await client.query(
+        `SELECT 1 FROM extranet."RoomInventory" WHERE "partnerId" = $1 LIMIT 1`,
+        [id]
+      );
+      health.hasInventory = !!inv.rowCount;
+    } catch {}
+
+    // Last activity (partner session)
+    try {
+      const s = await client.query(
+        `
+        SELECT
+          MAX(COALESCE("updatedAt","createdAt")) AS ts
+        FROM extranet."ExtranetSession"
+        WHERE "partnerId" = $1
+        `,
+        [id]
+      );
+      health.lastActivityAt = s.rows?.[0]?.ts || null;
+    } catch {}
+
+    // Align admin phone/contactEmail with Extranet Company Profile
+    const partner = p.rows[0];
+
+    let profile: any = null;
+    try {
+      const prof = await client.query(
+        `
+        SELECT id, name, "contactEmail", phone
+        FROM extranet."PropertyProfile"
+        WHERE "partnerId" = $1
+        ORDER BY "updatedAt" DESC NULLS LAST, "createdAt" DESC
+        LIMIT 1
+        `,
+        [id]
+      );
+      profile = prof.rowCount ? prof.rows[0] : null;
+    } catch {}
+
     await client.end();
-    return res.json({ ok: true, partner: p.rows[0], health });
+
+    return res.json({
+      ok: true,
+      partner: {
+        ...partner,
+        contactName: partner.contactName || profile?.name || partner.name || null,
+        contactEmail: partner.contactEmail || profile?.contactEmail || partner.email || null,
+        phone: partner.phone || profile?.phone || null,
+      },
+      health,
+    });
   } catch (e) {
     console.error("[admin] partner details failed", e);
     try { await client?.end(); } catch {}

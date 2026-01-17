@@ -200,17 +200,32 @@
     .secBody{ padding:0 14px 14px; }
 
     .chev{
-      width:10px; height:10px;
-      border-right:2px solid rgba(15,23,42,.55);
-      border-bottom:2px solid rgba(15,23,42,.55);
+      width:12px;
+      height:12px;
+      border-right:3px solid var(--accent);
+      border-bottom:3px solid var(--accent);
       transform: rotate(-45deg);
       margin-left:10px;
-      transition: transform .12s ease;
+      transition:
+        transform .12s ease,
+        border-color .12s ease,
+        opacity .12s ease;
       flex: 0 0 auto;
+      opacity: .95;
     }
+
+    details > summary:hover .chev{
+      opacity: 1;
+    }
+
     details[open] > summary .chev{
       transform: rotate(45deg);
     }
+
+    .sec > summary:hover{
+      background: rgba(255,106,61,.04);
+    }
+
     /* ANCHOR: ADMIN_COLLAPSIBLE_SECTIONS END */
 
   </style>
