@@ -4874,6 +4874,7 @@ app.get("/catalog/search", async (req: Request, res: Response) => {
     res.setHeader("x-lolaelo-catalog-build", "susp-v1");
     res.json({
       ok: true,
+      _debugBuild: "susp-v1",
       start,
       end,
       guests,
@@ -4885,6 +4886,7 @@ app.get("/catalog/search", async (req: Request, res: Response) => {
     res.status(500).json({ ok: false, error: String(e?.message || e) });
   }
 }); // <-- end /catalog/search
+
 
 
 // Details for a single property (projects into CatalogDetails shape)
