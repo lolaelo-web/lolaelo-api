@@ -4871,6 +4871,7 @@ app.get("/catalog/search", async (req: Request, res: Response) => {
     }
 
     // respond
+    res.setHeader("x-lolaelo-catalog-build", "susp-v1");
     res.json({
       ok: true,
       start,
