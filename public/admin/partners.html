@@ -89,6 +89,69 @@
     -webkit-text-fill-color:#0b1220 !important;
     transition: background-color 9999s ease-in-out 0s;
     }
+    /* ANCHOR: ADMIN_TOP_BUTTONS */
+    .btn.ghost{
+      background:#0b3a4a;
+      border:1px solid rgba(11,58,74,.35);
+      color:#ffffff !important;
+      box-shadow:0 6px 18px rgba(15,23,42,.12);
+    }
+    .btn.ghost:hover{
+      background: linear-gradient(90deg, #0b3a4a 0%, #0f5b63 100%);
+      border-color: rgba(11,58,74,.55);
+      transform: translateY(-1px);
+    }
+    .btn.ghost:active{
+      transform: translateY(0px);
+    }
+    .btn.ghost:focus{
+      outline: none;
+      box-shadow:0 0 0 4px rgba(11,58,74,.20), 0 6px 18px rgba(15,23,42,.12);
+    }
+    /* ANCHOR: ADMIN_TOP_BUTTONS END */
+
+        /* ANCHOR: PARTNER_SELECTOR_CARD_CSS */
+    .partnerBar{
+      display:flex;
+      gap:10px;
+      align-items:end;
+      flex-wrap:wrap;
+      margin-top:8px;
+    }
+    .partnerBar .field{ min-width: 240px; flex: 1 1 260px; }
+    select{
+      width:100%;
+      padding:10px 12px;
+      border-radius:12px;
+      border:1px solid var(--line);
+      background:#ffffff;
+      color:var(--fg);
+      outline:none;
+    }
+    select:focus{
+      border-color:rgba(255,106,61,.55);
+      box-shadow:0 0 0 3px rgba(255,106,61,.15);
+    }
+    .snap{
+      display:grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap:10px;
+      margin-top:12px;
+    }
+    @media (max-width: 980px){ .snap{ grid-template-columns: repeat(2, 1fr); } }
+    @media (max-width: 560px){ .snap{ grid-template-columns: 1fr; } }
+
+    .snapItem{
+      border:1px solid var(--line);
+      border-radius:14px;
+      padding:12px;
+      background:#fff;
+      box-shadow:0 6px 18px rgba(15,23,42,.06);
+      min-height:64px;
+    }
+    .snapItem .k{ font-size:11px; color:var(--muted); }
+    .snapItem .v{ margin-top:6px; font-size:14px; font-weight:800; color:var(--fg); overflow-wrap:anywhere; }
+    /* ANCHOR: PARTNER_SELECTOR_CARD_CSS END */
 
   </style>
 </head>
@@ -98,16 +161,114 @@
     <div>
       <div style="display:flex; align-items:center; gap:12px;">
         <img src="/images/logo.png" alt="Lolaelo" style="height:48px; width:auto; display:block;">
-        <span class="pill" style="border-color:rgba(15,23,42,.18); color:#0f172a; font-weight:800;">Partners</span>
-        <span class="pill">Admin only</span>
-      </div>
-      <div class="status" id="status"></div>
+       </div>
       </div>
       <div class="btnRow">
         <a class="btn ghost" href="/admin/index.html">Back</a>
         <button id="btnLogout" class="btn ghost" type="button">Sign out</button>
       </div>
     </div>
+
+    <!-- ANCHOR: PARTNER_SELECTOR_CARD -->
+    <div class="card">
+      <div style="display:flex; align-items:center; justify-content:space-between; gap:12px;">
+        <div style="font-weight:700;">Partner</div>
+        <div class="pill">lookup + snapshot</div>
+      </div>
+
+      <!-- IMPORTANT: keep id="status" so existing setStatus() continues to work -->
+      <div class="status" id="status"></div>
+
+      <div class="partnerBar">
+        <div class="field">
+          <label for="partnerSelect">Select partner</label>
+          <select id="partnerSelect">
+            <option value="">Loading…</option>
+          </select>
+        </div>
+
+        <div class="field" style="flex: 2 1 420px;">
+          <label for="partnerSearch">Quick search</label>
+          <input id="partnerSearch" class="admin-text-input" type="text" placeholder="Type to filter by name or email" />
+        </div>
+
+        <div style="min-width:160px;">
+          <button id="btnRefreshPartners" class="btn" type="button">Refresh</button>
+        </div>
+      </div>
+
+      <div class="snap">
+        <div class="snapItem">
+          <div class="k">Partner ID</div>
+          <div class="v" id="snapPartnerId">-</div>
+        </div>
+        <div class="snapItem">
+          <div class="k">Name</div>
+          <div class="v" id="snapPartnerName">-</div>
+        </div>
+        <div class="snapItem">
+          <div class="k">Email</div>
+          <div class="v" id="snapPartnerEmail">-</div>
+        </div>
+        <div class="snapItem">
+          <div class="k">Created</div>
+          <div class="v" id="snapPartnerCreated">-</div>
+        </div>
+      </div>
+
+      <div class="btnRow" style="margin-top:12px;">
+        <button id="btnCopyPartnerEmail" class="btn ghost" type="button" disabled>Copy email</button>
+        <button id="btnCopyPartnerId" class="btn ghost" type="button" disabled>Copy ID</button>
+        <div class="status" id="partnerLoadStatus"></div>
+      </div>
+
+      <details style="margin-top:10px;">
+        <summary style="cursor:pointer; color:var(--muted); font-size:12px;">Raw partner record</summary>
+        <pre id="partnerRaw" style="white-space:pre-wrap; margin:10px 0 0; padding:10px; border:1px solid var(--line); border-radius:12px; background:#fff; font-size:12px; overflow:auto;">-</pre>
+      </details>
+    </div>
+
+    <div style="height:12px;"></div>
+    <!-- ANCHOR: PARTNER_SELECTOR_CARD END -->
+
+    <!-- ANCHOR: PARTNER_CONTACT_CARD -->
+    <div class="card">
+      <div style="display:flex; align-items:center; justify-content:space-between; gap:12px;">
+        <div style="font-weight:700;">Contact & notes</div>
+        <div class="pill">internal</div>
+      </div>
+
+      <div class="row" style="margin-top:8px;">
+        <div>
+          <label>Primary contact</label>
+          <input id="pcName" class="admin-text-input" type="text" disabled placeholder="-" />
+        </div>
+        <div>
+          <label>Email</label>
+          <input id="pcEmail" class="admin-email-input" type="email" disabled placeholder="-" />
+        </div>
+        <div>
+          <label>Phone / WhatsApp</label>
+          <input id="pcPhone" class="admin-text-input" type="text" disabled placeholder="-" />
+        </div>
+      </div>
+
+      <label for="pcNotes" style="margin-top:10px;">Internal notes</label>
+      <textarea
+        id="pcNotes"
+        rows="3"
+        placeholder="Internal context, flags, reminders…"
+        style="width:100%; padding:10px 12px; border-radius:12px; border:1px solid var(--line); outline:none;"
+      ></textarea>
+
+      <div class="btnRow">
+        <button id="btnSaveNotes" class="btn" type="button" disabled>Save notes</button>
+        <div class="status" id="pcStatus"></div>
+      </div>
+    </div>
+
+    <div style="height:12px;"></div>
+    <!-- ANCHOR: PARTNER_CONTACT_CARD END -->
 
     <!-- Create partner -->
     <div class="card">
@@ -177,8 +338,20 @@
       const PING_URL = "/api/admin/ping";
       const CREATE_PARTNER_URL = "/api/admin/partners";
       const SET_PW_EMAIL_URL = "/api/admin/partners/password-by-email";
+      const LIST_PARTNERS_URL = "/api/admin/partners";
+
+      const PARTNER_DETAILS_URL = (id) => `/api/admin/partners/${encodeURIComponent(id)}`;
+      const PARTNER_NOTES_URL   = (id) => `/api/admin/partners/${encodeURIComponent(id)}/notes`;
 
       const $ = (id) => document.getElementById(id);
+
+      async function fetchJSON(url, opts){
+        const r = await fetch(url, opts || {});
+        const j = await r.json().catch(() => null);
+        return { ok: r.ok, status: r.status, json: j };
+      }
+
+      const LAST_PARTNER_KEY = "lolaelo_admin_last_partner";
 
       function getToken(){
         try { return localStorage.getItem(TOKEN_KEY) || ""; } catch { return ""; }
@@ -200,6 +373,198 @@
         if (!el) return;
         el.textContent = msg || "";
         el.className = "status" + (kind ? (" " + kind) : "");
+      }
+
+      function setPartnerLoadStatus(msg, kind){
+        const el = $("partnerLoadStatus");
+        if (!el) return;
+        el.textContent = msg || "";
+        el.className = "status" + (kind ? (" " + kind) : "");
+      }
+
+      function setPcStatus(msg, kind){
+        const el = $("pcStatus");
+        if (!el) return;
+        el.textContent = msg || "";
+        el.className = "status" + (kind ? (" " + kind) : "");
+      }
+
+      function notesKey(p){
+        return p && (p.id || p.email)
+          ? "lolaelo_admin_partner_notes_" + (p.id || p.email)
+          : null;
+      }
+
+      function fmtDate(iso){
+        if (!iso) return "-";
+        try{
+          const d = new Date(iso);
+          if (!isFinite(d.getTime())) return String(iso);
+          return d.toLocaleDateString(undefined, { year:"numeric", month:"short", day:"numeric" });
+        } catch { return String(iso); }
+      }
+
+      function normalizePartner(p){
+        if (!p) return null;
+        const id = (p.id != null) ? String(p.id) : "";
+        const email = String(p.email || p.partnerEmail || "").trim();
+        const name = String(p.name || p.partnerName || "").trim();
+        const createdAt = p.createdAt || p.created_at || p.created || null;
+        return { id, email, name, createdAt, raw: p };
+      }
+
+      let PARTNERS = [];
+      let FILTERED = [];
+
+      function renderPartnerOptions(list){
+        const sel = $("partnerSelect");
+        if (!sel) return;
+
+        sel.innerHTML = "";
+        const opt0 = document.createElement("option");
+        opt0.value = "";
+        opt0.textContent = list.length ? "Select a partner…" : "No partners found";
+        sel.appendChild(opt0);
+
+        for (const p of list){
+          const o = document.createElement("option");
+          o.value = p.id || p.email || "";
+          o.textContent =
+            (p.name ? p.name + " - " : "") +
+            (p.email || "(no email)") +
+            (p.id ? " [" + p.id + "]" : "");
+          sel.appendChild(o);
+        }
+      }
+
+      function applySnapshot(p){
+        const set = (id, v) => {
+          const el = document.getElementById(id);
+          if (el) el.textContent = (v == null || v === "") ? "-" : String(v);
+        };
+
+        set("snapPartnerId", p ? p.id : "-");
+        set("snapPartnerName", p ? (p.name || "-") : "-");
+        set("snapPartnerEmail", p ? (p.email || "-") : "-");
+        set("snapPartnerCreated", p ? fmtDate(p.createdAt) : "-");
+
+        // Raw record view
+        const raw = document.getElementById("partnerRaw");
+        if (raw) {
+          raw.textContent = p ? JSON.stringify(p.raw || p, null, 2) : "-";
+        }
+
+        // Disable copy buttons until selected
+        const has = !!(p && (p.email || p.id));
+        const btnEmail = $("btnCopyPartnerEmail");
+        const btnId = $("btnCopyPartnerId");
+        if (btnEmail) btnEmail.disabled = !has || !p.email;
+        if (btnId) btnId.disabled = !has || !p.id;
+
+        // Auto-fill reset password email
+        const prEmail = $("prEmail");
+        if (prEmail && p && p.email) prEmail.value = p.email;
+
+        // Persist last selection
+        try {
+          if (p && (p.id || p.email)) {
+            localStorage.setItem(LAST_PARTNER_KEY, String(p.id || p.email));
+          } else {
+            localStorage.removeItem(LAST_PARTNER_KEY);
+          }
+        } catch {}
+        // Contact fields (best-effort from record)
+        const setInput = (id, v) => {
+          const el = $(id);
+          if (el) el.value = (v == null || v === "") ? "" : String(v);
+        };
+
+        setInput("pcName", p ? (p.raw && (p.raw.contactName || p.raw.name)) : "");
+        setInput("pcEmail", p ? (p.email || "") : "");
+        setInput("pcPhone", p ? (p.raw && (p.raw.phone || p.raw.whatsapp || "")) : "");
+
+        // Notes are DB authoritative now. Only control enable/disable here.
+        const notesEl = $("pcNotes");
+        const btnSave = $("btnSaveNotes");
+        if (notesEl && btnSave) {
+          if (p) {
+            btnSave.disabled = false;
+          } else {
+            notesEl.value = "";
+            btnSave.disabled = true;
+          }
+        }
+      }
+
+      function getSelectedPartner(){
+        const sel = $("partnerSelect");
+        const v = sel ? String(sel.value || "") : "";
+        if (!v) return null;
+        return FILTERED.find(x => x.id === v) ||
+               FILTERED.find(x => x.email === v) || null;
+      }
+
+      async function loadPartners(token){
+        const sel = $("partnerSelect");
+        if (sel) sel.disabled = true;
+
+        setPartnerLoadStatus("Loading partners…", "");
+        try{
+          const r = await fetch(LIST_PARTNERS_URL, {
+            headers: { "Authorization": "Bearer " + token }
+          });
+          const j = await r.json().catch(() => null);
+
+          const arr =
+            (j && Array.isArray(j.partners) && j.partners) ||
+            (j && Array.isArray(j.items) && j.items) ||
+            (Array.isArray(j) ? j : []);
+
+          PARTNERS = arr.map(normalizePartner).filter(Boolean);
+          FILTERED = PARTNERS.slice();
+
+          renderPartnerOptions(FILTERED);
+
+          // Restore last selected partner if possible
+          let restored = null;
+          try {
+            const last = String(localStorage.getItem(LAST_PARTNER_KEY) || "").trim();
+            if (last) {
+              restored = FILTERED.find(x => x.id === last) || FILTERED.find(x => x.email === last) || null;
+              const sel = $("partnerSelect");
+              if (sel && restored) sel.value = restored.id || restored.email || "";
+            }
+          } catch {}
+
+          applySnapshot(restored);
+
+          setPartnerLoadStatus(
+            PARTNERS.length ? ("Loaded " + PARTNERS.length + ".") : "No partners returned.",
+            PARTNERS.length ? "ok" : ""
+          );
+        } catch (e){
+          console.error(e);
+          PARTNERS = [];
+          FILTERED = [];
+          renderPartnerOptions([]);
+          applySnapshot(null);
+          setPartnerLoadStatus("Failed loading partners.", "bad");
+        } finally {
+          if (sel) sel.disabled = false;
+        }
+      }
+
+      function applyFilter(q){
+        const needle = String(q || "").trim().toLowerCase();
+        FILTERED = !needle
+          ? PARTNERS.slice()
+          : PARTNERS.filter(p =>
+              String(p.name || "").toLowerCase().includes(needle) ||
+              String(p.email || "").toLowerCase().includes(needle) ||
+              String(p.id || "").toLowerCase().includes(needle)
+            );
+        renderPartnerOptions(FILTERED);
+        applySnapshot(null);
       }
 
       async function ping(token){
@@ -246,6 +611,8 @@
           return;
         }
         setStatus("Ready.", "ok");
+        loadPartners(t);
+        applySnapshot(null);
       }
 
       $("btnLogout").onclick = () => {
@@ -315,7 +682,148 @@
           $("btnSetPw").disabled = false;
         }
       };
+     
+      const partnerSearch = $("partnerSearch");
+      if (partnerSearch) {
+        partnerSearch.addEventListener("input", (e) =>
+          applyFilter(e.target.value)
+        );
+      }
 
+      async function loadPartnerDetails(selected){
+        const p = selected || null;
+
+        // Keep snapshot UI in sync immediately
+        applySnapshot(p);
+
+        // Clear contact fields if none selected
+        if (!p) {
+          const pcName = $("pcName"); if (pcName) pcName.value = "";
+          const pcEmail = $("pcEmail"); if (pcEmail) pcEmail.value = "";
+          const pcPhone = $("pcPhone"); if (pcPhone) pcPhone.value = "";
+          const pcNotes = $("pcNotes"); if (pcNotes) pcNotes.value = "";
+          return;
+        }
+
+        const t = String(getToken() || "").trim();
+        if (!t) return setPcStatus("Missing admin session.", "bad");
+
+        setPcStatus("Loading…", "");
+        try {
+          const out = await fetchJSON(PARTNER_DETAILS_URL(p.id || p.email), {
+            headers: { "Authorization": "Bearer " + t }
+          });
+
+          if (!(out.ok && out.json && out.json.ok && out.json.partner)) {
+            const msg = (out.json && (out.json.error || out.json.message)) ? (out.json.error || out.json.message) : ("Failed (" + out.status + ")");
+            setPcStatus(msg, "bad");
+            return;
+          }
+
+          const partner = out.json.partner;
+
+          const pcName = $("pcName"); if (pcName) pcName.value = String(partner.contactName || partner.name || "");
+          const pcEmail = $("pcEmail"); if (pcEmail) pcEmail.value = String(partner.contactEmail || partner.email || "");
+          const pcPhone = $("pcPhone"); if (pcPhone) pcPhone.value = String(partner.phone || "");
+          const pcNotes = $("pcNotes"); if (pcNotes) pcNotes.value = String(partner.adminNotes || "");
+
+          // Keep reset password email aligned
+          const prEmail = $("prEmail");
+          if (prEmail) prEmail.value = String(partner.email || "");
+
+          // Update raw record panel with authoritative DB view too
+          const raw = document.getElementById("partnerRaw");
+          if (raw) raw.textContent = JSON.stringify(out.json, null, 2);
+
+          setPcStatus("", "");
+        } catch (e) {
+          console.error(e);
+          setPcStatus("Failed loading details.", "bad");
+        }
+      }
+
+      const partnerSelect = $("partnerSelect");
+      if (partnerSelect) {
+        partnerSelect.addEventListener("change", () => loadPartnerDetails(getSelectedPartner()));
+      }
+
+      const btnRefreshPartners = $("btnRefreshPartners");
+      if (btnRefreshPartners) {
+        btnRefreshPartners.onclick = () => {
+          const t = String(getToken() || "").trim();
+          if (!t) return setPartnerLoadStatus("Missing admin session.", "bad");
+          loadPartners(t);
+        };
+      }
+
+      const btnCopyPartnerEmail = $("btnCopyPartnerEmail");
+      if (btnCopyPartnerEmail) {
+        btnCopyPartnerEmail.onclick = async () => {
+          const p = getSelectedPartner();
+          if (!p || !p.email)
+            return setPartnerLoadStatus("Select a partner first.", "bad");
+          try {
+            await navigator.clipboard.writeText(p.email);
+            setPartnerLoadStatus("Email copied.", "ok");
+          } catch {
+            setPartnerLoadStatus("Copy failed.", "bad");
+          }
+        };
+      }
+
+      const btnCopyPartnerId = $("btnCopyPartnerId");
+      if (btnCopyPartnerId) {
+        btnCopyPartnerId.onclick = async () => {
+          const p = getSelectedPartner();
+          if (!p || !p.id)
+            return setPartnerLoadStatus("Select a partner first.", "bad");
+          try {
+            await navigator.clipboard.writeText(p.id);
+            setPartnerLoadStatus("ID copied.", "ok");
+          } catch {
+            setPartnerLoadStatus("Copy failed.", "bad");
+          }
+        };
+      }
+
+      const btnSaveNotes = $("btnSaveNotes");
+      if (btnSaveNotes) {
+        btnSaveNotes.onclick = async () => {
+          const p = getSelectedPartner();
+          if (!p) return setPcStatus("Select a partner first.", "bad");
+
+          const t = String(getToken() || "").trim();
+          if (!t) return setPcStatus("Missing admin session.", "bad");
+
+          const notes = String(($("pcNotes") || {}).value || "");
+
+          btnSaveNotes.disabled = true;
+          setPcStatus("Saving…", "");
+
+          try {
+            const out = await fetchJSON(PARTNER_NOTES_URL(p.id || p.email), {
+              method: "PUT",
+              headers: {
+                "Authorization": "Bearer " + t,
+                "Content-Type": "application/json"
+              },
+              body: JSON.stringify({ notes })
+            });
+
+            if (out.ok && out.json && out.json.ok) {
+              setPcStatus("Notes saved.", "ok");
+            } else {
+              const msg = (out.json && (out.json.error || out.json.message)) ? (out.json.error || out.json.message) : ("Failed (" + out.status + ")");
+              setPcStatus(msg, "bad");
+            }
+          } catch (e) {
+            console.error(e);
+            setPcStatus("Failed.", "bad");
+          } finally {
+            btnSaveNotes.disabled = false;
+          }
+        };
+      }
       boot();
     })();
   </script>

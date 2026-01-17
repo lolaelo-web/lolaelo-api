@@ -3143,6 +3143,173 @@ app.post("/api/admin/partners", express.json(), async (req: Request, res: Respon
   }
 });
 
+// ---- Admin: List partners ---------------------------------------------------
+
+app.get("/api/admin/partners", async (req: Request, res: Response) => {
+  let client: Client | null = null;
+
+  try {
+    requireAdminAuth(req);
+
+    const cs = process.env.DATABASE_URL || "";
+    if (!cs) throw new Error("DATABASE_URL missing");
+
+    client = new Client({
+      connectionString: cs,
+      ssl: wantsSSL(cs) ? { rejectUnauthorized: false } : undefined,
+    });
+    await client.connect();
+
+    const q = await client.query(
+      `
+      SELECT id, email, name, "createdAt"
+      FROM extranet."Partner"
+      ORDER BY COALESCE(NULLIF(name,''), email) ASC
+      `
+    );
+
+    await client.end();
+    return res.json({ ok: true, partners: q.rows || [] });
+  } catch (e) {
+    console.error("[admin] list partners failed", e);
+    try { await client?.end(); } catch {}
+    return res.status(401).json({ ok: false, error: "unauthorized" });
+  }
+});
+
+// ---- Admin: Partner details -------------------------------------------------
+
+app.get("/api/admin/partners/:id", async (req: Request, res: Response) => {
+  let client: Client | null = null;
+
+  try {
+    requireAdminAuth(req);
+
+    const id = Number(req.params.id);
+    if (!Number.isFinite(id)) {
+      return res.status(400).json({ ok: false, error: "invalid_partner_id" });
+    }
+
+    const cs = process.env.DATABASE_URL || "";
+    if (!cs) throw new Error("DATABASE_URL missing");
+
+    client = new Client({
+      connectionString: cs,
+      ssl: wantsSSL(cs) ? { rejectUnauthorized: false } : undefined,
+    });
+    await client.connect();
+
+    const p = await client.query(
+      `
+      SELECT
+        id, email, name, "createdAt", "updatedAt",
+        "contactName", "contactEmail", "phone", "timezone",
+        "adminNotes", "adminNotesUpdatedAt"
+      FROM extranet."Partner"
+      WHERE id = $1
+      LIMIT 1
+      `,
+      [id]
+    );
+
+    if (!p.rowCount) {
+      await client.end();
+      return res.status(404).json({ ok: false, error: "partner_not_found" });
+    }
+
+    // Minimal v1 health (expand later)
+    let health: any = {
+      properties: null,
+      roomTypes: null,
+      hasPricing: null,
+      hasInventory: null,
+      lastActivityAt: null,
+    };
+
+    try {
+      const props = await client.query(
+        `SELECT COUNT(*)::int AS c FROM extranet."Property" WHERE "partnerId" = $1`,
+        [id]
+      );
+      health.properties = props.rows?.[0]?.c ?? 0;
+    } catch {}
+
+    try {
+      const rts = await client.query(
+        `
+        SELECT COUNT(*)::int AS c
+        FROM extranet."RoomType" rt
+        JOIN extranet."Property" p ON p.id = rt."propertyId"
+        WHERE p."partnerId" = $1
+        `,
+        [id]
+      );
+      health.roomTypes = rts.rows?.[0]?.c ?? 0;
+    } catch {}
+
+    await client.end();
+    return res.json({ ok: true, partner: p.rows[0], health });
+  } catch (e) {
+    console.error("[admin] partner details failed", e);
+    try { await client?.end(); } catch {}
+    return res.status(401).json({ ok: false, error: "unauthorized" });
+  }
+});
+
+// ---- Admin: Save partner notes ---------------------------------------------
+
+app.put("/api/admin/partners/:id/notes", express.json(), async (req: Request, res: Response) => {
+  let client: Client | null = null;
+
+  try {
+    requireAdminAuth(req);
+
+    const id = Number(req.params.id);
+    if (!Number.isFinite(id)) {
+      return res.status(400).json({ ok: false, error: "invalid_partner_id" });
+    }
+
+    const notes = req.body?.notes != null ? String(req.body.notes) : "";
+    if (notes.length > 20000) {
+      return res.status(400).json({ ok: false, error: "notes_too_long" });
+    }
+
+    const cs = process.env.DATABASE_URL || "";
+    if (!cs) throw new Error("DATABASE_URL missing");
+
+    client = new Client({
+      connectionString: cs,
+      ssl: wantsSSL(cs) ? { rejectUnauthorized: false } : undefined,
+    });
+    await client.connect();
+
+    const upd = await client.query(
+      `
+      UPDATE extranet."Partner"
+      SET
+        "adminNotes" = $2,
+        "adminNotesUpdatedAt" = now(),
+        "updatedAt" = now()
+      WHERE id = $1
+      RETURNING id
+      `,
+      [id, notes]
+    );
+
+    await client.end();
+
+    if (!upd.rowCount) {
+      return res.status(404).json({ ok: false, error: "partner_not_found" });
+    }
+
+    return res.json({ ok: true });
+  } catch (e) {
+    console.error("[admin] save partner notes failed", e);
+    try { await client?.end(); } catch {}
+    return res.status(401).json({ ok: false, error: "unauthorized" });
+  }
+});
+
 // === Admin Analytics Summary ==============================================
 app.get("/api/admin/analytics/summary", async (req: Request, res: Response) => {
   try {
