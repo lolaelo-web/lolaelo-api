@@ -2742,6 +2742,8 @@
 
       // Ensure row is visible
       hostRow.style.display = 'flex';
+      // Signal that chips rendered so renderCalendar guard can proceed
+      try { document.dispatchEvent(new CustomEvent('plans:rendered', { detail:{ plans: list } })); } catch(_){}
     };
   } /* end RATEPLAN_CHIPS_RENDER */
 
