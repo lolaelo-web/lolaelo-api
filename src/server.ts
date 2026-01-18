@@ -4800,6 +4800,12 @@ app.get("/catalog/search", async (req: Request, res: Response) => {
       const pidNum = Number(p.propertyId ?? p.id);
       if (!Number.isFinite(pidNum)) continue;
       const suspended = await isPartnerSuspended(pidNum);
+
+      // TEMP PROBE: expose suspension decision for pid=78
+      if (pidNum === 78) {
+        res.setHeader("x-lolaelo-susp-78", suspended ? "true" : "false");
+      }
+
       if (!suspended) filteredForSuspension.push(p);
     }
 
@@ -4905,12 +4911,19 @@ app.get("/catalog/details", async (req: Request, res: Response) => {
   }
 
   // Block suspended partners + disable caching (public details)
-  if (await isPartnerSuspended(propertyId)) {
-    res.setHeader("Cache-Control", "no-store, no-cache, must-revalidate, proxy-revalidate");
-    res.setHeader("Pragma", "no-cache");
-    res.setHeader("Expires", "0");
-    res.status(404).json({ ok: false, error: "Not found" });
-    return;
+  {
+    const suspended = await isPartnerSuspended(propertyId);
+
+    // TEMP PROBE: expose suspension decision for details
+    res.setHeader("x-lolaelo-details-suspended", suspended ? "true" : "false");
+
+    if (suspended) {
+      res.setHeader("Cache-Control", "no-store, no-cache, must-revalidate, proxy-revalidate");
+      res.setHeader("Pragma", "no-cache");
+      res.setHeader("Expires", "0");
+      res.status(404).json({ ok: false, error: "Not found" });
+      return;
+    }
   }
 
   try {
