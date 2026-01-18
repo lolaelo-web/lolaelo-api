@@ -6014,129 +6014,107 @@ const setWindow = (sISO, doRender = true) => {
   }
 
   if (typeof window.loadRatePlansForRoom !== 'function') {
-    // Augments API plans with chip-derived plans before caching.
-        window.loadRatePlansForRoom = function(roomId){
-        if (!roomId) return Promise.resolve([]);
+    // Provide a safe loader ONLY if none exists.
+    // Uses session-authoritative propertyId (no hardcoded fallbacks) and caches per room.
+    window.loadRatePlansForRoom = async function(roomId){
+      const rid = Number(roomId);
+      if (!Number.isFinite(rid) || rid <= 0) return [];
 
-        function normPlans(raw){
-          var out = [];
-          var arr = Array.isArray(raw) ? raw : (raw && (raw.rows || raw.plans) ? (raw.rows || raw.plans) : []);
-          for (var i = 0; i < arr.length; i++){
-            var p  = arr[i] || {};
-            var id = Number(p.id || p.ratePlanId);
-            if (!isFinite(id)) continue;
-            out.push({
-              id: id,
-              code: String(p.code || '').toUpperCase(),
-              name: p.name || p.code || ('Plan ' + id),
-              active: (p.active === true),
-              isDefault: !!p.isDefault,
-              kind: String(p.kind || '').toUpperCase(),
-              value: (p.value == null ? 0 : p.value)
-            });
-          }
-          return out;
-        }
+      // Cache first
+      window.__cachedPlansByRoom = window.__cachedPlansByRoom || new Map();
+      const cached = window.__cachedPlansByRoom.get(rid);
+      if (Array.isArray(cached) && cached.length) {
+        try { if (typeof window.renderPlansPanel === 'function') window.renderPlansPanel(cached); } catch(_){}
+        return cached;
+      }
 
-        // Use cache first to avoid refetching for the same room repeatedly
-        window.__cachedPlansByRoom = window.__cachedPlansByRoom || new Map();
-        var cached = window.__cachedPlansByRoom.get(roomId);
-        if (Array.isArray(cached) && cached.length){
-          if (typeof window.renderPlansPanel === 'function') window.renderPlansPanel(cached);
-          return Promise.resolve(cached);
-        }
-
-        var pid = 0;
-        // Prefer the canonical async resolver if present
-        try {
-          if (typeof window.getRatePlanPropertyId === 'function') {
-            return Promise.resolve(window.getRatePlanPropertyId()).then(function(x){
-              pid = Number(x);
-              if (!isFinite(pid) || pid <= 0) throw new Error('missing propertyId');
-              var url = '/extranet/property/rateplans?propertyId=' + encodeURIComponent(String(pid)) + '&roomTypeId=' + encodeURIComponent(String(roomId));
-              return fetch(url, {
-                method: 'GET',
-                cache: 'no-store',
-                credentials: 'include',
-                headers: {
-                  'Content-Type': 'application/json',
-                  ...(token ? {
-                    'Authorization': 'Bearer ' + token,
-                    'x-partner-token': token
-                  } : {})
-                }
-              })
-              .then(function(r){ return r.json(); })
-              .then(function(j){
-                var apiPlans = normPlans(j);
-                window.__cachedPlansByRoom = window.__cachedPlansByRoom || new Map();
-                window.__cachedPlansByRoom.set(roomId, apiPlans);
-                if (typeof window.renderPlansPanel === 'function') window.renderPlansPanel(apiPlans);
-                return apiPlans;
-              });
-            });
-          }
-        } catch(e){}
-
-        throw new Error('missing getRatePlanPropertyId');
-        var url = '/extranet/property/rateplans?propertyId=' + encodeURIComponent(String(pid)) + '&roomTypeId=' + encodeURIComponent(String(roomId));
-        var fetcher = (typeof window.authFetch === 'function') ? window.authFetch : fetch;
-
-        var token = localStorage.getItem('partnerToken') || localStorage.getItem('lolaelo_session') || '';
-        return fetch(url, {
-          method: 'GET',
-          cache: 'no-store',
-          credentials: 'include',
-          headers: {
-            'Content-Type': 'application/json',
-            ...(token ? {
-              'Authorization': 'Bearer ' + token,
-              'x-partner-token': token
-            } : {})
-          }
-        })
-
-          .then(function(r){ return r.json(); })
-          .then(function(j){
-            var apiPlans = normPlans(j);
-
-            // Cache by room so future callers hit memory instead of network
-            window.__cachedPlansByRoom = window.__cachedPlansByRoom || new Map();
-            window.__cachedPlansByRoom.set(roomId, apiPlans);
-
-            // Render panel from API plans only
-            if (typeof window.renderPlansPanel === 'function') window.renderPlansPanel(apiPlans);
-
-            return apiPlans;
-          })
-          .catch(function(e){
-            // API failed — do not fabricate from DOM
-            var fallback = [];
-            window.__cachedPlansByRoom = window.__cachedPlansByRoom || new Map();
-            window.__cachedPlansByRoom.set(roomId, fallback);
-            if (typeof window.renderPlansPanel === 'function') window.renderPlansPanel(fallback);
-            return fallback;
+      // Normalize API plans
+      function normPlans(raw){
+        const out = [];
+        const arr = Array.isArray(raw)
+          ? raw
+          : (raw && (raw.rows || raw.plans) ? (raw.rows || raw.plans) : []);
+        for (let i = 0; i < arr.length; i++){
+          const p = arr[i] || {};
+          const id = Number(p.id || p.ratePlanId);
+          const code = String(p.code || '').toUpperCase();
+          if (!Number.isFinite(id) || !code) continue;
+          out.push({
+            id,
+            code,
+            name: p.name || p.code || ('Plan ' + id),
+            active: (p.active === true),
+            isDefault: !!p.isDefault,
+            kind: String(p.kind || '').toUpperCase(),
+            value: (p.value == null ? 0 : p.value)
           });
-        };
-      console.info('[PLANS_PANEL] shimmed loadRatePlansForRoom (chip-augmented)');
-    }
-    
-    // After calendar builds, ensure plans for current room are loaded at least once
-    document.addEventListener('calendar:rendered', function(){
-      try {
-        var roomId = window.currentRoomTypeId || ((window.__lastRenderedRoom||{}).id);
-        if (!roomId) return;
-
-        // Use cache guard so we do not reload plans on every calendar render
-        window.__cachedPlansByRoom = window.__cachedPlansByRoom || new Map();
-        if (window.__cachedPlansByRoom.has(roomId)) return;
-
-        if (typeof window.loadRatePlansForRoom === 'function') {
-          window.loadRatePlansForRoom(roomId).catch(function(){});
         }
-      } catch (e) {}
-    }, { capture:false });
-  })();
+        return out;
+      }
+
+      // Resolve propertyId from canonical resolver (must be async)
+      let pid = 0;
+      try {
+        if (typeof window.getRatePlanPropertyId === 'function') {
+          pid = Number(await window.getRatePlanPropertyId());
+        }
+      } catch(_) {}
+      if (!Number.isFinite(pid) || pid <= 0) throw new Error('loadRatePlansForRoom: missing propertyId');
+
+      // Auth headers
+      let token = '';
+      try { token = localStorage.getItem('partnerToken') || localStorage.getItem('lolaelo_session') || ''; } catch(_){}
+      const headers = { 'Content-Type': 'application/json' };
+      if (token) {
+        headers['Authorization'] = 'Bearer ' + token;
+        headers['x-partner-token'] = token;
+      }
+
+      const url =
+        '/extranet/property/rateplans?propertyId=' + encodeURIComponent(String(pid)) +
+        '&roomTypeId=' + encodeURIComponent(String(rid));
+
+      const fetcher = (typeof window.authFetch === 'function') ? window.authFetch : fetch;
+
+      const r = await fetcher(url, {
+        method: 'GET',
+        cache: 'no-store',
+        credentials: 'include',
+        headers
+      });
+
+      if (!r.ok) throw new Error('loadRatePlansForRoom: HTTP ' + r.status);
+
+      const j = await r.json().catch(() => []);
+      const apiPlans = normPlans(j);
+
+      // Cache + render
+      window.__cachedPlansByRoom.set(rid, apiPlans);
+      try { if (typeof window.renderPlansPanel === 'function') window.renderPlansPanel(apiPlans); } catch(_){}
+
+      return apiPlans;
+    };
+
+    console.info('[PLANS_PANEL] loadRatePlansForRoom installed (safe)');
+  }
+
+  // After calendar builds, ensure plans for current room are loaded at least once
+  document.addEventListener('calendar:rendered', function(){
+    try {
+      var roomId = window.currentRoomTypeId || ((window.__lastRenderedRoom||{}).id);
+      roomId = Number(roomId);
+      if (!Number.isFinite(roomId) || roomId <= 0) return;
+
+      // Use cache guard so we do not reload plans on every calendar render
+      window.__cachedPlansByRoom = window.__cachedPlansByRoom || new Map();
+      if (window.__cachedPlansByRoom.has(roomId)) return;
+
+      if (typeof window.loadRatePlansForRoom === 'function') {
+        Promise.resolve(window.loadRatePlansForRoom(roomId)).catch(function(){});
+      }
+    } catch (e) {}
+  }, { capture:false });
+})();
 </script>
 
 <script>
