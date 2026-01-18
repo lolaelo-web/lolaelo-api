@@ -2967,25 +2967,6 @@
             }))
           );
         } catch (_) {}
-
-        // ===== DETAILS_PAYLOAD_TAP (insert end) =====
-        // ===== DETAILS_PAYLOAD_DUMP (insert) =====
-        console.log("[details] full payload", j);
-        // ===== DETAILS_PAYLOAD_DUMP (insert end) =====
-        // ===== DETAILS_IMG_DEBUG (insert) =====
-        console.log("[details] payload keys:", Object.keys(j || {}));
-        console.log("[details] j.images:", j?.images);
-        console.log("[details] rooms[0].images:", j?.rooms?.[0]?.images);
-        try {
-          const badge = document.getElementById("src-badge");
-          if (badge) {
-            const a = Array.isArray(j?.images) ? j.images.length : 0;
-            const b = Array.isArray(j?.rooms?.[0]?.images) ? j.rooms[0].images.length : 0;
-            badge.textContent = `${j?._roomsSource || "src"} · img:${a} · r0:${b}`;
-            badge.style.display = "inline-block";
-          }
-        } catch {}
-        // ===== DETAILS_IMG_DEBUG (insert end) =====
       } catch (e) {
         console.error('[details] fetch error', e);
         throw e;
@@ -3129,22 +3110,6 @@
 
           descEl.textContent = desc || '';
           descEl.style.display = desc ? 'block' : 'none';
-
-          // TEMP: one-time debug so we can see what the API is actually sending
-          if (!window.__detailsDescDebugged) {
-            try {
-              console.log('DETAILS DESC DEBUG', {
-                fromMeta: mp && mp.description,
-                fromCard: cp && cp.description,
-                fromMetaLong: mp && mp.longDescription,
-                fromCardSummary: cp && cp.summary,
-                fromJ: j && j.description,
-                fromJMeta: j && j.meta && j.meta.description,
-                finalDesc: desc
-              });
-            } catch (_) {}
-            window.__detailsDescDebugged = true;
-          }
         }
 
         // Map icon wiring: prefer lat/lng from Company Profile (partners_app)
@@ -3943,76 +3908,18 @@
               font-family="Inter, Arial, sans-serif" font-size="16" fill="#9ca3af">${label}</text>
           </svg>`);
 
-        const plans = derivePlansForDisplay(); // [{id,name}, …]
+        // IMPORTANT: do not render any plans until DB-backed hydratePlansFromPartners() runs
+        const plans = [];
 
         function planRowsHTML(roomId) {
-        // Fixed 3 core plans, in the order you want to show them
-        const basePlans = [
-          { id: 1, label: 'Standard',       desc: 'Flexible standard rate with free cancellation.' },
-          { id: 2, label: 'Non-refundable', desc: 'Lower price, no refunds or changes.' },
-          { id: 3, label: 'With Breakfast', desc: 'This rate includes breakfast for 2.' }
-        ];
-
-        const plansQS = '';
-
-        // Try to get the Standard plan price from the payload
-        const stdFromBackend = getPlanPriceForRoom(roomId, 1);
-        const baseStd = stdFromBackend != null && Number.isFinite(Number(stdFromBackend))
-          ? Number(stdFromBackend)
-          : null;
-
-        const rows = basePlans.map(p => {
-          // First choice: use backend per-plan price if present
-          let rawPrice = getPlanPriceForRoom(roomId, p.id);
-          let numPrice = rawPrice != null ? Number(rawPrice) : null;
-
-          // Fallback: derive per-plan price from Standard using your rules
-          if (numPrice == null || !Number.isFinite(numPrice)) {
-            if (baseStd != null) {
-              if (p.id === 1) {
-                // Standard: base price
-                numPrice = baseStd;
-              } else if (p.id === 2) {
-                // Non-refundable: -10 percent
-                numPrice = Math.round(baseStd * 0.9 * 100) / 100;
-              } else if (p.id === 3) {
-                // With Breakfast: +10
-                numPrice = baseStd + 10;
-              }
-            }
-          }
-            const hasPrice = numPrice != null && Number.isFinite(numPrice);
-            const priceLabel = hasPrice ? money(numPrice) : null;
-            const priceHtml = hasPrice
-              ? `<div class="meta"><strong>${priceLabel}</strong> / night</div>`
-              : '';
-
-            const url =
-              `/checkout.html?propertyId=${encodeURIComponent(propertyId)}` +
-              `&roomId=${encodeURIComponent(roomId)}` +
-              `&start=${encodeURIComponent(start)}` +
-              `&end=${encodeURIComponent(end)}` +
-              `&ratePlanId=${encodeURIComponent(p.id)}` +
-              `&planLabel=${encodeURIComponent(p.label)}` +
-              `${plansQS}`;
-
-            return `
-              <div class="planrow" data-plan-id="${p.id}">
-                <div>
-                  <div class="planname">${p.label}</div>
-                  <div class="meta">${p.desc}</div>
-                  ${priceHtml}
-                </div>
-                <a class="roomcat-plan-btn"
-                    href="${url}"
-                    aria-label="Book now with this rate"
-                  >
-                    Book now
-                  </a>
-              </div>`;
-          }).join('');
-
-          return rows;
+          // Backend is the only pricing source.
+          // This page will be hydrated by hydratePlansFromPartners() which fetches DB rate plans
+          // and applies the persisted plan rules (kind/value).
+          return `
+            <div class="small muted" style="padding:8px 10px;">
+              Loading rate plans…
+            </div>
+          `;
         }
      
         listEl.innerHTML = openRooms.map(({ room, minPrice }) => {
@@ -4101,17 +4008,21 @@
                   const u = new URL(location.href);
                   const p = u.searchParams.get('ratePlanId') || u.searchParams.get('plan');
                   if (p && Number.isFinite(Number(p))) return String(Number(p));
+
+                  // Prefer room-scoped STD plan id from DB hydrate, if available
+                  const byRoom = window.__ratePlansByRoom && window.__ratePlansByRoom[String(rid)];
+                  if (Array.isArray(byRoom)) {
+                    const std = byRoom.find(x => String(x.code || '').toUpperCase() === 'STD');
+                    const n = Number(std && std.id);
+                    if (Number.isFinite(n) && n > 0) return String(n);
+                  }
+
                   const last = Number(localStorage.getItem('rateplan.lastPlanId') || '');
-                  return Number.isFinite(last) ? String(last) : '1';
-                } catch(_) { return '1'; } })())
+                  return (Number.isFinite(last) && last > 0) ? String(last) : '';
+                } catch(_) { return ''; } })())
               }"
               aria-label="Select ${name}">Select</a>
-
-            ${ (plans && plans.length >= 1)
-                ? `<div class="planlist" aria-label="Rate plans for ${name}">
-                    ${planRowsHTML(rid)}
-                  </div>`
-                : `` }
+            ${``}
           </div>
         `;
         }).join('');
@@ -5396,54 +5307,6 @@
         spa_access:            "Spa / wellness access",
       };
 
-      // Canonical 3 plans only: 1 = Standard, 2 = With Breakfast, 3 = Non-Refundable
-      function getModalSelectedPlanIds(){
-        let ids = [];
-
-        // 1) localStorage from partners_rooms (canonical)
-        try {
-          const raw = localStorage.getItem('rateplan.selectedIds') || '[]';
-          const arr = JSON.parse(raw);
-          if (Array.isArray(arr)) ids = arr.map(Number).filter(n => Number.isFinite(n) && n > 0);
-        } catch (_) {
-          ids = [];
-        }
-
-        // 2) URL (?plans=8,18,23 or ?ratePlanId=18)
-        if (!ids.length){
-          try {
-            const qs  = new URLSearchParams(location.search || '');
-            const csv = (qs.get('plans') || '').trim();
-            if (csv){
-              ids = csv.split(',').map(s => Number(String(s).trim())).filter(n => Number.isFinite(n) && n > 0);
-            } else {
-              const single = Number(qs.get('ratePlanId') || qs.get('plan'));
-              if (Number.isFinite(single) && single > 0) ids = [single];
-            }
-          } catch(_){}
-        }
-
-        // 3) Fallback to lastPlanId
-        if (!ids.length){
-          try {
-            const last = Number(localStorage.getItem('rateplan.lastPlanId'));
-            if (Number.isFinite(last) && last > 0) ids = [last];
-          } catch(_){}
-        }
-
-        // Dedupe, preserve order
-        const seen = new Set();
-        const out = [];
-        for (let i = 0; i < ids.length; i++){
-          const id = Number(ids[i]);
-          if (!Number.isFinite(id) || id <= 0) continue;
-          if (seen.has(id)) continue;
-          seen.add(id);
-          out.push(id);
-        }
-        return out;
-      }
-
       function getModalPlanLabel(id){
         const rid = String(id);
         const meta = (window.__ratePlanMetaById && window.__ratePlanMetaById[rid]) ? window.__ratePlanMetaById[rid] : null;
@@ -6069,40 +5932,8 @@
 
   <!-- PARTNER BADGE & IMAGE FALLBACK (insert above </body>) -->
   <script>
-  (function () {
-    const qs = new URLSearchParams(location.search);
-    const pid = Number(qs.get("propertyId"));
-    const start = qs.get("start") || "";
-    const end = qs.get("end") || "";
-    if (!Number.isFinite(pid) || !start || !end) return;
-    // If the main loader already rendered images, skip this fallback.
-    const __thumbs = document.getElementById("thumbs");
-    const __heroImg = document.getElementById("hero-img");
-    if (__thumbs && __thumbs.children.length > 0 && __heroImg && __heroImg.src) return;
 
-    const placeholder = "data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 1200 800'><defs><linearGradient id='g' x1='0' y1='0' x2='1' y2='1'><stop offset='0%' stop-color='%23e5e7eb'/><stop offset='100%' stop-color='%23c7d2fe'/></linearGradient></defs><rect width='1200' height='800' fill='url(%23g)'/><g fill='%239ca3af' font-family='system-ui,Segoe UI,Roboto,Helvetica,Arial' text-anchor='middle'><text x='600' y='420' font-size='56'>No photo</text><text x='600' y='470' font-size='28'>Partner provides images in Extranet</text></g></svg>";
-
-    fetch(`/catalog/details?propertyId=${pid}&start=${encodeURIComponent(start)}&end=${encodeURIComponent(end)}`)
-      .then(r => r.ok ? r.json() : {})
-      .then(d => {
-        // 1) Hero image fallback (if your page has an <img> for cover)
-        const hero = document.getElementById("hero-img");
-        const first = Array.isArray(d?.images) && d.images.length ? d.images[0] : null;
-        if (hero) {
-          hero.src = first || placeholder;
-          hero.alt = d?.name || "Property";
-        } else if (first) {
-          // If no hero container exists, inject a simple one up top
-          const img = document.createElement("img");
-          img.src = first; img.alt = d?.name || "Property";
-          img.style.cssText = "width:100%;max-height:360px;object-fit:cover;border-radius:12px;margin:8px 0";
-          document.body.insertBefore(img, document.body.firstChild);
-        }
-      })
-      .catch(()=>{});
-  })();
-
-  // ANCHOR: DETAILS_SCROLL_GUARD
+// ANCHOR: DETAILS_SCROLL_GUARD
   (function setupScrollGuard() {
     // Log what happens on load
     window.addEventListener("load", function () {

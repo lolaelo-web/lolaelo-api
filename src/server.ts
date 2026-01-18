@@ -2803,6 +2803,7 @@ app.get("/mock/uis/search", async (req: Request, res: Response) => {
     const { start, end, guests } = req.query as {
       start?: string; end?: string; guests?: string;
     };
+    
 
     if (!start || !end) {
       return res.status(400).json({ error: "missing_dates" });

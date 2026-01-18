@@ -816,7 +816,7 @@
             <!-- Save button at bottom-right of the panel -->
             <div class="plans-save-wrap" style="display:flex; justify-content:flex-end; margin-top:10px;">
               <button id="save-plan-rules" class="btn btn-primary" type="button" title="Save rules for derived plans">
-                Save Plan Rate IDs
+                Save Rateplan Settings
               </button>
             </div>
           </div>
@@ -2714,53 +2714,25 @@
         label.appendChild(txt);
         host.appendChild(label);
 
-        // Persist toggle only for real non-STD plans
+        // NO AUTO-SAVE: only mark pending changes; Save Plan Rate IDs button persists
         if (numericId && code !== 'STD') {
           box.disabled = false;
           label.style.opacity = '1';
           label.title = '';
 
-          box.addEventListener('change', async () => {
+          box.addEventListener('change', () => {
             label.classList.toggle('active', !!box.checked);
-            const nextActive = box.checked ? true : false;
 
-            try {
-              const rid = Number(window.currentRoomTypeId || 0);
-              const fetcher = (typeof window.authFetch === 'function') ? window.authFetch : fetch;
-              const pid = await getRatePlanPropertyId();
+            // Track pending actives by code
+            window.__pendingPlanActives = window.__pendingPlanActives || {};
+            window.__pendingPlanActives[code] = !!box.checked;
 
-              const url =
-                `/extranet/property/rateplans?propertyId=${encodeURIComponent(String(pid))}` +
-                `&roomTypeId=${encodeURIComponent(String(rid))}`;
+            // Nudge user to Save
+            try { setStatus('Plan toggles updated — click "Save Plan Rate IDs" to apply.', 'warn'); } catch(_){}
+            try { toast('Pending plan changes — click Save Plan Rate IDs', 'warn'); } catch(_){}
 
-              const r = await fetcher(url, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                cache: 'no-store',
-                credentials: 'include',
-                body: JSON.stringify({ plans: [{ code, active: nextActive }] })
-              });
-
-              if (!r.ok) throw new Error(`HTTP ${r.status}`);
-
-              let payload = null;
-              try { payload = await r.json(); } catch(_) { payload = null; }
-              const latest = Array.isArray(payload) ? payload : (payload && Array.isArray(payload.plans) ? payload.plans : null);
-
-              try { window.__cachedPlansByRoom?.delete(rid); } catch(_){}
-
-              if (latest) {
-                try { window.populateRatePlanChecks(latest); } catch(_) {}
-              } else if (typeof window.loadRatePlansForRoom === 'function' && Number.isFinite(rid) && rid > 0) {
-                const fetched = await window.loadRatePlansForRoom(rid);
-                try { window.populateRatePlanChecks(fetched); } catch(_) {}
-              }
-            } catch (e) {
-              console.warn('[rateplans] persist active failed, reverting', e);
-              box.checked = !nextActive;
-              label.classList.toggle('active', !!box.checked);
-              alert('Failed to save rate plan change. Please retry.');
-            }
+            // Enable Save button regardless of numeric rule state
+            try { if (typeof window.__refreshPlanSaveEnabled === 'function') window.__refreshPlanSaveEnabled(); } catch(_){}
           });
         }
       });
@@ -5519,7 +5491,10 @@
     // Enable when:
     // - no invalid numbers, AND
     // - at least one numeric rule provided
-    btn.disabled = !!(numericInvalid || !anyNumericGiven);
+    const pending = window.__pendingPlanActives || {};
+    const hasToggleChanges = Object.keys(pending).length > 0;
+
+    btn.disabled = !!(numericInvalid || (!anyNumericGiven && !hasToggleChanges));
   }
 
     function attachRow(row){
@@ -5592,6 +5567,7 @@
         }
 
         refreshSaveEnabled();
+        window.__refreshPlanSaveEnabled = refreshSaveEnabled;
       }
 
       ['change','input','blur'].forEach(ev => {
@@ -5633,6 +5609,100 @@
     const btn = document.getElementById('save-plan-rules');
     if (!btn) return;
 
+    // === Derived plan DB writer (STD baseline -> BRKF/NRF nightly prices) ===
+    function __applyRule(basePrice, kind, value){
+      const base = Number(basePrice);
+      if (!Number.isFinite(base)) return null;
+
+      const k = String(kind || 'NONE').toUpperCase();
+      const raw = (value == null) ? 0 : Number(value);
+      const v = Number.isFinite(raw) ? raw : 0;
+
+      if (k === 'ABSOLUTE') return Math.max(0, base + v);
+      if (k === 'PERCENT')  return Math.max(0, base * (1 + (v / 100)));
+      return Math.max(0, base);
+    }
+
+    async function __writeDerivedPlanPricesToDb(roomTypeId){
+      const rid = Number(roomTypeId || window.currentRoomTypeId || 0);
+      if (!Number.isFinite(rid) || rid <= 0) throw new Error('derivePrices: invalid roomTypeId');
+
+      const startISO = String(window.currentRangeStart || el('range-start')?.value || '');
+      const endISO   = String(window.currentRangeEnd   || el('range-end')?.value   || '');
+      if (!startISO || !endISO) throw new Error('derivePrices: missing date range');
+
+      // Fetch latest plans for this room so we have real ids + kind/value
+      if (typeof window.loadRatePlansForRoom !== 'function') throw new Error('derivePrices: loadRatePlansForRoom missing');
+      const plans = await window.loadRatePlansForRoom(rid);
+      const list = Array.isArray(plans) ? plans : [];
+
+      const byCode = (code) => list.find(p => String(p?.code || '').toUpperCase() === code);
+
+      const std  = byCode('STD');
+      const brkf = byCode('BRKF');
+      const nrf  = byCode('NRF');
+
+      const stdId = Number(std && std.id);
+      if (!Number.isFinite(stdId) || stdId <= 0) throw new Error('derivePrices: STD plan id missing');
+
+      // Pull STD nightly prices from DB for the current window
+      const stdUrl =
+        `/extranet/property/rooms/${rid}/prices?start=${encodeURIComponent(startISO)}` +
+        `&end=${encodeURIComponent(endISO)}&ratePlanId=${encodeURIComponent(String(stdId))}`;
+
+      const rowsRes = await authFetch(stdUrl, { method: 'GET', cache: 'no-store' });
+      if (!rowsRes.ok) throw new Error(`derivePrices: STD GET failed (${rowsRes.status})`);
+
+      const stdRows = await rowsRes.json().catch(() => []);
+      const stdArr = Array.isArray(stdRows) ? stdRows : (stdRows && Array.isArray(stdRows.rows) ? stdRows.rows : []);
+      if (!stdArr.length) throw new Error('derivePrices: no STD RoomPrice rows in range');
+
+      async function writeOnePlan(plan){
+        if (!plan) return { skipped: true, reason: 'missing' };
+        if (plan.active !== true) return { skipped: true, reason: 'inactive' };
+
+        const pid = Number(plan.id);
+        if (!Number.isFinite(pid) || pid <= 0) return { skipped: true, reason: 'bad_id' };
+
+        const kind = plan.kind || 'NONE';
+        const value = plan.value;
+
+        const items = stdArr.map(r => {
+          let date = (r && (r.date || r.day || r.d)) ? String(r.date || r.day || r.d) : '';
+          date = date ? date.slice(0, 10) : ''; // normalize YYYY-MM-DD even if timestamp
+          const base = Number(r && (r.price ?? r.amount ?? r.basePrice));
+          if (!date || !Number.isFinite(base)) return null;
+
+          const out = __applyRule(base, kind, value);
+          if (out == null || !Number.isFinite(out)) return null;
+
+          return { date: date, price: Math.round(out * 100) / 100, ratePlanId: pid };
+        }).filter(Boolean);
+
+        if (!items.length) return { skipped: true, reason: 'no_items' };
+
+        const postUrl = `/extranet/property/rooms/${rid}/prices/bulk`;
+        const postRes = await authFetch(postUrl, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ items })
+        });
+
+        if (!postRes.ok) {
+          const txt = await postRes.text().catch(() => '');
+          throw new Error(`derivePrices: bulk POST failed (${postRes.status}) ${txt}`);
+        }
+
+        return { skipped: false, count: items.length, ratePlanId: pid };
+      }
+
+      // Write BRKF then NRF (both derived from STD)
+      const out = {};
+      out.BRKF = await writeOnePlan(brkf);
+      out.NRF  = await writeOnePlan(nrf);
+      return out;
+    }
+
     btn.addEventListener('click', async () => {
       try {
         if (!window.__pendingPlanRules) {
@@ -5653,7 +5723,21 @@
           const raw   = Number(cfg.value);
           const value = Number.isFinite(raw) ? (sign * Math.abs(raw)) : 0;
 
-          return { code, name, kind: unit, value };
+          // active: from pending toggles if present, else from current checkbox state, else leave undefined
+          let active = undefined;
+          try {
+            const pending = window.__pendingPlanActives || {};
+            if (Object.prototype.hasOwnProperty.call(pending, code)) {
+              active = !!pending[code];
+            } else {
+              const host = document.getElementById('rateplan-checks');
+              const chip = host?.querySelector(`.chip[data-plan-code="${code}"] input[type="checkbox"]`);
+              if (chip && !chip.disabled) active = !!chip.checked;
+            }
+          } catch(_) {}
+
+          return { code, name, kind: unit, value, active };
+          ;
         }).filter(p => p && p.code);
 
         // Try backend save
@@ -5678,11 +5762,31 @@
         if (ok) {
           setStatus('Plan rules saved.', 'ok');
           toast('Plan rules saved', 'ok');
-          // Backend accepted — clear the saved drafts for the codes we just posted
+
+          // Backend accepted — clear drafts for posted codes
           try {
-            const postedCodes = (Array.isArray(plans) ? plans.map(p=>p.code).filter(Boolean) : []);
+            const postedCodes = (Array.isArray(plans) ? plans.map(p => p.code).filter(Boolean) : []);
             clearRuleDrafts(postedCodes.length ? postedCodes : undefined); // if unknown, nuke all
           } catch(_) {}
+
+          // Backend accepted — clear any pending toggle changes
+          try { window.__pendingPlanActives = {}; } catch(_) {}
+
+          // After rules save: derive and write BRKF/NRF nightly prices into DB for this window
+          try {
+            const out = await __writeDerivedPlanPricesToDb(window.currentRoomTypeId);
+            console.log('[plan-rules] derived prices written', out);
+            setStatus('Plan rules saved and derived prices written.', 'ok');
+            toast('Saved rules + prices', 'ok');
+
+            // Refresh calendar so the new plan prices are visible immediately when switching plans
+            try { if (typeof renderCalendar === 'function') await renderCalendar({ reason: 'plan-rules:derived-prices' }); } catch(_){}
+          } catch (e) {
+            console.warn('[plan-rules] derived price write failed', e);
+            setStatus('Rules saved, but derived prices failed to write. Check console.', 'warn');
+            toast('Rules saved, price write failed', 'warn');
+          }
+
         } else {
           setStatus(`Could not save plan rules (${status || 'ERR'}). UI kept your inputs.`, 'warn');
           toast('Save skipped — backend not ready', 'warn');
