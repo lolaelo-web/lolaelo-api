@@ -2279,6 +2279,9 @@
     return 0; // explicit failure is safer than silent misrouting
   }
 
+  // Back-compat alias for older blocks/shims
+  window.getRatePlanPropertyId = getRatePlanPropertyId;
+
   async function fetchRatePlansSafe(roomTypeId){
     try{
       const rid = Number(roomTypeId);
