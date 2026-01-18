@@ -122,23 +122,6 @@ router.get("/search", async (req: Request, res: Response) => {
     }
 
     const props: any[] = Array.isArray(list?.properties) ? list.properties : [];
-    // ---- 1c) Suspension filter (Partner.id) --------------------------------
-    {
-      const kept: any[] = [];
-      for (const p of props) {
-        const pid = Number((p as any)?.propertyId);
-        if (!Number.isFinite(pid)) continue;
-
-        // If suspended, remove from catalog search
-        const suspended = await isPartnerSuspended(pid);
-        if (suspended) continue;
-
-        kept.push(p);
-      }
-
-      // mutate in place to preserve downstream logic using `props`
-      props.splice(0, props.length, ...kept);
-    }
 
     for (const p of props) {
       try {
@@ -177,6 +160,20 @@ router.get("/search", async (req: Request, res: Response) => {
     } catch (e) {
       req.app?.get("logger")?.warn?.({ e }, "profile→partner remap failed");
     }
+
+    // ---- 1c) Suspension filter (MUST run after profile→partner remap) -------
+    {
+      const kept: any[] = [];
+      for (const p of props) {
+        const pid = Number((p as any)?.propertyId); // now should be Partner.id
+        if (!Number.isFinite(pid)) continue;
+
+        if (await isPartnerSuspended(pid)) continue;
+        kept.push(p);
+      }
+      props.splice(0, props.length, ...kept);
+    }
+    if (props.length === 0) return res.json({ properties: [] });
 
     let _roomsApplied = 0; // debug: count properties where DB rooms were applied
 
@@ -466,6 +463,21 @@ router.get("/search", async (req: Request, res: Response) => {
         req.app?.get("logger")?.warn?.({ err }, "catalog.search db-fallback failed");
       }
     }
+
+    // ---- 2c) Re-apply suspension filter after DB-fallback injection ---------
+    {
+      const kept: any[] = [];
+      for (const p of props) {
+        const pid = Number((p as any)?.propertyId);
+        if (!Number.isFinite(pid)) continue;
+
+        if (await isPartnerSuspended(pid)) continue;
+        kept.push(p);
+      }
+      props.splice(0, props.length, ...kept);
+    }
+    if (props.length === 0) return res.json({ properties: [] });
+
     // Re-apply photos for any newly injected DB-fallback properties (they were added after the first photo pass)
     try {
       const pidList2 = props
