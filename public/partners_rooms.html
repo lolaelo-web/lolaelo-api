@@ -6046,7 +6046,39 @@ const setWindow = (sISO, doRender = true) => {
           return Promise.resolve(cached);
         }
 
-        var pid = Number((window.state && (window.state.partnerId || window.state.propertyId)) || 2);
+        var pid = 0;
+        // Prefer the canonical async resolver if present
+        try {
+          if (typeof window.getRatePlanPropertyId === 'function') {
+            return Promise.resolve(window.getRatePlanPropertyId()).then(function(x){
+              pid = Number(x);
+              if (!isFinite(pid) || pid <= 0) throw new Error('missing propertyId');
+              var url = '/extranet/property/rateplans?propertyId=' + encodeURIComponent(String(pid)) + '&roomTypeId=' + encodeURIComponent(String(roomId));
+              return fetch(url, {
+                method: 'GET',
+                cache: 'no-store',
+                credentials: 'include',
+                headers: {
+                  'Content-Type': 'application/json',
+                  ...(token ? {
+                    'Authorization': 'Bearer ' + token,
+                    'x-partner-token': token
+                  } : {})
+                }
+              })
+              .then(function(r){ return r.json(); })
+              .then(function(j){
+                var apiPlans = normPlans(j);
+                window.__cachedPlansByRoom = window.__cachedPlansByRoom || new Map();
+                window.__cachedPlansByRoom.set(roomId, apiPlans);
+                if (typeof window.renderPlansPanel === 'function') window.renderPlansPanel(apiPlans);
+                return apiPlans;
+              });
+            });
+          }
+        } catch(e){}
+
+        throw new Error('missing getRatePlanPropertyId');
         var url = '/extranet/property/rateplans?propertyId=' + encodeURIComponent(String(pid)) + '&roomTypeId=' + encodeURIComponent(String(roomId));
         var fetcher = (typeof window.authFetch === 'function') ? window.authFetch : fetch;
 
