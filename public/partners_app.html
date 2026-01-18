@@ -339,7 +339,13 @@
           </div>
           <div>
             <label for="pp_contactEmail">Contact E-mail *</label>
-            <input id="pp_contactEmail" type="email" placeholder="daguhoy@hotel.com" required />
+            <input id="pp_contactEmail"
+                  type="email"
+                  placeholder="daguhoy@hotel.com"
+                  disabled
+                  aria-readonly="true"
+                  title="System-managed (not editable)" />
+            <small class="muted">System-managed email. Contact support to change.</small>
           </div>
         </div>
 
@@ -801,7 +807,6 @@
     // D9: unified required-field validation
     const requiredFields = [
       { id: 'pp_name',         label: 'Hotel / Property Name' },
-      { id: 'pp_contactEmail', label: 'Contact E-mail' },
       { id: 'pp_phone',        label: 'Phone' },
       { id: 'pp_address',      label: 'Address' },
       { id: 'pp_city',         label: 'City' },
@@ -827,7 +832,6 @@
     // PATCH = send only provided fields
     const patchPayload = {
       name:         nz($('pp_name').value),
-      contactEmail: nz($('pp_contactEmail').value),
       phone:        nz($('pp_phone').value),
       addressLine:  nz($('pp_address').value),
       country:      nz($('pp_country').value),
@@ -852,7 +856,6 @@
     const putPayload = {
       partnerId:    partnerIdNum,
       name:         nz($('pp_name').value),
-      contactEmail: nz($('pp_contactEmail').value),
       phone:        nz($('pp_phone').value),
       addressLine:  nz($('pp_address').value),
       country:      nz($('pp_country').value),
@@ -914,14 +917,12 @@
     $('btnSave').onclick = (e) => {
       e.preventDefault();
       const name = ($('pp_name').value || '').trim();
-      const email = ($('pp_contactEmail').value || '').trim();
       const phone = ($('pp_phone').value || '').trim();
       const addr  = ($('pp_address').value || '').trim();
       const city  = ($('pp_city').value || '').trim();
       const country = ($('pp_country').value || '').trim();
 
       if (!name)     { toast('Hotel name is required.'); return; }
-      if (!email)    { toast('Contact email is required.'); return; }
       if (!phone)    { toast('Phone is required.'); return; }
       if (!addr)     { toast('Address is required.'); return; }
       if (!city)     { toast('City is required.'); return; }

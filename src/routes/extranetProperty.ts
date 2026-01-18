@@ -374,12 +374,14 @@ r.put("/", async (req, res) => {
   const partnerId = (req as any)?.partner?.id;
   if (!partnerId) return res.status(401).json({ error: "unauthorized" });
 
+  const sessionEmail = (req as any)?.partner?.email || null;
+
   res.set("Cache-Control", "no-store, no-cache, must-revalidate");
 
   const payload = req.body ?? {};
   const KEYS = [
     "name",
-    "contactEmail",
+    // contactEmail is system-managed (not partner-editable)
     "phone",
     "country",
     "addressLine",
@@ -396,17 +398,17 @@ r.put("/", async (req, res) => {
   }
 
   const data = norm({
-    name:         payload.name,
-    contactEmail: payload.contactEmail,
-    phone:        payload.phone,
-    country:      payload.country,
-    addressLine:  payload.addressLine,
-    city:         payload.city,
-    cityCode:     payload.cityCode,
-    latitude:     payload.latitude,
-    longitude:    payload.longitude,
-    description:  payload.description,
-    mapLabel:     payload.mapLabel,
+    name: payload.name,
+    contactEmail: sessionEmail, // system-managed (not partner-editable)
+    phone: payload.phone,
+    country: payload.country,
+    addressLine: payload.addressLine,
+    city: payload.city,
+    cityCode: payload.cityCode,
+    latitude: payload.latitude,
+    longitude: payload.longitude,
+    description: payload.description,
+    mapLabel: payload.mapLabel,
   });
 
   if (!data.name || typeof data.name !== "string") {
@@ -433,7 +435,7 @@ r.put("/", async (req, res) => {
        VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12, NOW(), NOW())
        ON CONFLICT ("partnerId") DO UPDATE
            SET "name"         = EXCLUDED."name",
-               "contactEmail" = EXCLUDED."contactEmail",
+               "contactEmail" = ${TBL_PROFILE}."contactEmail",
                "phone"        = EXCLUDED."phone",
                "country"      = EXCLUDED."country",
                "addressLine"  = EXCLUDED."addressLine",
@@ -499,7 +501,6 @@ r.patch("/", async (req, res) => {
   // Filter allowed keys only
   const allowed = new Set([
     "name",
-    "contactEmail",
     "phone",
     "country",
     "addressLine",
@@ -556,7 +557,7 @@ r.patch("/", async (req, res) => {
     // Merge: provided keys override, others stay as-is
     const next = {
       name:         Object.prototype.hasOwnProperty.call(patchData, "name") ? patchData.name : (curr?.name ?? null),
-      contactEmail: Object.prototype.hasOwnProperty.call(patchData, "contactEmail") ? patchData.contactEmail : (curr?.contactEmail ?? null),
+      contactEmail: (curr?.contactEmail ?? null),
       phone:        Object.prototype.hasOwnProperty.call(patchData, "phone") ? patchData.phone : (curr?.phone ?? null),
       country:      Object.prototype.hasOwnProperty.call(patchData, "country") ? patchData.country : (curr?.country ?? null),
       addressLine:  Object.prototype.hasOwnProperty.call(patchData, "addressLine") ? patchData.addressLine : (curr?.addressLine ?? null),
@@ -577,7 +578,7 @@ r.patch("/", async (req, res) => {
        VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12, NOW(), NOW())
        ON CONFLICT ("partnerId") DO UPDATE
            SET "name"         = EXCLUDED."name",
-               "contactEmail" = EXCLUDED."contactEmail",
+               "contactEmail" = ${TBL_PROFILE}."contactEmail",
                "phone"        = EXCLUDED."phone",
                "country"      = EXCLUDED."country",
                "addressLine"  = EXCLUDED."addressLine",
