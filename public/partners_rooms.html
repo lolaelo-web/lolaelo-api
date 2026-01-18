@@ -2233,31 +2233,56 @@
 
   /* ANCHOR: RATE_PLAN_FETCH */
 
-  // Derive propertyId reliably (URL -> window -> localStorage -> fallback)
-  function getRatePlanPropertyId(){
-    const qs = new URLSearchParams(location.search);
-    const fromUrl = Number(qs.get('propertyId'));
-    if (Number.isFinite(fromUrl) && fromUrl > 0) return fromUrl;
+  // Resolve propertyId from authenticated session (authoritative), no hardcoded fallbacks
+  async function getRatePlanPropertyId(){
+    // 1) Cached session value (fast path)
+    if (Number.isFinite(Number(window.__partnerIdFromSession))) {
+      return Number(window.__partnerIdFromSession);
+    }
 
-    const fromWindow = Number(window.currentPropertyId);
-    if (Number.isFinite(fromWindow) && fromWindow > 0) return fromWindow;
+    // 2) Fetch from session (authoritative source)
+    try {
+      const r = await (typeof authFetch === 'function'
+        ? authFetch('/extranet/session', { method: 'GET', cache: 'no-store' })
+        : fetch('/extranet/session', { method: 'GET', cache: 'no-store', credentials: 'include' })
+      );
 
-    // common existing storage keys we already use elsewhere in your app
-    const fromLs =
-      Number(localStorage.getItem('checkout.lastPropertyId')) ||
-      Number(localStorage.getItem('rooms:lastPropertyId')) ||
-      Number(localStorage.getItem('partner.propertyId'));
+      if (r && r.ok) {
+        const s = await r.json().catch(() => null);
+        const pid = Number(s && (s.partnerId || s.id));
+        if (Number.isFinite(pid) && pid > 0) {
+          window.__partnerIdFromSession = pid;
+          try {
+            localStorage.setItem('rooms:lastPropertyId', String(pid));
+            localStorage.setItem('partner.propertyId', String(pid));
+          } catch(_) {}
+          return pid;
+        }
+      }
+    } catch (_) {}
 
-    if (Number.isFinite(fromLs) && fromLs > 0) return fromLs;
+    // 3) URL param (only if explicitly present)
+    try {
+      const qs = new URLSearchParams(location.search);
+      const fromUrl = Number(qs.get('propertyId'));
+      if (Number.isFinite(fromUrl) && fromUrl > 0) return fromUrl;
+    } catch(_) {}
 
-    // final fallback (your test property)
-    return 2;
+    // 4) Last resort: localStorage (no hardcoded defaults)
+    try {
+      const a = Number(localStorage.getItem('rooms:lastPropertyId'));
+      if (Number.isFinite(a) && a > 0) return a;
+      const b = Number(localStorage.getItem('partner.propertyId'));
+      if (Number.isFinite(b) && b > 0) return b;
+    } catch(_) {}
+
+    return 0; // explicit failure is safer than silent misrouting
   }
 
   async function fetchRatePlansSafe(roomTypeId){
     try{
       const rid = Number(roomTypeId);
-      const pid = getRatePlanPropertyId();
+      const pid = await getRatePlanPropertyId();
 
       if (!Number.isFinite(rid) || rid <= 0){
         throw new Error(`fetchRatePlansSafe: invalid roomTypeId=${roomTypeId}`);
@@ -2702,7 +2727,7 @@
             try {
               const rid = Number(window.currentRoomTypeId || 0);
               const fetcher = (typeof window.authFetch === 'function') ? window.authFetch : fetch;
-              const pid = getRatePlanPropertyId();
+              const pid = await getRatePlanPropertyId();
 
               const url =
                 `/extranet/property/rateplans?propertyId=${encodeURIComponent(String(pid))}` +
@@ -5634,7 +5659,7 @@
         // Try backend save
         let status = 0, ok = false, res;
         try {
-          const pid = getRatePlanPropertyId();
+          const pid = await getRatePlanPropertyId();
           const rid = Number(window.currentRoomTypeId);
           if (!Number.isFinite(pid) || pid <= 0 || !Number.isFinite(rid) || rid <= 0) throw new Error('missing ids');
 
