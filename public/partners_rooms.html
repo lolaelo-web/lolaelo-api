@@ -2563,12 +2563,22 @@
     // After plans are fetched/saved, record code→id so Custom chips become active
     document.addEventListener('rateplans:fetched', (e)=>{
       const arr = Array.isArray(e.detail?.plans) ? e.detail.plans : [];
+
+      // Build code→id map when codes exist (optional)
       const codeMap = {};
-      arr.forEach(p => { if (p && p.code && p.id != null) codeMap[String(p.code).toUpperCase()] = Number(p.id); });
+      arr.forEach(p => {
+        if (p && p.code && p.id != null) {
+          codeMap[String(p.code).toUpperCase()] = Number(p.id);
+        }
+      });
+
+      // Persist if we have anything useful
       if (Object.keys(codeMap).length){
         localStorage.setItem(LS_KEY_CODEMAP, JSON.stringify(codeMap));
-        try { window.populateRatePlanChecks(arr); } catch(_){}
       }
+
+      // ALWAYS render chips (even when codes are missing)
+      try { window.populateRatePlanChecks(arr); } catch(_){}
     });
 
     // Live-update chip labels when editing names in bottom panel
