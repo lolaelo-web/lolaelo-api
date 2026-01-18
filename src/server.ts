@@ -2795,7 +2795,7 @@ await tryMount("./routes/extranetPms.js", "/extranet/pms");
 // await tryMount("./routes/extranetUisMock.js", "/extranet/pms"); // optional mock route (disabled)
 await tryMount("./routes/extranetProperty.js", "/extranet/property");
 // DISABLED: catalog router mount (routes/catalog.js). Catalog is served by explicit /catalog/* routes in server.ts.
-// await tryMount("./routes/catalog.js", "/catalog");
+await tryMount("./routes/catalog.js", "/catalog");
 
 /* ANCHOR: MOCK_UIS_SEARCH (Siargao) */
 app.get("/mock/uis/search", async (req: Request, res: Response) => {
