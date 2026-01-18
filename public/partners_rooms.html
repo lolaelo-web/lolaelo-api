@@ -2615,33 +2615,31 @@
       const host    = document.getElementById('rateplan-checks');
       if (!hostRow || !host) return;
 
-      // --- optional label + code→id helpers (generic, no Custom 1/2 handling)
-      let customLabels = {};
-      let codeToId     = {};
-      try { customLabels = JSON.parse(localStorage.getItem('rateplan.customLabels') || '{}') || {}; } catch(_) {}
-      try { codeToId     = JSON.parse(localStorage.getItem('rateplan.codeToId')     || '{}') || {}; } catch(_) {}
-
-      // Normalize API plans
+      // Normalize API plans by CODE (codes are required for real chips)
       const byCode = new Map();
       (Array.isArray(plans) ? plans : []).forEach(p => {
-        if (p && p.id != null){
-          const code = String(p.code || '').toUpperCase();
-          const name = String(p.name || p.code || `Plan ${p.id}`).replace(/\s*\(\d+\)\s*$/,'');
-          byCode.set(code || `ID:${p.id}`, {
-            id: Number(p.id),
-            code,
-            name,
-            active: (p.active === true),                 // preserve DB truth
-            isDefault: !!p.isDefault,
-            kind: String(p.kind || '').toUpperCase(),
-            value: (p.value == null ? 0 : p.value),      // keep as-is (string ok)
-            placeholder: false
-          });
-        }
+        if (!p || p.id == null) return;
+        const code = String(p.code || '').toUpperCase();
+        if (!code) return; // no-code plans cannot be mapped to STD/NRF/BRKF
+        const name = String(p.name || p.code || `Plan ${p.id}`).replace(/\s*\(\d+\)\s*$/,'');
+        byCode.set(code, {
+          id: Number(p.id),
+          code,
+          name,
+          active: (p.active === true),
+          isDefault: !!p.isDefault,
+          placeholder: false
+        });
       });
 
-      // Ensure Standard exists and is named consistently
-      // IMPORTANT: do not hardcode id=1 (DB ids differ per room)
+      // Always show these 3 options (consistent UX)
+      const wanted = [
+        { code:'STD',  name:'Standard' },
+        { code:'BRKF', name:'Breakfast' },
+        { code:'NRF',  name:'Non-Refundable' }
+      ];
+
+      // Ensure Standard exists (fallback placeholder if missing)
       if (!byCode.has('STD')) {
         const fallbackStdId = Number(window.currentRatePlanId || 1);
         byCode.set('STD', { id: fallbackStdId, code:'STD', name:'Standard', placeholder:true, active:true });
@@ -2649,137 +2647,101 @@
         const std = byCode.get('STD'); if (std) std.name = 'Standard';
       }
 
-      // Order chips: Standard, Breakfast, Non-Refundable, Custom1, Custom2, then others
-      const rank = (p) => {
-        const c = p.code || '';
-        if (c === 'STD')  return 0;
-        if (c === 'BRKF') return 1;
-        if (c === 'NRF')  return 2;
-        return 3;
-      };
-      const list = [...byCode.values()].sort((a,b)=>{
-        const ra=rank(a), rb=rank(b);
-        if (ra!==rb) return ra-rb;
-        const ai=Number(a.id), bi=Number(b.id);
-        if (Number.isFinite(ai)&&Number.isFinite(bi)) return ai-bi;
-        return String(a.code).localeCompare(String(b.code));
-      });
+      // Add placeholders for missing plans
+      if (!byCode.has('BRKF')) byCode.set('BRKF', { id: -101, code:'BRKF', name:'Breakfast', placeholder:true, active:false });
+      if (!byCode.has('NRF'))  byCode.set('NRF',  { id: -102, code:'NRF',  name:'Non-Refundable', placeholder:true, active:false });
 
-      // Render chips
+      // Render in fixed order
+      const list = wanted.map(w => byCode.get(w.code)).filter(Boolean);
+
       host.innerHTML = '';
       list.forEach(p => {
-        const numericId = Number.isFinite(Number(p.id)) && !p.placeholder;
+        const code = String(p.code || '').toUpperCase();
+        const numericId = Number.isFinite(Number(p.id)) && !p.placeholder && Number(p.id) > 0;
 
-      const label = document.createElement('label');
-      label.className = 'chip';
-      label.style.marginRight = '4px';
+        const label = document.createElement('label');
+        label.className = 'chip';
+        label.style.marginRight = '4px';
+        label.setAttribute('data-plan-id', String(p.id));
+        label.setAttribute('data-plan-code', code);
 
-      // IMPORTANT: many downstream helpers rely on chip[data-plan-id]
-      label.setAttribute('data-plan-id', String(p.id));
-      label.setAttribute('data-plan-code', String(p.code || '').toUpperCase());
+        const box = document.createElement('input');
+        box.type = 'checkbox';
+        box.setAttribute('data-plan-id', String(p.id));
 
-      if (!numericId){
-        label.style.opacity = '0.65';
-        label.title = 'Save plan rules to activate this plan';
-      }
+        // STD always on
+        if (code === 'STD') box.checked = true;
+        else box.checked = (numericId && p.active === true);
 
-      const box = document.createElement('input');
-      box.type = 'checkbox';
-      box.setAttribute('data-plan-id', String(p.id));
-      box.checked = (String(p.code || '').toUpperCase() === 'STD') ? true : (p.active === true);
+        // Disable placeholders; keep STD protected
+        if (!numericId || code === 'STD') {
+          box.disabled = true;
+          label.style.opacity = (code === 'STD') ? '1' : '0.55';
+          if (code !== 'STD') label.title = 'This plan is not created for your property yet.';
+        }
 
-      // Keep chip "active" class aligned with checkbox (your other logic uses .active)
-      label.classList.toggle('active', !!box.checked);
+        label.classList.toggle('active', !!box.checked);
 
-      const txt = document.createElement('span');
-      txt.textContent = p.name;
+        const txt = document.createElement('span');
+        txt.textContent = p.name || code;
 
-      label.appendChild(box);
-      label.appendChild(txt);
-      host.appendChild(label);
+        label.appendChild(box);
+        label.appendChild(txt);
+        host.appendChild(label);
 
-      if (numericId){
-        box.addEventListener('change', async () => {
-          label.classList.toggle('active', !!box.checked);
+        // Persist toggle only for real non-STD plans
+        if (numericId && code !== 'STD') {
+          box.disabled = false;
+          label.style.opacity = '1';
+          label.title = '';
 
-          const code = String(p.code || '').toUpperCase();
+          box.addEventListener('change', async () => {
+            label.classList.toggle('active', !!box.checked);
+            const nextActive = box.checked ? true : false;
 
-          // STD is always on
-          if (code === 'STD') { box.checked = true; return; }
+            try {
+              const rid = Number(window.currentRoomTypeId || 0);
+              const fetcher = (typeof window.authFetch === 'function') ? window.authFetch : fetch;
+              const pid = getRatePlanPropertyId();
 
-          // Optimistic UI, but revert on failure
-          const nextActive = box.checked ? true : false;
+              const url =
+                `/extranet/property/rateplans?propertyId=${encodeURIComponent(String(pid))}` +
+                `&roomTypeId=${encodeURIComponent(String(rid))}`;
 
-          // Keep at least one checked (STD guarantees that)
-          if (!nextActive) {
-            // allow turning off BRKF/NRF etc, STD still on
-          }
+              const r = await fetcher(url, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                cache: 'no-store',
+                credentials: 'include',
+                body: JSON.stringify({ plans: [{ code, active: nextActive }] })
+              });
 
-          // Persist to backend (DB source of truth)
-          try {
-          const rid = Number(window.currentRoomTypeId || 0);
-          const fetcher = (typeof window.authFetch === 'function') ? window.authFetch : fetch;
+              if (!r.ok) throw new Error(`HTTP ${r.status}`);
 
-          const pid = getRatePlanPropertyId();
+              let payload = null;
+              try { payload = await r.json(); } catch(_) { payload = null; }
+              const latest = Array.isArray(payload) ? payload : (payload && Array.isArray(payload.plans) ? payload.plans : null);
 
-          const url =
-            `/extranet/property/rateplans?propertyId=${encodeURIComponent(String(pid))}` +
-            `&roomTypeId=${encodeURIComponent(String(rid))}`;
+              try { window.__cachedPlansByRoom?.delete(rid); } catch(_){}
 
-            const r = await fetcher(url, {
-              method: 'POST',
-              headers: { 'Content-Type': 'application/json' },
-              cache: 'no-store',
-              credentials: 'include',
-              body: JSON.stringify({
-                plans: [{ code, active: nextActive }]
-              })
-            });
-
-            if (!r.ok) throw new Error(`HTTP ${r.status}`);
-
-            // Parse POST response exactly once
-            let payload = null;
-            try { payload = await r.json(); } catch(_) { payload = null; }
-
-            const latest = Array.isArray(payload) ? payload : (payload && Array.isArray(payload.plans) ? payload.plans : null);
-            // Bust cached plans for this room so any fallback fetch is fresh
-            try { window.__cachedPlansByRoom?.delete(rid); } catch(_){}
-            if (latest) {
-              try { window.populateRatePlanChecks(latest); } catch(_) {}
-            } else {
-              // fallback: re-fetch if needed
-              if (typeof window.loadRatePlansForRoom === 'function' && Number.isFinite(rid) && rid > 0) {
+              if (latest) {
+                try { window.populateRatePlanChecks(latest); } catch(_) {}
+              } else if (typeof window.loadRatePlansForRoom === 'function' && Number.isFinite(rid) && rid > 0) {
                 const fetched = await window.loadRatePlansForRoom(rid);
                 try { window.populateRatePlanChecks(fetched); } catch(_) {}
               }
+            } catch (e) {
+              console.warn('[rateplans] persist active failed, reverting', e);
+              box.checked = !nextActive;
+              label.classList.toggle('active', !!box.checked);
+              alert('Failed to save rate plan change. Please retry.');
             }
-
-          } catch (e) {
-            console.warn('[rateplans] persist active failed, reverting', e);
-            // revert checkbox
-            box.checked = !nextActive;
-            alert('Failed to save rate plan change. Please retry.');
-          }
-        });
+          });
         }
       });
 
       // Ensure row is visible
       hostRow.style.display = 'flex';
-
-      // Persist primary on first paint so refresh keeps the same plan
-      try {
-        const first = Array.isArray(selected) ? selected[0] : (window.getSelectedRatePlanIds?.()[0]);
-        if (Number.isFinite(first)) {
-          localStorage.setItem('rateplan.lastPlanId', String(first));
-          window.currentRatePlanId = first;
-          try { updateURLFromState?.(); } catch(_) {}
-        }
-      } catch(_) {}
-
-      // Optional: announce that chips rendered (used by some observers)
-      try { document.dispatchEvent(new CustomEvent('plans:rendered', { detail:{ plans: list } })); } catch(_){}
     };
   } /* end RATEPLAN_CHIPS_RENDER */
 
