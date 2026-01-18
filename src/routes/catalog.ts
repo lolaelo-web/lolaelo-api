@@ -14,6 +14,32 @@ import { Client as PgClient } from "pg";
 
 const router = Router();
 
+// ---- Catalog: suspension + cache control ------------------------------------
+async function isPartnerSuspended(partnerId: number): Promise<boolean> {
+  if (!Number.isFinite(partnerId)) return true;
+
+  const cs = process.env.DATABASE_URL || "";
+  if (!cs) return false; // fail-open
+
+  const client = new PgClient({
+    connectionString: cs,
+    ssl: cs.includes("sslmode=require") || cs.includes("render.com") ? { rejectUnauthorized: false } : undefined,
+  });
+
+  try {
+    await client.connect();
+    const q = await client.query(
+      `SELECT "isSuspended" FROM extranet."Partner" WHERE id = $1 LIMIT 1`,
+      [partnerId]
+    );
+    return q.rowCount ? !!q.rows[0].isSuspended : false;
+  } catch {
+    return false; // fail-open
+  } finally {
+    try { await client.end(); } catch {}
+  }
+}
+
 /** Helper: map PropertyProfile.id -> Partner.id (prefer extranet, no more public as an option) */
 async function mapProfileToPartner(ids: number[]): Promise<Map<number, number>> {
   const out = new Map<number, number>();
@@ -60,8 +86,6 @@ async function mapProfileToPartner(ids: number[]): Promise<Map<number, number>> 
  *  - city?: string (e.g., SIARGAO). Matched against cityCode OR city (case-insensitive).
  */
 router.get("/search", async (req: Request, res: Response) => {
-  req.app?.get("logger")?.info?.({ q: req.query }, "catalog.search invoked");
-  console.log("[catalog] search invoked", req.query);
 
   try {
     // ANCHOR: NO_STORE_HEADER
@@ -98,6 +122,24 @@ router.get("/search", async (req: Request, res: Response) => {
     }
 
     const props: any[] = Array.isArray(list?.properties) ? list.properties : [];
+    // ---- 1c) Suspension filter (Partner.id) --------------------------------
+    {
+      const kept: any[] = [];
+      for (const p of props) {
+        const pid = Number((p as any)?.propertyId);
+        if (!Number.isFinite(pid)) continue;
+
+        // If suspended, remove from catalog search
+        const suspended = await isPartnerSuspended(pid);
+        if (suspended) continue;
+
+        kept.push(p);
+      }
+
+      // mutate in place to preserve downstream logic using `props`
+      props.splice(0, props.length, ...kept);
+    }
+
     for (const p of props) {
       try {
         (p as any)._baseSource = _baseSource;
@@ -219,7 +261,6 @@ router.get("/search", async (req: Request, res: Response) => {
       // ANCHOR: MERGE_DB_PROFILES_END
     }
     // --- Photos: pull partner-uploaded images (cover first) ----------------------
-    console.log("[catalog.search][photos] ENTER block");
     try {
       const pidList = props
         .map((p: any) => Number(p?.propertyId))
@@ -232,7 +273,6 @@ router.get("/search", async (req: Request, res: Response) => {
           ssl: wantsSSL ? { rejectUnauthorized: false } : undefined,
         });
         await pgp.connect();
-        console.log("[catalog.search][photos] pg client connected");
 
         const { rows: ph } = await pgp.query(
           `
@@ -253,9 +293,7 @@ router.get("/search", async (req: Request, res: Response) => {
         );
 
         // ---- diagnostics
-        console.log("[catalog.search][photos] fetched rows:", Array.isArray(ph) ? ph.length : "n/a");
         const samplePh = Array.isArray(ph) && ph.length ? ph.slice(0, 3) : [];
-        console.log("[catalog.search][photos] sample:", samplePh);
 
         // ---- bucket by partner (cover-first order preserved by query)
         const byPid = new Map<number, string[]>();
@@ -266,7 +304,6 @@ router.get("/search", async (req: Request, res: Response) => {
           if (!byPid.has(pid)) byPid.set(pid, []);
           byPid.get(pid)!.push(url);
         }
-        console.log("[catalog.search][photos] byPid keys:", Array.from(byPid.keys()));
 
         // ---- apply to props (only overwrite when we actually have URLs)
         for (const p of props) {
@@ -274,10 +311,8 @@ router.get("/search", async (req: Request, res: Response) => {
           const urls = byPid.get(pid) || [];
           if (urls.length) {
             (p as any).images = urls; // cover first
-            if (pid === 2) console.log("[catalog.search][photos] applied to pid=2:", urls.slice(0, 3));
           }
         }
-        console.log("[catalog.search][photos] EXIT block");
 
         await pgp.end();
 
@@ -670,14 +705,7 @@ router.get("/search", async (req: Request, res: Response) => {
 
     // ---- Final: respond ----------------------------------------------------
     return res.set("Cache-Control", "no-store").json({
-      properties: props,
-      _dbg: {
-        wantsDb,
-        roomsApplied: _roomsApplied,
-        guests: req.query.guests ? Number(req.query.guests) : undefined,
-        citySel: cityParam || undefined,
-        totals: { beforeCity, afterCityPre, afterCity: props.length },
-      },
+      properties: props
     });
   } catch (err: any) {
     const msg = err?.message || String(err);
@@ -714,6 +742,11 @@ router.get("/details", async (req: Request, res: Response) => {
     }
     if (!/^\d{4}-\d{2}-\d{2}$/.test(start) || !/^\d{4}-\d{2}-\d{2}$/.test(end)) {
       return res.status(400).json({ error: "start/end must be YYYY-MM-DD" });
+    }
+
+    // Block suspended partners from public details
+    if (await isPartnerSuspended(propertyId)) {
+      return res.status(404).json({ ok: false, error: "Not found" });
     }
 
     // Base (mock) details

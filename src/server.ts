@@ -2794,7 +2794,8 @@ await tryMount("./routes/extranetRooms.js", "/extranet/property/rooms");
 await tryMount("./routes/extranetPms.js", "/extranet/pms");
 // await tryMount("./routes/extranetUisMock.js", "/extranet/pms"); // optional mock route (disabled)
 await tryMount("./routes/extranetProperty.js", "/extranet/property");
-await tryMount("./routes/catalog.js", "/catalog");
+// DISABLED: catalog router mount (routes/catalog.js). Catalog is served by explicit /catalog/* routes in server.ts.
+// await tryMount("./routes/catalog.js", "/catalog");
 
 /* ANCHOR: MOCK_UIS_SEARCH (Siargao) */
 app.get("/mock/uis/search", async (req: Request, res: Response) => {
@@ -4763,6 +4764,7 @@ async function isPartnerSuspended(partnerId: number): Promise<boolean> {
   }
 }
 
+/* DISABLED: duplicate catalog routes in server.ts (use src/routes/catalog.ts only)
 // ANCHOR:: CATALOG_SEARCH
 // Returns property-level cards (name, city, images, fromPrice, availability summary)
 app.get("/catalog/search", async (req: Request, res: Response) => {
@@ -4896,8 +4898,6 @@ app.get("/catalog/search", async (req: Request, res: Response) => {
   }
 }); // <-- end /catalog/search
 
-
-
 // Details for a single property (projects into CatalogDetails shape)
 app.get("/catalog/details", async (req: Request, res: Response) => {
   const propertyId = Number(req.query.propertyId);
@@ -5003,6 +5003,7 @@ app.get("/catalog/property/:id", async (req: Request, res: Response) => {
     res.status(500).json({ ok: false, error: String(e?.message || e) });
   }
 });
+*/
 
 /**
  * GET /extranet/pms/uis/search?start=YYYY-MM-DD&end=YYYY-MM-DD&guests=2
