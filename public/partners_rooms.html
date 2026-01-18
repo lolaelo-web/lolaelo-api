@@ -5642,8 +5642,16 @@
       const brkf = byCode('BRKF');
       const nrf  = byCode('NRF');
 
-      const stdId = Number(std && std.id);
-      if (!Number.isFinite(stdId) || stdId <= 0) throw new Error('derivePrices: STD plan id missing');
+      // Resolve STD id robustly (do not rely on loadRatePlansForRoom output shape)
+      let stdId = Number(std && (std.id || std.ratePlanId));
+      if (!(Number.isFinite(stdId) && stdId > 0)) {
+        try {
+          const stdChip = document.querySelector('#rateplan-checks .chip[data-plan-code="STD"]');
+          const chipId = Number(stdChip && stdChip.getAttribute('data-plan-id'));
+          if (Number.isFinite(chipId) && chipId > 0) stdId = chipId;
+        } catch(_) {}
+      }
+      if (!(Number.isFinite(stdId) && stdId > 0)) throw new Error('derivePrices: STD plan id missing');
 
       // Pull STD nightly prices from DB for the current window
       const stdUrl =
