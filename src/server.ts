@@ -4871,7 +4871,10 @@ app.get("/catalog/search", async (req: Request, res: Response) => {
     }
 
     // respond
-    res.setHeader("x-lolaelo-catalog-build", "susp-v1");
+    res.setHeader("Cache-Control", "no-store, no-cache, must-revalidate, proxy-revalidate");
+    res.setHeader("Pragma", "no-cache");
+    res.setHeader("Expires", "0");
+
     res.json({
       ok: true,
       _debugBuild: "susp-v1",
@@ -4901,8 +4904,11 @@ app.get("/catalog/details", async (req: Request, res: Response) => {
     return;
   }
 
-  // Block suspended partners from public details
+  // Block suspended partners + disable caching (public details)
   if (await isPartnerSuspended(propertyId)) {
+    res.setHeader("Cache-Control", "no-store, no-cache, must-revalidate, proxy-revalidate");
+    res.setHeader("Pragma", "no-cache");
+    res.setHeader("Expires", "0");
     res.status(404).json({ ok: false, error: "Not found" });
     return;
   }
@@ -4930,6 +4936,10 @@ app.get("/catalog/details", async (req: Request, res: Response) => {
     (payload as any)._detailsRouteRoomId = roomId;
     (payload as any)._detailsRouteRatePlanId = ratePlanId;
 
+    res.setHeader("Cache-Control", "no-store, no-cache, must-revalidate, proxy-revalidate");
+    res.setHeader("Pragma", "no-cache");
+    res.setHeader("Expires", "0");
+
     res.json(payload);
   } catch (e: any) {
     res.status(500).json({ ok: false, error: String(e?.message || e) });
@@ -4945,8 +4955,11 @@ app.get("/catalog/property/:id", async (req: Request, res: Response) => {
       return;
     }
 
-    // Block suspended partners from public property endpoint
+    // Block suspended partners + disable caching (public property endpoint)
     if (await isPartnerSuspended(id)) {
+      res.setHeader("Cache-Control", "no-store, no-cache, must-revalidate, proxy-revalidate");
+      res.setHeader("Pragma", "no-cache");
+      res.setHeader("Expires", "0");
       res.status(404).json({ ok: false, error: "Not found" });
       return;
     }
@@ -4967,6 +4980,10 @@ app.get("/catalog/property/:id", async (req: Request, res: Response) => {
       res.status(404).json({ ok: false, error: "Not found" });
       return;
     }
+
+    res.setHeader("Cache-Control", "no-store, no-cache, must-revalidate, proxy-revalidate");
+    res.setHeader("Pragma", "no-cache");
+    res.setHeader("Expires", "0");
 
     res.json(payload);
   } catch (e: any) {
