@@ -2332,9 +2332,37 @@
     return plan;
   }
 
+  // Hard rule: calendar tiles ALWAYS bind to STD plan id for the room
+  function getStdPlanIdForRoom(roomId){
+    const rid = Number(roomId || window.currentRoomTypeId);
+
+    // Prefer STD chip id if present
+    try{
+      const stdChip = document.querySelector('#rateplan-checks .chip[data-plan-code="STD"]');
+      const stdId = Number(stdChip && stdChip.getAttribute('data-plan-id'));
+      if (Number.isFinite(stdId) && stdId > 0) return stdId;
+    }catch(_){}
+
+    // Fallback to cached rate plans by room (if available)
+    try{
+      const byRoom = window.__ratePlansByRoom && window.__ratePlansByRoom[String(rid)];
+      if (Array.isArray(byRoom)) {
+        const std = byRoom.find(x => String(x.code || '').toUpperCase() === 'STD');
+        const n = Number(std && std.id);
+        if (Number.isFinite(n) && n > 0) return n;
+      }
+    }catch(_){}
+
+    // Final fallback (legacy)
+    return 1;
+  }
+
   // Build URLs using canonical primary id
   function buildCalendarFetchURLs(roomId, startISO, endISO){
-    const ratePlanId = getCanonicalPrimaryPlanId();
+    const ratePlanId = (typeof getStdPlanIdForRoom === 'function')
+      ? getStdPlanIdForRoom(roomId)
+      : 1;
+
     return {
       roomId,
       invUrl: `/extranet/property/rooms/${roomId}/inventory?start=${startISO}&end=${endISO}`,
@@ -4490,20 +4518,10 @@
     const priceFixed = parseFloat(raw).toFixed(2);
     if (priceEl){ priceEl.value = priceFixed; priceEl.classList.remove("error"); }
 
-    // Resolve primary plan for the CURRENT ROOM:
-    // 1) Prefer the calendar's currentRatePlanId (what renderCalendar actually uses)
-    // 2) Then room-scoped selection
-    // 3) Then legacy/global → STD(1)
-    let ratePlanId;
-    if (Number.isFinite(Number(window.currentRatePlanId))) {
-      ratePlanId = Number(window.currentRatePlanId);
-    } else if (typeof getRoomPlanSelection === 'function') {
-      ratePlanId = (getRoomPlanSelection(currentRoomTypeId)[0] || 1);
-    } else if (typeof getCanonicalPrimaryPlanId === 'function') {
-      ratePlanId = getCanonicalPrimaryPlanId();
-    } else {
-      ratePlanId = Number(localStorage.getItem('rateplan.lastPlanId') || 1) || 1;
-    }
+    // Hard rule: bulk price applies to STD only (tiles = STD)
+    let ratePlanId = (typeof getStdPlanIdForRoom === 'function')
+      ? getStdPlanIdForRoom(currentRoomTypeId)
+      : 1;
     ratePlanId = (Number.isFinite(ratePlanId) && ratePlanId > 0) ? ratePlanId : 1;
 
     const start=el("range-start").value, end=el("range-end").value;
@@ -4761,16 +4779,10 @@
 
       // 2) Apply calendar edits if any
       // ANCHOR: SAVE_PRIMARY_RATEPLAN
-      // Resolve the primary plan id used for these edits (aligned with calendar)
-      let _primaryPlanId;
-      if (typeof getCanonicalPrimaryPlanId === 'function') {
-        _primaryPlanId = getCanonicalPrimaryPlanId(currentRoomTypeId);
-      } else {
-        const _ids = (typeof window.getSelectedRatePlanIds === 'function')
-          ? window.getSelectedRatePlanIds()
-          : [];
-        _primaryPlanId = _ids.length ? Number(_ids[0]) : Number(window.currentRatePlanId || 1);
-      }
+      // Hard rule: tile edits are STD edits (tiles = STD)
+      let _primaryPlanId = (typeof getStdPlanIdForRoom === 'function')
+        ? getStdPlanIdForRoom(currentRoomTypeId)
+        : 1;
       _primaryPlanId = (Number.isFinite(_primaryPlanId) && _primaryPlanId > 0) ? _primaryPlanId : 1;
 
       // Keep legacy global in sync for other code paths
@@ -5021,7 +5033,7 @@
       window.wireRatePlanSelector = local;
     }
   })();
-  
+
   /* ANCHOR: SELECTED_IDS_HELPER (shim-safe) */
   (function(){
     // Always return a stable, non-empty array of numeric plan ids
