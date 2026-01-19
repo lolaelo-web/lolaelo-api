@@ -4698,48 +4698,12 @@
   // Save (grid edits)
   el("save").addEventListener("click", async ()=>{
     const hasRoomEdits = pendingRoomUpdates.size > 0;
-      // ANCHOR: BASEPRICE_OVERWRITE_APPLY
-      if (window.__pendingBasePriceOverwrite) {
-        for (const [ridStr, cfg] of Object.entries(window.__pendingBasePriceOverwrite)) {
-          const rid = Number(ridStr);
-          if (!Number.isFinite(rid) || !cfg) continue;
-
-          const start = String(cfg.start || "");
-          const end   = String(cfg.end   || "");
-          const priceFixed = String(cfg.basePrice || "").trim();
-
-          if (!start || !end || !priceFixed) continue;
-
-          // Resolve the Standard plan id for this room, then bulk write prices for the visible window
-          let stdPlanId = null;
-          try {
-            const plans = await fetchRatePlansSafe(rid);
-            const std = (Array.isArray(plans) ? plans : []).find(p => String(p.code || '').toUpperCase() === 'STD');
-            const n = Number(std && std.id);
-            stdPlanId = Number.isFinite(n) ? n : null;
-          } catch (_) {}
-          if (!Number.isFinite(stdPlanId)) stdPlanId = Number(window.currentRatePlanId || 1) || 1;
-
-          // Build date list for current window
-          const ONE_DAY = 86400000;
-          const dates = [];
-          {
-            const s = new Date(start + "T00:00:00Z");
-            const e = new Date(end   + "T00:00:00Z");
-            for (let d = new Date(s); d <= e; d = new Date(d.getTime() + ONE_DAY)) dates.push(iso(d));
-          }
-
-          const nPrice = Number(priceFixed);
-          const items = dates.map(d => ({ date: d, price: Math.round(nPrice * 100) / 100, ratePlanId: stdPlanId }));
-
-          const prcUrl = `/extranet/property/rooms/${rid}/prices/bulk`;
-          const r = await authFetch(prcUrl, { method: "POST", body: JSON.stringify({ items }) });
-          if (!r.ok) throw new Error(`Base price overwrite failed for room ${rid} (${r.status})`);
-        }
-
-        // Clear staged overwrites once applied
-        window.__pendingBasePriceOverwrite = {};
-      }
+    // ANCHOR: BASEPRICE_OVERWRITE_APPLY
+    // HARD RULE: BasePrice is seed-only. Never overwrite STD day-tile prices.
+    // If a basePrice change happens, seeding on GET will fill missing days only.
+    if (window.__pendingBasePriceOverwrite) {
+      window.__pendingBasePriceOverwrite = {};
+    }
 
     const hasGridEdits = dirty.size > 0;
     const invalidCount = document.querySelectorAll('.chip input.error').length;
