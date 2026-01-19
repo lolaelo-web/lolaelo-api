@@ -834,14 +834,48 @@ r.post("/:id/prices/bulk", async (req, res) => {
     );
     const basePrice = normalizePrice(baseRow.rows?.[0]?.basePrice ?? 0);
 
-    // Collect unique dates in this payload
+    // 2.5) Date guardrail: only allow writes within rolling window
+    // Allow from (today - 2 days) through (today + 183 days)
+    function ymdUTC(d: Date): string {
+      const y = d.getUTCFullYear();
+      const m = String(d.getUTCMonth() + 1).padStart(2, "0");
+      const day = String(d.getUTCDate()).padStart(2, "0");
+      return `${y}-${m}-${day}`;
+    }
+
+    function addDaysUTC(d: Date, days: number): Date {
+      const x = new Date(Date.UTC(d.getUTCFullYear(), d.getUTCMonth(), d.getUTCDate()));
+      x.setUTCDate(x.getUTCDate() + days);
+      return x;
+    }
+
+    // Collect unique dates in this payload (YYYY-MM-DD)
     const dates = Array.from(
       new Set(
         items
           .map((x: any) => String(x?.date || ""))
+          .map((d: string) => d.slice(0, 10))
           .filter((d: string) => !!parseDate(d))
       )
     );
+
+    const now = new Date();
+    const minAllowed = ymdUTC(addDaysUTC(now, -2));
+    const maxAllowed = ymdUTC(addDaysUTC(now, 183)); // inclusive upper bound day
+
+    for (const d of dates) {
+      // compare YYYY-MM-DD strings safely lexicographically
+      if (d < minAllowed || d > maxAllowed) {
+        await client.query("ROLLBACK");
+        return res.status(400).json({
+          error: "date out of allowed write window",
+          date: d,
+          minAllowed,
+          maxAllowed,
+          rule: "Writes allowed from today-2 through today+183 days",
+        });
+      }
+    }
 
     // 3) Backend seeding: if writing any non-STD plan for these dates, ensure STD rows exist
     const hasNonStdWrite =

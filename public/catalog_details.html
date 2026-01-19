@@ -3769,62 +3769,6 @@
           return Number.isFinite(v) ? Math.max(0, v) : 0;
         }
 
-        // local helpers
-        function getSelectedPlanIds(){
-          try { const a = JSON.parse(localStorage.getItem('rateplan.selectedIds')||'[]'); return Array.isArray(a)?a.map(Number).filter(Number.isFinite):[]; }
-          catch { return []; }
-        }
-        function getCustomLabels(){
-          try { return JSON.parse(localStorage.getItem('rateplan.customLabels')||'{}')||{}; }
-          catch { return {}; }
-        }
-        function friendlyPlanName(id){
-          if (Number(id) === 1) return 'Standard';
-          const labels = getCustomLabels();
-          return labels.CUS1 || labels.CUS2 || `Plan ${Number(id)}`;
-        }
-        function derivePlansForDisplay(){
-          // 1) Try localStorage (set by partners_rooms.html)
-          let ids = [];
-          try {
-            const a = JSON.parse(localStorage.getItem('rateplan.selectedIds') || '[]');
-            if (Array.isArray(a)) ids = a.map(Number).filter(Number.isFinite);
-          } catch {}
-
-          // 2) If empty, fall back to URL (?plans=1,2,6 or ?plan=1)
-          if (!ids.length) {
-            try {
-              const u = new URL(location.href);
-              const csv = (u.searchParams.get('plans') || '').trim();
-              if (csv) {
-                ids = csv.split(',').map(s => Number(s.trim())).filter(Number.isFinite);
-              } else {
-                const p = Number(u.searchParams.get('ratePlanId') || u.searchParams.get('plan'));
-                if (Number.isFinite(p)) ids = [p];
-              }
-            } catch {}
-          }
-
-          // 3) Default to Standard if still empty
-          if (!ids.length) ids = [1];
-
-          // 4) Build display objects with friendly names
-          let labels = {};
-          try { labels = JSON.parse(localStorage.getItem('rateplan.customLabels') || '{}') || {}; } catch {}
-          const items = ids.map(id => ({
-            id,
-            name: (id === 1) ? 'Standard'
-                : (labels.CUS1 || labels.CUS2 || `Plan ${id}`)
-          }));
-
-          // 5) Ensure Standard is present when nothing else included
-          if (!items.some(p => p.id === 1)) items.unshift({ id:1, name:'Standard' });
-
-          // 6) Dedupe by id, preserving order
-          const seen = new Set();
-          return items.filter(p => (seen.has(p.id) ? false : (seen.add(p.id), true)));
-        }
-
         const payload = window.__detailsPayload || {};
         const rooms = Array.isArray(payload.rooms) ? payload.rooms : [];
 
@@ -3959,7 +3903,6 @@
               if (!d) return NaN;
               if ("price" in d) return Number(d.price);
               if ("amount" in d) return Number(d.amount);
-              if ("basePrice" in d) return Number(d.basePrice);
               return NaN;
             })
             .filter(Number.isFinite);
@@ -4220,34 +4163,14 @@
               const name = labelFor(p);
               const desc = describePlan(p);
 
-              // Base nightly price should come from Standard, then apply rule per plan (kind/value)
-              const stdId = (() => {
-                try {
-                  if (String(p.code || '').toUpperCase() === 'STD') return Number(p.id);
-                  const byRoom = window.__ratePlansByRoom && window.__ratePlansByRoom[String(roomId)];
-                  if (Array.isArray(byRoom)) {
-                    const std = byRoom.find(x => String(x.code || '').toUpperCase() === 'STD');
-                    const n = Number(std && std.id);
-                    if (Number.isFinite(n)) return n;
-                  }
-                } catch(_) {}
-                return Number(p.id); // fallback
-              })();
+              // DB-canonical nightly price for this plan id (no math, no fallbacks)
+              const raw = getPlanPriceForRoom(roomId, Number(p.id));
+              const hasPrice = raw != null && Number.isFinite(Number(raw));
 
-              // Base = Standard nightly, fallback to this plan's nightly if STD missing
-              if (!Number.isFinite(Number(stdId))) stdId = Number(p.id);
-
-              let baseRaw = getPlanPriceForRoom(roomId, stdId);
-              if (!(baseRaw != null && Number.isFinite(Number(baseRaw)))) {
-                baseRaw = getPlanPriceForRoom(roomId, Number(p.id));
-              }
-
-              const baseOk = baseRaw != null && Number.isFinite(Number(baseRaw));
-              const adjRaw = baseOk ? applyPlanRule(Number(baseRaw), p) : null;
-
-              const hasPrice = adjRaw != null && Number.isFinite(Number(adjRaw));
-              const priceLabel = hasPrice ? money(Number(adjRaw).toFixed(2)) : null;
-              const priceHtml = hasPrice ? `<div class="meta"><strong>${priceLabel}</strong> / night</div>` : '';
+              const priceLabel = hasPrice ? money(Number(raw).toFixed(2)) : null;
+              const priceHtml = hasPrice
+                ? `<div class="meta"><strong>${priceLabel}</strong> / night</div>`
+                : `<div class="meta" style="color:var(--muted)">Price unavailable</div>`;
 
               // current qty (default 1 when maxAvail > 0)
               const key = qpKey(roomId, p.id);
@@ -5583,48 +5506,19 @@
               const pill = document.createElement("div");
               pill.className = "room-modal-plan-pill";
 
-              // Price: base (Standard) + apply plan rule (kind/value)
+              // Price: DB-canonical nightly price for this plan id (no math, no fallbacks)
               let priceHtml = "";
               try {
-                // Resolve plan meta for this id (kind/value)
-                const meta =
-                  (window.__ratePlanMetaById && window.__ratePlanMetaById[String(id)]) ||
-                  null;
+                const raw = getPlanPriceForRoom(roomId, Number(id));
+                const hasPrice = raw != null && Number.isFinite(Number(raw));
 
-                const planObj = meta || { id, code: '', kind: 'NONE', value: 0 };
-
-                // Resolve Standard plan id for this room
-                const stdId = (() => {
-                  try {
-                    const byRoom = window.__ratePlansByRoom && window.__ratePlansByRoom[String(roomId)];
-                    if (Array.isArray(byRoom)) {
-                      const std = byRoom.find(x => String(x.code || '').toUpperCase() === 'STD');
-                      const n = Number(std && std.id);
-                      if (Number.isFinite(n)) return n;
-                    }
-                  } catch(_) {}
-                  return Number(id);
-                })();
-
-                // Base = Standard nightly, fallback to this plan's nightly if STD missing
-                if (!Number.isFinite(Number(stdId))) stdId = Number(id);
-
-                let baseRaw = getPlanPriceForRoom(roomId, stdId);
-                if (!(baseRaw != null && Number.isFinite(Number(baseRaw)))) {
-                  baseRaw = getPlanPriceForRoom(roomId, Number(id));
-                }
-
-                const baseOk = baseRaw != null && Number.isFinite(Number(baseRaw));
-                const adjRaw = baseOk ? applyPlanRule(Number(baseRaw), planObj) : null;
-
-                const hasPrice = adjRaw != null && Number.isFinite(Number(adjRaw));
                 if (hasPrice) {
-                  priceHtml = `<div class="room-modal-plan-pill-price">${money(Number(adjRaw).toFixed(2))} / night</div>`;
+                  priceHtml = `<div class="room-modal-plan-pill-price">${money(Number(raw).toFixed(2))} / night</div>`;
                 } else {
                   priceHtml = `<div class="room-modal-plan-pill-price">Price unavailable</div>`;
                 }
               } catch (err) {
-                console.warn("[room-modal] price calc failed", err);
+                console.warn("[room-modal] price read failed", err);
                 priceHtml = `<div class="room-modal-plan-pill-price">Price unavailable</div>`;
               }
 
