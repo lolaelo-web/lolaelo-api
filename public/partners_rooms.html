@@ -4963,32 +4963,65 @@
     }
   });
 
-    // === GLOBALIZE wireRatePlanSelector (shim-safe) ===
-    (function(){
-      if (typeof window.wireRatePlanSelector !== 'function') {
-        // Prefer an existing local function if it's already defined
-        const local = (typeof wireRatePlanSelector === 'function')
-          ? wireRatePlanSelector
-          : function(ctx){
-              const host = document.getElementById('rateplan-checks');
-              const targetId = Number(ctx?.ratePlanId);
-              if (host && Number.isFinite(targetId)) {
-                const box = host.querySelector(`input[type="checkbox"][data-plan-id="${targetId}"]`);
-                if (box) {
-                  if (!box.checked) {
-                    box.checked = true;
-                    box.dispatchEvent(new Event('change'));
-                  }
-                  window.currentRatePlanId = targetId;
-                  return; // only set primary if the chip actually exists
+  // === GLOBALIZE wireRatePlanSelector (shim-safe) ===
+  (function(){
+    if (typeof window.wireRatePlanSelector !== 'function') {
+      // Prefer an existing local function if it's already defined
+      const local = (typeof wireRatePlanSelector === 'function')
+        ? wireRatePlanSelector
+        : function(ctx){
+            // IMPORTANT:
+            // This function is ONLY for "primary plan selection" (what plan drives the calendar/pricing),
+            // NOT for enabling/disabling plans in the DB.
+            //
+            // Do NOT toggle checkbox.checked here, because checkbox state is DB-truth (active true/false).
+            // Toggling it causes the "snap back to checked" bug after hard refresh.
+
+            const targetId = Number(ctx && ctx.ratePlanId);
+
+            if (!Number.isFinite(targetId)) return;
+
+            // Set primary plan id in memory for downstream code paths that read it.
+            window.currentRatePlanId = targetId;
+
+            // If we have a roomType context, persist selection (selection != enablement).
+            // This preserves the ability to reload the user's last-selected plan without
+            // forcing the DB enablement checkbox state.
+            try {
+              const rid =
+                Number(ctx && ctx.roomTypeId) ||
+                Number(window.currentRoomTypeId) ||
+                Number(window.currentRoomId);
+
+              if (Number.isFinite(rid) && typeof window.saveRoomPlanSelection === 'function') {
+                // Keep existing selected ids (if any) and put targetId first.
+                const existing = (typeof window.getRoomPlanSelection === 'function')
+                  ? (window.getRoomPlanSelection(rid) || [])
+                  : [];
+
+                const out = [];
+                out.push(targetId);
+                for (let i = 0; i < existing.length; i++){
+                  const v = Number(existing[i]);
+                  if (Number.isFinite(v) && v !== targetId) out.push(v);
                 }
-                // Target plan id not present among chips — ignore (no-op)
+
+                window.saveRoomPlanSelection(rid, out);
               }
-              // No chips yet or invalid id — no-op; sanitizers will pick a valid primary
-            };
-        window.wireRatePlanSelector = local;
-      }
-    })();
+            } catch (_) {}
+
+            // Notify any listeners that primary plan context changed (without touching chips).
+            try {
+              window.dispatchEvent(new CustomEvent('rateplans:changed', {
+                detail: { source: 'wireRatePlanSelector', primaryRatePlanId: targetId }
+              }));
+            } catch (_) {}
+          };
+
+      window.wireRatePlanSelector = local;
+    }
+  })();
+  
   /* ANCHOR: SELECTED_IDS_HELPER (shim-safe) */
   (function(){
     // Always return a stable, non-empty array of numeric plan ids
