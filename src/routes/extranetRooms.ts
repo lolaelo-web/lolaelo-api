@@ -618,6 +618,7 @@ r.post("/:id/inventory/bulk", async (req, res) => {
 
 /** GET /:id/prices?start=YYYY-MM-DD&end=YYYY-MM-DD[&ratePlanId=INT] */
 r.get("/:id/prices", async (req, res) => {
+  const client = await pool.connect();
   try {
     const roomId = Number(req.params.id);
     const start  = String(req.query.start || "");
@@ -634,10 +635,85 @@ r.get("/:id/prices", async (req, res) => {
     const planQ  = (req.query as any).ratePlanId ?? (req.query as any).planId;
     const planId = planQ != null && String(planQ) !== "" ? Number(planQ) : NaN;
 
+    // 1) Resolve room partnerId + basePrice (+ active, for safety)
+    const roomRow = await client.query(
+      `SELECT "partnerId","basePrice","active"
+         FROM ${T.rooms}
+        WHERE "id" = $1
+        LIMIT 1`,
+      [roomId]
+    );
+
+    const partnerId = Number(roomRow.rows?.[0]?.partnerId);
+    const baseRaw = roomRow.rows?.[0]?.basePrice;
+    const basePrice = Number(String(baseRaw ?? "").replace(/[^0-9.]/g, ""));
+    const isActive = roomRow.rows?.[0]?.active === true;
+
+    if (!Number.isFinite(partnerId) || partnerId <= 0) {
+      return res.status(400).json({ error: "invalid roomTypeId (no partner)" });
+    }
+
+    // Only seed if room is active and basePrice is valid (>0)
+    const canSeed = isActive && Number.isFinite(basePrice) && basePrice > 0;
+
+    // 2) Resolve this room's STD plan id
+    let stdPlanId: number | null = null;
+    if (canSeed) {
+      const stdRow = await client.query(
+        `SELECT "id"
+           FROM ${T.ratePlans}
+          WHERE "partnerId" = $1
+            AND "roomTypeId" = $2
+            AND (UPPER(COALESCE("code",'')) = 'STD' OR LOWER(COALESCE("name",'')) LIKE 'standard%')
+          ORDER BY "id" ASC
+          LIMIT 1`,
+        [partnerId, roomId]
+      );
+      stdPlanId = stdRow.rows?.[0]?.id ?? null;
+      stdPlanId = Number.isFinite(Number(stdPlanId)) ? Number(stdPlanId) : null;
+    }
+
+    // 3) Seed missing STD rows for the requested window when:
+    // - caller requested STD explicitly, or
+    // - caller requested no plan filter (calendar sometimes does this)
+    const shouldSeedStd =
+      canSeed &&
+      stdPlanId != null &&
+      (
+        !Number.isFinite(planId) || Number(planId) === Number(stdPlanId)
+      );
+
+    if (shouldSeedStd && stdPlanId) {
+      // Insert missing STD rows from basePrice for each date in [start, end]
+      await client.query(
+        `
+        INSERT INTO ${T.prices}
+          ("partnerId","roomTypeId","date","ratePlanId","price","createdAt","updatedAt")
+        SELECT
+          $1::int,
+          $2::int,
+          gs::date,
+          $3::int,
+          $4::numeric,
+          NOW(),
+          NOW()
+        FROM generate_series($5::date, $6::date, INTERVAL '1 day') gs
+        LEFT JOIN ${T.prices} p
+          ON p."roomTypeId" = $2
+         AND p."ratePlanId" = $3
+         AND p."date" = gs::date
+        WHERE p."id" IS NULL
+        ON CONFLICT ("roomTypeId","date","ratePlanId")
+          DO NOTHING
+        `,
+        [partnerId, roomId, stdPlanId, basePrice, start, end]
+      );
+    }
+
+    // 4) Return prices (unchanged behavior)
     let rows;
     if (Number.isFinite(planId)) {
-      // Filter by a specific plan
-      const r = await pool.query(
+      const r2 = await client.query(
         `SELECT
            (p."date")::date     AS "date",
            p."ratePlanId"       AS "ratePlanId",
@@ -650,10 +726,9 @@ r.get("/:id/prices", async (req, res) => {
          ORDER BY p."date" ASC`,
         [roomId, start, end, planId]
       );
-      rows = r.rows;
+      rows = r2.rows;
     } else {
-      // No plan filter → return all plans in the range
-      const r = await pool.query(
+      const r2 = await client.query(
         `SELECT
            (p."date")::date     AS "date",
            p."ratePlanId"       AS "ratePlanId",
@@ -665,13 +740,15 @@ r.get("/:id/prices", async (req, res) => {
          ORDER BY p."date" ASC`,
         [roomId, start, end]
       );
-      rows = r.rows;
+      rows = r2.rows;
     }
 
     return res.json(rows);
   } catch (e) {
     console.error("[prices:get] db error", e);
     return res.status(500).json({ error: "Prices fetch failed" });
+  } finally {
+    client.release();
   }
 });
 
@@ -697,46 +774,116 @@ r.post("/:id/prices/bulk", async (req, res) => {
 
     await client.query("BEGIN");
 
-    // Resolve a usable rate plan:
-    // - prefer the client-sent ratePlanId if it exists for this room
-    // - else try a 'Standard' plan for this partner/room
-    // - else create a 'Standard' plan and use it
-    let requestedPlanId = Number(items?.[0]?.ratePlanId ?? 1);
-    if (!Number.isFinite(requestedPlanId) || requestedPlanId <= 0) {
-      requestedPlanId = 1;
+    // Helper: normalize numeric price
+    function normalizePrice(v: any): number {
+      const n = Number(String(v).replace(/[^0-9.]/g, ""));
+      return Number.isFinite(n) && n >= 0 ? n : 0;
     }
 
-    let planIdRow = await client.query(
-      `SELECT "id"
-         FROM extranet."RatePlan"
-        WHERE "partnerId" = $1
-          AND "roomTypeId" = $2
-          AND ("id" = $3 OR LOWER("name") LIKE 'standard%')
-        ORDER BY "id" ASC
-        LIMIT 1`,
-      [partnerId, roomId, requestedPlanId]
+    // 1) Validate all incoming ratePlanIds belong to this partner + roomType
+    const planIds = Array.from(
+      new Set(
+        items
+          .map((x: any) => Number(x?.ratePlanId))
+          .filter((x: any) => Number.isFinite(x) && x > 0)
+      )
     );
 
-    let finalPlanId: number | null = planIdRow.rows?.[0]?.id ?? null;
-
-    if (!finalPlanId) {
-      const newPlan = await client.query(
-        `INSERT INTO extranet."RatePlan"
-           ("partnerId","roomTypeId","name","createdAt","updatedAt")
-         VALUES ($1,$2,$3,NOW(),NOW())
-         RETURNING "id"`,
-        [partnerId, roomId, "Standard"]
-      );
-      finalPlanId = Number(newPlan.rows[0].id);
+    if (planIds.length === 0) {
+      await client.query("ROLLBACK");
+      return res.status(400).json({ error: "items must include a valid ratePlanId" });
     }
 
+    const planCheck = await client.query(
+      `SELECT "id","code","name"
+         FROM ${T.ratePlans}
+        WHERE "partnerId" = $1
+          AND "roomTypeId" = $2
+          AND "id" = ANY($3::int[])`,
+      [partnerId, roomId, planIds]
+    );
+
+    if (planCheck.rowCount !== planIds.length) {
+      const found = new Set((planCheck.rows || []).map((r: any) => Number(r.id)));
+      const missing = planIds.filter((id: number) => !found.has(id));
+      await client.query("ROLLBACK");
+      return res.status(400).json({
+        error: "invalid ratePlanId for this roomType",
+        missingRatePlanIds: missing,
+      });
+    }
+
+    // 2) Identify the room's STD plan id (by code STD if present, else name starts with Standard)
+    const stdPlanRow = await client.query(
+      `SELECT "id"
+         FROM ${T.ratePlans}
+        WHERE "partnerId" = $1
+          AND "roomTypeId" = $2
+          AND (UPPER(COALESCE("code",'')) = 'STD' OR LOWER(COALESCE("name",'')) LIKE 'standard%')
+        ORDER BY "id" ASC
+        LIMIT 1`,
+      [partnerId, roomId]
+    );
+
+    const stdPlanId: number | null = stdPlanRow.rows?.[0]?.id ?? null;
+
+    // Also fetch basePrice for seeding
+    const baseRow = await client.query(
+      `SELECT "basePrice" FROM ${T.rooms} WHERE "id" = $1`,
+      [roomId]
+    );
+    const basePrice = normalizePrice(baseRow.rows?.[0]?.basePrice ?? 0);
+
+    // Collect unique dates in this payload
+    const dates = Array.from(
+      new Set(
+        items
+          .map((x: any) => String(x?.date || ""))
+          .filter((d: string) => !!parseDate(d))
+      )
+    );
+
+    // 3) Backend seeding: if writing any non-STD plan for these dates, ensure STD rows exist
+    const hasNonStdWrite =
+      stdPlanId != null && planIds.some((id: number) => Number(id) !== Number(stdPlanId));
+
+    if (hasNonStdWrite && stdPlanId) {
+      // Which STD dates are missing?
+      const existingStd = await client.query(
+        `SELECT (p."date")::date AS "date"
+           FROM ${T.prices} p
+          WHERE p."partnerId" = $1
+            AND p."roomTypeId" = $2
+            AND p."ratePlanId" = $3
+            AND p."date" = ANY($4::date[])`,
+        [partnerId, roomId, stdPlanId, dates]
+      );
+
+      const have = new Set((existingStd.rows || []).map((r: any) => String(r.date)));
+      const missingDates = dates.filter((d: string) => !have.has(d));
+
+      for (const d of missingDates) {
+        await client.query(
+          `INSERT INTO ${T.prices}
+             ("partnerId","roomTypeId","date","ratePlanId","price","createdAt","updatedAt")
+           VALUES ($1,$2,$3::date,$4,$5,NOW(),NOW())
+           ON CONFLICT ("roomTypeId","date","ratePlanId")
+             DO UPDATE SET "price" = EXCLUDED."price",
+                           "updatedAt" = NOW()`,
+          [partnerId, roomId, d, stdPlanId, basePrice]
+        );
+      }
+    }
+
+    // 4) Upsert items exactly under their own ratePlanId (no rewriting)
     let upserted = 0;
     for (const it of items) {
       if (!it?.date || !parseDate(it.date)) continue;
 
-      // price: normalize to numeric (two-decimals later in DB as NUMERIC)
-      const priceNum = Number(String(it.price).replace(/[^0-9.]/g, ""));
-      const price = Number.isFinite(priceNum) && priceNum >= 0 ? priceNum : 0;
+      const rpId = Number(it.ratePlanId);
+      if (!Number.isFinite(rpId) || rpId <= 0) continue;
+
+      const price = normalizePrice(it.price);
 
       await client.query(
         `INSERT INTO ${T.prices}
@@ -745,13 +892,13 @@ r.post("/:id/prices/bulk", async (req, res) => {
          ON CONFLICT ("roomTypeId","date","ratePlanId")
            DO UPDATE SET "price" = EXCLUDED."price",
                          "updatedAt" = NOW()`,
-        [partnerId, roomId, it.date, finalPlanId, price]
+        [partnerId, roomId, it.date, rpId, price]
       );
       upserted++;
     }
 
     await client.query("COMMIT");
-    return res.json({ ok: true, upserted, ratePlanId: finalPlanId });
+    return res.json({ ok: true, upserted });
   } catch (e: any) {
     await client.query("ROLLBACK");
     console.error("[prices:bulk] db error", {
