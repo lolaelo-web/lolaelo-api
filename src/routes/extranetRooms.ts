@@ -899,11 +899,10 @@ r.post("/:id/prices/bulk", async (req, res) => {
       for (const d of missingDates) {
         await client.query(
           `INSERT INTO ${T.prices}
-             ("partnerId","roomTypeId","date","ratePlanId","price","createdAt","updatedAt")
-           VALUES ($1,$2,$3::date,$4,$5,NOW(),NOW())
-           ON CONFLICT ("roomTypeId","date","ratePlanId")
-             DO UPDATE SET "price" = EXCLUDED."price",
-                           "updatedAt" = NOW()`,
+            ("partnerId","roomTypeId","date","ratePlanId","price","createdAt","updatedAt")
+          VALUES ($1,$2,$3::date,$4,$5,NOW(),NOW())
+          ON CONFLICT ("roomTypeId","date","ratePlanId")
+            DO NOTHING`,
           [partnerId, roomId, d, stdPlanId, basePrice]
         );
       }
