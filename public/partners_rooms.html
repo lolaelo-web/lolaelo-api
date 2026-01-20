@@ -4740,8 +4740,19 @@
 
     const hasGridEdits = dirty.size > 0;
     const invalidCount = document.querySelectorAll('.chip input.error').length;
-    if (invalidCount > 0){ setStatus(`Fix ${invalidCount} invalid field${invalidCount>1?'s':''} before saving.`,"error"); return; }
-    if (!hasRoomEdits && !hasGridEdits){ setStatus("Nothing to save.","warn"); return; }
+
+    const hasRuleEdits = !!(window.__pendingPlanRules && Object.keys(window.__pendingPlanRules || {}).length);
+    const hasToggleEdits = !!(window.__pendingPlanActives && Object.keys(window.__pendingPlanActives || {}).length);
+
+    if (invalidCount > 0){
+      setStatus(`Fix ${invalidCount} invalid field${invalidCount>1?'s':''} before saving.`,"error");
+      return;
+    }
+
+    if (!hasRoomEdits && !hasGridEdits && !hasRuleEdits && !hasToggleEdits){
+      setStatus("Nothing to save.","warn");
+      return;
+    }
 
     setStatus("Saving…"); disableWhileBusy(true);
     try{
