@@ -5630,157 +5630,173 @@
       }
       return Math.max(0, Math.round(out * 100) / 100);
     }
-
+    
     function refreshSaveEnabled(){
-    if (!btn) return;
+      try {
+        // Canonical save button is the main Save Changes button
+        const saveBtn = el('save') || document.getElementById('save');
+        if (!saveBtn) return;
 
-    const rows = panel.querySelectorAll('.plan-row[data-plan-code]');
+        const rows = panel.querySelectorAll('.plan-row[data-plan-code]');
 
-    let numericInvalid   = false;  // any row has a bad numeric value
-    let anyNumericGiven  = false;  // at least one row has a number filled in
+        let numericInvalid  = false;  // any row has a bad numeric value
+        let anyNumericGiven = false;  // at least one row has a number filled in
 
-    rows.forEach(row => {
-      const code = row.getAttribute('data-plan-code');
-      const cfg  = state[code] || {};
+        rows.forEach(row => {
+          const code = row.getAttribute('data-plan-code');
+          const cfg  = state[code] || {};
 
-      // ---- numeric rules: empty is neutral/valid; if present must be >= 0
-      const val = (cfg && cfg.value !== undefined) ? cfg.value : NaN;
-      const hasNumber = (val !== '' && Number.isFinite(Number(val)));
-      if (hasNumber) {
-        anyNumericGiven = true;
-        if (!(
-          (cfg.sign === '+' || cfg.sign === '-') &&
-          (cfg.unit === '$' || cfg.unit === '%') &&
-          Number(val) >= 0
-        )) {
-          numericInvalid = true;
-        }
-      }
-    });
-
-    // Enable when:
-    // - no invalid numbers, AND
-    // - at least one numeric rule provided
-    const pending = window.__pendingPlanActives || {};
-    const hasToggleChanges = Object.keys(pending).length > 0;
-
-    btn.disabled = !!(numericInvalid || (!anyNumericGiven && !hasToggleChanges));
-  }
-
-    function attachRow(row){
-      const code = String(row.getAttribute('data-plan-code') || '').toUpperCase();
-      if (!code) return;
-
-      const selSign  = row.querySelector('select[data-field="sign"]');
-      const inpValue = row.querySelector('input[data-field="value"]');
-      const selUnit  = row.querySelector('select[data-field="unit"]');
-      const prevEl = row.querySelector('[data-field="preview"]');
-
-      // Plan name element (used for display/metadata only)
-      const nameEl = row.querySelector('[data-field="name"]');
-      
-      // Seed from drafts (if present), else from DOM
-      const draft = __preloadedRuleDrafts[code];
-      const seedSign  = (draft && (draft.sign === '+' || draft.sign === '-')) ? draft.sign : (selSign?.value || '-');
-      const seedUnit  = (draft && (draft.unit === '%' || draft.unit === '$')) ? draft.unit : (selUnit?.value || '$');
-      const seedValue = (draft && Number.isFinite(Number(draft.value))) ? Number(draft.value) : Number(inpValue?.value || inpValue?.placeholder || 0);
-
-      // Write hydrated values into the inputs before first update()
-      if (selSign)  selSign.value  = seedSign;
-      if (selUnit)  selUnit.value  = seedUnit;
-      if (inpValue) inpValue.value = String(seedValue);
-
-      // Store seeded state
-      state[code] = { sign: seedSign, unit: seedUnit, value: seedValue };
-
-      try { document.dispatchEvent(new CustomEvent('planRules:hydrated', { detail:{ drafts: __preloadedRuleDrafts } })); } catch(_){}
-
-      function update(markDirty){
-        const sign  = selSign?.value || '-';
-        const unit  = selUnit?.value || '$';
-        const value = inpValue?.value === '' ? NaN : Number(inpValue.value);
-
-        // Store
-        state[code] = { sign, unit, value: Number.isFinite(value) ? value : NaN };
-
-        if (markDirty) {
-          try { window.__planRulesDirty = true; } catch(_) {}
-        }
-
-        // Persist draft immediately so a hard refresh restores it
-        saveRuleDraft(code, { sign, unit, value: Number.isFinite(value) ? value : NaN });
-
-        // Preview
-        const sample = calcPreview(sign, unit, value);
-        if (prevEl){
-          if (sample == null){
-            prevEl.textContent = `Example: $${EXAMPLE_BASE} → —`;
-          } else {
-            prevEl.textContent = `Example: $${EXAMPLE_BASE} → $${sample.toFixed(2)}`;
+          // ---- numeric rules: empty is neutral/valid; if present must be >= 0
+          const val = (cfg && cfg.value !== undefined) ? cfg.value : NaN;
+          const hasNumber = (val !== '' && Number.isFinite(Number(val)));
+          if (hasNumber) {
+            anyNumericGiven = true;
+            if (!(
+              (cfg.sign === '+' || cfg.sign === '-') &&
+              (cfg.unit === '$' || cfg.unit === '%') &&
+              Number(val) >= 0
+            )) {
+              numericInvalid = true;
+            }
           }
-        }
-        // Update the small descriptor under the plan name to match current UI numbers
-        const meta = row.querySelector('.plan-meta, .note');
-        if (meta){
-          const signTxt = (selSign?.value === '-') ? '−' : '+';
-          const unitTxt = (selUnit?.value === '%') ? '%' : '$';
-          const nVal    = Number.isFinite(value) ? Number(value) : NaN;
-          if (!Number.isFinite(nVal)){
-            meta.textContent = 'Rule applies to Standard price';
-          } else {
-            meta.textContent = (unitTxt === '%')
-              ? `${signTxt}${nVal}% from Standard`
-              : `${signTxt}$${nVal.toFixed(2)} from Standard`;
-          }
-        }
+        });
 
-        // Basic validity styling
-        if (inpValue){
-          const bad = !(Number.isFinite(value) && value >= 0);
-          inpValue.classList.toggle('error', bad);
-        }
+        // Canonical dirty sources
+        const hasGridEdits   = !!(dirty && dirty.size > 0);
+        const hasRuleEdits   = (window.__planRulesDirty === true);
+        const hasToggleEdits = !!(window.__pendingPlanActives && Object.keys(window.__pendingPlanActives || {}).length);
 
-        refreshSaveEnabled();
-        window.__refreshPlanSaveEnabled = refreshSaveEnabled;
-      }
+        const pending = hasGridEdits || hasRuleEdits || hasToggleEdits;
 
-      ['change','input','blur'].forEach(ev => {
-        selSign?.addEventListener(ev, () => update(true));
-        selUnit?.addEventListener(ev, () => update(true));
-        inpValue?.addEventListener(ev, () => update(true));
-      });
+        // Enable when:
+        // - there is something pending AND numeric inputs are not invalid
+        // NOTE: numeric fields being empty is fine; it just means "no rule change"
+        saveBtn.disabled = !pending || numericInvalid;
 
-      // Initial paint (do not mark dirty)
-      update(false);
+      } catch(_) {}
     }
 
-    panel.querySelectorAll('.plan-row[data-plan-code]').forEach(attachRow);
-    
-    /* reset a single row back to server rule */
-    panel.addEventListener('click', async (e) => {
-      const a = e.target.closest('a[data-act="reset"]');
-      if (!a) return;
-      e.preventDefault();
-      const row = a.closest('.plan-row[data-plan-code]');
-      const code = row?.getAttribute('data-plan-code');
-      if (!code) return;
-      try{
-        const roomFromUrl = new URLSearchParams(location.search).get('room');
-        const rid = Number(window.currentRoomTypeId || roomFromUrl || 0);
-        const plans = await fetchRatePlansSafe(rid);
+  function attachRow(row){
+    const code = String(row.getAttribute('data-plan-code') || '').toUpperCase();
+    if (!code) return;
 
-        const p = (plans || []).find(x => String(x.code || '').toUpperCase() === String(code).toUpperCase());
-        if (p) applyServerRuleToRow(row, p);
-      }catch(_){}
-      try { window.__planRulesDirty = false; } catch(_) {}
+    const selSign  = row.querySelector('select[data-field="sign"]');
+    const inpValue = row.querySelector('input[data-field="value"]');
+    const selUnit  = row.querySelector('select[data-field="unit"]');
+    const prevEl   = row.querySelector('[data-field="preview"]');
+
+    // Plan name element (used for display/metadata only)
+    const nameEl = row.querySelector('[data-field="name"]');
+
+    // Seed from drafts (if present), else from DOM
+    const draft = (__preloadedRuleDrafts && __preloadedRuleDrafts[code]) ? __preloadedRuleDrafts[code] : null;
+    const seedSign  = (draft && (draft.sign === '+' || draft.sign === '-')) ? draft.sign : (selSign?.value || '-');
+    const seedUnit  = (draft && (draft.unit === '%' || draft.unit === '$')) ? draft.unit : (selUnit?.value || '$');
+    const seedValue = (draft && Number.isFinite(Number(draft.value)))
+      ? Number(draft.value)
+      : Number(inpValue?.value || inpValue?.placeholder || 0);
+
+    // Write hydrated values into the inputs before first update()
+    if (selSign)  selSign.value  = seedSign;
+    if (selUnit)  selUnit.value  = seedUnit;
+    if (inpValue) inpValue.value = String(seedValue);
+
+    // Store seeded state
+    state[code] = { sign: seedSign, unit: seedUnit, value: seedValue };
+
+    try {
+      document.dispatchEvent(new CustomEvent('planRules:hydrated', { detail:{ drafts: __preloadedRuleDrafts } }));
+    } catch(_){}
+
+    function update(markDirty){
+      const sign  = selSign?.value || '-';
+      const unit  = selUnit?.value || '$';
+
+      const raw = (inpValue && inpValue.value != null) ? String(inpValue.value).trim() : '';
+      const value = (raw === '') ? NaN : Number(raw);
+
+      // Store
+      const cleanVal = Number.isFinite(value) ? value : NaN;
+      state[code] = { sign, unit, value: cleanVal };
+
+      if (markDirty) {
+        try { window.__planRulesDirty = true; } catch(_) {}
+      }
+
+      // Persist draft immediately so a hard refresh restores it
+      try { saveRuleDraft(code, { sign, unit, value: cleanVal }); } catch(_){}
+
+      // Preview
+      const sample = calcPreview(sign, unit, value);
+      if (prevEl){
+        if (sample == null){
+          prevEl.textContent = `Example: $${EXAMPLE_BASE} → —`;
+        } else {
+          prevEl.textContent = `Example: $${EXAMPLE_BASE} → $${sample.toFixed(2)}`;
+        }
+      }
+    
+      // Update the small descriptor under the plan name to match current UI numbers
+      const meta = row.querySelector('.plan-meta, .note');
+      if (meta){
+        const signTxt = (selSign?.value === '-') ? '−' : '+';
+        const unitTxt = (selUnit?.value === '%') ? '%' : '$';
+        const nVal    = Number.isFinite(value) ? Number(value) : NaN;
+        if (!Number.isFinite(nVal)){
+          meta.textContent = 'Rule applies to Standard price';
+        } else {
+          meta.textContent = (unitTxt === '%')
+            ? `${signTxt}${nVal}% from Standard`
+            : `${signTxt}$${nVal.toFixed(2)} from Standard`;
+        }
+      }
+
+      // Basic validity styling (only flag when a number is present and invalid)
+      if (inpValue){
+        const bad = (raw !== '') && !(Number.isFinite(value) && value >= 0);
+        inpValue.classList.toggle('error', bad);
+      }
+
+      try { refreshSaveEnabled(); } catch(_){}
+      window.__refreshPlanSaveEnabled = refreshSaveEnabled;
+    }
+
+    ['change','input','blur'].forEach(ev => {
+      selSign?.addEventListener(ev, () => update(true));
+      selUnit?.addEventListener(ev, () => update(true));
+      inpValue?.addEventListener(ev, () => update(true));
     });
 
-    // Expose pending rules for later POST (next step will use this)
-    window.__pendingPlanRules = state;
+    // Initial paint (do not mark dirty)
+    update(false);
+  }
+
+  panel.querySelectorAll('.plan-row[data-plan-code]').forEach(attachRow);
+
+  /* reset a single row back to server rule */
+  panel.addEventListener('click', async (e) => {
+    const a = e.target.closest('a[data-act="reset"]');
+    if (!a) return;
+    e.preventDefault();
+    const row = a.closest('.plan-row[data-plan-code]');
+    const code = row?.getAttribute('data-plan-code');
+    if (!code) return;
+    try{
+      const roomFromUrl = new URLSearchParams(location.search).get('room');
+      const rid = Number(window.currentRoomTypeId || roomFromUrl || 0);
+      const plans = await fetchRatePlansSafe(rid);
+
+      const p = (plans || []).find(x => String(x.code || '').toUpperCase() === String(code).toUpperCase());
+      if (p) applyServerRuleToRow(row, p);
+    }catch(_){}
     try { window.__planRulesDirty = false; } catch(_) {}
+  });
+
+  // Expose pending rules for later POST (next step will use this)
+  window.__pendingPlanRules = state;
+  try { window.__planRulesDirty = false; } catch(_) {}
   })();
-})(); // closes the top-level (() => { ... }) wrapper
-</script>
+  </script>
 
 <!-- FP: MN-HARDFIX-LOCK — single source of truth for month-nav; exact 3-week stepping -->
 <script>
