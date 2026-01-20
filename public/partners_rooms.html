@@ -4432,17 +4432,15 @@
     try {
       if (!status.className.includes("ok")) {
         const hasGridEdits = (typeof dirty !== 'undefined' && dirty && typeof dirty.size === 'number' && dirty.size > 0);
-        const hasRuleEdits = !!(window.__pendingPlanRules && Object.keys(window.__pendingPlanRules || {}).length);
+        const hasRuleEdits = (window.__planRulesDirty === true);
         const hasToggleEdits = !!(window.__pendingPlanActives && Object.keys(window.__pendingPlanActives || {}).length);
 
         const pending = hasGridEdits || hasRuleEdits || hasToggleEdits;
 
         if (pending) {
-          setStatus("Changes pending. Click Save Changes.", "");
-          try { status.classList.add('status-pending'); } catch(_) {}
-        } else {
+          // Status + pending UI is controlled by updateDirtyUI() only
+          try { updateDirtyUI(); } catch(_) {}
           setStatus("Calendar ready.", "");
-          try { status.classList.remove('status-pending'); } catch(_) {}
         }
       }
     } catch (_) {}
@@ -4755,7 +4753,7 @@
     const hasGridEdits = dirty.size > 0;
     const invalidCount = document.querySelectorAll('.chip input.error').length;
 
-    const hasRuleEdits = !!(window.__pendingPlanRules && Object.keys(window.__pendingPlanRules || {}).length);
+    const hasRuleEdits = (window.__planRulesDirty === true);
     const hasToggleEdits = !!(window.__pendingPlanActives && Object.keys(window.__pendingPlanActives || {}).length);
 
     if (invalidCount > 0){
