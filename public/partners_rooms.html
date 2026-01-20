@@ -2977,7 +2977,7 @@
     const invalidCount = document.querySelectorAll('.chip input.error').length;
 
     // Include pending rateplan changes (rules + toggles) as "saveable changes"
-    const nRule = (window.__pendingPlanRules && Object.keys(window.__pendingPlanRules || {}).length) ? 1 : 0;
+    const nRule = (window.__planRulesDirty === true) ? 1 : 0;
     const nToggle = (window.__pendingPlanActives && Object.keys(window.__pendingPlanActives || {}).length) ? 1 : 0;
 
     const totalChanges = nGrid + nRooms + nRule + nToggle;
@@ -4083,9 +4083,13 @@
       // Build fetch URLs using the room-scoped primary plan
       const invUrl =
         `/extranet/property/rooms/${currentRoomTypeId}/inventory?start=${currentRangeStart}&end=${currentRangeEnd}`;
+      const stdPlanId = (typeof getStdPlanIdForRoom === 'function')
+        ? getStdPlanIdForRoom(currentRoomTypeId)
+        : 1;
+
       const prcUrl =
         `/extranet/property/rooms/${currentRoomTypeId}/prices?start=${currentRangeStart}` +
-        `&end=${currentRangeEnd}&ratePlanId=${encodeURIComponent(primaryPlanId)}`;
+        `&end=${currentRangeEnd}&ratePlanId=${encodeURIComponent(stdPlanId)}`;
 
     if (localStorage.getItem('rooms_debug') === '1'){
       console.debug("Calendar fetch URLs", {
@@ -5602,13 +5606,17 @@
 
       try { document.dispatchEvent(new CustomEvent('planRules:hydrated', { detail:{ drafts: __preloadedRuleDrafts } })); } catch(_){}
 
-      function update(){
+      function update(markDirty){
         const sign  = selSign?.value || '-';
         const unit  = selUnit?.value || '$';
         const value = inpValue?.value === '' ? NaN : Number(inpValue.value);
 
         // Store
         state[code] = { sign, unit, value: Number.isFinite(value) ? value : NaN };
+
+        if (markDirty) {
+          try { window.__planRulesDirty = true; } catch(_) {}
+        }
 
         // Persist draft immediately so a hard refresh restores it
         saveRuleDraft(code, { sign, unit, value: Number.isFinite(value) ? value : NaN });
@@ -5648,13 +5656,13 @@
       }
 
       ['change','input','blur'].forEach(ev => {
-        selSign?.addEventListener(ev, update);
-        selUnit?.addEventListener(ev, update);
-        inpValue?.addEventListener(ev, update);
+        selSign?.addEventListener(ev, () => update(true));
+        selUnit?.addEventListener(ev, () => update(true));
+        inpValue?.addEventListener(ev, () => update(true));
       });
 
-      // Initial paint
-      update();
+      // Initial paint (do not mark dirty)
+      update(false);
     }
 
     panel.querySelectorAll('.plan-row[data-plan-code]').forEach(attachRow);
@@ -5675,10 +5683,12 @@
         const p = (plans || []).find(x => String(x.code || '').toUpperCase() === String(code).toUpperCase());
         if (p) applyServerRuleToRow(row, p);
       }catch(_){}
+      try { window.__planRulesDirty = false; } catch(_) {}
     });
 
     // Expose pending rules for later POST (next step will use this)
     window.__pendingPlanRules = state;
+    try { window.__planRulesDirty = false; } catch(_) {}
   })();
   
     /* ANCHOR: PLAN_RULES_SAVE */
@@ -5874,6 +5884,7 @@
 
           // Clear pending toggle changes
           try { window.__pendingPlanActives = {}; } catch(_) {}
+          try { window.__planRulesDirty = false; } catch(_) {}
 
           // Derive and write BRKF/NRF nightly prices into DB for this window
           const out = await __writeDerivedPlanPricesToDb(window.currentRoomTypeId);
