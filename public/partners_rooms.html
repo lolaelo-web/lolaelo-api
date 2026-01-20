@@ -4095,7 +4095,7 @@
     }
 
     disableWhileBusy(true);
-    setStatus("Loading calendar…", "");
+    setStatus("Live", "");
     setCalLoading(true);
     const [invRes, prcRes] = await Promise.all([
       fetchWithRetry(invUrl, {}, 2, 800),
@@ -4547,9 +4547,19 @@
     if (priceEl){ priceEl.value = priceFixed; priceEl.classList.remove("error"); }
 
     // Hard rule: bulk price applies to STD only (tiles = STD)
-    let ratePlanId = (typeof getStdPlanIdForRoom === 'function')
-      ? getStdPlanIdForRoom(currentRoomTypeId)
-      : 1;
+    let ratePlanId = 0;
+    try {
+      const plans = (typeof fetchRatePlansSafe === 'function')
+        ? await fetchRatePlansSafe(currentRoomTypeId)
+        : [];
+      const std = (Array.isArray(plans) ? plans : []).find(p => String(p.code || '').toUpperCase() === 'STD');
+      ratePlanId = Number(std && std.id);
+    } catch(_) {}
+
+    if (!(Number.isFinite(ratePlanId) && ratePlanId > 0)) {
+      ratePlanId = (typeof getStdPlanIdForRoom === 'function') ? getStdPlanIdForRoom(currentRoomTypeId) : 1;
+    }
+    ratePlanId = (Number.isFinite(ratePlanId) && ratePlanId > 0) ? ratePlanId : 1;
     ratePlanId = (Number.isFinite(ratePlanId) && ratePlanId > 0) ? ratePlanId : 1;
 
     const start=el("range-start").value, end=el("range-end").value;
@@ -4798,10 +4808,29 @@
         // Clear pending toggle changes
         try { window.__pendingPlanActives = {}; } catch(_) {}
         try { window.__planRulesDirty = false; } catch(_) {}
+        // Materialize derived nightly prices into DB for this window (server-side)
+        // We trigger /catalog/details for the active roomType window so backend derive-on-demand persists rows.
+        try {
+          const pid = Number(await getRatePlanPropertyId());
+          const rid = Number(window.currentRoomTypeId);
+          const startISO = String(window.currentRangeStart || el('range-start')?.value || '');
+          const endISO   = String(window.currentRangeEnd   || el('range-end')?.value   || '');
 
-        // Derive and write BRKF/NRF nightly prices into DB for this window
-        const out = await __writeDerivedPlanPricesToDb(window.currentRoomTypeId);
-        console.log('[plan-rules] derived prices written', out);
+          if (Number.isFinite(pid) && pid > 0 && Number.isFinite(rid) && rid > 0 && startISO && endISO) {
+            // Use Render origin to bypass any caching layers
+            const url = `${API_BASE}/catalog/details?propertyId=${encodeURIComponent(String(pid))}` +
+              `&start=${encodeURIComponent(startISO)}&end=${encodeURIComponent(endISO)}`;
+
+            const r = await fetch(url, { method: 'GET', cache: 'no-store' });
+            if (!r.ok) {
+              console.warn('[plan-rules] derive trigger failed', r.status);
+            } else {
+              console.log('[plan-rules] derive trigger ok');
+            }
+          }
+        } catch (e) {
+          console.warn('[plan-rules] derive trigger error', e);
+        }
 
         // Refresh plans and repaint UI
         try {
