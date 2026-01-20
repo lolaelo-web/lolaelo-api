@@ -76,6 +76,9 @@
     .room .actions button{ padding:6px 8px; font-size:12px; border-radius:8px; }
     #add-room{ padding:8px 10px; font-weight:600; }
 
+    /* Pending changes prompt */
+    .status-pending { color: #ff4d4f !important; }
+
     .right .controls{ display:flex; flex-wrap:wrap; gap:8px; padding:10px;
       border-bottom:1px solid var(--border); background:var(--panel); align-items:center; }
     .controls input:not(.input){ background:var(--chip); border:1px solid var(--border); color:var(--text); padding:8px 10px; border-radius:8px; }
@@ -4413,13 +4416,25 @@
       const hasRuleEdits = !!(window.__pendingPlanRules && Object.keys(window.__pendingPlanRules || {}).length);
       const hasToggleEdits = !!(window.__pendingPlanActives && Object.keys(window.__pendingPlanActives || {}).length);
 
-      if (hasGridEdits || hasRuleEdits || hasToggleEdits) {
+      const pending = hasGridEdits || hasRuleEdits || hasToggleEdits;
+
+      if (pending) {
         setStatus("Changes pending. Click Save Changes.", "");
+        try { status.classList.add('status-pending'); } catch(_) {}
       } else {
         setStatus("Calendar ready.", "");
+        try { status.classList.remove('status-pending'); } catch(_) {}
       }
+
+      // Keep Save/Discard enabled state consistent with pending changes
+      try {
+        const saveBtn = document.getElementById('save');
+        const discardBtn = document.getElementById('discard');
+        if (saveBtn) saveBtn.disabled = !pending;
+        if (discardBtn) discardBtn.disabled = !pending;
+      } catch(_) {}
     }
-    
+
     // Notify listeners that a render just completed (used by Apply buttons, etc.)
     try { document.dispatchEvent(new Event('calendar:rendered')); } catch(_) {}
   }
