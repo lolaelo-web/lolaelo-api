@@ -4408,7 +4408,17 @@
     if (currentRangeStart) scrollToDate(currentRangeStart);
 
     updateDirtyUI();
-    if (!status.className.includes("ok")) setStatus("Calendar ready.","");
+    if (!status.className.includes("ok")) {
+      const hasGridEdits = (typeof dirty !== 'undefined' && dirty && typeof dirty.size === 'number' && dirty.size > 0);
+      const hasRuleEdits = !!(window.__pendingPlanRules && Object.keys(window.__pendingPlanRules || {}).length);
+      const hasToggleEdits = !!(window.__pendingPlanActives && Object.keys(window.__pendingPlanActives || {}).length);
+
+      if (hasGridEdits || hasRuleEdits || hasToggleEdits) {
+        setStatus("Changes pending. Click Save Changes.", "");
+      } else {
+        setStatus("Calendar ready.", "");
+      }
+    }
     
     // Notify listeners that a render just completed (used by Apply buttons, etc.)
     try { document.dispatchEvent(new Event('calendar:rendered')); } catch(_) {}
@@ -4788,6 +4798,17 @@
       if (reqs.length){
         const resps = await Promise.all(reqs);
         if (resps.some(r=>!r.ok)) throw new Error(`Grid save failed (${resps.map(r=>r.status).join('/')})`);
+      }
+
+      // Canonical behavior: if STD prices were saved, auto-derive BRKF/NRF for the same window
+      if (prcItems && prcItems.length && typeof window.savePlanRulesAndDerivedPrices === 'function') {
+        try {
+          await window.savePlanRulesAndDerivedPrices();
+        } catch (e) {
+          console.warn('[save] auto-derive failed', e);
+          // Do not fail the main save; warn only
+          setStatus('Saved, but rate plan prices failed to update. Check console.', 'warn');
+        }
       }
 
       pendingRoomUpdates.clear();
@@ -5620,6 +5641,10 @@
     (function wirePlanRulesSave(){
     const btn = document.getElementById('save-plan-rules');
     if (!btn) return;
+
+    // Save Changes is the canonical save for this page.
+    // Hide the legacy button to prevent users from having to remember a second save step.
+    try { btn.style.display = 'none'; } catch(_) {}
 
     // === Derived plan DB writer (STD baseline -> BRKF/NRF nightly prices) ===
     function __applyRule(basePrice, kind, value){
