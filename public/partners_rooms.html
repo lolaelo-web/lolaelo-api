@@ -5746,11 +5746,27 @@
         const kind = plan.kind || 'NONE';
         const value = plan.value;
 
-        const items = stdArr.map(r => {
-          let date = (r && (r.date || r.day || r.d)) ? String(r.date || r.day || r.d) : '';
-          date = date ? date.slice(0, 10) : ''; // normalize YYYY-MM-DD even if timestamp
+        // Build explicit date list for the window so we always overwrite derived prices for every night
+        const ONE_DAY = 86400000;
+        const dates = [];
+        {
+          const s = new Date(startISO + "T00:00:00Z");
+          const e = new Date(endISO   + "T00:00:00Z");
+          for (let d = new Date(s); d <= e; d = new Date(d.getTime() + ONE_DAY)) dates.push(iso(d));
+        }
+
+        // Map STD rows by date for quick lookup
+        const stdByDate = new Map();
+        for (const r of stdArr) {
+          let dt = (r && (r.date || r.day || r.d)) ? String(r.date || r.day || r.d) : '';
+          dt = dt ? dt.slice(0, 10) : '';
           const base = Number(r && (r.price ?? r.amount ?? r.basePrice));
-          if (!date || !Number.isFinite(base)) return null;
+          if (dt && Number.isFinite(base)) stdByDate.set(dt, base);
+        }
+
+        const items = dates.map(date => {
+          const base = stdByDate.get(date);
+          if (!Number.isFinite(base)) return null;
 
           const out = __applyRule(base, kind, value);
           if (out == null || !Number.isFinite(out)) return null;
