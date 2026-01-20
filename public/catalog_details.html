@@ -3787,9 +3787,21 @@
             });
             if (!room) return null;
 
-            // Backend already returns the correct per-plan nightly prices in room.daily for the requested ratePlanId.
-            // So: use the minimum nightly price across the stay window.
-            const daily = Array.isArray(room.daily) ? room.daily : [];
+            // Option 2: per-plan daily arrays from backend
+            let daily = null;
+            try {
+              const byPlan = room.dailyByPlanId || null;
+              if (byPlan) {
+                if (byPlan[String(pid)]) daily = byPlan[String(pid)];
+                else if (byPlan[pid]) daily = byPlan[pid];
+              }
+            } catch (_) {}
+
+            // Backward safety: fall back to legacy daily if no per-plan data exists
+            if (!Array.isArray(daily)) {
+              daily = Array.isArray(room.daily) ? room.daily : [];
+            }
+
             const nums = daily
               .filter(d => d && !d.closed && Number(d.inventory ?? d.open ?? 0) > 0)
               .map(d => Number(d.price))
@@ -4149,7 +4161,12 @@
             const plansQS = sel.length ? `&plans=${encodeURIComponent(sel.join(','))}` : '';
 
             // DB owns which plans are available to travelers
-            const rowsSource = plans.filter(p => p && p.active === true);
+            const rowsSource = plans
+              .filter(p => p && p.active === true)
+              .filter(p => {
+                const raw = getPlanPriceForRoom(roomId, Number(p.id));
+                return raw != null && Number.isFinite(Number(raw));
+              });
 
             if (!rowsSource.length) return '';
 
@@ -4166,6 +4183,7 @@
               // DB-canonical nightly price for this plan id (no math, no fallbacks)
               const raw = getPlanPriceForRoom(roomId, Number(p.id));
               const hasPrice = raw != null && Number.isFinite(Number(raw));
+              if (!hasPrice) return; // B-mode: hide plans without prices
 
               const priceLabel = hasPrice ? money(Number(raw).toFixed(2)) : null;
               const priceHtml = hasPrice

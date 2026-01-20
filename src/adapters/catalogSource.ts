@@ -79,14 +79,25 @@ export async function getDetails(args: DetailsArgs): Promise<any | null> {
   // Keep checkoutQuote behavior: only add checkoutQuote when quoteMode && rp !== 1.
   try {
     const quoteMode = Number(args?.plans) === 2;
-    const rp = Number(args?.ratePlanId ?? 1);
+
+    // Option 2: if no ratePlanId was provided, do NOT force STD here.
+    // Pass undefined so getRoomsDailyFromDb can pull all plan rows for the window.
+    const requestedRatePlanId =
+      typeof (args as any)?.ratePlanId === "number"
+        ? Number((args as any).ratePlanId)
+        : undefined;
+
+    // Preserve prior checkoutQuote behavior: rp defaults to 1 when unspecified
+    const rpForQuote = Number.isFinite(requestedRatePlanId as any)
+      ? (requestedRatePlanId as number)
+      : 1;
 
     const roomsDaily = await getRoomsDailyFromDb(
       args.propertyId,
       args.start,
       args.end,
-      rp,
-      { persistDerived: true } // DETAILS ONLY: allow insert-only derive-on-demand
+      requestedRatePlanId,
+      { persistDerived: true } // DETAILS ONLY
     );
 
     if (roomsDaily && roomsDaily.length) {
@@ -115,7 +126,7 @@ export async function getDetails(args: DetailsArgs): Promise<any | null> {
       out._roomsSource = "db";
 
       // Optional: checkoutQuote (preserve old behavior)
-      if (quoteMode && rp !== 1) {
+      if (quoteMode && rpForQuote !== 1) {
         const pickId =
           args.roomId != null ? Number(args.roomId) : undefined;
 
@@ -154,7 +165,7 @@ export async function getDetails(args: DetailsArgs): Promise<any | null> {
                 total,
                 nights,
                 roomTypeId: Number((chosen as any).roomTypeId),
-                ratePlanId: rp,
+                ratePlanId: rpForQuote,
               }
             : null;
 
@@ -236,6 +247,16 @@ export async function getProfilesFromDb(propertyIds: number[]): Promise<Record<n
 // Returns the same shape your mock 'roomsDaily' uses.
 // Assumes 'propertyId' maps to Partner.id (your schema has no Property model).
 // ANCHOR: ROOMS_DAILY_TYPE
+export type DailyCell = {
+  date: string;
+  inventory: number;
+  price: number | null;
+  currency: string | null;
+  open?: number;
+  closed?: boolean;
+  minStay?: number | null;
+};
+
 export interface RoomsDailyRow {
   roomId: number;
   roomName: string;
@@ -250,17 +271,11 @@ export interface RoomsDailyRow {
   inclusion_text?: string | null;
 
   // Enriched daily shape for UI table compatibility
-  daily: Array<{
-    date: string;
-    inventory: number;
-    price: number | null;
-    currency: string | null;
-    open?: number;          // same as inventory
-    closed?: boolean;       // derived from isClosed || open<=0
-    minStay?: number | null;
-  }>;
-}
+  daily: DailyCell[];
 
+  // Option 2: per-plan daily payload (keyed by ratePlanId)
+  dailyByPlanId?: Record<number, DailyCell[]>;
+}
 
 /**
  * getRoomsDailyFromDb
@@ -360,6 +375,46 @@ export async function getRoomsDailyFromDb(
       select: { id: true, roomTypeId: true },
     });
     for (const p of stdPlans) stdPlanByRoomType.set(p.roomTypeId, p.id);
+  }
+
+  // Active derived plans (non-STD) per roomType
+  const activePlansByRoomType = new Map<
+    number,
+    Array<{ id: number; kind: string; value: number; code: string }>
+  >();
+
+  {
+    const plans = await prisma.extranet_RatePlan.findMany({
+      where: {
+        partnerId: propertyId,
+        roomTypeId: { in: roomTypeIds },
+        active: true,
+        NOT: { code: "STD" },
+      },
+      select: {
+        id: true,
+        roomTypeId: true,
+        kind: true,
+        value: true,
+        code: true,
+      },
+      orderBy: { id: "asc" },
+    });
+
+    for (const p of plans) {
+      const rtId = Number(p.roomTypeId);
+      let arr = activePlansByRoomType.get(rtId);
+      if (!arr) {
+        arr = [];
+        activePlansByRoomType.set(rtId, arr);
+      }
+      arr.push({
+        id: Number(p.id),
+        kind: String(p.kind || ""),
+        value: Number(p.value ?? 0),
+        code: String(p.code || "").toUpperCase(),
+      });
+    }
   }
 
   function applyPlanRule(base: number, rule: { kind: string; value: number } | null): number {
@@ -468,11 +523,20 @@ export async function getRoomsDailyFromDb(
 
   // Index: `${roomTypeId}|${date}|plan|<id>` -> price
   const priceByPlan = new Map<string, number>();
+  const planIdsByRoomType = new Map<number, Set<number>>();
+
   for (const r of priceRows) {
     const d = r.date.toISOString().slice(0, 10);
     const major = Number(r.price); // Decimal -> number
-    const k = `${r.roomTypeId}|${d}|plan|${r.ratePlanId}`;
+    const rtId = Number(r.roomTypeId);
+    const pid = Number(r.ratePlanId);
+
+    const k = `${rtId}|${d}|plan|${pid}`;
     if (!priceByPlan.has(k)) priceByPlan.set(k, major);
+
+    let s = planIdsByRoomType.get(rtId);
+    if (!s) { s = new Set<number>(); planIdsByRoomType.set(rtId, s); }
+    if (Number.isFinite(pid)) s.add(pid);
   }
 
   // 5) Build output, covering all dates; price preference: specified plan → preferred exposeToUis plan → null plan → basePrice
@@ -494,6 +558,72 @@ export async function getRoomsDailyFromDb(
 
     const dt = new Date(iso + "T00:00:00Z");
     return dt >= min && dt <= max;
+  }
+
+  // Derive-on-demand (Strategy 1): materialize ALL active derived plans for this roomType in-window (insert-only)
+  if (persistDerived) {
+    const stdId = stdPlanByRoomType.get(rt.id) ?? null;
+    const plans = activePlansByRoomType.get(rt.id) || [];
+
+    for (const d of dates) {
+      if (!withinRollingWindow(d)) continue;
+
+      // Effective STD for the day (prefer DB row; seed basePrice only if missing)
+      let stdPrice: number | null = null;
+      if (stdId != null) {
+        stdPrice = priceByPlan.get(`${rt.id}|${d}|plan|${stdId}`) ?? null;
+      }
+
+      if (stdPrice == null) {
+        const bp = Number(rt.basePrice);
+        if (stdId != null && Number.isFinite(bp)) {
+          stdSeedRows.push({
+            partnerId: propertyId,
+            roomTypeId: rt.id,
+            ratePlanId: stdId,
+            date: new Date(d + "T00:00:00Z"),
+            price: bp,
+          });
+          // Make it available in this response without a second fetch
+          priceByPlan.set(`${rt.id}|${d}|plan|${stdId}`, bp);
+          let s = planIdsByRoomType.get(rt.id);
+          if (!s) { s = new Set<number>(); planIdsByRoomType.set(rt.id, s); }
+          s.add(stdId);
+        }
+        stdPrice = Number.isFinite(bp) ? bp : null;
+      }
+
+      if (stdPrice == null) continue;
+
+      for (const p of plans) {
+        const key = `${rt.id}|${d}|plan|${p.id}`;
+        if (priceByPlan.has(key)) continue; // never overwrite
+
+        // Apply rule
+        let derived = stdPrice;
+        if (p.kind === "ABSOLUTE") {
+          derived = Number(stdPrice) + Number(p.value);
+        } else if (p.kind === "PERCENT") {
+          derived = Number(stdPrice) * (1 + (Number(p.value) / 100));
+        }
+
+        if (!Number.isFinite(Number(derived))) continue;
+
+        derivedRows.push({
+          partnerId: propertyId,
+          roomTypeId: rt.id,
+          ratePlanId: p.id,
+          date: new Date(d + "T00:00:00Z"),
+          price: Number(derived),
+        });
+
+        // Make it available in this response without a second fetch
+        priceByPlan.set(key, Number(derived));
+        let s = planIdsByRoomType.get(rt.id);
+        if (!s) { s = new Set<number>(); planIdsByRoomType.set(rt.id, s); }
+        s.add(p.id);
+      }
+    }
   }
 
   const daily = dates.map((d) => {
@@ -584,7 +714,7 @@ export async function getRoomsDailyFromDb(
   });
 
   // Persist insert-only (Strategy 1): seed missing STD + insert missing derived rows
-  if (callerSpecifiedPlan && persistDerived && derivedRows.length) {
+  if (persistDerived && derivedRows.length) {
     if (stdSeedRows.length) {
       await prisma.extranet_RoomPrice.createMany({
         data: stdSeedRows,
@@ -613,6 +743,33 @@ export async function getRoomsDailyFromDb(
         ? (ik as any).value.map((x: any) => String(x)).filter(Boolean)
       : [];
 
+    // Option 2 (B-mode): build per-plan daily arrays from DB rows that actually exist in this window
+    const dailyByPlanId: Record<number, DailyCell[]> = {};
+    const planSet = planIdsByRoomType.get(rt.id) || new Set<number>();
+
+    for (const pid of planSet) {
+      const cells: DailyCell[] = dates.map((d) => {
+        const p = priceByPlan.get(`${rt.id}|${d}|plan|${pid}`) ?? null;
+        const rec = invIdx.get(`${rt.id}|${d}`) ?? { open: 0, closed: true, minStay: null };
+        return {
+          date: d,
+          inventory: rec.open,
+          price: p,
+          currency: null,
+          open: rec.open,
+          closed: rec.closed,
+          minStay: rec.minStay,
+        };
+      });
+
+      // B-mode: only include planIds that have at least one priced day in the window
+      if (cells.some((c) => c.price != null)) {
+        dailyByPlanId[pid] = cells;
+      }
+    }
+
+    const hasDailyByPlan = Object.keys(dailyByPlanId).length > 0;
+
     out.push({
       roomId: rt.id,
       roomName: rt.name,
@@ -628,7 +785,8 @@ export async function getRoomsDailyFromDb(
       inclusion_keys: inclusionKeysArr,
       inclusion_text: (rt as any).inclusion_text ?? null,
 
-      daily
+      daily,
+      dailyByPlanId: hasDailyByPlan ? dailyByPlanId : undefined,
     });
   }
 
