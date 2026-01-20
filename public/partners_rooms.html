@@ -5776,6 +5776,8 @@
 
         if (!items.length) return { skipped: true, reason: 'no_items' };
 
+        console.log('[derive] posting', { code: plan.code, pid, startISO, endISO, itemCount: items.length, first: items[0], last: items[items.length-1] });
+
         const postUrl = `/extranet/property/rooms/${rid}/prices/bulk`;
         const postRes = await authFetch(postUrl, {
           method: 'POST',
