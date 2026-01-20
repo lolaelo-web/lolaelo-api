@@ -5723,11 +5723,12 @@
       return out;
     }
 
-    btn.addEventListener('click', async () => {
+    // Expose a canonical save function so "Save Changes" can call it too
+    window.savePlanRulesAndDerivedPrices = async function () {
       try {
         if (!window.__pendingPlanRules) {
-          setStatus('No rule changes detected.', 'warn');
-          return;
+          // No rule changes detected; still OK to derive prices if needed
+          // (Derivation is handled by caller when STD changes.)
         }
 
         const rules = window.__pendingPlanRules || {};
@@ -5743,7 +5744,6 @@
           const raw   = Number(cfg.value);
           const value = Number.isFinite(raw) ? (sign * Math.abs(raw)) : 0;
 
-          // active: from pending toggles if present, else from current checkbox state, else leave undefined
           let active = undefined;
           try {
             const pending = window.__pendingPlanActives || {};
@@ -5757,10 +5757,9 @@
           } catch(_) {}
 
           return { code, name, kind: unit, value, active };
-          ;
         }).filter(p => p && p.code);
 
-        // Try backend save
+        // Try backend save (rules + active toggles)
         let status = 0, ok = false, res;
         try {
           const pid = await getRatePlanPropertyId();
@@ -5780,56 +5779,61 @@
         } catch(_){}
 
         if (ok) {
-          setStatus('Plan rules saved.', 'ok');
-          toast('Plan rules saved', 'ok');
-
-          // Backend accepted — clear drafts for posted codes
+          // Clear drafts for posted codes
           try {
             const postedCodes = (Array.isArray(plans) ? plans.map(p => p.code).filter(Boolean) : []);
-            clearRuleDrafts(postedCodes.length ? postedCodes : undefined); // if unknown, nuke all
+            clearRuleDrafts(postedCodes.length ? postedCodes : undefined);
           } catch(_) {}
 
-          // Backend accepted — clear any pending toggle changes
+          // Clear pending toggle changes
           try { window.__pendingPlanActives = {}; } catch(_) {}
 
-          // After rules save: derive and write BRKF/NRF nightly prices into DB for this window
+          // Derive and write BRKF/NRF nightly prices into DB for this window
+          const out = await __writeDerivedPlanPricesToDb(window.currentRoomTypeId);
+          console.log('[plan-rules] derived prices written', out);
+
+          // Refresh plans and repaint UI
           try {
-            const out = await __writeDerivedPlanPricesToDb(window.currentRoomTypeId);
-            console.log('[plan-rules] derived prices written', out);
-            setStatus('Plan rules saved and derived prices written.', 'ok');
-            toast('Saved rules + prices', 'ok');
+            const rid = Number(window.currentRoomTypeId || new URLSearchParams(location.search).get('room') || 0);
+            const fresh = await fetchRatePlansSafe(rid);
+            try {
+              document.dispatchEvent(new CustomEvent('rateplans:fetched', { detail:{ plans: fresh } }));
+            } catch(_){}
+            if (typeof populateRatePlanDropdown === 'function') populateRatePlanDropdown(fresh);
+            if (typeof renderPlansPanel === 'function') renderPlansPanel(fresh);
+          } catch(_) {}
 
-            // Refresh calendar so the new plan prices are visible immediately when switching plans
-            try { if (typeof renderCalendar === 'function') await renderCalendar({ reason: 'plan-rules:derived-prices' }); } catch(_){}
-          } catch (e) {
-            console.warn('[plan-rules] derived price write failed', e);
-            setStatus('Rules saved, but derived prices failed to write. Check console.', 'warn');
-            toast('Rules saved, price write failed', 'warn');
-          }
-
+          return { ok: true, status, derived: out };
         } else {
-          setStatus(`Could not save plan rules (${status || 'ERR'}). UI kept your inputs.`, 'warn');
-          toast('Save skipped — backend not ready', 'warn');
+          throw new Error(`Could not save plan rules (${status || 'ERR'})`);
         }
-
-        // Refresh plans and repaint UI
-        try {
-          const rid = Number(window.currentRoomTypeId || new URLSearchParams(location.search).get('room') || 0);
-          const fresh = await fetchRatePlansSafe(rid);
-          try {
-            document.dispatchEvent(new CustomEvent('rateplans:fetched', { detail:{ plans: fresh } }));
-          } catch(_){}
-          if (typeof populateRatePlanDropdown === 'function') populateRatePlanDropdown(fresh);
-          if (typeof renderPlansPanel === 'function') renderPlansPanel(fresh);
-        } catch(_) {}
       } catch (e) {
         console.warn('Plan rules save error:', e);
-        setStatus('Save failed — see console for details.', 'error');
-        toast('Plan rules save failed', 'error');
+        throw e;
+      }
+    };
+
+    // Keep the existing button working, but route through the same function
+    btn.addEventListener('click', async () => {
+      try {
+        setStatus('Saving rate plans…');
+        disableWhileBusy(true);
+
+        const result = await window.savePlanRulesAndDerivedPrices();
+        setStatus('Plan rules saved and derived prices written.', 'ok');
+        toast('Saved rules + prices', 'ok');
+
+        // Refresh calendar so derived prices are visible when switching plans
+        try { if (typeof renderCalendar === 'function') await renderCalendar({ reason: 'plan-rules:derived-prices' }); } catch(_){}
+      } catch (e) {
+        console.warn('[plan-rules] save failed', e);
+        setStatus('Rules save failed — see console.', 'error');
+        toast('Save failed', 'error');
+      } finally {
+        disableWhileBusy(false);
       }
     });
   })();
-
 })(); // closes the top-level (() => { ... }) wrapper
 </script>
 
