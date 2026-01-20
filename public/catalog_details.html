@@ -3787,18 +3787,16 @@
             });
             if (!room) return null;
 
-            // Option 2: per-plan daily arrays from backend
+            // Strict per-plan selection:
+            // If dailyByPlanId exists, ONLY use dailyByPlanId[String(pid)].
+            // Do NOT fall back to room.daily in that case, because it can mask mapping bugs.
             let daily = null;
-            try {
-              const byPlan = room.dailyByPlanId || null;
-              if (byPlan) {
-                if (byPlan[String(pid)]) daily = byPlan[String(pid)];
-                else if (byPlan[pid]) daily = byPlan[pid];
-              }
-            } catch (_) {}
 
-            // Backward safety: fall back to legacy daily if no per-plan data exists
-            if (!Array.isArray(daily)) {
+            if (room.dailyByPlanId) {
+              const byPlan = room.dailyByPlanId;
+              daily = byPlan[String(pid)] || null;
+              if (!Array.isArray(daily)) return null;
+            } else {
               daily = Array.isArray(room.daily) ? room.daily : [];
             }
 
