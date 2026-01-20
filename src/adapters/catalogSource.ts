@@ -106,6 +106,7 @@ export async function getDetails(args: DetailsArgs): Promise<any | null> {
         id: r.roomId,
         name: r.roomName,
         daily: r.daily,
+        dailyByPlanId: r.dailyByPlanId,
 
         // RoomType metadata (canonical: extranet."RoomType")
         summary: r.summary ?? null,
@@ -276,6 +277,7 @@ export interface RoomsDailyRow {
   // Option 2: per-plan daily payload (keyed by ratePlanId)
   dailyByPlanId?: Record<number, DailyCell[]>;
 }
+
 
 /**
  * getRoomsDailyFromDb
