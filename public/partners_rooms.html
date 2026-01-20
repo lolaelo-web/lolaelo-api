@@ -4603,6 +4603,16 @@
         return;
       }
 
+      // Canonical behavior: after applying STD prices, auto-derive BRKF/NRF for this window
+      try {
+        if (typeof window.savePlanRulesAndDerivedPrices === 'function') {
+          await window.savePlanRulesAndDerivedPrices();
+        }
+      } catch (e) {
+        console.warn('[apply-price] auto-derive failed', e);
+        setStatus('Prices applied, but rate plan prices failed to update. Check console.', 'warn');
+      }
+
       // If server returns a different ratePlanId, sync UI to it (chips-aware)
       if (prcResObj && Number.isFinite(Number(prcResObj.ratePlanId))) {
         const serverPlanId = Number(prcResObj.ratePlanId);
