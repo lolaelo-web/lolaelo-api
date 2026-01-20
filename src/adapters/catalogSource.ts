@@ -85,7 +85,8 @@ export async function getDetails(args: DetailsArgs): Promise<any | null> {
       args.propertyId,
       args.start,
       args.end,
-      rp
+      rp,
+      { persistDerived: true } // DETAILS ONLY: allow insert-only derive-on-demand
     );
 
     if (roomsDaily && roomsDaily.length) {
@@ -272,7 +273,8 @@ export async function getRoomsDailyFromDb(
   propertyId: number,
   startISO: string,
   endISO: string,
-  ratePlanId?: number
+  ratePlanId?: number,
+  opts?: { persistDerived?: boolean }
 ): Promise<RoomsDailyRow[]> {
   // 0) Build full date list (UTC, inclusive start, exclusive end)
   const dates: string[] = [];
@@ -321,18 +323,30 @@ export async function getRoomsDailyFromDb(
   const roomTypeIds = roomTypes.map(r => r.id);
 
   const callerSpecifiedPlan = typeof ratePlanId === "number";
+  const persistDerived = opts?.persistDerived === true;
 
-  // Requested plan rule (kind/value) for derivation
-  let requestedPlanRule: { kind: string; value: number } | null = null;
+  // Requested plan (kind/value + active/code + roomType scope)
+  let requestedPlan: { id: number; roomTypeId: number; code: string; active: boolean; kind: string; value: number } | null = null;
   if (callerSpecifiedPlan) {
     const rp = await prisma.extranet_RatePlan.findUnique({
       where: { id: ratePlanId as number },
-      select: { kind: true, value: true },
+      select: { id: true, roomTypeId: true, code: true, active: true, kind: true, value: true },
     });
+
     if (rp && rp.kind != null) {
-      requestedPlanRule = { kind: String(rp.kind), value: Number(rp.value ?? 0) };
+      requestedPlan = {
+        id: Number(rp.id),
+        roomTypeId: Number(rp.roomTypeId),
+        code: String(rp.code || "").toUpperCase(),
+        active: rp.active === true,
+        kind: String(rp.kind || ""),
+        value: Number(rp.value ?? 0),
+      };
     }
   }
+
+  const requestedPlanRule: { kind: string; value: number } | null =
+  requestedPlan ? { kind: requestedPlan.kind, value: requestedPlan.value } : null;
 
   // STD plan id per roomType (STD is the plan named "Standard")
   const stdPlanByRoomType = new Map<number, number>();
@@ -466,55 +480,122 @@ export async function getRoomsDailyFromDb(
   for (const rt of roomTypes) {
     const prefPlanId = preferredPlanByRoom[rt.id] ?? null;
 
-    const daily = dates.map((d) => {
-      // price lookup
-      let price: number | null = null;
+  const stdSeedRows: Array<{ partnerId: number; roomTypeId: number; ratePlanId: number; date: Date; price: number }> = [];
+  const derivedRows: Array<{ partnerId: number; roomTypeId: number; ratePlanId: number; date: Date; price: number }> = [];
 
-      // 1) Try exact requested plan price (if present)
-      if (prefPlanId != null) {
-        price = priceByPlan.get(`${rt.id}|${d}|plan|${prefPlanId}`) ?? null;
-      }
+  function withinRollingWindow(iso: string): boolean {
+    // match prices/bulk window: today-2 through today+183
+    const t = new Date();
+    const min = new Date(Date.UTC(t.getUTCFullYear(), t.getUTCMonth(), t.getUTCDate()));
+    min.setUTCDate(min.getUTCDate() - 2);
 
-      // 2) If caller specified a plan and explicit daily rows are missing,
-      // derive from effective STD price + plan rule
-      if (price == null && callerSpecifiedPlan) {
+    const max = new Date(Date.UTC(t.getUTCFullYear(), t.getUTCMonth(), t.getUTCDate()));
+    max.setUTCDate(max.getUTCDate() + 183);
+
+    const dt = new Date(iso + "T00:00:00Z");
+    return dt >= min && dt <= max;
+  }
+
+  const daily = dates.map((d) => {
+    let price: number | null = null;
+
+    // 1) Try requested plan price (if present)
+    if (prefPlanId != null) {
+      price = priceByPlan.get(`${rt.id}|${d}|plan|${prefPlanId}`) ?? null;
+    }
+
+    // 2) Strategy 1: if caller specified a plan and it's missing:
+    // - ONLY derive+persist when persistDerived=true AND plan is active AND in rolling window
+    // - Otherwise, leave null (no basePrice fallback for derived plans)
+    if (price == null && callerSpecifiedPlan) {
+      const planOk =
+        persistDerived &&
+        requestedPlan != null &&
+        requestedPlan.active === true &&
+        requestedPlan.code !== "STD" &&
+        requestedPlan.roomTypeId === rt.id &&
+        withinRollingWindow(d);
+
+      if (planOk) {
         const stdId = stdPlanByRoomType.get(rt.id) ?? null;
-        let stdPrice: number | null = null;
 
+        // Determine effective STD price for this date
+        let stdPrice: number | null = null;
         if (stdId != null) {
           stdPrice = priceByPlan.get(`${rt.id}|${d}|plan|${stdId}`) ?? null;
         }
 
-        // Effective STD fallback: basePrice when no STD daily row exists
-        if (stdPrice == null) stdPrice = Number(rt.basePrice);
+        // If STD row missing, seed it insert-only (basePrice) and use basePrice as effective STD
+        if (stdPrice == null) {
+          const bp = Number(rt.basePrice);
+          if (stdId != null && Number.isFinite(bp)) {
+            stdSeedRows.push({
+              partnerId: propertyId,
+              roomTypeId: rt.id,
+              ratePlanId: stdId,
+              date: new Date(d + "T00:00:00Z"),
+              price: bp,
+            });
+          }
+          stdPrice = Number.isFinite(bp) ? bp : null;
+        }
 
-        const derived = applyPlanRule(Number(stdPrice), requestedPlanRule);
-        price = Number.isFinite(derived) ? derived : Number(rt.basePrice);
-      }
-
-      // 3) If no specific plan requested, legacy fallback to any plan is allowed
-      if (price == null && !callerSpecifiedPlan) {
-        for (const [k, v] of priceByPlan) {
-          if (k.startsWith(`${rt.id}|${d}|plan|`)) { price = v; break; }
+        // Derive and persist insert-only
+        if (stdPrice != null && Number.isFinite(Number(stdPrice))) {
+          const derived = applyPlanRule(Number(stdPrice), requestedPlanRule);
+          if (Number.isFinite(derived)) {
+            derivedRows.push({
+              partnerId: propertyId,
+              roomTypeId: rt.id,
+              ratePlanId: ratePlanId as number,
+              date: new Date(d + "T00:00:00Z"),
+              price: derived,
+            });
+            price = derived; // return derived value; persistence is insert-only below
+          }
         }
       }
 
-      // 4) Final fallback
-      if (price == null) price = Number(rt.basePrice);
+      // If plan not OK or derivation failed, keep price as null (no fallback)
+    }
 
-      // inventory+flags
-      // ANCHOR: DAILY_SHAPE_ENRICHED
-      const rec = invIdx.get(`${rt.id}|${d}`) ?? { open: 0, closed: true, minStay: null };
-      return {
-        date: d,
-        inventory: rec.open,
-        price,
-        currency: null,
-        open: rec.open,
-        closed: rec.closed,
-        minStay: rec.minStay,
-      };
+    // 3) If no specific plan requested, legacy fallback is allowed
+    if (price == null && !callerSpecifiedPlan) {
+      for (const [k, v] of priceByPlan) {
+        if (k.startsWith(`${rt.id}|${d}|plan|`)) { price = v; break; }
+      }
+    }
+
+    // 4) Final fallback only for non-caller-specified cases
+    if (price == null && !callerSpecifiedPlan) price = Number(rt.basePrice);
+
+    // inventory+flags
+    // ANCHOR: DAILY_SHAPE_ENRICHED
+    const rec = invIdx.get(`${rt.id}|${d}`) ?? { open: 0, closed: true, minStay: null };
+    return {
+      date: d,
+      inventory: rec.open,
+      price,
+      currency: null,
+      open: rec.open,
+      closed: rec.closed,
+      minStay: rec.minStay,
+    };
+  });
+
+  // Persist insert-only (Strategy 1): seed missing STD + insert missing derived rows
+  if (callerSpecifiedPlan && persistDerived && derivedRows.length) {
+    if (stdSeedRows.length) {
+      await prisma.extranet_RoomPrice.createMany({
+        data: stdSeedRows,
+        skipDuplicates: true,
+      });
+    }
+    await prisma.extranet_RoomPrice.createMany({
+      data: derivedRows,
+      skipDuplicates: true,
     });
+  }
 
     // Normalize jsonb array fields coming from $queryRaw so the UI always gets arrays
     const dk: any = (rt as any).details_keys;
