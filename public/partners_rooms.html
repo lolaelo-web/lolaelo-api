@@ -4843,7 +4843,7 @@
           if (typeof renderPlansPanel === 'function') renderPlansPanel(fresh);
         } catch(_) {}
 
-        return { ok: true, status, derived: out };
+        return { ok: true, status };
       } else {
         throw new Error(`Could not save plan rules (${status || 'ERR'})`);
       }
