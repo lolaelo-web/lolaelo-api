@@ -2970,25 +2970,37 @@
     updateDayDirtyBadge(date);
     updateDirtyUI();
   }
+
   function updateDirtyUI(){
-    const nGrid = dirty.size;
+    const nGrid  = dirty.size;
     const nRooms = pendingRoomUpdates.size;
     const invalidCount = document.querySelectorAll('.chip input.error').length;
-    const totalChanges = nGrid + nRooms;
+
+    // Include pending rateplan changes (rules + toggles) as "saveable changes"
+    const nRule = (window.__pendingPlanRules && Object.keys(window.__pendingPlanRules || {}).length) ? 1 : 0;
+    const nToggle = (window.__pendingPlanActives && Object.keys(window.__pendingPlanActives || {}).length) ? 1 : 0;
+
+    const totalChanges = nGrid + nRooms + nRule + nToggle;
 
     // Build counts string
     const parts = [];
     if (nGrid)  parts.push(`${nGrid} day${nGrid>1?'s':''} changed`);
     if (nRooms) parts.push(`${nRooms} room edit${nRooms>1?'s':''}`);
+    if (nRule)  parts.push(`rate plan rules`);
+    if (nToggle) parts.push(`rate plan toggles`);
     if (invalidCount) parts.push(`${invalidCount} error${invalidCount>1?'s':''}`);
 
     // Buttons
     const saveBtn = el("save");
     const discardBtn = el("discard");
-    if (saveBtn)   saveBtn.disabled   = (totalChanges===0) || busy || (invalidCount>0);
-    if (discardBtn) discardBtn.disabled = (totalChanges===0) || busy;
 
-    // Friendlier message with CTA, while keeping counts
+    const canSave = (totalChanges > 0) && !busy && (invalidCount === 0);
+    const canDiscard = (totalChanges > 0) && !busy;
+
+    if (saveBtn)    saveBtn.disabled = !canSave;
+    if (discardBtn) discardBtn.disabled = !canDiscard;
+
+    // Header message
     let msg = "No changes";
     if (invalidCount > 0){
       msg = `Fix ${invalidCount} error${invalidCount>1?'s':''} to enable Save` + (totalChanges ? ` — ${parts.join(" + ")}` : "");
@@ -4411,29 +4423,25 @@
     if (currentRangeStart) scrollToDate(currentRangeStart);
 
     updateDirtyUI();
-    if (!status.className.includes("ok")) {
-      const hasGridEdits = (typeof dirty !== 'undefined' && dirty && typeof dirty.size === 'number' && dirty.size > 0);
-      const hasRuleEdits = !!(window.__pendingPlanRules && Object.keys(window.__pendingPlanRules || {}).length);
-      const hasToggleEdits = !!(window.__pendingPlanActives && Object.keys(window.__pendingPlanActives || {}).length);
 
-      const pending = hasGridEdits || hasRuleEdits || hasToggleEdits;
+    // Status line only (button enablement is handled by updateDirtyUI)
+    try {
+      if (!status.className.includes("ok")) {
+        const hasGridEdits = (typeof dirty !== 'undefined' && dirty && typeof dirty.size === 'number' && dirty.size > 0);
+        const hasRuleEdits = !!(window.__pendingPlanRules && Object.keys(window.__pendingPlanRules || {}).length);
+        const hasToggleEdits = !!(window.__pendingPlanActives && Object.keys(window.__pendingPlanActives || {}).length);
 
-      if (pending) {
-        setStatus("Changes pending. Click Save Changes.", "");
-        try { status.classList.add('status-pending'); } catch(_) {}
-      } else {
-        setStatus("Calendar ready.", "");
-        try { status.classList.remove('status-pending'); } catch(_) {}
+        const pending = hasGridEdits || hasRuleEdits || hasToggleEdits;
+
+        if (pending) {
+          setStatus("Changes pending. Click Save Changes.", "");
+          try { status.classList.add('status-pending'); } catch(_) {}
+        } else {
+          setStatus("Calendar ready.", "");
+          try { status.classList.remove('status-pending'); } catch(_) {}
+        }
       }
-
-      // Keep Save/Discard enabled state consistent with pending changes
-      try {
-        const saveBtn = document.getElementById('save');
-        const discardBtn = document.getElementById('discard');
-        if (saveBtn) saveBtn.disabled = !pending;
-        if (discardBtn) discardBtn.disabled = !pending;
-      } catch(_) {}
-    }
+    } catch (_) {}
 
     // Notify listeners that a render just completed (used by Apply buttons, etc.)
     try { document.dispatchEvent(new Event('calendar:rendered')); } catch(_) {}
