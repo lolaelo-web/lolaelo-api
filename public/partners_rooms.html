@@ -5792,11 +5792,12 @@
     try { window.__planRulesDirty = false; } catch(_) {}
   });
 
-  // Expose pending rules for later POST (next step will use this)
-  window.__pendingPlanRules = state;
-  try { window.__planRulesDirty = false; } catch(_) {}
-  })();
-  </script>
+   // Expose pending rules for later POST (next step will use this)
+   window.__pendingPlanRules = state;
+   try { window.__planRulesDirty = false; } catch(_) {}
+  })();            // closes wirePlanRuleEditors IIFE (or current IIFE)
+})();            // closes the top-level (() => { ... }) wrapper for script #1
+</script>
 
 <!-- FP: MN-HARDFIX-LOCK — single source of truth for month-nav; exact 3-week stepping -->
 <script>
