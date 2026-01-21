@@ -227,16 +227,20 @@
       justify-self:end;
       display:inline-flex;
       align-items:center;
-      gap:8px;
+      justify-content:center;
+
+      /* 👇 width expansion */
+      min-width:96px;        /* ~4x icon-only width */
+      height:40px;
+      padding:0 16px;
+
       border:1px solid var(--line);
       background:#fff;
       color: var(--fg);
       text-decoration:none;
-      font-weight:600;
-      font-size:13px;
-      padding:8px 12px;
       border-radius:999px;
-      box-shadow: 0 4px 12px rgba(15,23,42,0.06);
+      box-shadow:0 4px 12px rgba(15,23,42,0.06);
+      position:relative;
     }
 
     .details-cart-btn:hover{
@@ -291,6 +295,21 @@
       line-height:1.3;
       font-weight:600;
       color:var(--fg);
+    }
+
+    .title-centered{
+      text-align:center;
+    }
+
+    .title-centered .title-inner{
+      display:inline-flex;
+      align-items:center;
+    }
+
+    .details-cart-icon{
+      width:18px;
+      height:18px;
+      display:block;
     }
 
     /* Hotel name styling */
@@ -2055,12 +2074,6 @@
 
     #detailsCheckoutConflictConfirm .btn-primary{
       cursor: pointer;
-    }
-
-    .details-cart-icon{
-      width:18px;
-      height:18px;
-      display:block;
     }
 
   </style>
