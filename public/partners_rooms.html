@@ -4779,24 +4779,56 @@
         return { code, name, kind: unit, value, active };
       }).filter(p => p && p.code);
 
-      // Try backend save (rules + active toggles)
-      let status = 0, ok = false, res;
+      // Try backend save (rules + active toggles) — PROPERTY-WIDE CONSISTENCY
+      // Apply the same BRKF/NRF rules + active toggles across ALL room types for this property.
+      let status = 0, ok = false;
+
       try {
         const pid = await getRatePlanPropertyId();
-        const rid = Number(window.currentRoomTypeId);
-        if (!Number.isFinite(pid) || pid <= 0 || !Number.isFinite(rid) || rid <= 0) throw new Error('missing ids');
+        if (!Number.isFinite(pid) || pid <= 0) throw new Error('missing propertyId');
 
-        const postUrl =
-          `/extranet/property/rateplans?propertyId=${encodeURIComponent(String(pid))}` +
-          `&roomTypeId=${encodeURIComponent(String(rid))}`;
+        // Load all room types for this property
+        const roomsRes = await authFetch('/extranet/property/rooms', { method: 'GET', cache: 'no-store' });
+        status = roomsRes ? roomsRes.status : 0;
+        if (!roomsRes || !roomsRes.ok) throw new Error('failed to load room types (' + status + ')');
 
-        res = await authFetch(postUrl, {
-          method: 'POST',
-          body: JSON.stringify({ plans })
-        });
-        status = res ? res.status : 0;
-        ok = !!(res && res.ok);
-      } catch(_){}
+        const rooms = await roomsRes.json().catch(() => []);
+        const roomTypeIds = (Array.isArray(rooms) ? rooms : [])
+          .map(r => Number(r && r.id))
+          .filter(n => Number.isFinite(n) && n > 0);
+
+        if (!roomTypeIds.length) throw new Error('no room types found for property');
+
+        // Post the same plan config to every roomTypeId
+        const failures = [];
+        for (const roomTypeId of roomTypeIds) {
+          const postUrl =
+            `/extranet/property/rateplans?propertyId=${encodeURIComponent(String(pid))}` +
+            `&roomTypeId=${encodeURIComponent(String(roomTypeId))}`;
+
+          const r = await authFetch(postUrl, {
+            method: 'POST',
+            body: JSON.stringify({ plans })
+          });
+
+          status = r ? r.status : 0;
+          if (!r || !r.ok) {
+            let txt = '';
+            try { txt = await r.text(); } catch(_) {}
+            failures.push({ roomTypeId, status, body: (txt || '').slice(0, 200) });
+          }
+        }
+
+        if (failures.length) {
+          console.warn('[plan-rules] property-wide save failures', failures);
+          throw new Error('Could not save plan rules for all room types. Failures: ' + failures.length);
+        }
+
+        ok = true;
+      } catch (e) {
+        console.warn('[plan-rules] property-wide save error', e);
+        ok = false;
+      }
 
       if (ok) {
         // Clear drafts for posted codes
@@ -4808,16 +4840,15 @@
         // Clear pending toggle changes
         try { window.__pendingPlanActives = {}; } catch(_) {}
         try { window.__planRulesDirty = false; } catch(_) {}
+
         // Materialize derived nightly prices into DB for this window (server-side)
-        // We trigger /catalog/details for the active roomType window so backend derive-on-demand persists rows.
+        // Trigger /catalog/details so backend derive-on-demand persists rows.
         try {
           const pid = Number(await getRatePlanPropertyId());
-          const rid = Number(window.currentRoomTypeId);
           const startISO = String(window.currentRangeStart || el('range-start')?.value || '');
           const endISO   = String(window.currentRangeEnd   || el('range-end')?.value   || '');
 
-          if (Number.isFinite(pid) && pid > 0 && Number.isFinite(rid) && rid > 0 && startISO && endISO) {
-            // Use Render origin to bypass any caching layers
+          if (Number.isFinite(pid) && pid > 0 && startISO && endISO) {
             const url = `${API_BASE}/catalog/details?propertyId=${encodeURIComponent(String(pid))}` +
               `&start=${encodeURIComponent(startISO)}&end=${encodeURIComponent(endISO)}`;
 
@@ -4832,7 +4863,7 @@
           console.warn('[plan-rules] derive trigger error', e);
         }
 
-        // Refresh plans and repaint UI
+        // Refresh plans and repaint UI for the CURRENT room (enough for user feedback)
         try {
           const rid = Number(window.currentRoomTypeId || new URLSearchParams(location.search).get('room') || 0);
           const fresh = await fetchRatePlansSafe(rid);
