@@ -255,13 +255,6 @@
     color: var(--muted);
   }
 
-  /* === FIX: prevent Section 1 body from collapsing to height:0 during async load === */
-  .section-body[data-section-body="1"]{
-    height: auto !important;
-    max-height: none !important;
-    overflow: visible !important;
-  }
-
   .section-body.hidden {
     display: none;
   }
@@ -2117,12 +2110,24 @@
 
       // 2) Update visible UI in-place (no re-render needed)
       const cards = Array.from(document.querySelectorAll('.section-body[data-section-body="1"] .dates-grid[data-lineid]'));
-      // Hide the template card so it never shows as an "empty $0 card"
+      // Only hide the "template" card if it is truly a template (no rendered lineId).
+      // In cart mode with a single item, roomPriceCardTemplate IS the real card and must stay visible.
       const tpl = document.getElementById("roomPriceCardTemplate");
-      if (tpl) tpl.style.display = "none";
+      if (tpl) {
+        const hasLineId =
+          !!tpl.getAttribute("data-lineid") ||
+          !!tpl.getAttribute("data-lineId") ||
+          !!(tpl.dataset && (tpl.dataset.lineid || tpl.dataset.lineId));
 
-      // Empty checkout state when there are no real rendered cards
-      const isEmpty = !cards.length;
+        // Hide only when it has NOT been tagged as a real rendered card.
+        tpl.style.display = hasLineId ? "" : "none";
+      }
+
+      // Empty checkout state when there are no real rendered cards (re-evaluate after tpl visibility change)
+      const cardsNow = Array.from(document.querySelectorAll('.section-body[data-section-body="1"] .dates-grid[data-lineid]'))
+        .filter(el => (el instanceof HTMLElement) && getComputedStyle(el).display !== "none");
+
+      const isEmpty = !cardsNow.length;
       setCheckoutEmptyStateVisible(isEmpty);
       cards.forEach(card => {
         const idEl = card.querySelector('[data-role="propertyIdValue"],[data-orig-id="propertyIdValue"],#propertyIdValue');
