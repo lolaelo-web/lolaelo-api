@@ -3571,6 +3571,58 @@
       box.style.display = isEmpty ? "" : "none";
     }
 
+    function syncEmptyCheckoutUIFromCart() {
+      let cart = null;
+      try { cart = loadCartV1(); } catch (_) { cart = null; }
+      const items = cart && Array.isArray(cart.items) ? cart.items : [];
+
+      const root = document.getElementById("roomPriceCardsRoot");
+      const tpl  = document.getElementById("roomPriceCardTemplate");
+
+      const isEmpty = !items.length;
+
+      // Show/hide the empty state banner
+      setCheckoutEmptyStateVisible(isEmpty);
+
+      if (isEmpty) {
+        // Hide the template card so the user doesn't see the $0 skeleton
+        if (tpl) tpl.style.display = "none";
+
+        // Remove any cloned cards
+        if (root) root.querySelectorAll(".dates-grid.__li").forEach(n => n.remove());
+
+        // Reset right-side summary to avoid misleading labels
+        try {
+          const sp = document.getElementById("summaryProperty");
+          const sd = document.getElementById("summaryDates");
+          const sr = document.getElementById("summaryRooms");
+          const sn = document.getElementById("summaryNightsVisible");
+          const st = document.getElementById("summaryTotal");
+
+          if (sp) sp.textContent = "No property selected";
+          if (sd) sd.textContent = "--";
+          if (sr) sr.textContent = "--";
+          if (sn) sn.textContent = "--";
+          if (st) st.textContent = "--";
+        } catch (_) {}
+
+        // Prevent user from getting "stuck" on Section 1 confirm
+        try {
+          const btn = document.getElementById("confirmRoomPriceBtn");
+          if (btn) btn.disabled = true;
+        } catch (_) {}
+      } else {
+        // If not empty, ensure template is visible (it becomes the first real card)
+        if (tpl) tpl.style.display = "";
+        try {
+          const btn = document.getElementById("confirmRoomPriceBtn");
+          if (btn) btn.disabled = false;
+        } catch (_) {}
+      }
+
+      return !isEmpty;
+    }
+
     function normalizeRoomPriceCardsUI() {
       const cards = Array.from(
         document.querySelectorAll('.section-body[data-section-body="1"] .dates-grid')
@@ -3777,7 +3829,11 @@
             if (it0.planLabel) qsNext.set("planLabel", String(it0.planLabel));
           } else {
             // No items left: clear selection params so nothing can be re-added
-            ["propertyId","roomId","ratePlanId","qty","start","end","propertyName","propertyLocation","roomName","planLabel","plans"].forEach(k => qsNext.delete(k));
+            ["propertyId","roomId","ratePlanId","qty","start","end","propertyName","propertyLocation","roomName","planLabel","plans"]
+              .forEach(k => qsNext.delete(k));
+
+            // NEW: show the empty-state UI immediately (avoid $0 skeleton flash)
+            try { syncEmptyCheckoutUIFromCart(); } catch (_) {}
           }
 
           location.replace(`${location.pathname}?${qsNext.toString()}`);
@@ -4387,6 +4443,10 @@
       updateSummaries();
       refreshSections();
       renderRoomPriceCardsFromCart();
+
+      // NEW: ensure empty-cart banner wins if cart is empty
+      syncEmptyCheckoutUIFromCart();
+
       loadAddonsForProperty();
       normalizeRoomPriceCardsUI();
 
