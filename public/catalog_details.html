@@ -215,11 +215,47 @@
     /* ANCHOR: DETAILS_TOPBAR_CSS */
     .topbar{
       display:grid;
-      grid-template-columns: auto 1fr; /* logo | title */
+      grid-template-columns: auto 1fr auto; /* logo | title | cart */
       align-items:center;
       column-gap:12px;
       padding:12px 16px 8px;
       border-bottom:1px solid var(--line);
+    }
+
+    /* DETAILS: top-right checkout cart button */
+    .details-cart-btn{
+      justify-self:end;
+      display:inline-flex;
+      align-items:center;
+      gap:8px;
+      border:1px solid var(--line);
+      background:#fff;
+      color: var(--fg);
+      text-decoration:none;
+      font-weight:600;
+      font-size:13px;
+      padding:8px 12px;
+      border-radius:999px;
+      box-shadow: 0 4px 12px rgba(15,23,42,0.06);
+    }
+
+    .details-cart-btn:hover{
+      filter: brightness(.98);
+    }
+
+    .details-cart-count{
+      display:inline-flex;
+      align-items:center;
+      justify-content:center;
+      min-width:20px;
+      height:20px;
+      padding:0 6px;
+      border-radius:999px;
+      background: var(--bubble);
+      color:#fff;
+      font-size:12px;
+      font-weight:700;
+      line-height:1;
     }
 
     .topbar .logo{
@@ -2002,6 +2038,31 @@
       }
     }
 
+    /* === DETAILS CHECKOUT CONFLICT MODAL (matches checkout confirmRemoveLineItemUI) === */
+    #detailsCheckoutConflictConfirm .btn-primary,
+    #detailsCheckoutConflictConfirm .pill-outline{
+      border-radius: 999px;
+      min-height: 40px;
+      padding: 8px 18px;
+      font-weight: 600;
+      font-size: 14px;
+      line-height: 1;
+    }
+
+    #detailsCheckoutConflictConfirm .pill-outline{
+      cursor: pointer;
+    }
+
+    #detailsCheckoutConflictConfirm .btn-primary{
+      cursor: pointer;
+    }
+
+    .details-cart-icon{
+      width:18px;
+      height:18px;
+      display:block;
+    }
+
   </style>
 </head>
 <body>
@@ -2030,6 +2091,7 @@
             loading="eager"
           >
         </a>
+
         <h1 class="title">
           <span>
             <span id="prop-name">Loading…</span>
@@ -2037,6 +2099,27 @@
           </span>
           <div id="stay-range" class="stay-range" style="display:none;"></div>
         </h1>
+
+        <!-- top-right checkout cart -->
+        <a
+          id="detailsCartBtn"
+          class="details-cart-btn"
+          href="/checkout.html"
+          aria-label="Go to checkout"
+        >
+          <img
+            src="/images/checkout.png"
+            alt=""
+            class="details-cart-icon"
+            aria-hidden="true"
+          >
+          <span class="details-cart-label">Checkout</span>
+          <span
+            id="detailsCartCount"
+            class="details-cart-count"
+            style="display:none;"
+          >0</span>
+        </a>
       </div>
       <!-- /ANCHOR: DETAILS_TOPBAR -->
     </header>
@@ -2309,6 +2392,32 @@
 
     const qs = new URLSearchParams(location.search || '');
 
+    function detailsGetCartCount(){
+      try{
+        const raw = localStorage.getItem("checkout.cart.v1") || "";
+        const cart = raw ? JSON.parse(raw) : null;
+        const items = cart && Array.isArray(cart.items) ? cart.items : [];
+        return items.length;
+      }catch(_){
+        return 0;
+      }
+    }
+
+    function detailsSyncCartBadge(){
+      const btn = document.getElementById("detailsCartBtn");
+      const badge = document.getElementById("detailsCartCount");
+      if (!btn || !badge) return;
+
+      const n = detailsGetCartCount();
+      if (n > 0){
+        badge.textContent = String(n);
+        badge.style.display = "inline-flex";
+      } else {
+        badge.textContent = "0";
+        badge.style.display = "none";
+      }
+    }
+
     // Shared params for this page
     const propertyId =
       Number(qs.get('propertyId') || qs.get('partnerId') || '') || '';
@@ -2374,6 +2483,13 @@
       if (pid > 0) {
         waTrack("view_property", { partnerId: pid }, 0);
       }
+
+      // Sync top-right cart badge (count of line items in checkout.cart.v1)
+      try {
+        if (typeof detailsSyncCartBadge === "function") {
+          detailsSyncCartBadge();
+        }
+      } catch (_) {}
     });
     // === ANALYTICS (V2) END ===============================================
 
@@ -4569,6 +4685,16 @@
 
                   tryAppend(item) {
                     const existing = this.load();
+                    const incomingPid = String(item && item.propertyId || "");
+
+                    // If cart already has a property, block different-property appends early.
+                    if (existing && Array.isArray(existing.items) && existing.items.length) {
+                      const existingPid = String(existing.items[0] && existing.items[0].propertyId || "");
+                      if (existingPid && incomingPid && existingPid !== incomingPid) {
+                        return { ok: false, cart: existing || null, reason: "different_property" };
+                      }
+                    }
+
                     const cart = existing || this.newCartWithItem(item);
 
                     if (existing) {
@@ -4577,11 +4703,11 @@
                     }
 
                     if (!this.isContinuousOrAdjacent(cart.items)) {
-                      return { ok: false, cart: existing || null };
+                      return { ok: false, cart: existing || null, reason: "dates_gap" };
                     }
 
                     this.save(cart);
-                    return { ok: true, cart };
+                    return { ok: true, cart, reason: null };
                   },
 
                   clearAndStart(item) {
@@ -4681,28 +4807,159 @@
                   // Try to append. If continuity breaks, prompt for next action.
                   const res = CartV1.tryAppend(item);
 
+                  try {
+                    console.log("[details] tryAppend", {
+                      ok: !!(res && res.ok),
+                      reason: res && res.reason,
+                      propertyId: item && item.propertyId,
+                      cartCount: (function(){ try{ return (JSON.parse(localStorage.getItem("checkout.cart.v1")||"{}").items||[]).length }catch(_){ return -1 } })()
+                    });
+                  } catch (_) {}
+
+                  if (res && res.ok) {
+                    try {
+                      if (typeof detailsSyncCartBadge === "function") {
+                        detailsSyncCartBadge();
+                      }
+                    } catch (_) {}
+                  }
+
                   if (!res.ok) {
                     e.preventDefault();
 
-                    const msg =
-                      "This checkout supports one trip at a time. Multiple hotels are allowed only if dates are continuous or back-to-back.\n\n" +
-                      "Choose:\n" +
-                      "1 = Finish current trip (go to checkout, do not add)\n" +
-                      "2 = Clear cart and start new trip\n" +
-                      "3 = Cancel";
+                    // Styled modal (clone of checkout.html remove-line-item modal, adapted copy + actions)
+                    (function showCheckoutConflictModal(opts){
+                      opts = opts || {};
 
-                    const choice = (window.prompt(msg, "3") || "").trim();
+                      // Remove existing modal if any
+                      const old = document.getElementById("detailsCheckoutConflictConfirm");
+                      if (old) old.remove();
 
-                    if (choice === "1") {
-                      window.location.href = url.toString();
-                      return;
-                    }
-                    if (choice === "2") {
-                      CartV1.clearAndStart(item);
-                      window.location.href = url.toString();
-                      return;
-                    }
-                    // cancel: do nothing
+                      const backdrop = document.createElement("div");
+                      backdrop.id = "detailsCheckoutConflictConfirm";
+                      backdrop.style.position = "fixed";
+                      backdrop.style.left = "0";
+                      backdrop.style.top = "0";
+                      backdrop.style.right = "0";
+                      backdrop.style.bottom = "0";
+                      backdrop.style.background = "rgba(15, 28, 46, 0.35)";
+                      backdrop.style.display = "flex";
+                      backdrop.style.alignItems = "center";
+                      backdrop.style.justifyContent = "center";
+                      backdrop.style.zIndex = "9999";
+                      backdrop.style.padding = "18px";
+
+                      const card = document.createElement("div");
+                      card.style.background = "#fff";
+                      card.style.border = "1px solid rgba(15, 28, 46, 0.12)";
+                      card.style.borderRadius = "16px";
+                      card.style.maxWidth = "460px";
+                      card.style.width = "100%";
+                      card.style.boxShadow = "0 12px 30px rgba(15, 28, 46, 0.18)";
+                      card.style.padding = "16px 16px 14px 16px";
+                      card.style.fontFamily = "Inter, system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif";
+
+                      const title = document.createElement("div");
+                      title.textContent = "Finish your current stay or start a new one?";
+                      title.style.fontWeight = "700";
+                      title.style.fontSize = "14px";
+                      title.style.color = "#0F1C2E";
+
+                      const body = document.createElement("div");
+                      body.style.marginTop = "6px";
+                      body.style.fontSize = "13px";
+                      body.style.color = "rgba(15, 28, 46, 0.8)";
+                      body.style.lineHeight = "1.35";
+                      body.textContent =
+                        "Checkout supports one hotel per trip. You can add multiple date windows for the same hotel (continuous or back-to-back).";
+
+                      const actions = document.createElement("div");
+                      actions.style.display = "flex";
+                      actions.style.gap = "10px";
+                      actions.style.justifyContent = "flex-end";
+                      actions.style.flexWrap = "wrap";
+                      actions.style.marginTop = "12px";
+
+                      // Cancel (pill-outline)
+                      const cancelBtn = document.createElement("button");
+                      cancelBtn.type = "button";
+                      cancelBtn.textContent = "Cancel";
+                      cancelBtn.className = "pill-outline";
+                      cancelBtn.style.minHeight = "40px";
+                      cancelBtn.style.minWidth  = "96px";
+                      cancelBtn.style.padding   = "8px 18px";
+                      cancelBtn.style.borderRadius = "999px";
+                      cancelBtn.style.fontWeight = "600";
+                      cancelBtn.style.fontSize = "14px";
+                      cancelBtn.style.lineHeight = "1";
+                      cancelBtn.style.cursor = "pointer";
+
+                      // Clear + start new (pill-outline to match secondary action vibe)
+                      const clearBtn = document.createElement("button");
+                      clearBtn.type = "button";
+                      clearBtn.textContent = "Clear cart and start new stay";
+                      clearBtn.className = "pill-outline";
+                      clearBtn.style.minHeight = "40px";
+                      clearBtn.style.padding   = "8px 18px";
+                      clearBtn.style.borderRadius = "999px";
+                      clearBtn.style.fontWeight = "600";
+                      clearBtn.style.fontSize = "14px";
+                      clearBtn.style.lineHeight = "1";
+                      clearBtn.style.cursor = "pointer";
+
+                      // Continue to checkout (primary)
+                      const goBtn = document.createElement("button");
+                      goBtn.type = "button";
+                      goBtn.textContent = "Continue to checkout";
+                      goBtn.className = "btn-primary";
+                      goBtn.style.minHeight = "40px";
+                      goBtn.style.padding = "8px 18px";
+                      goBtn.style.borderRadius = "999px";
+                      goBtn.style.fontWeight = "600";
+                      goBtn.style.fontSize = "14px";
+                      goBtn.style.lineHeight = "1";
+
+                      function close() { backdrop.remove(); }
+
+                      backdrop.addEventListener("click", (ev) => {
+                        if (ev.target === backdrop) close();
+                      });
+
+                      cancelBtn.addEventListener("click", () => close());
+
+                      goBtn.addEventListener("click", () => {
+                        close();
+                        try { opts.onGo && opts.onGo(); } catch(_) {}
+                      });
+
+                      clearBtn.addEventListener("click", () => {
+                        close();
+                        try { opts.onClear && opts.onClear(); } catch(_) {}
+                      });
+
+                      actions.appendChild(cancelBtn);
+                      actions.appendChild(clearBtn);
+                      actions.appendChild(goBtn);
+
+                      card.appendChild(title);
+                      card.appendChild(body);
+                      card.appendChild(actions);
+
+                      backdrop.appendChild(card);
+                      document.body.appendChild(backdrop);
+                      })({
+                        body: (res && res.reason === "dates_gap")
+                          ? "Your dates must be continuous or back-to-back (no gaps) for this trip."
+                          : "Checkout supports one hotel per trip. To book another hotel, finish this checkout and start a new one.",
+                        onGo: () => {
+                          window.location.href = url.toString();
+                        },
+                        onClear: () => {
+                          CartV1.clearAndStart(item);
+                          detailsSyncCartBadge();
+                          window.location.href = url.toString();
+                        }
+                      });
                     return;
                   }
 
@@ -4750,6 +5007,18 @@
         // Also react to cross-tab/local edits (selectedIds, customLabels)
         window.addEventListener('storage', (e) => {
           if (!e) return;
+
+          // Update cart badge if checkout cart changes in another tab
+          if (e.key === "checkout.cart.v1") {
+            try {
+              if (typeof detailsSyncCartBadge === "function") {
+                detailsSyncCartBadge();
+              }
+            } catch (_) {}
+            return;
+          }
+
+          // Re-hydrate plans if partner selection/labels changed
           if (e.key === 'rateplan.selectedIds' || e.key === 'rateplan.customLabels') {
             (async () => { try { await (async function(){ await hydratePlansFromPartners?.(); })(); } catch(_){} })();
           }
