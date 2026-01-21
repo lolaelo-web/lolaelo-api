@@ -15,6 +15,9 @@ const TBL_PROFILE = `extranet."PropertyProfile"`;
 const TBL_DOC     = `extranet."PropertyDocument"`;
 const TBL_PHOTO   = `extranet."PropertyPhoto"`;
 const TBL_ADDON   = `extranet."AddOn"`;
+const TBL_ROOMTYPE  = `extranet."RoomType"`;
+const TBL_RATEPLAN  = `extranet."RatePlan"`;
+const TBL_ROOMPRICE = `extranet."RoomPrice"`;
 
 // --- S3 helpers (for document/photo hard-delete) ---
 const s3Region =
@@ -1298,6 +1301,236 @@ r.delete("/documents/:id", async (req, res) => {
   } catch (e) {
     console.error("[documents:delete] db error", e);
     return res.status(500).json({ error: "Document delete failed" });
+  }
+});
+
+// ============================================================================
+// POST /extranet/property/rateplans/materialize-derived
+// Materialize BRKF/NRF (and any non-STD active plans with kind/value) from STD
+// across ALL room types in a property for a rolling window.
+// - Seeds missing STD rows from RoomType.basePrice (insert-only)
+// - Overwrites derived rows (upsert) because current rules are authoritative
+// ============================================================================
+r.post("/rateplans/materialize-derived", requirePartner, async (req, res) => {
+  // Auth middleware sets partner identity, but the property name varies across routes.
+  // Accept all known shapes.
+  const partnerId = Number(
+    (req as any).partnerId ??
+    (req as any).partner?.id ??
+    (req as any).session?.partnerId ??
+    (req as any).user?.partnerId ??
+    (req as any).user?.id ??
+    0
+  );
+
+  if (!Number.isFinite(partnerId) || partnerId <= 0) {
+    return res.status(401).json({ error: "unauthorized" });
+  }
+
+  // Window: today-2 through today+183 by default (matches your guardrails)
+  const q: any = req.query || {};
+  const startQ = String(q.start || "").trim();
+  const endQ   = String(q.end || "").trim();
+
+  // Expect YYYY-MM-DD strings
+  const ymdRx = /^\d{4}-\d{2}-\d{2}$/;
+  const start = ymdRx.test(startQ) ? startQ : null;
+  const end   = ymdRx.test(endQ) ? endQ : null;
+
+  // If caller doesn’t supply, compute defaults in SQL using CURRENT_DATE
+  const startSql = start ? `$1::date` : `(CURRENT_DATE - INTERVAL '2 days')::date`;
+  const endSql   = end   ? `$2::date` : `(CURRENT_DATE + INTERVAL '183 days')::date`;
+
+  // Params array aligns with start/end only when provided
+  const params: any[] = [];
+  if (start) params.push(start);
+  if (end)   params.push(end);
+
+  const client = await pool.connect();
+  try {
+    await client.query("BEGIN");
+
+    // 1) All room types for this property
+    const rtRows = await client.query(
+      `SELECT "id","basePrice"
+         FROM ${TBL_ROOMTYPE}
+        WHERE "partnerId" = $${params.length + 1}
+        ORDER BY "id" ASC`,
+      [...params, partnerId]
+    );
+    const roomTypes = rtRows.rows || [];
+    if (!roomTypes.length) {
+      await client.query("COMMIT");
+      return res.json({ ok: true, partnerId, roomTypes: 0, window: { start: start || "auto", end: end || "auto" }, upserted: 0, seededStd: 0 });
+    }
+
+    let totalSeededStd = 0;
+    let totalUpsertedDerived = 0;
+    const perRoom: any[] = [];
+
+    // Helper: round to 2 dp numeric
+    const round2 = (n: number) => Math.round(n * 100) / 100;
+
+    for (const rt of roomTypes) {
+      const roomTypeId = Number(rt.id);
+      const basePriceRaw = rt.basePrice;
+      const basePrice = basePriceRaw == null ? NaN : Number(basePriceRaw);
+
+      // 2) Fetch plans for this room type
+      const plansRes = await client.query(
+        `SELECT "id","code","kind","value","active"
+           FROM ${TBL_RATEPLAN}
+          WHERE "partnerId" = $1 AND "roomTypeId" = $2`,
+        [partnerId, roomTypeId]
+      );
+      const plans = plansRes.rows || [];
+
+      // Find STD
+      const stdPlan = plans.find((p: any) => String(p.code || "").trim().toUpperCase() === "STD");
+      const stdPlanId = stdPlan ? Number(stdPlan.id) : NaN;
+      if (!Number.isFinite(stdPlanId) || stdPlanId <= 0) {
+        perRoom.push({ roomTypeId, skipped: true, reason: "missing STD plan" });
+        continue;
+      }
+
+      // Derived candidates: active and not STD, and has kind/value rules
+      const derivedPlans = plans.filter((p: any) => {
+        const code = String(p.code || "").trim().toUpperCase();
+        if (!p.active) return false;
+        if (code === "STD") return false;
+        const kind = String(p.kind || "").trim().toUpperCase();
+        // only materialize rule-based plans
+        return kind === "ABSOLUTE" || kind === "PERCENT";
+      });
+
+      if (!derivedPlans.length) {
+        perRoom.push({ roomTypeId, stdPlanId, derivedPlans: 0, seededStd: 0, upsertedDerived: 0 });
+        continue;
+      }
+
+      // 3) Seed missing STD rows for the window (insert-only) using basePrice
+      // If basePrice is missing/invalid, we cannot seed missing STD days safely.
+      let seededStd = 0;
+      if (Number.isFinite(basePrice) && basePrice > 0) {
+        const seedRes = await client.query(
+          `
+          WITH days AS (
+            SELECT generate_series(${startSql}, (${endSql} - INTERVAL '1 day')::date, INTERVAL '1 day')::date AS d
+          ),
+          missing AS (
+            SELECT d.d
+              FROM days d
+              LEFT JOIN ${TBL_ROOMPRICE} p
+                ON p."roomTypeId" = $${params.length + 1}
+               AND p."ratePlanId" = $${params.length + 2}
+               AND (p."date")::date = d.d
+             WHERE p."id" IS NULL
+          )
+          INSERT INTO ${TBL_ROOMPRICE}
+            ("partnerId","roomTypeId","ratePlanId","date","price","createdAt","updatedAt")
+          SELECT
+            $${params.length + 3}::int,
+            $${params.length + 1}::int,
+            $${params.length + 2}::int,
+            m.d::date,
+            $${params.length + 4}::numeric,
+            NOW(),
+            NOW()
+          FROM missing m
+          ON CONFLICT ("roomTypeId","date","ratePlanId") DO NOTHING
+          `,
+          [...params, roomTypeId, stdPlanId, partnerId, round2(basePrice)]
+        );
+        // seedRes.rowCount is not reliable for INSERT..SELECT in some cases, but good enough for reporting
+        seededStd = Number(seedRes.rowCount || 0);
+        totalSeededStd += seededStd;
+      }
+
+      // 4) Load STD nightly prices for the window (date::date)
+      const stdPricesRes = await client.query(
+        `
+        SELECT (p."date")::date AS d, p."price"::numeric AS price
+          FROM ${TBL_ROOMPRICE} p
+         WHERE p."roomTypeId" = $${params.length + 1}
+           AND p."ratePlanId" = $${params.length + 2}
+           AND (p."date")::date >= ${startSql}
+           AND (p."date")::date <  ${endSql}
+         ORDER BY d ASC
+        `,
+        [...params, roomTypeId, stdPlanId]
+      );
+      const stdDaily = stdPricesRes.rows || [];
+      if (!stdDaily.length) {
+        perRoom.push({ roomTypeId, stdPlanId, derivedPlans: derivedPlans.length, seededStd, upsertedDerived: 0, note: "no STD daily rows in window" });
+        continue;
+      }
+
+      // 5) Upsert derived prices (overwrite allowed) for each derived plan
+      let upsertedDerived = 0;
+
+      for (const dp of derivedPlans) {
+        const dpId = Number(dp.id);
+        const kind = String(dp.kind || "").trim().toUpperCase();
+        const valRaw = dp.value == null ? 0 : Number(dp.value);
+        const val = Number.isFinite(valRaw) ? valRaw : 0;
+
+        // compute and upsert day-by-day
+        for (const row of stdDaily) {
+          const d = row.d; // date
+          const stdP = Number(row.price);
+          if (!Number.isFinite(stdP)) continue;
+
+          let derived = stdP;
+          if (kind === "ABSOLUTE") derived = stdP + val;
+          else if (kind === "PERCENT") derived = stdP * (1 + (val / 100));
+
+          if (!Number.isFinite(derived)) continue;
+          if (derived < 0) derived = 0;
+
+          const up = await client.query(
+            `
+            INSERT INTO ${TBL_ROOMPRICE}
+              ("partnerId","roomTypeId","ratePlanId","date","price","createdAt","updatedAt")
+            VALUES
+              ($1,$2,$3,$4::date,$5,NOW(),NOW())
+            ON CONFLICT ("roomTypeId","date","ratePlanId")
+            DO UPDATE SET
+              "price" = EXCLUDED."price",
+              "updatedAt" = NOW()
+            `,
+            [partnerId, roomTypeId, dpId, d, round2(derived)]
+          );
+          upsertedDerived += Number(up.rowCount || 0);
+        }
+      }
+
+      totalUpsertedDerived += upsertedDerived;
+      perRoom.push({
+        roomTypeId,
+        stdPlanId,
+        derivedPlans: derivedPlans.map((p: any) => ({ id: Number(p.id), code: String(p.code || "").toUpperCase(), kind: String(p.kind || "").toUpperCase(), value: p.value })),
+        seededStd,
+        upsertedDerived
+      });
+    }
+
+    await client.query("COMMIT");
+
+    return res.json({
+      ok: true,
+      partnerId,
+      window: { start: start || "auto(today-2)", end: end || "auto(today+183)" },
+      roomTypes: roomTypes.length,
+      seededStd: totalSeededStd,
+      upsertedDerived: totalUpsertedDerived,
+      perRoom
+    });
+  } catch (e: any) {
+    try { await client.query("ROLLBACK"); } catch (_) {}
+    console.error("[rateplans/materialize-derived] error", e);
+    return res.status(500).json({ error: "materialize-derived failed", code: e?.code || null });
+  } finally {
+    client.release();
   }
 });
 
