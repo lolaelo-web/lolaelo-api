@@ -4779,6 +4779,36 @@
         return { code, name, kind: unit, value, active };
       }).filter(p => p && p.code);
 
+      // If there are NO rule edits or toggle edits, do NOT resave plans.
+      // This function is also called after STD price changes to materialize derived prices.
+      const _hasRuleEdits = (window.__planRulesDirty === true);
+      const _hasToggleEdits = !!(window.__pendingPlanActives && Object.keys(window.__pendingPlanActives || {}).length);
+
+      if (!_hasRuleEdits && !_hasToggleEdits) {
+        // Materialize derived nightly prices into DB for this window (server-side)
+        try {
+          const startISO = String(window.currentRangeStart || el('range-start')?.value || '');
+          const endISO   = String(window.currentRangeEnd   || el('range-end')?.value   || '');
+
+          if (startISO && endISO) {
+            const url =
+              `/extranet/property/rateplans/materialize-derived` +
+              `?start=${encodeURIComponent(startISO)}&end=${encodeURIComponent(endISO)}`;
+
+            const r = await authFetch(url, { method: 'POST', cache: 'no-store' });
+            if (!r || !r.ok) {
+              console.warn('[plan-rules] materialize-only failed', r ? r.status : 'ERR');
+            } else {
+              console.log('[plan-rules] materialize-only ok');
+            }
+          }
+        } catch (e) {
+          console.warn('[plan-rules] materialize-only error', e);
+        }
+
+        return { ok: true, status: 200, materializeOnly: true };
+      }
+
       // Try backend save (rules + active toggles) — PROPERTY-WIDE CONSISTENCY
       // Apply the same BRKF/NRF rules + active toggles across ALL room types for this property.
       let status = 0, ok = false;
@@ -4842,25 +4872,25 @@
         try { window.__planRulesDirty = false; } catch(_) {}
 
         // Materialize derived nightly prices into DB for this window (server-side)
-        // Trigger /catalog/details so backend derive-on-demand persists rows.
+        // Canonical: call backend materializer (do NOT use /catalog/details as a trigger)
         try {
-          const pid = Number(await getRatePlanPropertyId());
           const startISO = String(window.currentRangeStart || el('range-start')?.value || '');
           const endISO   = String(window.currentRangeEnd   || el('range-end')?.value   || '');
 
-          if (Number.isFinite(pid) && pid > 0 && startISO && endISO) {
-            const url = `${API_BASE}/catalog/details?propertyId=${encodeURIComponent(String(pid))}` +
-              `&start=${encodeURIComponent(startISO)}&end=${encodeURIComponent(endISO)}`;
+          if (startISO && endISO) {
+            const url =
+              `/extranet/property/rateplans/materialize-derived` +
+              `?start=${encodeURIComponent(startISO)}&end=${encodeURIComponent(endISO)}`;
 
-            const r = await fetch(url, { method: 'GET', cache: 'no-store' });
-            if (!r.ok) {
-              console.warn('[plan-rules] derive trigger failed', r.status);
+            const r = await authFetch(url, { method: 'POST', cache: 'no-store' });
+            if (!r || !r.ok) {
+              console.warn('[plan-rules] materialize-derived failed', r ? r.status : 'ERR');
             } else {
-              console.log('[plan-rules] derive trigger ok');
+              console.log('[plan-rules] materialize-derived ok');
             }
           }
         } catch (e) {
-          console.warn('[plan-rules] derive trigger error', e);
+          console.warn('[plan-rules] materialize-derived error', e);
         }
 
         // Refresh plans and repaint UI for the CURRENT room (enough for user feedback)

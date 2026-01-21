@@ -141,9 +141,10 @@ r.post("/", async (req, res) => {
       if (rpCheck.rowCount === 0) {
         await client.query(
           `INSERT INTO ${T.ratePlans}
-            ("partnerId","roomTypeId","name","createdAt","updatedAt")
-          VALUES ($1,$2,$3,NOW(),NOW())`,
-          [partnerId, newRoomId, "Standard"]
+            ("partnerId","roomTypeId","name","code","active","isDefault","createdAt","updatedAt")
+          VALUES
+            ($1,$2,$3,$4,true,true,NOW(),NOW())`,
+          [partnerId, newRoomId, "Standard", "STD"]
         );
       }
     }
