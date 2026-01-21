@@ -255,6 +255,13 @@
     color: var(--muted);
   }
 
+  /* === FIX: prevent Section 1 body from collapsing to height:0 during async load === */
+  .section-body[data-section-body="1"]{
+    height: auto !important;
+    max-height: none !important;
+    overflow: visible !important;
+  }
+
   .section-body.hidden {
     display: none;
   }
