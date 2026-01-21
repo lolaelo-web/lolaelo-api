@@ -1332,19 +1332,17 @@ r.post("/rateplans/materialize-derived", requirePartner, async (req, res) => {
   const startQ = String(q.start || "").trim();
   const endQ   = String(q.end || "").trim();
 
-  // Expect YYYY-MM-DD strings
   const ymdRx = /^\d{4}-\d{2}-\d{2}$/;
-  const start = ymdRx.test(startQ) ? startQ : null;
-  const end   = ymdRx.test(endQ) ? endQ : null;
 
-  // If caller doesn’t supply, compute defaults in SQL using CURRENT_DATE
-  const startSql = start ? `$1::date` : `(CURRENT_DATE - INTERVAL '2 days')::date`;
-  const endSql   = end   ? `$2::date` : `(CURRENT_DATE + INTERVAL '183 days')::date`;
+  // Always bind dates as params to avoid Postgres type inference issues.
+  // Defaults: today-2 through today+183
+  const startDate = ymdRx.test(startQ) ? startQ : null;
+  const endDate   = ymdRx.test(endQ) ? endQ : null;
 
-  // Params array aligns with start/end only when provided
-  const params: any[] = [];
-  if (start) params.push(start);
-  if (end)   params.push(end);
+  // Use SQL to compute defaults, but still bind them as DATE in queries.
+  // We’ll pass these into queries as $3/$4 consistently.
+  const startParam = startDate;
+  const endParam   = endDate;
 
   const client = await pool.connect();
   try {
@@ -1354,14 +1352,21 @@ r.post("/rateplans/materialize-derived", requirePartner, async (req, res) => {
     const rtRows = await client.query(
       `SELECT "id","basePrice"
          FROM ${TBL_ROOMTYPE}
-        WHERE "partnerId" = $${params.length + 1}
+        WHERE "partnerId" = $1
         ORDER BY "id" ASC`,
-      [...params, partnerId]
+      [partnerId]
     );
     const roomTypes = rtRows.rows || [];
     if (!roomTypes.length) {
       await client.query("COMMIT");
-      return res.json({ ok: true, partnerId, roomTypes: 0, window: { start: start || "auto", end: end || "auto" }, upserted: 0, seededStd: 0 });
+      return res.json({
+        ok: true,
+        partnerId,
+        roomTypes: 0,
+        window: { start: startDate || "auto(today-2)", end: endDate || "auto(today+183)" },
+        upserted: 0,
+        seededStd: 0
+      });
     }
 
     let totalSeededStd = 0;
@@ -1414,32 +1419,38 @@ r.post("/rateplans/materialize-derived", requirePartner, async (req, res) => {
       if (Number.isFinite(basePrice) && basePrice > 0) {
         const seedRes = await client.query(
           `
-          WITH days AS (
-            SELECT generate_series(${startSql}, (${endSql} - INTERVAL '1 day')::date, INTERVAL '1 day')::date AS d
+          WITH bounds AS (
+            SELECT
+              COALESCE($3::date, (CURRENT_DATE - INTERVAL '2 days')::date) AS s,
+              COALESCE($4::date, (CURRENT_DATE + INTERVAL '183 days')::date) AS e
+          ),
+          days AS (
+            SELECT generate_series(b.s, (b.e - INTERVAL '1 day')::date, INTERVAL '1 day')::date AS d
+            FROM bounds b
           ),
           missing AS (
             SELECT d.d
               FROM days d
               LEFT JOIN ${TBL_ROOMPRICE} p
-                ON p."roomTypeId" = $${params.length + 1}
-               AND p."ratePlanId" = $${params.length + 2}
+                ON p."roomTypeId" = $1
+               AND p."ratePlanId" = $2
                AND (p."date")::date = d.d
              WHERE p."id" IS NULL
           )
           INSERT INTO ${TBL_ROOMPRICE}
             ("partnerId","roomTypeId","ratePlanId","date","price","createdAt","updatedAt")
           SELECT
-            $${params.length + 3}::int,
-            $${params.length + 1}::int,
-            $${params.length + 2}::int,
+            $5::int,
+            $1::int,
+            $2::int,
             m.d::date,
-            $${params.length + 4}::numeric,
+            $6::numeric,
             NOW(),
             NOW()
           FROM missing m
           ON CONFLICT ("roomTypeId","date","ratePlanId") DO NOTHING
           `,
-          [...params, roomTypeId, stdPlanId, partnerId, round2(basePrice)]
+          [roomTypeId, stdPlanId, startParam, endParam, partnerId, round2(basePrice)]
         );
         // seedRes.rowCount is not reliable for INSERT..SELECT in some cases, but good enough for reporting
         seededStd = Number(seedRes.rowCount || 0);
@@ -1449,15 +1460,21 @@ r.post("/rateplans/materialize-derived", requirePartner, async (req, res) => {
       // 4) Load STD nightly prices for the window (date::date)
       const stdPricesRes = await client.query(
         `
+        WITH bounds AS (
+          SELECT
+            COALESCE($3::date, (CURRENT_DATE - INTERVAL '2 days')::date) AS s,
+            COALESCE($4::date, (CURRENT_DATE + INTERVAL '183 days')::date) AS e
+        )
         SELECT (p."date")::date AS d, p."price"::numeric AS price
           FROM ${TBL_ROOMPRICE} p
-         WHERE p."roomTypeId" = $${params.length + 1}
-           AND p."ratePlanId" = $${params.length + 2}
-           AND (p."date")::date >= ${startSql}
-           AND (p."date")::date <  ${endSql}
+          JOIN bounds b ON true
+         WHERE p."roomTypeId" = $1
+           AND p."ratePlanId" = $2
+           AND (p."date")::date >= b.s
+           AND (p."date")::date <  b.e
          ORDER BY d ASC
         `,
-        [...params, roomTypeId, stdPlanId]
+        [roomTypeId, stdPlanId, startParam, endParam]
       );
       const stdDaily = stdPricesRes.rows || [];
       if (!stdDaily.length) {
@@ -1519,7 +1536,7 @@ r.post("/rateplans/materialize-derived", requirePartner, async (req, res) => {
     return res.json({
       ok: true,
       partnerId,
-      window: { start: start || "auto(today-2)", end: end || "auto(today+183)" },
+      window: { start: startDate || "auto(today-2)", end: endDate || "auto(today+183)" },
       roomTypes: roomTypes.length,
       seededStd: totalSeededStd,
       upsertedDerived: totalUpsertedDerived,
