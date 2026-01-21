@@ -211,6 +211,56 @@
       transition:transform 0.15s ease-out;
     }
 
+    /* Catalog header: right-side cluster (Back + Cart) */
+    .header-right{
+      justify-self:end;
+      display:inline-flex;
+      align-items:center;
+      gap:10px;
+    }
+
+    /* Catalog: cart pill button */
+    .catalog-cart-btn{
+      position:relative;
+      display:inline-flex;
+      align-items:center;
+      justify-content:center;
+
+      min-width:96px;
+      height:40px;
+      padding:0 12px;
+
+      border:1px solid var(--line);
+      background:#fff;
+      text-decoration:none;
+      border-radius:999px;
+      box-shadow:0 4px 12px rgba(15,23,42,0.06);
+    }
+
+    .catalog-cart-icon{
+      width:72px;   /* 4x of 18px */
+      height:auto;
+      display:block;
+    }
+
+    .catalog-cart-count{
+      position:absolute;
+      top:-6px;
+      right:-6px;
+      display:inline-flex;
+      align-items:center;
+      justify-content:center;
+      min-width:20px;
+      height:20px;
+      padding:0 6px;
+      border-radius:999px;
+      background: var(--bubble);
+      color:#fff;
+      font-size:12px;
+      font-weight:700;
+      line-height:1;
+    }
+
     /* === ANCHOR: CATALOG_MAP_MODAL_CSS ============================= */
     .subhead-row{
       display:flex;
@@ -1002,20 +1052,43 @@
   <div class="paper">
     <!-- ANCHOR: CATALOG_HEADER_HTML -->
     <header>
-    <a class="logo" href="/" aria-label="Lolaelo home">
-      <img
-        src="/images/logo.png?cb=logo-5x"
-        alt="Lolaelo"
-        class="logo-img"
-        decoding="async"
-        loading="eager"
-      >
-    </a>
-    <a class="nav-link nav-link-back" href="/" aria-label="Back to main page">
-        <span class="nav-back-arrow">←</span>
-        <span>Back to main</span>
+      <a class="logo" href="/" aria-label="Lolaelo home">
+        <img
+          src="/images/logo.png?cb=logo-5x"
+          alt="Lolaelo"
+          class="logo-img"
+          decoding="async"
+          loading="eager"
+        >
       </a>
+
+      <div class="header-right">
+        <a class="nav-link nav-link-back" href="/" aria-label="Back to main page">
+          <span class="nav-back-arrow">←</span>
+          <span>Back to main</span>
+        </a>
+
+        <a
+          id="catalogCartBtn"
+          class="catalog-cart-btn"
+          href="/checkout.html"
+          aria-label="View checkout"
+        >
+          <img
+            src="/images/checkout.png"
+            alt=""
+            class="catalog-cart-icon"
+            aria-hidden="true"
+          >
+          <span
+            id="catalogCartCount"
+            class="catalog-cart-count"
+            style="display:none;"
+          >0</span>
+        </a>
+      </div>
     </header>
+
     <!-- ANCHOR: SEARCHBAR -->
     <div class="searchbar">
       <div class="controls-row">
@@ -1277,9 +1350,41 @@
     }
 
     // Fire page_view once per page load
+    function catalogGetCartCount(){
+      try{
+        const raw = localStorage.getItem("checkout.cart.v1") || "";
+        const cart = raw ? JSON.parse(raw) : null;
+        const items = cart && Array.isArray(cart.items) ? cart.items : [];
+        return items.length;
+      }catch(_){
+        return 0;
+      }
+    }
+
+    function catalogSyncCartBadge(){
+      const badge = document.getElementById("catalogCartCount");
+      if (!badge) return;
+
+      const n = catalogGetCartCount();
+      if (n > 0){
+        badge.textContent = String(n);
+        badge.style.display = "inline-flex";
+      } else {
+        badge.textContent = "0";
+        badge.style.display = "none";
+      }
+    }
+
     document.addEventListener("DOMContentLoaded", () => {
       waTrack("page_view", { page: "catalog" }, 0);
+      catalogSyncCartBadge();
     });
+
+    window.addEventListener("storage", (e) => {
+      if (!e) return;
+      if (e.key === "checkout.cart.v1") catalogSyncCartBadge();
+    });
+
     // === ANALYTICS (V2) END ===============================================
 
     // === CATALOG LOADING OVERLAY HELPERS (with min-delay) ===
