@@ -4377,8 +4377,37 @@
       renderRoomPriceCardsFromCart();
       loadAddonsForProperty();
       normalizeRoomPriceCardsUI();
-      
-      // Allow clicking headers to reopen a section, but keep only one open
+
+      // === STABILIZER: keep Section 1 open on initial load ====================
+      // Sometimes async work during load re-adds `.hidden` to section bodies.
+      // If Section 1 is not confirmed yet, force it back open so user can click Confirm.
+      (function keepSection1OpenOnLoad(){
+        function reopen(){
+          try {
+            if (state && state.sectionConfirmed && state.sectionConfirmed[1]) return;
+
+            const body1 = document.querySelector('[data-section-body="1"]');
+            if (body1) body1.classList.remove("hidden");
+
+            const step1 = document.querySelector('[data-step-indicator="1"]');
+            const status1 = document.querySelector('[data-step-status="1"]');
+
+            if (step1){
+              step1.classList.add("active");
+              step1.classList.remove("completed");
+            }
+            if (status1){
+              status1.textContent = "Waiting for confirmation";
+              status1.classList.remove("completed");
+            }
+          } catch (_) {}
+        }
+
+        // Run immediately after paint, and again after async fetch/render work.
+        setTimeout(reopen, 0);
+        setTimeout(reopen, 250);
+      })();
+      // === STABILIZER END =====================================================
 
       // Allow clicking headers to reopen a section, but keep only one open
       document.querySelectorAll(".card-header").forEach(function (header) {
