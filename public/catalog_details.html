@@ -2451,64 +2451,66 @@
         // ignore
       }
       syncDisplay();
-
       // Flatpickr range on the invisible driver, if available
-      let fp = null;
-      if (rangeDriver && window.flatpickr) {
-        const defaultDates = [];
-        const sDate = parseLocalYmd(start);
-        const eDate = parseLocalYmd(end);
-        if (sDate) defaultDates.push(sDate);
-        if (eDate) defaultDates.push(eDate);
+      // HARD RULE: Always wire the visible pill click, even if flatpickr init fails.
+      var fp = null;
 
-        fp = flatpickr(rangeDriver, {
-          mode: "range",
-          dateFormat: "Y-m-d",
-          minDate: "today",
-          defaultDate: defaultDates,
-          onChange(selectedDates) {
-            let s = selectedDates[0] || null;
-            let e = selectedDates[1] || null;
-
-            // Enforce end >= start + 1 day, same rule as catalog
-            if (s && !e) {
-              e = new Date(s.getTime());
-              e.setDate(e.getDate() + 1);
-            }
-
-            if (s && e) {
-              checkInInput.value  = formatLocalYmd(s);
-              checkOutInput.value = formatLocalYmd(e);
-              syncDisplay();
-            }
-          }
-        });
-
-        // Clicking the visible pill opens the calendar (or falls back to native picker)
-        if (displayBtn) {
-          displayBtn.addEventListener("click", function () {
+      // Always make the pill do something useful
+      if (displayBtn) {
+        displayBtn.addEventListener("click", function () {
+          try {
             if (fp && typeof fp.open === "function") {
               fp.open();
               return;
             }
-            if (checkInInput) {
-              checkInInput.focus();
+          } catch (_) {}
+
+          if (checkInInput) {
+            checkInInput.focus();
+            try {
               if (typeof checkInInput.showPicker === "function") {
                 checkInInput.showPicker();
               }
-            }
-          });
-        }
-      } else if (displayBtn) {
-        // No flatpickr loaded: still make the pill do something useful
-        displayBtn.addEventListener("click", function () {
-          if (checkInInput) {
-            checkInInput.focus();
-            if (typeof checkInInput.showPicker === "function") {
-              checkInInput.showPicker();
-            }
+            } catch (_) {}
           }
         });
+      }
+
+      // Initialize flatpickr (guarded so a throw doesn't break the click handler)
+      if (rangeDriver && window.flatpickr) {
+        try {
+          var defaultDates = [];
+          var sDate = parseLocalYmd(start);
+          var eDate = parseLocalYmd(end);
+          if (sDate) defaultDates.push(sDate);
+          if (eDate) defaultDates.push(eDate);
+
+          fp = window.flatpickr(rangeDriver, {
+            mode: "range",
+            dateFormat: "Y-m-d",
+            minDate: "today",
+            defaultDate: defaultDates,
+            onChange: function (selectedDates) {
+              var s = (selectedDates && selectedDates[0]) ? selectedDates[0] : null;
+              var e = (selectedDates && selectedDates[1]) ? selectedDates[1] : null;
+
+              // Enforce end >= start + 1 day, same rule as catalog
+              if (s && !e) {
+                e = new Date(s.getTime());
+                e.setDate(e.getDate() + 1);
+              }
+
+              if (s && e) {
+                checkInInput.value  = formatLocalYmd(s);
+                checkOutInput.value = formatLocalYmd(e);
+                syncDisplay();
+              }
+            }
+          });
+        } catch (e) {
+          console.warn("[details] flatpickr init failed; falling back to native picker", e);
+          fp = null;
+        }
       }
 
       // Fallback: if someone changes check-in (keyboard, etc.), keep end ≥ start+1 and refresh label
@@ -4159,11 +4161,27 @@
             const plansQS = sel.length ? `&plans=${encodeURIComponent(sel.join(','))}` : '';
 
             // DB owns which plans are available to travelers
-            const rowsSource = plans
-              .filter(p => p && p.active === true)
-              .filter(p => {
-                const raw = getPlanPriceForRoom(roomId, Number(p.id));
+            // Canonical display order: NRF first (if present), then STD, then BRKF.
+            var rowsSource = (Array.isArray(plans) ? plans : [])
+              .filter(function (p) { return p && p.active === true; })
+              .filter(function (p) {
+                var raw = getPlanPriceForRoom(roomId, Number(p.id));
                 return raw != null && Number.isFinite(Number(raw));
+              })
+              .sort(function (a, b) {
+                // Reuse the existing planSortKey(plan) function in this scope.
+                var ka = planSortKey(a);
+                var kb = planSortKey(b);
+                if (ka !== kb) return ka - kb;
+
+                // Stable tie-breakers (safety)
+                var an = String((a && a.name) || '');
+                var bn = String((b && b.name) || '');
+                if (an !== bn) return an.localeCompare(bn);
+
+                var ai = Number((a && (a.id || a.ratePlanId)) || 0);
+                var bi = Number((b && (b.id || b.ratePlanId)) || 0);
+                return ai - bi;
               });
 
             if (!rowsSource.length) return '';
