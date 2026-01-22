@@ -4830,8 +4830,17 @@
               if (!topLink.dataset.cartBound) {
                 topLink.dataset.cartBound = "1";
 
-                topLink.addEventListener("click", (e) => {
-                  // Build the line item from the same context used to build the checkout URL
+              topLink.addEventListener("click", (e) => {
+                // Modal flow: Select should only open the modal.
+                // Do NOT append a default/primary plan into checkout.cart.v1 here, or you'll get a duplicate STD line.
+                if (typeof window.openRoomModalById === "function") {
+                  e.preventDefault();
+                  try { window.openRoomModalById(rid); } catch (_) {}
+                  return;
+                }
+
+                // Fallback only (if modal isn't available): proceed with the existing append-to-cart behavior below.
+                // Build the line item from the same context used to build the checkout URL
 
                   const lineId =
                     "ln_" + Date.now().toString(36) + "_" + Math.random().toString(36).slice(2, 8);
