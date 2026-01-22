@@ -3989,61 +3989,79 @@
         setTplText("stayDatesInline", prettyStayRange(it0.start, it0.end));
         setTplText("stayNights", String(stayNightsFromRange(it0.start, it0.end)));
 
-        // Apply pricing quote to template card
+        // Apply pricing quote to template card (mirror the summary panel)
         (function(card, itemRef) {
-          if (!itemRef) return;
-        const pid = Number(
-          itemRef.propertyId ||
-          state.propertyId ||
-          (parseQuery && parseQuery().propertyId) ||
-          0
-        );
-        if (!pid) return;
+          try {
+            if (!card || !itemRef) return;
 
-          const qs = new URLSearchParams();
-          qs.set("propertyId", String(pid));
+            // 1) Prefer the same DB quote already used by the summary panel
+            const payload = window.__checkoutDetailsPayload || null;
+            const q1 = payload && payload.checkoutQuote ? payload.checkoutQuote : null;
 
-          if (itemRef.start) qs.set("start", String(itemRef.start));
-          if (itemRef.end)   qs.set("end",   String(itemRef.end));
+            if (q1) {
+              applyQuoteToCard(card, q1, itemRef.qty || 1);
+              console.log("[checkout] template card used __checkoutDetailsPayload.checkoutQuote");
+              return;
+            }
 
-          // Mirror the WORKING summary fetch shape: ratePlanId is the selector
-          if (itemRef.ratePlanId != null && String(itemRef.ratePlanId).trim()) {
-            qs.set("ratePlanId", String(itemRef.ratePlanId).trim());
-          }
+            // 2) If not available, fetch using the same query shape as loadAddonsForProperty()
+            const pid = Number(
+              itemRef.propertyId ||
+              state.propertyId ||
+              (parseQuery && parseQuery().propertyId) ||
+              0
+            );
+            if (!pid) return;
 
-          fetch("/catalog/details?" + qs.toString(), {
-            credentials: "include",
-            headers: { Accept: "application/json" }
-          })
-            .then(r => r.json())
-            .then(data => {
-              const quote = data && data.checkoutQuote ? data.checkoutQuote : null;
-              console.log("[checkout] quote payload", {
-                hasQuote: !!quote,
-                checkoutQuote: quote,
-                keys: quote ? Object.keys(quote) : null,
-                raw: data
-              });
-              if (quote) {
-                applyQuoteToCard(card, quote, itemRef.qty || 1);
-              } else {
-                // No quote, do not guess. Make it obvious to the traveler.
-                try {
-                  const avgEl = (card.querySelector('[data-role="avgNightPrice"],[data-orig-id="avgNightPrice"],#avgNightPrice')||null);
-                  const totEl = (card.querySelector('[data-role="totalPill"],[data-orig-id="totalPill"],#totalPill')||null);
-                  if (avgEl) avgEl.textContent = "Error";
-                  if (totEl) totEl.textContent = "Pricing unavailable";
-                } catch (_) {}
-              }
+            const qs = new URLSearchParams();
+            qs.set("propertyId", String(pid));
+            if (itemRef.start) qs.set("start", String(itemRef.start));
+            if (itemRef.end)   qs.set("end",   String(itemRef.end));
 
-              // Read back what the UI shows right after apply
-              try {
-                const avgNow = (card.querySelector('[data-role="avgNightPrice"],[data-orig-id="avgNightPrice"],#avgNightPrice')||{}).textContent;
-                const totNow = (card.querySelector('[data-role="totalPill"],[data-orig-id="totalPill"],#totalPill')||{}).textContent;
-                console.log("[checkout] after apply", { avgNow, totNow, lineId: card.getAttribute("data-lineid") });
-              } catch (_) {}
+            if (itemRef.ratePlanId != null && String(itemRef.ratePlanId).trim()) {
+              qs.set("ratePlanId", String(itemRef.ratePlanId).trim());
+            }
+
+            const url = "/catalog/details?" + qs.toString();
+
+            fetch(url, {
+              credentials: "include",
+              headers: { Accept: "application/json" }
             })
-            .catch(err => console.warn("[checkout] card quote failed", err));
+              .then(r => r.json())
+              .then(data => {
+                const quote = data && data.checkoutQuote ? data.checkoutQuote : null;
+
+                console.log("[checkout] quote payload", {
+                  hasQuote: !!quote,
+                  checkoutQuote: quote,
+                  keys: quote ? Object.keys(quote) : null,
+                  raw: data
+                });
+
+                if (quote) {
+                  applyQuoteToCard(card, quote, itemRef.qty || 1);
+                } else {
+                  // No quote, do not guess. Make it obvious to the traveler.
+                  try {
+                    const avgEl = (card.querySelector('[data-role="avgNightPrice"],[data-orig-id="avgNightPrice"],#avgNightPrice')||null);
+                    const totEl = (card.querySelector('[data-role="totalPill"],[data-orig-id="totalPill"],#totalPill')||null);
+                    if (avgEl) avgEl.textContent = "Error";
+                    if (totEl) totEl.textContent = "Pricing unavailable";
+                  } catch (_) {}
+                }
+
+                // Read back what the UI shows right after apply
+                try {
+                  const avgNow = (card.querySelector('[data-role="avgNightPrice"],[data-orig-id="avgNightPrice"],#avgNightPrice')||{}).textContent;
+                  const totNow = (card.querySelector('[data-role="totalPill"],[data-orig-id="totalPill"],#totalPill')||{}).textContent;
+                  console.log("[checkout] after apply", { avgNow, totNow, lineId: card.getAttribute("data-lineid") });
+                } catch (_) {}
+              })
+              .catch(err => console.warn("[checkout] card quote failed", err));
+          } catch (e) {
+            console.warn("[checkout] template card pricing apply failed", e);
+          }
         })(tpl, it0);
       }
 
