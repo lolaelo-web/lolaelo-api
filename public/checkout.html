@@ -3112,7 +3112,7 @@
         // The DB uses its own internal rate plan IDs (8,11,12,...) which
         // don't match the front-end ids (1,2,3). Filtering here was
         // stripping out all room/price data.
-        // if (q.ratePlanId) params.set("ratePlanId", q.ratePlanId);
+        if (q.ratePlanId) params.set("ratePlanId", String(q.ratePlanId));
 
         const url = "/catalog/details?" + params.toString();
         console.log("[checkout] details URL", url);
