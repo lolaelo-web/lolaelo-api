@@ -5823,9 +5823,19 @@
           if (plansWrap) {
             plansWrap.innerHTML = "";
 
-            const payload    = window.__detailsPayload || {};
-            const propertyId = payload.propertyId ?? payload.id ?? "";
-            const roomId     = room.roomTypeId ?? room.typeId ?? room.id ?? room.roomId ?? room.code ?? "";
+            const payload = window.__detailsPayload || {};
+
+            // Canonical property id for checkout (partnerId first, then fallbacks)
+            const propertyId =
+              (
+                payload &&
+                (payload.partnerId ?? payload.propertyId ?? payload.id ?? null)
+              )
+              ??
+              (qs.get("propertyId") ?? qs.get("partnerId") ?? "");
+
+            // Keep existing room id resolution
+            const roomId = room.roomTypeId ?? room.typeId ?? room.id ?? room.roomId ?? room.code ?? "";
 
             // Reuse same helpers as inline plan rows
             const { propertyName, propertyLocation } = getCheckoutMeta();
