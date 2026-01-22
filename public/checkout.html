@@ -2487,7 +2487,6 @@
       }
 
       // Render breakdown lines
-
       const dates = Array.from(byDate.keys()).sort();
       const parts = [];
 
@@ -4053,6 +4052,29 @@
           if (p.length !== 3) return Number.MAX_SAFE_INTEGER;
           return (Number(p[0]) * 10000) + (Number(p[1]) * 100) + Number(p[2]);
         }
+
+        // Ensure every cart item has a stable lineId.
+        // Without this, breakdown/remove logic can lose the ability to map cards after mutations.
+        try {
+          if (cart && Array.isArray(cart.items)) {
+            let changed = false;
+
+            cart.items.forEach((it) => {
+              if (!it) return;
+              if (!it.lineId || !String(it.lineId).trim()) {
+                it.lineId =
+                  "ln_" + Date.now().toString(36) + "_" + Math.random().toString(36).slice(2, 8);
+                changed = true;
+              }
+            });
+
+            if (changed) {
+              try {
+                localStorage.setItem("checkout.cart.v1", JSON.stringify(cart));
+              } catch (_) {}
+            }
+          }
+        } catch (_) {}
 
         const itemsSorted = Array.isArray(cart && cart.items)
           ? cart.items.slice().sort((a, b) => {
