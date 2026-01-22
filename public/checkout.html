@@ -4001,10 +4001,17 @@
           const qs = new URLSearchParams();
           qs.set("propertyId", String(pid));
           qs.set("plans", "2");
+
           if (itemRef.start) qs.set("start", String(itemRef.start));
           if (itemRef.end)   qs.set("end",   String(itemRef.end));
+
           const roomIdForQuote = itemRef.roomTypeId || itemRef.roomId;
           if (roomIdForQuote) qs.set("roomId", String(roomIdForQuote));
+
+          // CRITICAL: request quote for the selected plan
+          if (itemRef.ratePlanId != null && String(itemRef.ratePlanId).trim()) {
+            qs.set("ratePlanId", String(itemRef.ratePlanId).trim());
+          }
 
           qs.set("qty", String(itemRef.qty || 1));
 
