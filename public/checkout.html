@@ -4018,11 +4018,17 @@
             if (itemRef.start) qs.set("start", String(itemRef.start));
             if (itemRef.end)   qs.set("end",   String(itemRef.end));
 
+            // CRITICAL: quotes are room-scoped. Without roomId, backend can quote the wrong room or return no quote.
+            if (itemRef.roomTypeId != null && String(itemRef.roomTypeId).trim()) {
+              qs.set("roomId", String(itemRef.roomTypeId).trim());
+            }
+
             if (itemRef.ratePlanId != null && String(itemRef.ratePlanId).trim()) {
               qs.set("ratePlanId", String(itemRef.ratePlanId).trim());
             }
 
             const url = "/catalog/details?" + qs.toString();
+            console.log("[checkout] card quote URL", url);
 
             fetch(url, {
               credentials: "include",
@@ -4074,7 +4080,7 @@
 
         var clone = tpl.cloneNode(true);
         clone.classList.add("__li");
-      const lid = item.lineId || ("line_" + i);
+        const lid = item.lineId || ("line_" + i);
         clone.dataset.lineId = lid;
         clone.setAttribute("data-lineid", String(lid));
 
@@ -4131,11 +4137,19 @@
             if (itemRef.start) qs.set("start", String(itemRef.start));
             if (itemRef.end)   qs.set("end",   String(itemRef.end));
 
+            // CRITICAL: quotes are room-scoped. Without roomId, backend can quote the wrong room or return no quote.
+            if (itemRef.roomTypeId != null && String(itemRef.roomTypeId).trim()) {
+              qs.set("roomId", String(itemRef.roomTypeId).trim());
+            }
+
             if (itemRef.ratePlanId != null && String(itemRef.ratePlanId).trim()) {
               qs.set("ratePlanId", String(itemRef.ratePlanId).trim());
             }
 
-            fetch("/catalog/details?" + qs.toString(), {
+            const url = "/catalog/details?" + qs.toString();
+            console.log("[checkout] card quote URL", url);
+
+            fetch(url, {
               credentials: "include",
               headers: { Accept: "application/json" }
             })
@@ -4165,6 +4179,7 @@
                 try {
                   const avgNow = (card.querySelector('[data-role="avgNightPrice"],[data-orig-id="avgNightPrice"],#avgNightPrice')||{}).textContent;
                   const totNow = (card.querySelector('[data-role="totalPill"],[data-orig-id="totalPill"],#totalPill')||{}).textContent;
+                  console.log("[checkout] after apply", { avgNow, totNow, lineId: card.getAttribute("data-lineid") });
                 } catch (_) {}
               })
               .catch(err => console.warn("[checkout] card quote failed", err));
@@ -4179,6 +4194,7 @@
     }
 
     // === CONFIRM DELEGATE WIRE (prevents dead Confirm when cards are cloned) ===
+
     if (!window.__checkoutConfirmDelegated) {
       window.__checkoutConfirmDelegated = true;
 
