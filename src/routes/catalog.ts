@@ -769,6 +769,18 @@ router.get("/details", async (req: Request, res: Response) => {
     if (!base || typeof base !== "object") base = {};
     console.log("[details] start", { propertyId, start, end, ratePlanId });
 
+    console.log("[details] query raw", {
+      propertyId_q: req.query.propertyId,
+      id_q: req.query.id,
+      roomId_q: req.query.roomId,
+      ratePlanId_q: req.query.ratePlanId,
+      plan_q: req.query.plan,
+      plans_q: req.query.plans,
+      start_q: req.query.start,
+      end_q: req.query.end,
+      parsed: { propertyId, roomId, ratePlanId, plans }
+    });
+
     // Profiles (name/city/images) — DIRECT SQL using Partner.id for profile + photos
     try {
       const partnerId = Number.isFinite(propertyId) ? propertyId : NaN;
