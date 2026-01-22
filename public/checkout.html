@@ -2304,21 +2304,22 @@
       }
 
       if (isCartMode) {
-        // Pull card-level quote nights from the DOM (each card already applied a quote)
         const cards = Array.from(
-          document.querySelectorAll('.section-body[data-section-body="1"] .dates-grid[data-lineid]')
+          document.querySelectorAll(
+            '.section-body[data-section-body="1"] .dates-grid[data-lineid], ' +
+            '.section-body[data-section-body="1"] .dates-grid[data-lineId]'
+          )
         );
 
-        // Map lineId -> qty from cart
-        const qtyByLine = new Map();
-        cart.items.forEach(it => {
-          const lid = String(it.lineId || "");
-          const q = Math.max(1, Number.parseInt(String(it.qty || 1), 10) || 1);
-          if (lid) qtyByLine.set(lid, q);
-        });
-
         cards.forEach(card => {
-          const lid = String(card.getAttribute("data-lineid") || "");
+          // Robust lineId read: supports data-lineid, data-lineId, and dataset variants
+          const lid = String(
+            card.getAttribute("data-lineid") ||
+            card.getAttribute("data-lineId") ||
+            (card.dataset && (card.dataset.lineid || card.dataset.lineId)) ||
+            ""
+          );
+
           const qn = qtyByLine.get(lid) || 1;
 
           // Prefer cached quote nights (set by applyCheckoutQuote/applyQuoteToCard)
