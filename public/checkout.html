@@ -4087,7 +4087,7 @@
         setCloneTextByOrigId(clone, "propertyIdValue", item.propertyId || "");
         setCloneTextByOrigId(clone, "roomName", item.roomName || "");
         setCloneTextByOrigId(clone, "roomIdValue", item.roomTypeId || "");
-        setCloneTextByOrigId(clone, "ratePlanName", item.planLabel || "");
+        setCloneTextByOrigId(clone, "ratePlanName", item.ratePlanName || item.planLabel || "");
         setCloneTextByOrigId(clone, "ratePlanIdValue", item.ratePlanId || "");
         setCloneTextByOrigId(clone, "roomQty", item.qty != null ? item.qty : "");
 
@@ -4098,92 +4098,79 @@
         setCloneTextByOrigId(clone, "stayNights", String(stayNightsFromRange(item.start, item.end)));
 
         root.appendChild(clone);
-        // Fetch quote for this line item and apply to this card (scoped)
+        // Fetch quote for this line item and apply to this card (mirror summary; no guessing)
         (function(card, itemRef) {
-          const pid = Number(
-            itemRef.propertyId ||
-            state.propertyId ||
-            (parseQuery && parseQuery().propertyId) ||
-            0
-          );
-          if (!pid) return;
+          try {
+            if (!card || !itemRef) return;
 
-          const qs = new URLSearchParams();
-          qs.set("propertyId", String(pid));
-          if (itemRef.start) qs.set("start", String(itemRef.start));
-          if (itemRef.end)   qs.set("end",   String(itemRef.end));
-          const roomIdForQuote = itemRef.roomTypeId || itemRef.roomId;
-          if (roomIdForQuote) qs.set("roomId", String(roomIdForQuote));
-          qs.set("qty", String(itemRef.qty || 1));
+            // Prefer the same DB quote already used by the summary panel
+            const payload = window.__checkoutDetailsPayload || null;
+            const q1 = payload && payload.checkoutQuote ? payload.checkoutQuote : null;
 
-          fetch("/catalog/details?" + qs.toString(), {
-            credentials: "include",
-            headers: { Accept: "application/json" }
-          })
-            .then(r => r.json())
-            .then(data => {
-              let quote = (data && data.checkoutQuote) ? data.checkoutQuote : null;
+            const payloadStart = payload && payload.start ? String(payload.start) : "";
+            const payloadEnd   = payload && payload.end   ? String(payload.end)   : "";
+            const sameWindow = (!!itemRef.start && !!itemRef.end && String(itemRef.start) === payloadStart && String(itemRef.end) === payloadEnd);
 
-              console.log("[checkout] quote payload", {
-                hasQuote: !!quote,
-                checkoutQuote: quote,
-                keys: quote ? Object.keys(quote) : null,
-                raw: data
-              });
+            if (q1 && sameWindow) {
+              applyQuoteToCard(card, q1, itemRef.qty || 1);
+              console.log("[checkout] clone used __checkoutDetailsPayload.checkoutQuote (same window)");
+              return;
+            }
 
-              // Fallback: derive from rooms[].daily when checkoutQuote is missing
-              if (!quote) {
-                try {
-                  const roomsArr = Array.isArray(data?.rooms) ? data.rooms : [];
-                  const start = String(itemRef.start || "");
-                  const end   = String(itemRef.end || "");
-                  const qRoomId = Number(itemRef.roomTypeId || itemRef.roomId);
+            // If not available, fetch using the SAME query shape as summary
+            const pid = Number(
+              itemRef.propertyId ||
+              state.propertyId ||
+              (parseQuery && parseQuery().propertyId) ||
+              0
+            );
+            if (!pid) return;
 
-                  if (roomsArr.length && start && end && Number.isFinite(qRoomId)) {
-                    const chosen =
-                      roomsArr.find(r => {
-                        const rtId = Number((r && (r.roomTypeId != null ? r.roomTypeId : r.id)));
-                        return Number.isFinite(rtId) && rtId === qRoomId;
-                      }) || roomsArr[0];
+            const qs = new URLSearchParams();
+            qs.set("propertyId", String(pid));
+            if (itemRef.start) qs.set("start", String(itemRef.start));
+            if (itemRef.end)   qs.set("end",   String(itemRef.end));
 
-                    const daily = Array.isArray(chosen?.daily) ? chosen.daily : [];
-                    const msPerDay = 24 * 60 * 60 * 1000;
-                    const startDate = new Date(start + "T00:00:00Z");
-                    const endDate   = new Date(end   + "T00:00:00Z");
-                    const nights = [];
+            if (itemRef.ratePlanId != null && String(itemRef.ratePlanId).trim()) {
+              qs.set("ratePlanId", String(itemRef.ratePlanId).trim());
+            }
 
-                    for (let t = startDate.getTime(); t < endDate.getTime(); t += msPerDay) {
-                      const iso = new Date(t).toISOString().slice(0, 10);
-                      const rec = daily.find(d => d && d.date === iso);
-                      if (!rec) continue;
-                      const val = rec.price != null ? Number(rec.price) : NaN;
-                      if (!Number.isFinite(val) || val <= 0) continue;
-                      nights.push({ date: iso, amount: val });
-                    }
-
-                    const total = nights.reduce((sum, n) => sum + n.amount, 0);
-                    if (nights.length && Number.isFinite(total) && total > 0) {
-                      const curRow = daily.find(d => d && d.currency) || null;
-                      const curCode = curRow && curRow.currency ? String(curRow.currency) : "USD";
-                      quote = { source: "db", currency: curCode, total, nights };
-                      console.log("[checkout] derived per-card quote from rooms.daily", quote);
-                    }
-                  }
-                } catch (e) {
-                  console.warn("[checkout] per-card daily fallback failed", e);
-                }
-              }
-
-              if (quote) applyQuoteToCard(card, quote, itemRef.qty || 1);
-
-              // Read back what the UI shows right after apply
-              try {
-                const avgNow = (card.querySelector('[data-role="avgNightPrice"],[data-orig-id="avgNightPrice"],#avgNightPrice')||{}).textContent;
-                const totNow = (card.querySelector('[data-role="totalPill"],[data-orig-id="totalPill"],#totalPill')||{}).textContent;
-                console.log("[checkout] after apply", { avgNow, totNow, lineId: card.getAttribute("data-lineid") });
-              } catch (_) {}
+            fetch("/catalog/details?" + qs.toString(), {
+              credentials: "include",
+              headers: { Accept: "application/json" }
             })
-            .catch(err => console.warn("[checkout] card quote failed", err));
+              .then(r => r.json())
+              .then(data => {
+                const quote = (data && data.checkoutQuote) ? data.checkoutQuote : null;
+
+                console.log("[checkout] quote payload", {
+                  hasQuote: !!quote,
+                  checkoutQuote: quote,
+                  keys: quote ? Object.keys(quote) : null,
+                  raw: data
+                });
+
+                if (quote) {
+                  applyQuoteToCard(card, quote, itemRef.qty || 1);
+                } else {
+                  // No quote, do not guess. Make it obvious to the traveler.
+                  try {
+                    const avgEl = (card.querySelector('[data-role="avgNightPrice"],[data-orig-id="avgNightPrice"],#avgNightPrice')||null);
+                    const totEl = (card.querySelector('[data-role="totalPill"],[data-orig-id="totalPill"],#totalPill')||null);
+                    if (avgEl) avgEl.textContent = "Error";
+                    if (totEl) totEl.textContent = "Pricing unavailable";
+                  } catch (_) {}
+                }
+
+                try {
+                  const avgNow = (card.querySelector('[data-role="avgNightPrice"],[data-orig-id="avgNightPrice"],#avgNightPrice')||{}).textContent;
+                  const totNow = (card.querySelector('[data-role="totalPill"],[data-orig-id="totalPill"],#totalPill')||{}).textContent;
+                } catch (_) {}
+              })
+              .catch(err => console.warn("[checkout] card quote failed", err));
+          } catch (e) {
+            console.warn("[checkout] clone pricing apply failed", e);
+          }
         })(clone, item);
       }
 
