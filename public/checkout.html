@@ -3230,9 +3230,11 @@
       qs.set("start", start);
       qs.set("end", end);
 
-      // IMPORTANT:
-      // ratePlanId is informational only for checkout display.
-      // Backend pricing is already resolved in catalog/details.
+      // Ask backend for the selected plan quote
+      if (ratePlanId != null && String(ratePlanId).trim()) {
+        qs.set("ratePlanId", String(ratePlanId).trim());
+      }
+
       const url = "/catalog/details?" + qs.toString();
       console.log("[checkout] card quote URL", url);
 
@@ -3976,7 +3978,7 @@
         setTplText("propertyIdValue", it0.propertyId || "");
         setTplText("roomName", it0.roomName || "");
         setTplText("roomIdValue", it0.roomTypeId || "");
-        setTplText("ratePlanName", it0.planLabel || "");
+        setTplText("ratePlanName", it0.ratePlanName || it0.planLabel || "");
         setTplText("ratePlanIdValue", it0.ratePlanId || "");
 
         // roomQty appears multiple times (template has 2 spots)
@@ -4013,6 +4015,11 @@
             qs.set("ratePlanId", String(itemRef.ratePlanId).trim());
           }
 
+          // Critical: quote must be for the selected plan
+          if (itemRef.ratePlanId != null && String(itemRef.ratePlanId).trim()) {
+            qs.set("ratePlanId", String(itemRef.ratePlanId).trim());
+          }
+
           qs.set("qty", String(itemRef.qty || 1));
 
           fetch("/catalog/details?" + qs.toString(), {
@@ -4028,7 +4035,17 @@
                 keys: quote ? Object.keys(quote) : null,
                 raw: data
               });
-              if (quote) applyQuoteToCard(card, quote, itemRef.qty || 1);
+              if (quote) {
+                applyQuoteToCard(card, quote, itemRef.qty || 1);
+              } else {
+                // No quote, do not guess. Make it obvious to the traveler.
+                try {
+                  const avgEl = (card.querySelector('[data-role="avgNightPrice"],[data-orig-id="avgNightPrice"],#avgNightPrice')||null);
+                  const totEl = (card.querySelector('[data-role="totalPill"],[data-orig-id="totalPill"],#totalPill')||null);
+                  if (avgEl) avgEl.textContent = "Error";
+                  if (totEl) totEl.textContent = "Pricing unavailable";
+                } catch (_) {}
+              }
 
               // Read back what the UI shows right after apply
               try {
