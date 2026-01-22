@@ -4069,17 +4069,9 @@
           const ft2txt = ft2 ? `${ft2} ft²` : '';
           const area = (m2txt || ft2txt) ? ` · ${[m2txt, ft2txt].filter(Boolean).join(' / ')}` : '';
 
-          let priceMeta;
-          if (avg != null && isFinite(avg)) {
-            const avgStr = `$${avg.toFixed(2)}`;
-            if (min != null && max != null && isFinite(min) && isFinite(max) && min !== max) {
-              priceMeta = `Avg ${avgStr} per night (range $${min.toFixed(2)}–$${max.toFixed(2)})`;
-            } else {
-              priceMeta = `Avg ${avgStr} per night`;
-            }
-          } else {
-            priceMeta = 'Price unavailable for these dates';
-          }
+          // We will replace this after DB rate plans hydrate (NRF preferred).
+          // Keep a safe placeholder for initial render.
+          let priceMeta = 'Lowest price is -';
 
           return `
             <div class="roomcat" data-room-id="${rid}" data-available-rooms="${Number(room.availableRooms ?? 0)}">
@@ -4090,7 +4082,7 @@
             <img src="${thumb}" alt="${name} thumbnail" loading="lazy" decoding="async">
             <div>
               <h3>${name}</h3>
-              <div class="meta">${priceMeta}${area}</div>
+              <div class="meta"><span class="meta-price" data-room-id="${rid}">${priceMeta}</span>${area}</div>
             </div>
 
             <a class="btn-select"
@@ -4406,6 +4398,47 @@
             return rows;
           }
 
+          function updateRoomCardLowestPrice(roomId, plans){
+            try {
+              const rid = String(roomId || '').trim();
+              if (!rid) return;
+
+              // Prefer NRF by code or name
+              const nrfPlan = (Array.isArray(plans) ? plans : []).find(p => {
+                const code = String(p?.code || '').toUpperCase();
+                const name = String(p?.name || '');
+                return code === 'NRF' || /non[-\s]?ref/i.test(name);
+              });
+
+              let best = null;
+
+              if (nrfPlan) {
+                const raw = getPlanPriceForRoom(rid, Number(nrfPlan.id));
+                const n = raw != null ? Number(raw) : NaN;
+                if (Number.isFinite(n)) best = n;
+              }
+
+              // Fallback: lowest across any active plan if NRF missing/unpriced
+              if (best == null) {
+                for (const p of (Array.isArray(plans) ? plans : [])) {
+                  const raw = getPlanPriceForRoom(rid, Number(p.id));
+                  const n = raw != null ? Number(raw) : NaN;
+                  if (!Number.isFinite(n)) continue;
+                  if (best == null || n < best) best = n;
+                }
+              }
+
+              const el = document.querySelector(`.meta-price[data-room-id="${CSS.escape(rid)}"]`);
+              if (!el) return;
+
+              if (best == null || !Number.isFinite(best)) {
+                el.textContent = 'Lowest price is unavailable';
+              } else {
+                el.textContent = `Lowest price is $${best.toFixed(2)}`;
+              }
+            } catch (_) {}
+          }
+
           // === HYDRATE_LOOP_BEGIN (drop-in replacement) ===
           async function waitForCats(maxTries = 20){
             for (let i = 0; i < maxTries; i++){
@@ -4457,6 +4490,8 @@
 
             // DB owns which plans are available to travelers
             plans = plans.filter(p => p && p.active === true);
+
+            updateRoomCardLowestPrice(rid, plans);
 
             // Cache per-room plans for modal + reuse
             try {
