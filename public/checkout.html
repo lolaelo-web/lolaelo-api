@@ -2311,6 +2311,19 @@
           )
         );
 
+        // Build qtyByLine from cart (lineId -> qty)
+        const qtyByLine = new Map();
+        try {
+          const cartNow = loadCartV1();
+          const itemsNow = cartNow && Array.isArray(cartNow.items) ? cartNow.items : [];
+          itemsNow.forEach(it => {
+            const lid = String(it && it.lineId || "");
+            if (!lid) return;
+            const q = Math.max(1, Number.parseInt(String(it.qty || 1), 10) || 1);
+            qtyByLine.set(lid, q);
+          });
+        } catch (_) {}
+
         cards.forEach(card => {
           // Robust lineId read: supports data-lineid, data-lineId, and dataset variants
           const lid = String(
