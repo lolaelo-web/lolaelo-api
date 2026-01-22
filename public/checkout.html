@@ -3461,10 +3461,23 @@
       state.pricingNights = adjustedNights;
 
       // Update summary total amount
-      var totalEl = document.getElementById("summaryTotal");
-      if (totalEl) {
-        totalEl.textContent = formatCurrency(totalNumeric, currency);
+      // IMPORTANT: In cart mode, the summary total must be the SUM of all cards (updateGrandTotal),
+      // not a single checkoutQuote total (which would overwrite and undercount).
+      var inCartMode = false;
+      try {
+        var cartNow = loadCartV1();
+        inCartMode = !!(cartNow && Array.isArray(cartNow.items) && cartNow.items.length);
+      } catch (_) { inCartMode = false; }
+
+      if (!inCartMode) {
+        var totalEl = document.getElementById("summaryTotal");
+        if (totalEl) {
+          totalEl.textContent = formatCurrency(totalNumeric, currency);
+        }
       }
+
+      // Always recompute cart grand total from rendered cards (safe in both modes)
+      try { updateGrandTotal(); } catch (_) {}
 
       // Update nightly breakdown using adjusted nights
       renderNightlyBreakdown(adjustedNights, currency);
