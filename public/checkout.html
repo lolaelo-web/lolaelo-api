@@ -3413,7 +3413,7 @@
       const cur = quote.currency || "";
       const fmtMoney = (v) => {
         const n = Number(v || 0);
-        const s = n.toFixed(0);
+        const s = n.toFixed(2);
         if (cur === "USD") return "$" + s;
         if (cur) return cur + " " + s;
         return "$" + s;
@@ -4145,6 +4145,7 @@
         if (it0.lineId) {
           tpl.dataset.lineId = it0.lineId;
           tpl.setAttribute("data-lineid", String(it0.lineId));
+          tpl.setAttribute("data-lineId", String(it0.lineId)); // hygiene: keep both variants in sync
         }
 
         // Helper scoped to template
@@ -4267,6 +4268,7 @@
         const lid = item.lineId || ("line_" + i);
         clone.dataset.lineId = lid;
         clone.setAttribute("data-lineid", String(lid));
+        clone.setAttribute("data-lineId", String(lid)); // hygiene: keep both variants in sync
 
         // Suffix IDs inside clone to avoid duplicates
         suffixIdsInClone(clone, i);
