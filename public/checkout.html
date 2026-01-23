@@ -2355,7 +2355,10 @@
 
           const qn = qtyByLine.get(lid) || 1;
 
-          const roomName = pickText(card, "roomName", "roomName") || "Room";
+          const roomName =
+            (card.dataset && card.dataset.lineRoomName)
+              ? String(card.dataset.lineRoomName)
+              : (pickText(card, "roomName", "roomName") || "Room");
 
           // Prefer cached quote nights (set by applyQuoteToCard)
           let nights = null;
@@ -2369,8 +2372,20 @@
           let totalPerRoom = 0;
           let nightsCount = 0;
 
+          // Prefer dataset snapshots (more stable across add/remove)
+          try {
+            const dn = card.dataset ? Number(card.dataset.lineNights) : NaN;
+            if (Number.isFinite(dn) && dn > 0) nightsCount = dn;
+          } catch (_) {}
+
+          let avgNightSnapshot = NaN;
+          try {
+            const da = card.dataset ? Number(card.dataset.lineAvgNight) : NaN;
+            if (Number.isFinite(da) && da > 0) avgNightSnapshot = da;
+          } catch (_) {}
+
           if (Array.isArray(nights) && nights.length) {
-            nightsCount = nights.length;
+            nightsCount = nights.length; // quote nights wins
             totalPerRoom = nights.reduce((sum, n) => {
               const raw =
                 n && n.amount !== undefined ? n.amount :
@@ -2385,14 +2400,21 @@
             if (Number.isFinite(lt) && lt > 0) {
               totalPerRoom = lt / Math.max(1, qn);
             }
-            // Nights count from visible nights label (if present)
-            const nn = Number(pickText(card, "stayNights", "stayNights") || 0);
-            if (Number.isFinite(nn) && nn > 0) nightsCount = nn;
+
+            // Nights count from visible label only as last resort
+            if (!nightsCount) {
+              const nn = Number(pickText(card, "stayNights", "stayNights") || 0);
+              if (Number.isFinite(nn) && nn > 0) nightsCount = nn;
+            }
           }
 
           if (!Number.isFinite(totalPerRoom) || totalPerRoom <= 0) return;
 
-          const avgNight = (nightsCount > 0) ? (totalPerRoom / nightsCount) : 0;
+          const avgNight =
+            Number.isFinite(avgNightSnapshot) && avgNightSnapshot > 0
+              ? avgNightSnapshot
+              : ((nightsCount > 0) ? (totalPerRoom / nightsCount) : 0);
+
           const lineTotal = totalPerRoom * qn;
 
           if (!Number.isFinite(lineTotal) || lineTotal <= 0) return;
@@ -3431,10 +3453,23 @@
         totalFallback: totalFallback.length
       });
 
-      // Store numeric totals on the card so cart summary can sum across cards
+      // Store numeric totals on the card so cart summary + breakdown stay stable across add/remove.
       try {
         cardEl.dataset.lineTotal = String(totalScaled);         // numeric (qty-scaled)
         cardEl.dataset.lineCurrency = String(cur || "USD");     // currency hint
+        cardEl.dataset.lineNights = String(nights || 0);        // nights count (per room)
+        cardEl.dataset.lineAvgNight = String(avg || 0);         // avg/night (per room)
+
+        // Snapshot room name onto the card to avoid DOM role/id drift after mutations
+        try {
+          const rn =
+            (cardEl.querySelector('[data-role="roomName"]') ||
+             cardEl.querySelector('[data-orig-id="roomName"]') ||
+             cardEl.querySelector('#roomName'));
+          if (rn && rn.textContent != null) {
+            cardEl.dataset.lineRoomName = String(rn.textContent || "").trim();
+          }
+        } catch (_) {}
       } catch (_) {}
 
       // Refresh right summary total in cart mode
