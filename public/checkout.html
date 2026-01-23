@@ -3477,6 +3477,10 @@
 
       // Refresh right summary total in cart mode
       try { updateGrandTotal(); } catch (_) {}
+
+      // Refresh breakdown after every card quote apply.
+      // In cart mode, renderNightlyBreakdown ignores nightsArr and reads from rendered cards.
+      try { renderNightlyBreakdown([], state.pricingCurrency || cur || "USD"); } catch (_) {}
     }
 
     function applyCheckoutQuote(quote) {
