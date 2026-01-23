@@ -5818,6 +5818,16 @@
       state[code] = { sign, unit, value: cleanVal };
 
       if (markDirty && !window.__planRulesHydrating) {
+          try {
+            if (localStorage.getItem('dbg.planRulesDirty') === '1') {
+              console.warn('[planRules] mark dirty', {
+                hydrating: !!window.__planRulesHydrating,
+                roomTypeId: window.currentRoomTypeId,
+                ratePlanId: window.currentRatePlanId
+              });
+              console.warn(new Error('[planRules] dirty stack').stack);
+            }
+          } catch(_) {}
         try { window.__planRulesDirty = true; } catch(_) {}
       }
       // Persist draft immediately so a hard refresh restores it
