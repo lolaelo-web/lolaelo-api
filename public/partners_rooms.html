@@ -2332,14 +2332,7 @@
   function getStdPlanIdForRoom(roomId){
     const rid = Number(roomId || window.currentRoomTypeId);
 
-    // Prefer STD chip id if present
-    try{
-      const stdChip = document.querySelector('#rateplan-checks .chip[data-plan-code="STD"]');
-      const stdId = Number(stdChip && stdChip.getAttribute('data-plan-id'));
-      if (Number.isFinite(stdId) && stdId > 0) return stdId;
-    }catch(_){}
-
-    // Fallback to cached rate plans by room (if available)
+    // Prefer cached rate plans by room (room-scoped, less drift)
     try{
       const byRoom = window.__ratePlansByRoom && window.__ratePlansByRoom[String(rid)];
       if (Array.isArray(byRoom)) {
@@ -2347,6 +2340,13 @@
         const n = Number(std && std.id);
         if (Number.isFinite(n) && n > 0) return n;
       }
+    }catch(_){}
+
+    // Fallback to STD chip id if present (UI-scoped)
+    try{
+      const stdChip = document.querySelector('#rateplan-checks .chip[data-plan-code="STD"]');
+      const stdId = Number(stdChip && stdChip.getAttribute('data-plan-id'));
+      if (Number.isFinite(stdId) && stdId > 0) return stdId;
     }catch(_){}
 
     // Final fallback (legacy)
@@ -2444,14 +2444,15 @@
     try { if (typeof updateURLFromState === 'function') updateURLFromState(); } catch (_){}
     if (typeof renderCalendar === 'function') renderCalendar({ reason: 'init:rateplans' });
 
-    // 5) Listen once for future checkbox changes → update state + refresh
+    // 5) Listen once for future checkbox changes → update state + URL only
+    // Calendar tiles are STD-only, so do NOT rerender calendar on rateplan selection changes.
     const handler = (e) => {
       const list = (e && e.detail && Array.isArray(e.detail.ids)) ? e.detail.ids : [];
       window.currentRatePlanId = list.length ? Number(list[0]) : (getCanonicalPrimaryPlanId() || 1);
       try { localStorage.setItem('rateplan.lastPlanId', String(window.currentRatePlanId)); } catch(_){}
       try { if (typeof saveCtx === 'function') saveCtx(); } catch (_){}
       try { if (typeof updateURLFromState === 'function') updateURLFromState(); } catch (_){}
-      if (typeof renderCalendar === 'function') renderCalendar({ reason: 'rateplans:changed' });
+      // Intentionally no renderCalendar() here.
     };
 
     // idempotent wiring
@@ -3425,6 +3426,18 @@
           if (Number.isFinite(rid) && typeof window.loadRatePlansForRoom === 'function') {
             const plans = await window.loadRatePlansForRoom(rid);
 
+            // Keep STD chip id consistent with the room's loaded plans (prevents plan-id drift)
+            try {
+              if (Array.isArray(plans)) {
+                const std = plans.find(x => String(x.code || '').toUpperCase() === 'STD');
+                const stdId = Number(std && std.id);
+                if (Number.isFinite(stdId) && stdId > 0) {
+                  const stdChip = document.querySelector('#rateplan-checks .chip[data-plan-code="STD"]');
+                  if (stdChip) stdChip.setAttribute('data-plan-id', String(stdId));
+                }
+              }
+            } catch(_) {}
+
             // Ensure calendar can resolve STD immediately on room switch
             try {
               window.__ratePlansByRoom = window.__ratePlansByRoom || {};
@@ -4173,6 +4186,7 @@
               if (Array.isArray(rows) && rows.length > 0) {
                 // DISPLAY ONLY: do not persist, update URL, or dispatch events.
                 prcRows = rows;
+                __stickyCacheEnabled = false;
                 if (localStorage.getItem('rooms_debug') === '1') {
                   console.debug('[plan-fallback DISPLAY-ONLY] selected plan had 0 rows; showing plan', id, 'rows:', rows.length);
                 }
@@ -4198,7 +4212,7 @@
 
     // STICKY PRICE CACHE — keep last known prices per (room, plan) in memory + localStorage
     window.__priceCache = window.__priceCache || new Map();
-    const __cacheKey = `${currentRoomTypeId}|${primaryPlanId}`;
+    const __cacheKey = `${currentRoomTypeId}|${stdPlanId}`;
     const LS_CACHE_KEY = 'rooms.priceCache.v1';
 
     // helpers for LS cache
@@ -4246,7 +4260,15 @@
           }
         }
       }
-      if (prcByDate.size) { try { setStatus('Showing last known prices (cached).', 'warn'); } catch(_){} }
+      if (prcByDate.size) {
+        // Avoid overwriting a more specific warning (eg, display-only plan fallback)
+        try {
+          const cur = String(status?.textContent || '');
+          if (!/showing another available plan/i.test(cur)) {
+            setStatus('Showing last known prices (cached).', 'warn');
+          }
+        } catch(_){}
+      }
     }
     const ONE_DAY = 86400000;
     const daysBetween = (startISO,endISO) => {
