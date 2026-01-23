@@ -5806,7 +5806,7 @@
       document.dispatchEvent(new CustomEvent('planRules:hydrated', { detail:{ drafts: __preloadedRuleDrafts } }));
     } catch(_){}
 
-    function update(markDirty){
+    function update(markDirty, evt){
       const sign  = selSign?.value || '-';
       const unit  = selUnit?.value || '$';
 
@@ -5818,17 +5818,25 @@
       state[code] = { sign, unit, value: cleanVal };
 
       if (markDirty && !window.__planRulesHydrating) {
-          try {
-            if (localStorage.getItem('dbg.planRulesDirty') === '1') {
-              console.warn('[planRules] mark dirty', {
-                hydrating: !!window.__planRulesHydrating,
-                roomTypeId: window.currentRoomTypeId,
-                ratePlanId: window.currentRatePlanId
-              });
-              console.warn(new Error('[planRules] dirty stack').stack);
-            }
-          } catch(_) {}
-        try { window.__planRulesDirty = true; } catch(_) {}
+        // Only treat real user interactions as "dirty"
+        // Synthetic dispatchEvent('input') should not enable Save.
+        const trusted = (evt && typeof evt.isTrusted === 'boolean') ? evt.isTrusted : true;
+
+        try {
+          if (localStorage.getItem('dbg.planRulesDirty') === '1') {
+            console.warn('[planRules] mark dirty', {
+              hydrating: !!window.__planRulesHydrating,
+              trusted,
+              roomTypeId: window.currentRoomTypeId,
+              ratePlanId: window.currentRatePlanId
+            });
+            console.warn(new Error('[planRules] dirty stack').stack);
+          }
+        } catch(_) {}
+
+        if (trusted) {
+          try { window.__planRulesDirty = true; } catch(_) {}
+        }
       }
       // Persist draft immediately so a hard refresh restores it
       try { saveRuleDraft(code, { sign, unit, value: cleanVal }); } catch(_){}
@@ -5869,9 +5877,9 @@
     }
 
     ['change','input','blur'].forEach(ev => {
-      selSign?.addEventListener(ev, () => update(true));
-      selUnit?.addEventListener(ev, () => update(true));
-      inpValue?.addEventListener(ev, () => update(true));
+      selSign?.addEventListener(ev, (e) => update(true, e));
+      selUnit?.addEventListener(ev, (e) => update(true, e));
+      inpValue?.addEventListener(ev, (e) => update(true, e));
     });
 
     // Initial paint (do not mark dirty)
