@@ -3472,8 +3472,8 @@
         // highlight right pane
         setRightActive(true);
 
-        await renderCalendar();
         await loadRooms();
+        await renderCalendar();
       });
 
       const editBtn = div.querySelector('button[data-act="edit"]');
@@ -4731,7 +4731,6 @@
         console.warn("PRC verify GET failed:", e);
       }
 
-
       await renderCalendar();
 
       // If server GET returned nothing (or a different shape), paint the UI with the posted price.
@@ -5821,19 +5820,6 @@
         // Only treat real user interactions as "dirty"
         // Synthetic dispatchEvent('input') should not enable Save.
         const trusted = (evt && typeof evt.isTrusted === 'boolean') ? evt.isTrusted : true;
-
-        try {
-          if (localStorage.getItem('dbg.planRulesDirty') === '1') {
-            console.warn('[planRules] mark dirty', {
-              hydrating: !!window.__planRulesHydrating,
-              trusted,
-              roomTypeId: window.currentRoomTypeId,
-              ratePlanId: window.currentRatePlanId
-            });
-            console.warn(new Error('[planRules] dirty stack').stack);
-          }
-        } catch(_) {}
-
         if (trusted) {
           try { window.__planRulesDirty = true; } catch(_) {}
         }
