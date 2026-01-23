@@ -5815,7 +5815,6 @@
       if (markDirty && !window.__planRulesHydrating) {
         try { window.__planRulesDirty = true; } catch(_) {}
       }
-
       // Persist draft immediately so a hard refresh restores it
       try { saveRuleDraft(code, { sign, unit, value: cleanVal }); } catch(_){}
 
