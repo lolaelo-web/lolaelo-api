@@ -2406,7 +2406,12 @@
         if (selUnit)  selUnit.value = (kind === 'PERCENT') ? '%' : '$';
         if (inpValue) {
           inpValue.value = String(mag);
-          inpValue.dispatchEvent(new Event('input'));
+
+          // drive preview + validity without marking "dirty" during server hydration
+          try { window.__planRulesHydrating = true; } catch(_) {}
+          try { inpValue.dispatchEvent(new Event('input')); } finally {
+            try { window.__planRulesHydrating = false; } catch(_) {}
+          }
         }
       });
     } catch(_){}
