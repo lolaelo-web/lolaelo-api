@@ -3425,6 +3425,12 @@
           if (Number.isFinite(rid) && typeof window.loadRatePlansForRoom === 'function') {
             const plans = await window.loadRatePlansForRoom(rid);
 
+            // Ensure calendar can resolve STD immediately on room switch
+            try {
+              window.__ratePlansByRoom = window.__ratePlansByRoom || {};
+              if (Array.isArray(plans)) window.__ratePlansByRoom[String(rid)] = plans;
+            } catch(_){}
+
             const panel = document.getElementById('plans-panel');
             if (panel && Array.isArray(plans)) {
               plans.forEach(p => {
