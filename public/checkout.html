@@ -2773,7 +2773,10 @@
 
       if (inCartMode) {
         const cards = Array.from(
-          document.querySelectorAll('.section-body[data-section-body="1"] .dates-grid[data-lineid]')
+          document.querySelectorAll(
+            '.section-body[data-section-body="1"] .dates-grid[data-lineid], ' +
+            '.section-body[data-section-body="1"] .dates-grid[data-lineId]'
+          )
         );
 
         cards.forEach((card) => {
