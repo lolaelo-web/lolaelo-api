@@ -5636,6 +5636,17 @@
         return 'Standard conditions apply for this rate.';
       }
 
+      function modalPlanSortKey(id){
+        const lbl = String(getModalPlanLabel(id) || "").toLowerCase();
+
+        // Match inline canonical order: NRF, STD, BRKF
+        if (/non[-\s]?ref/.test(lbl)) return 1;
+        if (/standard/.test(lbl))     return 2;
+        if (/breakfast/.test(lbl))    return 3;
+
+        return 99;
+      }
+
       function fillList(ul, labels, extraText) {
         if (!ul) return;
         while (ul.firstChild) ul.removeChild(ul.firstChild);
@@ -5901,6 +5912,14 @@
                           return;
                         }
 
+                        // Canonical display order (match inline): NRF, STD, BRKF
+                        ids = ids.slice().sort(function(a, b){
+                          var ka = modalPlanSortKey(a);
+                          var kb = modalPlanSortKey(b);
+                          if (ka !== kb) return ka - kb;
+                          return Number(a) - Number(b);
+                        });
+
                         const plansQS = ids.length ? `&plans=${encodeURIComponent(ids.join(','))}` : '';
 
                         ids.forEach(id => {
@@ -6085,6 +6104,14 @@
             if (!ids.length) {
               plansWrap.innerHTML = `<div class="muted" style="padding:8px 0;">No rates available.</div>`;
             } else {
+              // Canonical display order (match inline): NRF, STD, BRKF
+              ids = ids.slice().sort(function(a, b){
+                var ka = modalPlanSortKey(a);
+                var kb = modalPlanSortKey(b);
+                if (ka !== kb) return ka - kb;
+                return Number(a) - Number(b);
+              });
+
               const plansQS = ids.length ? `&plans=${encodeURIComponent(ids.join(','))}` : '';
 
               ids.forEach(id => {
