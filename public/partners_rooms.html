@@ -729,22 +729,6 @@
             <div id="cal-grid" class="cal-grid"></div>
           </div>
 
-          <!-- Room photos strip (per room type) -->
-          <div id="room-photos-panel" class="room-photos-panel empty" aria-live="polite">
-            <div style="flex:1 1 auto; min-width:0;">
-              <div class="room-photos-title">Manage room photos</div>
-              <div class="room-photos-list" id="room-photos-list">
-                <span class="note">Pick a room type to add photos.</span>
-              </div>
-            </div>
-            <div class="room-photos-actions">
-              <button type="button" class="btn primary" id="manage-room-photos-btn">
-                Choose/Upload photos
-              </button>
-              <span class="note" style="font-size:11px;">Up to 3 photos show in the booking flow.</span>
-            </div>
-          </div>
-
           <!-- ANCHOR: PLANS_PANEL_HTML -->
           <div id="plans-panel" aria-live="polite" aria-label="Rate plan rules" class="plans-panel" style="margin:12px;margin-top:12px;margin-bottom:12px;background:var(--panel);border:1px solid var(--border);border-radius:10px;padding:12px;">
             <h3 style="margin:0 0 8px 0;font-size:14px;letter-spacing:.2px;">Rate Plan Rules (Derived from Standard)</h3>
@@ -815,6 +799,22 @@
               </div>
 
             </div> <!-- closes id="plans-list" -->
+          </div>
+
+          <!-- Room photos strip (per room type) -->
+          <div id="room-photos-panel" class="room-photos-panel empty" aria-live="polite">
+            <div style="flex:1 1 auto; min-width:0;">
+              <div class="room-photos-title">Manage room photos</div>
+              <div class="room-photos-list" id="room-photos-list">
+                <span class="note">Pick a room type to add photos.</span>
+              </div>
+            </div>
+            <div class="room-photos-actions">
+              <button type="button" class="btn primary" id="manage-room-photos-btn">
+                Choose/Upload photos
+              </button>
+              <span class="note" style="font-size:11px;">Up to 3 photos show in the booking flow.</span>
+            </div>
           </div>
 
   <!-- Edit Room Modal -->
@@ -5690,8 +5690,11 @@
       if (selUnit)  selUnit.value  = (kind === 'PERCENT') ? '%' : '$';
       if (inpValue){
         inpValue.value = String(mag);
-        // drive preview + validity without requiring user input
-        inpValue.dispatchEvent(new Event('input'));
+        // drive preview + validity without marking "dirty" during server hydration
+        try { window.__planRulesHydrating = true; } catch(_){}
+        try { inpValue.dispatchEvent(new Event('input')); } finally {
+          try { window.__planRulesHydrating = false; } catch(_){}
+        }
       }
     }
 
@@ -5809,7 +5812,7 @@
       const cleanVal = Number.isFinite(value) ? value : NaN;
       state[code] = { sign, unit, value: cleanVal };
 
-      if (markDirty) {
+      if (markDirty && !window.__planRulesHydrating) {
         try { window.__planRulesDirty = true; } catch(_) {}
       }
 
