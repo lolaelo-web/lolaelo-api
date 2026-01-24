@@ -374,6 +374,32 @@
         </tbody>
       </table>
     </div>
+ 
+    <div style="height:12px;"></div>
+
+    <!-- Paid payouts list -->
+    <div class="section-label">
+      Paid
+    </div>
+    <div class="table">
+      <table>
+        <thead>
+          <tr>
+            <th style="width:120px; text-align:center;">Payout ID</th>
+            <th style="width:320px; text-align:center;">Partner</th>
+            <th style="width:120px; text-align:center;">Status</th>
+            <th style="width:140px; text-align:center;">Bookings</th>
+            <th class="right" style="width:160px; text-align:center;">Gross Total</th>
+            <th class="right" style="width:160px; text-align:center;">Total Commission</th>
+            <th class="right" style="width:160px; text-align:center;">Net Amt Paid to Partner</th>
+            <th style="width:260px; text-align:center;">Actions</th>
+          </tr>
+        </thead>
+        <tbody id="paidRows">
+          <tr><td colspan="8" class="muted">No paid payouts for this pay period.</td></tr>
+        </tbody>
+      </table>
+    </div>
 
     <div id="pageToast" class="toast"></div>
   </div>
@@ -829,7 +855,10 @@
 
         if (!rows.length) { setPayoutRowsEmpty(); return; }
 
-        $("payoutRows").innerHTML = rows.map(r => {
+        const waiting = rows.filter(r => String(r.status || "") !== "PAID");
+        const paid = rows.filter(r => String(r.status || "") === "PAID");
+
+        function renderPayoutRow(r, isPaidSection){
           const id = Number(r.id);
           const name = escapeHtml(r.propertyName || ("Partner #" + r.partnerId));
           const st = escapeHtml(String(r.status || ""));
@@ -840,7 +869,7 @@
           const net = r.netTotal;
           const cur = String(r.currency || "USD").toUpperCase();
 
-          const canMarkPaid = String(r.status || "") === "DRAFT";
+          const canMarkPaid = !isPaidSection && String(r.status || "") === "DRAFT";
 
           return `
             <tr>
@@ -862,7 +891,15 @@
               </td>
             </tr>
           `;
-        }).join("");
+        }
+
+        $("payoutRows").innerHTML = waiting.length
+          ? waiting.map(r => renderPayoutRow(r, false)).join("")
+          : `<tr><td colspan="8" class="muted">No payouts waiting for payment for this pay period.</td></tr>`;
+
+        $("paidRows").innerHTML = paid.length
+          ? paid.map(r => renderPayoutRow(r, true)).join("")
+          : `<tr><td colspan="8" class="muted">No paid payouts for this pay period.</td></tr>`;
       }
 
       async function loadBookingsForPartner(partnerId){
@@ -953,7 +990,16 @@
           currentPayoutBookings = data.bookings || [];
 
           $("payoutTitle").textContent = `Payout ${currentPayoutId} · Partner ${currentPayout.partnerId}`;
-          $("payoutSub").textContent = `Pay period: ${currentPayout.weekStart} to ${currentPayout.weekEnd} · Created by ${currentPayout.createdBy || "admin"}`;
+          const paidAt = currentPayout.paidAt || currentPayout.paidAtUtc || currentPayout.paidAtEt || "";
+          const paidBy = currentPayout.paidBy || currentPayout.paidByUser || currentPayout.paidByEmail || "";
+          const paidAtTxt = paidAt ? String(paidAt) : "—";
+          const paidByTxt = paidBy ? String(paidBy) : "—";
+
+          const baseSub = `Pay period: ${currentPayout.weekStart} to ${currentPayout.weekEnd} · Created by ${currentPayout.createdBy || "admin"}`;
+          const isPaid = String(currentPayout.status || "") === "PAID";
+          $("payoutSub").textContent = isPaid
+            ? `${baseSub} · Paid at ${paidAtTxt} · Paid by ${paidByTxt}`
+            : baseSub;
 
           const gross = currentPayoutBookings.reduce((s,b)=>s+(Number(b.grossAmount||0)||0),0);
           const fees = currentPayoutBookings.reduce((s,b)=>s+(Number(b.feeAmount||0)||0),0);
@@ -964,6 +1010,11 @@
           $("payoutFees").textContent = money(fees, cur);
           $("payoutNet").textContent = money(net, cur);
           $("payoutStatus").textContent = String(currentPayout.status || "");
+
+          // View-only when already paid
+          // isPaid already computed above
+          const btnMark = $("btnOpenMarkPaid");
+          if (btnMark) btnMark.style.display = isPaid ? "none" : "";
 
           $("payoutBookingRows").innerHTML = currentPayoutBookings.map(b => {
             const ref = escapeHtml(b.bookingRef || "");
