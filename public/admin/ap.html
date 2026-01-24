@@ -1,6 +1,11 @@
 <!doctype html>
 <html lang="en">
 <head>
+  <!-- Favicon -->
+  <link rel="icon" href="https://www.lolaelo.com/images/logo3.png?v=4" type="image/png">
+  <link rel="shortcut icon" href="https://www.lolaelo.com/images/logo3.png?v=4" type="image/png">
+  <link rel="apple-touch-icon" href="https://www.lolaelo.com/images/logo3.png?v=4">
+
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1" />
   <title>AP Payouts | Lolaelo Admin</title>
@@ -594,13 +599,24 @@
         return addDays(thisMon, -7);
       }
 
-      function defaultPaidAtEtIso(weekStartYmd){
-        const ws = new Date(weekStartYmd + "T00:00:00");
-        const d = addDays(ws, 11);
-        const y = d.getFullYear();
-        const m = String(d.getMonth()+1).padStart(2,"0");
-        const da = String(d.getDate()).padStart(2,"0");
-        return `${y}-${m}-${da}T21:00`;
+      function normalizeWeekStartYmd(input){
+        const s = String(input || "").trim();
+        const m = s.match(/^(\d{4}-\d{2}-\d{2})/);
+        if (m) return m[1];
+
+        const d = new Date(s);
+        if (!isNaN(d.getTime())) return ymd(d);
+
+        return "";
+      }
+
+      // Accepts either "YYYY-MM-DD" OR an ISO string like "2026-01-19T00:00:00.000Z"
+      function defaultPaidAtEtIso(weekStartLike){
+        const wsYmd = normalizeWeekStartYmd(weekStartLike) || currentWeekStart;
+        const ws = new Date(wsYmd + "T00:00:00");
+        if (isNaN(ws.getTime())) return "";
+        const d = addDays(ws, 11); // Fri 21:00 relative to weekStart (Mon)
+        return `${ymd(d)}T21:00`;
       }
 
       async function ensureAdmin(){
@@ -1021,6 +1037,10 @@
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify({ amountNet, method, confirmationNumber, paidAt })
           });
+
+          if (!paidAt) { $("paidToast").textContent = "Paid at required."; $("paidToast").className="toast bad"; return; }
+          const paidAtDate = new Date(paidAt);
+          if (isNaN(paidAtDate.getTime())) { $("paidToast").textContent = "Paid at is invalid. Use YYYY-MM-DDTHH:mm"; $("paidToast").className="toast bad"; return; }
 
           $("paidToast").textContent = "Marked PAID.";
           $("paidToast").className = "toast ok";
