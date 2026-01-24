@@ -483,7 +483,7 @@
           <table>
             <thead>
               <tr>
-                <th style="width:150px;">Booking ref</th>
+                <th style="width:210px;">Confirmation #</th>
                 <th style="width:210px;">Stay dates</th>
                 <th class="right" style="width:140px;">Gross</th>
                 <th class="right" style="width:110px;">Margin %</th>
@@ -990,15 +990,30 @@
           currentPayoutBookings = data.bookings || [];
 
           $("payoutTitle").textContent = `Payout ${currentPayoutId} · Partner ${currentPayout.partnerId}`;
-          const paidAt = currentPayout.paidAt || currentPayout.paidAtUtc || currentPayout.paidAtEt || "";
-          const paidBy = currentPayout.paidBy || currentPayout.paidByUser || currentPayout.paidByEmail || "";
-          const paidAtTxt = paidAt ? String(paidAt) : "—";
-          const paidByTxt = paidBy ? String(paidBy) : "—";
 
-          const baseSub = `Pay period: ${currentPayout.weekStart} to ${currentPayout.weekEnd} · Created by ${currentPayout.createdBy || "admin"}`;
+          // Date-only formatter (strip time)
+          function fmtDateOnly(v){
+            if (!v) return "—";
+            try {
+              return String(v).slice(0, 10); // YYYY-MM-DD
+            } catch(_) {
+              return String(v);
+            }
+          }
+
+          const paidAt = currentPayout.paidAt || currentPayout.paidAtUtc || currentPayout.paidAtEt || "";
+          const paidAtTxt = fmtDateOnly(paidAt);
+
+          const createdBy =
+            currentPayout.createdByEmail ||
+            currentPayout.createdByUser ||
+            currentPayout.createdBy ||
+            "—";
+
+          const baseSub = `Pay period: ${fmtDateOnly(currentPayout.weekStart)} to ${fmtDateOnly(currentPayout.weekEnd)} · Created by ${createdBy}`;
           const isPaid = String(currentPayout.status || "") === "PAID";
           $("payoutSub").textContent = isPaid
-            ? `${baseSub} · Paid at ${paidAtTxt} · Paid by ${paidByTxt}`
+            ? `${baseSub} · Paid at ${paidAtTxt}`
             : baseSub;
 
           const gross = currentPayoutBookings.reduce((s,b)=>s+(Number(b.grossAmount||0)||0),0);
@@ -1011,13 +1026,35 @@
           $("payoutNet").textContent = money(net, cur);
           $("payoutStatus").textContent = String(currentPayout.status || "");
 
+          // Confirmation/reference (if recorded)
+          try {
+            const ref =
+              currentPayout.confirmationNumber ||
+              currentPayout.confirmationRef ||
+              currentPayout.confirmation_reference ||
+              currentPayout.paymentRef ||
+              "";
+
+            const elRef = document.getElementById("payoutConfirmRef");
+            if (elRef) elRef.textContent = ref ? String(ref) : "—";
+          } catch(_) {}
+
           // View-only when already paid
           // isPaid already computed above
           const btnMark = $("btnOpenMarkPaid");
           if (btnMark) btnMark.style.display = isPaid ? "none" : "";
 
           $("payoutBookingRows").innerHTML = currentPayoutBookings.map(b => {
-            const ref = escapeHtml(b.bookingRef || "");
+            const refRaw =
+              currentPayout.confirmationNumber ||
+              currentPayout.confirmationRef ||
+              currentPayout.confirmation_reference ||
+              currentPayout.paymentRef ||
+              b.bookingRef ||
+              "";
+
+            const ref = escapeHtml(String(refRaw || ""));
+
             const stay = `${escapeHtml(fmtDate(b.checkInDate))} to ${escapeHtml(fmtDate(b.checkOutDate))}`;
             const grossAmt = money(b.grossAmount, cur);
             const pct = (b.marginPct != null ? Number(b.marginPct) : 0);
