@@ -1,6 +1,7 @@
 <!doctype html>
 <html lang="en">
 <head>
+  <link rel="icon" href="/images/logo4.png" />
   <meta charset="utf-8" />
   <title>Partners · Rooms & Availability</title>
   <meta name="viewport" content="width=device-width, initial-scale=1" />
@@ -1735,6 +1736,60 @@
       return r;
     });
   }
+
+  // === UI LOCK DURING LONG-RUNNING WRITES (bulk/materialize) ===
+  (function installUiBusyLock(){
+    let busy = 0;
+
+    function setBusy(on){
+      busy = Math.max(0, busy + (on ? 1 : -1));
+      const isBusy = busy > 0;
+
+      try {
+        const saveBtn = document.getElementById('save');
+        const discBtn = document.getElementById('discard');
+
+        // Never force-enable; only force-disable while busy
+        if (saveBtn && isBusy) saveBtn.disabled = true;
+        if (discBtn && isBusy) discBtn.disabled = true;
+
+        if (isBusy) {
+          try { setStatus && setStatus('Applying changes… please wait (do not refresh)', 'warn'); } catch(_){}
+        }
+      } catch(_) {}
+    }
+
+    function isLockUrl(url, opts){
+      const u = String(url || '');
+      const m = String((opts && opts.method) || 'GET').toUpperCase();
+
+      // Only lock on writes
+      if (m === 'GET') return false;
+
+      return (
+        /\/prices\/bulk\b/i.test(u) ||
+        /\/inventory\/bulk\b/i.test(u) ||
+        /materialize-derived/i.test(u)
+      );
+    }
+
+    // Wrap authFetch
+    if (typeof authFetch === 'function' && !window.__uiBusyLockWrapped) {
+      const orig = authFetch;
+      window.__uiBusyLockWrapped = true;
+
+      // Replace the in-scope symbol so fetchWithRetry + all callers use it
+      authFetch = async function(url, opts){
+        const lock = isLockUrl(url, opts);
+        if (lock) setBusy(true);
+        try {
+          return await orig(url, opts);
+        } finally {
+          if (lock) setBusy(false);
+        }
+      };
+    }
+  })();
 
   /* ANCHOR: FETCH_RETRY_HELPER */
   async function fetchWithRetry(url, opts = {}, attempts = 2, delayMs = 800){
