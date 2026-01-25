@@ -237,7 +237,15 @@
       box-shadow:0 6px 18px rgba(15,23,42,.06);
     }
     .pillStatus .dot{ width:8px; height:8px; border-radius:50%; }
-    .pillStatus.ready .dot{ background:#f59e0b; }
+    .pillStatus.ready{
+      background:#fde047;            /* bright yellow */
+      border-color:#facc15;
+      color:#713f12;
+    }
+
+    .pillStatus.ready .dot{
+      background:#facc15;
+    }
     .pillStatus.draft .dot{ background:var(--accent); }
     .pillStatus.paid  .dot{ background:#10b981; }
 

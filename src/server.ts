@@ -4728,7 +4728,22 @@ app.get("/api/admin/ap/ledger", async (req: Request, res: Response) => {
             ), 0)::numeric AS "grossTotal",
             NULL::numeric AS "feesTotal",
             NULL::numeric AS "netTotal",
-            NULL::text    AS "confirmationNumber",
+            (
+              SELECT string_agg(b2."bookingRef", ', ')
+              FROM (
+                SELECT b2."bookingRef"
+                FROM extranet."Booking" b2
+                WHERE b2."partnerId" = b."partnerId"
+                  AND b2.status = 'COMPLETED'::extranet."BookingStatus"
+                  AND b2."completedAt" IS NOT NULL
+                  AND ((b2."completedAt" AT TIME ZONE 'America/New_York')::date BETWEEN (SELECT week_start FROM params) AND (SELECT week_end FROM params))
+                  AND NOT EXISTS (
+                    SELECT 1 FROM extranet."PayoutBooking" pb2 WHERE pb2."bookingId" = b2.id
+                  )
+                ORDER BY b2."completedAt" ASC
+                LIMIT 2
+              ) s
+            ) AS "confirmationNumber",
             NULL::timestamptz AS "paidAt",
             NULL::timestamptz AS "updatedAt",
             'USD'::text AS "currency"
@@ -4766,7 +4781,20 @@ app.get("/api/admin/ap/ledger", async (req: Request, res: Response) => {
             COALESCE((SELECT SUM(COALESCE(pb."netAmount",0) + COALESCE(pb."feeAmount",0)) FROM extranet."PayoutBooking" pb WHERE pb."payoutId" = p.id), 0)::numeric AS "grossTotal",
             COALESCE((SELECT SUM(COALESCE(pb."feeAmount",0)) FROM extranet."PayoutBooking" pb WHERE pb."payoutId" = p.id), 0)::numeric AS "feesTotal",
             COALESCE((SELECT SUM(COALESCE(pb."netAmount",0)) FROM extranet."PayoutBooking" pb WHERE pb."payoutId" = p.id), 0)::numeric AS "netTotal",
-            p."confirmationNumber"::text AS "confirmationNumber",
+            COALESCE(
+              p."confirmationNumber"::text,
+              (
+                SELECT string_agg(b."bookingRef", ', ')
+                FROM (
+                  SELECT b."bookingRef"
+                  FROM extranet."PayoutBooking" pb
+                  JOIN extranet."Booking" b ON b.id = pb."bookingId"
+                  WHERE pb."payoutId" = p.id
+                  ORDER BY b."completedAt" ASC
+                  LIMIT 2
+                ) s
+              )
+            ) AS "confirmationNumber",
             p."paidAt" AS "paidAt",
             COALESCE(p."paidAt", p."createdAt") AS "updatedAt",
             p.currency AS "currency",
