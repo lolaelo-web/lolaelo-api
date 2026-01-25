@@ -619,43 +619,6 @@
       tbody.innerHTML = rows.map(buildRow).join("");
     }
 
-      rows.sort(cmp);
-
-      function buildRow(r){
-        const payWindow = buildPayWindowLabel(r.weekStart || currentMeta.weekStart, r.weekEnd || currentMeta.weekEnd);
-        const partner = r.propertyName || ("Partner #" + (r.partnerId || ""));
-        const status = r.status || "";
-        const gross = (r.grossTotal != null ? String(r.grossTotal) : "");
-        const fees  = (r.feesTotal  != null ? String(r.feesTotal)  : "");
-        const net   = (r.netTotal   != null ? String(r.netTotal)   : "");
-        const conf  = r.confirmationNumber || "";
-        const paidAt = fmtDateOnly(r.paidAt);
-        const updatedAt = fmtDateOnly(r.updatedAt);
-        const paidOrUpdated = paidAt ? paidAt : (updatedAt ? updatedAt : "");
-
-        return `
-          <tr>
-            <td class="nowrap">${esc(payWindow || "-")}</td>
-            <td>${esc(partner)}</td>
-            <td class="nowrap">${statusPill(status)}</td>
-            <td class="right nowrap mono">${esc(gross || "")}</td>
-            <td class="right nowrap mono">${esc(fees || "")}</td>
-            <td class="right nowrap mono">${esc(net || "")}</td>
-            <td><div class="mono">${esc(conf || "-")}</div></td>
-            <td class="nowrap">${esc(paidOrUpdated || "-")}</td>
-          </tr>
-        `;
-      }
-
-      const ready = rows.filter(r => String(r.status || "").toUpperCase() === "READY");
-      const draft = rows.filter(r => String(r.status || "").toUpperCase() === "DRAFT");
-      const paid  = rows.filter(r => String(r.status || "").toUpperCase() === "PAID");
-
-      tbReady.innerHTML = ready.length ? ready.map(buildRow).join("") : `<tr><td colspan="8" class="muted">No rows.</td></tr>`;
-      tbDraft.innerHTML = draft.length ? draft.map(buildRow).join("") : `<tr><td colspan="8" class="muted">No rows.</td></tr>`;
-      tbPaid.innerHTML  = paid.length  ? paid.map(buildRow).join("")  : `<tr><td colspan="8" class="muted">No rows.</td></tr>`;
-    }
-
     function renderSummary(){
       const left = document.getElementById("summaryLeft");
       const right = document.getElementById("summaryRight");
