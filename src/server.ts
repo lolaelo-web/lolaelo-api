@@ -4729,7 +4729,7 @@ app.get("/api/admin/ap/ledger", async (req: Request, res: Response) => {
             NULL::numeric AS "feesTotal",
             NULL::numeric AS "netTotal",
             (
-              SELECT string_agg(b2."bookingRef", ', ')
+              SELECT string_agg(s."bookingRef", ', ')
               FROM (
                 SELECT b2."bookingRef"
                 FROM extranet."Booking" b2
