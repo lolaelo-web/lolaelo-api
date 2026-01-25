@@ -237,15 +237,17 @@
       box-shadow:0 6px 18px rgba(15,23,42,.06);
     }
     .pillStatus .dot{ width:8px; height:8px; border-radius:50%; }
+    /* Waiting for review: only dot is bright yellow */
     .pillStatus.ready{
-      background:#fde047;            /* bright yellow */
-      border-color:#facc15;
-      color:#713f12;
+      background:#fff;
+      border-color:rgba(15,23,42,.12);
+      color:#0f172a;
     }
 
     .pillStatus.ready .dot{
-      background:#facc15;
+      background:#facc15; /* bright yellow dot */
     }
+
     .pillStatus.draft .dot{ background:var(--accent); }
     .pillStatus.paid  .dot{ background:#10b981; }
 
@@ -344,14 +346,14 @@
       <div class="banner" id="noPostedBanner">No payments posted for this week.</div>
     </div>
 
-    <div class="table" style="margin-top:12px;">
+    <div class="table" style="margin-top:12px; padding:10px;">
+      <div class="sectionHead">Waiting for review</div>
       <table>
         <thead>
           <tr>
             <th class="nowrap">Pay window</th>
             <th>Partner</th>
             <th class="nowrap">Status</th>
-            <th class="right nowrap">Booking count</th>
             <th class="right nowrap">Gross</th>
             <th class="right nowrap">Fees</th>
             <th class="right nowrap">Net</th>
@@ -359,8 +361,46 @@
             <th class="nowrap">Paid at / Updated at</th>
           </tr>
         </thead>
-        <tbody id="tbody">
-          <tr><td colspan="9" class="muted">Loading...</td></tr>
+        <tbody id="tbodyReady">
+          <tr><td colspan="8" class="muted">Loading...</td></tr>
+        </tbody>
+      </table>
+
+      <div class="sectionHead" style="margin-top:14px;">Reviewed and waiting for payment</div>
+      <table>
+        <thead>
+          <tr>
+            <th class="nowrap">Pay window</th>
+            <th>Partner</th>
+            <th class="nowrap">Status</th>
+            <th class="right nowrap">Gross</th>
+            <th class="right nowrap">Fees</th>
+            <th class="right nowrap">Net</th>
+            <th>Confirmation / Reference</th>
+            <th class="nowrap">Paid at / Updated at</th>
+          </tr>
+        </thead>
+        <tbody id="tbodyDraft">
+          <tr><td colspan="8" class="muted">Loading...</td></tr>
+        </tbody>
+      </table>
+
+      <div class="sectionHead" style="margin-top:14px;">Paid</div>
+      <table>
+        <thead>
+          <tr>
+            <th class="nowrap">Pay window</th>
+            <th>Partner</th>
+            <th class="nowrap">Status</th>
+            <th class="right nowrap">Gross</th>
+            <th class="right nowrap">Fees</th>
+            <th class="right nowrap">Net</th>
+            <th>Confirmation / Reference</th>
+            <th class="nowrap">Paid at / Updated at</th>
+          </tr>
+        </thead>
+        <tbody id="tbodyPaid">
+          <tr><td colspan="8" class="muted">Loading...</td></tr>
         </tbody>
       </table>
     </div>
@@ -507,7 +547,7 @@
       const statuses = buildStatusesParam() || "READY,DRAFT,PAID";
 
       const tbody = document.getElementById("tbody");
-      tbody.innerHTML = `<tr><td colspan="9" class="muted">Loading...</td></tr>`;
+      tbody.innerHTML = `<tr><td colspan="8" class="muted">Loading...</td></tr>`;
 
       let url;
         if (periodVal === "YTD") {
@@ -526,7 +566,6 @@
       };
 
       renderTable();
-      applyClientSearch();
       renderSummary();
       renderNoPostedBanner();
     }
@@ -538,17 +577,61 @@
     }
 
     function renderTable(){
-      const tbody = document.getElementById("tbody");
-      if (!ledgerRows.length){
-        tbody.innerHTML = `<tr><td colspan="9" class="muted">No rows for this selection.</td></tr>`;
-        return;
+      const q = String(document.getElementById("searchBox").value || "").trim().toLowerCase();
+
+      const tbReady = document.getElementById("tbodyReady");
+      const tbDraft = document.getElementById("tbodyDraft");
+      const tbPaid  = document.getElementById("tbodyPaid");
+
+      function rowText(r){
+        return [
+          r.propertyName, r.status, r.confirmationNumber, r.payoutId,
+          r.weekStart, r.weekEnd, r.payFriday
+        ].join(" ").toLowerCase();
       }
 
-      const rowsHtml = ledgerRows.map(r => {
+      const rows0 = Array.isArray(ledgerRows) ? ledgerRows.slice() : [];
+      const rows = q ? rows0.filter(r => rowText(r).includes(q)) : rows0;
+
+      function cmp(a, b){
+        // 1) Status order
+        const order = { READY: 1, DRAFT: 2, PAID: 3 };
+        const sa = order[String(a.status || "").toUpperCase()] || 99;
+        const sb = order[String(b.status || "").toUpperCase()] || 99;
+        if (sa !== sb) return sa - sb;
+
+        // 2) Hotel name
+        const an = String(a.propertyName || "").toLowerCase();
+        const bn = String(b.propertyName || "").toLowerCase();
+        if (an < bn) return -1;
+        if (an > bn) return 1;
+
+        // 3) Stay dates (if present)
+        const as1 = String(a.stayStart || "");
+        const bs1 = String(b.stayStart || "");
+        if (as1 < bs1) return -1;
+        if (as1 > bs1) return 1;
+
+        const as2 = String(a.stayEnd || "");
+        const bs2 = String(b.stayEnd || "");
+        if (as2 < bs2) return -1;
+        if (as2 > bs2) return 1;
+
+        // 4) Pay window
+        const aw = String(a.weekStart || "");
+        const bw = String(b.weekStart || "");
+        if (aw < bw) return -1;
+        if (aw > bw) return 1;
+
+        return 0;
+      }
+
+      rows.sort(cmp);
+
+      function buildRow(r){
         const payWindow = buildPayWindowLabel(r.weekStart || currentMeta.weekStart, r.weekEnd || currentMeta.weekEnd);
         const partner = r.propertyName || ("Partner #" + (r.partnerId || ""));
         const status = r.status || "";
-        const bookingCount = (r.bookingCount != null ? Number(r.bookingCount) : "");
         const gross = (r.grossTotal != null ? String(r.grossTotal) : "");
         const fees  = (r.feesTotal  != null ? String(r.feesTotal)  : "");
         const net   = (r.netTotal   != null ? String(r.netTotal)   : "");
@@ -556,26 +639,28 @@
         const paidAt = fmtDateOnly(r.paidAt);
         const updatedAt = fmtDateOnly(r.updatedAt);
         const paidOrUpdated = paidAt ? paidAt : (updatedAt ? updatedAt : "");
-        const payoutId = r.payoutId ? String(r.payoutId) : "";
-
-        const confCell = `<div class="mono">${esc(conf || "-")}</div>`;
 
         return `
-          <tr data-row="1">
+          <tr>
             <td class="nowrap">${esc(payWindow || "-")}</td>
             <td>${esc(partner)}</td>
             <td class="nowrap">${statusPill(status)}</td>
-            <td class="right nowrap">${bookingCount === "" ? "" : esc(String(bookingCount))}</td>
             <td class="right nowrap mono">${esc(gross || "")}</td>
             <td class="right nowrap mono">${esc(fees || "")}</td>
             <td class="right nowrap mono">${esc(net || "")}</td>
-            <td>${confCell}</td>
+            <td><div class="mono">${esc(conf || "-")}</div></td>
             <td class="nowrap">${esc(paidOrUpdated || "-")}</td>
           </tr>
         `;
-      }).join("");
+      }
 
-      tbody.innerHTML = rowsHtml;
+      const ready = rows.filter(r => String(r.status || "").toUpperCase() === "READY");
+      const draft = rows.filter(r => String(r.status || "").toUpperCase() === "DRAFT");
+      const paid  = rows.filter(r => String(r.status || "").toUpperCase() === "PAID");
+
+      tbReady.innerHTML = ready.length ? ready.map(buildRow).join("") : `<tr><td colspan="8" class="muted">No rows.</td></tr>`;
+      tbDraft.innerHTML = draft.length ? draft.map(buildRow).join("") : `<tr><td colspan="8" class="muted">No rows.</td></tr>`;
+      tbPaid.innerHTML  = paid.length  ? paid.map(buildRow).join("")  : `<tr><td colspan="8" class="muted">No rows.</td></tr>`;
     }
 
     function renderSummary(){
@@ -697,7 +782,10 @@
         });
       }
 
-      document.getElementById("searchBox").addEventListener("input", () => applyClientSearch());
+      document.getElementById("searchBox").addEventListener("input", () => {
+        renderTable();
+        renderSummary();
+      });
 
       await loadPartners();
       await loadPeriods();
@@ -707,7 +795,7 @@
     function showErr(e){
       console.error(e);
       const tbody = document.getElementById("tbody");
-      tbody.innerHTML = `<tr><td colspan="9" class="muted">Error loading ledger. Check console.</td></tr>`;
+      tbody.innerHTML = `<tr><td colspan="8" class="muted">Error loading ledger. Check console.</td></tr>`;
       document.getElementById("summaryLeft").textContent = "Error.";
       document.getElementById("summaryRight").textContent = "";
       document.getElementById("noPostedBanner").classList.remove("show");
