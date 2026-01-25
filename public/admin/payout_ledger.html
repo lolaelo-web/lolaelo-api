@@ -159,6 +159,30 @@
     }
     .chip input{ accent-color: var(--accent); }
 
+    .chipToggle{
+      appearance:none;
+      border:1px solid rgba(15,23,42,.12);
+      background:#fff;
+      color:var(--fg);
+      padding:10px 14px;
+      border-radius:999px;
+      font-size:12.5px;
+      font-weight:800;
+      cursor:pointer;
+      box-shadow:0 6px 18px rgba(15,23,42,.06);
+      transition: background .12s ease, border-color .12s ease, transform .08s ease;
+    }
+    .chipToggle:hover{
+      border-color: rgba(255,106,61,.75);
+    }
+    .chipToggle:active{
+      transform: translateY(1px);
+    }
+    .chipToggle.on{
+      background: rgba(255,106,61,.16);
+      border-color: rgba(255,106,61,.60);
+    }
+
     .banner{
       margin:12px 0 0;
       border:1px solid rgba(15,23,42,.12);
@@ -294,10 +318,10 @@
         <button class="btn primary" id="csvBtn" type="button">Download CSV</button>
       </div>
 
-      <div class="statusRow">
-        <label class="chip"><input type="checkbox" id="stReady" checked> Waiting for review</label>
-        <label class="chip"><input type="checkbox" id="stDraft" checked> Reviewed and waiting for payment</label>
-        <label class="chip"><input type="checkbox" id="stPaid" checked> Paid</label>
+      <div class="statusRow" id="statusRow">
+        <button class="chipToggle on" id="stReady" type="button" data-val="READY">Waiting for review</button>
+        <button class="chipToggle on" id="stDraft" type="button" data-val="DRAFT">Reviewed and waiting for payment</button>
+        <button class="chipToggle on" id="stPaid"  type="button" data-val="PAID">Paid</button>
       </div>
 
       <div class="banner" id="noPostedBanner">No payments posted for this week.</div>
@@ -385,9 +409,9 @@
 
     function buildStatusesParam(){
       const a = [];
-      if (document.getElementById("stReady").checked) a.push("READY");
-      if (document.getElementById("stDraft").checked) a.push("DRAFT");
-      if (document.getElementById("stPaid").checked) a.push("PAID");
+      if (document.getElementById("stReady").classList.contains("on")) a.push("READY");
+      if (document.getElementById("stDraft").classList.contains("on")) a.push("DRAFT");
+      if (document.getElementById("stPaid").classList.contains("on")) a.push("PAID");
       return a.join(",");
     }
 
@@ -631,9 +655,13 @@
       document.getElementById("partnerSel").addEventListener("change", () => loadLedger().catch(showErr));
       document.getElementById("periodSel").addEventListener("change", () => loadLedger().catch(showErr));
 
-      document.getElementById("stReady").addEventListener("change", () => loadLedger().catch(showErr));
-      document.getElementById("stDraft").addEventListener("change", () => loadLedger().catch(showErr));
-      document.getElementById("stPaid").addEventListener("change", () => loadLedger().catch(showErr));
+      for (const id of ["stReady","stDraft","stPaid"]){
+        const el = document.getElementById(id);
+        el.addEventListener("click", () => {
+          el.classList.toggle("on");
+          loadLedger().catch(showErr);
+        });
+      }
 
       document.getElementById("searchBox").addEventListener("input", () => applyClientSearch());
 
