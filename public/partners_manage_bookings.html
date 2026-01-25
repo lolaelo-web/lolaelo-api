@@ -112,6 +112,42 @@
       return localStorage.getItem("partnerToken") || localStorage.getItem("lolaelo_session") || "";
     }
 
+    let PARTNER_ID = null;
+
+    function buildAuthHeaders(extra){
+      const headers = Object.assign({}, extra || {});
+      const t = getToken();
+      if (t) headers["Authorization"] = `Bearer ${t}`;
+
+      // Keep this for backward compatibility with routes that still read it
+      const partnerToken = localStorage.getItem("partnerToken");
+      if (partnerToken) headers["x-partner-token"] = partnerToken;
+
+      return headers;
+    }
+
+    async function ensurePartnerId(){
+      if (PARTNER_ID != null) return PARTNER_ID;
+
+      const headers = buildAuthHeaders();
+      const url = `${API_BASE}/extranet/session?__ts=${Date.now()}`;
+
+      const r = await fetch(url, { headers, cache: "no-store" });
+      const txt = await r.text().catch(()=> "");
+      let data = {};
+      try { data = txt ? JSON.parse(txt) : {}; } catch { data = {}; }
+
+      const pid = (data && (data.partnerId ?? data.partner?.id ?? data.me?.partnerId)) ?? null;
+
+      if (pid != null && String(pid).trim() !== "") {
+        PARTNER_ID = Number(pid);
+        return PARTNER_ID;
+      }
+
+      alert("Session not found. Please sign in again from the Partner Hub.");
+      throw new Error("Missing partnerId from /extranet/session");
+    }
+
     function goBack(){
       location.href = "/partners_app.html";
     }
@@ -280,14 +316,8 @@
         tab === "canceled" ? "canceled" :
         "pending";
 
-      const headers = {};
-      const partnerId = 2; // still temporary
-      headers["x-partner-id"] = String(partnerId);
-
-      const session = localStorage.getItem("lolaelo_session");
-      const partnerToken = localStorage.getItem("partnerToken");
-      if (session) headers["Authorization"] = `Bearer ${session}`;
-      if (partnerToken) headers["x-partner-token"] = partnerToken;
+      const partnerId = await ensurePartnerId();
+      const headers = buildAuthHeaders({ "x-partner-id": String(partnerId) });
 
       const url = `${API_BASE}/api/extranet/me/bookings/${encodeURIComponent(bookingRef)}`;
       const res = await fetch(url, { headers });
@@ -423,13 +453,8 @@
       const ok = confirm("Mark this booking as completed and ready for payout?");
       if (!ok) return;
 
-      const partnerId = 2; // temporary, will come from session later
-      const headers = { "Content-Type": "application/json", "x-partner-id": String(partnerId) };
-
-      const session = localStorage.getItem("lolaelo_session");
-      const partnerToken = localStorage.getItem("partnerToken");
-      if (session) headers["Authorization"] = `Bearer ${session}`;
-      if (partnerToken) headers["x-partner-token"] = partnerToken;
+      const partnerId = await ensurePartnerId();
+      const headers = buildAuthHeaders({ "Content-Type": "application/json", "x-partner-id": String(partnerId) });
 
       const url = `${API_BASE}/api/extranet/me/bookings/${encodeURIComponent(bookingRef)}/mark-completed`;
 
@@ -533,7 +558,7 @@
 
     async function loadBookingsForActiveTab(){
       const tab = document.getElementById("tabState")?.value || "pending";
-      const partnerId = 2; // temporary, will come from session later
+      const partnerId = await ensurePartnerId();
 
       const bucket =
         tab === "completed" ? "completed" :
