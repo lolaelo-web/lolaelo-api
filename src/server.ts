@@ -4784,7 +4784,7 @@ app.get("/api/admin/ap/ledger", async (req: Request, res: Response) => {
             COALESCE(
               p."confirmationNumber"::text,
               (
-                SELECT string_agg(b."bookingRef", ', ')
+                SELECT string_agg(s."bookingRef", ', ')
                 FROM (
                   SELECT b."bookingRef"
                   FROM extranet."PayoutBooking" pb
