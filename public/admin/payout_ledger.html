@@ -369,6 +369,18 @@
   <script>
     // Auth gate matches admin/login.html behavior
     const ADMIN_TOKEN_KEY = "lolaelo_admin_session";
+    // TEMP: surface runtime errors (remove after fix)
+    window.addEventListener("error", (ev) => {
+      try {
+        alert("JS ERROR: " + (ev && ev.message ? ev.message : "unknown"));
+      } catch (_) {}
+    });
+    window.addEventListener("unhandledrejection", (ev) => {
+      try {
+        alert("PROMISE ERROR: " + (ev && ev.reason ? (ev.reason.message || String(ev.reason)) : "unknown"));
+      } catch (_) {}
+    });
+
     const LOGIN = "/admin/login.html";
 
     function getToken(){
