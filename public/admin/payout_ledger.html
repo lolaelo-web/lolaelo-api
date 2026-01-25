@@ -492,6 +492,9 @@
     let ledgerRows = [];
     let currentMeta = { payFriday:"", weekStart:"", weekEnd:"", hasPostedPayout:false };
 
+    let __ledgerReqSeq = 0;
+    let __ledgerLoading = false;
+
     async function loadPartners(){
       const sel = document.getElementById("partnerSel");
       sel.innerHTML = "";
@@ -542,32 +545,55 @@
     }
 
     async function loadLedger(){
-      const partnerId = Number(document.getElementById("partnerSel").value || 0) || 0;
-      const periodVal = String(document.getElementById("periodSel").value || "").trim();
-      const statuses = buildStatusesParam() || "READY,DRAFT,PAID";
+      // In-flight guard: allow only one active request, and only the latest response may update UI
+      if (__ledgerLoading) return;
+      __ledgerLoading = true;
+      const mySeq = ++__ledgerReqSeq;
 
-      const tbody = document.getElementById("tbody");
-      tbody.innerHTML = `<tr><td colspan="8" class="muted">Loading...</td></tr>`;
+      try {
+        const partnerId = Number(document.getElementById("partnerSel").value || 0) || 0;
+        const periodVal = String(document.getElementById("periodSel").value || "").trim();
+        const statuses = buildStatusesParam() || "READY,DRAFT,PAID";
 
-      let url;
+        // You now have 3 sections (no single tbody). Set each section to Loading.
+        const tbReady = document.getElementById("tbodyReady");
+        const tbDraft = document.getElementById("tbodyDraft");
+        const tbPaid  = document.getElementById("tbodyPaid");
+
+        if (tbReady) tbReady.innerHTML = `<tr><td colspan="8" class="muted">Loading...</td></tr>`;
+        if (tbDraft) tbDraft.innerHTML = `<tr><td colspan="8" class="muted">Loading...</td></tr>`;
+        if (tbPaid)  tbPaid.innerHTML  = `<tr><td colspan="8" class="muted">Loading...</td></tr>`;
+
+        let url;
         if (periodVal === "YTD") {
           url = `/api/admin/ap/ledger?startDate=2026-01-01&endDate=${new Date().toISOString().slice(0,10)}&partnerId=${encodeURIComponent(String(partnerId))}&statuses=${encodeURIComponent(statuses)}`;
         } else {
           url = `/api/admin/ap/ledger?payFriday=${encodeURIComponent(periodVal)}&partnerId=${encodeURIComponent(String(partnerId))}&statuses=${encodeURIComponent(statuses)}`;
         }
-      const data = await fetchJSON(url);
 
-      ledgerRows = (data && data.rows) ? data.rows : [];
-      currentMeta = {
-        payFriday: data.payFriday || (periodVal === "YTD" ? "" : periodVal),
-        weekStart: data.weekStart || "",
-        weekEnd: data.weekEnd || "",
-        hasPostedPayout: !!data.hasPostedPayout
-      };
+        const data = await fetchJSON(url);
 
-      renderTable();
-      renderSummary();
-      renderNoPostedBanner();
+        // If a newer request started, drop this response silently
+        if (mySeq !== __ledgerReqSeq) return;
+
+        ledgerRows = (data && data.rows) ? data.rows : [];
+        currentMeta = {
+          payFriday: data.payFriday || (periodVal === "YTD" ? "" : periodVal),
+          weekStart: data.weekStart || "",
+          weekEnd: data.weekEnd || "",
+          hasPostedPayout: !!data.hasPostedPayout
+        };
+
+        renderTable();
+        renderSummary();
+        renderNoPostedBanner();
+      } catch (e) {
+        // Only show errors for the latest request
+        if (mySeq === __ledgerReqSeq) showErr(e);
+      } finally {
+        // Only the latest request clears the loading flag
+        if (mySeq === __ledgerReqSeq) __ledgerLoading = false;
+      }
     }
 
     function renderNoPostedBanner(){
