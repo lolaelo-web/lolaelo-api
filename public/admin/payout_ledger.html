@@ -1,307 +1,339 @@
 <!doctype html>
 <html lang="en">
 <head>
+  <!-- Favicon (match Admin Hub and AP) -->
+  <link rel="icon" href="https://www.lolaelo.com/images/logo3.png?v=4" type="image/png">
+  <link rel="shortcut icon" href="https://www.lolaelo.com/images/logo3.png?v=4" type="image/png">
+  <link rel="apple-touch-icon" href="https://www.lolaelo.com/images/logo3.png?v=4">
+
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1" />
-  <title>Payout Ledger</title>
+  <title>Payout Ledger | Lolaelo Admin</title>
 
-  <!-- Favicon and app icons (match AP) -->
-  <link rel="icon" href="/admin/favicon.ico" sizes="any">
-  <link rel="icon" type="image/svg+xml" href="/admin/favicon.svg">
-  <link rel="apple-touch-icon" href="/admin/apple-touch-icon.png">
-  <link rel="manifest" href="/admin/site.webmanifest">
+  <link rel="stylesheet" href="/css/extranet.css">
 
   <style>
     :root{
-      --bg:#0b1220;
-      --panel:#101a2b;
-      --panel2:#0f172a;
-      --text:#e5e7eb;
-      --muted:#9ca3af;
-      --line:rgba(255,255,255,.08);
-      --brand:#ff6a3d;
-      --good:#10b981;
-      --warn:#f59e0b;
-      --bad:#ef4444;
-      --chip:#111827;
-      --btn:#1f2a44;
-      --btn2:#111a2c;
-      --focus:#60a5fa;
-      --shadow: 0 10px 30px rgba(0,0,0,.35);
-      --radius: 14px;
-      --radius2: 999px;
-      --mono: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
-      --sans: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, "Apple Color Emoji", "Segoe UI Emoji";
+      --bg:#f6f8fc;
+      --card:#ffffff;
+      --fg:#0f172a;
+      --muted:#5b6b84;
+      --accent:#ff6a3d;
+      --line:rgba(15,23,42,.12);
+      --shadow:0 10px 30px rgba(15,23,42,.08);
     }
-    html,body{height:100%}
+    *{ box-sizing:border-box }
     body{
       margin:0;
-      font-family:var(--sans);
-      background: radial-gradient(1200px 700px at 20% 0%, rgba(255,106,61,.08), transparent 55%),
-                  radial-gradient(900px 600px at 100% 10%, rgba(96,165,250,.10), transparent 55%),
-                  var(--bg);
-      color:var(--text);
+      background:var(--bg);
+      color:var(--fg);
+      font-family: Inter, system-ui, -apple-system, Segoe UI, Roboto, Arial;
     }
+    button, input, select, textarea{ font-family: inherit; }
 
-    .wrap{max-width:1200px;margin:0 auto;padding:22px 16px 60px}
-    .topbar{
-      display:flex;align-items:center;justify-content:space-between;
-      gap:12px;margin-bottom:18px;
-    }
-    .brand{
-      display:flex;align-items:center;gap:10px;
-      font-weight:700;letter-spacing:.2px;
-    }
-    .brand .dot{
-      width:10px;height:10px;border-radius:50%;
-      background:var(--brand);
-      box-shadow:0 0 0 4px rgba(255,106,61,.16);
-    }
-    .brand .title{font-size:16px;color:var(--text)}
-    .brand .sub{font-size:12px;color:var(--muted);font-weight:500}
+    .wrap{ max-width:1200px; margin:0 auto; padding:18px 14px 30px; }
 
-    .actions{display:flex;gap:10px;align-items:center;flex-wrap:wrap}
-    .btn{
-      appearance:none;border:1px solid var(--line);
-      background:linear-gradient(180deg, rgba(31,42,68,.85), rgba(17,26,44,.85));
-      color:var(--text);
-      padding:10px 14px;border-radius:var(--radius2);
-      cursor:pointer;
-      box-shadow:0 6px 18px rgba(0,0,0,.25);
-      font-weight:650;font-size:13px;
+    /* Header matches AP patterns */
+    /* ANCHOR: HUB_HEADER_OVERRIDE */
+    .top{
+      display:flex;
+      align-items:center;
+      justify-content:space-between;
+      gap:12px;
+      margin-bottom:8px;
+      padding:0;
     }
-    .btn:hover{filter:brightness(1.05)}
-    .btn:active{transform:translateY(1px)}
-    .btn.primary{
-      border-color: rgba(255,106,61,.35);
-      background:linear-gradient(180deg, rgba(255,106,61,.22), rgba(255,106,61,.10));
-      color:#fff;
+    .brandRow{
+      display:flex;
+      align-items:center;
+      gap:12px;
+      margin:0;
+      padding:0;
     }
+    .brandRow img{ height:64px; width:auto; display:block; }
+
+    .pill{
+      display:inline-block;
+      font-size:11px;
+      padding:4px 10px;
+      border-radius:999px;
+      border:1px solid rgba(15,23,42,.18);
+      color:#0f172a;
+      font-weight:800;
+      vertical-align:middle;
+      background:#fff;
+      white-space:nowrap;
+    }
+    .sub{ color:var(--muted); font-size:13px; margin:2px 0 0; }
+    .btnRow{ display:flex; gap:10px; align-items:center; flex-wrap:wrap; }
+
     .btn.ghost{
-      background:transparent;
+      background:#0b3a4a;
+      border:1px solid rgba(11,58,74,.35);
+      color:#ffffff !important;
+      box-shadow:0 6px 18px rgba(15,23,42,.12);
+      transition: transform .08s ease, background .15s ease, box-shadow .15s ease, border-color .15s ease;
+      text-decoration:none;
+      display:inline-flex;
+      align-items:center;
+      gap:8px;
+      padding:9px 12px;
+      border-radius:999px;
+      font-weight:800;
+      font-size:13px;
+      cursor:pointer;
     }
+    .btn.ghost:hover{
+      background: linear-gradient(90deg, #0b3a4a 0%, #0f5b63 100%);
+      border-color: rgba(11,58,74,.55);
+      transform: translateY(-1px);
+    }
+    .btn.ghost:active{ transform: translateY(0px); }
+    .btn.ghost:focus{
+      outline:none;
+      box-shadow:0 0 0 4px rgba(11,58,74,.20), 0 6px 18px rgba(15,23,42,.12);
+    }
+    /* ANCHOR: HUB_HEADER_OVERRIDE END */
 
-    .card{
-      background:linear-gradient(180deg, rgba(16,26,43,.92), rgba(15,23,42,.92));
+    .hero{
       border:1px solid var(--line);
-      border-radius:var(--radius);
+      background:var(--card);
+      border-radius:14px;
+      padding:14px;
       box-shadow:var(--shadow);
-      overflow:hidden;
     }
-    .card .header{
-      padding:16px 16px 12px;
-      border-bottom:1px solid var(--line);
-      display:flex;align-items:flex-start;justify-content:space-between;gap:12px;
-      flex-wrap:wrap;
-    }
-    .hgroup{display:flex;flex-direction:column;gap:3px}
-    .h1{font-size:18px;font-weight:750}
-    .h2{font-size:12.5px;color:var(--muted);line-height:1.3}
+    .hero h1{ margin:0; font-size:18px; }
+    .hero p{ margin:6px 0 0; color:var(--muted); font-size:13px; line-height:1.35; }
 
     .controls{
-      padding:14px 16px;
-      display:grid;
-      grid-template-columns: 1.5fr 1fr 1.2fr;
-      gap:12px;
-      border-bottom:1px solid var(--line);
+      display:flex;
+      flex-wrap:wrap;
+      gap:10px;
+      margin:12px 0;
+      align-items:flex-end;
     }
-    @media (max-width: 980px){
-      .controls{grid-template-columns:1fr; }
+    label{
+      display:flex;
+      flex-direction:column;
+      gap:6px;
+      font-size:12px;
+      color:var(--muted);
     }
-    .field{display:flex;flex-direction:column;gap:6px}
-    .label{font-size:12px;color:var(--muted);font-weight:650}
-    select, input[type="text"]{
-      width:100%;
+    .controls select, .controls input{
+      background:#fff;
       border:1px solid var(--line);
+      color:var(--fg);
+      padding:9px 10px;
       border-radius:12px;
-      padding:10px 12px;
-      background:rgba(17,26,44,.75);
-      color:var(--text);
-      outline:none;
       font-size:13px;
+      outline:none;
+      min-width:260px;
     }
-    select:focus, input[type="text"]:focus{border-color:rgba(96,165,250,.6); box-shadow:0 0 0 3px rgba(96,165,250,.18)}
+    .controls input.search{ min-width:320px; }
+    .controls input:focus, .controls select:focus{
+      border-color:rgba(255,106,61,.55);
+      box-shadow:0 0 0 3px rgba(255,106,61,.15);
+    }
+
     .statusRow{
       display:flex;
       gap:10px;
       flex-wrap:wrap;
       align-items:center;
-      padding:10px 16px 14px;
-      border-bottom:1px solid var(--line);
+      margin:10px 0 0;
     }
     .chip{
-      display:inline-flex;align-items:center;gap:8px;
-      border:1px solid var(--line);
-      background:rgba(17,24,39,.55);
-      padding:8px 10px;
-      border-radius:var(--radius2);
-      font-size:12.5px;
-      cursor:pointer;
-      user-select:none;
-    }
-    .chip input{accent-color: var(--brand)}
-    .chip .dot{
-      width:8px;height:8px;border-radius:50%;
-      background:rgba(156,163,175,.6);
-    }
-    .chip.ready .dot{background:var(--warn)}
-    .chip.draft .dot{background:rgba(255,106,61,.9)}
-    .chip.paid  .dot{background:var(--good)}
-
-    .banner{
-      margin:14px 16px 0;
-      padding:12px 12px;
-      border-radius:12px;
-      border:1px solid var(--line);
-      background:rgba(17,24,39,.45);
-      color:var(--muted);
-      display:none;
-    }
-    .banner.show{display:block}
-
-    .tableWrap{padding:12px 16px 16px}
-    table{
-      width:100%;
-      border-collapse:separate;
-      border-spacing:0;
-      font-size:13px;
-    }
-    th, td{
-      padding:10px 10px;
-      border-bottom:1px solid var(--line);
-      vertical-align:top;
-    }
-    th{
-      text-align:left;
-      font-size:12px;
-      color:var(--muted);
-      font-weight:750;
-      position:sticky;
-      top:0;
-      background:rgba(16,26,43,.92);
-      backdrop-filter: blur(8px);
-      z-index:2;
-    }
-    tr:hover td{background:rgba(255,255,255,.02)}
-    .mono{font-family:var(--mono)}
-    .muted{color:var(--muted)}
-    .right{text-align:right}
-    .nowrap{white-space:nowrap}
-    .pill{
       display:inline-flex;
       align-items:center;
       gap:8px;
       border:1px solid var(--line);
-      background:rgba(17,24,39,.55);
+      background:#fff;
+      padding:8px 10px;
+      border-radius:999px;
+      font-size:12.5px;
+      cursor:pointer;
+      user-select:none;
+      box-shadow:0 6px 18px rgba(15,23,42,.06);
+      color:var(--fg);
+      font-weight:700;
+    }
+    .chip input{ accent-color: var(--accent); }
+
+    .banner{
+      margin:12px 0 0;
+      border:1px solid rgba(15,23,42,.12);
+      background:rgba(15,118,110,.06);
+      border-radius:14px;
+      padding:10px 12px;
+      color:#475569;
+      display:none;
+    }
+    .banner.show{ display:block; }
+
+    .table{
+      border:1px solid var(--line);
+      border-radius:14px;
+      overflow:hidden;
+      background:var(--card);
+      box-shadow:var(--shadow);
+      margin-top:12px;
+    }
+    table{ width:100%; border-collapse:collapse; }
+    th, td{
+      border-bottom:1px solid rgba(15,23,42,.08);
+      padding:10px 10px;
+      font-size:13px;
+      text-align:left;
+      vertical-align:middle;
+    }
+    th{
+      color:var(--muted);
+      font-weight:700;
+      background:#fbfcff;
+    }
+    tr:last-child td{ border-bottom:none; }
+
+    .muted{ color:var(--muted); }
+    .right{ text-align:right; }
+    .mono{ font-family:ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace; }
+    .nowrap{ white-space:nowrap; }
+
+    .pillStatus{
+      display:inline-flex;
+      align-items:center;
+      gap:8px;
+      border:1px solid var(--line);
+      background:#fff;
       padding:6px 10px;
       border-radius:999px;
       font-size:12px;
-      font-weight:700;
+      font-weight:800;
+      box-shadow:0 6px 18px rgba(15,23,42,.06);
     }
-    .pill .dot{width:8px;height:8px;border-radius:50%}
-    .pill.ready .dot{background:var(--warn)}
-    .pill.draft .dot{background:rgba(255,106,61,.95)}
-    .pill.paid  .dot{background:var(--good)}
+    .pillStatus .dot{ width:8px; height:8px; border-radius:50%; }
+    .pillStatus.ready .dot{ background:#f59e0b; }
+    .pillStatus.draft .dot{ background:var(--accent); }
+    .pillStatus.paid  .dot{ background:#10b981; }
 
     .footerRow{
-      padding:10px 16px 14px;
       display:flex;
-      align-items:center;
       justify-content:space-between;
       gap:10px;
-      border-top:1px solid var(--line);
+      flex-wrap:wrap;
+      align-items:center;
+      margin-top:10px;
       color:var(--muted);
       font-size:12.5px;
-      flex-wrap:wrap;
+      min-height:16px;
+    }
+
+    .btn{
+      border:1px solid var(--line);
+      background:#fff;
+      color:var(--fg);
+      padding:9px 12px;
+      border-radius:999px;
+      font-weight:800;
+      font-size:13px;
+      cursor:pointer;
+      box-shadow:0 6px 18px rgba(15,23,42,.06);
+      transition: transform .08s ease, box-shadow .08s ease, border-color .12s ease;
+    }
+    .btn:hover{
+      transform: translateY(-1px);
+      border-color: rgba(255,106,61,.65);
+      box-shadow:0 10px 26px rgba(15,23,42,.10);
+    }
+    .btn:active{ transform: translateY(0px); }
+    .btn.primary{
+      background: rgba(255,106,61,.10);
+      border-color: rgba(255,106,61,.35);
     }
   </style>
 </head>
 
 <body>
   <div class="wrap">
-    <div class="topbar">
-      <div class="brand">
-        <div class="dot"></div>
-        <div>
-          <div class="title">Admin</div>
-          <div class="sub">Payout ledger</div>
+    <div class="top">
+      <div>
+        <div class="brandRow">
+          <img src="/images/logo.png" alt="Lolaelo" />
+          <span class="pill">Payout Ledger</span>
         </div>
+        <div class="sub">Read-only history and audit view. Filter by partner or by pay period Friday. Export current view as CSV.</div>
       </div>
 
-      <div class="actions">
-        <button class="btn ghost" id="backBtn">Back to Admin</button>
-        <button class="btn" id="refreshBtn">Refresh</button>
-        <button class="btn primary" id="csvBtn">Download CSV</button>
+      <div class="btnRow">
+        <a class="btn ghost" href="/admin/index.html">Admin hub</a>
+        <a class="btn ghost" href="/partners_app.html">Extranet</a>
+        <button id="btnLogout" class="btn ghost" type="button">Sign out</button>
       </div>
     </div>
 
-    <div class="card">
-      <div class="header">
-        <div class="hgroup">
-          <div class="h1">Payout Ledger</div>
-          <div class="h2">Read-only history and audit view. Filter by partner or by pay period Friday. Export current view as CSV.</div>
-        </div>
-        <div class="hgroup">
-          <div class="h2">Operational work stays in Accounts Payable.</div>
-        </div>
-      </div>
+    <div class="hero">
+      <h1>Payout Ledger</h1>
+      <p>AP is operational. Ledger is historical and audit only. No state changes from this page.</p>
 
       <div class="controls">
-        <div class="field">
-          <div class="label">Partner</div>
+        <label>
+          Partner
           <select id="partnerSel"></select>
-        </div>
+        </label>
 
-        <div class="field">
-          <div class="label">Pay period (posting Friday)</div>
+        <label>
+          Pay period (posting Friday)
           <select id="periodSel"></select>
-        </div>
+        </label>
 
-        <div class="field">
-          <div class="label">Search (confirmation, payout id, partner name)</div>
-          <input id="searchBox" type="text" placeholder="Type to filter table rows" />
-        </div>
+        <label>
+          Search (confirmation, payout id, partner name)
+          <input id="searchBox" class="search" type="text" placeholder="Type to filter table rows" />
+        </label>
+
+        <button class="btn" id="refreshBtn" type="button">Refresh</button>
+        <button class="btn primary" id="csvBtn" type="button">Download CSV</button>
       </div>
 
       <div class="statusRow">
-        <label class="chip ready"><input type="checkbox" id="stReady" checked /> <span class="dot"></span> Waiting for review</label>
-        <label class="chip draft"><input type="checkbox" id="stDraft" checked /> <span class="dot"></span> Reviewed and waiting for payment</label>
-        <label class="chip paid"><input type="checkbox" id="stPaid" checked /> <span class="dot"></span> Paid</label>
+        <label class="chip"><input type="checkbox" id="stReady" checked> Waiting for review</label>
+        <label class="chip"><input type="checkbox" id="stDraft" checked> Reviewed and waiting for payment</label>
+        <label class="chip"><input type="checkbox" id="stPaid" checked> Paid</label>
       </div>
 
       <div class="banner" id="noPostedBanner">No payments posted for this week.</div>
+    </div>
 
-      <div class="tableWrap">
-        <table>
-          <thead>
-            <tr>
-              <th class="nowrap">Pay window</th>
-              <th>Partner</th>
-              <th class="nowrap">Status</th>
-              <th class="right nowrap">Booking count</th>
-              <th class="right nowrap">Gross</th>
-              <th class="right nowrap">Fees</th>
-              <th class="right nowrap">Net</th>
-              <th>Confirmation / Reference</th>
-              <th class="nowrap">Paid at / Updated at</th>
-            </tr>
-          </thead>
-          <tbody id="tbody">
-            <tr><td colspan="9" class="muted">Loading...</td></tr>
-          </tbody>
-        </table>
-      </div>
+    <div class="table" style="margin-top:12px;">
+      <table>
+        <thead>
+          <tr>
+            <th class="nowrap">Pay window</th>
+            <th>Partner</th>
+            <th class="nowrap">Status</th>
+            <th class="right nowrap">Booking count</th>
+            <th class="right nowrap">Gross</th>
+            <th class="right nowrap">Fees</th>
+            <th class="right nowrap">Net</th>
+            <th>Confirmation / Reference</th>
+            <th class="nowrap">Paid at / Updated at</th>
+          </tr>
+        </thead>
+        <tbody id="tbody">
+          <tr><td colspan="9" class="muted">Loading...</td></tr>
+        </tbody>
+      </table>
+    </div>
 
-      <div class="footerRow">
-        <div id="summaryLeft">Ready.</div>
-        <div class="mono" id="summaryRight"></div>
-      </div>
+    <div class="footerRow">
+      <div id="summaryLeft">Ready.</div>
+      <div class="mono" id="summaryRight"></div>
     </div>
   </div>
 
   <script>
-    // ===== Auth gate (match admin/login.html pattern) =====
+    // Auth gate matches admin/login.html behavior
     const ADMIN_TOKEN_KEY = "lolaelo_admin_session";
+    const LOGIN = "/admin/login.html";
 
     function getToken(){
       try { return localStorage.getItem(ADMIN_TOKEN_KEY) || ""; } catch(_) { return ""; }
@@ -323,7 +355,7 @@
     async function requireAdmin(){
       const tok = getToken();
       if (!tok) {
-        location.replace("/admin/login.html");
+        location.replace(LOGIN);
         return false;
       }
       try {
@@ -331,32 +363,17 @@
         return true;
       } catch (e) {
         try { localStorage.removeItem(ADMIN_TOKEN_KEY); } catch(_) {}
-        location.replace("/admin/login.html");
+        location.replace(LOGIN);
         return false;
       }
     }
 
-    // ===== Utilities =====
     function esc(s){
       return String(s == null ? "" : s)
         .replace(/&/g,"&amp;").replace(/</g,"&lt;")
         .replace(/>/g,"&gt;").replace(/"/g,"&quot;").replace(/'/g,"&#039;");
     }
-    function to2(n){
-      const x = Number(n);
-      if (!Number.isFinite(x)) return "";
-      return x.toFixed(2);
-    }
-    function fmtMoney(n, currency){
-      const x = Number(n);
-      if (!Number.isFinite(x)) return "";
-      const cur = currency || "USD";
-      try {
-        return new Intl.NumberFormat(undefined, { style:"currency", currency: cur }).format(x);
-      } catch {
-        return x.toFixed(2) + " " + cur;
-      }
-    }
+
     function fmtDateOnly(ts){
       if (!ts) return "";
       try {
@@ -381,11 +398,19 @@
       return (ws && we) ? (ws + " to " + we) : "";
     }
 
-    // ===== State =====
+    function statusPill(status){
+      const s = String(status || "").toUpperCase();
+      let cls = "pillStatus ";
+      let label = s;
+      if (s === "READY"){ cls += "ready"; label = "Waiting for review"; }
+      else if (s === "DRAFT"){ cls += "draft"; label = "Reviewed and waiting"; }
+      else if (s === "PAID"){ cls += "paid"; label = "Paid"; }
+      return `<span class="${cls}"><span class="dot"></span>${esc(label)}</span>`;
+    }
+
     let ledgerRows = [];
     let currentMeta = { payFriday:"", weekStart:"", weekEnd:"", hasPostedPayout:false };
 
-    // ===== Loaders =====
     async function loadPartners(){
       const sel = document.getElementById("partnerSel");
       sel.innerHTML = "";
@@ -410,22 +435,23 @@
       const sel = document.getElementById("periodSel");
       sel.innerHTML = "";
 
-      const data = await fetchJSON("/api/admin/ap/ledger/periods?weeks=104");
+      const data = await fetchJSON("/api/admin/ap/ledger/periods?weeks=260");
       const periods = (data && data.periods) ? data.periods : [];
       const def = (data && data.defaultPayFriday) ? data.defaultPayFriday : "";
 
       for (const p of periods){
+        const payFriday = String(p.payFriday || "");
+        // Only Jan 2026 onward
+        if (!payFriday || payFriday < "2026-01-01") continue;
+
         const o = document.createElement("option");
-        o.value = String(p.payFriday || "");
-        o.textContent = String(p.label || p.payFriday || "");
+        o.value = payFriday;
+        o.textContent = String(p.label || payFriday);
         sel.appendChild(o);
       }
 
-      if (def){
-        sel.value = def;
-      } else if (periods.length){
-        sel.value = String(periods[0].payFriday || "");
-      }
+      if (def) sel.value = def;
+      else if (periods.length) sel.value = String(periods[0].payFriday || "");
     }
 
     async function loadLedger(){
@@ -459,16 +485,6 @@
       else el.classList.remove("show");
     }
 
-    function statusPill(status){
-      const s = String(status || "").toUpperCase();
-      let cls = "pill ";
-      let label = s;
-      if (s === "READY"){ cls += "ready"; label = "Waiting for review"; }
-      else if (s === "DRAFT"){ cls += "draft"; label = "Reviewed and waiting"; }
-      else if (s === "PAID"){ cls += "paid"; label = "Paid"; }
-      return `<span class="${cls}"><span class="dot"></span>${esc(label)}</span>`;
-    }
-
     function renderTable(){
       const tbody = document.getElementById("tbody");
       if (!ledgerRows.length){
@@ -481,21 +497,16 @@
         const partner = r.propertyName || ("Partner #" + (r.partnerId || ""));
         const status = r.status || "";
         const bookingCount = (r.bookingCount != null ? Number(r.bookingCount) : "");
-        const gross = (r.grossTotal != null ? fmtMoney(r.grossTotal, r.currency) : "");
-        const fees  = (r.feesTotal  != null ? fmtMoney(r.feesTotal,  r.currency) : "");
-        const net   = (r.netTotal   != null ? fmtMoney(r.netTotal,   r.currency) : "");
+        const gross = (r.grossTotal != null ? String(r.grossTotal) : "");
+        const fees  = (r.feesTotal  != null ? String(r.feesTotal)  : "");
+        const net   = (r.netTotal   != null ? String(r.netTotal)   : "");
         const conf  = r.confirmationNumber || "";
         const paidAt = fmtDateOnly(r.paidAt);
         const updatedAt = fmtDateOnly(r.updatedAt);
-
         const paidOrUpdated = paidAt ? paidAt : (updatedAt ? updatedAt : "");
-
-        // For audit: allow payoutId visibility if present
         const payoutId = r.payoutId ? String(r.payoutId) : "";
 
-        const confCell = payoutId
-          ? `<div class="mono">${esc(conf || "-")}</div><div class="muted mono" style="margin-top:4px">payoutId: ${esc(payoutId)}</div>`
-          : `<div class="mono">${esc(conf || "-")}</div>`;
+        const confCell = `<div class="mono">${esc(conf || "-")}</div>`;
 
         return `
           <tr data-row="1">
@@ -503,9 +514,9 @@
             <td>${esc(partner)}</td>
             <td class="nowrap">${statusPill(status)}</td>
             <td class="right nowrap">${bookingCount === "" ? "" : esc(String(bookingCount))}</td>
-            <td class="right nowrap">${esc(gross || "")}</td>
-            <td class="right nowrap">${esc(fees || "")}</td>
-            <td class="right nowrap">${esc(net || "")}</td>
+            <td class="right nowrap mono">${esc(gross || "")}</td>
+            <td class="right nowrap mono">${esc(fees || "")}</td>
+            <td class="right nowrap mono">${esc(net || "")}</td>
             <td>${confCell}</td>
             <td class="nowrap">${esc(paidOrUpdated || "-")}</td>
           </tr>
@@ -520,13 +531,11 @@
       const right = document.getElementById("summaryRight");
 
       const count = ledgerRows.length;
-
       const payFridayLabel = (document.getElementById("periodSel").selectedOptions[0] || {}).textContent || currentMeta.payFriday;
       const partnerLabel = (document.getElementById("partnerSel").selectedOptions[0] || {}).textContent || "All partners";
 
       left.textContent = `${count} row(s). Period: ${payFridayLabel}. Partner: ${partnerLabel}.`;
 
-      // Totals: only for rows that have numeric totals (DRAFT/PAID)
       let gross = 0, fees = 0, net = 0;
       let any = false;
       for (const r of ledgerRows){
@@ -540,22 +549,13 @@
           any = true;
         }
       }
-      if (any){
-        right.textContent = `Totals (where available): gross ${to2(gross)} | fees ${to2(fees)} | net ${to2(net)}`;
-      } else {
-        right.textContent = "";
-      }
+      right.textContent = any ? `Totals (where available): gross ${gross.toFixed(2)} | fees ${fees.toFixed(2)} | net ${net.toFixed(2)}` : "";
     }
 
     function applyClientSearch(){
       const q = String(document.getElementById("searchBox").value || "").trim().toLowerCase();
       const rows = Array.from(document.querySelectorAll('tbody#tbody tr[data-row="1"]'));
-
-      if (!q){
-        rows.forEach(tr => tr.style.display = "");
-        return;
-      }
-
+      if (!q){ rows.forEach(tr => tr.style.display = ""); return; }
       rows.forEach(tr => {
         const txt = tr.textContent || "";
         tr.style.display = (txt.toLowerCase().includes(q)) ? "" : "none";
@@ -563,7 +563,6 @@
     }
 
     function downloadCSV(){
-      // Export current table view (client-side filter only).
       const headers = [
         "pay_window",
         "partner",
@@ -576,7 +575,6 @@
         "payout_id",
         "paid_or_updated"
       ];
-
       const lines = [headers.join(",")];
 
       for (const r of ledgerRows){
@@ -594,7 +592,6 @@
         const row = [payWindow, partner, status, bookingCount, gross, fees, net, conf, payoutId, paidOrUpdated]
           .map(v => {
             const s = String(v == null ? "" : v);
-            // CSV escape
             if (/[",\n]/.test(s)) return `"${s.replace(/"/g,'""')}"`;
             return s;
           })
@@ -606,9 +603,9 @@
       const blob = new Blob([lines.join("\n")], { type: "text/csv;charset=utf-8" });
       const url = URL.createObjectURL(blob);
 
-      const partnerLabel = (document.getElementById("partnerSel").selectedOptions[0] || {}).textContent || "All partners";
-      const payFridayLabel = (document.getElementById("periodSel").value || "period");
-      const fn = `payout_ledger_${payFridayLabel}_${partnerLabel}`.replace(/[^a-z0-9]+/gi, "_").replace(/^_+|_+$/g,"").toLowerCase() + ".csv";
+      const partnerLabel = (document.getElementById("partnerSel").selectedOptions[0] || {}).textContent || "all_partners";
+      const payFridayVal = (document.getElementById("periodSel").value || "period");
+      const fn = `payout_ledger_${payFridayVal}_${partnerLabel}`.replace(/[^a-z0-9]+/gi, "_").replace(/^_+|_+$/g,"").toLowerCase() + ".csv";
 
       const a = document.createElement("a");
       a.href = url;
@@ -619,14 +616,15 @@
       setTimeout(() => URL.revokeObjectURL(url), 1000);
     }
 
-    // ===== Wire =====
     async function boot(){
       const ok = await requireAdmin();
       if (!ok) return;
 
-      document.getElementById("backBtn").addEventListener("click", () => {
-        location.href = "/admin/index.html";
+      document.getElementById("btnLogout").addEventListener("click", () => {
+        try { localStorage.removeItem(ADMIN_TOKEN_KEY); } catch(_) {}
+        location.replace(LOGIN);
       });
+
       document.getElementById("refreshBtn").addEventListener("click", () => loadLedger().catch(showErr));
       document.getElementById("csvBtn").addEventListener("click", () => downloadCSV());
 
