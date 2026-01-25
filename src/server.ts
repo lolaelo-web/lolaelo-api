@@ -4733,7 +4733,7 @@ app.get("/api/admin/ap/ledger", async (req: Request, res: Response) => {
               FROM (
                 SELECT b2."bookingRef"
                 FROM extranet."Booking" b2
-                WHERE b2."partnerId" = b."partnerId"
+                WHERE ($4::int <> 0 AND b2."partnerId" = $4::int)
                   AND b2.status = 'COMPLETED'::extranet."BookingStatus"
                   AND b2."completedAt" IS NOT NULL
                   AND ((b2."completedAt" AT TIME ZONE 'America/New_York')::date BETWEEN (SELECT week_start FROM params) AND (SELECT week_end FROM params))
