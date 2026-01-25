@@ -635,15 +635,19 @@
       const left = document.getElementById("summaryLeft");
       const right = document.getElementById("summaryRight");
 
-      const count = ledgerRows.length;
-      const payFridayLabel = (document.getElementById("periodSel").selectedOptions[0] || {}).textContent || currentMeta.payFriday;
-      const partnerLabel = (document.getElementById("partnerSel").selectedOptions[0] || {}).textContent || "All partners";
+      // If footer elements were removed/reworked, just no-op safely
+      if (!left || !right) return;
+
+      const count = Array.isArray(ledgerRows) ? ledgerRows.length : 0;
+      const payFridayLabel = ((document.getElementById("periodSel") || {}).selectedOptions || [])[0]?.textContent || currentMeta.payFriday || "";
+      const partnerLabel = ((document.getElementById("partnerSel") || {}).selectedOptions || [])[0]?.textContent || "All partners";
 
       left.textContent = `${count} row(s). Period: ${payFridayLabel}. Partner: ${partnerLabel}.`;
 
       let gross = 0, fees = 0, net = 0;
       let any = false;
-      for (const r of ledgerRows){
+
+      for (const r of (Array.isArray(ledgerRows) ? ledgerRows : [])){
         const g = Number(r.grossTotal);
         const f = Number(r.feesTotal);
         const n = Number(r.netTotal);
@@ -654,6 +658,7 @@
           any = true;
         }
       }
+
       right.textContent = any ? `Totals (where available): gross ${gross.toFixed(2)} | fees ${fees.toFixed(2)} | net ${net.toFixed(2)}` : "";
     }
 
