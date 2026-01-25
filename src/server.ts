@@ -4837,7 +4837,8 @@ app.get("/api/admin/ap/ledger", async (req: Request, res: Response) => {
     });
   } catch (e: any) {
     console.error("[admin] ledger rows error", e);
-    return res.status(500).json({ ok: false, error: "server_error" });
+    const msg = (e && (e.message || e.toString())) ? String(e.message || e.toString()) : "unknown_error";
+    return res.status(500).json({ ok: false, error: "server_error", message: msg });
   }
 });
 // ANCHOR: ADMIN_AP_LEDGER_ROUTES END
