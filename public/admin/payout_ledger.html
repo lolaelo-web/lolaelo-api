@@ -1,0 +1,659 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Payout Ledger</title>
+
+  <!-- Favicon and app icons (match AP) -->
+  <link rel="icon" href="/admin/favicon.ico" sizes="any">
+  <link rel="icon" type="image/svg+xml" href="/admin/favicon.svg">
+  <link rel="apple-touch-icon" href="/admin/apple-touch-icon.png">
+  <link rel="manifest" href="/admin/site.webmanifest">
+
+  <style>
+    :root{
+      --bg:#0b1220;
+      --panel:#101a2b;
+      --panel2:#0f172a;
+      --text:#e5e7eb;
+      --muted:#9ca3af;
+      --line:rgba(255,255,255,.08);
+      --brand:#ff6a3d;
+      --good:#10b981;
+      --warn:#f59e0b;
+      --bad:#ef4444;
+      --chip:#111827;
+      --btn:#1f2a44;
+      --btn2:#111a2c;
+      --focus:#60a5fa;
+      --shadow: 0 10px 30px rgba(0,0,0,.35);
+      --radius: 14px;
+      --radius2: 999px;
+      --mono: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+      --sans: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, "Apple Color Emoji", "Segoe UI Emoji";
+    }
+    html,body{height:100%}
+    body{
+      margin:0;
+      font-family:var(--sans);
+      background: radial-gradient(1200px 700px at 20% 0%, rgba(255,106,61,.08), transparent 55%),
+                  radial-gradient(900px 600px at 100% 10%, rgba(96,165,250,.10), transparent 55%),
+                  var(--bg);
+      color:var(--text);
+    }
+
+    .wrap{max-width:1200px;margin:0 auto;padding:22px 16px 60px}
+    .topbar{
+      display:flex;align-items:center;justify-content:space-between;
+      gap:12px;margin-bottom:18px;
+    }
+    .brand{
+      display:flex;align-items:center;gap:10px;
+      font-weight:700;letter-spacing:.2px;
+    }
+    .brand .dot{
+      width:10px;height:10px;border-radius:50%;
+      background:var(--brand);
+      box-shadow:0 0 0 4px rgba(255,106,61,.16);
+    }
+    .brand .title{font-size:16px;color:var(--text)}
+    .brand .sub{font-size:12px;color:var(--muted);font-weight:500}
+
+    .actions{display:flex;gap:10px;align-items:center;flex-wrap:wrap}
+    .btn{
+      appearance:none;border:1px solid var(--line);
+      background:linear-gradient(180deg, rgba(31,42,68,.85), rgba(17,26,44,.85));
+      color:var(--text);
+      padding:10px 14px;border-radius:var(--radius2);
+      cursor:pointer;
+      box-shadow:0 6px 18px rgba(0,0,0,.25);
+      font-weight:650;font-size:13px;
+    }
+    .btn:hover{filter:brightness(1.05)}
+    .btn:active{transform:translateY(1px)}
+    .btn.primary{
+      border-color: rgba(255,106,61,.35);
+      background:linear-gradient(180deg, rgba(255,106,61,.22), rgba(255,106,61,.10));
+      color:#fff;
+    }
+    .btn.ghost{
+      background:transparent;
+    }
+
+    .card{
+      background:linear-gradient(180deg, rgba(16,26,43,.92), rgba(15,23,42,.92));
+      border:1px solid var(--line);
+      border-radius:var(--radius);
+      box-shadow:var(--shadow);
+      overflow:hidden;
+    }
+    .card .header{
+      padding:16px 16px 12px;
+      border-bottom:1px solid var(--line);
+      display:flex;align-items:flex-start;justify-content:space-between;gap:12px;
+      flex-wrap:wrap;
+    }
+    .hgroup{display:flex;flex-direction:column;gap:3px}
+    .h1{font-size:18px;font-weight:750}
+    .h2{font-size:12.5px;color:var(--muted);line-height:1.3}
+
+    .controls{
+      padding:14px 16px;
+      display:grid;
+      grid-template-columns: 1.5fr 1fr 1.2fr;
+      gap:12px;
+      border-bottom:1px solid var(--line);
+    }
+    @media (max-width: 980px){
+      .controls{grid-template-columns:1fr; }
+    }
+    .field{display:flex;flex-direction:column;gap:6px}
+    .label{font-size:12px;color:var(--muted);font-weight:650}
+    select, input[type="text"]{
+      width:100%;
+      border:1px solid var(--line);
+      border-radius:12px;
+      padding:10px 12px;
+      background:rgba(17,26,44,.75);
+      color:var(--text);
+      outline:none;
+      font-size:13px;
+    }
+    select:focus, input[type="text"]:focus{border-color:rgba(96,165,250,.6); box-shadow:0 0 0 3px rgba(96,165,250,.18)}
+    .statusRow{
+      display:flex;
+      gap:10px;
+      flex-wrap:wrap;
+      align-items:center;
+      padding:10px 16px 14px;
+      border-bottom:1px solid var(--line);
+    }
+    .chip{
+      display:inline-flex;align-items:center;gap:8px;
+      border:1px solid var(--line);
+      background:rgba(17,24,39,.55);
+      padding:8px 10px;
+      border-radius:var(--radius2);
+      font-size:12.5px;
+      cursor:pointer;
+      user-select:none;
+    }
+    .chip input{accent-color: var(--brand)}
+    .chip .dot{
+      width:8px;height:8px;border-radius:50%;
+      background:rgba(156,163,175,.6);
+    }
+    .chip.ready .dot{background:var(--warn)}
+    .chip.draft .dot{background:rgba(255,106,61,.9)}
+    .chip.paid  .dot{background:var(--good)}
+
+    .banner{
+      margin:14px 16px 0;
+      padding:12px 12px;
+      border-radius:12px;
+      border:1px solid var(--line);
+      background:rgba(17,24,39,.45);
+      color:var(--muted);
+      display:none;
+    }
+    .banner.show{display:block}
+
+    .tableWrap{padding:12px 16px 16px}
+    table{
+      width:100%;
+      border-collapse:separate;
+      border-spacing:0;
+      font-size:13px;
+    }
+    th, td{
+      padding:10px 10px;
+      border-bottom:1px solid var(--line);
+      vertical-align:top;
+    }
+    th{
+      text-align:left;
+      font-size:12px;
+      color:var(--muted);
+      font-weight:750;
+      position:sticky;
+      top:0;
+      background:rgba(16,26,43,.92);
+      backdrop-filter: blur(8px);
+      z-index:2;
+    }
+    tr:hover td{background:rgba(255,255,255,.02)}
+    .mono{font-family:var(--mono)}
+    .muted{color:var(--muted)}
+    .right{text-align:right}
+    .nowrap{white-space:nowrap}
+    .pill{
+      display:inline-flex;
+      align-items:center;
+      gap:8px;
+      border:1px solid var(--line);
+      background:rgba(17,24,39,.55);
+      padding:6px 10px;
+      border-radius:999px;
+      font-size:12px;
+      font-weight:700;
+    }
+    .pill .dot{width:8px;height:8px;border-radius:50%}
+    .pill.ready .dot{background:var(--warn)}
+    .pill.draft .dot{background:rgba(255,106,61,.95)}
+    .pill.paid  .dot{background:var(--good)}
+
+    .footerRow{
+      padding:10px 16px 14px;
+      display:flex;
+      align-items:center;
+      justify-content:space-between;
+      gap:10px;
+      border-top:1px solid var(--line);
+      color:var(--muted);
+      font-size:12.5px;
+      flex-wrap:wrap;
+    }
+  </style>
+</head>
+
+<body>
+  <div class="wrap">
+    <div class="topbar">
+      <div class="brand">
+        <div class="dot"></div>
+        <div>
+          <div class="title">Admin</div>
+          <div class="sub">Payout ledger</div>
+        </div>
+      </div>
+
+      <div class="actions">
+        <button class="btn ghost" id="backBtn">Back to Admin</button>
+        <button class="btn" id="refreshBtn">Refresh</button>
+        <button class="btn primary" id="csvBtn">Download CSV</button>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="header">
+        <div class="hgroup">
+          <div class="h1">Payout Ledger</div>
+          <div class="h2">Read-only history and audit view. Filter by partner or by pay period Friday. Export current view as CSV.</div>
+        </div>
+        <div class="hgroup">
+          <div class="h2">Operational work stays in Accounts Payable.</div>
+        </div>
+      </div>
+
+      <div class="controls">
+        <div class="field">
+          <div class="label">Partner</div>
+          <select id="partnerSel"></select>
+        </div>
+
+        <div class="field">
+          <div class="label">Pay period (posting Friday)</div>
+          <select id="periodSel"></select>
+        </div>
+
+        <div class="field">
+          <div class="label">Search (confirmation, payout id, partner name)</div>
+          <input id="searchBox" type="text" placeholder="Type to filter table rows" />
+        </div>
+      </div>
+
+      <div class="statusRow">
+        <label class="chip ready"><input type="checkbox" id="stReady" checked /> <span class="dot"></span> Waiting for review</label>
+        <label class="chip draft"><input type="checkbox" id="stDraft" checked /> <span class="dot"></span> Reviewed and waiting for payment</label>
+        <label class="chip paid"><input type="checkbox" id="stPaid" checked /> <span class="dot"></span> Paid</label>
+      </div>
+
+      <div class="banner" id="noPostedBanner">No payments posted for this week.</div>
+
+      <div class="tableWrap">
+        <table>
+          <thead>
+            <tr>
+              <th class="nowrap">Pay window</th>
+              <th>Partner</th>
+              <th class="nowrap">Status</th>
+              <th class="right nowrap">Booking count</th>
+              <th class="right nowrap">Gross</th>
+              <th class="right nowrap">Fees</th>
+              <th class="right nowrap">Net</th>
+              <th>Confirmation / Reference</th>
+              <th class="nowrap">Paid at / Updated at</th>
+            </tr>
+          </thead>
+          <tbody id="tbody">
+            <tr><td colspan="9" class="muted">Loading...</td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      <div class="footerRow">
+        <div id="summaryLeft">Ready.</div>
+        <div class="mono" id="summaryRight"></div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    // ===== Auth gate (match admin/login.html pattern) =====
+    const ADMIN_TOKEN_KEY = "lolaelo_admin_session";
+
+    function getToken(){
+      try { return localStorage.getItem(ADMIN_TOKEN_KEY) || ""; } catch(_) { return ""; }
+    }
+
+    async function fetchJSON(url, opts){
+      opts = opts || {};
+      opts.headers = opts.headers || {};
+      const tok = getToken();
+      if (tok) opts.headers["Authorization"] = "Bearer " + tok;
+      const res = await fetch(url, opts);
+      if (!res.ok) {
+        const txt = await res.text().catch(()=>"");
+        throw new Error("HTTP " + res.status + " " + (txt || ""));
+      }
+      return res.json();
+    }
+
+    async function requireAdmin(){
+      const tok = getToken();
+      if (!tok) {
+        location.replace("/admin/login.html");
+        return false;
+      }
+      try {
+        await fetchJSON("/api/admin/ping");
+        return true;
+      } catch (e) {
+        try { localStorage.removeItem(ADMIN_TOKEN_KEY); } catch(_) {}
+        location.replace("/admin/login.html");
+        return false;
+      }
+    }
+
+    // ===== Utilities =====
+    function esc(s){
+      return String(s == null ? "" : s)
+        .replace(/&/g,"&amp;").replace(/</g,"&lt;")
+        .replace(/>/g,"&gt;").replace(/"/g,"&quot;").replace(/'/g,"&#039;");
+    }
+    function to2(n){
+      const x = Number(n);
+      if (!Number.isFinite(x)) return "";
+      return x.toFixed(2);
+    }
+    function fmtMoney(n, currency){
+      const x = Number(n);
+      if (!Number.isFinite(x)) return "";
+      const cur = currency || "USD";
+      try {
+        return new Intl.NumberFormat(undefined, { style:"currency", currency: cur }).format(x);
+      } catch {
+        return x.toFixed(2) + " " + cur;
+      }
+    }
+    function fmtDateOnly(ts){
+      if (!ts) return "";
+      try {
+        const d = new Date(ts);
+        if (isNaN(d.getTime())) return "";
+        return d.toLocaleDateString(undefined, { year:"numeric", month:"short", day:"2-digit", timeZone:"America/New_York" });
+      } catch { return ""; }
+    }
+
+    function buildStatusesParam(){
+      const a = [];
+      if (document.getElementById("stReady").checked) a.push("READY");
+      if (document.getElementById("stDraft").checked) a.push("DRAFT");
+      if (document.getElementById("stPaid").checked) a.push("PAID");
+      return a.join(",");
+    }
+
+    function buildPayWindowLabel(weekStart, weekEnd){
+      if (!weekStart || !weekEnd) return "";
+      const ws = fmtDateOnly(weekStart);
+      const we = fmtDateOnly(weekEnd);
+      return (ws && we) ? (ws + " to " + we) : "";
+    }
+
+    // ===== State =====
+    let ledgerRows = [];
+    let currentMeta = { payFriday:"", weekStart:"", weekEnd:"", hasPostedPayout:false };
+
+    // ===== Loaders =====
+    async function loadPartners(){
+      const sel = document.getElementById("partnerSel");
+      sel.innerHTML = "";
+
+      const optAll = document.createElement("option");
+      optAll.value = "0";
+      optAll.textContent = "All partners";
+      sel.appendChild(optAll);
+
+      const data = await fetchJSON("/api/admin/ap/ledger/partners");
+      const rows = (data && data.rows) ? data.rows : [];
+
+      for (const r of rows){
+        const o = document.createElement("option");
+        o.value = String(r.partnerId || r.partnerID || r.id || "");
+        o.textContent = String(r.propertyName || r.name || ("Partner #" + o.value));
+        sel.appendChild(o);
+      }
+    }
+
+    async function loadPeriods(){
+      const sel = document.getElementById("periodSel");
+      sel.innerHTML = "";
+
+      const data = await fetchJSON("/api/admin/ap/ledger/periods?weeks=104");
+      const periods = (data && data.periods) ? data.periods : [];
+      const def = (data && data.defaultPayFriday) ? data.defaultPayFriday : "";
+
+      for (const p of periods){
+        const o = document.createElement("option");
+        o.value = String(p.payFriday || "");
+        o.textContent = String(p.label || p.payFriday || "");
+        sel.appendChild(o);
+      }
+
+      if (def){
+        sel.value = def;
+      } else if (periods.length){
+        sel.value = String(periods[0].payFriday || "");
+      }
+    }
+
+    async function loadLedger(){
+      const partnerId = Number(document.getElementById("partnerSel").value || 0) || 0;
+      const payFriday = String(document.getElementById("periodSel").value || "").trim();
+      const statuses = buildStatusesParam() || "READY,DRAFT,PAID";
+
+      const tbody = document.getElementById("tbody");
+      tbody.innerHTML = `<tr><td colspan="9" class="muted">Loading...</td></tr>`;
+
+      const url = `/api/admin/ap/ledger?payFriday=${encodeURIComponent(payFriday)}&partnerId=${encodeURIComponent(String(partnerId))}&statuses=${encodeURIComponent(statuses)}`;
+      const data = await fetchJSON(url);
+
+      ledgerRows = (data && data.rows) ? data.rows : [];
+      currentMeta = {
+        payFriday: data.payFriday || payFriday,
+        weekStart: data.weekStart || "",
+        weekEnd: data.weekEnd || "",
+        hasPostedPayout: !!data.hasPostedPayout
+      };
+
+      renderTable();
+      applyClientSearch();
+      renderSummary();
+      renderNoPostedBanner();
+    }
+
+    function renderNoPostedBanner(){
+      const el = document.getElementById("noPostedBanner");
+      if (!currentMeta.hasPostedPayout) el.classList.add("show");
+      else el.classList.remove("show");
+    }
+
+    function statusPill(status){
+      const s = String(status || "").toUpperCase();
+      let cls = "pill ";
+      let label = s;
+      if (s === "READY"){ cls += "ready"; label = "Waiting for review"; }
+      else if (s === "DRAFT"){ cls += "draft"; label = "Reviewed and waiting"; }
+      else if (s === "PAID"){ cls += "paid"; label = "Paid"; }
+      return `<span class="${cls}"><span class="dot"></span>${esc(label)}</span>`;
+    }
+
+    function renderTable(){
+      const tbody = document.getElementById("tbody");
+      if (!ledgerRows.length){
+        tbody.innerHTML = `<tr><td colspan="9" class="muted">No rows for this selection.</td></tr>`;
+        return;
+      }
+
+      const rowsHtml = ledgerRows.map(r => {
+        const payWindow = buildPayWindowLabel(r.weekStart || currentMeta.weekStart, r.weekEnd || currentMeta.weekEnd);
+        const partner = r.propertyName || ("Partner #" + (r.partnerId || ""));
+        const status = r.status || "";
+        const bookingCount = (r.bookingCount != null ? Number(r.bookingCount) : "");
+        const gross = (r.grossTotal != null ? fmtMoney(r.grossTotal, r.currency) : "");
+        const fees  = (r.feesTotal  != null ? fmtMoney(r.feesTotal,  r.currency) : "");
+        const net   = (r.netTotal   != null ? fmtMoney(r.netTotal,   r.currency) : "");
+        const conf  = r.confirmationNumber || "";
+        const paidAt = fmtDateOnly(r.paidAt);
+        const updatedAt = fmtDateOnly(r.updatedAt);
+
+        const paidOrUpdated = paidAt ? paidAt : (updatedAt ? updatedAt : "");
+
+        // For audit: allow payoutId visibility if present
+        const payoutId = r.payoutId ? String(r.payoutId) : "";
+
+        const confCell = payoutId
+          ? `<div class="mono">${esc(conf || "-")}</div><div class="muted mono" style="margin-top:4px">payoutId: ${esc(payoutId)}</div>`
+          : `<div class="mono">${esc(conf || "-")}</div>`;
+
+        return `
+          <tr data-row="1">
+            <td class="nowrap">${esc(payWindow || "-")}</td>
+            <td>${esc(partner)}</td>
+            <td class="nowrap">${statusPill(status)}</td>
+            <td class="right nowrap">${bookingCount === "" ? "" : esc(String(bookingCount))}</td>
+            <td class="right nowrap">${esc(gross || "")}</td>
+            <td class="right nowrap">${esc(fees || "")}</td>
+            <td class="right nowrap">${esc(net || "")}</td>
+            <td>${confCell}</td>
+            <td class="nowrap">${esc(paidOrUpdated || "-")}</td>
+          </tr>
+        `;
+      }).join("");
+
+      tbody.innerHTML = rowsHtml;
+    }
+
+    function renderSummary(){
+      const left = document.getElementById("summaryLeft");
+      const right = document.getElementById("summaryRight");
+
+      const count = ledgerRows.length;
+
+      const payFridayLabel = (document.getElementById("periodSel").selectedOptions[0] || {}).textContent || currentMeta.payFriday;
+      const partnerLabel = (document.getElementById("partnerSel").selectedOptions[0] || {}).textContent || "All partners";
+
+      left.textContent = `${count} row(s). Period: ${payFridayLabel}. Partner: ${partnerLabel}.`;
+
+      // Totals: only for rows that have numeric totals (DRAFT/PAID)
+      let gross = 0, fees = 0, net = 0;
+      let any = false;
+      for (const r of ledgerRows){
+        const g = Number(r.grossTotal);
+        const f = Number(r.feesTotal);
+        const n = Number(r.netTotal);
+        if (Number.isFinite(g) || Number.isFinite(f) || Number.isFinite(n)){
+          if (Number.isFinite(g)) gross += g;
+          if (Number.isFinite(f)) fees += f;
+          if (Number.isFinite(n)) net += n;
+          any = true;
+        }
+      }
+      if (any){
+        right.textContent = `Totals (where available): gross ${to2(gross)} | fees ${to2(fees)} | net ${to2(net)}`;
+      } else {
+        right.textContent = "";
+      }
+    }
+
+    function applyClientSearch(){
+      const q = String(document.getElementById("searchBox").value || "").trim().toLowerCase();
+      const rows = Array.from(document.querySelectorAll('tbody#tbody tr[data-row="1"]'));
+
+      if (!q){
+        rows.forEach(tr => tr.style.display = "");
+        return;
+      }
+
+      rows.forEach(tr => {
+        const txt = tr.textContent || "";
+        tr.style.display = (txt.toLowerCase().includes(q)) ? "" : "none";
+      });
+    }
+
+    function downloadCSV(){
+      // Export current table view (client-side filter only).
+      const headers = [
+        "pay_window",
+        "partner",
+        "status",
+        "booking_count",
+        "gross",
+        "fees",
+        "net",
+        "confirmation",
+        "payout_id",
+        "paid_or_updated"
+      ];
+
+      const lines = [headers.join(",")];
+
+      for (const r of ledgerRows){
+        const payWindow = buildPayWindowLabel(r.weekStart || currentMeta.weekStart, r.weekEnd || currentMeta.weekEnd);
+        const partner = r.propertyName || ("Partner #" + (r.partnerId || ""));
+        const status = String(r.status || "").toUpperCase();
+        const bookingCount = (r.bookingCount != null ? String(r.bookingCount) : "");
+        const gross = (r.grossTotal != null ? String(r.grossTotal) : "");
+        const fees  = (r.feesTotal  != null ? String(r.feesTotal)  : "");
+        const net   = (r.netTotal   != null ? String(r.netTotal)   : "");
+        const conf  = r.confirmationNumber ? String(r.confirmationNumber) : "";
+        const payoutId = r.payoutId ? String(r.payoutId) : "";
+        const paidOrUpdated = fmtDateOnly(r.paidAt) || fmtDateOnly(r.updatedAt) || "";
+
+        const row = [payWindow, partner, status, bookingCount, gross, fees, net, conf, payoutId, paidOrUpdated]
+          .map(v => {
+            const s = String(v == null ? "" : v);
+            // CSV escape
+            if (/[",\n]/.test(s)) return `"${s.replace(/"/g,'""')}"`;
+            return s;
+          })
+          .join(",");
+
+        lines.push(row);
+      }
+
+      const blob = new Blob([lines.join("\n")], { type: "text/csv;charset=utf-8" });
+      const url = URL.createObjectURL(blob);
+
+      const partnerLabel = (document.getElementById("partnerSel").selectedOptions[0] || {}).textContent || "All partners";
+      const payFridayLabel = (document.getElementById("periodSel").value || "period");
+      const fn = `payout_ledger_${payFridayLabel}_${partnerLabel}`.replace(/[^a-z0-9]+/gi, "_").replace(/^_+|_+$/g,"").toLowerCase() + ".csv";
+
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = fn;
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      setTimeout(() => URL.revokeObjectURL(url), 1000);
+    }
+
+    // ===== Wire =====
+    async function boot(){
+      const ok = await requireAdmin();
+      if (!ok) return;
+
+      document.getElementById("backBtn").addEventListener("click", () => {
+        location.href = "/admin/index.html";
+      });
+      document.getElementById("refreshBtn").addEventListener("click", () => loadLedger().catch(showErr));
+      document.getElementById("csvBtn").addEventListener("click", () => downloadCSV());
+
+      document.getElementById("partnerSel").addEventListener("change", () => loadLedger().catch(showErr));
+      document.getElementById("periodSel").addEventListener("change", () => loadLedger().catch(showErr));
+
+      document.getElementById("stReady").addEventListener("change", () => loadLedger().catch(showErr));
+      document.getElementById("stDraft").addEventListener("change", () => loadLedger().catch(showErr));
+      document.getElementById("stPaid").addEventListener("change", () => loadLedger().catch(showErr));
+
+      document.getElementById("searchBox").addEventListener("input", () => applyClientSearch());
+
+      await loadPartners();
+      await loadPeriods();
+      await loadLedger();
+    }
+
+    function showErr(e){
+      console.error(e);
+      const tbody = document.getElementById("tbody");
+      tbody.innerHTML = `<tr><td colspan="9" class="muted">Error loading ledger. Check console.</td></tr>`;
+      document.getElementById("summaryLeft").textContent = "Error.";
+      document.getElementById("summaryRight").textContent = "";
+      document.getElementById("noPostedBanner").classList.remove("show");
+    }
+
+    boot().catch(showErr);
+  </script>
+</body>
+</html>

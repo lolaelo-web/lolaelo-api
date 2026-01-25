@@ -179,63 +179,64 @@
     </div>
     <!-- ANCHOR: BOOKINGS_KPI_CARD END -->
 
-
-    <!-- ANCHOR: HUB_TOOLS_CARD -->
-    <div class="card">
-      <div style="display:flex; align-items:center; justify-content:space-between; gap:12px;">
-        <div style="font-weight:700;">Tools</div>
-        <div id="status" class="status"></div>
-      </div>
-
-      <div class="grid">
-        <a class="tile" href="/admin/ap.html">
-          <div class="t">
-            Accounts Payable
-            <span id="apBadge" class="pill" style="display:none; margin-left:8px; border-color:rgba(180,35,24,.25); color:#b42318; font-weight:800;">0</span>
-          </div>
-          <div class="d">Batch payouts (DRAFT then mark PAID). Partner payments feed reads Payout and PayoutBooking.</div>
-        </a>
-
-        <a class="tile" href="/admin/bookings.html">
-          <div class="t">Bookings</div>
-          <div class="d">Search bookings, status timeline, resend confirmations, refunds, manual overrides.</div>
-        </a>
-
-        <a class="tile" href="/admin/data.html">
-          <div class="t">Analytics</div>
-          <div class="d">Visitors, sources, and engaged time (first party).</div>
-        </a>
-
-        <a class="tile" href="/admin/partners.html">
-          <div class="t">Manage Partners</div>
-          <div class="d">Create partners, reset passwords, onboarding status, property profile health.</div>
-        </a>
-
-        <a class="tile" href="#" onclick="alert('Coming soon: exceptions inbox'); return false;">
-          <div class="t">
-            Exceptions
-            <span id="excBadge" class="pill" style="display:none; margin-left:8px; border-color:rgba(180,35,24,.25); color:#b42318; font-weight:800;">0</span>
-          </div>
-          <div class="d">Bookings needing intervention (bad line items, refund-in-progress, upcoming check-ins at risk).</div>
-        </a>
-
-        <a class="tile" href="#" onclick="alert('Coming soon: payouts ledger'); return false;">
-          <div class="t">Payout ledger</div>
-          <div class="d">Search payouts by partner/date/status. Export CSV. Audit confirmation numbers.</div>
-        </a>
-
-        <a class="tile" href="#" onclick="alert('Coming soon: system health'); return false;">
-          <div class="t">System health</div>
-          <div class="d">Stripe webhook health, email provider status, DB connectivity, S3 upload checks.</div>
-        </a>
-
-        <a class="tile" href="#" onclick="alert('Coming soon: operations tooling'); return false;">
-          <div class="t">Operations</div>
-          <div class="d">Future: internal workflows and triage tools.</div>
-        </a>
-      </div>
+  <!-- ANCHOR: HUB_TOOLS_CARD -->
+  <div class="card">
+    <div style="display:flex; align-items:center; justify-content:space-between; gap:12px;">
+      <div style="font-weight:700;">Tools</div>
+      <div id="status" class="status"></div>
     </div>
-    <!-- ANCHOR: HUB_TOOLS_CARD END -->
+
+    <div class="grid">
+      <a class="tile" href="/admin/ap.html">
+        <div class="t">
+          Accounts Payable
+          <span id="apBadge" class="pill" style="display:none; margin-left:8px; border-color:rgba(180,35,24,.25); color:#b42318; font-weight:800;">0</span>
+        </div>
+        <div class="d">Batch payouts (DRAFT then mark PAID). Partner payments feed reads Payout and PayoutBooking.</div>
+      </a>
+
+      <!-- moved here: ledger directly under AP -->
+      <a class="tile" href="/admin/payout_ledger.html">
+        <div class="t">Payout ledger</div>
+        <div class="d">Search payouts by partner/date/status. Export CSV. Audit confirmation numbers.</div>
+      </a>
+
+      <a class="tile" href="/admin/bookings.html">
+        <div class="t">Bookings</div>
+        <div class="d">Search bookings, status timeline, resend confirmations, refunds, manual overrides.</div>
+      </a>
+
+      <a class="tile" href="/admin/data.html">
+        <div class="t">Analytics</div>
+        <div class="d">Visitors, sources, and engaged time (first party).</div>
+      </a>
+
+      <a class="tile" href="/admin/partners.html">
+        <div class="t">Manage Partners</div>
+        <div class="d">Create partners, reset passwords, onboarding status, property profile health.</div>
+      </a>
+
+      <!-- swapped down: Exceptions now where Ledger used to be -->
+      <a class="tile" href="#" onclick="alert('Coming soon: exceptions inbox'); return false;">
+        <div class="t">
+          Exceptions
+          <span id="excBadge" class="pill" style="display:none; margin-left:8px; border-color:rgba(180,35,24,.25); color:#b42318; font-weight:800;">0</span>
+        </div>
+        <div class="d">Bookings needing intervention (bad line items, refund-in-progress, upcoming check-ins at risk).</div>
+      </a>
+
+      <a class="tile" href="#" onclick="alert('Coming soon: system health'); return false;">
+        <div class="t">System health</div>
+        <div class="d">Stripe webhook health, email provider status, DB connectivity, S3 upload checks.</div>
+      </a>
+
+      <a class="tile" href="#" onclick="alert('Coming soon: operations tooling'); return false;">
+        <div class="t">Operations</div>
+        <div class="d">Future: internal workflows and triage tools.</div>
+      </a>
+    </div>
+  </div>
+  <!-- ANCHOR: HUB_TOOLS_CARD END -->
 
   <script>
     (function(){

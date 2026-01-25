@@ -4534,6 +4534,265 @@ app.get("/api/admin/ap/payouts/:id/bookings", async (req: Request, res: Response
 });
 // ANCHOR: ADMIN_AP_PAYOUT_BOOKINGS_ROUTE END
 
+// ANCHOR: ADMIN_AP_LEDGER_ROUTES
+
+// Helpers: ET-safe date checks using Intl (no extra deps)
+function fmtEtYmd(d: Date): string {
+  const parts = new Intl.DateTimeFormat("en-CA", {
+    timeZone: "America/New_York",
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+  }).formatToParts(d);
+  const y = parts.find(p => p.type === "year")?.value || "1970";
+  const m = parts.find(p => p.type === "month")?.value || "01";
+  const da = parts.find(p => p.type === "day")?.value || "01";
+  return `${y}-${m}-${da}`;
+}
+
+function addDaysUtc(ymd: string, days: number): string {
+  // ymd is YYYY-MM-DD
+  const [Y, M, D] = ymd.split("-").map(n => Number(n));
+  const dt = new Date(Date.UTC(Y, (M - 1), D, 12, 0, 0)); // noon UTC to avoid DST edge weirdness
+  dt.setUTCDate(dt.getUTCDate() + days);
+  const y = dt.getUTCFullYear();
+  const m = String(dt.getUTCMonth() + 1).padStart(2, "0");
+  const d = String(dt.getUTCDate()).padStart(2, "0");
+  return `${y}-${m}-${d}`;
+}
+
+function dayOfWeekEtShort(d: Date): string {
+  return new Intl.DateTimeFormat("en-US", { timeZone: "America/New_York", weekday: "short" }).format(d);
+}
+
+function lastCompletedPayFridayEt(): string {
+  // returns YYYY-MM-DD for the prior week's Friday (ET),
+  // so default period is always a fully completed Mon-Sun window.
+  // Example: if today is Fri, we still return last week's Fri.
+  let dt = new Date();
+
+  // First find the most recent Friday (could be today)
+  for (let i = 0; i < 14; i++) {
+    if (dayOfWeekEtShort(dt) === "Fri") break;
+    dt = new Date(dt.getTime() - 24 * 60 * 60 * 1000);
+  }
+
+  // Then force "last week's" Friday
+  dt = new Date(dt.getTime() - 7 * 24 * 60 * 60 * 1000);
+
+  return fmtEtYmd(dt);
+}
+
+function labelPayFriday(payFridayYmd: string): string {
+  // "Mar 12, 2026"
+  try {
+    const [Y, M, D] = payFridayYmd.split("-").map(n => Number(n));
+    const dt = new Date(Date.UTC(Y, M - 1, D, 12, 0, 0));
+    return dt.toLocaleDateString(undefined, { timeZone: "America/New_York", month: "short", day: "numeric", year: "numeric" });
+  } catch {
+    return payFridayYmd;
+  }
+}
+
+// 1) Periods dropdown (calendar-driven): every Friday for last N weeks
+//    payFriday -> weekStart (Mon) = payFriday - 11 days, weekEnd = weekStart + 6 days
+app.get("/api/admin/ap/ledger/periods", async (req: Request, res: Response) => {
+  try {
+    requireAdminAuth(req);
+
+    const weeks = Math.max(4, Math.min(260, Number(req.query.weeks || 52) || 52)); // cap at 5 years
+
+    const defaultPayFriday = lastCompletedPayFridayEt();
+    const out: any[] = [];
+
+    for (let i = 0; i < weeks; i++) {
+      const payFriday = addDaysUtc(defaultPayFriday, -7 * i);
+      const weekStart = addDaysUtc(payFriday, -11); // Monday
+      const weekEnd = addDaysUtc(weekStart, 6);     // Sunday
+      out.push({
+        payFriday,
+        weekStart,
+        weekEnd,
+        label: labelPayFriday(payFriday),
+      });
+    }
+
+    return res.json({ ok: true, defaultPayFriday, periods: out });
+  } catch (e: any) {
+    console.error("[admin] ledger periods error", e);
+    return res.status(500).json({ ok: false, error: "server_error" });
+  }
+});
+
+// 2) Partners dropdown: always return full list with reliable name
+app.get("/api/admin/ap/ledger/partners", async (req: Request, res: Response) => {
+  try {
+    requireAdminAuth(req);
+
+    const rows = await withDb(async (client) => {
+      const q = `
+        SELECT
+          pr.id AS "partnerId",
+          COALESCE(pp.name, pr.name, ('Partner #' || pr.id::text)) AS "propertyName"
+        FROM extranet."Partner" pr
+        LEFT JOIN extranet."PropertyProfile" pp ON pp."partnerId" = pr.id
+        ORDER BY COALESCE(pp.name, pr.name, ('Partner #' || pr.id::text)) ASC, pr.id ASC
+        LIMIT 5000;
+      `;
+      const r = await client.query(q);
+      return r.rows || [];
+    });
+
+    return res.json({ ok: true, rows });
+  } catch (e: any) {
+    console.error("[admin] ledger partners error", e);
+    return res.status(500).json({ ok: false, error: "server_error" });
+  }
+});
+
+// 3) Ledger rows: unify READY (eligible not yet linked) + Payout rows (DRAFT/PAID)
+app.get("/api/admin/ap/ledger", async (req: Request, res: Response) => {
+  try {
+    requireAdminAuth(req);
+
+    const payFriday = String(req.query.payFriday || "").trim(); // YYYY-MM-DD
+    const partnerId = Number(req.query.partnerId || 0); // optional, 0=all
+
+    const statusesRaw = String(req.query.statuses || "READY,DRAFT,PAID");
+    const statuses = statusesRaw
+      .split(",")
+      .map(s => s.trim().toUpperCase())
+      .filter(Boolean);
+
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(payFriday)) {
+      return res.status(400).json({ ok: false, error: "payFriday_required_YYYY-MM-DD" });
+    }
+
+    const weekStart = addDaysUtc(payFriday, -11);
+    const weekEnd = addDaysUtc(weekStart, 6);
+
+    const wantReady = statuses.includes("READY");
+    const wantDraft = statuses.includes("DRAFT");
+    const wantPaid = statuses.includes("PAID");
+
+    const data = await withDb(async (client) => {
+      const out: any[] = [];
+
+      // READY rollup (pending review): same rule as AP ready (COMPLETED, completedAt in ET Mon-Sun, not in PayoutBooking)
+      if (wantReady) {
+        const qReady = `
+          WITH params AS (
+            SELECT $1::date AS week_start, $2::date AS week_end
+          )
+          SELECT
+            'READY'::text AS "status",
+            b."partnerId" AS "partnerId",
+            COALESCE(pp.name, pr.name, ('Partner #' || b."partnerId"::text)) AS "propertyName",
+            (SELECT week_start FROM params) AS "weekStart",
+            (SELECT week_end FROM params) AS "weekEnd",
+            $3::date AS "payFriday",
+            COUNT(*)::int AS "bookingCount",
+            COALESCE(SUM(
+              CASE
+                WHEN (
+                  COALESCE((SELECT SUM(bi."lineTotal") FROM extranet."BookingItem" bi WHERE bi."bookingId" = b.id), 0)
+                  +
+                  COALESCE((SELECT SUM(ba."lineTotal") FROM extranet."BookingAddOn" ba WHERE ba."bookingId" = b.id), 0)
+                ) > 0
+                THEN (
+                  COALESCE((SELECT SUM(bi."lineTotal") FROM extranet."BookingItem" bi WHERE bi."bookingId" = b.id), 0)
+                  +
+                  COALESCE((SELECT SUM(ba."lineTotal") FROM extranet."BookingAddOn" ba WHERE ba."bookingId" = b.id), 0)
+                )
+                ELSE COALESCE(b."amountPaid", 0)
+              END
+            ), 0)::numeric AS "grossTotal",
+            NULL::numeric AS "feesTotal",
+            NULL::numeric AS "netTotal",
+            NULL::text    AS "confirmationNumber",
+            NULL::timestamptz AS "paidAt",
+            NULL::timestamptz AS "updatedAt",
+            'USD'::text AS "currency"
+          FROM extranet."Booking" b
+          LEFT JOIN extranet."PropertyProfile" pp ON pp."partnerId" = b."partnerId"
+          LEFT JOIN extranet."Partner" pr ON pr.id = b."partnerId"
+          CROSS JOIN params
+          WHERE b.status = 'COMPLETED'::extranet."BookingStatus"
+            AND b."completedAt" IS NOT NULL
+            AND ((b."completedAt" AT TIME ZONE 'America/New_York')::date BETWEEN (SELECT week_start FROM params) AND (SELECT week_end FROM params))
+            AND NOT EXISTS (SELECT 1 FROM extranet."PayoutBooking" pb WHERE pb."bookingId" = b.id)
+            AND ($4::int = 0 OR b."partnerId" = $4::int)
+          GROUP BY b."partnerId", COALESCE(pp.name, pr.name, ('Partner #' || b."partnerId"::text))
+          ORDER BY "bookingCount" DESC, "partnerId" ASC
+          LIMIT 5000;
+        `;
+        const rReady = await client.query(qReady, [weekStart, weekEnd, payFriday, partnerId]);
+        out.push(...(rReady.rows || []));
+      }
+
+      // Payout rows (DRAFT/PAID)
+      if (wantDraft || wantPaid) {
+        const qPayouts = `
+          WITH params AS (
+            SELECT $1::date AS week_start, $2::date AS week_end
+          )
+          SELECT
+            p.status::text AS "status",
+            p."partnerId" AS "partnerId",
+            COALESCE(pp.name, pr.name, ('Partner #' || p."partnerId"::text)) AS "propertyName",
+            p."weekStart"::date AS "weekStart",
+            p."weekEnd"::date   AS "weekEnd",
+            $3::date AS "payFriday",
+            COALESCE((SELECT COUNT(*) FROM extranet."PayoutBooking" pb WHERE pb."payoutId" = p.id), 0)::int AS "bookingCount",
+            COALESCE((SELECT SUM(COALESCE(pb."netAmount",0) + COALESCE(pb."feeAmount",0)) FROM extranet."PayoutBooking" pb WHERE pb."payoutId" = p.id), 0)::numeric AS "grossTotal",
+            COALESCE((SELECT SUM(COALESCE(pb."feeAmount",0)) FROM extranet."PayoutBooking" pb WHERE pb."payoutId" = p.id), 0)::numeric AS "feesTotal",
+            COALESCE((SELECT SUM(COALESCE(pb."netAmount",0)) FROM extranet."PayoutBooking" pb WHERE pb."payoutId" = p.id), 0)::numeric AS "netTotal",
+            p."confirmationNumber"::text AS "confirmationNumber",
+            p."paidAt" AS "paidAt",
+            COALESCE(p."paidAt", p."createdAt") AS "updatedAt",
+            p.currency AS "currency",
+            p.id::text AS "payoutId"
+          FROM extranet."Payout" p
+          LEFT JOIN extranet."PropertyProfile" pp ON pp."partnerId" = p."partnerId"
+          LEFT JOIN extranet."Partner" pr ON pr.id = p."partnerId"
+          CROSS JOIN params
+          WHERE p."weekStart" = (SELECT week_start FROM params)
+            AND p."weekEnd" = (SELECT week_end FROM params)
+            AND ($4::int = 0 OR p."partnerId" = $4::int)
+            AND (
+              ($5::bool AND p.status = 'DRAFT') OR
+              ($6::bool AND p.status = 'PAID')
+            )
+          ORDER BY COALESCE(p."paidAt", p."createdAt") DESC, p.id DESC
+          LIMIT 5000;
+        `;
+        const rP = await client.query(qPayouts, [weekStart, weekEnd, payFriday, partnerId, wantDraft, wantPaid]);
+        out.push(...(rP.rows || []));
+      }
+
+      return out;
+    });
+
+    // Helpful metadata so UI can show "No payments posted for this week."
+    const hasPostedPayout = data.some((r: any) => String(r.status || "").toUpperCase() === "DRAFT" || String(r.status || "").toUpperCase() === "PAID");
+
+    return res.json({
+      ok: true,
+      payFriday,
+      weekStart,
+      weekEnd,
+      partnerId,
+      statuses,
+      hasPostedPayout,
+      rows: data
+    });
+  } catch (e: any) {
+    console.error("[admin] ledger rows error", e);
+    return res.status(500).json({ ok: false, error: "server_error" });
+  }
+});
+// ANCHOR: ADMIN_AP_LEDGER_ROUTES END
+
 // ANCHOR: ADMIN_EXCEPTIONS_ROUTE
 app.get("/api/admin/exceptions", async (req: Request, res: Response) => {
   try {

@@ -307,19 +307,19 @@
 
     <div class="controls">
       <label>
-        Pay period (pick any date in the week)
-        <input id="weekPick" placeholder="Select a date…" />
-      </label>
-
-      <label>
-        Partner (optional)
+        Select Partner (optional)
         <select id="partnerFilter">
           <option value="">All partners</option>
         </select>
       </label>
 
       <label>
-        Default margin %
+        Pay period (pick any date in the week)
+        <input id="weekPick" placeholder="Select a date…" />
+      </label>
+
+      <label>
+        Apply margin %
         <input id="defaultMargin" class="small" inputmode="decimal" placeholder="i.e. 10%" />
       </label>
 
@@ -695,6 +695,34 @@
         if (current) sel.value = current;
       }
 
+      function mergePartnerOptionsFromRows(rows){
+        const sel = $("partnerFilter");
+        const current = String(sel.value || "");
+
+        // Build a map from existing options first
+        const map = new Map();
+        for (const opt of Array.from(sel.options || [])) {
+          const v = String(opt.value || "");
+          if (v) map.set(v, String(opt.textContent || ""));
+        }
+
+        // Add rows -> options
+        (rows || []).forEach(r => {
+          const pid = String(r.partnerId || "");
+          if (!pid) return;
+          const name = String(r.propertyName || ("Partner #" + pid));
+          map.set(pid, name);
+        });
+
+        // Rebuild
+        const entries = Array.from(map.entries()).sort((a,b) => a[1].localeCompare(b[1]));
+        const opts = [`<option value="">All partners</option>`]
+          .concat(entries.map(([pid, name]) => `<option value="${escapeHtml(pid)}">${escapeHtml(name)}</option>`));
+
+        sel.innerHTML = opts.join("");
+        sel.value = current; // keep selection if still valid
+      }
+
       function setRowsLoading(){ $("rows").innerHTML = `<tr><td colspan="5" class="muted">Loading…</td></tr>`; }
       function setRowsEmpty(){ $("rows").innerHTML = `<tr><td colspan="5" class="muted">No eligible bookings for this pay period.</td></tr>`; }
 
@@ -835,6 +863,7 @@
         const data = await fetchJSON(`/api/admin/ap/ready?weekStart=${encodeURIComponent(currentWeekStart)}`);
         const rows = (data && data.ok && Array.isArray(data.rows)) ? data.rows : [];
         renderPartnerFilter(rows);
+        mergePartnerOptionsFromRows(rows);
         renderRollups(rows, currentWeekStart);
       }
 
@@ -853,6 +882,8 @@
         const data = await fetchJSON(`/api/admin/ap/payouts?weekStart=${encodeURIComponent(currentWeekStart)}&partnerId=${encodeURIComponent(pid)}`);
         const rows = (data && data.ok && Array.isArray(data.rows)) ? data.rows : [];
 
+        mergePartnerOptionsFromRows(rows);
+        
         if (!rows.length) { setPayoutRowsEmpty(); return; }
 
         const waiting = rows.filter(r => String(r.status || "") !== "PAID");
@@ -1116,6 +1147,10 @@
         if (!method) { $("paidToast").textContent = "Method required."; $("paidToast").className="toast bad"; return; }
         if (!confirmationNumber) { $("paidToast").textContent = "Confirmation/reference required."; $("paidToast").className="toast bad"; return; }
 
+          if (!paidAt) { $("paidToast").textContent = "Paid at required."; $("paidToast").className="toast bad"; return; }
+          const paidAtDate = new Date(paidAt);
+          if (isNaN(paidAtDate.getTime())) { $("paidToast").textContent = "Paid at is invalid. Use YYYY-MM-DDTHH:mm"; $("paidToast").className="toast bad"; return; }
+
         $("paidToast").textContent = "Marking paid…";
         $("paidToast").className = "toast";
 
@@ -1125,10 +1160,6 @@
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify({ amountNet, method, confirmationNumber, paidAt })
           });
-
-          if (!paidAt) { $("paidToast").textContent = "Paid at required."; $("paidToast").className="toast bad"; return; }
-          const paidAtDate = new Date(paidAt);
-          if (isNaN(paidAtDate.getTime())) { $("paidToast").textContent = "Paid at is invalid. Use YYYY-MM-DDTHH:mm"; $("paidToast").className="toast bad"; return; }
 
           $("paidToast").textContent = "Marked PAID.";
           $("paidToast").className = "toast ok";
