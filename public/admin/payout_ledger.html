@@ -321,7 +321,9 @@
       <div class="statusRow" id="statusRow">
         <button class="chipToggle on" id="stReady" type="button" data-val="READY">Waiting for review</button>
         <button class="chipToggle on" id="stDraft" type="button" data-val="DRAFT">Reviewed and waiting for payment</button>
-        <button class="chipToggle on" id="stPaid"  type="button" data-val="PAID">Paid</button>
+        <button class="chipToggle on" id="stPaid" type="button" data-val="PAID">
+          Paid <span style="font-weight:600; color:#64748b; margin-left:6px;">(click to toggle)</span>
+        </button>
       </div>
 
       <div class="banner" id="noPostedBanner">No payments posted for this week.</div>
@@ -459,6 +461,12 @@
       const sel = document.getElementById("periodSel");
       sel.innerHTML = "";
 
+      // YTD option (Jan 1, 2026 -> today)
+      const ytdOpt = document.createElement("option");
+      ytdOpt.value = "YTD";
+      ytdOpt.textContent = "Year to date (Jan 1 – Today)";
+      sel.appendChild(ytdOpt);
+
       const data = await fetchJSON("/api/admin/ap/ledger/periods?weeks=260");
       const periods = (data && data.periods) ? data.periods : [];
       const def = (data && data.defaultPayFriday) ? data.defaultPayFriday : "";
@@ -480,13 +488,18 @@
 
     async function loadLedger(){
       const partnerId = Number(document.getElementById("partnerSel").value || 0) || 0;
-      const payFriday = String(document.getElementById("periodSel").value || "").trim();
+      const periodVal = String(document.getElementById("periodSel").value || "").trim();
       const statuses = buildStatusesParam() || "READY,DRAFT,PAID";
 
       const tbody = document.getElementById("tbody");
       tbody.innerHTML = `<tr><td colspan="9" class="muted">Loading...</td></tr>`;
 
-      const url = `/api/admin/ap/ledger?payFriday=${encodeURIComponent(payFriday)}&partnerId=${encodeURIComponent(String(partnerId))}&statuses=${encodeURIComponent(statuses)}`;
+      let url;
+        if (periodVal === "YTD") {
+          url = `/api/admin/ap/ledger?startDate=2026-01-01&endDate=${new Date().toISOString().slice(0,10)}&partnerId=${encodeURIComponent(String(partnerId))}&statuses=${encodeURIComponent(statuses)}`;
+        } else {
+          url = `/api/admin/ap/ledger?payFriday=${encodeURIComponent(periodVal)}&partnerId=${encodeURIComponent(String(partnerId))}&statuses=${encodeURIComponent(statuses)}`;
+        }
       const data = await fetchJSON(url);
 
       ledgerRows = (data && data.rows) ? data.rows : [];
@@ -652,7 +665,13 @@
       document.getElementById("refreshBtn").addEventListener("click", () => loadLedger().catch(showErr));
       document.getElementById("csvBtn").addEventListener("click", () => downloadCSV());
 
-      document.getElementById("partnerSel").addEventListener("change", () => loadLedger().catch(showErr));
+      document.getElementById("partnerSel").addEventListener("change", () => {
+        const pid = Number(document.getElementById("partnerSel").value || 0);
+        if (pid !== 0) {
+          document.getElementById("periodSel").value = "YTD";
+        }
+        loadLedger().catch(showErr);
+      });
       document.getElementById("periodSel").addEventListener("change", () => loadLedger().catch(showErr));
 
       for (const id of ["stReady","stDraft","stPaid"]){
