@@ -482,8 +482,8 @@
         sel.appendChild(o);
       }
 
-      if (def) sel.value = def;
-      else if (periods.length) sel.value = String(periods[0].payFriday || "");
+      // Default to YTD always
+      sel.value = "YTD";
     }
 
     async function loadLedger(){

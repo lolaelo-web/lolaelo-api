@@ -4664,12 +4664,31 @@ app.get("/api/admin/ap/ledger", async (req: Request, res: Response) => {
       .map(s => s.trim().toUpperCase())
       .filter(Boolean);
 
-    if (!/^\d{4}-\d{2}-\d{2}$/.test(payFriday)) {
-      return res.status(400).json({ ok: false, error: "payFriday_required_YYYY-MM-DD" });
-    }
+    const startDate = req.query.startDate ? String(req.query.startDate) : null;
+    const endDate   = req.query.endDate   ? String(req.query.endDate)   : null;
 
-    const weekStart = addDaysUtc(payFriday, -11);
-    const weekEnd = addDaysUtc(weekStart, 6);
+    const isRangeMode = !!(startDate && endDate);
+    let payFridayForReady = payFriday;
+
+    let weekStart: string;
+    let weekEnd: string;
+
+    if (startDate && endDate) {
+      // YTD or custom range mode
+      if (!/^\d{4}-\d{2}-\d{2}$/.test(startDate) || !/^\d{4}-\d{2}-\d{2}$/.test(endDate)) {
+        return res.status(400).json({ ok:false, error:"startDate/endDate must be YYYY-MM-DD" });
+      }
+      weekStart = startDate;
+      weekEnd   = endDate;
+      payFridayForReady = weekEnd;
+    } else {
+      // payFriday mode (existing behavior)
+      if (!/^\d{4}-\d{2}-\d{2}$/.test(payFriday)) {
+        return res.status(400).json({ ok:false, error:"payFriday_required_YYYY-MM-DD" });
+      }
+      weekStart = addDaysUtc(payFriday, -11);
+      weekEnd   = addDaysUtc(weekStart, 6);
+    }
 
     const wantReady = statuses.includes("READY");
     const wantDraft = statuses.includes("DRAFT");
@@ -4726,7 +4745,7 @@ app.get("/api/admin/ap/ledger", async (req: Request, res: Response) => {
           ORDER BY "bookingCount" DESC, "partnerId" ASC
           LIMIT 5000;
         `;
-        const rReady = await client.query(qReady, [weekStart, weekEnd, payFriday, partnerId]);
+        const rReady = await client.query(qReady, [weekStart, weekEnd, payFridayForReady, partnerId]);
         out.push(...(rReady.rows || []));
       }
 
@@ -4742,7 +4761,7 @@ app.get("/api/admin/ap/ledger", async (req: Request, res: Response) => {
             COALESCE(pp.name, pr.name, ('Partner #' || p."partnerId"::text)) AS "propertyName",
             p."weekStart"::date AS "weekStart",
             p."weekEnd"::date   AS "weekEnd",
-            $3::date AS "payFriday",
+            (p."weekStart" + INTERVAL '11 days')::date AS "payFriday",
             COALESCE((SELECT COUNT(*) FROM extranet."PayoutBooking" pb WHERE pb."payoutId" = p.id), 0)::int AS "bookingCount",
             COALESCE((SELECT SUM(COALESCE(pb."netAmount",0) + COALESCE(pb."feeAmount",0)) FROM extranet."PayoutBooking" pb WHERE pb."payoutId" = p.id), 0)::numeric AS "grossTotal",
             COALESCE((SELECT SUM(COALESCE(pb."feeAmount",0)) FROM extranet."PayoutBooking" pb WHERE pb."payoutId" = p.id), 0)::numeric AS "feesTotal",
@@ -4756,17 +4775,19 @@ app.get("/api/admin/ap/ledger", async (req: Request, res: Response) => {
           LEFT JOIN extranet."PropertyProfile" pp ON pp."partnerId" = p."partnerId"
           LEFT JOIN extranet."Partner" pr ON pr.id = p."partnerId"
           CROSS JOIN params
-          WHERE p."weekStart" = (SELECT week_start FROM params)
-            AND p."weekEnd" = (SELECT week_end FROM params)
-            AND ($4::int = 0 OR p."partnerId" = $4::int)
-            AND (
-              ($5::bool AND p.status = 'DRAFT') OR
-              ($6::bool AND p.status = 'PAID')
-            )
+          WHERE (
+              ($6::bool = false AND p."weekStart" = (SELECT week_start FROM params) AND p."weekEnd" = (SELECT week_end FROM params))
+          OR ($6::bool = true  AND p."weekStart" >= (SELECT week_start FROM params) AND p."weekStart" <= (SELECT week_end FROM params))
+          )
+          AND ($3::int = 0 OR p."partnerId" = $3::int)
+          AND (
+            ($4::bool AND p.status = 'DRAFT') OR
+            ($5::bool AND p.status = 'PAID')
+          )
           ORDER BY COALESCE(p."paidAt", p."createdAt") DESC, p.id DESC
           LIMIT 5000;
         `;
-        const rP = await client.query(qPayouts, [weekStart, weekEnd, payFriday, partnerId, wantDraft, wantPaid]);
+        const rP = await client.query(qPayouts, [weekStart, weekEnd, partnerId, wantDraft, wantPaid, isRangeMode]);
         out.push(...(rP.rows || []));
       }
 
