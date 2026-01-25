@@ -346,8 +346,7 @@
       <div class="banner" id="noPostedBanner">No payments posted for this week.</div>
     </div>
 
-    <div class="table" style="margin-top:12px; padding:10px;">
-      <div class="sectionHead">Waiting for review</div>
+    <div class="table" style="margin-top:12px;">
       <table>
         <thead>
           <tr>
@@ -361,55 +360,11 @@
             <th class="nowrap">Paid at / Updated at</th>
           </tr>
         </thead>
-        <tbody id="tbodyReady">
-          <tr><td colspan="8" class="muted">Loading...</td></tr>
-        </tbody>
-      </table>
-
-      <div class="sectionHead" style="margin-top:14px;">Reviewed and waiting for payment</div>
-      <table>
-        <thead>
-          <tr>
-            <th class="nowrap">Pay window</th>
-            <th>Partner</th>
-            <th class="nowrap">Status</th>
-            <th class="right nowrap">Gross</th>
-            <th class="right nowrap">Fees</th>
-            <th class="right nowrap">Net</th>
-            <th>Confirmation / Reference</th>
-            <th class="nowrap">Paid at / Updated at</th>
-          </tr>
-        </thead>
-        <tbody id="tbodyDraft">
-          <tr><td colspan="8" class="muted">Loading...</td></tr>
-        </tbody>
-      </table>
-
-      <div class="sectionHead" style="margin-top:14px;">Paid</div>
-      <table>
-        <thead>
-          <tr>
-            <th class="nowrap">Pay window</th>
-            <th>Partner</th>
-            <th class="nowrap">Status</th>
-            <th class="right nowrap">Gross</th>
-            <th class="right nowrap">Fees</th>
-            <th class="right nowrap">Net</th>
-            <th>Confirmation / Reference</th>
-            <th class="nowrap">Paid at / Updated at</th>
-          </tr>
-        </thead>
-        <tbody id="tbodyPaid">
+        <tbody id="tbody">
           <tr><td colspan="8" class="muted">Loading...</td></tr>
         </tbody>
       </table>
     </div>
-
-    <div class="footerRow">
-      <div id="summaryLeft">Ready.</div>
-      <div class="mono" id="summaryRight"></div>
-    </div>
-  </div>
 
   <script>
     // Auth gate matches admin/login.html behavior
@@ -555,14 +510,8 @@
         const periodVal = String(document.getElementById("periodSel").value || "").trim();
         const statuses = buildStatusesParam() || "READY,DRAFT,PAID";
 
-        // You now have 3 sections (no single tbody). Set each section to Loading.
-        const tbReady = document.getElementById("tbodyReady");
-        const tbDraft = document.getElementById("tbodyDraft");
-        const tbPaid  = document.getElementById("tbodyPaid");
-
-        if (tbReady) tbReady.innerHTML = `<tr><td colspan="8" class="muted">Loading...</td></tr>`;
-        if (tbDraft) tbDraft.innerHTML = `<tr><td colspan="8" class="muted">Loading...</td></tr>`;
-        if (tbPaid)  tbPaid.innerHTML  = `<tr><td colspan="8" class="muted">Loading...</td></tr>`;
+        const tbody = document.getElementById("tbody");
+        if (tbody) tbody.innerHTML = `<tr><td colspan="8" class="muted">Loading...</td></tr>`;
 
         let url;
         if (periodVal === "YTD") {
@@ -604,10 +553,7 @@
 
     function renderTable(){
       const q = String(document.getElementById("searchBox").value || "").trim().toLowerCase();
-
-      const tbReady = document.getElementById("tbodyReady");
-      const tbDraft = document.getElementById("tbodyDraft");
-      const tbPaid  = document.getElementById("tbodyPaid");
+      const tbody = document.getElementById("tbody");
 
       function rowText(r){
         return [
@@ -619,38 +565,59 @@
       const rows0 = Array.isArray(ledgerRows) ? ledgerRows.slice() : [];
       const rows = q ? rows0.filter(r => rowText(r).includes(q)) : rows0;
 
-      function cmp(a, b){
-        // 1) Status order
-        const order = { READY: 1, DRAFT: 2, PAID: 3 };
+      // Sort: status first, then partner, then pay window
+      const order = { READY: 1, DRAFT: 2, PAID: 3 };
+      rows.sort((a, b) => {
         const sa = order[String(a.status || "").toUpperCase()] || 99;
         const sb = order[String(b.status || "").toUpperCase()] || 99;
         if (sa !== sb) return sa - sb;
 
-        // 2) Hotel name
         const an = String(a.propertyName || "").toLowerCase();
         const bn = String(b.propertyName || "").toLowerCase();
         if (an < bn) return -1;
         if (an > bn) return 1;
 
-        // 3) Stay dates (if present)
-        const as1 = String(a.stayStart || "");
-        const bs1 = String(b.stayStart || "");
-        if (as1 < bs1) return -1;
-        if (as1 > bs1) return 1;
-
-        const as2 = String(a.stayEnd || "");
-        const bs2 = String(b.stayEnd || "");
-        if (as2 < bs2) return -1;
-        if (as2 > bs2) return 1;
-
-        // 4) Pay window
         const aw = String(a.weekStart || "");
         const bw = String(b.weekStart || "");
         if (aw < bw) return -1;
         if (aw > bw) return 1;
 
         return 0;
+      });
+
+      if (!rows.length){
+        tbody.innerHTML = `<tr><td colspan="8" class="muted">No rows.</td></tr>`;
+        return;
       }
+
+      function buildRow(r){
+        const payWindow = buildPayWindowLabel(r.weekStart || currentMeta.weekStart, r.weekEnd || currentMeta.weekEnd);
+        const partner = r.propertyName || ("Partner #" + (r.partnerId || ""));
+        const status = r.status || "";
+        const gross = (r.grossTotal != null ? String(r.grossTotal) : "");
+        const fees  = (r.feesTotal  != null ? String(r.feesTotal)  : "");
+        const net   = (r.netTotal   != null ? String(r.netTotal)   : "");
+        const conf  = r.confirmationNumber || "";
+        const paidAt = fmtDateOnly(r.paidAt);
+        const updatedAt = fmtDateOnly(r.updatedAt);
+        const paidOrUpdated = paidAt ? paidAt : (updatedAt ? updatedAt : "");
+
+        return `
+          <tr>
+            <td class="nowrap">${esc(payWindow || "-")}</td>
+            <td>${esc(partner)}</td>
+            <td class="nowrap">${statusPill(status)}</td>
+            <td class="right nowrap mono">${esc(gross || "")}</td>
+            <td class="right nowrap mono">${esc(fees || "")}</td>
+            <td class="right nowrap mono">${esc(net || "")}</td>
+            <td><div class="mono">${esc(conf || "-")}</div></td>
+            <td class="nowrap">${esc(paidOrUpdated || "-")}</td>
+          </tr>
+        `;
+      }
+
+      tbody.innerHTML = rows.map(buildRow).join("");
+    }
 
       rows.sort(cmp);
 
