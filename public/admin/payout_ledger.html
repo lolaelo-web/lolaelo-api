@@ -161,26 +161,28 @@
 
     .chipToggle{
       appearance:none;
-      border:1px solid rgba(15,23,42,.12);
+      border:1px solid rgba(255,106,61,.55);
       background:#fff;
-      color:var(--fg);
+      color:#0f172a;
       padding:10px 14px;
       border-radius:999px;
       font-size:12.5px;
       font-weight:800;
       cursor:pointer;
       box-shadow:0 6px 18px rgba(15,23,42,.06);
-      transition: background .12s ease, border-color .12s ease, transform .08s ease;
+      transition: background .12s ease, border-color .12s ease, transform .08s ease, filter .12s ease;
     }
     .chipToggle:hover{
-      border-color: rgba(255,106,61,.75);
+      border-color: rgba(255,106,61,.85);
+      filter: brightness(1.01);
     }
     .chipToggle:active{
       transform: translateY(1px);
     }
     .chipToggle.on{
-      background: rgba(255,106,61,.16);
-      border-color: rgba(255,106,61,.60);
+      background: #ff6a3d;
+      border-color: #ff6a3d;
+      color:#fff;
     }
 
     .banner{
@@ -273,6 +275,12 @@
       background: rgba(255,106,61,.10);
       border-color: rgba(255,106,61,.35);
     }
+    .toggleHint{
+      font-size:12px;
+      color:#64748b;
+      font-weight:650;
+    }
+
   </style>
 </head>
 
@@ -321,9 +329,8 @@
       <div class="statusRow" id="statusRow">
         <button class="chipToggle on" id="stReady" type="button" data-val="READY">Waiting for review</button>
         <button class="chipToggle on" id="stDraft" type="button" data-val="DRAFT">Reviewed and waiting for payment</button>
-        <button class="chipToggle on" id="stPaid" type="button" data-val="PAID">
-          Paid <span style="font-weight:600; color:#64748b; margin-left:6px;">(click to toggle)</span>
-        </button>
+        <button class="chipToggle on" id="stPaid" type="button" data-val="PAID">Paid</button>
+        <span class="toggleHint">(click buttons to toggle on & off)</span>
       </div>
 
       <div class="banner" id="noPostedBanner">No payments posted for this week.</div>
@@ -504,7 +511,7 @@
 
       ledgerRows = (data && data.rows) ? data.rows : [];
       currentMeta = {
-        payFriday: data.payFriday || payFriday,
+        payFriday: data.payFriday || (periodVal === "YTD" ? "" : periodVal),
         weekStart: data.weekStart || "",
         weekEnd: data.weekEnd || "",
         hasPostedPayout: !!data.hasPostedPayout
