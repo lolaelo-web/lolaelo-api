@@ -72,23 +72,18 @@ function num(v: any): number | null {
 
 // ANCHOR: REQUIRE_PARTNER_ID_FROM_REQUEST
 function requirePartnerIdFromRequest(req: Request): number {
-  // Temporary until real partner auth is wired.
-  // Priority:
-  // 1) x-partner-id header (we will send this from the extranet UI)
-  // 2) partnerId query
-  // 3) propertyId query (legacy pattern used across the extranet today)
-  const h = req.headers["x-partner-id"];
-  const pid =
-    Number(Array.isArray(h) ? h[0] : h || 0) ||
-    Number((req.query as any)?.partnerId || 0) ||
-    Number((req.query as any)?.propertyId || 0);
+  // Tighten: do NOT infer partnerId from query/propertyId.
+  // Extranet UIs must send x-partner-id (derived from /extranet/session on the client).
+  const raw = String(req.headers["x-partner-id"] || "").trim();
+  const n = Number(raw);
 
-  if (!pid || !Number.isFinite(pid)) {
-    throw new Error("partner_id_required");
+  if (!raw || !Number.isFinite(n) || n <= 0) {
+    throw Object.assign(new Error("partner_id_required"), { statusCode: 401 });
   }
-  return pid;
+
+  return n;
 }
-// ANCHOR: REQUIRE_PARTNER_ID_FROM_REQUEST END
+// ANCHOR: REQUIRE_PARTNER_ID_FROM_REQUEST_END
 
 // ANCHOR: REQUIRE_ADMIN_AUTH
 function requireAdminAuth(req: Request): void {
@@ -1423,8 +1418,8 @@ async function handleBookingDecision(req: Request, res: Response, decision: "CON
 
       const toStatus = decision === "CONFIRM" ? "CONFIRMED" : "DECLINED_BY_HOTEL";
 
-      // Update booking status + timestamps
-      await client.query(
+      // Update booking status + timestamps (guard: only allow while still pending + within confirm window)
+      const upd = await client.query(
         `
         UPDATE extranet."Booking"
         SET
@@ -1433,9 +1428,16 @@ async function handleBookingDecision(req: Request, res: Response, decision: "CON
           "declinedAt"  = CASE WHEN $2::extranet."BookingStatus" = 'DECLINED_BY_HOTEL'::extranet."BookingStatus" THEN $3 ELSE "declinedAt" END,
           "updatedAt"   = $3
         WHERE id = $1
+          AND status = 'PENDING_HOTEL_CONFIRMATION'::extranet."BookingStatus"
+          AND ("pendingConfirmExpiresAt" IS NULL OR "pendingConfirmExpiresAt" > $3)
         `,
         [lockedBookingId, toStatus, now]
       );
+
+      if (upd.rowCount === 0) {
+        await client.query("ROLLBACK");
+        return redirectToManageBookings(res, "expired", bookingRef);
+      }
 
       // Insert BookingEvent (matches your existing schema usage)
       await client.query(
@@ -1808,6 +1810,27 @@ app.post("/api/bookings/:bookingRef/resend-hotel-confirmation", async (req: Requ
       const bookingId = Number(b.id);
       const partnerId = Number(b.partnerId);
 
+      // Guard: do not resend if the 24h confirm window already expired (or if check-in is already in the past)
+      const pce = b.pendingConfirmExpiresAt ? new Date(b.pendingConfirmExpiresAt) : null;
+      const isExpiredByWindow = (pce && pce.getTime() <= now.getTime());
+      const isExpiredByCheckIn = (b.checkInDate && String(b.checkInDate).slice(0, 10) < String(now.toISOString()).slice(0, 10));
+
+      if (String(b.status) === "PENDING_HOTEL_CONFIRMATION" && (isExpiredByWindow || isExpiredByCheckIn)) {
+        await client.query(
+          `
+          UPDATE extranet."Booking"
+          SET
+            status = 'EXPIRED_NO_RESPONSE'::extranet."BookingStatus",
+            "updatedAt" = NOW()
+          WHERE id = $1
+            AND status = 'PENDING_HOTEL_CONFIRMATION'::extranet."BookingStatus"
+          `,
+          [bookingId]
+        );
+
+        return { ok: false, code: "expired" };
+      }
+
       // Only resend for pending hotel confirmation
       if (String(b.status) !== "PENDING_HOTEL_CONFIRMATION") {
         return { ok: false, code: "not_pending", status: String(b.status) };
@@ -2159,9 +2182,14 @@ app.get("/api/extranet/me/bookings", async (req: Request, res: Response) => {
       let whereSql = `b."partnerId" = $1`;
 
       if (bucket === "pending") {
-        whereSql += ` AND b.status IN (
-          'PENDING_HOTEL_CONFIRMATION'::extranet."BookingStatus",
-          'CONFIRMED'::extranet."BookingStatus"
+        // Pending/Active must NOT include rows that belong in Payment Ready.
+        // Exclude CONFIRMED stays whose checkout already passed.
+        whereSql += ` AND (
+          b.status = 'PENDING_HOTEL_CONFIRMATION'::extranet."BookingStatus"
+          OR (
+            b.status = 'CONFIRMED'::extranet."BookingStatus"
+            AND COALESCE(s."maxCheckOutDate", b."checkOutDate") >= CURRENT_DATE
+          )
         )`;
       } else if (bucket === "canceled") {
         whereSql += ` AND b.status IN (
