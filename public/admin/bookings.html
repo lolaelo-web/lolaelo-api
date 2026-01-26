@@ -483,6 +483,8 @@
       const LOGIN = "/admin/login.html";
       const PING_URL = "/api/admin/ping";
       const KPI_URL = "/api/admin/kpis/bookings?tz=America%2FNew_York";
+      const LIST_URL = "/api/admin/bookings/list";
+      const DEFAULT_LIMIT = 50;
 
       const $ = (id) => document.getElementById(id);
 
@@ -544,6 +546,103 @@
         setStatus("Ready.", "ok");
       }
 
+      function escapeHtml(s){
+        return String(s ?? "")
+          .replace(/&/g,"&amp;")
+          .replace(/</g,"&lt;")
+          .replace(/>/g,"&gt;")
+          .replace(/"/g,"&quot;")
+          .replace(/'/g,"&#39;");
+      }
+
+      function fmtDateOnly(v){
+        if(!v) return "";
+        const s = String(v);
+        return s.length >= 10 ? s.slice(0,10) : s;
+      }
+
+      function normalizeStatusLabel(s){
+        if(!s) return "";
+        return String(s).replace(/_/g," ").toLowerCase().replace(/\b\w/g, m => m.toUpperCase());
+      }
+
+      function showResults(rows, totalCount){
+        const empty = $("resultsEmpty");
+        const table = $("resultsTable");
+        const body = $("resultsBody");
+
+        if(!empty || !table || !body) return;
+
+        body.innerHTML = "";
+
+        if(!rows || !rows.length){
+          empty.style.display = "block";
+          table.style.display = "none";
+          setStatus("No results.", "muted");
+          return;
+        }
+
+        empty.style.display = "none";
+        table.style.display = "table";
+
+        for(const r of rows){
+          const tr = document.createElement("tr");
+
+          const bookingRef = r.bookingRef || "";
+          const property = r.propertyName || "";
+          const stay = `${fmtDateOnly(r.checkInDate)} → ${fmtDateOnly(r.checkOutDate)}`;
+          const status = normalizeStatusLabel(r.status);
+          const gross = fmtMoney((Number(r.amountPaid || 0) / 100), r.currency || "USD");
+          const provider = r.provider || ""; // keep blank unless backend adds it later
+          const created = fmtDateOnly(r.createdAt);
+
+          tr.innerHTML = `
+            <td>${escapeHtml(bookingRef)}</td>
+            <td>${escapeHtml(property)}</td>
+            <td>${escapeHtml(stay)}</td>
+            <td>${escapeHtml(status)}</td>
+            <td style="text-align:right;">${escapeHtml(gross)}</td>
+            <td>${escapeHtml(provider)}</td>
+            <td>${escapeHtml(created)}</td>
+          `;
+          body.appendChild(tr);
+        }
+
+        const n = Number(totalCount || rows.length || 0);
+        setStatus(`Ready. ${n} total.`, "ok");
+      }
+
+      async function runSearch(token){
+        const q = String(($("q")?.value || "")).trim();
+        const status = String(($("statusSel")?.value || "")).trim(); // "" means All
+        const start = String(($("fromDate")?.value || "")).trim();
+        const end = String(($("toDate")?.value || "")).trim();
+
+        const params = new URLSearchParams();
+        if(q) params.set("q", q);
+        if(status) params.set("status", status);
+        if(start) params.set("start", start);
+        if(end) params.set("end", end);
+        params.set("limit", String(DEFAULT_LIMIT));
+        params.set("offset", "0");
+
+        setStatus("Searching…", "muted");
+
+        const r = await fetch(`${LIST_URL}?${params.toString()}`, {
+          headers: { "Authorization": "Bearer " + token }
+        });
+
+        const j = await r.json().catch(() => null);
+
+        if(!r.ok || !j || !j.ok){
+          console.error("[admin/bookings] list failed", r.status, j);
+          setStatus("Search failed. Check API + token.", "bad");
+          return;
+        }
+
+        showResults(Array.isArray(j.rows) ? j.rows : [], j.totalCount);
+      }
+
       async function boot(){
         const t = String(getToken() || "").trim();
         if (!t) { location.replace(LOGIN); return; }
@@ -572,10 +671,20 @@
         $("statusSel").value = "";
         $("fromDate").value = "";
         $("toDate").value = "";
+
+        const empty = $("resultsEmpty");
+        const table = $("resultsTable");
+        const body = $("resultsBody");
+        if(body) body.innerHTML = "";
+        if(empty) empty.style.display = "block";
+        if(table) table.style.display = "none";
+        setStatus("Ready.", "ok");
       };
 
-      $("btnSearch").onclick = () => {
-        alert("Next sprint: wire /api/admin/bookings search and list. UI is ready.");
+      $("btnSearch").onclick = async () => {
+        const t = String(getToken() || "").trim();
+        if(!t){ location.replace(LOGIN); return; }
+        await runSearch(t);
       };
 
       boot();
