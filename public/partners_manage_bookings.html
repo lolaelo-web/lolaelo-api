@@ -565,9 +565,7 @@
         tab === "canceled" ? "canceled" :
         "pending";
 
-      // UI rebucketing: "completed" is derived from confirmed + past checkout date.
-      const effectiveBucket = (bucket === "canceled") ? "canceled" : "pending";
-      const url = `${API_BASE}/api/extranet/me/bookings?bucket=${effectiveBucket}`;
+      const url = `${API_BASE}/api/extranet/me/bookings?bucket=${bucket}`;
 
       const headers = {};
       const session = localStorage.getItem("lolaelo_session");
@@ -584,40 +582,9 @@
         renderBookings([]);
         return;
       }
-
       const rows = Array.isArray(data.rows) ? data.rows : [];
-      const today = todayYmdLocal();
-
-      function isPastCheckout(r){
-        const co = r?.maxCheckOutDate || r?.checkOutDate || "";
-        const coYmd = fmtYmd(co); // date-only safe
-        return !!coYmd && coYmd < today;
-      }
-
-      let viewRows = rows;
-
-      if (bucket === "pending") {
-      // Pending/Active: show pending hotel confirmation + upcoming/active confirmed stays (exclude completed + past-checkout confirmed)
-      viewRows = rows.filter(r => {
-        const st = String(r.status || "");
-        if (st === "COMPLETED") return false;
-        return !(st === "CONFIRMED" && isPastCheckout(r));
-      });
-      } else if (bucket === "completed") {
-        // Payment Ready: (A) confirmed stays whose checkout date has passed, plus (B) already completed stays
-        viewRows = rows.filter(r => {
-          const st = String(r.status || "");
-          if (st === "COMPLETED") return true;
-          return (st === "CONFIRMED" && isPastCheckout(r));
-        });
-      } else if (bucket === "canceled") {
-        // Canceled bucket is fetched directly
-        viewRows = rows;
-      }
-
-      renderBookings(viewRows);
+      renderBookings(rows);
     }
-
   </script>
 </head>
 

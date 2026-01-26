@@ -2138,13 +2138,30 @@ app.get("/api/extranet/me/bookings", async (req: Request, res: Response) => {
     const partnerId = requirePartnerIdFromRequest(req); // ← replace with your real helper name
 
     const rows = await withDb(async (client) => {
+      // Step B1: expire invalid pendings (window ended OR check-in is in the past)
+      // NOTE: This mirrors the same logic already used in /api/partners/bookings.
+      await client.query(
+        `
+        UPDATE extranet."Booking" b
+        SET
+          status = 'EXPIRED_NO_RESPONSE'::extranet."BookingStatus",
+          "updatedAt" = NOW()
+        WHERE b."partnerId" = $1
+          AND b.status = 'PENDING_HOTEL_CONFIRMATION'::extranet."BookingStatus"
+          AND (
+            (b."pendingConfirmExpiresAt" IS NOT NULL AND b."pendingConfirmExpiresAt" <= NOW())
+            OR (b."checkInDate" IS NOT NULL AND b."checkInDate" < CURRENT_DATE)
+          )
+        `,
+        [partnerId]
+      );
+
       let whereSql = `b."partnerId" = $1`;
 
       if (bucket === "pending") {
         whereSql += ` AND b.status IN (
           'PENDING_HOTEL_CONFIRMATION'::extranet."BookingStatus",
-          'CONFIRMED'::extranet."BookingStatus",
-          'COMPLETED'::extranet."BookingStatus"
+          'CONFIRMED'::extranet."BookingStatus"
         )`;
       } else if (bucket === "canceled") {
         whereSql += ` AND b.status IN (
@@ -2153,7 +2170,15 @@ app.get("/api/extranet/me/bookings", async (req: Request, res: Response) => {
           'CANCELED_BY_TRAVELER'::extranet."BookingStatus"
         )`;
       } else if (bucket === "completed") {
-        whereSql += ` AND b.status IN ('COMPLETED'::extranet."BookingStatus")`;
+        // Payment Ready: (A) already COMPLETED, plus (B) CONFIRMED where checkout has passed
+        // Use BookingItem-derived maxCheckOutDate when available (supports varying dates)
+        whereSql += ` AND (
+          b.status = 'COMPLETED'::extranet."BookingStatus"
+          OR (
+            b.status = 'CONFIRMED'::extranet."BookingStatus"
+            AND COALESCE(s."maxCheckOutDate", b."checkOutDate") < CURRENT_DATE
+          )
+        )`;
       }
 
       const q = await client.query(
@@ -2401,6 +2426,22 @@ app.get("/api/extranet/me/bookings/:bookingRef", async (req: Request, res: Respo
     const partnerId = requirePartnerIdFromRequest(req);
 
     const data = await withDb(async (client) => {
+      // Auto-expire invalid pendings (24h rule) before loading detail (keeps UI consistent)
+      await client.query(
+        `
+        UPDATE extranet."Booking" b
+        SET
+          status = 'EXPIRED_NO_RESPONSE'::extranet."BookingStatus",
+          "updatedAt" = NOW()
+        WHERE b."partnerId" = $1
+          AND b.status = 'PENDING_HOTEL_CONFIRMATION'::extranet."BookingStatus"
+          AND (
+            (b."pendingConfirmExpiresAt" IS NOT NULL AND b."pendingConfirmExpiresAt" <= NOW())
+            OR (b."checkInDate" IS NOT NULL AND b."checkInDate" < CURRENT_DATE)
+          )
+        `,
+        [partnerId]
+      );
       const bq = await client.query(
         `
         SELECT
@@ -2509,13 +2550,22 @@ app.post("/api/extranet/me/bookings/:bookingRef/mark-completed", async (req: Req
     const result = await withDb(async (client) => {
       // Only allow CONFIRMED -> COMPLETED, scoped to the same partnerId
       const q = `
-        update extranet."Booking"
-           set status = 'COMPLETED'::extranet."BookingStatus",
+        WITH mx AS (
+          SELECT
+            bi."bookingId" AS bid,
+            MAX(bi."checkOutDate") AS "maxCheckOutDate"
+          FROM extranet."BookingItem" bi
+          GROUP BY bi."bookingId"
+        )
+        UPDATE extranet."Booking" b
+           SET status = 'COMPLETED'::extranet."BookingStatus",
                "completedAt" = NOW()
-         where "bookingRef" = $1
-           and "partnerId" = $2
-           and status = 'CONFIRMED'::extranet."BookingStatus"
-        returning id, "bookingRef", status::text as status, "partnerId", "completedAt"
+          FROM mx
+         WHERE b."bookingRef" = $1
+           AND b."partnerId" = $2
+           AND b.status = 'CONFIRMED'::extranet."BookingStatus"
+           AND COALESCE(mx."maxCheckOutDate", b."checkOutDate") < CURRENT_DATE
+        RETURNING b.id, b."bookingRef", b.status::text as status, b."partnerId", b."completedAt"
       `;
       const r = await client.query(q, [bookingRef, partnerId]);
       return r.rows?.[0] || null;
