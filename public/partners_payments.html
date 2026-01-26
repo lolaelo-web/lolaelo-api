@@ -116,6 +116,15 @@
 
     #readyTable button.btn{ position:relative; z-index:2; pointer-events:auto; }
     #readyTable td{ position:relative; }
+    .totalsStack {
+      display: flex;
+      flex-direction: column;
+      gap: 14px;
+    }
+
+    .totalsStack .totalsFooter {
+      margin-top: 6px;
+    }
 
   </style>
 </head>
@@ -198,27 +207,25 @@
       <div class="card totalsCard">
         <h2>Totals</h2>
 
-        <div class="totalsTop">
-          <div class="kpis">
-            <div class="kpi">
-              <div class="label">Total Received</div>
-              <div class="value" id="kpiTotalReceived">-</div>
-            </div>
-            <div class="kpi">
-              <div class="label">Pending Payout</div>
-              <div class="value" id="kpiTotalPending">-</div>
-            </div>
-            <div class="kpi">
-              <div class="label">No. of Payouts Received</div>
-              <div class="value" id="kpiCount">-</div>
-            </div>
+        <div class="totalsStack">
+          <div class="kpi">
+            <div class="label">Total Received</div>
+            <div class="value" id="kpiTotalReceived">-</div>
           </div>
-        </div>
 
-        <div class="totalsFill"></div>
+          <div class="kpi">
+            <div class="label">Pending Payout</div>
+            <div class="value" id="kpiTotalPending">-</div>
+          </div>
 
-        <div class="totalsFooter">
-          <button id="btnRefresh" class="btn">Refresh</button>
+          <div class="kpi">
+            <div class="label">No. of Payouts Received</div>
+            <div class="value" id="kpiCount">-</div>
+          </div>
+
+          <div class="totalsFooter">
+            <button id="btnRefresh" class="btn">Refresh</button>
+          </div>
         </div>
       </div>
     </div>
