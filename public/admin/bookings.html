@@ -111,6 +111,26 @@
     }
     /* ANCHOR: HUB_HEADER_OVERRIDE END */
 
+    /* ANCHOR: PRIMARY_BUTTON_MATCH_AP */
+    .btn.primary{
+      background:var(--accent);
+      border:1px solid rgba(255,106,61,.45);
+      color:#ffffff;
+      box-shadow:0 6px 18px rgba(15,23,42,.12);
+    }
+
+    .btn.primary:hover{
+      background:#ff824f;
+      border-color:rgba(255,106,61,.65);
+      transform: translateY(-1px);
+    }
+
+    .btn.primary:focus{
+      outline:none;
+      box-shadow:0 0 0 4px rgba(255,106,61,.20), 0 6px 18px rgba(15,23,42,.12);
+    }
+    /* ANCHOR: PRIMARY_BUTTON_MATCH_AP END */
+
     /* Page-local buttons: keep to layout sizing only; extranet.css owns look */
     .filters .btn{
       height:44px;
@@ -267,6 +287,18 @@
       box-shadow: 0 0 0 4px rgba(255,106,61,.10);
     }
 
+    /* ANCHOR: DATE_INPUT_VISUAL_FIX */
+    .filters input[type="text"].input,
+    .filters input[type="date"].input{
+      background:#ffffff;
+      color:var(--fg);
+    }
+
+    .filters input[type="text"].input::placeholder{
+      color:var(--muted);
+    }
+    /* ANCHOR: DATE_INPUT_VISUAL_FIX END */
+
     /* ANCHOR: STATUS_MIN_WIDTH */
     #statusSel{ min-width:0; }
     /* ANCHOR: STATUS_MIN_WIDTH END */
@@ -403,12 +435,12 @@
         </div>
 
         <div class="field date">
-          <label>From date</label>
+          <label>Start date</label>
           <input id="fromDate" class="input" placeholder="YYYY-MM-DD" />
         </div>
 
         <div class="field date">
-          <label>To date</label>
+          <label>End date</label>
           <input id="toDate" class="input" placeholder="YYYY-MM-DD" />
         </div>
         <div class="field actions">
@@ -416,7 +448,7 @@
         </div>
 
         <div class="field actions">
-          <button id="btnSearch" class="btn ghost" type="button">Search</button>
+          <button id="btnSearch" class="btn primary" type="button">Search</button>
         </div>
       </div>
 
