@@ -351,7 +351,45 @@
       }
 
       function getToken() {
-        try { return localStorage.getItem("lolaelo_session") || ""; } catch { return ""; }
+        try { return localStorage.getItem("lolaelo_session") || localStorage.getItem("partnerToken") || ""; } catch { return ""; }
+      }
+
+      let PARTNER_ID = null;
+
+      function buildAuthHeaders(extra){
+        const headers = Object.assign({}, extra || {});
+        const t = getToken();
+        if (t) headers["Authorization"] = `Bearer ${t}`;
+
+        // Keep for backward compatibility with routes that still read it
+        try {
+          const partnerToken = localStorage.getItem("partnerToken");
+          if (partnerToken) headers["x-partner-token"] = partnerToken;
+        } catch {}
+
+        return headers;
+      }
+
+      async function ensurePartnerId(){
+        if (PARTNER_ID != null) return PARTNER_ID;
+
+        const headers = buildAuthHeaders();
+        const url = `${API_BASE}/extranet/session?__ts=${Date.now()}`;
+
+        const r = await fetch(url, { headers, cache: "no-store" });
+        const txt = await r.text().catch(()=> "");
+        let data = {};
+        try { data = txt ? JSON.parse(txt) : {}; } catch { data = {}; }
+
+        const pid = (data && (data.partnerId ?? data.partner?.id ?? data.me?.partnerId)) ?? null;
+
+        if (pid != null && String(pid).trim() !== "") {
+          PARTNER_ID = Number(pid);
+          return PARTNER_ID;
+        }
+
+        alert("Session not found. Please sign in again from the Partner Hub.");
+        throw new Error("Missing partnerId from /extranet/session");
       }
 
       function setStatus(text) {
@@ -360,21 +398,38 @@
 
       async function authFetch(path, opts) {
         const t = getToken();
-        if (!t) throw new Error("NO_TOKEN");
+        if (!t) {
+          setStatus("Sign in required");
+          location.replace(LOGIN_PAGE);
+          throw new Error("NO_TOKEN");
+        }
 
-        const headers = Object.assign({}, (opts && opts.headers) || {});
-        headers["Authorization"] = `Bearer ${t}`;
+        // Force partner context to be correct for every request
+        const partnerId = await ensurePartnerId();
 
-        // Match the header contract your other partner pages use
-        try {
-          const partnerToken = localStorage.getItem("partnerToken");
-          if (partnerToken) headers["x-partner-token"] = partnerToken;
-        } catch {}
+        const method = String((opts && opts.method) || "GET").toUpperCase();
 
-        // Temporary until partnerId is derived server-side from session
-        headers["x-partner-id"] = String(2);
+        // Cache-bust GETs so Render/proxies never hand us stale payouts
+        let finalPath = path;
+        if (method === "GET") {
+          const hasQ = finalPath.includes("?");
+          const hasTs = /(?:\?|&)__ts=/.test(finalPath);
+          if (!hasTs) finalPath += (hasQ ? "&" : "?") + "__ts=" + Date.now();
+        }
 
-        const res = await fetch(`${API_BASE}${path}`, Object.assign({}, opts || {}, { headers }));
+        const headers = buildAuthHeaders(Object.assign({}, (opts && opts.headers) || {}, {
+          "x-partner-id": String(partnerId),
+        }));
+
+        const res = await fetch(`${API_BASE}${finalPath}`, Object.assign({}, opts || {}, { headers }));
+
+        // Hard-fail auth issues consistently
+        if (res.status === 401 || res.status === 403) {
+          setStatus("Sign in required");
+          location.replace(LOGIN_PAGE);
+          throw new Error(`AUTH_${res.status}`);
+        }
+
         return res;
       }
 
@@ -692,6 +747,33 @@
 
         const t = getToken();
         if (!t) {
+          setStatus("Sign in required");
+          location.replace(LOGIN_PAGE);
+          return;
+        }
+
+        // Show signed-in identity
+        try {
+          const headers = buildAuthHeaders();
+          const r = await fetch(`${API_BASE}/extranet/session?__ts=${Date.now()}`, { headers, cache: "no-store" });
+          const txt = await r.text().catch(()=> "");
+          let s = {};
+          try { s = txt ? JSON.parse(txt) : {}; } catch { s = {}; }
+
+          const email = (s && (s.email ?? s.me?.email ?? s.partner?.email)) || "";
+          const name  = (s && (s.name ?? s.me?.name ?? s.partner?.name)) || "";
+          const pid   = (s && (s.partnerId ?? s.partner?.id ?? s.me?.partnerId)) || "";
+
+          const label = (name || email) ? `${name || email}${pid ? " (Partner " + pid + ")" : ""}` : (pid ? `Partner ${pid}` : "Signed in");
+          const el = document.getElementById("whoamiPill");
+          if (el) el.textContent = label;
+        } catch {}
+
+        // Guard: ensure partnerId is resolvable from /extranet/session
+        try {
+          await ensurePartnerId();
+        } catch (e) {
+          console.error("[payments] session missing", e);
           setStatus("Sign in required");
           location.replace(LOGIN_PAGE);
           return;
