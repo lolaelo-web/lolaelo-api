@@ -9,8 +9,11 @@
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1" />
   <title>Admin - Bookings</title>
+
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.css">
   <script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
+
+  <!-- Shared admin styling (matches AP / hub) -->
   <link rel="stylesheet" href="/css/extranet.css">
 
   <style>
@@ -20,7 +23,8 @@
       --fg:#0f172a;
       --muted:#5b6b84;
       --accent:#ff6a3d;
-      --line:rgba(15,23,42,12);
+      --line:rgba(15,23,42,.12);
+      --shadow:0 10px 30px rgba(15,23,42,.08);
       --teal:#0b3a4a;
     }
 
@@ -30,11 +34,13 @@
       margin:0;
       background:var(--bg);
       color:var(--fg);
-      font-family:Inter,system-ui,-apple-system,Segoe UI,Roboto,Arial;
+      font-family: Inter, system-ui, -apple-system, Segoe UI, Roboto, Arial;
       min-height:100vh;
     }
 
-    .wrap{ max-width:1100px; margin:0 auto; padding:18px 14px 28px; }
+    button, input, select, textarea{ font-family:inherit; }
+
+    .wrap{ max-width:1200px; margin:0 auto; padding:18px 14px 30px; }
 
     /* ANCHOR: HUB_HEADER_OVERRIDE */
     .top{
@@ -72,6 +78,8 @@
 
     .btnRow{ display:flex; gap:10px; align-items:center; }
 
+    /* IMPORTANT: match AP look by letting extranet.css own primary button styling.
+       We keep .btn.ghost only to preserve your header pill buttons. */
     .btn.ghost{
       background:#0b3a4a;
       border:1px solid rgba(11,58,74,.35);
@@ -86,6 +94,7 @@
       border-radius:999px;
       font-weight:800;
       font-size:13px;
+      cursor:pointer;
     }
 
     .btn.ghost:hover{
@@ -102,50 +111,21 @@
     }
     /* ANCHOR: HUB_HEADER_OVERRIDE END */
 
-    .btn{
-      appearance:none;
-      border:1px solid rgba(11,58,74,.35);
-      background:var(--teal);
-      color:#fff;
-      font-weight:800;
-      font-size:13px;
-      padding:9px 12px;
-      border-radius:999px;
-      cursor:pointer;
-      box-shadow:0 6px 18px rgba(15,23,42,.12);
-      transition: transform .08s ease, background .15s ease, box-shadow .15s ease, border-color .15s ease;
-      text-decoration:none;
-      display:inline-flex;
-      align-items:center;
-      gap:8px;
-    }
-    .btn:hover{
-      background: linear-gradient(90deg, #0b3a4a 0%, #0f5b63 100%);
-      border-color: rgba(11,58,74,.55);
-      transform: translateY(-1px);
-    }
-    .btn:active{ transform: translateY(0px); }
-
-    .btn.secondary{
-      background:#fff;
-      color:var(--teal);
-      border-color: rgba(11,58,74,.25);
-      box-shadow:0 6px 18px rgba(15,23,42,.06);
-    }
-    .btn.secondary:hover{
-      background:#fff;
-      border-color: rgba(255,106,61,.35);
-      box-shadow:0 10px 26px rgba(15,23,42,.10), 0 0 0 1px rgba(255,106,61,.15);
+    /* Page-local buttons: keep to layout sizing only; extranet.css owns look */
+    .filters .btn{
+      height:44px;
+      padding:0 16px;
     }
 
     .crumb{ color:var(--muted); font-size:13px; margin:6px 0 12px; }
 
+    /* Match AP card feel (radius + shadow) */
     .card{
       background:var(--card);
       border:1px solid var(--line);
-      border-radius:16px;
-      padding:18px;
-      box-shadow:0 10px 34px rgba(15,23,42,.08);
+      border-radius:14px;
+      padding:14px;
+      box-shadow:var(--shadow);
       margin-top:12px;
     }
 
@@ -163,13 +143,9 @@
       gap:12px;
     }
 
-    .cardTitle{
-      font-weight:900;
-    }
+    .cardTitle{ font-weight:900; }
 
-    .statusRow{
-      margin-top:10px;
-    }
+    .statusRow{ margin-top:10px; }
     /* ANCHOR: CARD_HEADER_HYGIENE END */
 
     /* ANCHOR: KPI_GRID_HYGIENE */
@@ -190,40 +166,39 @@
     /* ANCHOR: KPI_GRID_HYGIENE END */
 
     .kpi{
-    border:1px solid var(--line);
-    border-radius:14px;
-    padding:12px;
-    background:#fff;
-    box-shadow:0 6px 18px rgba(15,23,42,.06);
+      border:1px solid var(--line);
+      border-radius:14px;
+      padding:12px;
+      background:#fff;
+      box-shadow:0 6px 18px rgba(15,23,42,.06);
 
-    min-height:78px;
-    height:100%;
-    box-sizing:border-box;
+      min-height:78px;
+      height:100%;
 
-    display:flex;
-    flex-direction:column;
-    justify-content:space-between;
-  }
+      display:flex;
+      flex-direction:column;
+      justify-content:space-between;
+    }
 
-  .kpi .label{
-    font-size:11px;
-    color:var(--muted);
-    letter-spacing:.2px;
-    margin:0 0 6px 0;
-  }
+    .kpi .label{
+      font-size:11px;
+      color:var(--muted);
+      letter-spacing:.2px;
+      margin:0 0 6px 0;
+    }
 
-  .kpi .value{
-    font-size:18px;
-    font-weight:900;
-    margin:0;
-  }
+    .kpi .value{
+      font-size:18px;
+      font-weight:900;
+      margin:0;
+    }
 
-  .kpi .sub{
-    font-size:11px;
-    color:var(--muted);
-    margin:6px 0 0 0;
-    min-height:16px; /* keeps cards visually consistent even if empty */
-  }
+    .kpi .sub{
+      font-size:11px;
+      color:var(--muted);
+      margin:6px 0 0 0;
+      min-height:16px;
+    }
 
     /* ANCHOR: FILTERS_ROW_LAYOUT */
     .filters{
@@ -260,19 +235,13 @@
       height:44px;
     }
 
-    /* Buttons align with inputs */
-    .filters .btn{
-      height:44px;
-      padding:0 16px;
-    }
-    /* Actions cells: keep buttons aligned without inline styles */
     .filters .field.actions{
       display:flex;
       flex-direction:row;
       justify-content:flex-end;
       align-items:end;
     }
-   /* ANCHOR: FILTERS_COMPACT END */
+    /* ANCHOR: FILTERS_COMPACT END */
 
     /* ANCHOR: DATE_FIELD_WIDTH */
     .field.date .input{
@@ -292,36 +261,46 @@
       background:#fff;
       color:var(--fg);
     }
+
     .input:focus, select:focus{
       border-color: rgba(255,106,61,.35);
       box-shadow: 0 0 0 4px rgba(255,106,61,.10);
     }
 
     /* ANCHOR: STATUS_MIN_WIDTH */
-    #statusSel{
-      min-width:0;
-    }
+    #statusSel{ min-width:0; }
     /* ANCHOR: STATUS_MIN_WIDTH END */
 
+    /* Table look aligned with AP */
     table{ width:100%; border-collapse:collapse; margin-top:10px; }
+
     th, td{
-      border-bottom:1px solid var(--line);
-      padding:10px 8px;
+      border-bottom:1px solid rgba(15,23,42,.08);
+      padding:10px 10px;
       font-size:13px;
       text-align:left;
       vertical-align:top;
     }
-    th{ color:#1f2a44; font-weight:900; font-size:12px; letter-spacing:.2px; }
+
+    th{
+      color:var(--muted);
+      font-weight:700;
+      background:#fbfcff;
+      font-size:12px;
+      letter-spacing:.2px;
+    }
+
     tr:last-child td{ border-bottom:none; }
 
     .muted{ color:var(--muted); }
 
+    /* Empty state aligned with AP (no dashed dev look) */
     .empty{
       margin-top:12px;
       padding:12px;
       color:var(--muted);
       font-size:13px;
-      border:1px dashed rgba(15,23,42,.20);
+      border:1px solid var(--line);
       border-radius:12px;
       background:#fff;
     }
