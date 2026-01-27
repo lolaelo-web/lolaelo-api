@@ -347,32 +347,6 @@
 
     .muted{ color:var(--muted); }
 
-    .linkBtn{
-      appearance:none;
-      border:none;
-      background:transparent;
-      padding:0;
-      margin:0;
-      color:var(--teal);
-      font-weight:800;
-      cursor:pointer;
-      text-decoration:underline;
-    }
-    .linkBtn:hover{ opacity:.85; }
-
-    .miniBtn{
-      align-self:flex-start;
-      border:1px solid rgba(15,23,42,.14);
-      background:#fff;
-      color:var(--fg);
-      border-radius:999px;
-      padding:4px 10px;
-      font-size:11px;
-      font-weight:800;
-      cursor:pointer;
-    }
-    .miniBtn:hover{ border-color: rgba(255,106,61,.35); }
-
     /* Empty state aligned with AP (no dashed dev look) */
     .empty{
       margin-top:12px;
@@ -525,7 +499,6 @@
         <div id="pager">
           <div class="muted">
             <span id="pagerLabel">Showing -</span>
-            <a href="#" id="pagerReset" style="margin-left:10px; font-weight:800;">Reset</a>
           </div>
           <div class="pagerActions">
             <label class="muted" style="display:flex; align-items:center; gap:8px;">
@@ -706,36 +679,15 @@
           const created = fmtDateOnly(r.createdAt);
 
           tr.innerHTML = `
-            <td>
-              <button type="button"
-                      class="linkBtn"
-                      data-copy="${escapeHtml(bookingRef)}"
-                      title="Click to copy booking ref">
-                ${escapeHtml(bookingRef)}
-              </button>
-            </td>
+            <td>${escapeHtml(bookingRef)}</td>
             <td>${escapeHtml(property)}</td>
-            <td>
-              <div style="display:flex; flex-direction:column; gap:4px;">
-                <div>
-                  ${escapeHtml(
-                    (() => {
-                      const name = [r.travelerFirstName, r.travelerLastName].filter(Boolean).join(" ").trim();
-                      const email = String(r.travelerEmail || "").trim();
-                      return name ? (email ? `${name} (${email})` : name) : (email || "");
-                    })()
-                  )}
-                </div>
-                ${String(r.travelerEmail || "").trim() ? `
-                  <button type="button"
-                          class="miniBtn"
-                          data-copy="${escapeHtml(String(r.travelerEmail || "").trim())}"
-                          title="Copy email">
-                    Copy email
-                  </button>
-                ` : ``}
-              </div>
-            </td>
+            <td>${escapeHtml(
+              (() => {
+                const name = [r.travelerFirstName, r.travelerLastName].filter(Boolean).join(" ").trim();
+                const email = String(r.travelerEmail || "").trim();
+                return name ? (email ? `${name} (${email})` : name) : (email || "");
+              })()
+            )}</td>
             <td>${escapeHtml(stay)}</td>
             <td>${escapeHtml(status)}</td>
             <td style="text-align:right;">${escapeHtml(gross)}</td>
@@ -752,7 +704,8 @@
 
       async function runSearch(token, offsetOverride){
         const q = String(($("q")?.value || "")).trim();
-        const status = String(($("statusSel")?.value || "")).trim(); // "" means All
+        let status = String(($("statusSel")?.value || "")).trim(); // "" means All
+        if (status === "CANCELLED") status = "CANCELED";
         const start = String(($("fromDate")?.value || "")).trim();
         const end = String(($("toDate")?.value || "")).trim();
 
@@ -1099,23 +1052,6 @@
         const nextOff = currentOffset + getLimit();
         await runSearch(t, nextOff);
       };
-
-      // Click booking ref to copy
-      document.addEventListener("click", async (e) => {
-        const btn = e.target && e.target.closest ? e.target.closest(".linkBtn, .miniBtn") : null;
-        if(!btn) return;
-        const val = btn.getAttribute("data-copy") || "";
-        if(!val) return;
-
-        try{
-          await navigator.clipboard.writeText(val);
-          const isEmail = /@/.test(val);
-          setStatus(isEmail ? `Copied email: ${val}` : `Copied booking ref: ${val}`, "ok");
-        }catch(_){
-          // Fallback: select text via prompt
-          window.prompt("Copy booking ref:", val);
-        }
-      });
 
       boot();
     })();
