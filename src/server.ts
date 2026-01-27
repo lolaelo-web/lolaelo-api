@@ -3206,8 +3206,9 @@ app.get("/api/admin/bookings/kpis", async (req: Request, res: Response) => {
              AND (b."createdAt" AT TIME ZONE 'America/New_York') <  bd.now_ts
              THEN COALESCE(b."amountPaid", 0)
           END), 0) AS ytd
-        FROM extranet."Booking" b
-        CROSS JOIN bounds bd
+          FROM extranet."Booking" b
+          CROSS JOIN bounds bd
+          WHERE b.status::text NOT IN ('CANCELLED','CANCELED')
         `,
         []
       );

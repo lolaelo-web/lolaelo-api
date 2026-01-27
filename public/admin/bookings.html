@@ -403,7 +403,8 @@
     <!-- KPIs -->
     <div class="card">
       <div class="cardHead">
-        <div class="cardTitle">Bookings $</div>
+        <div class="cardTitle">CBV $</div>
+        <div class="sub muted">KPIs excludes cancelled & refunded</div>
         <div class="tag" id="kpiWindow">ET</div>
       </div>
 
@@ -476,8 +477,9 @@
       <div class="note">Search supports booking ref, traveler email/name, status, and stay-date window. Use Start date and End date to narrow results.</div>
 
       <div id="resultsEmpty" class="empty">
-        No results yet. Run a search once the booking list endpoint is wired.
+        No results for the current filters.
       </div>
+
 
       <div style="overflow:auto;">
         <table id="resultsTable" style="display:none;">
@@ -488,7 +490,7 @@
               <th>Traveler</th>
               <th>Stay</th>
               <th>Status</th>
-              <th style="text-align:right;">Paid</th>
+              <th style="text-align:right;">CBV</th>
               <th>Created</th>
             </tr>
           </thead>
@@ -741,8 +743,24 @@
         const j = await r.json().catch(() => null);
 
         if(!r.ok || !j || !j.ok){
-          console.error("[admin/bookings] list failed", r.status, j);
-          setStatus("Search failed. Check API + token.", "bad");
+          console.error("[admin/bookings] list failed", r?.status, j);
+          const errMsg =
+            (r && r.status === 401) ? "Unauthorized. Please sign in again." :
+            (r && r.status === 403) ? "Forbidden. Admin access required." :
+            `Search failed (HTTP ${r ? r.status : "?"}).`;
+
+          setStatus(errMsg, "bad");
+
+          // Clear results on error to avoid showing stale data
+          const empty = $("resultsEmpty");
+          const table = $("resultsTable");
+          const body = $("resultsBody");
+          if(body) body.innerHTML = "";
+          if(empty) empty.style.display = "block";
+          if(table) table.style.display = "none";
+          const pager = $("pager");
+          if(pager) pager.style.display = "none";
+
           return;
         }
 
@@ -847,7 +865,10 @@
           }
 
           // Build CSV from the currently rendered rows (what you see is what exports)
-          const headers = Array.from(table.querySelectorAll("thead th")).map(th => (th.textContent || "").trim());
+          const headers = Array.from(table.querySelectorAll("thead th")).map(th => {
+            const h = (th.textContent || "").trim();
+            return h === "Paid" ? "CBV" : h;
+          });
           const rows = Array.from(body.querySelectorAll("tr")).map(tr =>
             Array.from(tr.querySelectorAll("td")).map(td => {
               const clone = td.cloneNode(true);
@@ -943,7 +964,7 @@
             const table = $("resultsTable");
             const headers = table
               ? Array.from(table.querySelectorAll("thead th")).map(th => (th.textContent || "").trim())
-              : ["Booking","Property","Traveler","Stay","Status","Paid","Created"];
+              : ["Booking","Property","Traveler","Stay","Status","CBV","Created"];
 
             const esc = (v) => {
               const s = String(v ?? "");
