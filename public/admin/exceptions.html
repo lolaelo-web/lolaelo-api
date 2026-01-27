@@ -1,0 +1,503 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <!-- Favicon -->
+  <link rel="icon" href="https://www.lolaelo.com/images/logo3.png?v=4" type="image/png">
+  <link rel="shortcut icon" href="https://www.lolaelo.com/images/logo3.png?v=4" type="image/png">
+  <link rel="apple-touch-icon" href="https://www.lolaelo.com/images/logo3.png?v=4">
+
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Exceptions | Lolaelo Admin</title>
+
+  <link rel="stylesheet" href="/css/extranet.css">
+
+  <style>
+    :root{
+      --bg:#f6f8fc;
+      --card:#ffffff;
+      --fg:#0f172a;
+      --muted:#5b6b84;
+      --accent:#ff6a3d;
+      --line:rgba(15,23,42,.12);
+      --shadow:0 10px 30px rgba(15,23,42,.08);
+      --teal:#0b3a4a;
+    }
+    *{ box-sizing:border-box }
+    body{
+      margin:0;
+      background:var(--bg);
+      color:var(--fg);
+      font-family: Inter, system-ui, -apple-system, Segoe UI, Roboto, Arial;
+      min-height:100vh;
+    }
+    button, input, select, textarea{ font-family:inherit; }
+    .wrap{ max-width:1200px; margin:0 auto; padding:18px 14px 30px; }
+
+    /* Header aligned with other admin pages */
+    .top{
+      display:flex;
+      align-items:center;
+      justify-content:space-between;
+      gap:12px;
+      margin-bottom:8px;
+      padding:0;
+    }
+    .brandRow{
+      display:flex;
+      align-items:center;
+      gap:12px;
+      margin:0;
+      padding:0;
+    }
+    .brandRow img{ height:64px; width:auto; display:block; }
+    .pill{
+      display:inline-block;
+      font-size:11px;
+      padding:4px 10px;
+      border-radius:999px;
+      border:1px solid rgba(15,23,42,.18);
+      color:#0f172a;
+      font-weight:800;
+      vertical-align:middle;
+      background:#fff;
+      white-space:nowrap;
+    }
+    .sub{ color:var(--muted); font-size:13px; margin:2px 0 0; }
+    .btnRow{ display:flex; gap:10px; align-items:center; flex-wrap:wrap; }
+
+    .btn.ghost{
+      background:var(--teal);
+      border:1px solid rgba(11,58,74,.35);
+      color:#ffffff !important;
+      box-shadow:0 6px 18px rgba(15,23,42,.12);
+      transition: transform .08s ease, background .15s ease, box-shadow .15s ease, border-color .15s ease;
+      text-decoration:none;
+      display:inline-flex;
+      align-items:center;
+      gap:8px;
+      padding:9px 12px;
+      border-radius:999px;
+      font-weight:800;
+      font-size:13px;
+      cursor:pointer;
+    }
+    .btn.ghost:hover{
+      background: linear-gradient(90deg, #0b3a4a 0%, #0f5b63 100%);
+      border-color: rgba(11,58,74,.55);
+      transform: translateY(-1px);
+    }
+    .btn.ghost:active{ transform: translateY(0px); }
+    .btn.ghost:focus{
+      outline:none;
+      box-shadow:0 0 0 4px rgba(11,58,74,.20), 0 6px 18px rgba(15,23,42,.12);
+    }
+
+    .hero{
+      border:1px solid var(--line);
+      background:var(--card);
+      border-radius:14px;
+      padding:14px;
+      box-shadow:var(--shadow);
+    }
+    .hero h1{ margin:0; font-size:18px; }
+    .hero p{ margin:6px 0 0; color:var(--muted); font-size:13px; line-height:1.35; }
+
+    .metaRow{
+      display:flex; flex-wrap:wrap; gap:10px; align-items:center;
+      margin:10px 0 0;
+      color:var(--muted);
+      font-size:12px;
+    }
+
+    .controls{
+      display:flex; flex-wrap:wrap; gap:10px;
+      margin:12px 0 0;
+      align-items:flex-end;
+    }
+    label{ display:flex; flex-direction:column; gap:6px; font-size:12px; color:var(--muted); }
+    .controls input, .controls select{
+      background:#fff;
+      border:1px solid var(--line);
+      color:var(--fg);
+      padding:9px 10px;
+      border-radius:12px;
+      font-size:13px;
+      outline:none;
+      min-width:220px;
+    }
+    .controls input.search{ min-width:320px; }
+    .controls input:focus, .controls select:focus{
+      border-color:rgba(255,106,61,.55);
+      box-shadow:0 0 0 3px rgba(255,106,61,.15);
+    }
+
+    .toast{
+      margin-top:10px;
+      font-size:12px;
+      color:var(--muted);
+      min-height:16px;
+    }
+    .toast.bad{ color:#b42318; }
+    .toast.ok{ color:#0f7a3a; }
+
+    .table{
+      border:1px solid var(--line);
+      border-radius:14px;
+      overflow:hidden;
+      background:var(--card);
+      box-shadow:var(--shadow);
+      margin-top:12px;
+    }
+    table{ width:100%; border-collapse:collapse; }
+    th,td{
+      border-bottom:1px solid rgba(15,23,42,.08);
+      padding:10px 10px;
+      font-size:13px;
+      text-align:left;
+      vertical-align:top;
+    }
+    th{ color:var(--muted); font-weight:700; background:#fbfcff; font-size:12px; letter-spacing:.2px; }
+    tr:last-child td{ border-bottom:none; }
+
+    .right{ text-align:right; }
+    .mono{ font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace; }
+    .muted{ color:var(--muted); }
+
+    .tag{
+      display:inline-block;
+      padding:4px 10px;
+      border-radius:999px;
+      border:1px solid rgba(15,23,42,.14);
+      font-size:11px;
+      color:var(--muted);
+      background:#fff;
+      font-weight:800;
+      white-space:nowrap;
+    }
+    .tag.warn{
+      border-color: rgba(250,204,21,.55);
+      background: rgba(250,204,21,.10);
+      color:#0f172a;
+    }
+    .tag.danger{
+      border-color: rgba(180,35,24,.35);
+      background: rgba(180,35,24,.06);
+      color:#7a1b12;
+    }
+
+    .empty{
+      margin-top:12px;
+      padding:12px;
+      color:var(--muted);
+      font-size:13px;
+      border:1px solid var(--line);
+      border-radius:12px;
+      background:#fff;
+      display:none;
+    }
+  </style>
+</head>
+
+<body>
+  <div class="wrap">
+    <div class="top">
+      <div>
+        <div class="brandRow">
+          <img src="/images/logo.png" alt="Lolaelo" />
+          <span class="pill"> Exceptions </span>
+        </div>
+        <div class="sub">Operational inbox. v0 shows REFUND_IN_PROGRESS bookings within the selected horizon.</div>
+      </div>
+
+      <div class="btnRow">
+        <a class="btn ghost" href="/admin/index.html">Admin hub</a>
+        <a class="btn ghost" href="/partners_app.html">Extranet</a>
+        <button id="btnLogout" class="btn ghost" type="button">Sign out</button>
+      </div>
+    </div>
+
+    <div class="hero">
+      <h1>Exceptions</h1>
+      <p>Focus: refund holds approaching check-in. Use horizon to control how far ahead we look.</p>
+
+      <div class="metaRow">
+        <span class="pill"><b>Status:</b> <span id="authStatus">Checking...</span></span>
+        <span class="pill"><b>Count:</b> <span id="kpiCount">0</span></span>
+        <span class="pill"><b>Horizon:</b> <span id="kpiHorizon" class="mono">30</span> day(s)</span>
+      </div>
+
+      <div class="controls">
+        <label>
+          Horizon days
+          <select id="daysSel">
+            <option value="7">7</option>
+            <option value="14">14</option>
+            <option value="30" selected>30</option>
+            <option value="60">60</option>
+          </select>
+        </label>
+
+        <label>
+          Search
+          <input id="searchBox" class="search" type="text" placeholder="Booking ref, property, traveler, provider payment id" />
+        </label>
+
+        <button id="btnRefresh" class="btn" type="button">Refresh</button>
+      </div>
+
+      <div id="pageToast" class="toast"></div>
+    </div>
+
+    <div id="emptyState" class="empty">No exceptions for the current horizon.</div>
+
+    <div class="table">
+      <table>
+        <thead>
+          <tr>
+            <th style="width:140px;">Booking ref</th>
+            <th style="width:260px;">Property</th>
+            <th style="width:280px;">Traveler</th>
+            <th style="width:200px;">Stay</th>
+            <th style="width:160px;">Status</th>
+            <th class="right" style="width:120px;">Paid</th>
+            <th style="width:220px;">Provider payment id</th>
+            <th style="width:160px;">Created</th>
+          </tr>
+        </thead>
+        <tbody id="tbody">
+          <tr><td colspan="8" class="muted">Loading...</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <script>
+    (function(){
+      const ADMIN_TOKEN_KEY = "lolaelo_admin_session";
+      const LOGIN = "/admin/login.html";
+      const API_BASE = location.origin;
+
+      const $ = (id) => document.getElementById(id);
+
+      let lastRows = [];
+
+      function getToken(){
+        try { return localStorage.getItem(ADMIN_TOKEN_KEY) || ""; } catch(_) { return ""; }
+      }
+
+      function authHeaders(){
+        const t = String(getToken() || "").trim();
+        return { "Authorization": "Bearer " + t };
+      }
+
+      async function ensureAdmin(){
+        const t = String(getToken() || "").trim();
+        if (!t) { location.replace(LOGIN); return false; }
+
+        const r = await fetch("/api/admin/ping", { headers: authHeaders() }).catch(() => null);
+        if (!r || !r.ok) {
+          try { localStorage.removeItem(ADMIN_TOKEN_KEY); } catch(_) {}
+          location.replace(LOGIN);
+          return false;
+        }
+        return true;
+      }
+
+      async function fetchJSON(path, opts){
+        const r = await fetch(API_BASE + path, { ...(opts||{}), headers: { ...(opts?.headers||{}), ...authHeaders() } });
+        if (r.status === 401) {
+          try { localStorage.removeItem(ADMIN_TOKEN_KEY); } catch(_) {}
+          location.replace(LOGIN);
+          return null;
+        }
+        const data = await r.json().catch(() => null);
+        if (!r.ok) {
+          const msg = (data && (data.error || data.message)) ? String(data.error || data.message) : ("HTTP " + r.status);
+          throw new Error(msg);
+        }
+        return data;
+      }
+
+      function setAuthStatus(txt){
+        const el = $("authStatus");
+        if (el) el.textContent = txt || "";
+      }
+
+      function setToast(msg, kind){
+        const el = $("pageToast");
+        if (!el) return;
+        el.textContent = msg || "";
+        el.className = "toast" + (kind ? (" " + kind) : "");
+      }
+
+      function esc(s){
+        return String(s == null ? "" : s)
+          .replace(/&/g,"&amp;")
+          .replace(/</g,"&lt;")
+          .replace(/>/g,"&gt;")
+          .replace(/"/g,"&quot;")
+          .replace(/'/g,"&#039;");
+      }
+
+      function fmtDateOnly(v){
+        if (!v) return "";
+        try {
+          const d = new Date(v);
+          if (isNaN(d.getTime())) return "";
+          return d.toLocaleDateString("en-US", { month:"short", day:"2-digit", year:"numeric" });
+        } catch(_) { return ""; }
+      }
+
+      function fmtStay(r){
+        const a = fmtDateOnly(r.checkInDate);
+        const b = fmtDateOnly(r.checkOutDate);
+        if (!a && !b) return "-";
+        if (a && b) return a + " to " + b;
+        return (a || b);
+      }
+
+      function fmtTraveler(r){
+        const name = [r.travelerFirstName, r.travelerLastName].filter(Boolean).join(" ").trim();
+        const email = String(r.travelerEmail || "").trim();
+        if (name && email) return name + " (" + email + ")";
+        return name || email || "-";
+      }
+
+      function fmtMoney(n, cur){
+        const v = Number(n || 0);
+        const c = String(cur || "USD").toUpperCase();
+        if (!Number.isFinite(v)) return c + " 0.00";
+        try { return new Intl.NumberFormat(undefined, { style:"currency", currency:c }).format(v); }
+        catch { return c + " " + v.toFixed(2); }
+      }
+
+      function statusTag(status, r){
+        const s = String(status || "");
+        const checkIn = r && r.checkInDate ? new Date(r.checkInDate) : null;
+        const daysSel = Number($("daysSel")?.value || 30) || 30;
+
+        let cls = "tag";
+        if (s === "REFUND_IN_PROGRESS") cls += " danger";
+
+        // Quick urgency hint: check-in within 3 days
+        try{
+          if (checkIn && !isNaN(checkIn.getTime())){
+            const now = new Date();
+            const diffDays = Math.round((checkIn.getTime() - now.getTime()) / (1000*60*60*24));
+            if (diffDays <= 3) cls = "tag danger";
+            else if (diffDays <= Math.min(7, daysSel)) cls = "tag warn";
+          }
+        }catch(_){}
+
+        return '<span class="' + cls + '">' + esc(s || "-") + "</span>";
+      }
+
+      function rowText(r){
+        return [
+          r.bookingRef,
+          r.propertyName,
+          r.travelerFirstName,
+          r.travelerLastName,
+          r.travelerEmail,
+          r.providerPaymentId,
+          r.status
+        ].join(" ").toLowerCase();
+      }
+
+      function render(){
+        const tbody = $("tbody");
+        const empty = $("emptyState");
+        const q = String($("searchBox")?.value || "").trim().toLowerCase();
+
+        const rows0 = Array.isArray(lastRows) ? lastRows.slice() : [];
+        const rows = q ? rows0.filter(r => rowText(r).includes(q)) : rows0;
+
+        if (!rows.length){
+          if (tbody) tbody.innerHTML = '<tr><td colspan="8" class="muted">No rows.</td></tr>';
+          if (empty) empty.style.display = (rows0.length ? "none" : "block");
+          return;
+        }
+
+        if (empty) empty.style.display = "none";
+
+        tbody.innerHTML = rows.map(r => {
+          const ref = esc(r.bookingRef || "");
+          const prop = esc(r.propertyName || ("Partner #" + (r.partnerId || "")));
+          const traveler = esc(fmtTraveler(r));
+          const stay = esc(fmtStay(r));
+          const paid = esc(fmtMoney(r.amountPaid, r.currency || "USD"));
+          const pp = esc(String(r.providerPaymentId || "-"));
+          const created = esc(fmtDateOnly(r.createdAt) || "-");
+          const st = statusTag(r.status, r);
+
+          return `
+            <tr>
+              <td class="mono">${ref || "-"}</td>
+              <td>${prop || "-"}</td>
+              <td>${traveler}</td>
+              <td class="mono">${stay}</td>
+              <td>${st}</td>
+              <td class="right mono">${paid}</td>
+              <td class="mono">${pp}</td>
+              <td class="mono">${created}</td>
+            </tr>
+          `;
+        }).join("");
+      }
+
+      async function load(){
+        setToast("", "");
+        const days = Number($("daysSel")?.value || 30) || 30;
+        $("kpiHorizon").textContent = String(days);
+
+        try{
+          $("tbody").innerHTML = '<tr><td colspan="8" class="muted">Loading...</td></tr>';
+          const data = await fetchJSON("/api/admin/exceptions?days=" + encodeURIComponent(String(days)));
+          if (!data || !data.ok){
+            lastRows = [];
+            $("kpiCount").textContent = "0";
+            render();
+            setToast("Failed loading exceptions.", "bad");
+            return;
+          }
+
+          lastRows = Array.isArray(data.rows) ? data.rows : [];
+          $("kpiCount").textContent = String(Number(data.count || lastRows.length || 0));
+
+          render();
+          setToast("Ready.", "ok");
+        } catch(e){
+          console.error("[admin/exceptions] load failed", e);
+          lastRows = [];
+          $("kpiCount").textContent = "0";
+          render();
+          setToast("Failed: " + String(e && e.message ? e.message : e), "bad");
+        }
+      }
+
+      function wire(){
+        $("btnLogout").onclick = () => {
+          try { localStorage.removeItem(ADMIN_TOKEN_KEY); } catch(_) {}
+          location.replace(LOGIN);
+        };
+
+        $("btnRefresh").onclick = load;
+
+        $("daysSel").onchange = load;
+
+        $("searchBox").addEventListener("input", () => render());
+      }
+
+      (async function boot(){
+        const ok = await ensureAdmin();
+        if (!ok) return;
+
+        setAuthStatus("Ready");
+        wire();
+        load();
+      })();
+    })();
+  </script>
+</body>
+</html>
