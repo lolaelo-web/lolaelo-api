@@ -3073,8 +3073,15 @@ app.get("/api/admin/bookings/list", async (req: Request, res: Response) => {
     const params: any[] = [];
 
     if (status) {
-      params.push(status);
-      where.push(`b.status = $${params.length}`);
+      // Compare as text to avoid enum-cast errors (e.g., CANCELLED vs CANCELED)
+      const s = status.toUpperCase();
+
+      if (s === "CANCELLED" || s === "CANCELED") {
+        where.push(`b.status::text IN ('CANCELLED','CANCELED')`);
+      } else {
+        params.push(s);
+        where.push(`b.status::text = $${params.length}`);
+      }
     }
 
     if (q) {
