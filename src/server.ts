@@ -3054,6 +3054,292 @@ app.get("/api/admin/ping", (req: Request, res: Response) => {
 });
 // ANCHOR: ADMIN_PING_ROUTE END
 
+// ANCHOR: ADMIN_BOOKINGS_LIST_ROUTE
+app.get("/api/admin/bookings/list", async (req: Request, res: Response) => {
+  try {
+    requireAdminAuth(req);
+
+    const q = String(req.query.q || "").trim();
+    const status = String(req.query.status || "").trim(); // "" means All
+    const start = String(req.query.start || "").trim();   // YYYY-MM-DD
+    const end = String(req.query.end || "").trim();       // YYYY-MM-DD
+
+    const limitRaw = Number(req.query.limit ?? 50);
+    const offsetRaw = Number(req.query.offset ?? 0);
+    const limit = Number.isFinite(limitRaw) ? Math.max(1, Math.min(200, Math.floor(limitRaw))) : 50;
+    const offset = Number.isFinite(offsetRaw) ? Math.max(0, Math.floor(offsetRaw)) : 0;
+
+    const where: string[] = [];
+    const params: any[] = [];
+
+    if (status) {
+      params.push(status);
+      where.push(`b.status = $${params.length}`);
+    }
+
+    if (q) {
+      params.push(`%${q}%`);
+      const p = `$${params.length}`;
+      where.push(`(
+        b."bookingRef" ILIKE ${p}
+        OR b."travelerEmail" ILIKE ${p}
+        OR (COALESCE(b."travelerFirstName",'') || ' ' || COALESCE(b."travelerLastName",'')) ILIKE ${p}
+      )`);
+    }
+
+    // Stay-date overlap filter: booking overlaps [start, end) if checkIn < end AND checkOut > start
+    if (start) {
+      params.push(start);
+      const p = `$${params.length}`;
+      where.push(`b."checkOutDate"::date > ${p}::date`);
+    }
+    if (end) {
+      params.push(end);
+      const p = `$${params.length}`;
+      where.push(`b."checkInDate"::date < ${p}::date`);
+    }
+
+    const whereSql = where.length ? `WHERE ${where.join(" AND ")}` : "";
+
+    const out = await withDb(async (client) => {
+      const countRes = await client.query(
+        `SELECT COUNT(*)::int AS "totalCount" FROM extranet."Booking" b ${whereSql}`,
+        params
+      );
+
+      const listParams = [...params, limit, offset];
+
+      const rowsRes = await client.query(
+        `
+        SELECT
+          b.id,
+          b."bookingRef",
+          b.status,
+          b.currency,
+          COALESCE(b."amountPaid", 0) AS "amountPaid",
+          b."createdAt",
+          b."checkInDate",
+          b."checkOutDate",
+          b."travelerEmail",
+          b."travelerFirstName",
+          b."travelerLastName",
+          b."partnerId",
+          COALESCE(pp.name, p.name, ('Partner #' || b."partnerId"::text)) AS "propertyName"
+        FROM extranet."Booking" b
+        LEFT JOIN extranet."PropertyProfile" pp ON pp."partnerId" = b."partnerId"
+        LEFT JOIN extranet."Partner" p ON p.id = b."partnerId"
+        ${whereSql}
+        ORDER BY b."createdAt" DESC
+        LIMIT $${listParams.length - 1}
+        OFFSET $${listParams.length}
+        `,
+        listParams
+      );
+
+      return {
+        totalCount: Number(countRes.rows?.[0]?.totalCount || 0),
+        rows: rowsRes.rows || [],
+      };
+    });
+
+    return res.json({
+      ok: true,
+      totalCount: out.totalCount,
+      rows: out.rows,
+      applied: { q, status: status || "ALL", start, end, limit, offset },
+    });
+  } catch (e: any) {
+    console.error("[admin/bookings/list] error:", e);
+    return res.status(401).json({ ok: false, error: "unauthorized" });
+  }
+});
+// ANCHOR: ADMIN_BOOKINGS_LIST_ROUTE END
+
+// ANCHOR: ADMIN_BOOKINGS_ROUTES
+app.get("/api/admin/bookings/kpis", async (req: Request, res: Response) => {
+  try {
+    requireAdminAuth(req);
+
+    const row = await withDb(async (client) => {
+      const { rows } = await client.query(
+        `
+        WITH now_et AS (
+          SELECT (now() AT TIME ZONE 'America/New_York') AS ts
+        ),
+        bounds AS (
+          SELECT
+            date_trunc('day',  ts) AS day_start,
+            date_trunc('week', ts) AS week_start,
+            date_trunc('month',ts) AS month_start,
+            date_trunc('year', ts) AS year_start,
+            ts AS now_ts
+          FROM now_et
+        )
+        SELECT
+          COALESCE(SUM(CASE
+            WHEN (b."createdAt" AT TIME ZONE 'America/New_York') >= bd.day_start
+             AND (b."createdAt" AT TIME ZONE 'America/New_York') <  bd.day_start + INTERVAL '1 day'
+             THEN COALESCE(b."amountPaid", 0)
+          END), 0) AS today,
+
+          COALESCE(SUM(CASE
+            WHEN (b."createdAt" AT TIME ZONE 'America/New_York') >= bd.week_start
+             AND (b."createdAt" AT TIME ZONE 'America/New_York') <  bd.now_ts
+             THEN COALESCE(b."amountPaid", 0)
+          END), 0) AS week,
+
+          COALESCE(SUM(CASE
+            WHEN (b."createdAt" AT TIME ZONE 'America/New_York') >= bd.month_start
+             AND (b."createdAt" AT TIME ZONE 'America/New_York') <  bd.now_ts
+             THEN COALESCE(b."amountPaid", 0)
+          END), 0) AS month,
+
+          COALESCE(SUM(CASE
+            WHEN (b."createdAt" AT TIME ZONE 'America/New_York') >= bd.year_start
+             AND (b."createdAt" AT TIME ZONE 'America/New_York') <  bd.now_ts
+             THEN COALESCE(b."amountPaid", 0)
+          END), 0) AS ytd
+        FROM extranet."Booking" b
+        CROSS JOIN bounds bd
+        `,
+        []
+      );
+      return rows?.[0] || { today: 0, week: 0, month: 0, ytd: 0 };
+    });
+
+    const toNum = (v: any) => {
+      const n = Number(v);
+      return Number.isFinite(n) ? n : 0;
+    };
+
+    return res.json({
+      ok: true,
+      kpis: {
+        today: toNum(row.today),
+        week: toNum(row.week),
+        month: toNum(row.month),
+        ytd: toNum(row.ytd),
+      },
+      window: "ET",
+    });
+  } catch (e: any) {
+    console.error("[admin/bookings/kpis] error:", e);
+    return res.status(401).json({ ok: false, error: "unauthorized" });
+  }
+});
+
+app.get("/api/admin/bookings/list", async (req: Request, res: Response) => {
+  try {
+    requireAdminAuth(req);
+
+    const q = String(req.query.q || "").trim();
+    const status = String(req.query.status || "ALL").trim();
+    const start = String(req.query.start || "").trim(); // YYYY-MM-DD
+    const end = String(req.query.end || "").trim();     // YYYY-MM-DD
+
+    const limitRaw = Number(req.query.limit ?? 50);
+    const offsetRaw = Number(req.query.offset ?? 0);
+    const limit = Number.isFinite(limitRaw) ? Math.max(1, Math.min(200, Math.floor(limitRaw))) : 50;
+    const offset = Number.isFinite(offsetRaw) ? Math.max(0, Math.floor(offsetRaw)) : 0;
+
+    const where: string[] = [];
+    const params: any[] = [];
+    const add = (sql: string, val?: any) => {
+      where.push(sql.replace(/\$(\?)/g, `$${params.length + 1}`));
+      if (typeof val !== "undefined") params.push(val);
+    };
+
+    if (status && status !== "ALL") {
+      params.push(status);
+      where.push(`b.status = $${params.length}`);
+    }
+
+    if (q) {
+      params.push(`%${q}%`);
+      const p = `$${params.length}`;
+      where.push(`(
+        b."bookingRef" ILIKE ${p}
+        OR b."travelerEmail" ILIKE ${p}
+        OR (COALESCE(b."travelerFirstName",'') || ' ' || COALESCE(b."travelerLastName",'')) ILIKE ${p}
+      )`);
+    }
+
+    // Stay-date overlap filter:
+    // booking overlaps [start, end) if checkIn < end AND checkOut > start
+    if (start) {
+      params.push(start);
+      const p = `$${params.length}`;
+      where.push(`b."checkOutDate"::date > ${p}::date`);
+    }
+    if (end) {
+      params.push(end);
+      const p = `$${params.length}`;
+      where.push(`b."checkInDate"::date < ${p}::date`);
+    }
+
+    const whereSql = where.length ? `WHERE ${where.join(" AND ")}` : "";
+
+    const result = await withDb(async (client) => {
+      const countQ = await client.query(
+        `
+        SELECT COUNT(*)::int AS "totalCount"
+        FROM extranet."Booking" b
+        ${whereSql}
+        `,
+        params
+      );
+
+      const listParams = [...params, limit, offset];
+      const { rows } = await client.query(
+        `
+        SELECT
+          b.id,
+          b."bookingRef",
+          b.status,
+          b.currency,
+          COALESCE(b."amountPaid", 0) AS "amountPaid",
+          b."createdAt",
+          b."checkInDate",
+          b."checkOutDate",
+          b."travelerEmail",
+          b."travelerFirstName",
+          b."travelerLastName",
+          b."partnerId",
+          COALESCE(pp.name, p.name, ('Partner #' || b."partnerId"::text)) AS "propertyName",
+          rt.name AS "roomTypeName",
+          rp.code AS "ratePlanCode"
+        FROM extranet."Booking" b
+        LEFT JOIN extranet."PropertyProfile" pp ON pp."partnerId" = b."partnerId"
+        LEFT JOIN extranet."Partner" p ON p.id = b."partnerId"
+        LEFT JOIN extranet."RoomType" rt ON rt.id = b."roomTypeId"
+        LEFT JOIN extranet."RatePlan" rp ON rp.id = b."ratePlanId"
+        ${whereSql}
+        ORDER BY b."createdAt" DESC
+        LIMIT $${listParams.length - 1}
+        OFFSET $${listParams.length}
+        `,
+        listParams
+      );
+
+      return {
+        totalCount: Number(countQ.rows?.[0]?.totalCount || 0),
+        rows,
+      };
+    });
+
+    return res.json({
+      ok: true,
+      totalCount: result.totalCount,
+      rows: result.rows,
+      applied: { q, status, start, end, limit, offset },
+    });
+  } catch (e: any) {
+    console.error("[admin/bookings/list] error:", e);
+    return res.status(401).json({ ok: false, error: "unauthorized" });
+  }
+});
+// ANCHOR: ADMIN_BOOKINGS_ROUTES END
+
 // ---- Admin: Set/reset partner password -------------------------------------
 
 app.post("/api/admin/partners/:id/password", express.json(), async (req: Request, res: Response) => {
