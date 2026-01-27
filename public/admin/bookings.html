@@ -306,6 +306,27 @@
     /* Table look aligned with AP */
     table{ width:100%; border-collapse:collapse; margin-top:10px; }
 
+    /* Pager (remove inline styles) */
+    #pager{
+      display:none;              /* JS toggles to flex */
+      margin-top:12px;
+      align-items:center;
+      justify-content:space-between;
+      gap:12px;
+    }
+
+    .pagerActions{
+      display:flex;
+      gap:10px;
+      align-items:center;
+    }
+
+    /* Wider Traveler column to reduce wrapping */
+    #resultsTable th:nth-child(3),
+    #resultsTable td:nth-child(3){
+      min-width:260px;
+    }
+
     th, td{
       border-bottom:1px solid rgba(15,23,42,.08);
       padding:10px 10px;
@@ -325,6 +346,32 @@
     tr:last-child td{ border-bottom:none; }
 
     .muted{ color:var(--muted); }
+
+    .linkBtn{
+      appearance:none;
+      border:none;
+      background:transparent;
+      padding:0;
+      margin:0;
+      color:var(--teal);
+      font-weight:800;
+      cursor:pointer;
+      text-decoration:underline;
+    }
+    .linkBtn:hover{ opacity:.85; }
+
+    .miniBtn{
+      align-self:flex-start;
+      border:1px solid rgba(15,23,42,.14);
+      background:#fff;
+      color:var(--fg);
+      border-radius:999px;
+      padding:4px 10px;
+      font-size:11px;
+      font-weight:800;
+      cursor:pointer;
+    }
+    .miniBtn:hover{ border-color: rgba(255,106,61,.35); }
 
     /* Empty state aligned with AP (no dashed dev look) */
     .empty{
@@ -452,7 +499,7 @@
         </div>
       </div>
 
-      <div class="note">This page is live UI foundation. Next sprint we wire booking search and list endpoints.</div>
+      <div class="note">Search supports booking ref, traveler email/name, status, and stay-date window. Use Start date and End date to narrow results.</div>
 
       <div id="resultsEmpty" class="empty">
         No results yet. Run a search once the booking list endpoint is wired.
@@ -464,15 +511,41 @@
             <tr>
               <th>Booking</th>
               <th>Property</th>
+              <th>Traveler</th>
               <th>Stay</th>
               <th>Status</th>
-              <th>Gross</th>
-              <th>Provider</th>
+              <th style="text-align:right;">Paid</th>
               <th>Created</th>
             </tr>
           </thead>
           <tbody id="resultsBody"></tbody>
         </table>
+
+        <!-- ANCHOR: RESULTS_PAGINATION -->
+        <div id="pager">
+          <div class="muted">
+            <span id="pagerLabel">Showing -</span>
+            <a href="#" id="pagerReset" style="margin-left:10px; font-weight:800;">Reset</a>
+          </div>
+          <div class="pagerActions">
+            <label class="muted" style="display:flex; align-items:center; gap:8px;">
+              Page size
+              <select id="pageSize" class="input" style="height:36px; padding:6px 10px; width:auto;">
+                <option value="25">25</option>
+                <option value="50" selected>50</option>
+                <option value="100">100</option>
+                <option value="200">200</option>
+              </select>
+            </label>
+
+            <button id="btnPrev" class="btn secondary" type="button">Prev</button>
+            <button id="btnNext" class="btn secondary" type="button">Next</button>
+            <button id="btnExportCsv" class="btn secondary" type="button">Export CSV</button>
+            <button id="btnExportCsvAll" class="btn secondary" type="button">Export CSV (All)</button>
+          </div>
+        </div>
+        <!-- ANCHOR: RESULTS_PAGINATION END -->
+
       </div>
     </div>
   </div>
@@ -484,7 +557,10 @@
       const PING_URL = "/api/admin/ping";
       const KPI_URL = "/api/admin/kpis/bookings?tz=America%2FNew_York";
       const LIST_URL = "/api/admin/bookings/list";
-      const DEFAULT_LIMIT = 50;
+      let DEFAULT_LIMIT = 50;
+
+      let currentOffset = 0;
+      let lastTotalCount = 0;
 
       const $ = (id) => document.getElementById(id);
 
@@ -557,8 +633,14 @@
 
       function fmtDateOnly(v){
         if(!v) return "";
-        const s = String(v);
-        return s.length >= 10 ? s.slice(0,10) : s;
+        const d = new Date(v);
+        if(isNaN(d.getTime())) return "";
+
+        return d.toLocaleDateString("en-US", {
+          month: "short",
+          day: "2-digit",
+          year: "numeric"
+        });
       }
 
       function normalizeStatusLabel(s){
@@ -566,10 +648,36 @@
         return String(s).replace(/_/g," ").toLowerCase().replace(/\b\w/g, m => m.toUpperCase());
       }
 
+      function getLimit(){
+        const v = Number($("pageSize")?.value || DEFAULT_LIMIT);
+        return Number.isFinite(v) ? Math.max(1, Math.min(200, Math.floor(v))) : DEFAULT_LIMIT;
+      }
+
+      function updatePager(){
+        const pager = $("pager");
+        const label = $("pagerLabel");
+        const prev = $("btnPrev");
+        const next = $("btnNext");
+
+        if(!pager || !label || !prev || !next) return;
+
+        const shownFrom = lastTotalCount ? (currentOffset + 1) : 0;
+        const limit = getLimit();
+        const shownTo = Math.min(currentOffset + limit, lastTotalCount);
+
+        label.textContent = lastTotalCount
+          ? `Showing ${shownFrom}-${shownTo} of ${lastTotalCount}`
+          : "Showing -";
+
+        prev.disabled = currentOffset <= 0;
+        next.disabled = (currentOffset + limit) >= lastTotalCount;
+      }
+
       function showResults(rows, totalCount){
         const empty = $("resultsEmpty");
         const table = $("resultsTable");
         const body = $("resultsBody");
+        const pager = $("pager");
 
         if(!empty || !table || !body) return;
 
@@ -578,12 +686,14 @@
         if(!rows || !rows.length){
           empty.style.display = "block";
           table.style.display = "none";
+          if(pager) pager.style.display = "none";
           setStatus("No results.", "muted");
           return;
         }
 
         empty.style.display = "none";
         table.style.display = "table";
+        if(pager) pager.style.display = "flex";
 
         for(const r of rows){
           const tr = document.createElement("tr");
@@ -592,17 +702,43 @@
           const property = r.propertyName || "";
           const stay = `${fmtDateOnly(r.checkInDate)} → ${fmtDateOnly(r.checkOutDate)}`;
           const status = normalizeStatusLabel(r.status);
-          const gross = fmtMoney((Number(r.amountPaid || 0) / 100), r.currency || "USD");
-          const provider = r.provider || ""; // keep blank unless backend adds it later
+          const gross = fmtMoney(Number(r.amountPaid || 0), r.currency || "USD");
           const created = fmtDateOnly(r.createdAt);
 
           tr.innerHTML = `
-            <td>${escapeHtml(bookingRef)}</td>
+            <td>
+              <button type="button"
+                      class="linkBtn"
+                      data-copy="${escapeHtml(bookingRef)}"
+                      title="Click to copy booking ref">
+                ${escapeHtml(bookingRef)}
+              </button>
+            </td>
             <td>${escapeHtml(property)}</td>
+            <td>
+              <div style="display:flex; flex-direction:column; gap:4px;">
+                <div>
+                  ${escapeHtml(
+                    (() => {
+                      const name = [r.travelerFirstName, r.travelerLastName].filter(Boolean).join(" ").trim();
+                      const email = String(r.travelerEmail || "").trim();
+                      return name ? (email ? `${name} (${email})` : name) : (email || "");
+                    })()
+                  )}
+                </div>
+                ${String(r.travelerEmail || "").trim() ? `
+                  <button type="button"
+                          class="miniBtn"
+                          data-copy="${escapeHtml(String(r.travelerEmail || "").trim())}"
+                          title="Copy email">
+                    Copy email
+                  </button>
+                ` : ``}
+              </div>
+            </td>
             <td>${escapeHtml(stay)}</td>
             <td>${escapeHtml(status)}</td>
             <td style="text-align:right;">${escapeHtml(gross)}</td>
-            <td>${escapeHtml(provider)}</td>
             <td>${escapeHtml(created)}</td>
           `;
           body.appendChild(tr);
@@ -610,9 +746,11 @@
 
         const n = Number(totalCount || rows.length || 0);
         setStatus(`Ready. ${n} total.`, "ok");
+        lastTotalCount = Number(totalCount || rows.length || 0);
+        updatePager();
       }
 
-      async function runSearch(token){
+      async function runSearch(token, offsetOverride){
         const q = String(($("q")?.value || "")).trim();
         const status = String(($("statusSel")?.value || "")).trim(); // "" means All
         const start = String(($("fromDate")?.value || "")).trim();
@@ -623,8 +761,23 @@
         if(status) params.set("status", status);
         if(start) params.set("start", start);
         if(end) params.set("end", end);
+        const selLimit = Number($("pageSize")?.value || DEFAULT_LIMIT);
+        DEFAULT_LIMIT = Number.isFinite(selLimit) ? Math.max(1, Math.min(200, Math.floor(selLimit))) : DEFAULT_LIMIT;
         params.set("limit", String(DEFAULT_LIMIT));
-        params.set("offset", "0");
+        const off = Number.isFinite(Number(offsetOverride)) ? Math.max(0, Number(offsetOverride)) : currentOffset;
+        params.set("offset", String(off));
+
+        // Persist current filters in URL (shareable / refresh-safe)
+        try{
+          const u = new URL(window.location.href);
+          u.searchParams.set("q", q || "");
+          u.searchParams.set("status", status || "");
+          u.searchParams.set("start", start || "");
+          u.searchParams.set("end", end || "");
+          u.searchParams.set("offset", String(off || 0));
+          u.searchParams.set("limit", String(DEFAULT_LIMIT));
+          window.history.replaceState({}, "", u.toString());
+        }catch(_){}
 
         setStatus("Searching…", "muted");
 
@@ -640,12 +793,69 @@
           return;
         }
 
+        currentOffset = off;
         showResults(Array.isArray(j.rows) ? j.rows : [], j.totalCount);
+      }
+
+      function ymd(d){
+        const yyyy = d.getFullYear();
+        const mm = String(d.getMonth()+1).padStart(2,"0");
+        const dd = String(d.getDate()).padStart(2,"0");
+        return `${yyyy}-${mm}-${dd}`;
+      }
+
+      function setDefaultDateWindow(){
+        const from = $("fromDate");
+        const to = $("toDate");
+        if(!from || !to) return;
+
+        // Only set if user hasn't touched them
+        if(from.value || to.value) return;
+
+        const now = new Date();
+        const start = new Date(now);
+        start.setDate(start.getDate() - 30);
+
+        const end = new Date(now);
+        end.setDate(end.getDate() + 1);
+
+        from.value = ymd(start);
+        to.value = ymd(end);
       }
 
       async function boot(){
         const t = String(getToken() || "").trim();
         if (!t) { location.replace(LOGIN); return; }
+
+        setDefaultDateWindow();
+
+        // If URL has filters, hydrate inputs + auto-run search
+        try{
+          const u = new URL(window.location.href);
+          const q = u.searchParams.get("q") || "";
+          const status = u.searchParams.get("status") || "";
+          const start = u.searchParams.get("start") || "";
+          const end = u.searchParams.get("end") || "";
+          const off = Number(u.searchParams.get("offset") || "0");
+
+          const lim = Number(u.searchParams.get("limit") || "50");
+            if($("pageSize") && Number.isFinite(lim)){
+              const clamped = Math.max(1, Math.min(200, Math.floor(lim)));
+              $("pageSize").value = String(clamped);
+              DEFAULT_LIMIT = clamped;
+            }
+
+          if($("q")) $("q").value = q;
+          if($("statusSel")) $("statusSel").value = status;
+          if($("fromDate")) $("fromDate").value = start;
+          if($("toDate")) $("toDate").value = end;
+
+          const hasAny = (q || status || start || end);
+          if(hasAny){
+            currentOffset = Number.isFinite(off) ? Math.max(0, off) : 0;
+            await runSearch(t, currentOffset);
+          }
+        }catch(_){}
 
         setStatus("Validating...", "");
         const ok = await ping(t).catch(() => false);
@@ -667,6 +877,167 @@
       };
 
       $("btnClear").onclick = () => {
+        $("pagerReset").onclick = (e) => {
+          $("btnExportCsv").onclick = () => {
+            const btn1 = $("btnExportCsv");
+            const btn2 = $("btnExportCsvAll");
+            if(btn1) btn1.disabled = true;
+            if(btn2) btn2.disabled = true;
+
+          const table = $("resultsTable");
+          const body = $("resultsBody");
+          if(!table || !body || table.style.display === "none"){
+            setStatus("Nothing to export.", "muted");
+            if(btn1) btn1.disabled = false;
+            if(btn2) btn2.disabled = false;
+            return;
+          }
+
+          // Build CSV from the currently rendered rows (what you see is what exports)
+          const headers = Array.from(table.querySelectorAll("thead th")).map(th => (th.textContent || "").trim());
+          const rows = Array.from(body.querySelectorAll("tr")).map(tr =>
+            Array.from(tr.querySelectorAll("td")).map(td => {
+              const clone = td.cloneNode(true);
+              // Remove any interactive controls that shouldn't land in CSV
+              Array.from(clone.querySelectorAll("button")).forEach(b => b.remove());
+              return (clone.textContent || "").replace(/\s+/g, " ").trim();
+            })
+          );
+
+          const esc = (v) => {
+            const s = String(v ?? "");
+            return /[",\n]/.test(s) ? `"${s.replace(/"/g, '""')}"` : s;
+          };
+
+          const csv = [headers.map(esc).join(","), ...rows.map(r => r.map(esc).join(","))].join("\n");
+          const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
+          const url = URL.createObjectURL(blob);
+
+          const a = document.createElement("a");
+          a.href = url;
+          a.download = `bookings_export_${new Date().toISOString().slice(0,10)}.csv`;
+          document.body.appendChild(a);
+          a.click();
+          a.remove();
+
+          URL.revokeObjectURL(url);
+          setStatus("CSV exported.", "ok");
+          if(btn1) btn1.disabled = false;
+          if(btn2) btn2.disabled = false;
+        };
+
+        $("btnExportCsvAll").onclick = async () => {
+          const t = String(getToken() || "").trim();
+          if(!t){ location.replace(LOGIN); return; }
+
+          const q = String(($("q")?.value || "")).trim();
+          const status = String(($("statusSel")?.value || "")).trim();
+          const start = String(($("fromDate")?.value || "")).trim();
+          const end = String(($("toDate")?.value || "")).trim();
+
+          const limit = 200;
+          let offset = 0;
+          let total = null;
+          let allRows = [];
+
+          setStatus("Exporting CSV (All)…", "muted");
+
+          try{
+            while(true){
+              const params = new URLSearchParams();
+              if(q) params.set("q", q);
+              if(status) params.set("status", status);
+              if(start) params.set("start", start);
+              if(end) params.set("end", end);
+              params.set("limit", String(limit));
+              params.set("offset", String(offset));
+
+              const r = await fetch(`${LIST_URL}?${params.toString()}`, {
+                headers: { "Authorization": "Bearer " + t }
+              });
+
+              const j = await r.json().catch(() => null);
+              if(!r.ok || !j || !j.ok){
+                console.error("[admin/bookings] export all failed", r.status, j);
+                setStatus("Export failed. Check API + token.", "bad");
+                return;
+              }
+
+              const rows = Array.isArray(j.rows) ? j.rows : [];
+              if(total == null) total = Number(j.totalCount || 0);
+
+              allRows = allRows.concat(rows);
+
+              // Progress update
+              const got = allRows.length;
+              const tot = (total == null ? 0 : total);
+              setStatus(tot ? `Exporting CSV (All)… ${got} / ${tot}` : `Exporting CSV (All)… ${got}`, "muted");
+
+              offset += rows.length;
+              if(rows.length === 0) break;
+              if(total != null && offset >= total) break;
+
+              // Safety cap to prevent runaway exports if totalCount is wrong
+              if(allRows.length > 50000) break;
+            }
+
+            if(!allRows.length){
+              setStatus("Nothing to export.", "muted");
+              return;
+            }
+
+            // CSV headers should match visible table
+            const table = $("resultsTable");
+            const headers = table
+              ? Array.from(table.querySelectorAll("thead th")).map(th => (th.textContent || "").trim())
+              : ["Booking","Property","Traveler","Stay","Status","Paid","Created"];
+
+            const esc = (v) => {
+              const s = String(v ?? "");
+              return /[",\n]/.test(s) ? `"${s.replace(/"/g, '""')}"` : s;
+            };
+
+            const toTraveler = (r) => {
+              const name = [r.travelerFirstName, r.travelerLastName].filter(Boolean).join(" ").trim();
+              const email = String(r.travelerEmail || "").trim();
+              return name ? (email ? `${name} (${email})` : name) : (email || "");
+            };
+
+            const fmtStay = (r) => `${fmtDateOnly(r.checkInDate)} → ${fmtDateOnly(r.checkOutDate)}`;
+            const paid = (r) => fmtMoney(Number(r.amountPaid || 0), r.currency || "USD");
+
+            const rowsCsv = allRows.map(r => ([
+              r.bookingRef || "",
+              r.propertyName || "",
+              toTraveler(r),
+              fmtStay(r),
+              normalizeStatusLabel(r.status),
+              paid(r),
+              fmtDateOnly(r.createdAt)
+            ]));
+
+            const csv = [headers.map(esc).join(","), ...rowsCsv.map(r => r.map(esc).join(","))].join("\n");
+            const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
+            const url = URL.createObjectURL(blob);
+
+            const a = document.createElement("a");
+            a.href = url;
+            a.download = `bookings_export_all_${new Date().toISOString().slice(0,10)}.csv`;
+            document.body.appendChild(a);
+            a.click();
+            a.remove();
+
+            URL.revokeObjectURL(url);
+            setStatus(`CSV exported. ${allRows.length} rows.`, "ok");
+          }catch(e){
+            console.error("[admin/bookings] export all error", e);
+            setStatus("Export failed.", "bad");
+          }
+        };
+
+          e.preventDefault();
+          $("btnClear")?.click();
+        };
         $("q").value = "";
         $("statusSel").value = "";
         $("fromDate").value = "";
@@ -678,14 +1049,73 @@
         if(body) body.innerHTML = "";
         if(empty) empty.style.display = "block";
         if(table) table.style.display = "none";
+        const pager = $("pager");
+        if(pager) pager.style.display = "none";
         setStatus("Ready.", "ok");
+        // Clear URL filters
+        try{
+          const u = new URL(window.location.href);
+          ["q","status","start","end","offset","limit"].forEach(k => u.searchParams.delete(k));
+          window.history.replaceState({}, "", u.toString());
+        }catch(_){}
       };
+
+      // Enter key triggers search (query + dates + status)
+      ["q","fromDate","toDate","statusSel"].forEach(id => {
+        const el = $(id);
+        if(!el) return;
+        el.addEventListener("keydown", (e) => {
+          if(e.key === "Enter"){
+            e.preventDefault();
+            $("btnSearch")?.click();
+          }
+        });
+      });
 
       $("btnSearch").onclick = async () => {
         const t = String(getToken() || "").trim();
         if(!t){ location.replace(LOGIN); return; }
-        await runSearch(t);
+        currentOffset = 0;
+        await runSearch(t, 0);
       };
+
+      $("btnPrev").onclick = async () => {
+        const t = String(getToken() || "").trim();
+        if(!t){ location.replace(LOGIN); return; }
+        const nextOff = Math.max(0, currentOffset - getLimit());
+        await runSearch(t, nextOff);
+      };
+
+      $("pageSize").onchange = async () => {
+        const t = String(getToken() || "").trim();
+        if(!t){ location.replace(LOGIN); return; }
+        currentOffset = 0;
+        await runSearch(t, 0);
+      };
+
+      $("btnNext").onclick = async () => {
+        const t = String(getToken() || "").trim();
+        if(!t){ location.replace(LOGIN); return; }
+        const nextOff = currentOffset + getLimit();
+        await runSearch(t, nextOff);
+      };
+
+      // Click booking ref to copy
+      document.addEventListener("click", async (e) => {
+        const btn = e.target && e.target.closest ? e.target.closest(".linkBtn, .miniBtn") : null;
+        if(!btn) return;
+        const val = btn.getAttribute("data-copy") || "";
+        if(!val) return;
+
+        try{
+          await navigator.clipboard.writeText(val);
+          const isEmail = /@/.test(val);
+          setStatus(isEmail ? `Copied email: ${val}` : `Copied booking ref: ${val}`, "ok");
+        }catch(_){
+          // Fallback: select text via prompt
+          window.prompt("Copy booking ref:", val);
+        }
+      });
 
       boot();
     })();
