@@ -161,6 +161,24 @@
     th{ color:var(--muted); font-weight:700; background:#fbfcff; font-size:12px; letter-spacing:.2px; }
     tr:last-child td{ border-bottom:none; }
 
+    /* Clickable row affordance */
+    #tbody tr{
+      cursor: pointer;
+      transition: background .12s ease;
+    }
+    #tbody tr:hover{
+      background: rgba(11,58,74,.06);
+    }
+    #tbody tr:active{
+      background: rgba(11,58,74,.10);
+    }
+    #tbody tr a{
+      cursor: pointer;
+    }
+
+    #tbody tr.noClick{ cursor: default; }
+    #tbody tr.noClick:hover{ background: transparent; }
+
     .right{ text-align:right; }
     .mono{ font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace; }
     .muted{ color:var(--muted); }
@@ -299,7 +317,7 @@
           </tr>
         </thead>
         <tbody id="tbody">
-          <tr><td colspan="5" class="muted">Loading...</td></tr>
+          <tr class="noClick"><td colspan="5" class="muted">Loading...</td></tr>
         </tbody>
       </table>
     </div>
@@ -461,7 +479,7 @@
           }
 
         if (!rows.length){
-          if (tbody) tbody.innerHTML = '<tr><td colspan="5" class="muted">No rows.</td></tr>';
+          if (tbody) tbody.innerHTML = '<tr class="noClick"><td colspan="5" class="muted">No rows.</td></tr>';
           if (empty) empty.style.display = (rows0.length ? "none" : "block");
           return;
         }
@@ -521,7 +539,7 @@
         if (!overlay || !row1 || !row2) return;
 
         if (!row){
-          row1.innerHTML = `<tr><td colspan="4" class="muted">Row not found.</td></tr>`;
+          row1.innerHTML = `<tr><td colspan="5" class="muted">Row not found.</td></tr>`;
           row2.innerHTML = `<tr><td colspan="3" class="muted">Row not found.</td></tr>`;
           overlay.style.display = "block";
           document.body.style.overflow = "hidden";
@@ -538,11 +556,14 @@
 
         if (sub) sub.textContent = `${bookingRef} · ${prop}`;
 
+        const travelerEmail = String(row.travelerEmail || "-");
+
         row1.innerHTML = `
           <tr>
             <td class="mono">${esc(bookingRef)}</td>
             <td>${esc(prop)}</td>
             <td>${esc(travelerName)}</td>
+            <td class="mono">${esc(travelerEmail)}</td>
             <td class="right mono">${esc(paidTxt)}</td>
           </tr>
         `;
@@ -578,7 +599,7 @@
           if (elH) elH.textContent = String(days);
 
           const tbody = $("tbody");
-          tbody.innerHTML = '<tr><td colspan="5" class="muted">No rows.</td></tr>';
+          tbody.innerHTML = '<tr class="noClick"><td colspan="5" class="muted">No rows.</td></tr>';
 
           const data = await fetchJSON("/api/admin/exceptions?days=" + encodeURIComponent(String(days)));
 
@@ -771,11 +792,12 @@
               <th style="width:160px;">Booking ref</th>
               <th style="width:280px;">Property</th>
               <th style="width:220px;">Traveler</th>
+              <th style="width:260px;">Email</th>
               <th class="right" style="width:140px;">Paid</th>
             </tr>
           </thead>
           <tbody id="detailsRow1">
-            <tr><td colspan="4" class="muted">Loading...</td></tr>
+            <tr><td colspan="5" class="muted">Loading...</td></tr>
           </tbody>
         </table>
       </div>
