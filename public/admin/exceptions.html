@@ -203,6 +203,11 @@
       background:#fff;
       display:none;
     }
+    /* Row priority cues */
+    tr.pri-danger td { border-left: 4px solid #b42318; }
+    tr.pri-warn   td { border-left: 4px solid #f59e0b; }
+    tr.pri-neutral td { border-left: 4px solid transparent; }
+
   </style>
 </head>
 
@@ -230,7 +235,7 @@
       <div class="metaRow">
         <span class="pill"><b>Status:</b> <span id="authStatus">Checking...</span></span>
         <span class="pill"><b>Count:</b> <span id="kpiCount">0</span></span>
-        <span class="pill"><b>Horizon:</b> <span id="kpiHorizon" class="mono">30</span> day(s)</span>
+        <span class="pill"><b>Updated:</b> <span id="kpiUpdated" class="mono">-</span></span>
       </div>
 
       <div class="controls">
@@ -249,7 +254,17 @@
           <input id="searchBox" class="search" type="text" placeholder="Booking ref, property, traveler, provider payment id" />
         </label>
 
+        <label>
+          Check-in date
+          <select id="checkinSel">
+            <option value="all" selected>All</option>
+            <option value="has">Has check-in date</option>
+            <option value="none">No check-in date</option>
+          </select>
+        </label>
+
         <button id="btnRefresh" class="btn" type="button">Refresh</button>
+        <button id="btnClear" class="btn ghost" type="button">Clear</button>
       </div>
 
       <div id="pageToast" class="toast"></div>
@@ -265,6 +280,7 @@
             <th style="width:260px;">Property</th>
             <th style="width:280px;">Traveler</th>
             <th style="width:200px;">Stay</th>
+            <th style="width:220px;">Why</th>
             <th style="width:160px;">Status</th>
             <th class="right" style="width:120px;">Paid</th>
             <th style="width:220px;">Provider payment id</th>
@@ -272,7 +288,7 @@
           </tr>
         </thead>
         <tbody id="tbody">
-          <tr><td colspan="8" class="muted">Loading...</td></tr>
+          <tr><td colspan="9" class="muted">Loading...</td></tr>
         </tbody>
       </table>
     </div>
@@ -287,6 +303,7 @@
       const $ = (id) => document.getElementById(id);
 
       let lastRows = [];
+      let __loading = false;
 
       function getToken(){
         try { return localStorage.getItem(ADMIN_TOKEN_KEY) || ""; } catch(_) { return ""; }
@@ -415,12 +432,19 @@
         const tbody = $("tbody");
         const empty = $("emptyState");
         const q = String($("searchBox")?.value || "").trim().toLowerCase();
+        const ck = String($("checkinSel")?.value || "all").trim();
 
         const rows0 = Array.isArray(lastRows) ? lastRows.slice() : [];
-        const rows = q ? rows0.filter(r => rowText(r).includes(q)) : rows0;
+        let rows = q ? rows0.filter(r => rowText(r).includes(q)) : rows0;
+
+          if (ck === "has") {
+            rows = rows.filter(r => !!r.checkInDate);
+          } else if (ck === "none") {
+            rows = rows.filter(r => !r.checkInDate);
+          }
 
         if (!rows.length){
-          if (tbody) tbody.innerHTML = '<tr><td colspan="8" class="muted">No rows.</td></tr>';
+          if (tbody) tbody.innerHTML = '<tr><td colspan="9" class="muted">No rows.</td></tr>';
           if (empty) empty.style.display = (rows0.length ? "none" : "block");
           return;
         }
@@ -437,8 +461,23 @@
           const created = esc(fmtDateOnly(r.createdAt) || "-");
           const st = statusTag(r.status, r);
 
+          const pri = (() => {
+            if (!r.checkInDate) return "pri-danger";
+            try{
+              const now = new Date();
+              const ci = new Date(r.checkInDate);
+              if (isNaN(ci.getTime())) return "pri-danger";
+              const diff = Math.ceil((ci.getTime() - now.getTime()) / (1000*60*60*24));
+              if (diff <= 3) return "pri-danger";
+              if (diff <= 7) return "pri-warn";
+              return "pri-neutral";
+            }catch(_){
+              return "pri-neutral";
+            }
+          })();
+
           return `
-            <tr>
+            <tr class="${pri}">
               <td class="mono">
                 ${
                   (ref && ref !== "-")
@@ -449,6 +488,7 @@
               <td>${prop || "-"}</td>
               <td>${traveler}</td>
               <td class="mono">${stay}</td>
+              <td>Refund in progress (within horizon)</td>
               <td>${st}</td>
               <td class="right mono">${paid}</td>
               <td class="mono">${pp}</td>
@@ -459,13 +499,29 @@
       }
 
       async function load(){
+        if (__loading) return;
+        __loading = true;
+
         setToast("", "");
         const days = Number($("daysSel")?.value || 30) || 30;
         $("kpiHorizon").textContent = String(days);
 
+        // Persist filters in URL (refresh-safe)
+        try{
+          const u = new URL(window.location.href);
+          u.searchParams.set("days", String(days));
+          u.searchParams.set("q", String($("searchBox")?.value || ""));
+          u.searchParams.set("ck", String($("checkinSel")?.value || "all"));
+          window.history.replaceState({}, "", u.toString());
+        }catch(_){}
+
         try{
           $("tbody").innerHTML = '<tr><td colspan="8" class="muted">Loading...</td></tr>';
-          const data = await fetchJSON("/api/admin/exceptions?days=" + encodeURIComponent(String(days)));
+
+          const data = await fetchJSON(
+            "/api/admin/exceptions?days=" + encodeURIComponent(String(days))
+          );
+
           if (!data || !data.ok){
             lastRows = [];
             $("kpiCount").textContent = "0";
@@ -475,16 +531,32 @@
           }
 
           lastRows = Array.isArray(data.rows) ? data.rows : [];
-          $("kpiCount").textContent = String(Number(data.count || lastRows.length || 0));
+          $("kpiCount").textContent = String(
+            Number(data.count || lastRows.length || 0)
+          );
 
           render();
-          setToast("Ready.", "ok");
+          try{
+            const now = new Date();
+            $("kpiUpdated").textContent = now.toLocaleString(undefined, {
+              year: "numeric",
+              month: "short",
+              day: "2-digit",
+              hour: "2-digit",
+              minute: "2-digit"
+            });
+          }catch(_){}
         } catch(e){
           console.error("[admin/exceptions] load failed", e);
           lastRows = [];
           $("kpiCount").textContent = "0";
           render();
-          setToast("Failed: " + String(e && e.message ? e.message : e), "bad");
+          setToast(
+            "Failed: " + String(e && e.message ? e.message : e),
+            "bad"
+          );
+        } finally {
+          __loading = false;
         }
       }
 
@@ -496,9 +568,37 @@
 
         $("btnRefresh").onclick = load;
 
+        $("btnClear").onclick = () => {
+          // reset UI
+          if ($("daysSel")) $("daysSel").value = "30";
+          if ($("searchBox")) $("searchBox").value = "";
+          if ($("checkinSel")) $("checkinSel").value = "all";
+
+          // reset URL (keep cb if present)
+          try{
+            const u = new URL(window.location.href);
+            const cb = u.searchParams.get("cb");
+            u.search = "";
+            if (cb) u.searchParams.set("cb", cb);
+            window.history.replaceState({}, "", u.toString());
+          }catch(_){}
+
+          // reload from backend for default horizon
+          load();
+        };
+
         $("daysSel").onchange = load;
 
         $("searchBox").addEventListener("input", () => render());
+        $("checkinSel").onchange = () => {
+          try{
+            const u = new URL(window.location.href);
+            u.searchParams.set("q", String($("searchBox")?.value || ""));
+            u.searchParams.set("ck", String($("checkinSel")?.value || "all"));
+            window.history.replaceState({}, "", u.toString());
+          }catch(_){}
+          render();
+        };
       }
 
       (async function boot(){
@@ -507,7 +607,21 @@
 
         setAuthStatus("Ready");
         wire();
+
+        // Hydrate filters from URL (if present)
+        try{
+          const u = new URL(window.location.href);
+          const days = u.searchParams.get("days");
+          const q = u.searchParams.get("q");
+          const ck = u.searchParams.get("ck");
+
+          if (days && $("daysSel")) $("daysSel").value = String(days);
+          if (q != null && $("searchBox")) $("searchBox").value = String(q);
+          if (ck && $("checkinSel")) $("checkinSel").value = String(ck);
+        }catch(_){}
+
         load();
+
       })();
     })();
   </script>
