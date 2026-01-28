@@ -5331,8 +5331,7 @@ app.get("/api/admin/exceptions", async (req: Request, res: Response) => {
 
           UNION ALL
 
-          -- 4) Paid but canceled without refund (older than 24h)
-
+          -- 4) Paid but cancelled without refund (older than 24h)
           SELECT
             b.id,
             b."bookingRef",
@@ -5350,7 +5349,7 @@ app.get("/api/admin/exceptions", async (req: Request, res: Response) => {
             b."partnerId",
             'CANCELLED_PAID_NO_REFUND'::text AS "exceptionType",
             'Cancelled booking with payment but no refund issued'::text AS "why",
-            2::int AS _pri
+            4::int AS _pri
           FROM extranet."Booking" b
           LEFT JOIN extranet."PropertyProfile" pp ON pp."partnerId" = b."partnerId"
           LEFT JOIN extranet."Partner" p ON p.id = b."partnerId"
@@ -5360,7 +5359,8 @@ app.get("/api/admin/exceptions", async (req: Request, res: Response) => {
               b."canceledAt" IS NULL
               OR b."canceledAt" < (NOW() - INTERVAL '24 hours')
             )
-            AND (b."refundStatus" IS NULL OR b."refundStatus" <> 'REFUNDED'::extranet."RefundStatus")
+            -- IMPORTANT: avoid enum literal that may not exist
+            AND (b."refundStatus" IS NULL OR b."refundStatus"::text <> 'REFUNDED')
             AND b."refundedAt" IS NULL
             AND (b."cancellationRefundAmount" IS NULL OR b."cancellationRefundAmount" <= 0)
         )
@@ -5372,6 +5372,7 @@ app.get("/api/admin/exceptions", async (req: Request, res: Response) => {
           "checkInDate" ASC NULLS LAST,
           "createdAt" DESC
         LIMIT 200;
+
       `;
       const r = await client.query(q, [horizonDays]);
       return r.rows || [];
