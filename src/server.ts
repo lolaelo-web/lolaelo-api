@@ -5369,7 +5369,7 @@ app.get("/api/admin/exceptions", async (req: Request, res: Response) => {
           FROM extranet."Booking" b
           LEFT JOIN extranet."PropertyProfile" pp ON pp."partnerId" = b."partnerId"
           LEFT JOIN extranet."Partner" p ON p.id = b."partnerId"
-          WHERE b.status = 'CANCELLED'::extranet."BookingStatus"
+          WHERE b.status = 'CANCELED_BY_TRAVELER'::extranet."BookingStatus"
             AND COALESCE(b."amountPaid", 0) > 0
             AND (
               b."canceledAt" IS NULL
