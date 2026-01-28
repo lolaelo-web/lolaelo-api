@@ -164,6 +164,13 @@
     .mono{ font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace; }
     .muted{ color:var(--muted); }
 
+    .link{
+      color: var(--accent);
+      text-decoration:none;
+      font-weight:800;
+    }
+    .link:hover{ text-decoration:underline; }
+
     .tag{
       display:inline-block;
       padding:4px 10px;
@@ -205,9 +212,8 @@
       <div>
         <div class="brandRow">
           <img src="/images/logo.png" alt="Lolaelo" />
-          <span class="pill"> Exceptions </span>
         </div>
-        <div class="sub">Operational inbox. v0 shows REFUND_IN_PROGRESS bookings within the selected horizon.</div>
+        <div class="sub">Operational inbox. Refund holds within the selected horizon.</div>
       </div>
 
       <div class="btnRow">
@@ -219,7 +225,7 @@
 
     <div class="hero">
       <h1>Exceptions</h1>
-      <p>Focus: refund holds approaching check-in. Use horizon to control how far ahead we look.</p>
+      <p>Refund holds within the selected horizon window.</p>
 
       <div class="metaRow">
         <span class="pill"><b>Status:</b> <span id="authStatus">Checking...</span></span>
@@ -433,7 +439,13 @@
 
           return `
             <tr>
-              <td class="mono">${ref || "-"}</td>
+              <td class="mono">
+                ${
+                  (ref && ref !== "-")
+                    ? `<a class="link" href="/admin/bookings.html?q=${encodeURIComponent(ref)}">${ref}</a>`
+                    : `-`
+                }
+              </td>
               <td>${prop || "-"}</td>
               <td>${traveler}</td>
               <td class="mono">${stay}</td>
