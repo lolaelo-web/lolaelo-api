@@ -555,6 +555,22 @@
         const providerId = String(row.providerPaymentId || "-");
 
         if (sub) sub.textContent = `${bookingRef} · ${prop}`;
+        const btnBookings = $("btnOpenBookings");
+          if (btnBookings){
+            btnBookings.href = bookingRef
+              ? `/admin/bookings.html?q=${encodeURIComponent(bookingRef)}`
+              : "/admin/bookings.html";
+          }
+
+          const btnAP = $("btnOpenAP");
+          if (btnAP){
+            if (String(row.exceptionType || "") === "COMPLETED_NOT_IN_PAYOUT_LAST_WEEK"){
+              btnAP.style.display = "";
+            } else {
+              btnAP.style.display = "none";
+            }
+          }
+
 
         const travelerEmail = String(row.travelerEmail || "-");
 
@@ -825,6 +841,11 @@
       <div class="muted" style="font-size:12px;">
         Tip: click the booking ref in the table to jump to Bookings search.
       </div>
+      <div style="display:flex; gap:10px; justify-content:flex-end; margin-top:12px;" id="detailsActions">
+        <a class="btn ghost" id="btnOpenBookings" href="#" target="_blank">Open Bookings</a>
+        <a class="btn" id="btnOpenAP" href="/admin/ap.html" target="_blank" style="display:none;">Open AP</a>
+      </div>
+
     </div>
   </div>
 </div>
