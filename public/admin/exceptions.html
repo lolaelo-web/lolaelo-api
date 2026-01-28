@@ -568,44 +568,67 @@
       }
 
       function wire(){
-        $("btnLogout").onclick = () => {
-          try { localStorage.removeItem(ADMIN_TOKEN_KEY); } catch(_) {}
-          location.replace(LOGIN);
-        };
+        const btnLogout = $("btnLogout");
+        if (btnLogout){
+          btnLogout.onclick = () => {
+            try { localStorage.removeItem(ADMIN_TOKEN_KEY); } catch(_) {}
+            location.replace(LOGIN);
+          };
+        }
 
-        $("btnRefresh").onclick = load;
+        const btnRefresh = $("btnRefresh");
+        if (btnRefresh) btnRefresh.onclick = load;
 
-        $("btnClear").onclick = () => {
-          // reset UI
-          if ($("daysSel")) $("daysSel").value = "30";
-          if ($("searchBox")) $("searchBox").value = "";
-          if ($("checkinSel")) $("checkinSel").value = "all";
+        const daysSel = $("daysSel");
+        if (daysSel) daysSel.onchange = load;
 
-          // reset URL (keep cb if present)
-          try{
-            const u = new URL(window.location.href);
-            const cb = u.searchParams.get("cb");
-            u.search = "";
-            if (cb) u.searchParams.set("cb", cb);
-            window.history.replaceState({}, "", u.toString());
-          }catch(_){}
+        const searchBox = $("searchBox");
+        if (searchBox){
+          searchBox.addEventListener("input", () => {
+            // keep URL in sync
+            try{
+              const u = new URL(window.location.href);
+              u.searchParams.set("q", String($("searchBox")?.value || ""));
+              u.searchParams.set("ck", String($("checkinSel")?.value || "all"));
+              window.history.replaceState({}, "", u.toString());
+            }catch(_){}
+            render();
+          });
+        }
 
-          // reload from backend for default horizon
-          load();
-        };
+        const checkinSel = $("checkinSel");
+        if (checkinSel){
+          checkinSel.onchange = () => {
+            try{
+              const u = new URL(window.location.href);
+              u.searchParams.set("q", String($("searchBox")?.value || ""));
+              u.searchParams.set("ck", String($("checkinSel")?.value || "all"));
+              window.history.replaceState({}, "", u.toString());
+            }catch(_){}
+            render();
+          };
+        }
 
-        $("daysSel").onchange = load;
+        const btnClear = $("btnClear");
+        if (btnClear){
+          btnClear.onclick = () => {
+            // reset UI
+            if ($("daysSel")) $("daysSel").value = "30";
+            if ($("searchBox")) $("searchBox").value = "";
+            if ($("checkinSel")) $("checkinSel").value = "all";
 
-        $("searchBox").addEventListener("input", () => render());
-        $("checkinSel").onchange = () => {
-          try{
-            const u = new URL(window.location.href);
-            u.searchParams.set("q", String($("searchBox")?.value || ""));
-            u.searchParams.set("ck", String($("checkinSel")?.value || "all"));
-            window.history.replaceState({}, "", u.toString());
-          }catch(_){}
-          render();
-        };
+            // reset URL (keep cb if present)
+            try{
+              const u = new URL(window.location.href);
+              const cb = u.searchParams.get("cb");
+              u.search = "";
+              if (cb) u.searchParams.set("cb", cb);
+              window.history.replaceState({}, "", u.toString());
+            }catch(_){}
+
+            load();
+          };
+        }
       }
 
       (async function boot(){
