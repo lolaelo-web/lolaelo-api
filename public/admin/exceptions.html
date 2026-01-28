@@ -502,59 +502,66 @@
         if (__loading) return;
         __loading = true;
 
-        setToast("", "");
-        const days = Number($("daysSel")?.value || 30) || 30;
-        $("kpiHorizon").textContent = String(days);
-
-        // Persist filters in URL (refresh-safe)
         try{
-          const u = new URL(window.location.href);
-          u.searchParams.set("days", String(days));
-          u.searchParams.set("q", String($("searchBox")?.value || ""));
-          u.searchParams.set("ck", String($("checkinSel")?.value || "all"));
-          window.history.replaceState({}, "", u.toString());
-        }catch(_){}
+          setToast("", "");
 
-        try{
-          $("tbody").innerHTML = '<tr><td colspan="8" class="muted">Loading...</td></tr>';
+          const days = Number($("daysSel")?.value || 30) || 30;
 
-          const data = await fetchJSON(
-            "/api/admin/exceptions?days=" + encodeURIComponent(String(days))
-          );
+          const elH = $("kpiHorizon");
+          if (elH) elH.textContent = String(days);
+
+          const tbody = $("tbody");
+          if (tbody) tbody.innerHTML = '<tr><td colspan="9" class="muted">Loading...</td></tr>';
+
+          const data = await fetchJSON("/api/admin/exceptions?days=" + encodeURIComponent(String(days)));
 
           if (!data || !data.ok){
             lastRows = [];
-            $("kpiCount").textContent = "0";
+            const elC = $("kpiCount");
+            if (elC) elC.textContent = "0";
             render();
             setToast("Failed loading exceptions.", "bad");
             return;
           }
 
           lastRows = Array.isArray(data.rows) ? data.rows : [];
-          $("kpiCount").textContent = String(
-            Number(data.count || lastRows.length || 0)
-          );
+
+          const elC = $("kpiCount");
+          if (elC) elC.textContent = String(Number(data.count || lastRows.length || 0));
 
           render();
+          setToast("Ready.", "ok");
+
+          // Updated timestamp
           try{
-            const now = new Date();
-            $("kpiUpdated").textContent = now.toLocaleString(undefined, {
-              year: "numeric",
-              month: "short",
-              day: "2-digit",
-              hour: "2-digit",
-              minute: "2-digit"
-            });
+            const elU = $("kpiUpdated");
+            if (elU){
+              const now = new Date();
+              elU.textContent = now.toLocaleString(undefined, {
+                year: "numeric",
+                month: "short",
+                day: "2-digit",
+                hour: "2-digit",
+                minute: "2-digit"
+              });
+            }
+          }catch(_){}
+
+          // Persist filters in URL (refresh-safe)
+          try{
+            const u = new URL(window.location.href);
+            u.searchParams.set("days", String(days));
+            u.searchParams.set("q", String($("searchBox")?.value || ""));
+            u.searchParams.set("ck", String($("checkinSel")?.value || "all"));
+            window.history.replaceState({}, "", u.toString());
           }catch(_){}
         } catch(e){
           console.error("[admin/exceptions] load failed", e);
           lastRows = [];
-          $("kpiCount").textContent = "0";
+          const elC = $("kpiCount");
+          if (elC) elC.textContent = "0";
           render();
-          setToast(
-            "Failed: " + String(e && e.message ? e.message : e),
-            "bad"
-          );
+          setToast("Failed: " + String(e && e.message ? e.message : e), "bad");
         } finally {
           __loading = false;
         }
