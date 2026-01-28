@@ -208,7 +208,21 @@
     tr.pri-danger td:first-child { border-left: 4px solid #b42318; }
     tr.pri-warn td:first-child   { border-left: 4px solid #f59e0b; }
     tr.pri-neutral td:first-child{ border-left: 4px solid transparent; }
-
+    .modalOverlay{
+      position:fixed;
+      inset:0;
+      background:rgba(2,6,23,.55);
+      z-index:9999;
+      padding:18px;
+      overflow:auto;
+    }
+    .modal{
+      background:var(--card);
+      border:1px solid var(--line);
+      border-radius:16px;
+      box-shadow:0 30px 90px rgba(0,0,0,.25);
+      overflow:hidden;
+    }
   </style>
 </head>
 
@@ -278,18 +292,14 @@
         <thead>
           <tr>
             <th style="width:140px;">Booking ref</th>
-            <th style="width:260px;">Property</th>
-            <th style="width:280px;">Traveler</th>
-            <th style="width:200px;">Stay</th>
-            <th style="width:220px;">Why</th>
-            <th style="width:160px;">Status</th>
-            <th class="right" style="width:120px;">Paid</th>
-            <th style="width:220px;">Provider payment id</th>
-            <th style="width:160px;">Created</th>
+            <th style="width:280px;">Property</th>
+            <th style="width:220px;">Traveler</th>
+            <th style="width:360px;">Why</th>
+            <th class="right" style="width:140px;">Paid</th>
           </tr>
         </thead>
         <tbody id="tbody">
-          <tr><td colspan="9" class="muted">Loading...</td></tr>
+          <tr><td colspan="5" class="muted">Loading...</td></tr>
         </tbody>
       </table>
     </div>
@@ -451,7 +461,7 @@
           }
 
         if (!rows.length){
-          if (tbody) tbody.innerHTML = '<tr><td colspan="9" class="muted">No rows.</td></tr>';
+          if (tbody) tbody.innerHTML = '<tr><td colspan="5" class="muted">No rows.</td></tr>';
           if (empty) empty.style.display = (rows0.length ? "none" : "block");
           return;
         }
@@ -484,7 +494,7 @@
           })();
 
           return `
-            <tr class="${pri}">
+            <tr class="${pri}" data-id="${esc(String(r.id))}">
               <td class="mono">
                 ${
                   (ref && ref !== "-")
@@ -493,16 +503,66 @@
                 }
               </td>
               <td>${prop || "-"}</td>
-              <td>${traveler}</td>
-              <td class="mono">${stay}</td>
+              <td>${esc(([String(r.travelerFirstName||"").trim(), String(r.travelerLastName||"").trim()].filter(Boolean).join(" ")) || "-")}</td>
               <td>${esc(String(r.why || "-"))}</td>
-              <td>${st}</td>
               <td class="right mono">${paid}</td>
-              <td class="mono">${pp}</td>
-              <td class="mono">${created}</td>
             </tr>
           `;
         }).join("");
+      }
+
+      function openDetails(id){
+        const row = (Array.isArray(lastRows) ? lastRows : []).find(r => String(r.id) === String(id));
+        const overlay = $("detailsOverlay");
+        const sub = $("detailsSub");
+        const row1 = $("detailsRow1");
+        const row2 = $("detailsRow2");
+
+        if (!overlay || !row1 || !row2) return;
+
+        if (!row){
+          row1.innerHTML = `<tr><td colspan="4" class="muted">Row not found.</td></tr>`;
+          row2.innerHTML = `<tr><td colspan="3" class="muted">Row not found.</td></tr>`;
+          overlay.style.display = "block";
+          document.body.style.overflow = "hidden";
+          return;
+        }
+
+        const bookingRef = String(row.bookingRef || "-");
+        const prop = String(row.propertyName || ("Partner #" + (row.partnerId || "")));
+        const travelerName = ([String(row.travelerFirstName||"").trim(), String(row.travelerLastName||"").trim()].filter(Boolean).join(" ")) || "-";
+        const paidTxt = fmtMoney(row.amountPaid, row.currency || "USD");
+        const whyTxt = String(row.why || "-");
+        const statusLabel = String(row.status || "-");
+        const providerId = String(row.providerPaymentId || "-");
+
+        if (sub) sub.textContent = `${bookingRef} · ${prop}`;
+
+        row1.innerHTML = `
+          <tr>
+            <td class="mono">${esc(bookingRef)}</td>
+            <td>${esc(prop)}</td>
+            <td>${esc(travelerName)}</td>
+            <td class="right mono">${esc(paidTxt)}</td>
+          </tr>
+        `;
+
+        row2.innerHTML = `
+          <tr>
+            <td>${esc(whyTxt)}</td>
+            <td>${esc(statusLabel)}</td>
+            <td class="mono">${esc(providerId)}</td>
+          </tr>
+        `;
+
+        overlay.style.display = "block";
+        document.body.style.overflow = "hidden";
+      }
+
+      function closeDetails(){
+        const overlay = $("detailsOverlay");
+        if (overlay) overlay.style.display = "none";
+        document.body.style.overflow = "";
       }
 
       async function load(){
@@ -518,7 +578,7 @@
           if (elH) elH.textContent = String(days);
 
           const tbody = $("tbody");
-          if (tbody) tbody.innerHTML = '<tr><td colspan="9" class="muted">Loading...</td></tr>';
+          tbody.innerHTML = '<tr><td colspan="5" class="muted">No rows.</td></tr>';
 
           const data = await fetchJSON("/api/admin/exceptions?days=" + encodeURIComponent(String(days)));
 
@@ -636,6 +696,36 @@
             load();
           };
         }
+
+        const btnCloseDetails = $("btnCloseDetails");
+        if (btnCloseDetails) btnCloseDetails.onclick = () => closeDetails();
+
+        const detailsOverlay = $("detailsOverlay");
+        if (detailsOverlay){
+          detailsOverlay.addEventListener("click", (e) => {
+            if (e.target && e.target.id === "detailsOverlay") closeDetails();
+          });
+        }
+
+        // Row click -> details modal (ignore clicks on links/buttons)
+        const tbody = $("tbody");
+        if (tbody){
+          tbody.addEventListener("click", (e) => {
+            const t = e.target;
+            if (!t) return;
+
+            // ignore clicking on links (booking ref)
+            if (t.closest && t.closest("a")) return;
+
+            const tr = t.closest ? t.closest("tr") : null;
+            if (!tr) return;
+
+            const id = String(tr.getAttribute("data-id") || "").trim();
+            if (!id) return;
+
+            openDetails(id);
+          });
+        }
       }
 
       (async function boot(){
@@ -662,5 +752,59 @@
       })();
     })();
   </script>
+  <div id="detailsOverlay" class="modalOverlay" role="dialog" aria-modal="true" aria-label="Exception details" style="display:none;">
+  <div class="modal" style="max-width:980px; margin:0 auto;">
+    <div class="modalHeader" style="display:flex; align-items:center; justify-content:space-between; gap:10px; padding:12px 14px; border-bottom:1px solid rgba(15,23,42,.08); background:#fbfcff;">
+      <div>
+        <div style="font-weight:900; font-size:14px;">Exception details</div>
+        <div class="muted" style="font-size:12px;" id="detailsSub">-</div>
+      </div>
+      <button class="btn ghost" type="button" id="btnCloseDetails">Close</button>
+    </div>
+
+    <div class="modalBody" style="padding:12px 14px;">
+      <!-- Row 1 -->
+      <div class="table" style="box-shadow:none; margin-top:0; overflow-x:auto;">
+        <table style="min-width:900px;">
+          <thead>
+            <tr>
+              <th style="width:160px;">Booking ref</th>
+              <th style="width:280px;">Property</th>
+              <th style="width:220px;">Traveler</th>
+              <th class="right" style="width:140px;">Paid</th>
+            </tr>
+          </thead>
+          <tbody id="detailsRow1">
+            <tr><td colspan="4" class="muted">Loading...</td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      <div style="height:10px;"></div>
+
+      <!-- Row 2 -->
+      <div class="table" style="box-shadow:none; margin-top:0; overflow-x:auto;">
+        <table style="min-width:900px;">
+          <thead>
+            <tr>
+              <th style="width:420px;">Why</th>
+              <th style="width:220px;">Status</th>
+              <th style="width:260px;">Provider payment id</th>
+            </tr>
+          </thead>
+          <tbody id="detailsRow2">
+            <tr><td colspan="3" class="muted">Loading...</td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      <div style="height:10px;"></div>
+
+      <div class="muted" style="font-size:12px;">
+        Tip: click the booking ref in the table to jump to Bookings search.
+      </div>
+    </div>
+  </div>
+</div>
 </body>
 </html>
