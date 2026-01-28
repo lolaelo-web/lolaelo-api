@@ -5225,8 +5225,49 @@ app.get("/api/admin/exceptions", async (req: Request, res: Response) => {
 
     const data = await withDb(async (client) => {
       const q = `
-        WITH x AS (
-          -- 1) Refund holds within horizon (existing behavior)
+        WITH
+        et AS (
+          SELECT
+            (now() AT TIME ZONE 'America/New_York') AS et_now,
+            (date_trunc('week', now() AT TIME ZONE 'America/New_York'))::date AS this_week_start
+        ),
+        last_week AS (
+          SELECT
+            (this_week_start - 7)::date AS last_week_start,
+            (this_week_start - 1)::date AS last_week_end
+          FROM et
+        ),
+        x AS (
+          -- 1) Paid but still pending hotel confirmation + upcoming check-in (at-risk)
+          SELECT
+            b.id,
+            b."bookingRef",
+            b.status::text as status,
+            b.currency,
+            b."amountPaid",
+            b."providerPaymentId",
+            b."travelerFirstName",
+            b."travelerLastName",
+            b."travelerEmail",
+            b."checkInDate",
+            b."checkOutDate",
+            b."createdAt",
+            COALESCE(pp.name, p.name, ('Partner #' || b."partnerId"::text)) AS "propertyName",
+            b."partnerId",
+            'PENDING_CONFIRMATION_PAID_UPCOMING'::text AS "exceptionType",
+            'Pending hotel confirmation (paid, upcoming)'::text AS "why",
+            1::int AS _pri
+          FROM extranet."Booking" b
+          LEFT JOIN extranet."PropertyProfile" pp ON pp."partnerId" = b."partnerId"
+          LEFT JOIN extranet."Partner" p ON p.id = b."partnerId"
+          WHERE b.status = 'PENDING_HOTEL_CONFIRMATION'::extranet."BookingStatus"
+            AND COALESCE(b."amountPaid", 0) > 0
+            AND b."checkInDate" IS NOT NULL
+            AND (b."checkInDate"::date <= (NOW()::date + ($1::int || ' days')::interval)::date)
+
+          UNION ALL
+
+          -- 2) Refund holds within horizon
           SELECT
             b.id,
             b."bookingRef",
@@ -5256,7 +5297,7 @@ app.get("/api/admin/exceptions", async (req: Request, res: Response) => {
 
           UNION ALL
 
-          -- 2) Paid but still pending hotel confirmation + upcoming check-in (at-risk)
+          -- 3) Completed last pay week but not linked in PayoutBooking (partner payment at risk)
           SELECT
             b.id,
             b."bookingRef",
@@ -5272,16 +5313,21 @@ app.get("/api/admin/exceptions", async (req: Request, res: Response) => {
             b."createdAt",
             COALESCE(pp.name, p.name, ('Partner #' || b."partnerId"::text)) AS "propertyName",
             b."partnerId",
-            'PENDING_CONFIRMATION_PAID_UPCOMING'::text AS "exceptionType",
-            'Pending hotel confirmation (paid, upcoming)'::text AS "why",
-            1::int AS _pri
+            'COMPLETED_NOT_IN_PAYOUT_LAST_WEEK'::text AS "exceptionType",
+            'Completed last pay week but not in payout'::text AS "why",
+            3::int AS _pri
           FROM extranet."Booking" b
           LEFT JOIN extranet."PropertyProfile" pp ON pp."partnerId" = b."partnerId"
           LEFT JOIN extranet."Partner" p ON p.id = b."partnerId"
-          WHERE b.status = 'PENDING_HOTEL_CONFIRMATION'::extranet."BookingStatus"
-            AND COALESCE(b."amountPaid", 0) > 0
-            AND b."checkInDate" IS NOT NULL
-            AND (b."checkInDate"::date <= (NOW()::date + ($1::int || ' days')::interval)::date)
+          CROSS JOIN last_week lw
+          WHERE b.status = 'COMPLETED'::extranet."BookingStatus"
+            AND b."completedAt" IS NOT NULL
+            AND ((b."completedAt" AT TIME ZONE 'America/New_York')::date BETWEEN lw.last_week_start AND lw.last_week_end)
+            AND NOT EXISTS (
+              SELECT 1
+              FROM extranet."PayoutBooking" pb
+              WHERE pb."bookingId" = b.id
+            )
         )
         SELECT
           id,
