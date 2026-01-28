@@ -93,6 +93,11 @@
       box-shadow:0 0 0 4px rgba(11,58,74,.20), 0 6px 18px rgba(15,23,42,.12);
     }
 
+    /* Modal action buttons: no underline, consistent look */
+    #detailsActions a{
+      text-decoration: none;
+    }
+
     .hero{
       border:1px solid var(--line);
       background:var(--card);
@@ -571,7 +576,6 @@
             }
           }
 
-
         const travelerEmail = String(row.travelerEmail || "-");
 
         row1.innerHTML = `
@@ -842,7 +846,7 @@
         Tip: click the booking ref in the table to jump to Bookings search.
       </div>
       <div style="display:flex; gap:10px; justify-content:flex-end; margin-top:12px;" id="detailsActions">
-        <a class="btn ghost" id="btnOpenBookings" href="#" target="_blank">Open Bookings</a>
+        <a class="btn" id="btnOpenBookings" href="#" target="_blank">Open Bookings</a>
         <a class="btn" id="btnOpenAP" href="/admin/ap.html" target="_blank" style="display:none;">Open AP</a>
       </div>
 

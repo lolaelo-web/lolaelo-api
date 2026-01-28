@@ -5375,12 +5375,9 @@ app.get("/api/admin/exceptions", async (req: Request, res: Response) => {
               b."cancelledAt" IS NULL
               OR b."cancelledAt" < (NOW() - INTERVAL '24 hours')
             )
-            AND NOT EXISTS (
-              SELECT 1
-              FROM extranet."Refund" r
-              WHERE r."bookingId" = b.id
-                AND COALESCE(r."amount", 0) > 0
-            )
+            AND (b."refundStatus" IS NULL OR b."refundStatus" <> 'REFUNDED'::extranet."RefundStatus")
+            AND b."refundedAt" IS NULL
+            AND (b."cancellationRefundAmount" IS NULL OR b."cancellationRefundAmount" <= 0)
         FROM x
         ORDER BY
           _pri ASC,
