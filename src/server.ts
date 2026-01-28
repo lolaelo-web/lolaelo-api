@@ -5346,6 +5346,41 @@ app.get("/api/admin/exceptions", async (req: Request, res: Response) => {
           "partnerId",
           "exceptionType",
           "why"
+          UNION ALL
+          -- 4) Paid but cancelled without refund (older than 24h)
+          SELECT
+            b.id,
+            b."bookingRef",
+            b.status::text as status,
+            b.currency,
+            b."amountPaid",
+            b."providerPaymentId",
+            b."travelerFirstName",
+            b."travelerLastName",
+            b."travelerEmail",
+            b."checkInDate",
+            b."checkOutDate",
+            b."createdAt",
+            COALESCE(pp.name, p.name, ('Partner #' || b."partnerId"::text)) AS "propertyName",
+            b."partnerId",
+            'CANCELLED_PAID_NO_REFUND'::text AS "exceptionType",
+            'Cancelled booking with payment but no refund issued'::text AS "why",
+            2::int AS _pri
+          FROM extranet."Booking" b
+          LEFT JOIN extranet."PropertyProfile" pp ON pp."partnerId" = b."partnerId"
+          LEFT JOIN extranet."Partner" p ON p.id = b."partnerId"
+          WHERE b.status = 'CANCELLED'::extranet."BookingStatus"
+            AND COALESCE(b."amountPaid", 0) > 0
+            AND (
+              b."cancelledAt" IS NULL
+              OR b."cancelledAt" < (NOW() - INTERVAL '24 hours')
+            )
+            AND NOT EXISTS (
+              SELECT 1
+              FROM extranet."Refund" r
+              WHERE r."bookingId" = b.id
+                AND COALESCE(r."amount", 0) > 0
+            )
         FROM x
         ORDER BY
           _pri ASC,
