@@ -5225,30 +5225,87 @@ app.get("/api/admin/exceptions", async (req: Request, res: Response) => {
 
     const data = await withDb(async (client) => {
       const q = `
+        WITH x AS (
+          -- 1) Refund holds within horizon (existing behavior)
+          SELECT
+            b.id,
+            b."bookingRef",
+            b.status::text as status,
+            b.currency,
+            b."amountPaid",
+            b."providerPaymentId",
+            b."travelerFirstName",
+            b."travelerLastName",
+            b."travelerEmail",
+            b."checkInDate",
+            b."checkOutDate",
+            b."createdAt",
+            COALESCE(pp.name, p.name, ('Partner #' || b."partnerId"::text)) AS "propertyName",
+            b."partnerId",
+            'REFUND_IN_PROGRESS_WITHIN_HORIZON'::text AS "exceptionType",
+            'Refund in progress (within horizon)'::text AS "why",
+            2::int AS _pri
+          FROM extranet."Booking" b
+          LEFT JOIN extranet."PropertyProfile" pp ON pp."partnerId" = b."partnerId"
+          LEFT JOIN extranet."Partner" p ON p.id = b."partnerId"
+          WHERE b.status = 'REFUND_IN_PROGRESS'::extranet."BookingStatus"
+            AND (
+              b."checkInDate" IS NULL
+              OR (b."checkInDate"::date <= (NOW()::date + ($1::int || ' days')::interval)::date)
+            )
+
+          UNION ALL
+
+          -- 2) Paid but still pending hotel confirmation + upcoming check-in (at-risk)
+          SELECT
+            b.id,
+            b."bookingRef",
+            b.status::text as status,
+            b.currency,
+            b."amountPaid",
+            b."providerPaymentId",
+            b."travelerFirstName",
+            b."travelerLastName",
+            b."travelerEmail",
+            b."checkInDate",
+            b."checkOutDate",
+            b."createdAt",
+            COALESCE(pp.name, p.name, ('Partner #' || b."partnerId"::text)) AS "propertyName",
+            b."partnerId",
+            'PENDING_CONFIRMATION_PAID_UPCOMING'::text AS "exceptionType",
+            'Pending hotel confirmation (paid, upcoming)'::text AS "why",
+            1::int AS _pri
+          FROM extranet."Booking" b
+          LEFT JOIN extranet."PropertyProfile" pp ON pp."partnerId" = b."partnerId"
+          LEFT JOIN extranet."Partner" p ON p.id = b."partnerId"
+          WHERE b.status = 'PENDING_HOTEL_CONFIRMATION'::extranet."BookingStatus"
+            AND COALESCE(b."amountPaid", 0) > 0
+            AND b."checkInDate" IS NOT NULL
+            AND (b."checkInDate"::date <= (NOW()::date + ($1::int || ' days')::interval)::date)
+        )
         SELECT
-          b.id,
-          b."bookingRef",
-          b.status::text as status,
-          b.currency,
-          b."amountPaid",
-          b."providerPaymentId",
-          b."travelerFirstName",
-          b."travelerLastName",
-          b."travelerEmail",
-          b."checkInDate",
-          b."checkOutDate",
-          b."createdAt",
-          COALESCE(pp.name, p.name, ('Partner #' || b."partnerId"::text)) AS "propertyName",
-          b."partnerId"
-        FROM extranet."Booking" b
-        LEFT JOIN extranet."PropertyProfile" pp ON pp."partnerId" = b."partnerId"
-        LEFT JOIN extranet."Partner" p ON p.id = b."partnerId"
-        WHERE b.status = 'REFUND_IN_PROGRESS'::extranet."BookingStatus"
-          AND (b."checkInDate" IS NULL OR (b."checkInDate"::date <= (NOW()::date + ($1::int || ' days')::interval)::date))
+          id,
+          "bookingRef",
+          status,
+          currency,
+          "amountPaid",
+          "providerPaymentId",
+          "travelerFirstName",
+          "travelerLastName",
+          "travelerEmail",
+          "checkInDate",
+          "checkOutDate",
+          "createdAt",
+          "propertyName",
+          "partnerId",
+          "exceptionType",
+          "why"
+        FROM x
         ORDER BY
-          (CASE WHEN b."checkInDate" IS NULL THEN 1 ELSE 0 END) ASC,
-          b."checkInDate" ASC NULLS LAST,
-          b."createdAt" DESC
+          _pri ASC,
+          (CASE WHEN "checkInDate" IS NULL THEN 1 ELSE 0 END) ASC,
+          "checkInDate" ASC NULLS LAST,
+          "createdAt" DESC
         LIMIT 200;
       `;
       const r = await client.query(q, [horizonDays]);
