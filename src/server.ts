@@ -5347,7 +5347,7 @@ app.get("/api/admin/exceptions", async (req: Request, res: Response) => {
           "exceptionType",
           "why"
           UNION ALL
-          -- 4) Paid but cancelled without refund (older than 24h)
+          -- 4) Paid but canceled without refund (older than 24h)
           SELECT
             b.id,
             b."bookingRef",
@@ -5378,6 +5378,8 @@ app.get("/api/admin/exceptions", async (req: Request, res: Response) => {
             AND (b."refundStatus" IS NULL OR b."refundStatus" <> 'REFUNDED'::extranet."RefundStatus")
             AND b."refundedAt" IS NULL
             AND (b."cancellationRefundAmount" IS NULL OR b."cancellationRefundAmount" <= 0)
+        )
+        SELECT *
         FROM x
         ORDER BY
           _pri ASC,
@@ -5393,7 +5395,11 @@ app.get("/api/admin/exceptions", async (req: Request, res: Response) => {
     return res.json({ ok: true, count: data.length, rows: data });
   } catch (e: any) {
     console.error("[admin] exceptions error", e);
-    return res.status(500).json({ ok: false, error: "server_error" });
+    const msg =
+      (e && (e.message || e.toString()))
+        ? String(e.message || e.toString())
+        : "unknown_error";
+    return res.status(500).json({ ok: false, error: "server_error", message: msg });
   }
 });
 // ANCHOR: ADMIN_EXCEPTIONS_ROUTE END
