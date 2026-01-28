@@ -5323,31 +5323,16 @@ app.get("/api/admin/exceptions", async (req: Request, res: Response) => {
           WHERE b.status = 'COMPLETED'::extranet."BookingStatus"
             AND b."completedAt" IS NOT NULL
             AND ((b."completedAt" AT TIME ZONE 'America/New_York')::date BETWEEN lw.last_week_start AND lw.last_week_end)
-            AND NOT EXISTS (
+                AND NOT EXISTS (
               SELECT 1
               FROM extranet."PayoutBooking" pb
               WHERE pb."bookingId" = b.id
             )
-        )
-        SELECT
-          id,
-          "bookingRef",
-          status,
-          currency,
-          "amountPaid",
-          "providerPaymentId",
-          "travelerFirstName",
-          "travelerLastName",
-          "travelerEmail",
-          "checkInDate",
-          "checkOutDate",
-          "createdAt",
-          "propertyName",
-          "partnerId",
-          "exceptionType",
-          "why"
+
           UNION ALL
+
           -- 4) Paid but canceled without refund (older than 24h)
+
           SELECT
             b.id,
             b."bookingRef",
