@@ -178,11 +178,16 @@ router.get("/search", async (req: Request, res: Response) => {
     let _roomsApplied = 0; // debug: count properties where DB rooms were applied
 
     // ---- 2) Enrich: profiles/photos from DB -------------------------------
-    const ids: number[] = [];
+    // Normalize id shape and build ids for DB profile enrichment
+    const idsSet = new Set<number>();
     for (const p of props) {
-      const idNum = Number((p as any)?.propertyId);
-      if (Number.isFinite(idNum)) ids.push(idNum);
+      const pid = Number((p as any)?.propertyId ?? (p as any)?.id);
+      if (Number.isFinite(pid) && pid > 0) {
+        (p as any).propertyId = pid; // normalize so downstream code is consistent
+        idsSet.add(pid);
+      }
     }
+    const ids = Array.from(idsSet);
 
     if (ids.length > 0) {
       // ANCHOR: MERGE_DB_PROFILES_START
@@ -193,7 +198,7 @@ router.get("/search", async (req: Request, res: Response) => {
 
         for (const p of props) {
           const pid  = Number((p as any)?.propertyId);
-          const prof = (profMap as any)?.[pid];
+          const prof = (profMap as any)?.[Number((p as any).propertyId ?? (p as any).id)];
           if (!prof) continue;
 
           // prefer DB identity/location labels
@@ -536,6 +541,43 @@ router.get("/search", async (req: Request, res: Response) => {
       }
     } catch (err) {
       req.app?.get("logger")?.warn?.({ err }, "catalog.search photos-reapply-after-fallback failed");
+    }
+
+    // ---- 2d) Re-apply DB profiles for DB-fallback injected properties -------
+    // DB-fallback props are appended after the first profile pass, so they miss inclusions/country/etc.
+    try {
+      const fbIds = props
+        .filter(p => String((p as any)._baseSource || "") === "db-fallback")
+        .map(p => Number((p as any).propertyId ?? (p as any).id))
+        .filter(n => Number.isFinite(n) && n > 0);
+
+      const uniqFbIds = Array.from(new Set(fbIds));
+
+      if (uniqFbIds.length) {
+        const fbProfMap = await getProfilesFromDb(uniqFbIds);
+
+        for (const p of props) {
+          if (String((p as any)._baseSource || "") !== "db-fallback") continue;
+          const pid = Number((p as any).propertyId ?? (p as any).id);
+          const prof = (fbProfMap as any)?.[pid];
+          if (!prof) continue;
+
+          // Fill missing identity/location fields (non-destructive)
+          if (!(p as any).country) (p as any).country = prof.country ?? (p as any).country ?? "";
+          if (!(p as any).city)    (p as any).city    = prof.city    ?? (p as any).city    ?? "";
+          if (!(p as any).name)    (p as any).name    = prof.name    ?? (p as any).name    ?? "";
+
+          // Always attach inclusions (keys)
+          (p as any).inclusions = Array.isArray((prof as any).inclusions) ? (prof as any).inclusions : [];
+
+          // If images are empty, allow profile images to help (photos pass may already have filled these)
+          if ((!Array.isArray((p as any).images) || (p as any).images.length === 0) && Array.isArray((prof as any).images)) {
+            (p as any).images = (prof as any).images;
+          }
+        }
+      }
+    } catch (err) {
+      req.app?.get("logger")?.warn?.({ err }, "catalog.search db-fallback profiles attach failed");
     }
 
     // Final placeholder image backfill (runs AFTER DB-fallback push)
