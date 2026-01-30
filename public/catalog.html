@@ -221,7 +221,7 @@
 
     /* Catalog: cart pill button */
     .catalog-cart-btn{
-      position:relative;
+      justify-self:end;
       display:inline-flex;
       align-items:center;
       justify-content:center;
@@ -232,13 +232,15 @@
 
       border:1px solid var(--line);
       background:#fff;
+      color: var(--fg);
       text-decoration:none;
       border-radius:999px;
       box-shadow:0 4px 12px rgba(15,23,42,0.06);
+      position:relative;
     }
 
     .catalog-cart-icon{
-      width:72px;   /* 4x of 18px */
+      width:58px;   /* 4x of 18px */
       height:auto;
       display:block;
     }
@@ -1080,7 +1082,13 @@
 
     .catalog-col{ min-width: 0; }
 
-    .catalog-col.a .title{ font-weight:700; font-size:16px; margin-bottom:4px; }
+    .catalog-col.a .title {
+      font-weight: 700;
+      font-size: 16px;
+      margin-bottom: 4px;
+      color: #064e3b;
+    }
+
     .catalog-col.a .meta{ color:#6b7280; font-size:13px; margin-bottom:6px; }
     .catalog-col.a .chips{ margin-top:10px; }
     .catalog-col.a{
