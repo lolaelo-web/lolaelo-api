@@ -3057,15 +3057,6 @@
         }
         setPropertyInclusionKeys(seed);
       }
-
-      // Safety net: ensure ALL room types are queued to receive property inclusions
-      if (Array.isArray(window.__propertyInclusionKeys)) {
-        const keys = window.__propertyInclusionKeys.slice();
-        window.__propertyRoomTypeIds.forEach((roomTypeId) => {
-          const prev = pendingRoomUpdates.get(roomTypeId) || {};
-          pendingRoomUpdates.set(roomTypeId, { ...prev, inclusion_keys: keys.slice() });
-        });
-      }
     } catch(_) {}
 
     if (!Array.isArray(data)) return;
