@@ -1547,6 +1547,40 @@
   const readOnlyRoomField = new Map();  // roomId -> true
 
   // ANCHOR: ROOM_INFO_STATE
+  // ANCHOR: PROPERTY_INCLUSIONS_STATE
+  // Property-level inclusions: shared across all room types for this property.
+  window.__propertyRoomTypeIds = window.__propertyRoomTypeIds || [];
+  window.__propertyInclusionKeys = window.__propertyInclusionKeys || null; // null = not yet seeded
+
+  function normalizeKeyList(arr){
+    return (Array.isArray(arr) ? arr : [])
+      .map(s => String(s || '').trim())
+      .filter(Boolean)
+      .sort();
+  }
+
+  function setPropertyInclusionKeys(keys){
+    window.__propertyInclusionKeys = normalizeKeyList(keys);
+  }
+
+  function queuePropertyInclusionKeys(keys){
+    const next = normalizeKeyList(keys);
+    setPropertyInclusionKeys(next);
+
+    const ids = Array.isArray(window.__propertyRoomTypeIds) ? window.__propertyRoomTypeIds : [];
+
+    // Guard: if rooms not loaded yet, do not queue phantom updates
+    if (!ids.length) return;
+
+    ids.forEach((roomTypeId) => {
+      const prev = pendingRoomUpdates.get(roomTypeId) || {};
+      pendingRoomUpdates.set(roomTypeId, { ...prev, inclusion_keys: next.slice() });
+    });
+
+    try { updateDirtyUI(); } catch(_){}
+    try { setStatus('Property inclusions updated — click "Save changes" to apply.', 'warn'); } catch(_){}
+  }
+
   function syncRoomSizeFields(source){
     const sqmEl  = el('edit-room-size-sqm');
     const sqftEl = el('edit-room-size-sqft');
@@ -2654,6 +2688,14 @@
       inclusionKeys = Array.isArray(info.inclusionKeys)  ? info.inclusionKeys  : [];
     }catch(_){}
 
+    // === Property-level inclusions override ===
+    // If property inclusions were seeded, always render from the property-wide set.
+    try {
+      if (Array.isArray(window.__propertyInclusionKeys)) {
+        inclusionKeys = window.__propertyInclusionKeys.slice();
+      }
+    } catch(_) {}
+
     // Apply checkbox state for details / inclusions
     try{
       const detailEls = document.querySelectorAll('.ri-detail');
@@ -2665,6 +2707,22 @@
       inclusionEls.forEach(cb => {
         cb.checked = inclusionKeys.includes(cb.value);
       });
+
+      // Bind once: any inclusion toggle updates PROPERTY-wide state and queues updates for ALL room types
+      if (m && !m.dataset.boundPropertyInclusions) {
+        m.dataset.boundPropertyInclusions = '1';
+
+        m.addEventListener('change', (ev) => {
+          const t = ev && ev.target;
+          if (!t || !t.classList || !t.classList.contains('ri-inclusion')) return;
+
+          try {
+            const boxes = Array.from(document.querySelectorAll('.ri-inclusion'));
+            const keys = boxes.filter(x => x.checked).map(x => x.value);
+            queuePropertyInclusionKeys(keys);
+          } catch(_) {}
+        }, { capture: true });
+      }
     }catch(_){}
 
     // Attach one-time blur handlers for size conversion
@@ -2806,9 +2864,14 @@
           .map(cb => cb.value);
 
         const inclusionEls = document.querySelectorAll('.ri-inclusion');
-        infoInclusionKeys = Array.from(inclusionEls)
-          .filter(cb => cb.checked)
-          .map(cb => cb.value);
+        // Property-wide inclusions are the source of truth (if present)
+        if (Array.isArray(window.__propertyInclusionKeys)) {
+          infoInclusionKeys = window.__propertyInclusionKeys.slice();
+        } else {
+          infoInclusionKeys = Array.from(inclusionEls)
+            .filter(cb => cb.checked)
+            .map(cb => cb.value);
+        }
       }catch(_){}
 
       // Map room-info fields into API payload for RoomType update (canonical DB)
@@ -2963,6 +3026,7 @@
     const res = await authFetch("/extranet/property/rooms");
     if (!res.ok){ setStatus("Failed to load rooms ("+res.status+")","error"); return; }
     const data = await res.json();
+
     // ANCHOR: ROOMS_BY_ID_CACHE
     try {
       window.__roomsById = window.__roomsById || {};
@@ -2971,8 +3035,41 @@
       });
     } catch (_) {}
 
-    data.sort((a,b)=>String(a.name).localeCompare(String(b.name), undefined, {sensitivity:'base'}));
+    // ANCHOR: PROPERTY_ROOMTYPE_IDS_SEED
+    // Keep a property-scoped list of room type ids and seed property inclusions once.
+    try {
+      const arr = Array.isArray(data) ? data : [];
+
+      window.__propertyRoomTypeIds = arr
+        .map(r => (r && r.id != null) ? Number(r.id) : null)
+        .filter(x => Number.isFinite(x));
+
+      // Seed inclusions once per page load (null means "not yet seeded")
+      if (window.__propertyInclusionKeys === null) {
+        let seed = [];
+        for (const r of arr) {
+          const k =
+            (r && Array.isArray(r.inclusion_keys) && r.inclusion_keys) ||
+            (r && Array.isArray(r.inclusionKeys) && r.inclusionKeys) ||
+            (r && Array.isArray(r.inclusions) && r.inclusions) ||
+            null;
+          if (k && k.length) { seed = k; break; }
+        }
+        setPropertyInclusionKeys(seed);
+      }
+
+      // Safety net: ensure ALL room types are queued to receive property inclusions
+      if (Array.isArray(window.__propertyInclusionKeys)) {
+        const keys = window.__propertyInclusionKeys.slice();
+        window.__propertyRoomTypeIds.forEach((roomTypeId) => {
+          const prev = pendingRoomUpdates.get(roomTypeId) || {};
+          pendingRoomUpdates.set(roomTypeId, { ...prev, inclusion_keys: keys.slice() });
+        });
+      }
+    } catch(_) {}
+
     if (!Array.isArray(data)) return;
+    data.sort((a,b)=>String(a.name).localeCompare(String(b.name), undefined, {sensitivity:'base'}));
 
     data.forEach(rt=>{
       const div = document.createElement("div");
