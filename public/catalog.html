@@ -736,9 +736,9 @@
 
     /* === ANCHOR: CATALOG_GRID_CARDS ====================================== */
     .grid{
-      display:grid;
-      grid-template-columns:repeat(3, 1fr);
-      gap:20px;
+      display:flex;
+      flex-direction:column;
+      gap:18px;
       margin-top:20px;
     }
 
@@ -945,6 +945,16 @@
       z-index: 5000 !important;
     }
 
+    .btn.btn-outline{
+      border:1px solid rgba(255,106,61,0.75);
+      background:#fff;
+      color:var(--fg);
+      text-decoration:none;
+    }
+    .btn.btn-outline:hover{
+      background:rgba(255,106,61,0.06);
+    }
+
     /* Catalog: standardized "Details" outline button */
     .details-btn{
       display:inline-flex;
@@ -1033,8 +1043,152 @@
       width: 100%;
       max-width: 100%;
     }
+    /* Inclusions */
+    .prop-inclusions{
+      margin: 10px 0 0 0;
+      padding-left: 16px;
+      color: #6b7280;
+      font-size: 13px;
+      line-height: 18px;
+    }
+    .prop-inclusions li{ margin: 2px 0; }
+
+    .prop-inclusions li.more{
+      list-style: none;
+      padding-left: 0;
+      margin-top: 6px;
+    }
+    .prop-inclusions li.more a{
+      color:#ff6a3d;
+      font-weight:600;
+      text-decoration:none;
+    }
+    .prop-inclusions li.more a:hover{
+      text-decoration:underline;
+    }
+
+    /* Row layout */
+    .catalog-row{
+      display:grid;
+      grid-template-columns: 3fr 5fr 2fr; /* A 30%, B 50%, C 20% */
+      gap:16px;
+      padding:16px;
+      border-radius:14px;
+      background:#fff;
+      box-shadow:0 10px 24px rgba(0,0,0,0.06);
+    }
+
+    .catalog-col{ min-width: 0; }
+
+    .catalog-col.a .title{ font-weight:700; font-size:16px; margin-bottom:4px; }
+    .catalog-col.a .meta{ color:#6b7280; font-size:13px; margin-bottom:6px; }
+    .catalog-col.a .chips{ margin-top:10px; }
+    .catalog-col.a{
+      display:flex;
+      flex-direction:column;
+      justify-content:center; /* vertical center */
+    }
+
+    .catalog-col.b{
+      overflow:hidden;
+      display:flex;
+      justify-content:center;
+      align-items:center;
+    }
+
+    .catalog-col.c{
+      display:flex;
+      flex-direction:column;
+      gap:10px;
+      align-items:center;
+      justify-content:center;
+      text-align:center;
+    }
+    .catalog-col.c .price{ font-weight:700; }
+    .catalog-col.c .tiny{ color:#6b7280; font-size:12px; }
+    .select-btn{ min-width:120px; }
+
+    @media (max-width: 900px) {
+      .catalog-row{ grid-template-columns: 1fr; }
+    }
+
+    /* Fan carousel (main centered with left + right previews visible) */
+    /* Fan c/* Image carousel (single centered image) */
+    .fan{
+      position: relative;
+      width: min(560px, 100%);
+      height: 190px;
+      display:flex;
+      align-items:center;
+      justify-content:center;
+    }
+
+    .fan-stack{
+      position: relative;
+      width: 100%;
+      height: 100%;
+      display:block;
+      overflow: hidden;
+    }
+
+    .fan-img{
+      position:absolute;
+      inset:0;
+      width:100%;
+      height:100%;
+      object-fit:cover;
+      border-radius:14px;
+      background:#f3f4f6;
+      transition: opacity .2s ease;
+    }
+
+    /* Only show the active image */
+    .fan-img.fan-0{ opacity:1; z-index:2; }
+    .fan-img.fan-1,
+    .fan-img.fan-2{ opacity:0; z-index:1; }
+
+    /* Arrows */
+    .fan-btn{
+      position:absolute;
+      top:50%;
+      transform: translateY(-50%);
+      width:34px;
+      height:34px;
+      border-radius:999px;
+      border:1px solid rgba(0,0,0,0.12);
+      background: rgba(255,255,255,0.92);
+      cursor:pointer;
+      z-index: 3;
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      font-size:20px;
+      line-height:1;
+    }
+    .fan-btn:hover{ background:#fff; }
+
+    .fan-prev{ left: 10px; }
+    .fan-next{ right: 10px; }
+
+    /* Teaser pill */
+    .fan-tease{
+      position:absolute;
+      right: 10px;
+      bottom: 10px;
+      z-index: 4;
+      padding: 6px 10px;
+      border-radius: 999px;
+      background: rgba(0,0,0,0.55);
+      color:#fff;
+      font-size:12px;
+      line-height:1;
+      backdrop-filter: blur(6px);
+    }
 
   </style>
+
+  <!-- Shared inclusion labels (single source of truth) -->
+  <script src="/js/labels_inclusions.js"></script>
 </head>
 <body>
   <!-- ANCHOR: CATALOG_LOADING_OVERLAY -->
@@ -1630,18 +1784,62 @@
       return "/catalog_details.html?" + params.toString();
     }
 
+    function escapeHTML(s){
+      return String(s ?? "")
+        .replace(/&/g, "&amp;")
+        .replace(/</g, "&lt;")
+        .replace(/>/g, "&gt;")
+        .replace(/"/g, "&quot;")
+        .replace(/'/g, "&#39;");
+    }
+
+    function renderInclusions(p, start, end, limit = 3){
+      const labelsMap = (window.LOLA_INCLUSION_LABELS && typeof window.LOLA_INCLUSION_LABELS === "object")
+        ? window.LOLA_INCLUSION_LABELS
+        : {};
+
+      const keys = Array.isArray(p?.inclusions) ? p.inclusions : [];
+      const uniq = Array.from(new Set(keys.map(k => String(k||"").trim()).filter(Boolean)));
+
+      // Map keys -> labels, drop unknowns
+      const labels = uniq
+        .map(k => labelsMap[k] || null)
+        .filter(Boolean);
+
+      const shown = labels.slice(0, limit);
+      const hasMore = labels.length > limit;
+
+      if (!shown.length) return "";
+
+      const itemsHtml = shown.map(t => `<li>${escapeHTML(t)}</li>`).join("");
+
+      return `
+        <ul class="prop-inclusions">
+          ${itemsHtml}
+          ${hasMore ? `<li class="more"><a href="catalog_details.html?propertyId=${encodeURIComponent(p.propertyId)}&start=${encodeURIComponent(start)}&end=${encodeURIComponent(end)}&guests=${encodeURIComponent(Number(document.getElementById('cat-guests')?.value || 2) || 2)}">More…</a></li>` : ``}
+        </ul>
+      `;
+    }
+
     function cardHTML(p, start, end){
-      // ANCHOR: CARDIMAGE_COVER_PICKER (REPLACE)
-      const imgs = Array.isArray(p.images) ? p.images : [];
-      const firstUrl =
-        typeof imgs[0] === 'string'
-          ? imgs[0]
-          : (imgs[0] && typeof imgs[0] === 'object' && imgs[0].url
-              ? String(imgs[0].url)
-              : '');
-      const baseImg = firstUrl || "https://www.lolaelo.com/logo.png?cb=logo-5x";
-      const img = baseImg + (baseImg.includes("?") ? "&" : "?") + "cb=" + Date.now();
-      // ANCHOR: CARDIMAGE_COVER_PICKER (REPLACE)
+      // Images (support string or {url})
+      const imgsRaw = Array.isArray(p.images) ? p.images : [];
+      const urls = imgsRaw
+        .map(x => (typeof x === "string" ? x : (x && typeof x === "object" && x.url ? String(x.url) : "")))
+        .map(s => String(s || "").trim())
+        .filter(Boolean);
+
+      // fallback only when truly empty
+      const fallback = "https://www.lolaelo.com/logo.png?cb=logo-5x";
+      const imgUrls = urls.length ? urls : [fallback];
+
+      // Use up to 3 stack layers; tease remaining as "+N photos"
+      const stack = imgUrls.slice(0, 3);
+      const extraCount = Math.max(0, imgUrls.length - 3);
+
+      // Cache-bust just the top image to avoid stale cover during rapid searches
+      const topImg = stack[0];
+      const topImgCB = topImg + (topImg.includes("?") ? "&" : "?") + "cb=" + Date.now();
 
       // Chips source: prefer p.chips, fall back to amenities
       const chipsSource =
@@ -1654,55 +1852,68 @@
         .map(label => `<span class="chip">${label}</span>`)
         .join("");
 
-      const price = p.fromPriceStr ? `From ${p.fromPriceStr}` : '';
-
-      const hasRollup =
-        Number.isFinite(p?.availableNights) &&
-        Number.isFinite(p?.nightsTotal);
-
-      const nights = (hasRollup && Number(p.availableNights) < Number(p.nightsTotal))
-        ? `${p.availableNights} nights available`
-        : '';
-
-      const availBadge =
-        hasRollup && Number(p.availableNights) <= 0
-          ? '<span class="chip" title="No rooms available in selected window">sold out</span>'
-          : '';
-
       const link = buildDetailsLink(p);
 
       const locationLabel =
         p.location ||
         [p.city, p.country].filter(Boolean).join(", ");
 
-      return `
-      <article class="card">
-        <a class="img" href="${link}" aria-label="View ${p.name}">
-          <img src="${img}" alt="${p.name}">
-        </a>
-        <div class="body">
-          <div class="name">
-            <div>${p.name}</div>
-            <div class="stars" aria-label="${p.starRating} stars">${stars(p.starRating)}</div>
-          </div>
-          <div class="meta">${locationLabel}</div>
-          <div class="chips">${chipsHtml}${availBadge}</div>
-          <div class="foot">
-            <div class="meta">${nights}</div>
-            <div class="price">${price}</div>
-          </div>
-          <div class="foot">
-            <a
-              class="details-btn catalog-btn-outline catalog-btn-navy"
-              href="${link}"
-            >
-              Details
-            </a>
-          </div>
+      const price = p.fromPriceStr ? `As low as ${p.fromPriceStr}` : "";
 
+      // Column C: small meta line (optional)
+      const hasRollup =
+        Number.isFinite(p?.availableNights) &&
+        Number.isFinite(p?.nightsTotal);
+
+      const nights = (hasRollup && Number(p.availableNights) < Number(p.nightsTotal))
+        ? `${p.availableNights} nights available`
+        : "";
+
+      const availBadge =
+        hasRollup && Number(p.availableNights) <= 0
+          ? '<span class="chip" title="No rooms available in selected window">sold out</span>'
+          : "";
+
+      return `
+      <article class="catalog-row">
+
+        <!-- A (40%) -->
+        <div class="catalog-col a">
+          <div class="title">${escapeHTML(p.name || "")}</div>
+          <div class="meta">${escapeHTML(locationLabel)}</div>
+          ${renderInclusions(p, start, end, 3)}
+          <div class="chips">${chipsHtml || ""}</div>
         </div>
+
+        <!-- B (50%) -->
+        <div class="catalog-col b">
+          <div class="fan" data-link="${link}">
+            <button class="fan-btn fan-prev" type="button" aria-label="Previous photo">‹</button>
+
+            <a class="fan-stack" href="${link}" aria-label="View details for ${escapeHTML(p.name || "property")}">
+              <img class="fan-img fan-0" src="${topImgCB}" alt="${escapeHTML(p.name || "Property")}" loading="lazy" />
+              <img class="fan-img fan-1" src="${stack[1] || topImgCB}" alt="" aria-hidden="true" loading="lazy" />
+              <img class="fan-img fan-2" src="${stack[2] || topImgCB}" alt="" aria-hidden="true" loading="lazy" />
+
+              ${extraCount > 0
+                ? `<div class="fan-tease" aria-hidden="true">+${extraCount} photos</div>`
+                : ``}
+            </a>
+
+            <button class="fan-btn fan-next" type="button" aria-label="Next photo">›</button>
+          </div>
+        </div>
+
+        <!-- C (20%) -->
+        <div class="catalog-col c">
+          <div class="price">${escapeHTML(price)}</div>
+          ${nights ? `<div class="tiny">${escapeHTML(nights)}</div>` : ``}
+          ${availBadge ? `<div class="chips">${availBadge}</div>` : ``}
+          <a class="btn btn-outline select-btn" href="${link}">Explore</a>
+        </div>
+
       </article>
-      `;
+    `;
     }
 
     /* ANCHOR: CATALOG_RUN (REPLACED) */
@@ -1814,12 +2025,19 @@
         // apply sort
         list = applySort(list);
 
+        const totalFound = list.length;
+        const shownMax = 10;
+        const shownList = list.slice(0, shownMax);
+
         found.textContent =
-          `Found ${list.length} propert${list.length === 1 ? "y" : "ies"} — ` +
-          `${list.filter(p => p.availableNights > 0).length} with availability.`;
+          `Found ${totalFound} propert${totalFound === 1 ? "y" : "ies"} — ` +
+          `${list.filter(p => p.availableNights > 0).length} with availability.` +
+          (totalFound > shownMax ? ` Showing first ${shownMax}.` : "");
+
         grid.innerHTML =
-          list.map(p => cardHTML(p, start, end)).join("") ||
+          shownList.map(p => cardHTML(p, start, end)).join("") ||
           "<div>No results.</div>";
+
       }catch(err){
         console.error(err);
         found.textContent = "Search failed.";
@@ -1941,6 +2159,40 @@
     }
 
     run();
+
+    // Fan carousel wiring (delegated)
+    document.addEventListener("click", (e) => {
+      const btn = e.target.closest(".fan-btn");
+      if (!btn) return;
+
+      const fan = btn.closest(".fan");
+      if (!fan) return;
+
+      const stack = fan.querySelector(".fan-stack");
+      if (!stack) return;
+
+      const imgs = Array.from(stack.querySelectorAll("img.fan-img"));
+      if (imgs.length < 2) return;
+
+      e.preventDefault();
+      e.stopPropagation();
+
+      const dir = btn.classList.contains("fan-prev") ? -1 : 1;
+
+      if (dir > 0) {
+        // next: 0<-1, 1<-2, 2<-0
+        const s0 = imgs[0].src;
+        imgs[0].src = imgs[1].src;
+        imgs[1].src = imgs[2].src;
+        imgs[2].src = s0;
+      } else {
+        // prev: 0<-2, 1<-0, 2<-1
+        const s2 = imgs[2].src;
+        imgs[2].src = imgs[1].src;
+        imgs[1].src = imgs[0].src;
+        imgs[0].src = s2;
+      }
+    });
 
     // ANCHOR: CATALOG_DETAILS_NAV_LOADING
     // Show brand loading overlay when navigating to details

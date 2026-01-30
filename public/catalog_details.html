@@ -2077,6 +2077,9 @@
     }
 
   </style>
+
+  <!-- Shared inclusion labels (single source of truth) -->
+  <script src="/js/labels_inclusions.js"></script>
 </head>
 <body>
   <!-- ANCHOR: DETAILS_LOADING_OVERLAY -->
@@ -3427,48 +3430,9 @@
         handicap_accessible:  "Handicap accessible room",
       };
 
-      const INCLUSION_LABELS = {
-        // New inclusions / facilities
-        breakfast_included:    "Breakfast included (no added cost)",
-        kids_free_under12:     "Kids stay free under 12",
-        free_wifi:             "Free Wi-Fi",
-        free_parking:          "Free parking",
-        airport_shuttle:       "Airport shuttle",
-        daily_housekeeping:    "Daily housekeeping",
-
-        facility_pool:         "Swimming pool",
-        facility_gym:          "Gym or fitness center",
-        facility_spa_sauna:    "Spa or sauna",
-        beachfront_access:     "Beachfront or direct beach access",
-        watersports_equipment: "Water sports equipment (kayak / paddleboard / snorkel)",
-
-        frontdesk_24h:         "24-hour front desk",
-        family_friendly:       "Family / child-friendly property",
-        nonsmoking_property:   "Non-smoking property",
-        smoking_area:          "Smoking area",
-        pets_allowed:          "Pets allowed",
-        disabled_facilities:   "Facilities for disabled guests",
-
-        business_center:       "Business center or meeting rooms",
-        shared_kitchen:        "Shared kitchen or guest pantry",
-        laundry:               "Laundry service or self-service laundry",
-        onsite_restaurant:     "On-site restaurant",
-
-        eco_cleaning:          "Eco-cleaning option (reduced housekeeping)",
-        quiet_hours:           "Quiet hours enforced",
-        crib_guaranteed:       "Guaranteed crib or baby cot",
-        flexible_self_checkin: "Flexible self check-in (lockbox / smart lock)",
-
-        // Legacy inclusion flags (kept so old data still renders)
-        breakfast:             "Breakfast included",
-        half_board:            "Half board",
-        full_board:            "Full board",
-        all_inclusive:         "All inclusive",
-        late_checkout:         "Late checkout (subject to availability)",
-        early_checkin:         "Early check-in (subject to availability)",
-        pool_access:           "Pool access",
-        spa_access:            "Spa / wellness access",
-      };
+      const INCLUSION_LABELS = (window.LOLA_INCLUSION_LABELS && typeof window.LOLA_INCLUSION_LABELS === "object")
+        ? window.LOLA_INCLUSION_LABELS
+        : {};
 
       /* ANCHOR: DETAILS_AMENITIES_RENDER (property + room metadata) */
       {
@@ -5554,48 +5518,9 @@
         handicap_accessible:  "Handicap accessible room",
       };
 
-      const INCLUSION_LABELS = {
-        // New inclusions / facilities
-        breakfast_included:    "Breakfast included (no added cost)",
-        kids_free_under12:     "Kids stay free under 12",
-        free_wifi:             "Free Wi-Fi",
-        free_parking:          "Free parking",
-        airport_shuttle:       "Airport shuttle",
-        daily_housekeeping:    "Daily housekeeping",
-
-        facility_pool:         "Swimming pool",
-        facility_gym:          "Gym or fitness center",
-        facility_spa_sauna:    "Spa or sauna",
-        beachfront_access:     "Beachfront or direct beach access",
-        watersports_equipment: "Water sports equipment (kayak / paddleboard / snorkel)",
-
-        frontdesk_24h:         "24-hour front desk",
-        family_friendly:       "Family / child-friendly property",
-        nonsmoking_property:   "Non-smoking property",
-        smoking_area:          "Smoking area",
-        pets_allowed:          "Pets allowed",
-        disabled_facilities:   "Facilities for disabled guests",
-
-        business_center:       "Business center or meeting rooms",
-        shared_kitchen:        "Shared kitchen or guest pantry",
-        laundry:               "Laundry service or self-service laundry",
-        onsite_restaurant:     "On-site restaurant",
-
-        eco_cleaning:          "Eco-cleaning option (reduced housekeeping)",
-        quiet_hours:           "Quiet hours enforced",
-        crib_guaranteed:       "Guaranteed crib or baby cot",
-        flexible_self_checkin: "Flexible self check-in (lockbox / smart lock)",
-
-        // Legacy inclusion flags (kept so old data still renders)
-        breakfast:             "Breakfast included",
-        half_board:            "Half board",
-        full_board:            "Full board",
-        all_inclusive:         "All inclusive",
-        late_checkout:         "Late checkout (subject to availability)",
-        early_checkin:         "Early check-in (subject to availability)",
-        pool_access:           "Pool access",
-        spa_access:            "Spa / wellness access",
-      };
+      const INCLUSION_LABELS = (window.LOLA_INCLUSION_LABELS && typeof window.LOLA_INCLUSION_LABELS === "object")
+        ? window.LOLA_INCLUSION_LABELS
+        : {};
 
       function getModalPlanLabel(id){
         const rid = String(id);

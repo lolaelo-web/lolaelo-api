@@ -203,13 +203,13 @@ import { pool } from "../db/pool.js"; // (kept; may be used elsewhere)
 // ANCHOR: DB_IMPORT_PRISMA
 import { prisma } from "../prisma.js";
 
-/** Returns a map keyed by propertyId with {name, city, country, images[]} */
+/** Returns a map keyed by propertyId with {name, city, country, images[], inclusions[]} */
 export async function getProfilesFromDb(propertyIds: number[]): Promise<Record<number, {
-  name?: string; city?: string; country?: string; images: string[];
+  name?: string; city?: string; country?: string; images: string[]; inclusions: string[];
 }>> {
   if (!Array.isArray(propertyIds) || propertyIds.length === 0) return {};
 
-  const out: Record<number, { name?: string; city?: string; country?: string; images: string[] }> = {};
+  const out: Record<number, { name?: string; city?: string; country?: string; images: string[]; inclusions: string[] }> = {};
 
   // 1) Profiles from extranet.PropertyProfile (keyed by partnerId)
   const profiles = await prisma.propertyProfile.findMany({
@@ -224,6 +224,7 @@ export async function getProfilesFromDb(propertyIds: number[]): Promise<Record<n
       city: p.city ?? undefined,
       country: p.country ?? undefined,
       images: [],
+      inclusions: [],
     };
   }
 
@@ -239,6 +240,47 @@ export async function getProfilesFromDb(propertyIds: number[]): Promise<Record<n
     if (!out[ph.partnerId]) out[ph.partnerId] = { images: [] } as any;
     if (!out[ph.partnerId].images) out[ph.partnerId].images = [];
     if (ph.url) out[ph.partnerId].images.push(ph.url);
+  }
+  // 2) Property inclusions: union RoomType inclusion_keys per partnerId
+  try {
+    const rows = await pool.query(
+      `
+      SELECT
+        "partnerId" AS "propertyId",
+        inclusion_keys
+      FROM extranet."RoomType"
+      WHERE "partnerId" = ANY($1)
+      `,
+      [propertyIds]
+    );
+
+    const byPid = new Map<number, Set<string>>();
+    for (const r of (rows?.rows || [])) {
+      const pid = Number((r as any).propertyId);
+      if (!Number.isFinite(pid)) continue;
+
+      const arr = Array.isArray((r as any).inclusion_keys) ? (r as any).inclusion_keys : [];
+      if (!arr.length) continue;
+
+      let set = byPid.get(pid);
+      if (!set) { set = new Set<string>(); byPid.set(pid, set); }
+
+      for (const k of arr) {
+        const key = String(k || "").trim();
+        if (key) set.add(key);
+      }
+    }
+
+    for (const pid of propertyIds) {
+      if (!out[pid]) out[pid] = { images: [], inclusions: [] } as any;
+      out[pid].inclusions = Array.from(byPid.get(pid) || []);
+    }
+  } catch (_) {
+    // keep stable shape on failure
+    for (const pid of propertyIds) {
+      if (!out[pid]) out[pid] = { images: [], inclusions: [] } as any;
+      if (!Array.isArray(out[pid].inclusions)) out[pid].inclusions = [];
+    }
   }
 
   return out;

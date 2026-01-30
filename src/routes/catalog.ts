@@ -201,6 +201,8 @@ router.get("/search", async (req: Request, res: Response) => {
           (p as any).city    = prof.city    ?? (p as any).city    ?? "";
           (p as any).country = prof.country ?? (p as any).country ?? "";
 
+          (p as any).inclusions = Array.isArray((prof as any).inclusions) ? (prof as any).inclusions : [];
+
           // coordinates + map label from profile (if available)
           const latRaw =
             (prof as any)?.latitude ??
@@ -689,6 +691,8 @@ router.get("/search", async (req: Request, res: Response) => {
     }
 
     // ANCHOR: ROOMS_DB_WIRE_END
+    // ---- 3.5) Property inclusions are sourced from DB profiles (prof.inclusions) ----
+
     // --- Final image backfill: only if no partner photos exist -------------------
     for (const p of props) {
       const imgs = (p as any)?.images;
