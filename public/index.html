@@ -98,23 +98,24 @@
 
     /* Hero */
 
-    .hero {
+    .hero{
       padding: 28px 0 24px;
-      text-align: center; /* centered heading */
+      text-align: center;
     }
 
-    .hero-title {
+    .hero-title{
       font-size: clamp(32px, 4.4vw, 44px);
       line-height: 1.2;
-      margin: 0 0 6px;
+      margin: 0;
       font-weight: 600;
       color: var(--brand);
     }
 
-    .hero-tagline {
-      margin: 0;
-      font-size: 16px;
-      color: var(--muted);
+    .hero-tagline{
+      margin-top: 6px;
+      font-size: 17px;
+      font-weight: 450;
+      color: var(--brand);
     }
 
     /* Search card */
@@ -454,6 +455,23 @@
         content: none !important;
       }
     }
+
+    /* ANCHOR: HERO_TAGLINE_FADE_LR */
+    @keyframes heroTaglineFadeLR {
+      from {
+        opacity: 0;
+        transform: translateX(-10px);
+      }
+      to {
+        opacity: 1;
+        transform: translateX(0);
+      }
+    }
+
+    .hero-tagline{
+      animation: heroTaglineFadeLR 600ms ease-out both;
+    }
+
   </style>
 </head>
 <body>
@@ -479,10 +497,11 @@
     <!-- Hero + search -->
     <main role="main">
       <section class="hero" id="welcome">
-        <h1 class="hero-title" id="welcome-title">Fair travel, built on trust.</h1>
+        <h1 class="hero-title welcome-title">Travel done right.</h1>
 
-        <!-- Keep this element (search/JS may reference it). Hide if empty. -->
-        <p class="hero-tagline" id="welcome-body" style="display:none;"></p>
+        <p class="hero-tagline d-welcome-body">
+          Clear terms for travelers. Fair to partners. No one loses.
+        </p>
 
         <!-- Search card -->
         <div class="search-card-wrap">
@@ -578,10 +597,10 @@
           <div
             class="benefit"
             tabindex="0"
-            data-tooltip="Local experts curate stays and coordinate excursions for a smooth, stress-free trip."
+            data-tooltip="Add-ons at checkout let our hotel partners handle booking and coordination with local vendors, reducing the effort & stress needed to plan and arrange experiences/excursions at these locations."
           >
             <div class="benefit-icon">📍</div>
-            <div class="benefit-title">Local expertise</div>
+            <div class="benefit-title">Local partners</div>
           </div>
           </a>
           <a href="/mission.html" class="benefit-link">
