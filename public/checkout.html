@@ -2812,6 +2812,89 @@
       totalEl.textContent = formatCurrency(grand, currency);
     }
 
+    // === BOOKINGS LIVE SWITCH ===
+    // Flip to true when you are ready to accept real bookings.
+    const BOOKINGS_LIVE = false;
+
+    function showNotLiveModal(){
+      // Remove existing if present
+      const old = document.getElementById("notLiveModalBackdrop");
+      if (old) old.remove();
+
+      const backdrop = document.createElement("div");
+      backdrop.id = "notLiveModalBackdrop";
+      backdrop.style.position = "fixed";
+      backdrop.style.left = "0";
+      backdrop.style.top = "0";
+      backdrop.style.right = "0";
+      backdrop.style.bottom = "0";
+      backdrop.style.background = "rgba(15, 28, 46, 0.35)";
+      backdrop.style.display = "flex";
+      backdrop.style.alignItems = "center";
+      backdrop.style.justifyContent = "center";
+      backdrop.style.zIndex = "9999";
+      backdrop.style.padding = "18px";
+
+      const card = document.createElement("div");
+      card.style.background = "#fff";
+      card.style.border = "1px solid rgba(15, 28, 46, 0.12)";
+      card.style.borderRadius = "16px";
+      card.style.maxWidth = "520px";
+      card.style.width = "100%";
+      card.style.boxShadow = "0 12px 30px rgba(15, 28, 46, 0.18)";
+      card.style.padding = "16px 16px 14px 16px";
+      card.style.fontFamily = "Inter, system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif";
+
+      const title = document.createElement("div");
+      title.textContent = "Thanks for exploring Lolaelo";
+      title.style.fontWeight = "800";
+      title.style.fontSize = "14px";
+      title.style.color = "#0F1C2E";
+
+      const body = document.createElement("div");
+      body.style.marginTop = "8px";
+      body.style.fontSize = "13px";
+      body.style.color = "rgba(15, 28, 46, 0.85)";
+      body.style.lineHeight = "1.45";
+      body.innerHTML =
+        "We are currently building out our hotel inventory and onboarding partners.<br><br>" +
+        "Bookings are not live yet, but we kept the flow fully interactive so you can see how simple and transparent the checkout experience will be once we launch.<br><br>" +
+        "We expect to go live on April 1, 2026. Thanks again for checking out the platform.";
+
+      const actions = document.createElement("div");
+      actions.style.display = "flex";
+      actions.style.gap = "10px";
+      actions.style.justifyContent = "flex-end";
+      actions.style.marginTop = "12px";
+
+      const closeBtn = document.createElement("button");
+      closeBtn.type = "button";
+      closeBtn.textContent = "Close";
+      closeBtn.className = "btn-primary";
+      closeBtn.style.minHeight = "40px";
+      closeBtn.style.padding = "8px 18px";
+      closeBtn.style.borderRadius = "999px";
+      closeBtn.style.fontWeight = "600";
+      closeBtn.style.fontSize = "14px";
+      closeBtn.style.lineHeight = "1";
+
+      function close(){
+        backdrop.remove();
+      }
+
+      backdrop.addEventListener("click", (e) => {
+        if (e.target === backdrop) close();
+      });
+      closeBtn.addEventListener("click", close);
+
+      actions.appendChild(closeBtn);
+      card.appendChild(title);
+      card.appendChild(body);
+      card.appendChild(actions);
+      backdrop.appendChild(card);
+      document.body.appendChild(backdrop);
+    }
+
     const state = {
       propertyId: "",
       roomId: "",
@@ -4430,6 +4513,7 @@
         } else if (errorEl) {
           errorEl.style.display = "none";
         }
+        
       } else if (section === 4) {
         // Terms / Privacy agreement is required before payment
         const checkbox = document.getElementById("termsCheckbox");
@@ -4437,6 +4521,12 @@
         const wrap     = document.querySelector(".payment-agreement");
 
         const isChecked = checkbox && checkbox.checked;
+
+        // Demo mode: prevent payment redirect (Stripe) until bookings are live
+        if (!BOOKINGS_LIVE) {
+          showNotLiveModal();
+          return;
+        }
 
         if (!isChecked) {
           if (errorEl) errorEl.style.display = "block";
@@ -5052,6 +5142,11 @@
       if (confirmAndPayButton) {
         // Original Stripe Checkout handler (kept as-is)
         confirmAndPayButton.addEventListener("click", async function () {
+          if (!BOOKINGS_LIVE) {
+            showNotLiveModal();
+            return;
+          }
+
           if (confirmAndPayButton.disabled) return;
 
           confirmAndPayButton.disabled = true;
