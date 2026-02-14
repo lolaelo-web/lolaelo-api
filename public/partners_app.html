@@ -71,9 +71,68 @@
 
   .top-toast{ position:fixed; top:12px; left:0; right:0; display:flex; justify-content:center; pointer-events:none; z-index:10 }
   .toast{
-    pointer-events:auto; min-width:280px; max-width:520px; background:#0e1830; border:1px solid rgba(255,255,255,.07);
-    padding:10px 12px; border-radius:10px; box-shadow:0 10px 30px rgba(0,0,0,.45); font-size:14px; color:#e8eefc;
+    pointer-events:auto;
+    min-width:280px;
+    max-width:720px;
+    background:#0e1830;
+    border:1px solid rgba(255,255,255,.10);
+    padding:12px 14px;
+    border-radius:12px;
+    box-shadow:0 14px 40px rgba(0,0,0,.55);
+    font-size:14px;
+    color:#e8eefc;
+    font-weight:700;
+    letter-spacing:.2px;
+    display:flex;
+    align-items:center;
+    gap:10px;
   }
+
+  .toast .toast-icon{
+    width:22px;
+    height:22px;
+    border-radius:999px;
+    display:inline-flex;
+    align-items:center;
+    justify-content:center;
+    flex:0 0 auto;
+    font-size:14px;
+    font-weight:900;
+    line-height:1;
+  }
+
+  .toast.toast-ok{
+    border-color: rgba(43,187,111,.55);
+    box-shadow: 0 16px 46px rgba(43,187,111,.14), 0 14px 40px rgba(0,0,0,.55);
+  }
+
+  .toast.toast-ok .toast-icon{
+    background: rgba(43,187,111,.18);
+    border: 1px solid rgba(43,187,111,.55);
+    color:#67e28f;
+  }
+
+  .toast.toast-err{
+    background: rgba(255,106,61,.12);
+    border-color: rgba(255,106,61,.70);
+    box-shadow: 0 18px 56px rgba(255,106,61,.18), 0 14px 40px rgba(0,0,0,.55);
+  }
+
+  .toast.toast-err .toast-icon{
+    background: rgba(255,106,61,.22);
+    border: 1px solid rgba(255,106,61,.75);
+    color:#ffb59f;
+  }
+
+  @keyframes toastPop {
+    0% { transform: translateY(-8px); opacity: 0; }
+    100% { transform: translateY(0); opacity: 1; }
+  }
+
+  .toast{
+    animation: toastPop .14s ease-out;
+  }
+
   .hidden{ display:none }
 
   /* Photos grid */
@@ -630,14 +689,19 @@
     // --- Toast/DOM helpers ----------------------------------------------------
     const $ = (id) => document.getElementById(id);
     const toastBox = $('toast');
+
     function toast(html, ok=false){
-      toastBox.innerHTML = html;
-      toastBox.style.borderColor = ok ? '#2bbb6f' : 'rgba(255,255,255,.07)';
-      toastBox.style.color = ok ? '#bff7d2' : '#e8eefc';
-      toastBox.classList.remove('hidden');
+      // reset state
+      toastBox.classList.remove('toast-ok','toast-err','hidden');
+      toastBox.classList.add(ok ? 'toast-ok' : 'toast-err');
+
+      const icon = ok ? '✓' : '!';
+      toastBox.innerHTML = `<span class="toast-icon" aria-hidden="true">${icon}</span><span>${html}</span>`;
+
       clearTimeout(window.__t);
-      window.__t = setTimeout(()=>toastBox.classList.add('hidden'), 4000);
+      window.__t = setTimeout(()=>toastBox.classList.add('hidden'), ok ? 3000 : 6500);
     }
+
     function show(id){ $(id).classList.remove('hidden'); }
     function hide(id){ $(id).classList.add('hidden'); }
 
