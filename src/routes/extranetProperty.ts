@@ -732,9 +732,9 @@ r.put("/addons", async (req, res) => {
     await pool.query("BEGIN");
     console.log(`[${__reqId}] BEGIN ok`);
 
-    // Wipe existing add-ons for this partner
+    // Deactivate existing add-ons (do NOT delete: bookings may reference them)
     await pool.query(
-      `DELETE FROM ${TBL_ADDON} WHERE "partnerId" = $1`,
+      `UPDATE ${TBL_ADDON} SET "active" = false, "updatedAt" = NOW() WHERE "partnerId" = $1`,
       [partnerId]
     );
     console.log(`[${__reqId}] DELETE ok`);
