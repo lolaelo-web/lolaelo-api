@@ -682,6 +682,9 @@ r.put("/addons", async (req, res) => {
       const price =
         Number.isFinite(priceNum) && priceNum >= 0 ? priceNum : null;
 
+      // If an activity is provided, price must be provided
+      if (price == null) return null;
+
       return {
         activity,
         uom: uom || null,
@@ -697,6 +700,26 @@ r.put("/addons", async (req, res) => {
       notes: string | null;
       sortOrder: number;
     }[];
+
+    // Validate required fields before touching DB
+    const invalid = (items || [])
+      .map((raw: any, idx: number) => {
+        const activity = String(raw?.activity ?? "").trim();
+        if (!activity) return null;
+
+        const priceNum = typeof raw?.price === "number" ? raw.price : Number(raw?.price ?? NaN);
+        const priceOk = Number.isFinite(priceNum) && priceNum >= 0;
+
+        if (!priceOk) {
+          return { idx, field: "price", message: "Price is required when activity is set." };
+        }
+        return null;
+      })
+      .filter(Boolean);
+
+    if (invalid.length) {
+      return res.status(400).json({ error: "Invalid add-ons payload", invalid });
+    }
 
   try {
     await pool.query("BEGIN");
