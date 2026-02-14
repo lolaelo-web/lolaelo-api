@@ -661,6 +661,10 @@ r.get("/addons", async (req, res) => {
  * Body: { items: [{ activity, uom, price, notes }] }
  */
 r.put("/addons", async (req, res) => {
+  const __reqId = `addons_put_${Date.now()}_${Math.random().toString(16).slice(2)}`;
+  console.log(`[${__reqId}] /extranet/property/addons PUT start`);
+  console.log(`[${__reqId}] auth header present:`, !!req.headers.authorization);
+
   const partnerId = (req as any)?.partner?.id;
   if (!partnerId) return res.status(401).json({ error: "unauthorized" });
 
@@ -720,18 +724,24 @@ r.put("/addons", async (req, res) => {
     if (invalid.length) {
       return res.status(400).json({ error: "Invalid add-ons payload", invalid });
     }
+    console.log(`[${__reqId}] payload ok. items=${(items || []).length} cleaned=${(cleaned || []).length}`);
+    console.log(`[${__reqId}] cleaned sample=`, cleaned && cleaned.length ? cleaned[0] : null);
 
   try {
+    console.log(`[${__reqId}] BEGIN`);
     await pool.query("BEGIN");
+    console.log(`[${__reqId}] BEGIN ok`);
 
     // Wipe existing add-ons for this partner
     await pool.query(
       `DELETE FROM ${TBL_ADDON} WHERE "partnerId" = $1`,
       [partnerId]
     );
+    console.log(`[${__reqId}] DELETE ok`);
 
     // Insert new set (if any)
     for (const row of cleaned) {
+    console.log(`[${__reqId}] inserting row`, row);
       await pool.query(
         `INSERT INTO ${TBL_ADDON}
            ("partnerId","activity","uom","price","notes",
@@ -746,9 +756,11 @@ r.put("/addons", async (req, res) => {
           row.sortOrder,
         ]
       );
+      console.log(`[${__reqId}] insert ok`);
     }
 
     await pool.query("COMMIT");
+    console.log(`[${__reqId}] COMMIT ok`);
 
     // Return fresh list
     const { rows } = await pool.query(
@@ -761,10 +773,10 @@ r.put("/addons", async (req, res) => {
     );
 
     return res.json(rows);
-  } catch (e) {
-    await pool.query("ROLLBACK").catch(() => {});
-    console.error("[addons:put] db error", e);
-    return res.status(500).json({ error: "Add-ons save failed" });
+  } catch (err: any) {
+    console.error(`[${__reqId}] FAILED`, err);
+    try { await pool.query("ROLLBACK"); console.log(`[${__reqId}] ROLLBACK ok`); } catch (e) { console.error(`[${__reqId}] ROLLBACK failed`, e); }
+    return res.status(500).json({ error: "Add-ons save failed", reqId: __reqId });
   }
 });
 
