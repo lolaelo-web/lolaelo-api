@@ -277,6 +277,25 @@ transform: translateY(-1px);
 </body>
 
 <script>
+(function () {
+  try {
+    const h = new URLSearchParams(location.hash.slice(1));
+    const q = new URLSearchParams(location.search.slice(1));
+    const t = h.get('token') || q.get('token');
+    if (t) {
+      localStorage.setItem('partnerToken', t);
+      localStorage.setItem('lolaelo_session', t);
+      // remove token from URL
+      history.replaceState(null, '', location.pathname + location.search);
+      console.log('[photos] token captured early');
+    }
+  } catch (e) {
+    console.warn('[photos] early token capture err', e);
+  }
+})();
+</script>
+
+<script>
 const BASE = 'https://lolaelo-api.onrender.com';
 const ALLOWED_CT = new Set(['image/jpeg','image/png','image/webp']);
 
