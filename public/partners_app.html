@@ -1478,6 +1478,8 @@
     }).filter(Boolean);
 
     (async () => {
+      let shouldClose = true;
+
       try {
         const r = await authed('/extranet/property/addons', {
           method: 'PUT',
@@ -1488,16 +1490,37 @@
         if (!r.ok) {
           const txt = await r.text().catch(() => '');
           console.error('[addons] save failed', r.status, txt);
-          toast('Could not save add-ons. Please try again.', false);
-        } else {
-          toast('Add-ons saved.', true);
+
+          // Try to surface backend validation cleanly
+          let msg = 'Could not save add-ons. Please try again.';
+          try {
+            const j = JSON.parse(txt || '{}');
+            if (j?.invalid?.length) {
+              const first = j.invalid[0]; // { idx, field, message }
+              msg = first?.message || msg;
+            } else if (j?.error) {
+              msg = j.error;
+            }
+          } catch {}
+
+          toast(msg, false);
+
+          // Keep modal open so user can fix it
+          shouldClose = false;
+          return;
         }
+
+        toast('Add-ons saved.', true);
       } catch (err) {
         console.error('[addons] save error', err);
         toast('Could not save add-ons. Please try again.', false);
+
+        // Keep modal open on network errors too
+        shouldClose = false;
+        return;
       } finally {
         updateAddonsButtonLabel();
-        closeAddonsModal();
+        if (shouldClose) closeAddonsModal();
       }
     })();
   }
