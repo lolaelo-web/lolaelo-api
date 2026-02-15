@@ -131,22 +131,47 @@ r.post("/", async (req, res) => {
         activeVal,
       ]
     );
-    // ensure a default 'Standard' rate plan exists for this new room
+    // ensure default rate plans exist for this new room (STD + BRKF + NRF)
     const newRoomId = Number(rows[0]?.id);
     if (Number.isFinite(newRoomId)) {
-      const rpCheck = await client.query(
-        `SELECT 1 FROM ${T.ratePlans} WHERE "roomTypeId" = $1 LIMIT 1`,
-        [newRoomId]
+      // STD
+      await client.query(
+        `
+        INSERT INTO ${T.ratePlans}
+          ("partnerId","roomTypeId","name","code","active","isDefault","kind","value","createdAt","updatedAt")
+        SELECT $1,$2,'Standard','STD',true,true,'NONE',0,NOW(),NOW()
+        WHERE NOT EXISTS (
+          SELECT 1 FROM ${T.ratePlans} WHERE "roomTypeId"=$2 AND "code"='STD'
+        )
+        `,
+        [partnerId, newRoomId]
       );
-      if (rpCheck.rowCount === 0) {
-        await client.query(
-          `INSERT INTO ${T.ratePlans}
-            ("partnerId","roomTypeId","name","code","active","isDefault","createdAt","updatedAt")
-          VALUES
-            ($1,$2,$3,$4,true,true,NOW(),NOW())`,
-          [partnerId, newRoomId, "Standard", "STD"]
-        );
-      }
+
+      // BRKF (default rule: -$15 from Standard)
+      await client.query(
+        `
+        INSERT INTO ${T.ratePlans}
+          ("partnerId","roomTypeId","name","code","active","isDefault","kind","value","createdAt","updatedAt")
+        SELECT $1,$2,'Breakfast','BRKF',true,false,'ABSOLUTE',-15,NOW(),NOW()
+        WHERE NOT EXISTS (
+          SELECT 1 FROM ${T.ratePlans} WHERE "roomTypeId"=$2 AND "code"='BRKF'
+        )
+        `,
+        [partnerId, newRoomId]
+      );
+
+      // NRF (default rule: -10% from Standard)
+      await client.query(
+        `
+        INSERT INTO ${T.ratePlans}
+          ("partnerId","roomTypeId","name","code","active","isDefault","kind","value","createdAt","updatedAt")
+        SELECT $1,$2,'Non-Refundable','NRF',true,false,'PERCENT',-10,NOW(),NOW()
+        WHERE NOT EXISTS (
+          SELECT 1 FROM ${T.ratePlans} WHERE "roomTypeId"=$2 AND "code"='NRF'
+        )
+        `,
+        [partnerId, newRoomId]
+      );
     }
 
     await client.query("COMMIT");
